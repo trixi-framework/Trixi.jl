@@ -1,4 +1,5 @@
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 surface_flux = FluxLaxFriedrichs()
 volume_flux = flux_ranocha
@@ -24,14 +25,16 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+save_solution = SaveSolutionCallback(interval = 100,
+                                     solution_variables = cons2prim)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        alive_callback)
+                        alive_callback, save_solution)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 0.5 * estimate_dt(mesh, dg), save_everystep = false, callback = callbacks);
-
-summary_callback() # print the timer summary
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 0.5 * estimate_dt(mesh, dg),
+            ode_default_options()...,
+            callback = callbacks);

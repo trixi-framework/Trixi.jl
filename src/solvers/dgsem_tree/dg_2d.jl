@@ -90,7 +90,7 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}},
+                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                       equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
@@ -111,7 +111,8 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
+              mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+              equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
@@ -126,8 +127,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
@@ -182,7 +182,8 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                            StructuredMeshView{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, T8codeMesh{2}},
+                                           P4estMesh{2}, P4estMeshView{2},
+                                           T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -539,8 +540,7 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
+function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations, dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -762,7 +762,6 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                           nonconservative_terms::True, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
 
     @threaded for boundary in first_boundary:last_boundary
@@ -778,12 +777,10 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                 u_inner = u_rr
             end
             x = get_node_coords(node_coordinates, equations, dg, i, boundary)
-            flux = boundary_condition(u_inner, orientations[boundary], direction, x, t,
-                                      surface_flux,
-                                      equations)
-            noncons_flux = boundary_condition(u_inner, orientations[boundary],
-                                              direction, x, t, nonconservative_flux,
-                                              equations)
+            flux, noncons_flux = boundary_condition(u_inner, orientations[boundary],
+                                                    direction, x, t,
+                                                    surface_integral.surface_flux,
+                                                    equations)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
@@ -1118,7 +1115,7 @@ end
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
     #               mortar_l2.reverse_upper, fstar_upper[v, :])
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
-    #               mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
+    #               mortar_l2.reverse_lower, fstar_lower[v, :], true, true)
     # end
     # The code above could be replaced by the following code. However, the relative efficiency
     # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.

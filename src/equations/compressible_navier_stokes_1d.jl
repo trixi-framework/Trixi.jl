@@ -17,7 +17,8 @@ the [`CompressibleEulerEquations1D`](@ref).
 - `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
 - `gradient_variables`: which variables the gradients are taken with respect to.
-                        Defaults to `GradientVariablesPrimitive()`.
+                        Defaults to [`GradientVariablesPrimitive()`](@ref).
+                        For an entropy stable formulation, use [`GradientVariablesEntropy()`](@ref).
 
 Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
 [``\mu``] = kg m⁻¹ s⁻¹.
@@ -286,7 +287,6 @@ end
                                                                                       t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
-    # rho, v1, v2, _ = u_inner
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)

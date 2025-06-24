@@ -14,11 +14,29 @@
                              timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
 Set up parameters for the gravitational part of a [`SemidiscretizationEulerGravity`](@ref).
+
+# Arguments
+- `background_density<:Real`: Constant background/reference density ρ₀ which is subtracted from the (Euler) density
+                              in the RHS source term computation of the gravity solver.
+- `gravitational_constant<:Real`: Gravitational constant G which needs to be in consistent units with the
+                                  density and velocity fields. 
+- `cfl<:Real`: CFL number used for the pseudo-time stepping to advance the hyperbolic diffusion equations into steady state.
+- `resid_tol<:Real`: Absolute tolerance for the residual of the hyperbolic diffusion equations which are solved to 
+                     (approximately) steady state.
+- `n_iterations_max::Int`: Maximum number of iterations of the pseudo-time gravity solver. 
+                           If `n_iterations <= 0` the solver will iterate until the residual is less or equal `resid_tol`. 
+                           This can cause an infinite loop if the solver does not converge!
+- `timestep_gravity`: Function to advance the gravity solver by one pseudo-time step.
+                      There are three optimized methods available: 
+                      1) `timestep_gravity_erk51_3Sstar!` (first-order),
+                      2) `timestep_gravity_erk52_3Sstar!` (second-order),
+                      3) `timestep_gravity_erk53_3Sstar!` (third-order).
+                      Additionally, `timestep_gravity_carpenter_kennedy_erk54_2N!` (fourth-order) can be used.
 """
 struct ParametersEulerGravity{RealT <: Real, TimestepGravity}
     background_density     :: RealT # aka rho0
     gravitational_constant :: RealT # aka G
-    cfl                    :: RealT
+    cfl                    :: RealT # CFL number for the gravity solver
     resid_tol              :: RealT # Hyp.-Diff. Eq. steady state tolerance
     n_iterations_max       :: Int   # Max. number of iterations of the pseudo-time gravity solver
     timestep_gravity       :: TimestepGravity
@@ -71,7 +89,7 @@ end
 A struct containing everything needed to describe a spatial semidiscretization
 of a the compressible Euler equations with self-gravity, reformulating the
 Poisson equation for the gravitational potential as steady-state problem of
-the hyperblic diffusion equations.
+the hyperbolic diffusion equations.
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
   "A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics"
   [arXiv: 2008.10593](https://arXiv.org/abs/2008.10593)
@@ -227,6 +245,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     u_euler = wrap_array(u_ode, semi_euler)
     du_euler = wrap_array(du_ode, semi_euler)
     u_gravity = wrap_array(cache.u_ode, semi_gravity)
+    n_elements = size(u_euler)[end]
 
     time_start = time_ns()
 
@@ -238,20 +257,38 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
 
     # add gravitational source source_terms to the Euler part
     if ndims(semi_euler) == 1
-        @views @. du_euler[2, .., :] -= u_euler[1, .., :] * u_gravity[2, .., :]
-        @views @. du_euler[3, .., :] -= u_euler[2, .., :] * u_gravity[2, .., :]
+        @threaded for element in 1:n_elements
+            @views @. du_euler[2, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[2, .., element]
+            @views @. du_euler[3, .., element] -= u_euler[2, .., element] *
+                                                  u_gravity[2, .., element]
+        end
     elseif ndims(semi_euler) == 2
-        @views @. du_euler[2, .., :] -= u_euler[1, .., :] * u_gravity[2, .., :]
-        @views @. du_euler[3, .., :] -= u_euler[1, .., :] * u_gravity[3, .., :]
-        @views @. du_euler[4, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
-                                         u_euler[3, .., :] * u_gravity[3, .., :])
+        @threaded for element in 1:n_elements
+            @views @. du_euler[2, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[2, .., element]
+            @views @. du_euler[3, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[3, .., element]
+            @views @. du_euler[4, .., element] -= (u_euler[2, .., element] *
+                                                   u_gravity[2, .., element] +
+                                                   u_euler[3, .., element] *
+                                                   u_gravity[3, .., element])
+        end
     elseif ndims(semi_euler) == 3
-        @views @. du_euler[2, .., :] -= u_euler[1, .., :] * u_gravity[2, .., :]
-        @views @. du_euler[3, .., :] -= u_euler[1, .., :] * u_gravity[3, .., :]
-        @views @. du_euler[4, .., :] -= u_euler[1, .., :] * u_gravity[4, .., :]
-        @views @. du_euler[5, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
-                                         u_euler[3, .., :] * u_gravity[3, .., :] +
-                                         u_euler[4, .., :] * u_gravity[4, .., :])
+        @threaded for element in 1:n_elements
+            @views @. du_euler[2, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[2, .., element]
+            @views @. du_euler[3, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[3, .., element]
+            @views @. du_euler[4, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[4, .., element]
+            @views @. du_euler[5, .., element] -= (u_euler[2, .., element] *
+                                                   u_gravity[2, .., element] +
+                                                   u_euler[3, .., element] *
+                                                   u_gravity[3, .., element] +
+                                                   u_euler[4, .., element] *
+                                                   u_gravity[4, .., element])
+        end
     else
         error("Number of dimensions $(ndims(semi_euler)) not supported.")
     end
@@ -265,11 +302,6 @@ end
 # TODO: Taal refactor, add some callbacks or so within the gravity update to allow investigating/optimizing it
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
     @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
-
-    # Can be changed by AMR
-    resize!(cache.du_ode, length(cache.u_ode))
-    resize!(cache.u_tmp1_ode, length(cache.u_ode))
-    resize!(cache.u_tmp2_ode, length(cache.u_ode))
 
     u_euler = wrap_array(u_ode, semi_euler)
     u_gravity = wrap_array(cache.u_ode, semi_gravity)
@@ -328,8 +360,11 @@ function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
 
     # Note that `u_ode` is `u_gravity` in `rhs!` above
     @unpack u_ode, du_ode, u_tmp1_ode = cache
+    n_elements = size(u_euler)[end]
+
     u_tmp1_ode .= zero(eltype(u_tmp1_ode))
     du_gravity = wrap_array(du_ode, semi_gravity)
+
     for stage in eachindex(c)
         tau_stage = tau + dtau * c[stage]
 
@@ -342,7 +377,10 @@ function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 (spatial mean value)
         # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
-        @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+        @threaded for element in 1:n_elements
+            @views @. du_gravity[1, .., element] += grav_scale *
+                                                    (u_euler[1, .., element] - rho0)
+        end
 
         a_stage = a[stage]
         b_stage_dtau = b[stage] * dtau
@@ -360,15 +398,21 @@ end
 function timestep_gravity_carpenter_kennedy_erk54_2N!(cache, u_euler, tau, dtau,
                                                       gravity_parameters, semi_gravity)
     # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
-    a = SVector(0.0, 567301805773.0 / 1357537059087.0,
+    a = SVector(0.0,
+                567301805773.0 / 1357537059087.0,
                 2404267990393.0 / 2016746695238.0,
-                3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0)
-    b = SVector(1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
-                1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
+                3550918686646.0 / 2091501179385.0,
+                1275806237668.0 / 842570457699.0)
+    b = SVector(1432997174477.0 / 9575080441755.0,
+                5161836677717.0 / 13612068292357.0,
+                1720146321549.0 / 2090206949498.0,
+                3134564353537.0 / 4481467310338.0,
                 2277821191437.0 / 14882151754819.0)
-    c = SVector(0.0, 1432997174477.0 / 9575080441755.0,
+    c = SVector(0.0,
+                1432997174477.0 / 9575080441755.0,
                 2526269341429.0 / 6820363962896.0,
-                2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0)
+                2006345519317.0 / 3224310063776.0,
+                2802321613138.0 / 2924317926251.0)
 
     timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters, semi_gravity,
                          a, b, c)
@@ -384,9 +428,12 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
 
     # Note that `u_ode` is `u_gravity` in `rhs!` above
     @unpack u_ode, du_ode, u_tmp1_ode, u_tmp2_ode = cache
+    n_elements = size(u_euler)[end]
+
     u_tmp1_ode .= zero(eltype(u_tmp1_ode))
     u_tmp2_ode .= u_ode
     du_gravity = wrap_array(du_ode, semi_gravity)
+
     for stage in eachindex(c)
         tau_stage = tau + dtau * c[stage]
 
@@ -399,7 +446,10 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
         # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
-        @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+        @threaded for element in 1:n_elements
+            @views @. du_gravity[1, .., element] += grav_scale *
+                                                    (u_euler[1, .., element] - rho0)
+        end
 
         delta_stage = delta[stage]
         gamma1_stage = gamma1[stage]
@@ -544,7 +594,17 @@ end
                                              t, iter; kwargs...)
     passive_args = ((semi.cache.u_ode,
                      mesh_equations_solver_cache(semi.semi_gravity)...),)
-    amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)..., semi, t, iter;
-                 kwargs..., passive_args = passive_args)
+    has_changed = amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)...,
+                               semi, t, iter;
+                               kwargs..., passive_args = passive_args)
+
+    if has_changed
+        new_length = length(semi.cache.u_ode)
+        resize!(semi.cache.du_ode, new_length)
+        resize!(semi.cache.u_tmp1_ode, new_length)
+        resize!(semi.cache.u_tmp2_ode, new_length)
+    end
+
+    return has_changed
 end
 end # @muladd

@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # This is a DGMulti version of the UnstructuredMesh2D elixir `elixir_euler_basic.jl`,
@@ -54,9 +53,12 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        alive_callback)
+                        alive_callback, save_solution)
 
 ###############################################################################
 # run the simulation
@@ -64,5 +66,3 @@ callbacks = CallbackSet(summary_callback,
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             dt = time_int_tol, ode_default_options()..., callback = callbacks)
-
-summary_callback() # print the timer summary

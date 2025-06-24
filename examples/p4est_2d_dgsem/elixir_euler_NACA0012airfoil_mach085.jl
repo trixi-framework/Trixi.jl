@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -86,12 +85,14 @@ l_inf = 1.0 # Length of airfoil
 
 force_boundary_names = (:AirfoilBottom, :AirfoilTop)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
-                                           DragCoefficientPressure(aoa(), rho_inf(),
-                                                                   u_inf(equations), l_inf))
+                                           DragCoefficientPressure2D(aoa(), rho_inf(),
+                                                                     u_inf(equations),
+                                                                     l_inf))
 
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
-                                           LiftCoefficientPressure(aoa(), rho_inf(),
-                                                                   u_inf(equations), l_inf))
+                                           LiftCoefficientPressure2D(aoa(), rho_inf(),
+                                                                     u_inf(equations),
+                                                                     l_inf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -126,7 +127,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK54(thread = OrdinaryDiffEq.True()),
+sol = solve(ode, SSPRK54(thread = Trixi.True());
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

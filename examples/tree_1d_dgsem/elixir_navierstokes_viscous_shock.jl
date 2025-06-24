@@ -1,7 +1,7 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-# This is the classic 1D viscous shock wave problem with analytical solution 
+# This is the classic 1D viscous shock wave problem with analytical solution
 # for a special value of the Prandtl number.
 # The original references are:
 #
@@ -16,13 +16,13 @@ using Trixi
 #   https://ntrs.nasa.gov/api/citations/19930090863/downloads/19930090863.pdf
 #
 # - M. Morduchow, P. A. Libby (1949)
-#   On a Complete Solution of the One-Dimensional Flow Equations 
+#   On a Complete Solution of the One-Dimensional Flow Equations
 #   of a Viscous, Head-Conducting, Compressible Gas
 #   [DOI: 10.2514/8.11882](https://doi.org/10.2514/8.11882)
 #
 #
 # The particular problem considered here is described in
-# - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017) 
+# - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017)
 #   Entropy in self-similar shock profiles
 #   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 
@@ -58,7 +58,7 @@ l() = mu_bar() / (rho_0() * v()) * 2 * gamma() / (gamma() + 1) # Appropriate len
 """
     initial_condition_viscous_shock(x, t, equations)
 
-Classic 1D viscous shock wave problem with analytical solution 
+Classic 1D viscous shock wave problem with analytical solution
 for a special value of the Prandtl number.
 The version implemented here is described in
 - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017)
@@ -145,6 +145,12 @@ boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, he
 boundary_conditions_parabolic = (; x_neg = boundary_condition_parabolic,
                                  x_pos = boundary_condition_parabolic)
 
+# We use by default the Bassi-Rebay 1 scheme.
+# Since this is a diffusion-dominated problem, using the LDG scheme should achieve optimal rates of convergence. 
+# In contrast, BR-1 may achieve suboptimal rates of convergence in diffusion-dominated regimes. 
+# The LDG scheme can be used by specifying the keyword
+# solver_parabolic = ViscousFormulationLocalDG()
+# in the semidiscretization call below.
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
                                              boundary_conditions = (boundary_conditions,
@@ -172,5 +178,3 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             dt = 1e-3, ode_default_options()..., callback = callbacks)
-
-summary_callback() # print the timer summary

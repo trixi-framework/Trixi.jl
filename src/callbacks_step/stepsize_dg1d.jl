@@ -11,7 +11,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    for element in eachelement(dg, cache)
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda1 = zero(max_scaled_speed)
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, element)
@@ -31,7 +31,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    for element in eachelement(dg, cache)
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda1, = max_abs_speeds(equations)
         inv_jacobian = cache.elements.inverse_jacobian[element]
         max_scaled_speed = max(max_scaled_speed, inv_jacobian * max_lambda1)
@@ -46,7 +46,7 @@ function max_dt(u, t, mesh::StructuredMesh{1},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    for element in eachelement(dg, cache)
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda1 = zero(max_scaled_speed)
 
         for i in eachnode(dg)
@@ -70,7 +70,7 @@ function max_dt(u, t, mesh::StructuredMesh{1},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    for element in eachelement(dg, cache)
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda1, = max_abs_speeds(equations)
 
         for i in eachnode(dg)

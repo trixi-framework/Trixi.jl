@@ -90,7 +90,7 @@ The corresponding opposite directions are:
 
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
-   nearly incompressible flows**, J Comput Phys 230(1), 2011
+   nearly incompressible flows**, Journal of Computational Physics 230(1), 2011
    [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
 2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
    (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
@@ -223,10 +223,7 @@ function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D
     return equilibrium_distribution(rho, v1, v2, v3, equations)
 end
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::LatticeBoltzmannEquations3D)
-
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations3D)
     if orientation == 1 # x-direction
         v_alpha = equations.v_alpha1
@@ -238,11 +235,12 @@ end
     return v_alpha .* u
 end
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-# @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::LatticeBoltzmannEquations3D)
-#   λ_max =
-# end
+"""
+    flux_godunov(u_ll, u_rr, orientation, 
+                 equations::LatticeBoltzmannEquations3D)
 
+Godunov (upwind) flux for the 3D Lattice-Boltzmann equations.
+"""
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer,
                               equations::LatticeBoltzmannEquations3D)
     if orientation == 1 # x-direction

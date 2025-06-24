@@ -1,4 +1,5 @@
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = SBP(),
              surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
@@ -43,14 +44,14 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        alive_callback)
+                        alive_callback, save_solution)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = estimate_dt(mesh, dg), save_everystep = false, callback = callbacks);
-
-summary_callback() # print the timer summary
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = estimate_dt(mesh, dg), ode_default_options()..., callback = callbacks);

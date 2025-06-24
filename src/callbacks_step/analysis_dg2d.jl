@@ -30,7 +30,9 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{2},
 end
 
 # Specialized cache for P4estMesh to allow for different ambient dimension from mesh dimension
-function create_cache_analysis(analyzer, mesh::P4estMesh{2, NDIMS_AMBIENT},
+function create_cache_analysis(analyzer,
+                               mesh::Union{P4estMesh{2, NDIMS_AMBIENT},
+                                           P4estMeshView{2, NDIMS_AMBIENT}},
                                equations, dg::DG, cache,
                                RealT, uEltype) where {NDIMS_AMBIENT}
 
@@ -138,7 +140,9 @@ end
 
 function calc_error_norms(func, u, t, analyzer,
                           mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                      UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                                      UnstructuredMesh2D,
+                                      P4estMesh{2}, P4estMeshView{2},
+                                      T8codeMesh{2}},
                           equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
@@ -190,7 +194,7 @@ function integrate_via_indices(func::Func, u,
     integral = zero(func(u, 1, 1, 1, equations, dg, args...))
 
     # Use quadrature to numerically integrate over entire domain
-    for element in eachelement(dg, cache)
+    @batch reduction=(+, integral) for element in eachelement(dg, cache)
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
         for j in eachnode(dg), i in eachnode(dg)
             integral += volume_jacobian_ * weights[i] * weights[j] *
@@ -219,7 +223,8 @@ function integrate_via_indices(func::Func, u,
     total_volume = zero(real(mesh))
 
     # Use quadrature to numerically integrate over entire domain
-    for element in eachelement(dg, cache)
+    @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
+                                                                                   cache)
         for j in eachnode(dg), i in eachnode(dg)
             volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
             integral += volume_jacobian * weights[i] * weights[j] *
@@ -238,7 +243,8 @@ end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
-                               UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                               UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
+                               T8codeMesh{2}},
                    equations, dg::DG, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, element, equations, dg
@@ -286,8 +292,11 @@ function analyze(::Val{:l2_divb}, du, u, t,
                                                          dg, cache, derivative_matrix
         divb = zero(eltype(u))
         for k in eachnode(dg)
-            B1_kj, _, _ = magnetic_field(u[:, k, j, element], equations)
-            _, B2_ik, _ = magnetic_field(u[:, i, k, element], equations)
+            u_kj = get_node_vars(u, equations, dg, k, j, element)
+            u_ik = get_node_vars(u, equations, dg, i, k, element)
+
+            B1_kj, _, _ = magnetic_field(u_kj, equations)
+            _, B2_ik, _ = magnetic_field(u_ik, equations)
 
             divb += (derivative_matrix[i, k] * B1_kj +
                      derivative_matrix[j, k] * B2_ik)
@@ -311,8 +320,11 @@ function analyze(::Val{:l2_divb}, du, u, t,
         Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         # Compute the transformed divergence
         for k in eachnode(dg)
-            B1_kj, B2_kj, _ = magnetic_field(u[:, k, j, element], equations)
-            B1_ik, B2_ik, _ = magnetic_field(u[:, i, k, element], equations)
+            u_kj = get_node_vars(u, equations, dg, k, j, element)
+            u_ik = get_node_vars(u, equations, dg, i, k, element)
+
+            B1_kj, B2_kj, _ = magnetic_field(u_kj, equations)
+            B1_ik, B2_ik, _ = magnetic_field(u_ik, equations)
 
             divb += (derivative_matrix[i, k] *
                      (Ja11 * B1_kj + Ja12 * B2_kj) +
@@ -331,12 +343,15 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
     # integrate over all elements to get the divergence-free condition errors
     linf_divb = zero(eltype(u))
-    for element in eachelement(dg, cache)
+    @batch reduction=(max, linf_divb) for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             for k in eachnode(dg)
-                B1_kj, _, _ = magnetic_field(u[:, k, j, element], equations)
-                _, B2_ik, _ = magnetic_field(u[:, i, k, element], equations)
+                u_kj = get_node_vars(u, equations, dg, k, j, element)
+                u_ik = get_node_vars(u, equations, dg, i, k, element)
+
+                B1_kj, _, _ = magnetic_field(u_kj, equations)
+                _, B2_ik, _ = magnetic_field(u_ik, equations)
 
                 divb += (derivative_matrix[i, k] * B1_kj +
                          derivative_matrix[j, k] * B2_ik)
@@ -358,7 +373,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
     # integrate over all elements to get the divergence-free condition errors
     linf_divb = zero(eltype(u))
-    for element in eachelement(dg, cache)
+    @batch reduction=(max, linf_divb) for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             # Get the contravariant vectors Ja^1 and Ja^2
@@ -368,8 +383,11 @@ function analyze(::Val{:linf_divb}, du, u, t,
                                                   element)
             # Compute the transformed divergence
             for k in eachnode(dg)
-                B1_kj, B2_kj, _ = magnetic_field(u[:, k, j, element], equations)
-                B1_ik, B2_ik, _ = magnetic_field(u[:, i, k, element], equations)
+                u_kj = get_node_vars(u, equations, dg, k, j, element)
+                u_ik = get_node_vars(u, equations, dg, i, k, element)
+
+                B1_kj, B2_kj, _ = magnetic_field(u_kj, equations)
+                B1_ik, B2_ik, _ = magnetic_field(u_ik, equations)
 
                 divb += (derivative_matrix[i, k] *
                          (Ja11 * B1_kj + Ja12 * B2_kj) +
@@ -379,6 +397,10 @@ function analyze(::Val{:linf_divb}, du, u, t,
             divb *= cache.elements.inverse_jacobian[i, j, element]
             linf_divb = max(linf_divb, abs(divb))
         end
+    end
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
     end
 
     return linf_divb

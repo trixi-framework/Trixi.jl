@@ -62,10 +62,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.0025903889347585777],
-                        linf=[0.018407576968841655],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        linf=[0.018407576968841655],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -199,8 +196,7 @@ end
                             0.19313636558790004,
                             0.707563913727584
                         ],
-                        tspan=(0.0, 0.25),
-                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                        tspan=(0.0, 0.25),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -273,9 +269,7 @@ end
                             0.01282206030593043, 0.03911437990598213,
                             0.021962225923304324, 0.03169774571258743,
                             0.021591564663781426, 0.034028148178115364,
-                            0.020084593242858988],
-                        # Use same polydeg as everything else to prevent long compile times in CI
-                        coverage_override=(polydeg = 3,))
+                            0.020084593242858988],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -298,9 +292,7 @@ end
                             0.02126543791857216, 0.031563506812970266,
                             0.02116105422516923, 0.03419432640106229,
                             0.020324891223351533],
-                        surface_flux=(flux_lax_friedrichs, flux_nonconservative_powell),
-                        # Use same polydeg as everything else to prevent long compile times in CI
-                        coverage_override=(polydeg = 3,))
+                        surface_flux=(flux_lax_friedrichs, flux_nonconservative_powell),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -323,9 +315,7 @@ end
                             0.9620943261873176, 0.181632512204141,
                             0.15995711137712265, 0.1791807940466812,
                             0.015138421396338456],
-                        tspan=(0.0, 0.25),
-                        # Use same polydeg as everything else to prevent long compile times in CI
-                        coverage_override=(polydeg = 3,))
+                        tspan=(0.0, 0.25),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

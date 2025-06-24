@@ -42,14 +42,13 @@ function IdealGlmMhdMulticomponentEquations2D(; gammas, gas_constants)
     _gammas = promote(gammas...)
     _gas_constants = promote(gas_constants...)
     RealT = promote_type(eltype(_gammas), eltype(_gas_constants))
-
-    NVARS = length(_gammas) + 8
-    NCOMP = length(_gammas)
-
     __gammas = SVector(map(RealT, _gammas))
     __gas_constants = SVector(map(RealT, _gas_constants))
 
     c_h = convert(RealT, NaN)
+
+    NVARS = length(_gammas) + 8
+    NCOMP = length(_gammas)
 
     return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
                                                                      __gas_constants,
@@ -61,14 +60,13 @@ function IdealGlmMhdMulticomponentEquations2D(gammas, gas_constants, cv, cp, c_h
     _gammas = promote(gammas...)
     _gas_constants = promote(gas_constants...)
     RealT = promote_type(eltype(_gammas), eltype(_gas_constants))
-
-    NVARS = length(_gammas) + 8
-    NCOMP = length(_gammas)
-
     __gammas = SVector(map(RealT, _gammas))
     __gas_constants = SVector(map(RealT, _gas_constants))
 
     c_h = convert(RealT, c_h)
+
+    NVARS = length(_gammas) + 8
+    NCOMP = length(_gammas)
 
     return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
                                                                      __gas_constants,
@@ -158,6 +156,9 @@ function initial_condition_weak_blast_wave(x, t,
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
+    # We initialize each species with a fraction of the total density `rho`, such
+    # that the sum of the densities is `rho := density(prim, equations)`. The density of
+    # a species is double the density of the next species.
     prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
                                                                 2^(i - 1) * (1 - 2) /
                                                                 (RealT(1) -
@@ -177,7 +178,7 @@ function initial_condition_weak_blast_wave(x, t,
     return prim2cons(vcat(prim_other, prim_rho), equations)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::IdealGlmMhdMulticomponentEquations2D)
     rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
@@ -561,7 +562,30 @@ end
     cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
     cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::IdealGlmMhdMulticomponentEquations2D)
+    rho_v1_ll, rho_v2_ll, _ = u_ll
+    rho_v1_rr, rho_v2_rr, _ = u_rr
+
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+
+    # Calculate velocities and fast magnetoacoustic wave speeds
+    if orientation == 1
+        v_ll = rho_v1_ll / rho_ll
+        v_rr = rho_v1_rr / rho_rr
+    else # orientation == 2
+        v_ll = rho_v2_ll / rho_ll
+        v_rr = rho_v2_rr / rho_rr
+    end
+    cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+    return max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
 end
 
 @inline function max_abs_speeds(u, equations::IdealGlmMhdMulticomponentEquations2D)

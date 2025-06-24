@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -123,26 +122,26 @@ analysis_interval = 2000
 
 force_boundary_names = (:AirfoilBottom, :AirfoilTop)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
-                                           DragCoefficientPressure(aoa(), rho_inf(),
-                                                                   u_inf(equations),
-                                                                   l_inf()))
+                                           DragCoefficientPressure2D(aoa(), rho_inf(),
+                                                                     u_inf(equations),
+                                                                     l_inf()))
 
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
-                                           LiftCoefficientPressure(aoa(), rho_inf(),
-                                                                   u_inf(equations),
-                                                                   l_inf()))
+                                           LiftCoefficientPressure2D(aoa(), rho_inf(),
+                                                                     u_inf(equations),
+                                                                     l_inf()))
 
 drag_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_names,
-                                                       DragCoefficientShearStress(aoa(),
-                                                                                  rho_inf(),
-                                                                                  u_inf(equations),
-                                                                                  l_inf()))
+                                                       DragCoefficientShearStress2D(aoa(),
+                                                                                    rho_inf(),
+                                                                                    u_inf(equations),
+                                                                                    l_inf()))
 
 lift_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_names,
-                                                       LiftCoefficientShearStress(aoa(),
-                                                                                  rho_inf(),
-                                                                                  u_inf(equations),
-                                                                                  l_inf()))
+                                                       LiftCoefficientShearStress2D(aoa(),
+                                                                                    rho_inf(),
+                                                                                    u_inf(equations),
+                                                                                    l_inf()))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -165,7 +164,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = 1e-8,
-            reltol = 1e-8,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+            abstol = 1e-8, reltol = 1e-8,
             ode_default_options()..., callback = callbacks)
-summary_callback() # print the timer summary

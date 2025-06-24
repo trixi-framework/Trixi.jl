@@ -13,7 +13,6 @@
 #
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
 
-using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
@@ -50,11 +49,10 @@ end
 # For subcell limiting, the calculation of local bounds for non-periodic domains requires the
 # boundary outer state. Those functions return the boundary value for a specific boundary condition
 # at time `t`, for the node with spatial indices `indices` and the given `normal_direction`.
-# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_supersonic_inflow),
                                                 normal_direction::AbstractVector,
-                                                equations, dg, cache,
+                                                mesh::P4estMesh, equations, dg, cache,
                                                 indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
 
@@ -72,19 +70,18 @@ end
     return flux
 end
 
-# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_outflow),
                                                 normal_direction::AbstractVector,
-                                                equations, dg, cache,
+                                                mesh::P4estMesh, equations, dg, cache,
                                                 indices...)
     return u_inner
 end
 
-# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_slip_wall),
                                                 normal_direction::AbstractVector,
+                                                mesh::P4estMesh{2},
                                                 equations::CompressibleEulerEquations2D,
                                                 dg, cache, indices...)
     factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
@@ -145,7 +142,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:limiting_coefficient,))
 
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
@@ -159,4 +157,3 @@ stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
-summary_callback() # print the timer summary

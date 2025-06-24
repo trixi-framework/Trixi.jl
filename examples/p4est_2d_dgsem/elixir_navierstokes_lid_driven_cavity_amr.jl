@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -81,7 +81,6 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine = true)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
-# callbacks = CallbackSet(summary_callback, alive_callback)
 
 ###############################################################################
 # run the simulation
@@ -89,5 +88,3 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-summary_callback() # print the timer summary

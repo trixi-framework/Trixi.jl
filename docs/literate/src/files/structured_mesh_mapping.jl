@@ -12,7 +12,7 @@
 # ## Mesh defined by domain boundary curves
 # Both examples are based on a semdiscretization of the 2D compressible Euler equations.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -104,9 +104,9 @@ callbacks = CallbackSet(analysis_callback,
                         stepsize_callback);
 
 # Running the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);
 
 using Plots
 plot(sol)
@@ -122,7 +122,7 @@ plot!(getmesh(pd))
 # method on curvilinear grids. The mapping is a reduced 2D version of the mapping described in
 # [Rueda-Ramírez et al. (2021), p.18](https://arxiv.org/abs/2012.12040).
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -165,9 +165,9 @@ stepsize_callback = StepsizeCallback(cfl = 0.8)
 callbacks = CallbackSet(analysis_callback,
                         stepsize_callback)
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);
 
 # Now, we want to verify the free-stream preservation property and plot the mesh. For the verification,
 # we calculate the absolute difference of the first conservation variable density `u[1]` and `1.0`.
@@ -209,5 +209,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

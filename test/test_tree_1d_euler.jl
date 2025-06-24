@@ -21,10 +21,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
                             1.6205433861493646e-7,
                             1.465427772462391e-7,
                             5.372255111879554e-7
-                        ],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time series to check against.
-                        coverage_override=(maxiters = 20,))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -284,8 +281,7 @@ end
                             2.9766770877037168,
                             0.16838100902295852,
                             2.6655773445485798
-                        ],
-                        coverage_override=(maxiters = 6,))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -320,9 +316,7 @@ end
                             3.4296365168219216,
                             0.17635583964559245,
                             2.6574584326179505
-                        ],
-                        # Let this test run longer to cover some lines in flux_hllc
-                        coverage_override=(maxiters = 10^5, tspan = (0.0, 0.1)))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -342,8 +336,7 @@ end
                             2.6650170188241047
                         ],
                         shock_indicator_variable=pressure,
-                        cfl=0.2,
-                        coverage_override=(maxiters = 6,))
+                        cfl=0.2,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -363,8 +356,7 @@ end
                             2.666689753470263
                         ],
                         shock_indicator_variable=density,
-                        cfl=0.2,
-                        coverage_override=(maxiters = 6,))
+                        cfl=0.2,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -378,8 +370,7 @@ end
 @trixi_testset "elixir_euler_positivity.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
                         l2=[1.6493820253458906, 0.19793887460986834, 0.9783506076125921],
-                        linf=[4.71751203912051, 0.5272411022735763, 2.7426163947635844],
-                        coverage_override=(maxiters = 3,))
+                        linf=[4.71751203912051, 0.5272411022735763, 2.7426163947635844],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -457,6 +448,59 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_quasi_1d_source_terms_dirichlet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_quasi_1d_source_terms_dirichlet.jl"),
+                        l2=[
+                            4.872024234552286e-7,
+                            3.130367137655672e-7,
+                            3.769970598394213e-7,
+                            5.271698341013997e-8
+                        ],
+                        linf=[
+                            3.2661405451328562e-6,
+                            1.7577543389712957e-6,
+                            2.5106918934980627e-6,
+                            1.1166012159335992e-7
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_quasi_1d_source_terms_dirichlet.jl with LLF-dissipation" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_quasi_1d_source_terms_dirichlet.jl"),
+                        l2=[
+                            9.186083331399549e-7,
+                            4.6021844470935155e-7,
+                            6.652256237473482e-7,
+                            5.271698341013997e-8
+                        ],
+                        linf=[
+                            3.425473511065036e-6,
+                            2.1611905385299224e-6,
+                            2.7957639341380514e-6,
+                            1.1166012159335992e-7
+                        ],
+                        surface_flux=(FluxPlusDissipation(flux_chan_etal,
+                                                          DissipationLocalLaxFriedrichs()),
+                                      flux_nonconservative_chan_etal))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_quasi_1d_discontinuous.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_quasi_1d_discontinuous.jl"),
@@ -495,6 +539,26 @@ end
                             0.3752709888964313,
                             0.84477102402413,
                             8.881784197001252e-16
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_laplace_diffusion.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
+                        l2=[0.10954500481114468,
+                            0.1417583694046777,
+                            0.4087206508328759],
+                        linf=[
+                            0.17183237920520245,
+                            0.2203023610743297,
+                            0.6347464031934038
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

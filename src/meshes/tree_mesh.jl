@@ -134,6 +134,8 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         end
     end
 
+    coordinates_min_max_check(coordinates_min, coordinates_max)
+
     # TreeMesh requires equal domain lengths in all dimensions
     domain_center = @. convert(RealT, (coordinates_min + coordinates_max) / 2)
     domain_length = convert(RealT, coordinates_max[1] - coordinates_min[1])
@@ -148,9 +150,9 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                     "ERROR: The TreeMesh supports parallel execution with MPI only in 2 dimensions")
             MPI.Abort(mpi_comm(), 1)
         end
-        TreeType = ParallelTree{NDIMS}
+        TreeType = ParallelTree{NDIMS, RealT}
     else
-        TreeType = SerialTree{NDIMS}
+        TreeType = SerialTree{NDIMS, RealT}
     end
 
     # Create mesh
