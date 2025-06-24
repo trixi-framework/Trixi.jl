@@ -261,7 +261,7 @@ function get_proposed_dt(integrator::SimpleIntegratorSSP)
 end
 
 function unstable_check(dt, u_ode, integrator::SimpleIntegratorSSP)
-    if !isfinite(dt) || isnan(dt) || !all(isfinite.(u_ode)) || any(isnan.(u_ode))
+    if !isfinite(dt) || !all(isfinite, u_ode)
         @warn "Instability detected. Aborting"
         terminate!(integrator)
     end
