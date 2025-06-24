@@ -1039,6 +1039,41 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_orszag_tang_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang_sc_subcell.jl"),
+                        l2=[
+                            0.25273393032493735,
+                            0.2771865756552504,
+                            0.33059688850888586,
+                            0.0,
+                            0.5865033795648696,
+                            0.25289574367743756,
+                            0.3711406550553029,
+                            0.0,
+                            0.0007405740515755952
+                        ],
+                        linf=[
+                            1.4019604082868335,
+                            0.7201952710559768,
+                            0.8944647239665802,
+                            0.0,
+                            3.217855866544692,
+                            0.824708082599533,
+                            1.0539824764594448,
+                            0.0,
+                            0.012083129376087002
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_coupled.jl"),
                         l2=[

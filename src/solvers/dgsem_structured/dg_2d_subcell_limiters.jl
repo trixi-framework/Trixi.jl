@@ -110,7 +110,7 @@
 end
 
 # Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
-# (**with non-conservative terms**).
+# (**with non-conservative terms in "local * symmetric" form**).
 #
 # See also `flux_differencing_kernel!`.
 #
@@ -121,9 +121,15 @@ end
 #   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::StructuredMesh{2},
+                                mesh::Union{StructuredMesh{2}, P4estMesh{2}},
                                 nonconservative_terms::True, equations,
-                                volume_flux, dg::DGSEM, element, cache)
+                                volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
+                                element,
+                                cache) where {
+                                              F_CONS <: Function,
+                                              F_NONCONS <:
+                                              FluxNonConservative{NonConservativeSymmetric()}
+                                              }
     (; contravariant_vectors) = cache.elements
     (; weights, derivative_split) = dg.basis
     (; flux_temp_threaded, flux_nonconservative_temp_threaded) = cache
@@ -159,10 +165,8 @@ end
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
         # the computation of the diagonal terms. In addition, we use the symmetry
-        # of the `volume_flux` to save half of the possible two-point flux
+        # of `volume_flux_cons` and `volume_flux_noncons` to save half of the possible two-point flux
         # computations.
-
-        # x direction
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
             # pull the contravariant vectors and compute the average
@@ -171,24 +175,23 @@ end
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
 
             # compute the contravariant sharp flux in the direction of the averaged contravariant vector
-            fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+            fluxtilde1 = volume_flux_cons(u_node, u_node_ii, Ja1_avg, equations)
             multiply_add_to_node_vars!(flux_temp, derivative_split[i, ii], fluxtilde1,
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[ii, i], fluxtilde1,
                                        equations, dg, ii, j)
-            for noncons in 1:n_nonconservative_terms(equations)
+            for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
                 # We multiply by 0.5 because that is done in other parts of Trixi
-                fluxtilde1_noncons = volume_flux_noncons(u_node, u_node_ii, Ja1_node,
-                                                         Ja1_avg, equations,
-                                                         NonConservativeSymmetric(),
-                                                         noncons)
+                flux1_noncons = volume_flux_noncons(u_node, u_node_ii, Ja1_avg,
+                                                    equations,
+                                                    NonConservativeSymmetric(), noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
                                            0.5f0 * derivative_split[i, ii],
-                                           fluxtilde1_noncons,
+                                           flux1_noncons,
                                            equations, dg, noncons, i, j)
                 multiply_add_to_node_vars!(flux_noncons_temp,
                                            0.5f0 * derivative_split[ii, i],
-                                           fluxtilde1_noncons,
+                                           flux1_noncons,
                                            equations, dg, noncons, ii, j)
             end
         end
@@ -206,8 +209,9 @@ end
     # Compute local contribution to non-conservative flux
     for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
-        Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element) # x direction
-        for noncons in 1:n_nonconservative_terms(equations)
+        # pull the local contravariant vector
+        Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+        for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, Ja1_node, equations,
                                                NonConservativeLocal(), noncons),
@@ -224,7 +228,7 @@ end
             fhat1_R[v, i + 1, j] = value
         end
         # Nonconservative part
-        for noncons in 1:n_nonconservative_terms(equations),
+        for noncons in 1:n_nonconservative_terms(volume_flux_noncons),
             v in eachvariable(equations)
 
             value = fhat_noncons_temp[v, noncons, i, j] +
@@ -247,7 +251,6 @@ end
         # pull the contravariant vectors in each coordinate direction
         Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
 
-        # y direction
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
             # pull the contravariant vectors and compute the average
@@ -255,24 +258,23 @@ end
                                                    element)
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the averaged contravariant vector
-            fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+            fluxtilde2 = volume_flux_cons(u_node, u_node_jj, Ja2_avg, equations)
             multiply_add_to_node_vars!(flux_temp, derivative_split[j, jj], fluxtilde2,
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[jj, j], fluxtilde2,
                                        equations, dg, i, jj)
-            for noncons in 1:n_nonconservative_terms(equations)
+            for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
                 # We multiply by 0.5 because that is done in other parts of Trixi
-                fluxtilde2_noncons = volume_flux_noncons(u_node, u_node_jj, Ja2_node,
-                                                         Ja2_avg, equations,
-                                                         NonConservativeSymmetric(),
-                                                         noncons)
+                flux2_noncons = volume_flux_noncons(u_node, u_node_jj, Ja2_avg,
+                                                    equations,
+                                                    NonConservativeSymmetric(), noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           0.5f0 * derivative_split[j, jj],
-                                           fluxtilde2_noncons,
+                                           0.5 * derivative_split[j, jj],
+                                           flux2_noncons,
                                            equations, dg, noncons, i, j)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           0.5f0 * derivative_split[jj, j],
-                                           fluxtilde2_noncons,
+                                           0.5 * derivative_split[jj, j],
+                                           flux2_noncons,
                                            equations, dg, noncons, i, jj)
             end
         end
@@ -284,14 +286,15 @@ end
     fhat2_R[:, :, 1] .= zero(eltype(fhat2_R))
     fhat2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_R))
 
-    fhat_temp[:, 1, :] .= zero(eltype(fhat1_L))
-    fhat_noncons_temp[:, :, 1, :] .= zero(eltype(fhat1_L))
+    fhat_temp[:, :, 1] .= zero(eltype(fhat1_L))
+    fhat_noncons_temp[:, :, :, 1] .= zero(eltype(fhat1_L))
 
     # Compute local contribution to non-conservative flux
     for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
+        # pull the local contravariant vector
         Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
-        for noncons in 1:n_nonconservative_terms(equations)
+        for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, Ja2_node, equations,
                                                NonConservativeLocal(), noncons),
@@ -304,19 +307,19 @@ end
         for v in eachvariable(equations)
             value = fhat_temp[v, i, j] + weights[j] * flux_temp[v, i, j]
             fhat_temp[v, i, j + 1] = value
-            fhat1_L[v, i, j + 1] = value
-            fhat1_R[v, i, j + 1] = value
+            fhat2_L[v, i, j + 1] = value
+            fhat2_R[v, i, j + 1] = value
         end
         # Nonconservative part
-        for noncons in 1:n_nonconservative_terms(equations),
+        for noncons in 1:n_nonconservative_terms(volume_flux_noncons),
             v in eachvariable(equations)
 
             value = fhat_noncons_temp[v, noncons, i, j] +
                     weights[j] * flux_noncons_temp[v, noncons, i, j]
             fhat_noncons_temp[v, noncons, i, j + 1] = value
 
-            fhat1_L[v, i, j + 1] = fhat1_L[v, i, j + 1] + phi[v, noncons, i, j] * value
-            fhat1_R[v, i, j + 1] = fhat1_R[v, i, j + 1] +
+            fhat2_L[v, i, j + 1] = fhat2_L[v, i, j + 1] + phi[v, noncons, i, j] * value
+            fhat2_R[v, i, j + 1] = fhat2_R[v, i, j + 1] +
                                    phi[v, noncons, i, j + 1] * value
         end
     end
