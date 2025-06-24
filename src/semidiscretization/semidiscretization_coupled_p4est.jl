@@ -173,18 +173,21 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
 
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
     # Reformat the global solutions vector.
-    u_ode_reformatted = Vector{real(semi)}(undef, ndofs(semi))
+    @autoinfiltrate
+    u_ode_reformatted = Vector{real(semi)}(undef, nvariables(semi.semis[1].equations)*ndofs(semi))
     u_ode_reformatted_reshape = reshape(u_ode_reformatted,
-                                        (n_nodes,
+                                        (nvariables(semi.semis[1].equations),
+                                         n_nodes,
                                          n_nodes,
                                          length(semi.mesh_ids)))
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
-        system_ode = get_system_u_ode(u_ode, i, semi)
-        system_ode_reshape = reshape(system_ode,
-                                     (n_nodes, n_nodes,
-                                      Int(length(system_ode) / n_nodes^2)))
-        u_ode_reformatted_reshape[:, :, semi.mesh_ids .== i] .= system_ode_reshape
+        u_loc = get_system_u_ode(u_ode, i, semi)
+        u_loc_reshape = reshape(u_loc,
+                                (nvariables(semi_.equations),
+                                 n_nodes, n_nodes,
+                                 Int(length(u_loc) / (n_nodes^2 * nvariables(semi_.equations)))))
+        u_ode_reformatted_reshape[:, :, :, semi.mesh_ids .== i] .= u_loc_reshape
     end
 
     # Call rhs! for each semidiscretization
@@ -458,9 +461,10 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         i_index_g = i_index
     end
     # Perform integer division to get the right shape of the array.
+    @autoinfiltrate
     u_global_reshape = reshape(u_global,
-                               (n_nodes, n_nodes, length(u_global) ÷ n_nodes^2))
-    u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_global])
+                               (nvariables(equations), n_nodes, n_nodes, length(u_global) ÷ (n_nodes^2 * nvariables(equations))))
+    u_boundary = u_global_reshape[:, i_index_g, j_index_g, element_index_global]
 
     # u_boundary = u_inner
     orientation = normal_direction

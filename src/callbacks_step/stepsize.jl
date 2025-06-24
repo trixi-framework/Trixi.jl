@@ -123,6 +123,7 @@ function calculate_dt(u_ode, t, cfl_number::Real, semi::AbstractSemidiscretizati
                 have_constant_speed(equations), equations,
                 solver, cache)
 end
+
 # Case for `cfl_number` as a function of time `t`.
 function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
