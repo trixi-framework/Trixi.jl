@@ -36,6 +36,7 @@ end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
+@inline ncells(mesh::P4estMeshView) = length(mesh.cell_ids)
 
 function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
