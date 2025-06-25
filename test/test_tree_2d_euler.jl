@@ -111,7 +111,7 @@ end
 @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
-                            0.061751715597716854,
+                            0.0,
                             0.05018223615408711,
                             0.05018989446443463,
                             0.225871559730513

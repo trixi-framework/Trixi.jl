@@ -116,7 +116,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                      "elixir_euler_ec.jl"),
                             l2=[
-                                0.061751715597716854,
+                                0.0,
                                 0.05018223615408711,
                                 0.05018989446443463,
                                 0.225871559730513
