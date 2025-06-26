@@ -249,21 +249,22 @@ function integrate(func::Func, u,
     @unpack solver = semi
     @unpack boundaries = cache
     m = methods(func)
-    if length(m[1].sig.parameters) == 2
-        integrate_via_indices(u, mesh, equations, dg, cache;
+    @autoinfiltrate
+    if (m[1].nargs == 2) || (func == cons2cons)
+        return integrate_via_indices(u, mesh, equations, dg, cache;
                               normalize = normalize) do u, i, j, element, equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
-            return func(u_local, equations)
+
+            func(u_local, equations)
         end
     end
-    if length(m[1].sig.parameters) == 3
-        integrate_via_indices(u, mesh, equations, dg, cache;
+    if (m[1].nargs == 3) && (func != cons2cons)
+        return integrate_via_indices(u, mesh, equations, dg, cache;
                               normalize = normalize) do u, i, j, element, equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
             gradients = DGSpaceDerivative_WeakForm!(dg, cache, u, 1, equations)
 
-            @autoinfiltrate
-            return func(u_local, gradients, equations)
+            func(u_local, gradients, equations)
         end
     end
 end
