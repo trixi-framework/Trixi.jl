@@ -6,37 +6,39 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 """
-    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
+    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
-A medium blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
-  A provably entropy stable subcell shock capturing approach for high order split form DG
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+The Sedov blast wave setup based on Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
 """
-function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
     # Set up polar coordinates
     RealT = eltype(x)
     inicenter = SVector(0, 0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
-    phi = atan(y_norm, x_norm)
-    sin_phi, cos_phi = sincos(phi)
+
+    # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
+    r0 = 0.21875f0 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+    # r0 = 0.5 # = more reasonable setup
+    E = 1
+    p0_inner = 3 * (equations.gamma - 1) * E / (3 * convert(RealT, pi) * r0^2)
+    p0_outer = convert(RealT, 1.0e-5) # = true Sedov setup
+    # p0_outer = convert(RealT, 1.0e-3) # = more reasonable setup
 
     # Calculate primitive variables
-    rho = r > 0.5f0 ? one(RealT) : RealT(1.1691)
-    v1 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * cos_phi
-    v2 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * sin_phi
-    p = r > 0.5f0 ? RealT(1.0E-3) : RealT(1.245)
-    # p = r > 0.5f0 ? RealT(1.0E-1) : RealT(1.245)
+    rho = 1
+    v1 = 0
+    v2 = 0
+    p = r > r0 ? p0_outer : p0_inner
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
-initial_condition = initial_condition_blast_wave
+initial_condition = initial_condition_sedov_blast_wave
 
 surface_flux = flux_lax_friedrichs
-volume_flux = flux_ranocha
+volume_flux = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
@@ -46,23 +48,19 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_math,
                                                                        max)],
                                 # Default parameters are not sufficient to fulfill bounds properly.
-                                max_iterations_newton = 70,
+                                max_iterations_newton = 200,
                                 newton_tolerances = (1.0e-13, 1.0e-14))
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
-mortar = MortarIDP(basis, alternative = false, local_factor = true,
-                   first_order = true, pure_low_order = true)
+mortar = MortarIDP(basis, pure_low_order = false)
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
-refinement_patches = ((type = "box", coordinates_min = (0.0, -1.0),
-                       coordinates_max = (1.0, 1.0)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000,
-                refinement_patches = refinement_patches,
+                n_cells_max = 100_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -87,19 +85,19 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-# amr_indicator = IndicatorMax(semi, variable = first)
+amr_indicator = IndicatorMax(semi, variable = density_pressure)
 
-# amr_controller = ControllerThreeLevel(semi, amr_indicator,
-#                                       base_level = 4,
-#                                       med_level = 5, med_threshold = 1.01,
-#                                       max_level = 6, max_threshold = 1.1)
+amr_controller = ControllerThreeLevel(semi, amr_indicator,
+                                      base_level = 4,
+                                      med_level = 6, med_threshold = 1.0,
+                                      max_level = 7, max_threshold = 1.05)
 
-# amr_callback = AMRCallback(semi, amr_controller,
-#                            interval = 10,
-#                            adapt_initial_condition = true,
-#                            adapt_initial_condition_only_refine = false)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 1,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = false)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -110,10 +108,14 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_errors = false))
+# positivity limiter necessary for this tough example
+stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
+                                                     variables = (pressure,))
+
+stage_callbacks = (SubcellLimiterIDPCorrection(), #stage_limiter!,
+                   BoundsCheckCallback(save_errors = false))
 
 sol = Trixi.solve(ode,
-                  # Trixi.SimpleEuler(stage_callbacks = stage_callbacks);
                   Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()...,

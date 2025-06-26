@@ -226,6 +226,8 @@ function solve!(integrator::SimpleIntegratorSSP)
                 stage_callback(integrator.u, integrator, stage)
             end
 
+            unstable_check(integrator.dt, integrator.u, integrator)
+
             # perform convex combination
             @. integrator.u = (alg.numerator_a[stage] * integrator.r0 +
                                alg.numerator_b[stage] * integrator.u) /
@@ -288,7 +290,7 @@ function get_proposed_dt(integrator::SimpleIntegratorSSP)
 end
 
 function unstable_check(dt, u_ode, integrator::SimpleIntegratorSSP)
-    if !isfinite(dt) || isnan(dt) || !all(isfinite.(u_ode)) || any(isnan.(u_ode))
+    if !isfinite(dt) || !all(isfinite, u_ode)
         @warn "Instability detected. Aborting"
         terminate!(integrator)
     end
