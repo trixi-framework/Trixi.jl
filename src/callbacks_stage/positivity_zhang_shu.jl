@@ -72,6 +72,70 @@ end
 init_callback(limiter!::PositivityPreservingLimiterZhangShu, semi) = nothing
 finalize_callback(limiter!::PositivityPreservingLimiterZhangShu, semi) = nothing
 
+struct LimiterZhangShuLocalBounds{N, Variables <: NTuple{N, Any}}
+    variables::Variables
+    limiters::NTuple{N, Symbol}
+end
+
+function LimiterZhangShuLocalBounds(; variables,
+                                    limiters = ntuple(_ -> :positivity,
+                                                      length(variables)))
+    if length(variables) != length(limiters)
+        throw(ArgumentError("The number of variables must match the number of limiters."))
+    end
+    for limiter in limiters
+        if !(limiter in (:positivity, :minmax))
+            throw(ArgumentError("The limiter $limiter must be either :positivity or :minmax."))
+        end
+    end
+
+    LimiterZhangShuLocalBounds(variables, limiters)
+end
+
+function (limiter!::LimiterZhangShuLocalBounds)(u_ode, integrator,
+                                                semi::AbstractSemidiscretization,
+                                                t)
+    u = wrap_array(u_ode, semi)
+    @trixi_timeit timer() "positivity-preserving limiter" begin
+        limiter_zhang_shu!(u, limiter!.limiters, limiter!.variables,
+                           mesh_equations_solver_cache(semi)...)
+    end
+end
+
+# Iterate over tuples in a type-stable way using "lispy tuple programming",
+# similar to https://stackoverflow.com/a/55849398:
+# Iterating over tuples of different functions isn't type-stable in general
+# but accessing the first element of a tuple is type-stable. Hence, it's good
+# to process one element at a time and replace iteration by recursion here.
+# Note that you shouldn't use this with too many elements per tuple since the
+# compile times can increase otherwise - but a handful of elements per tuple
+# is definitely fine.
+function limiter_zhang_shu!(u, limiters::NTuple{N, <:Symbol}, variables::NTuple{N, Any},
+                            mesh, equations, solver, cache) where {N}
+    limiter = first(limiters)
+    remaining_limiters = Base.tail(limiters)
+    variable = first(variables)
+    remaining_variables = Base.tail(variables)
+
+    if limiter == :positivity
+        limiter_zhang_shu_positivity!(u, variable, mesh, equations, solver, cache)
+    else # limiter == :minmax
+        error("TODO: Implement the minmax limiter.")
+        limiter_zhang_shu_minmax!(u, variable, mesh, equations, solver, cache)
+    end
+    limiter_zhang_shu!(u, remaining_limiters, remaining_variables, mesh, equations,
+                       solver, cache)
+    return nothing
+end
+
+# Allow use of limiter as a stage callback in custom SSP integrators
+function (limiter!::LimiterZhangShuLocalBounds)(u_ode, integrator,
+                                                stage)
+    return limiter!(u_ode, integrator, integrator.p, integrator.t)
+end
+init_callback(limiter!::LimiterZhangShuLocalBounds, semi) = nothing
+finalize_callback(limiter!::LimiterZhangShuLocalBounds, semi) = nothing
+
 include("positivity_zhang_shu_dg1d.jl")
 include("positivity_zhang_shu_dg2d.jl")
 include("positivity_zhang_shu_dg3d.jl")

@@ -109,8 +109,8 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # positivity limiter necessary for this tough example
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
-                                                     variables = (pressure,))
+stage_limiter! = LimiterZhangShuLocalBounds(limiters = (:positivity,),
+                                            variables = (pressure,))
 
 stage_callbacks = (SubcellLimiterIDPCorrection(), #stage_limiter!,
                    BoundsCheckCallback(save_errors = false))
