@@ -45,7 +45,8 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
 end
 initial_condition = initial_condition_blast_wave
 
-surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell_local_symmetric)
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive),
+                flux_nonconservative_powell_local_symmetric)
 volume_flux = (flux_derigs_etal, flux_nonconservative_powell_local_symmetric)
 basis = LobattoLegendreBasis(3)
 

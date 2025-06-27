@@ -11,7 +11,8 @@ advection_velocity = (0.2f0, -0.7f0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive), RealT = Float32)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+               RealT = Float32)
 
 coordinates_min = (-1.0f0, -1.0f0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0f0, 1.0f0) # maximum coordinates (max(x), max(y))

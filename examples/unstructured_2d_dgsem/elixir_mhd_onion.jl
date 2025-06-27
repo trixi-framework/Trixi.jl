@@ -30,9 +30,9 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/patrickersing/8fe
                            joinpath(@__DIR__, "mesh_mhd_onion.mesh"))
 mesh = UnstructuredMesh2D(mesh_file, periodicity = false)
 
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-solver = DGSEM(polydeg = 3,
-               surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell),
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 boundary_conditions = Dict(:Bottom => BoundaryConditionDirichlet(initial_condition),

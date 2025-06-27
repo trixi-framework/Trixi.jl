@@ -10,9 +10,9 @@ equations = IdealGlmMhdEquations2D(gamma)
 initial_condition = initial_condition_convergence_test
 
 # Get the DG approximation space
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_central, flux_nonconservative_powell)
-solver = DGSEM(polydeg = 3,
-               surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell),
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # Get the curved quad mesh from a mapping function

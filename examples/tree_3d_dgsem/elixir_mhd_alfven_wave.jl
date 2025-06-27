@@ -8,9 +8,9 @@ equations = IdealGlmMhdEquations3D(5 / 3)
 
 initial_condition = initial_condition_convergence_test
 
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-solver = DGSEM(polydeg = 3,
-               surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell),
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-1.0, -1.0, -1.0)
