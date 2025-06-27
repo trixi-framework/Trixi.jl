@@ -8,7 +8,7 @@ equations = InviscidBurgersEquation1D()
 # Chan, Del Rey Fernandez, Carpenter (2019).
 # [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
-surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_ec
 
 polydeg = 3
