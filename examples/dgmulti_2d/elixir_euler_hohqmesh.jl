@@ -23,7 +23,7 @@ boundary_conditions = (; :Slant => boundary_condition_convergence_test,
 # Get the DG approximation space
 
 dg = DGMulti(polydeg = 8, element_type = Quad(), approximation_type = SBP(),
-             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 ###############################################################################

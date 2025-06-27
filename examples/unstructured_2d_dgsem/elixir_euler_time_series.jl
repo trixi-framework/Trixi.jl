@@ -64,7 +64,7 @@ source_term = source_terms_convergence_shifted
 ###############################################################################
 # Get the DG approximation space
 
-solver = DGSEM(polydeg = 6, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 6, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 ###############################################################################
 # Get the curved quad mesh from a file (downloads the file if not available locally)

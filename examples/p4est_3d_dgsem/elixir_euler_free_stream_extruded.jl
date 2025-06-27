@@ -10,7 +10,7 @@ initial_condition = initial_condition_constant
 
 boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but reduced to 2D.

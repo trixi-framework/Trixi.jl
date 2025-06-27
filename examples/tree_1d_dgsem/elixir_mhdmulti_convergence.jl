@@ -10,7 +10,7 @@ equations = IdealGlmMhdMulticomponentEquations1D(gammas = (5 / 3, 5 / 3, 5 / 3),
 initial_condition = initial_condition_convergence_test
 
 volume_flux = flux_hindenlang_gassner
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = 0.0

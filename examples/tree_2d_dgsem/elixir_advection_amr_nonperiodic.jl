@@ -13,7 +13,7 @@ initial_condition = initial_condition_gauss
 # 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (-5.0, -5.0)
 coordinates_max = (5.0, 5.0)

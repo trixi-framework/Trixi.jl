@@ -16,7 +16,7 @@ boundary_conditions = (x_neg = boundary_condition,
                        y_neg = boundary_condition,
                        y_pos = boundary_condition)
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)

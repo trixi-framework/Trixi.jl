@@ -13,7 +13,7 @@ boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition)
 # Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
 # The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
 # See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
-solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs,
+solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.

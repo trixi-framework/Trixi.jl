@@ -15,7 +15,7 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          variable = first)
 
 volume_flux = flux_ec
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,

@@ -31,7 +31,7 @@ initial_condition = initial_condition_torrilhon_shock_tube
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_central
 basis = LobattoLegendreBasis(3)
 

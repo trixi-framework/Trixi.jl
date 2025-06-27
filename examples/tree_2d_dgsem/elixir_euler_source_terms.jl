@@ -7,7 +7,7 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)

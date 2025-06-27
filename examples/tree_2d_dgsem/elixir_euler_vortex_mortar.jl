@@ -49,7 +49,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 initial_condition = initial_condition_isentropic_vortex
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)

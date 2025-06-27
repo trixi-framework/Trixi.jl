@@ -10,7 +10,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (-1.0, -0.5) # minimum coordinates (min(x), min(y))
 coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))

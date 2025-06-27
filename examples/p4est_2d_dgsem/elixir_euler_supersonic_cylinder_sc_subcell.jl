@@ -100,7 +100,7 @@ boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
                            :Left => boundary_condition_supersonic_inflow)
 
 volume_flux = flux_ranocha_turbo
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;

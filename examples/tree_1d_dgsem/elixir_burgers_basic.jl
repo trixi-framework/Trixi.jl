@@ -8,7 +8,7 @@ equations = InviscidBurgersEquation1D()
 
 initial_condition = initial_condition_convergence_test
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = 0.0
 coordinates_max = 1.0

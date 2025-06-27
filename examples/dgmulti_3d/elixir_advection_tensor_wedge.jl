@@ -13,7 +13,7 @@ tensor_polydeg = (3, 4)
 
 dg = DGMulti(element_type = Wedge(),
              approximation_type = Polynomial(),
-             surface_flux = flux_lax_friedrichs,
+             surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
              polydeg = tensor_polydeg)
 
 cells_per_dimension = (8, 8, 8)

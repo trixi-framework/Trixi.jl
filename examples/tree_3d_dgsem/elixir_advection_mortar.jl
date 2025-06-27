@@ -8,7 +8,7 @@ advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (-1.0, -1.0, -1.0)
 coordinates_max = (1.0, 1.0, 1.0)

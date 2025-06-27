@@ -65,7 +65,7 @@ end
 
 polydeg = 2
 basis = LobattoLegendreBasis(polydeg)
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 
 # Flux Differencing is required, shock capturing not!

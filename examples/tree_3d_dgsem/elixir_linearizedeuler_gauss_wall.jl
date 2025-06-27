@@ -7,7 +7,7 @@ using Trixi
 equations = LinearizedEulerEquations3D(v_mean_global = (0.5, 0.5, 0.5), c_mean_global = 1.0,
                                        rho_mean_global = 1.0)
 
-solver = DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 5, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (0.0, 0.0, 0.0)
 coordinates_max = (90.0, 90.0, 90.0)

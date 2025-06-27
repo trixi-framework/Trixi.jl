@@ -10,7 +10,7 @@ initial_condition = initial_condition_convergence_test
 
 # Note that the expected EOC of 5 is not reached with this flux.
 # Using flux_hll instead yields the expected EOC.
-solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = 0.0
 coordinates_max = 2.0

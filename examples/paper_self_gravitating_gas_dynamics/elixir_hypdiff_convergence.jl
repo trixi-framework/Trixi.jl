@@ -14,7 +14,7 @@ boundary_conditions = (x_neg = boundary_condition_poisson_nonperiodic,
                        y_pos = boundary_condition_periodic)
 
 polydeg = 3
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 solver = DGSEM(polydeg, surface_flux)
 
 coordinates_min = (0.0, 0.0)

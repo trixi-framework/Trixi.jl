@@ -10,7 +10,7 @@ initial_condition = initial_condition_poisson_nonperiodic
 
 boundary_conditions = boundary_condition_poisson_nonperiodic
 
-solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = 0.0
 coordinates_max = 1.0

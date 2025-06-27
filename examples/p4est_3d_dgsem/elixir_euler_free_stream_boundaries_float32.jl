@@ -12,7 +12,7 @@ equations = CompressibleEulerEquations3D(1.4f0)
 initial_condition = initial_condition_constant
 
 polydeg = 3
-solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs, RealT = Float32)
+solver = DGSEM(polydeg = polydeg, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive), RealT = Float32)
 
 ###############################################################################
 # Get the uncurved mesh from a file (downloads the file if not available locally)

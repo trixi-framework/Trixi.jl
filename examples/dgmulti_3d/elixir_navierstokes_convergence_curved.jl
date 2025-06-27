@@ -14,7 +14,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
              volume_integral = VolumeIntegralWeakForm())
 
 top_bottom(x, tol = 50 * eps()) = abs(abs(x[2]) - 1) < tol

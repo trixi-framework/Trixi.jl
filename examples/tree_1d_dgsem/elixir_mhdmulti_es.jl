@@ -9,7 +9,7 @@ equations = IdealGlmMhdMulticomponentEquations1D(gammas = (2.0, 2.0, 2.0),
 initial_condition = initial_condition_weak_blast_wave
 
 volume_flux = flux_hindenlang_gassner
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = 0.0

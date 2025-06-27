@@ -14,7 +14,7 @@ source_terms = source_terms_convergence_test
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(:all => boundary_condition)
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.

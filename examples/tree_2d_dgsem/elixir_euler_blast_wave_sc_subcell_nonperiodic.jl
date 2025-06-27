@@ -36,7 +36,7 @@ initial_condition = initial_condition_blast_wave
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;

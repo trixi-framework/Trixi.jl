@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_constant
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 # Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
 function mapping(xi_, eta_)

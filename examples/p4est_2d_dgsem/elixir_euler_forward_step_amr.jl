@@ -86,7 +86,7 @@ boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
                            :Left => boundary_condition_inflow)
 
 volume_flux = flux_ranocha
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)

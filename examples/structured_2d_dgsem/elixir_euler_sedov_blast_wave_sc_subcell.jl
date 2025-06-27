@@ -42,7 +42,7 @@ boundary_conditions = (x_neg = boundary_condition,
                        y_neg = boundary_condition,
                        y_pos = boundary_condition)
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)

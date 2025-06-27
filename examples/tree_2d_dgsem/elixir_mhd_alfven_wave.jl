@@ -10,7 +10,7 @@ initial_condition = initial_condition_convergence_test
 
 volume_flux = (flux_central, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3,
-               surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+               surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0.0, 0.0)

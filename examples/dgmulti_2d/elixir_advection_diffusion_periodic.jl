@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 dg = DGMulti(polydeg = 1, element_type = Tri(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
              volume_integral = VolumeIntegralWeakForm())
 
 equations = LinearScalarAdvectionEquation2D(0.0, 0.0)

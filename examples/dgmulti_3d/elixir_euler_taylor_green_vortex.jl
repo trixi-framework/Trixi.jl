@@ -31,7 +31,7 @@ end
 initial_condition = initial_condition_taylor_green_vortex
 
 volume_flux = flux_ranocha
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 solver = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(surface_flux),
                  volume_integral = VolumeIntegralFluxDifferencing(volume_flux))

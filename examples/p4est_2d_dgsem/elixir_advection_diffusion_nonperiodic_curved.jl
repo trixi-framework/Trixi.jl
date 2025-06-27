@@ -39,7 +39,7 @@ boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initia
                                      :y_pos => BoundaryConditionDirichlet(initial_condition))
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 # This maps the domain [-1, 1]^2 to [-1, 0] x [-0.5, 0.5] while also
 # introducing a curved warping to interior nodes.

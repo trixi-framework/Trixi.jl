@@ -8,7 +8,7 @@ equations = IdealGlmMhdEquations2D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(surface_flux),

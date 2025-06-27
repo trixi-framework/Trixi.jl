@@ -84,7 +84,7 @@ sin_ = initial_condition_source_terms.sin_alpha
 cos_ = initial_condition_source_terms.cos_alpha
 T = [cos_ -sin_; sin_ cos_]
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 mapping(xi, eta) = T * SVector(xi, eta)
 
