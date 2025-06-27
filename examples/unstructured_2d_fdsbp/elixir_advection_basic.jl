@@ -14,7 +14,7 @@ D_SBP = derivative_operator(SummationByPartsOperators.MattssonAlmquistVanDerWeid
                             derivative_order = 1, accuracy_order = 4,
                             xmin = -1.0, xmax = 1.0, N = 15)
 solver = FDSBP(D_SBP,
-               surface_integral = SurfaceIntegralStrongForm(FluxLaxFriedrichs(max_abs_speed_naive)),
+               surface_integral = SurfaceIntegralStrongForm(flux_lax_friedrichs),
                volume_integral = VolumeIntegralStrongForm())
 
 ###############################################################################

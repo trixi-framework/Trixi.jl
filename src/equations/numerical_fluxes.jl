@@ -191,7 +191,7 @@ For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_na
 
 Slightly more diffusive/overestimating than [`max_abs_speed`](@ref).
 """
-function max_abs_speed end
+function max_abs_speed_naive end
 
 # for non-integer `orientation_or_normal` arguments.
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
@@ -213,8 +213,15 @@ i.e., the wave speeds used in `max_dt` which computes the maximum stable time st
 
 For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
+
+Defaults to [`min_max_speed_naive`](@ref) if no specialized version for the ' equations` at hand is available.
 """
-function max_abs_speed_naive end
+@inline function max_abs_speed(u_ll, u_rr,
+                               orientation_or_normal_direction,
+                               equations::AbstractEquations)
+    # Use naive version as "backup" if no specialized version for the equations at hand is available                                             
+    max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations)
+end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
                                                            DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
@@ -256,7 +263,7 @@ f^{\mathrm{ES}} = f^{\mathrm{EC}} - \frac{1}{2} \lambda_{\mathrm{max}} H (w_r - 
 ```
 where ``f^{\mathrm{EC}}`` is the entropy-conservative two-point flux function (computed with, e.g., `flux_ec`), ``\lambda_{\mathrm{max}}`` 
 is the maximum wave speed estimated as `max_abs_speed(u_l, u_r, orientation_or_normal_direction, equations)`,
-defaulting to [`max_abs_speed_naive`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
+defaulting to [`max_abs_speed`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
 depends on the left and right states `u_l` and `u_r`, and ``(w_r - w_l)`` is the jump in entropy variables.
 Ideally, ``H (w_r - w_l) = (u_r - u_l)``, such that the dissipation operator is consistent with the local
 Lax-Friedrichs dissipation.

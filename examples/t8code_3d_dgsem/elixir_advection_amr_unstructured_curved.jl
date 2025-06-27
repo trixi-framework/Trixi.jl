@@ -10,7 +10,7 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 # Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
 # The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
 # See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
-solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
 initial_condition = initial_condition_gauss
 boundary_condition = BoundaryConditionDirichlet(initial_condition)

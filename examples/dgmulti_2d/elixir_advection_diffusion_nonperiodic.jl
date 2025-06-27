@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
+             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
              volume_integral = VolumeIntegralWeakForm())
 
 diffusivity() = 5.0e-2

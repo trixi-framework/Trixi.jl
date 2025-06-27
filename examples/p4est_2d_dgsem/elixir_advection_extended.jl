@@ -17,7 +17,7 @@ boundary_conditions = Dict(:x_neg => boundary_condition,
                            :y_pos => boundary_condition)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # The initial condition is 2-periodic
 coordinates_min = (-1.5, 1.3) # minimum coordinates (min(x), min(y))

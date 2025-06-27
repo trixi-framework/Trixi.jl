@@ -47,7 +47,7 @@ initial_condition = initial_condition_composite
 
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
-surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_central
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)

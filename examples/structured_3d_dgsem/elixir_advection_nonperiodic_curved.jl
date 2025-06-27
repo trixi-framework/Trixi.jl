@@ -10,7 +10,7 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 initial_condition = initial_condition_convergence_test
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
-solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
 function mapping(xi, eta, zeta)

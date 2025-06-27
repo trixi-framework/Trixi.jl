@@ -13,7 +13,7 @@ advection_velocity = 4 / 3 # Does not need to be in higher precision
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 solver = DGSEM(RealT = RealT, polydeg = 7,
-               surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+               surface_flux = flux_lax_friedrichs)
 
 # CARE: Important to use higher precision datatype for coordinates
 # as these are used for type promotion of the mesh (points etc.)
