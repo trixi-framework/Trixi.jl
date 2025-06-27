@@ -30,8 +30,9 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
             idp_bounds_delta_global)
 end
 
-function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
-                                      dt;
+function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4},
+                                      semi, equations, dg::DGSEM,
+                                      t, dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
     # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
