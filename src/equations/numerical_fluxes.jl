@@ -248,7 +248,7 @@ See [`FluxLaxFriedrichs`](@ref).
 const flux_lax_friedrichs = FluxLaxFriedrichs()
 
 @doc raw"""
-    DissipationLaxFriedrichsEntropyVariables(max_abs_speed=max_abs_speed_naive)
+    DissipationLaxFriedrichsEntropyVariables(max_abs_speed=max_abs_speed)
 
 Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable. This operator
 must be used together with an entropy-conservative two-point flux function (e.g., `flux_ec`) to yield 
