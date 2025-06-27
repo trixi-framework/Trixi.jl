@@ -182,6 +182,14 @@ end
             flux_difference_large = factor_large *
                                     (flux_large_high_order - flux_large_low_order)
 
+            # Check if high-order fluxes are finite. Otherwise, use pure low-order fluxes.
+            if !all(isfinite.(flux_lower_high_order)) ||
+               !all(isfinite(flux_upper_high_order)) ||
+               !all(isfinite.(flux_large_high_order))
+                limiting_factor[mortar] = 1
+                continue
+            end
+
             Qm_upper = min(0, var_min_upper - var_upper)
             Qm_lower = min(0, var_min_lower - var_lower)
             Qm_large = min(0, var_min_large - var_large)
