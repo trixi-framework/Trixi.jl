@@ -33,7 +33,7 @@ initial_condition = initial_condition_harmonic_nonperiodic
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
-solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = -1.0
 coordinates_max = 2.0

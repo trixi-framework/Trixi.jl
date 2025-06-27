@@ -6,7 +6,7 @@ using Trixi
 equations = TrafficFlowLWREquations1D()
 
 # Use first order finite volume to prevent oscillations at the shock
-solver = DGSEM(polydeg = 0, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+solver = DGSEM(polydeg = 0, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0 # maximum coordinate

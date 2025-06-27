@@ -42,7 +42,7 @@ initial_condition = initial_condition_poisson_periodic
     return SVector(du1, du2, du3, du4)
 end
 
-solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (0.0, 0.0, 0.0)
 coordinates_max = (1.0, 1.0, 1.0)
