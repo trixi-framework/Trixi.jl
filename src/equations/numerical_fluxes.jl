@@ -154,18 +154,18 @@ function Base.show(io::IO, d::DissipationGlobalLaxFriedrichs)
 end
 
 """
-    DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+    DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed)
 
 Create a local Lax-Friedrichs dissipation operator where the maximum absolute wave speed
 is estimated as
 `max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
-defaulting to [`max_abs_speed_naive`](@ref).
+defaulting to [`max_abs_speed`](@ref).
 """
 struct DissipationLocalLaxFriedrichs{MaxAbsSpeed}
     max_abs_speed::MaxAbsSpeed
 end
 
-DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_naive)
+DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed)
 
 @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
                                                               orientation_or_normal_direction,
@@ -188,6 +188,8 @@ Simple and fast estimate of the maximal wave speed of the Riemann problem with l
 
 For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
+
+Slightly more diffusive/overestimating than [`max_abs_speed`](@ref).
 """
 function max_abs_speed_naive end
 
@@ -212,23 +214,18 @@ i.e., the wave speeds used in `max_dt` which computes the maximum stable time st
 For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
 """
-@inline function max_abs_speed(u_ll, u_rr,
-                               orientation_or_normal_direction,
-                               equations::AbstractEquations)
-    # Use naive version as "backup" if no specialized version for the equations at hand is available                                             
-    max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations)
-end
+function max_abs_speed_naive end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
                                                            DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
 """
-    FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+    FluxLaxFriedrichs(max_abs_speed=max_abs_speed)
 
 Local Lax-Friedrichs (Rusanov) flux with maximum wave speed estimate provided by
 `max_abs_speed`, cf. [`DissipationLocalLaxFriedrichs`](@ref) and
 [`max_abs_speed_naive`](@ref).
 """
-function FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)
+function FluxLaxFriedrichs(max_abs_speed = max_abs_speed)
     FluxPlusDissipation(flux_central, DissipationLocalLaxFriedrichs(max_abs_speed))
 end
 
@@ -277,7 +274,7 @@ struct DissipationLaxFriedrichsEntropyVariables{MaxAbsSpeed}
     max_abs_speed::MaxAbsSpeed
 end
 
-DissipationLaxFriedrichsEntropyVariables() = DissipationLaxFriedrichsEntropyVariables(max_abs_speed_naive)
+DissipationLaxFriedrichsEntropyVariables() = DissipationLaxFriedrichsEntropyVariables(max_abs_speed)
 
 function Base.show(io::IO, d::DissipationLaxFriedrichsEntropyVariables)
     print(io, "DissipationLaxFriedrichsEntropyVariables(", d.max_abs_speed, ")")
