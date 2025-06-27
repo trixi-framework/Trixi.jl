@@ -191,7 +191,7 @@ For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_na
 
 Slightly more diffusive/overestimating than [`max_abs_speed`](@ref).
 """
-function max_abs_speed_naive end
+function max_abs_speed end
 
 # for non-integer `orientation_or_normal` arguments.
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
