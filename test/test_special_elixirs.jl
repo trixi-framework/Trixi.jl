@@ -301,7 +301,7 @@ end
             equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
             mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
                             n_cells_max = 10^4)
-            solver = DGSEM(3, flux_lax_friedrichs)
+            solver = DGSEM(3, FluxLaxFriedrichs(max_abs_speed_naive))
             initial_condition = (x, t, equation) -> begin
                 x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
                 return SVector(sinpi(k * sum(x_trans)))

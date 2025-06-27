@@ -423,7 +423,7 @@ end
                             6.1013422157115546e-03
                         ],
                         tspan=(0.0, 0.003),
-                        surface_flux=(flux_lax_friedrichs,
+                        surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
                                       flux_nonconservative_powell_local_jump),
                         volume_flux=(flux_derigs_etal,
                                      flux_nonconservative_powell_local_jump))

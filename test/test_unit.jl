@@ -624,7 +624,7 @@ end
         u = prim2cons(SVector(rho, v1, v2, p), equations)
         x = SVector(1.0, 2.0)
         t = 0.5
-        surface_flux = flux_lax_friedrichs
+        surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 
         outward_direction = SVector(0.2, -0.3)
         @test flux(u, outward_direction, equations) ≈
@@ -647,7 +647,8 @@ end
         u = prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
         x = SVector(1.0, 2.0)
         t = 0.5
-        surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_powell)
+        surface_fluxes = (FluxLaxFriedrichs(max_abs_speed_naive),
+                          flux_nonconservative_powell)
 
         outward_direction = SVector(0.2, 0.3)
 
@@ -935,7 +936,7 @@ end
 
         orientations = [1, 2]
         for orientation in orientations
-            @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+            @test FluxLaxFriedrichs(max_abs_speed_naive)(u, u, orientation, equations) ≈
                   flux(u, orientation, equations)
         end
 
@@ -945,7 +946,8 @@ end
             SVector(-1.2, 0.3)]
 
         for normal_direction in normal_directions
-            @test flux_lax_friedrichs(u, u, normal_direction, equations) ≈
+            @test FluxLaxFriedrichs(max_abs_speed_naive)(u, u, normal_direction,
+                                                         equations) ≈
                   flux(u, normal_direction, equations)
         end
     end
@@ -1325,7 +1327,7 @@ end
     orientations = [1]
     for orientation in orientations
         @test flux_godunov(0.5 * u, u, orientation, equation) ≈
-              flux_lax_friedrichs(0.5 * u, u, orientation, equation)
+              FluxLaxFriedrichs(max_abs_speed_naive)(0.5 * u, u, orientation, equation)
         @test flux_godunov(2 * u, u, orientation, equation) ≈
               Trixi.flux_engquist_osher(2 * u, u, orientation, equation)
     end
@@ -1337,7 +1339,7 @@ end
     orientations = [1, 2]
     for orientation in orientations
         @test flux_godunov(0.25 * u, u, orientation, equation) ≈
-              flux_lax_friedrichs(0.25 * u, u, orientation, equation)
+              FluxLaxFriedrichs(max_abs_speed_naive)(0.25 * u, u, orientation, equation)
     end
 
     normal_directions = [SVector(1.0, 0.0),
@@ -1347,7 +1349,8 @@ end
 
     for normal_direction in normal_directions
         @test flux_godunov(3 * u, u, normal_direction, equation) ≈
-              flux_lax_friedrichs(3 * u, u, normal_direction, equation)
+              FluxLaxFriedrichs(max_abs_speed_naive)(3 * u, u, normal_direction,
+                                                     equation)
     end
 
     # Linear Advection 3D
@@ -1357,7 +1360,7 @@ end
     orientations = [1, 2, 3]
     for orientation in orientations
         @test flux_godunov(1.5 * u, u, orientation, equation) ≈
-              flux_lax_friedrichs(1.5 * u, u, orientation, equation)
+              FluxLaxFriedrichs(max_abs_speed_naive)(1.5 * u, u, orientation, equation)
     end
 
     normal_directions = [SVector(1.0, 0.0, 0.0),
@@ -1368,7 +1371,8 @@ end
 
     for normal_direction in normal_directions
         @test flux_godunov(1.3 * u, u, normal_direction, equation) ≈
-              flux_lax_friedrichs(1.3 * u, u, normal_direction, equation)
+              FluxLaxFriedrichs(max_abs_speed_naive)(1.3 * u, u, normal_direction,
+                                                     equation)
     end
 end
 
