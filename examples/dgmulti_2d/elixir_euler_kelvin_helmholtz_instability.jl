@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = SBP(),
-             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
+             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 equations = CompressibleEulerEquations2D(1.4)

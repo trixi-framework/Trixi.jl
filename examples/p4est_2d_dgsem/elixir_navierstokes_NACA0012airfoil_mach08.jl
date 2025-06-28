@@ -45,7 +45,7 @@ end
 
 initial_condition = initial_condition_mach08_flow
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux)

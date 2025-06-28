@@ -14,7 +14,7 @@ boundary_conditions = Dict(:Bottom => boundary_condition,
                            :Circle => boundary_condition,
                            :Cut => boundary_condition)
 
-solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 # Unstructured 3D half circle mesh from HOHQMesh
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/11461efbfb02c42e06aca338b3d0b645/raw/81deeb1ebc4945952c30af5bb75fe222a18d975c/abaqus_half_circle_3d.inp",

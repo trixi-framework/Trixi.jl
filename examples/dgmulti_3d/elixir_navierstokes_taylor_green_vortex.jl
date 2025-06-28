@@ -37,7 +37,7 @@ initial_condition = initial_condition_taylor_green_vortex
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = GaussSBP(),
-             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 coordinates_min = (-1.0, -1.0, -1.0) .* pi

@@ -226,7 +226,8 @@ end
 
         @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
             equations = CompressibleEulerEquations2D(1.4)
-            solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+            solver = DGSEM(polydeg = 3,
+                           surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
             coordinates_min = (-1.0, -1.0)
             coordinates_max = (+1.0, +1.0)
@@ -260,7 +261,8 @@ end
 
     @trixi_testset "PlotData1D gives correct results" begin
         equations = CompressibleEulerEquations2D(1.4)
-        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
         coordinates_min = (-1.0, -1.0)
         coordinates_max = (+1.0, +1.0)
         initial_refinement_level = 3
@@ -518,7 +520,8 @@ end
 
             @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
                 equations = CompressibleEulerEquations3D(1.4)
-                solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+                solver = DGSEM(polydeg = 3,
+                               surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
                 coordinates_min = (-1.0, -1.0, -1.0)
                 coordinates_max = (+1.0, +1.0, +1.0)
@@ -553,7 +556,8 @@ end
 
     @trixi_testset "PlotData1D gives correct results" begin
         equations = CompressibleEulerEquations3D(1.4)
-        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
         coordinates_min = (-1.0, -1.0, -1.0)
         coordinates_max = (+1.0, +1.0, +1.0)
         initial_refinement_level = 3

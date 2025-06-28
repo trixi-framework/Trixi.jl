@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations2D(1.4)
 # Test free stream preservation with constant initial condition
 initial_condition = initial_condition_constant
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 ###############################################################################
 

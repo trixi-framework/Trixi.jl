@@ -39,7 +39,7 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
 end
 initial_condition = initial_condition_blast_wave
 
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_central, flux_nonconservative_powell)
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,

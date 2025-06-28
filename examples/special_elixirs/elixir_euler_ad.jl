@@ -7,7 +7,7 @@ equations = CompressibleEulerEquations2D(1.4)
 mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                 initial_refinement_level = 2, n_cells_max = 10^5)
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 """

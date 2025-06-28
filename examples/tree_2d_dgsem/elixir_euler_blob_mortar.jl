@@ -53,7 +53,7 @@ function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
 end
 initial_condition = initial_condition_blob
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 

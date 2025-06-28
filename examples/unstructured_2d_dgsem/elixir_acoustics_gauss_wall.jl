@@ -9,7 +9,7 @@ equations = AcousticPerturbationEquations2D(v_mean_global = (0.0, -0.5),
                                             rho_mean_global = 1.0)
 
 # Create DG solver with polynomial degree = 4 and (local) Lax-Friedrichs/Rusanov flux
-solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 # Create unstructured quadrilateral mesh from a file
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/3c79baad6b4d73bb26ec6420b5d16f45/raw/22aefc4ec2107cf0bffc40e81dfbc52240c625b1/mesh_five_circles_in_circle.mesh",

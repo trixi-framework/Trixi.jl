@@ -47,7 +47,7 @@ end
 
 polydeg = 3
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 
 basis = LobattoLegendreBasis(polydeg)

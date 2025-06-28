@@ -161,7 +161,7 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
     return flux
 end
 
-solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
+solver_gravity = DGSEM(polydeg, FluxLaxFriedrichs(max_abs_speed_naive))
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition,
                                             solver_gravity,

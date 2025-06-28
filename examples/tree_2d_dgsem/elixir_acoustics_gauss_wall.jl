@@ -8,7 +8,7 @@ equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.0), c_mean_g
                                             rho_mean_global = 1.0)
 
 # Create DG solver with polynomial degree = 5 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 5, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (-100.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (100.0, 200.0) # maximum coordinates (max(x), max(y))

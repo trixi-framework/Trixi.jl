@@ -33,7 +33,7 @@ boundary_conditions = Dict(:Body => boundary_condition_uniform_flow,
                            :Bowtie => boundary_condition_slip_wall)
 
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs,
+solver = DGSEM(polydeg = 5, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)

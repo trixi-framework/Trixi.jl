@@ -274,7 +274,7 @@ end
 
     # Create a DGSEM solver with polynomials of degree `polydeg`
     volume_flux = (flux_central, flux_nonconservative)
-    surface_flux = (flux_lax_friedrichs, flux_nonconservative)
+    surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative)
     solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                    volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 

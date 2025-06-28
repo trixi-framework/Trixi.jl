@@ -25,7 +25,7 @@ function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquat
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 initial_condition = initial_condition_density_pulse
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (-5.0, -5.0, -5.0)
 coordinates_max = (5.0, 5.0, 5.0)

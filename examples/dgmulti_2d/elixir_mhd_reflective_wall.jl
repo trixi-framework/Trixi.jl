@@ -28,7 +28,7 @@ function initial_condition_perturbation(x, t, equations::IdealGlmMhdEquations2D)
 end
 initial_condition = initial_condition_perturbation
 
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 
 solver = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = GaussSBP(),

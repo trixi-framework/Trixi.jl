@@ -90,7 +90,7 @@ end
                             0.0014540668676888365
                         ],
                         surface_flux=(FluxPlusDissipation(flux_ruedaramirez_etal,
-                                                          DissipationLaxFriedrichsEntropyVariables()),
+                                                          DissipationLaxFriedrichsEntropyVariables(max_abs_speed_naive)),
                                       flux_nonconservative_ruedaramirez_etal),
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations

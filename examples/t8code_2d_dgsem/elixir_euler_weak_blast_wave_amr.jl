@@ -32,7 +32,7 @@ initial_condition = initial_condition_weak_blast_wave
 # Get the DG approximation space
 
 # Activate the shock capturing + flux differencing
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)

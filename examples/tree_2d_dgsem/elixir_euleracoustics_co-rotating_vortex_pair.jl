@@ -235,7 +235,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = false)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 ###############################################################################
 # semidiscretization Euler equations

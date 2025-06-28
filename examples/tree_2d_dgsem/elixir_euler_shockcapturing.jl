@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_shima_etal
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,

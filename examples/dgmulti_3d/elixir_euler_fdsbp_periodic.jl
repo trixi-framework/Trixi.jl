@@ -15,7 +15,7 @@ solver = DGMulti(element_type = Hex(),
                                                                    accuracy_order = 4,
                                                                    xmin = 0.0, xmax = 1.0,
                                                                    N = 20),
-                 surface_flux = flux_lax_friedrichs,
+                 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                  volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 mesh = DGMultiMesh(solver, coordinates_min = (-1.0, -1.0, -1.0),

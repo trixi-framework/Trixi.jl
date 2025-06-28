@@ -1,7 +1,7 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-surface_flux = FluxLaxFriedrichs()
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(surface_flux),

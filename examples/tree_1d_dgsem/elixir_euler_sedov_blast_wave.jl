@@ -36,7 +36,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
 end
 initial_condition = initial_condition_sedov_blast_wave
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 shock_indicator_variable = density_pressure

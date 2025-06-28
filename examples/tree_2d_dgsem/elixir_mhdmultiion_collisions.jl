@@ -103,7 +103,7 @@ tspan = (0.0, 0.1) # 100 [ps]
 
 # Entropy conservative volume numerical fluxes with standard LLF dissipation at interfaces
 volume_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_central)
 
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))

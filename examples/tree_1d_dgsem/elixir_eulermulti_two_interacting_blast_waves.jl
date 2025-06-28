@@ -55,7 +55,7 @@ function boundary_condition_two_interacting_blast_waves(u_inner, orientation, di
 end
 boundary_conditions = boundary_condition_two_interacting_blast_waves
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,

@@ -17,7 +17,7 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (x_neg = boundary_condition,
                        x_pos = boundary_condition)
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 f1() = SVector(0.0)
 f2() = SVector(2.0)
