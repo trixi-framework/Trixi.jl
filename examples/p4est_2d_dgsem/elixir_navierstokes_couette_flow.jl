@@ -10,7 +10,7 @@ prandtl_number() = 0.71
 
 # Parameters for compressible, yet viscous set up
 Re() = 100
-Ma() = 1.2
+Ma() = 0.2
 
 # Parameters that can be freely chosen
 v_top() = 1
@@ -117,7 +117,9 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
+                                     extra_analysis_errors = (:l2_error_primitive,
+                                                              :linf_error_primitive))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
