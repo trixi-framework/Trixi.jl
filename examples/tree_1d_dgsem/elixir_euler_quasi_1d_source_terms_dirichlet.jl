@@ -1,38 +1,45 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
+using ForwardDiff
 
 ###############################################################################
-# semidiscretization of the shallow water equations
+# Semidiscretization of the quasi 1d compressible Euler equations
+# See Chan et al.  https://doi.org/10.48550/arXiv.2307.12089 for details
 
-equations = ShallowWaterEquations2D(gravity_constant = 9.81)
+equations = CompressibleEulerEquationsQuasi1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg = 3,
-               surface_flux = (flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
+boundary_condition = BoundaryConditionDirichlet(initial_condition_convergence_test)
+
+surface_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
+volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
+solver = DGSEM(polydeg = 4, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (sqrt(2.0), sqrt(2.0))
-
-cells_per_dimension = (8, 8)
-
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+coordinates_min = -1.0
+coordinates_max = 1.0
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 4,
+                n_cells_max = 10_000,
+                periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_condition,
                                     source_terms = source_terms_convergence_test)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
+                                     extra_analysis_errors = (:l2_error_primitive,
+                                                              :linf_error_primitive))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -41,7 +48,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 1.0)
+stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

@@ -64,7 +64,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
+                            dg, cache)
     end
 
     # Calculate interface fluxes
@@ -145,11 +145,10 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache)
+                             dg::DG, cache)
     @unpack interfaces = cache_parabolic
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -241,13 +240,13 @@ function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::Tree
         for i in eachnode(dg)
             # Get solution and gradients
             u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, element)
-            gradients_1_node = get_node_vars(gradients, equations_parabolic, dg, i,
-                                             element)
+            gradients_1_node = get_node_vars(gradients, equations_parabolic, dg,
+                                             i, element)
 
             # Calculate viscous flux and store each component for later use
             flux_viscous_node = flux(u_node, gradients_1_node, 1, equations_parabolic)
-            set_node_vars!(flux_viscous, flux_viscous_node, equations_parabolic, dg, i,
-                           element)
+            set_node_vars!(flux_viscous, flux_viscous_node, equations_parabolic, dg,
+                           i, element)
         end
     end
 end
@@ -453,13 +452,13 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
 
             # Calculate volume terms in one element
             for i in eachnode(dg)
-                u_node = get_node_vars(u_transformed, equations_parabolic, dg, i,
-                                       element)
+                u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                       i, element)
 
                 for ii in eachnode(dg)
                     multiply_add_to_node_vars!(gradients, derivative_dhat[ii, i],
-                                               u_node, equations_parabolic, dg, ii,
-                                               element)
+                                               u_node, equations_parabolic, dg,
+                                               ii, element)
                 end
             end
         end
@@ -469,7 +468,6 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache_parabolic,
                                                                    u_transformed, mesh,
                                                                    equations_parabolic,
-                                                                   dg.surface_integral,
                                                                    dg)
 
     # Calculate interface fluxes

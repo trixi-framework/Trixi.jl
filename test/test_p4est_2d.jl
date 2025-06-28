@@ -619,31 +619,6 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
-                        l2=[
-                            9.168126407325352e-5,
-                            0.0009795410115453788,
-                            0.002546408320320785,
-                            3.941189812642317e-6
-                        ],
-                        linf=[
-                            0.0009903782521019089,
-                            0.0059752684687262025,
-                            0.010941106525454103,
-                            1.2129488214718265e-5
-                        ],
-                        tspan=(0.0, 0.1))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[1.0513414461545583e-5, 1.0517900957166411e-6,
@@ -656,6 +631,38 @@ end
                             5.4791097160444835e-6, 5.18922042269665e-6,
                             5.189220422141538e-6, 9.552667261422676e-6,
                             1.4237578427628152e-6])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
+                        l2=[0.032257043714485005,
+                            0.0698809831015213,
+                            0.07024507293378073,
+                            0.09318700512682686,
+                            0.04075287377819964,
+                            0.06598033890138222,
+                            0.06584394125943109,
+                            0.09317325194007701,
+                            0.001603893541181234],
+                        linf=[0.17598491051066556,
+                            0.13831592490115455,
+                            0.14124330399841845,
+                            0.17293937185553027,
+                            0.1332948089388849,
+                            0.16128651157312346,
+                            0.15572969249532598,
+                            0.1810247231315753,
+                            0.01967917976620706],
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
