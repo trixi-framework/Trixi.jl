@@ -5,7 +5,15 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.13 from v0.12.x
+
 ## Changes when updating to v0.12 from v0.11.x
+
+#### Changed
+
+- Default wave-speed estimate used within `flux_lax_friedrichs` changed from `max_abs_speed_naive` to
+  `max_abs_speed` which is less diffusive: `FluxLaxFriedrichs(max_abs_speed = max_abs_speed)` instead of
+  `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)` ([#2458]).
 
 #### Added
 
