@@ -13,7 +13,7 @@ for human readability.
   `max_abs_speed` which is less diffusive: `FluxLaxFriedrichs(max_abs_speed = max_abs_speed)` instead of
   `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)` ([#2458]).
   
-## Changes when updating to v0.13 from v0.12.x
+## Changes when updating to v0.12 from v0.11.x
 
 
 #### Added
