@@ -4,7 +4,7 @@
 # However, on this rotated mesh, the metric terms are non-trivial.
 # The same errors as with elixir_advection_basic are expected (except for rounding errors).
 
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # Define new structs inside a module to allow re-evaluating the file.

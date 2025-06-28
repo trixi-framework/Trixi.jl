@@ -122,7 +122,7 @@ function initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquat
     return prim2cons(SVector(rho, v1, v2), equations)
 end
 
-# Calculate 2D flux for a single point in the normal direction
+# Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::PolytropicEulerEquations2D)
@@ -137,7 +137,7 @@ end
     return SVector(f1, f2, f3)
 end
 
-# Calculate 2D flux for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
     _, v1, v2 = cons2prim(u, equations)
     p = pressure(u, equations)
