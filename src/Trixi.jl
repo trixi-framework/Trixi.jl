@@ -190,6 +190,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
+       flux_nonconservative_powell_local_jump,
        flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal,
        flux_nonconservative_central,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
@@ -289,7 +290,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled,
        AnalysisSurfaceIntegral, DragCoefficientPressure2D, LiftCoefficientPressure2D,
-       DragCoefficientShearStress2D, LiftCoefficientShearStress2D
+       DragCoefficientShearStress2D, LiftCoefficientShearStress2D,
+       DragCoefficientPressure3D, LiftCoefficientPressure3D
 
 # TODO: deprecation introduced in v0.11
 @deprecate DragCoefficientPressure DragCoefficientPressure2D
