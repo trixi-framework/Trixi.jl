@@ -15,7 +15,6 @@ for human readability.
   
 ## Changes when updating to v0.12 from v0.11.x
 
-
 #### Added
 
 - Arbitrary solution-dependent quantities can now be saved in the `SaveSolutionCallback` (and thus later on visualized) ([#2298]).
