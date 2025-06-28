@@ -20,7 +20,8 @@ In 2D, the freestream-normal unit vector ``\psi_L`` is given by
 ```
 where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `LiftCoefficientPressure2D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
@@ -28,10 +29,10 @@ which stores the boundary information and semidiscretization.
 - `l_inf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
 function LiftCoefficientPressure2D(aoa, rho_inf, u_inf, l_inf)
-    # psi_lift is the normal unit vector to the freestream direction.
-    # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa))
+    # `psi_lift` is the normal unit vector to the freestream direction.
+    # Note: The choice of the normal vector `psi_lift = (-sin(aoa), cos(aoa))`
     # leads to positive lift coefficients for positive angles of attack for airfoils.
-    # One could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same
+    # One could also use `psi_lift = (sin(aoa), -cos(aoa))` which results in the same
     # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa))
     return LiftCoefficientPressure(ForceState(psi_lift, rho_inf, u_inf, l_inf))
@@ -53,7 +54,8 @@ In 2D, the freestream-tangent unit vector ``\psi_D`` is given by
 where ``\alpha`` is the angle of attack.
 
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `DragCoefficientPressure2D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
@@ -81,7 +83,8 @@ In 2D, the freestream-normal unit vector ``\psi_L`` is given by
 ```
 where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `LiftCoefficientShearStress2D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
@@ -89,10 +92,10 @@ which stores the boundary information and semidiscretization.
 - `l_inf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
 function LiftCoefficientShearStress2D(aoa, rho_inf, u_inf, l_inf)
-    # psi_lift is the normal unit vector to the freestream direction.
-    # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa))
+    # `psi_lift` is the normal unit vector to the freestream direction.
+    # Note: The choice of the normal vector `psi_lift = (-sin(aoa), cos(aoa))`
     # leads to negative lift coefficients for airfoils.
-    # One could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same
+    # One could also use `psi_lift = (sin(aoa), -cos(aoa))` which results in the same
     # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa))
     return LiftCoefficientShearStress(ForceState(psi_lift, rho_inf, u_inf, l_inf))
@@ -113,7 +116,8 @@ In 2D, the freestream-tangent unit vector ``\psi_D`` is given by
 ```
 where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `DragCoefficientShearStress2D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
@@ -196,6 +200,8 @@ function (drag_coefficient::DragCoefficientShearStress{RealT, 2})(u, normal_dire
            (0.5f0 * rho_inf * u_inf^2 * l_inf)
 end
 
+# 2D version of the `analyze` function for `AnalysisSurfaceIntegral`, i.e., 
+# `LiftCoefficientPressure` and `DragCoefficientPressure`.
 function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                  mesh::P4estMesh{2},
                  equations, dg::DGSEM, cache, semi)
@@ -220,8 +226,8 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
         i_node = i_node_start
         j_node = j_node_start
         for node_index in index_range
-            u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
-                                         boundary)
+            u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg,
+                                         node_index, boundary)
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
@@ -247,8 +253,12 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     return surface_integral
 end
 
-function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
-                 du, u, t, mesh::P4estMesh{2},
+# 2D version of the `analyze` function for `AnalysisSurfaceIntegral` of viscous, i.e.,
+# variables that require gradients of the solution variables.
+# These are for parabolic equations readily available.
+# Examples are `LiftCoefficientShearStress` and `DragCoefficientShearStress`.
+function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
+                 mesh::P4estMesh{2},
                  equations, equations_parabolic,
                  dg::DGSEM, cache, semi,
                  cache_parabolic) where {Variable <: VariableViscous}
@@ -279,8 +289,8 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
         i_node = i_node_start
         j_node = j_node_start
         for node_index in index_range
-            u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
-                                         boundary)
+            u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg,
+                                         node_index, boundary)
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
