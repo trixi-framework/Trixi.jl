@@ -10,7 +10,7 @@ prandtl_number() = 0.71
 
 # Parameters for compressible, yet viscous set up
 Re() = 100
-Ma() = 0.2
+Ma() = 1.2
 
 # Parameters that can be freely chosen
 v_top() = 1
