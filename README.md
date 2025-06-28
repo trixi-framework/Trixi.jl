@@ -250,7 +250,7 @@ Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), [Jesse Chan](https://jlchan.github.io) (Rice University, US),
-and Andrés Rueda-Ramírez (Polytechnic University of Madrid (UPM), Spain),
+and [Andrés Rueda-Ramírez](https://andres.rueda-ramirez.com) (Polytechnic University of Madrid (UPM), Spain),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 
