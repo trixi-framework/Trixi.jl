@@ -5,7 +5,35 @@
 @muladd begin
 #! format: noindent
 
+@doc raw"""
+    SubDiagonalAlgorithm
+
+Abstract type for sub-diagonal Runge-Kutta methods, i.e., 
+methods with a Butcher tableau of the form
+```math
+\renewcommand\arraystretch{1.3}
+\begin{array}
+    {c|c|c c c c}
+    i & \boldsymbol c & \multicolumn{4}{c}{A} \\
+    \hline
+    1 & 0 & & & & \\
+    2 & c_2 & c_2 & & &   \\
+    3 & c_3 & 0 & c_3 & &  \\ 
+    \vdots & \vdots & \vdots & \ddots & \ddots &  \\
+    S & c_S & 0 & \dots & 0 & c_S \\
+    \hline
+    & & \multicolumn{4}{c}{ \boldsymbol b^T }
+\end{array}
+```math
+"""
 abstract type SubDiagonalAlgorithm end
+
+"""
+    SubDiagonalRelaxationAlgorithm
+Abstract type for sub-diagonal Runge-Kutta algorithms
+(see [`SubDiagonalAlgorithm`](@ref)) with relaxation to achieve
+entropy-conservation/stability.
+"""
 abstract type SubDiagonalRelaxationAlgorithm end
 
 """
