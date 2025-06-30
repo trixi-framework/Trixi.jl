@@ -17,9 +17,9 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupledP4est{S, Indices, EquationList} <:
+mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
                AbstractSemidiscretization
-    semis::S
+    semis::Semis
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
     global_element_ids::Vector{Int}
