@@ -408,8 +408,9 @@ function Base.eltype(boundary_condition::BoundaryConditionCoupledP4est)
 end
 
 """
-Extract the boundary values from te neighboring element.
+Extract the boundary values from the neighboring element.
 This requires values from other mesh views.
+This currently only works for Cartesian meshes.
 """
 function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equations,
                                                              cache,
