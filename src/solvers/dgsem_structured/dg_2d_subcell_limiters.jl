@@ -269,11 +269,11 @@ end
                                                     equations,
                                                     NonConservativeSymmetric(), noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           0.5 * derivative_split[j, jj],
+                                           0.5f0 * derivative_split[j, jj],
                                            flux2_noncons,
                                            equations, dg, noncons, i, j)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           0.5 * derivative_split[jj, j],
+                                           0.5f0 * derivative_split[jj, j],
                                            flux2_noncons,
                                            equations, dg, noncons, i, jj)
             end
@@ -522,11 +522,11 @@ end
                                                     equations,
                                                     NonConservativeJump(), noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           0.5 * derivative_split[j, jj],
+                                           0.5f0 * derivative_split[j, jj],
                                            flux2_noncons,
                                            equations, dg, noncons, i, j)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           -0.5 * derivative_split[jj, j],
+                                           -0.5f0 * derivative_split[jj, j],
                                            flux2_noncons,
                                            equations, dg, noncons, i, jj)
             end
