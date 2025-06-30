@@ -489,7 +489,7 @@ end
                     v2_ll,
                     v3_ll,
                     0)
-    else #nonconservative_term ==2
+    else # nonconservative_term == 2
         # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         v1_ll = rho_v1_ll / rho_ll
         v2_ll = rho_v2_ll / rho_ll
@@ -597,7 +597,7 @@ end
                     B_dot_n_avg,
                     B_dot_n_avg,
                     0)
-    else #nonconservative_term == 2
+    else # nonconservative_term == 2
         # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         # The factor 0.5 of the average can be omitted since it is already applied when this
         # function is called.
@@ -815,7 +815,7 @@ end
                     v2_ll,
                     v3_ll,
                     0)
-    else #nonconservative_term ==2
+    else # nonconservative_term == 2
         # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         v1_ll = rho_v1_ll / rho_ll
         v2_ll = rho_v2_ll / rho_ll
@@ -925,7 +925,7 @@ end
                     B_dot_n_jump,
                     B_dot_n_jump,
                     0)
-    else #nonconservative_term == 2
+    else # nonconservative_term == 2
         # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         psi_jump = (psi_rr - psi_ll)
         f = SVector(0,
