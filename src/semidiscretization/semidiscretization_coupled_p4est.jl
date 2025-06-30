@@ -165,7 +165,7 @@ function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
 end
 
 @inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupledP4est)
-    @view u_ode[semi.u_indices[index]]
+    return @view u_ode[semi.u_indices[index]]
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
