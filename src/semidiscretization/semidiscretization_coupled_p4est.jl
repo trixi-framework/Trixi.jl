@@ -318,7 +318,8 @@ function save_mesh(semi::SemidiscretizationCoupledP4est, output_directory, times
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
         if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh, output_directory; system = string(i),
+            mesh.current_filename = save_mesh_file(mesh, output_directory;
+                                                   system = string(i),
                                                    timestep = timestep)
             mesh.unsaved_changes = false
         end
