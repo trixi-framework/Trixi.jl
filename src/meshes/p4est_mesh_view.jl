@@ -253,7 +253,7 @@ function global_element_id_to_local(id::Int, mesh::P4estMeshView)
     return local_id
 end
 
-# Convert a global cell id to a local cell id in the mesh view.
+# Convert an array of global cell ids to a local cell id in the mesh view.
 function global_element_id_to_local(id::AbstractArray, mesh::P4estMeshView)
     # Find the index of the cell id in the mesh view
     local_id = zeros(Int, length(id))
