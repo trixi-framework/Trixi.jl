@@ -303,7 +303,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
 
         l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi,
                                                 cache_analysis)
-        l2_error_collection[error_indices[i]:error_indices[i+1]-1] = l2_error
+        l2_error_collection[error_indices[i]:(error_indices[i + 1] - 1)] = l2_error
         append!(linf_error_collection, linf_error)
     end
 
