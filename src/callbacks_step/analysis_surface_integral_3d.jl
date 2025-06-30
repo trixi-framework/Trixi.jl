@@ -11,7 +11,7 @@
 Compute the lift coefficient
 ```math
 C_{L,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_L \, \mathrm{d} S}
-                        {0.5 \rho_{\infty} U_{\infty}^2 L_{\infty}}
+                        {0.5 \rho_{\infty} U_{\infty}^2 A_{\infty}}
 ```
 based on the pressure distribution along a boundary.
 In 3D, the freestream-normal unit vector ``\psi_L`` is given by
@@ -29,7 +29,7 @@ and boundary information.
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
 - `u_inf::Real`: Free-stream velocity
-- `a_inf::Real`: Reference area of geometry
+- `a_inf::Real`: Reference area of geometry (e.g. projected wing surface)
 """
 function LiftCoefficientPressure3D(aoa, rho_inf, u_inf, a_inf)
     # `psi_lift` is the normal unit vector to the freestream direction.
@@ -42,12 +42,12 @@ function LiftCoefficientPressure3D(aoa, rho_inf, u_inf, a_inf)
 end
 
 @doc raw"""
-    DragCoefficientPressure3D(aoa, rho_inf, u_inf, l_inf)
+    DragCoefficientPressure3D(aoa, rho_inf, u_inf, a_inf)
 
 Compute the drag coefficient
 ```math
 C_{D,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_D \, \mathrm{d} S}
-                        {0.5 \rho_{\infty} U_{\infty}^2 L_{\infty}}
+                        {0.5 \rho_{\infty} U_{\infty}^2 A_{\infty}}
 ```
 based on the pressure distribution along a boundary.
 In 3D, the freestream-tangent unit vector ``\psi_D`` is given by
@@ -65,12 +65,12 @@ and boundary information.
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
 - `u_inf::Real`: Free-stream velocity
-- `l_inf::Real`: Reference length of geometry (e.g. airfoil chord length)
+- `a_inf::Real`: Reference area of geometry (e.g. projected wing surface)
 """
-function DragCoefficientPressure3D(aoa, rho_inf, u_inf, l_inf)
+function DragCoefficientPressure3D(aoa, rho_inf, u_inf, a_inf)
     # `psi_drag` is the unit vector tangent to the freestream direction
     psi_drag = (cos(aoa), sin(aoa), zero(aoa))
-    return DragCoefficientPressure(ForceState(psi_drag, rho_inf, u_inf, l_inf))
+    return DragCoefficientPressure(ForceState(psi_drag, rho_inf, u_inf, a_inf))
 end
 
 # 3D version of the `analyze` function for `AnalysisSurfaceIntegral`, i.e., 
