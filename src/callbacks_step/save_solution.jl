@@ -294,5 +294,32 @@ end
 # TODO: Taal refactor, move save_mesh_file?
 # function save_mesh_file(mesh::TreeMesh, output_directory, timestep=-1) in io/io.jl
 
+# Temporary and experimental routine for SaveSolutionCallback.
+# output_data_to_vtu directly creates .vtu files.
+function save_solution_file(u, time, dt, timestep,
+                            mesh::T8codeMesh,
+                            equations, solver::FV, cache,
+                            solution_callback,
+                            element_variables = Dict{Symbol, Any}(),
+                            node_variables = Dict{Symbol, Any}();
+                            system = "")
+    @unpack output_directory, solution_variables = solution_callback
+
+    # Filename based on current time step
+    if isempty(system)
+        filename = joinpath(output_directory, @sprintf("solution_%09d.h5", timestep))
+    else
+        filename = joinpath(output_directory,
+                            @sprintf("solution_%s_%09d.h5", system, timestep))
+    end
+    MPI.Barrier(MPI.COMM_WORLD)
+    Trixi.exchange_solution_data!(u, mesh, equations, solver, cache)
+    Trixi.output_data_to_vtu(mesh, equations, solver,
+                             cache.communication_data.solution_data, filename,
+                             solution_variables)
+
+    return filename
+end
+
 include("save_solution_dg.jl")
 end # @muladd
