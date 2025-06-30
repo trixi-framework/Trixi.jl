@@ -289,8 +289,14 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
     @unpack callbacks = cb.affect!
 
     uEltype = real(semi_coupled)
-    error_indices = Array([1, 1 .+ cumsum(nvariables(semi_coupled.semis[i].equations) for i in eachindex(semi_coupled.semis))[begin:end]...])
-    length_error_array = sum(nvariables(semi_coupled.semis[i].equations) for i in eachindex(semi_coupled.semis))
+    error_indices = Array([
+                              1,
+                              1 .+
+                              cumsum(nvariables(semi_coupled.semis[i].equations)
+                                     for i in eachindex(semi_coupled.semis))[begin:end]...
+                          ])
+    length_error_array = sum(nvariables(semi_coupled.semis[i].equations)
+                             for i in eachindex(semi_coupled.semis))
     l2_error_collection = zeros(uEltype, length_error_array)
     linf_error_collection = zeros(uEltype, length_error_array)
     for i in eachsystem(semi_coupled)
