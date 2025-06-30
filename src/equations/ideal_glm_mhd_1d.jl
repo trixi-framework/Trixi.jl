@@ -69,7 +69,7 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
     RealT = eltype(x)
     rho = 1
     v1 = 0
-    si, co = sincospi(2 * x[1])
+    si, co = sincospi(2 * (x[1] + t)) # Adding `t` makes non-integer time valid
     v2 = convert(RealT, 0.1) * si
     v3 = convert(RealT, 0.1) * co
     p = convert(RealT, 0.1)
