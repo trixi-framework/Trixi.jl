@@ -45,15 +45,15 @@ volume_flux = flux_winters_etal
 solver_euler = DGSEM(polydeg = polydeg, surface_flux = flux_hll,
                      volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-# Linear pressure wave moving in the positive x-direction.
-function initial_condition_wave(x, t, equations::PolytropicEulerEquations2D)
+# Linear pressure wave/Gaussian bump moving in the positive x-direction.
+function initial_condition_pressure_bump(x, t, equations::PolytropicEulerEquations2D)
     rho = ((1.0 + 0.01 * exp(-(x[1] - 1)^2 / 0.1)) / equations.kappa)^(1 / equations.gamma)
     v1 = ((0.01 * exp(-(x[1] - 1)^2 / 0.1)) / equations.kappa)
     v2 = 0.0
 
     return prim2cons(SVector(rho, v1, v2), equations)
 end
-initial_condition_euler = initial_condition_wave
+initial_condition_euler = initial_condition_pressure_bump
 
 coords_min_euler = (-2.0, -1.0)
 coords_max_euler = (0.0, 1.0)
