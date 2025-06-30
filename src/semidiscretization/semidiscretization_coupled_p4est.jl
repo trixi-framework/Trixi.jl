@@ -461,12 +461,13 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         i_index_g = i_index
     end
     # Perform integer division to get the right shape of the array.
-    @autoinfiltrate
     u_global_reshape = reshape(u_global,
                                (nvariables(equations), n_nodes, n_nodes, length(u_global) ÷ (n_nodes^2 * nvariables(equations))))
-    u_boundary = u_global_reshape[:, i_index_g, j_index_g, element_index_global]
+    u_boundary_to_convert = u_global_reshape[:, i_index_g, j_index_g, element_index_global]
+    @autoinfiltrate
+    x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
+    u_boundary = boundary_condition.coupling_converter(x, u_boundary_to_convert, equations, equations)
 
-    # u_boundary = u_inner
     orientation = normal_direction
 
     # Calculate boundary flux
