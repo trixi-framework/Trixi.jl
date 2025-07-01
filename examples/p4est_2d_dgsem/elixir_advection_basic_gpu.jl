@@ -1,8 +1,6 @@
-# The same setup as tree_2d_dgsem/elixir_advection_basic.jl
-# to verify the StructuredMesh implementation against TreeMesh
-
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
+using CUDA
 
 ###############################################################################
 # semidiscretization of the linear advection equation
@@ -31,7 +29,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0); real_type = nothing, storage_type = nothing)
+ode = semidiscretize(semi, (0.0, 1.0); real_type = nothing, storage_type = CuArray)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -48,8 +46,8 @@ save_solution = SaveSolutionCallback(interval = 100,
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(summary_callback)
+# analysis_callback, save_solution, stepsize_callback)
 
 ###############################################################################
 # run the simulation
@@ -58,6 +56,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 #       Uncomment the calls below to discover missing functionality.
 
 # # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-#             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-#             ode_default_options()..., callback = callbacks);
+ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+             dt = 1e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
+             ode_default_options()..., callback = callbacks);
