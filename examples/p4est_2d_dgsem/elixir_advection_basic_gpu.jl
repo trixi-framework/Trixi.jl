@@ -53,6 +53,6 @@ callbacks = CallbackSet(summary_callback)
 # run the simulation
 
 # # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
- sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-             dt = 1e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
-             ode_default_options()..., callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);
