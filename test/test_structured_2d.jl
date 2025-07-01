@@ -1038,6 +1038,80 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_orszag_tang_sc_subcell.jl (local * symmetric)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang_sc_subcell.jl"),
+                        l2=[
+                            0.01971024989875626,
+                            0.09104800714369102,
+                            0.09850531236459953,
+                            0.0,
+                            0.11257300398205827,
+                            0.0663796508325794,
+                            0.1046810844992422,
+                            0.0,
+                            1.3771070897457708e-7
+                        ],
+                        linf=[
+                            0.06892691571947851,
+                            0.2359568430620927,
+                            0.27708425716878604,
+                            0.0,
+                            0.32729450754783485,
+                            0.16594293308909247,
+                            0.28427225533782474,
+                            0.0,
+                            1.5760984369383474e-6
+                        ],
+                        tspan=(0.0, 0.025))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
+@trixi_testset "elixir_mhd_orszag_tang_sc_subcell.jl (local * jump)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang_sc_subcell.jl"),
+                        l2=[
+                            0.019710787852084945,
+                            0.09104739316084506,
+                            0.09850451818593346,
+                            0.0,
+                            0.11257089275762928,
+                            0.0663755234418436,
+                            0.10468586115056747,
+                            0.0,
+                            4.200881361783599e-6
+                        ],
+                        linf=[
+                            0.06893188693406871,
+                            0.23594610243501996,
+                            0.2770924621975269,
+                            0.0,
+                            0.32731120349573106,
+                            0.1659395971443428,
+                            0.2842678645407109,
+                            0.0,
+                            2.6014507178710646e-5
+                        ],
+                        surface_flux=(flux_lax_friedrichs,
+                                      flux_nonconservative_powell_local_jump),
+                        volume_flux=(flux_central,
+                                     flux_nonconservative_powell_local_jump),
+                        tspan=(0.0, 0.025))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
 @trixi_testset "elixir_mhd_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_coupled.jl"),
                         l2=[
