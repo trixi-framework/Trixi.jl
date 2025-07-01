@@ -643,7 +643,8 @@ function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
     u_ode = similar(cache.elements.node_coordinates,
-                    nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+                    nvariables(equations) * nnodes(dg)^ndims(mesh) *
+                    nelements(dg, cache))
     fill!(u_ode, zero(eltype(u_ode)))
     return u_ode
 end
@@ -759,11 +760,13 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg:
     end
 end
 
-function compute_coefficients!(backend::Any, func, t, mesh::AbstractMesh{2}, equations, dg::DG,
+function compute_coefficients!(backend::Any, func, t, mesh::AbstractMesh{2}, equations,
+                               dg::DG,
                                cache)
     @unpack node_coordinates = cache.elements
     @threaded for element in eachelement(dg, cache)
-        compute_coefficients_element!(u, func, t, equations, dg, node_coordinates, element)
+        compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
+                                      element)
     end
 end
 
@@ -789,7 +792,7 @@ function compute_coefficients_element!(u, func, t, equations, dg::DG,
                                        node_coordinates, element)
     for j in eachnode(dg), i in eachnode(dg)
         x_node = get_node_coords(node_coordinates, equations, dg, i,
-                                    j, element)
+                                 j, element)
         u_node = func(x_node, t, equations)
         set_node_vars!(u, u_node, equations, dg, i, j, element)
     end
