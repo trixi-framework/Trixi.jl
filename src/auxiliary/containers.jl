@@ -405,4 +405,8 @@ end
 function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage}
     return unsafe_wrap_or_alloc(Storage, vec, size)
 end
+
+function KernelAbstractions.get_backend(semi::AbstractSemidiscretization)
+    KernelAbstractions.get_backend(semi.cache.elements.node_coordinates)
+end
 end # @muladd
