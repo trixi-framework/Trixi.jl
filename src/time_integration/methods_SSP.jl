@@ -116,15 +116,6 @@ end
 has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)
 first_tstop(integrator::SimpleIntegratorSSP) = first(integrator.opts.tstops)
 
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
-end
-
 """
     solve(ode, alg; dt, callbacks, kwargs...)
 
@@ -242,21 +233,10 @@ function solve!(integrator::SimpleIntegratorSSP)
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::SimpleIntegratorSSP) = integrator.du
 get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.r0,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
-
-# used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::SimpleIntegratorSSP, dt)
-    (integrator.dt = dt; integrator.dtcache = dt)
-end
-
-# used by adaptive timestepping algorithms in DiffEq
-function get_proposed_dt(integrator::SimpleIntegratorSSP)
-    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
-end
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)

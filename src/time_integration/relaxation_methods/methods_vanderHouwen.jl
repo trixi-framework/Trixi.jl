@@ -5,13 +5,66 @@
 @muladd begin
 #! format: noindent
 
+@doc raw"""
+    SubDiagonalAlgorithm
+
+Abstract type for sub-diagonal Runge-Kutta methods, i.e., 
+methods with a Butcher tableau of the form
+```math
+\begin{array}
+    {c|c|c c c c c c}
+    i & \boldsymbol c & & & A & & & \\
+    \hline
+    1 & 0 & & & & & & \\
+    2 & c_2 & a_{21} & & & & & \\
+    3 & c_3 & b_1 & a_{32} & & & & \\ 
+    4 & c_4 & b_1 & b_2 & a_{43} & & & \\ 
+    \vdots & \vdots & \vdots & \vdots & \ddots & \ddots & & \\
+    S & c_S & b_1 & b_2 & \dots & b_{S-2} & a_{S, S-1} & \\
+    \hline
+    & & b_1 & b_2 & \dots & b_{S-2} & b_{S-1} & b_S
+\end{array}
+```
+
+Currently implemented methods are the Carpenter-Kennedy-Lewis 4-stage, 3rd-order method [`CKL43`](@ref)
+and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`CKL54`](@ref) which are optimized for the 
+compressible Navier-Stokes equations.
+"""
 abstract type vanderHouwenAlgorithm end
+
+"""
+    vanderHouwenRelaxationAlgorithm
+
+Abstract type for van-der-Houwen type Runge-Kutta algorithms (see [`vanderHouwenAlgorithm`](@ref)) 
+with relaxation to achieve entropy-conservation/stability.
+In addition to the standard Runge-Kutta method, these algorithms are equipped with a
+relaxation solver [`AbstractRelaxationSolver`](@ref) which is used to compute the relaxation parameter ``\\gamma``.
+This allows the relaxation methods to suppress entropy defects due to the time stepping.
+
+For details on the relaxation procedure, see
+- Ketcheson (2019)
+  Relaxation Runge-Kutta Methods: Conservation and Stability for Inner-Product Norms
+  [DOI: 10.1137/19M1263662](https://doi.org/10.1137/19M1263662)
+- Ranocha et al. (2020)
+  Relaxation Runge-Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier-Stokes Equations  
+  [DOI: 10.1137/19M1263480](https://doi.org/10.1137/19M1263480)
+
+Currently implemented methods are the Carpenter-Kennedy-Lewis 4-stage, 3rd-order method [`RelaxationCKL43`](@ref)
+and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`RelaxationCKL54`](@ref) which are optimized for the 
+compressible Navier-Stokes equations.
+"""
 abstract type vanderHouwenRelaxationAlgorithm end
 
 """
     CKL43()
 
-Carpenter-Kennedy-Lewis 4-stage, 3rd-order Runge-Kutta method.
+Carpenter-Kennedy-Lewis 4-stage, 3rd-order low-storage Runge-Kutta method,
+optimized for the compressible Navier-Stokes equations.
+For the exact coefficients consult the original paper:
+
+- Kennedy, Carpenter, Lewis (2000)
+  Low-storage, explicit Runge-Kutta schemes for the compressible Navier-Stokes equations
+  [DOI: 10.1016/S0168-9274(99)00141-5](https://doi.org/10.1016/S0168-9274(99)00141-5)
 """
 struct CKL43 <: vanderHouwenAlgorithm
     a::SVector{4, Float64}
@@ -36,9 +89,16 @@ function CKL43()
     return CKL43(a, b, c)
 end
 
-struct RelaxationCKL43{RelaxationSolver} <: vanderHouwenRelaxationAlgorithm
+"""
+    RelaxationCKL43(; relaxation_solver = RelaxationSolverNewton())
+
+Relaxation version of the 4-stage, 3rd-order low-storage Runge-Kutta method [`CKL43()`](@ref), 
+implemented as a [`vanderHouwenRelaxationAlgorithm`](@ref).
+The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
+"""
+struct RelaxationCKL43{AbstractRelaxationSolver} <: vanderHouwenRelaxationAlgorithm
     van_der_houwen_alg::CKL43
-    relaxation_solver::RelaxationSolver
+    relaxation_solver::AbstractRelaxationSolver
 end
 function RelaxationCKL43(; relaxation_solver = RelaxationSolverNewton())
     return RelaxationCKL43{typeof(relaxation_solver)}(CKL43(), relaxation_solver)
@@ -47,7 +107,13 @@ end
 """
     CKL54()
 
-Carpenter-Kennedy-Lewis 5-stage, 4th-order Runge-Kutta method.
+Carpenter-Kennedy-Lewis 5-stage, 4th-order low-storage Runge-Kutta method,
+optimized for the compressible Navier-Stokes equations.
+For the exact coefficients consult the original paper:
+
+- Kennedy, Carpenter, Lewis (2000)
+  Low-storage, explicit Runge-Kutta schemes for the compressible Navier-Stokes equations
+  [DOI: 10.1016/S0168-9274(99)00141-5](https://doi.org/10.1016/S0168-9274(99)00141-5)
 """
 struct CKL54 <: vanderHouwenAlgorithm
     a::SVector{5, Float64}
@@ -75,9 +141,16 @@ function CKL54()
     return CKL54(a, b, c)
 end
 
-struct RelaxationCKL54{RelaxationSolver} <: vanderHouwenRelaxationAlgorithm
+"""
+    RelaxationCKL54(; relaxation_solver = RelaxationSolverNewton())
+
+Relaxation version of the 4-stage, 3rd-order low-storage Runge-Kutta method [`CKL54()`](@ref), 
+implemented as a [`vanderHouwenRelaxationAlgorithm`](@ref).
+The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
+"""
+struct RelaxationCKL54{AbstractRelaxationSolver} <: vanderHouwenRelaxationAlgorithm
     van_der_houwen_alg::CKL54
-    relaxation_solver::RelaxationSolver
+    relaxation_solver::AbstractRelaxationSolver
 end
 function RelaxationCKL54(; relaxation_solver = RelaxationSolverNewton())
     return RelaxationCKL54{typeof(relaxation_solver)}(CKL54(), relaxation_solver)
@@ -88,10 +161,9 @@ end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
 mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F,
-                                                Alg,
-                                                SimpleIntegrator2NOptions, # Re-used
-                                                RelaxationSolver} <:
-               AbstractTimeIntegrator
+                                                Alg, SimpleIntegrator2NOptions, # Re-used
+                                                AbstractRelaxationSolver} <:
+               RelaxationIntegrator
     u::uType
     du::uType
     u_tmp::uType
@@ -107,20 +179,10 @@ mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType, Params, So
     finalstep::Bool # added for convenience
     # Addition for efficient implementation
     k_prev::uType
-    # For entropy relaxation
+    # Addition for Relaxation methodology
     direction::uType
     gamma::RealT
-    relaxation_solver::RelaxationSolver
-end
-
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::vanderHouwenRelaxationIntegrator,
-                          field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
+    relaxation_solver::AbstractRelaxationSolver
 end
 
 function init(ode::ODEProblem, alg::vanderHouwenRelaxationAlgorithm;
@@ -222,6 +284,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
             integrator.f(integrator.du, integrator.u_tmp, prob.p,
                          integrator.t + alg.c[stage] * integrator.dt)
 
+            # Entropy change due to current stage
             dS += alg.b[stage] * integrator.dt *
                   int_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
 
@@ -229,6 +292,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
                 integrator.direction[i] += alg.b[stage] * integrator.du[i] *
                                            integrator.dt
 
+                # Subtract previous stage contribution from `u_tmp` and add most recent one
                 integrator.u_tmp[i] += integrator.dt *
                                        ((alg.b[stage - 1] - alg.a[stage]) *
                                         integrator.k_prev[i] +

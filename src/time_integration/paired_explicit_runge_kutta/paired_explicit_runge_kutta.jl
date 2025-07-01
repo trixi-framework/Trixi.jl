@@ -64,15 +64,6 @@ function calculate_cfl(ode_algorithm::AbstractPairedExplicitRK, ode)
     return cfl_number
 end
 
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::AbstractPairedExplicitRKIntegrator, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
-end
-
 """
     add_tstop!(integrator::AbstractPairedExplicitRKIntegrator, t)
 Add a time stop during the time integration process.
@@ -99,22 +90,6 @@ function solve(ode::ODEProblem, alg::AbstractPairedExplicitRK;
 
     # Start actual solve
     solve!(integrator)
-end
-
-function solve!(integrator::AbstractPairedExplicitRKIntegrator)
-    @unpack prob = integrator.sol
-
-    integrator.finalstep = false
-
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        step!(integrator)
-    end
-
-    finalize_callbacks(integrator)
-
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
 end
 
 # Function that computes the first stage of a general PERK method
@@ -156,20 +131,10 @@ function Base.resize!(integrator::AbstractPairedExplicitRKIntegrator, new_size)
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::AbstractPairedExplicitRKIntegrator) = integrator.du
 get_tmp_cache(integrator::AbstractPairedExplicitRKIntegrator) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::AbstractPairedExplicitRKIntegrator, ::Bool) = false
-
-# used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::AbstractPairedExplicitRKIntegrator, dt)
-    (integrator.dt = dt; integrator.dtcache = dt)
-end
-
-function get_proposed_dt(integrator::AbstractPairedExplicitRKIntegrator)
-    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
-end
 
 # stop the time integration
 function terminate!(integrator::AbstractPairedExplicitRKIntegrator)

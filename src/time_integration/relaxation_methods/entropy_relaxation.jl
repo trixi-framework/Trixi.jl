@@ -60,9 +60,16 @@ end
            S_old - gamma * dS
 end
 
-abstract type RelaxationSolver end
+""" 
+    AbstractRelaxationSolver
 
-struct RelaxationSolverBisection{RealT <: Real} <: RelaxationSolver
+Abstract type for relaxation solvers used to compute the relaxation paramter `` \\gamma`` 
+in the entropy relaxation time integration methods [`SubDiagonalRelaxationAlgorithm`](@ref) and [`VanderHouwenRelaxationAlgorithm`](@ref).
+Implemented methods are # TODO
+"""
+abstract type AbstractRelaxationSolver end
+
+struct RelaxationSolverBisection{RealT <: Real} <: AbstractRelaxationSolver
     # General parameters
     max_iterations::Int # Maximum number of bisection iterations
     root_tol::RealT     # Function-tolerance for the relaxation equation
@@ -79,7 +86,7 @@ function RelaxationSolverBisection(; max_iterations = 25,
                                      gamma_min, gamma_max)
 end
 
-struct RelaxationSolverSecant{RealT <: Real} <: RelaxationSolver
+struct RelaxationSolverSecant{RealT <: Real} <: AbstractRelaxationSolver
     # General parameters
     max_iterations::Int # Maximum number of bisection iterations
     root_tol::RealT     # Function-tolerance for the relaxation equation
@@ -131,7 +138,12 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-struct RelaxationSolverNewton{RealT <: Real} <: RelaxationSolver
+"""
+    RelaxationSolverNewton(; max_iterations = 5,
+                             root_tol = 1e-15, gamma_tol = 1e-13,
+                             gamma_min = 1e-13, step_scaling = 1.0)
+"""
+struct RelaxationSolverNewton{RealT <: Real} <: AbstractRelaxationSolver
     # General parameters
     max_iterations::Int # Maximum number of Newton iterations
     root_tol::RealT     # Function-tolerance for the relaxation equation
@@ -361,16 +373,6 @@ function relaxation_solver!(integrator,
        isinf(integrator.gamma)
         integrator.gamma = 1
     end
-
-    return nothing
-end
-
-@inline function update_t_relaxation!(integrator)
-    # Check if due to entropy relaxation the final time would not be reached
-    if integrator.finalstep == true && integrator.gamma != 1
-        integrator.gamma = 1.0
-    end
-    integrator.t += integrator.gamma * integrator.dt
 
     return nothing
 end

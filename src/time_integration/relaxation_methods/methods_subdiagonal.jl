@@ -11,36 +11,59 @@
 Abstract type for sub-diagonal Runge-Kutta methods, i.e., 
 methods with a Butcher tableau of the form
 ```math
-\renewcommand\arraystretch{1.3}
 \begin{array}
-    {c|c|c c c c}
-    i & \boldsymbol c & \multicolumn{4}{c}{A} \\
+    {c|c|c c c c c}
+    i & \boldsymbol c & & & A & & \\
     \hline
-    1 & 0 & & & & \\
-    2 & c_2 & c_2 & & &   \\
-    3 & c_3 & 0 & c_3 & &  \\ 
-    \vdots & \vdots & \vdots & \ddots & \ddots &  \\
-    S & c_S & 0 & \dots & 0 & c_S \\
+    1 & 0 & & & & &\\
+    2 & c_2 & c_2 & & & &  \\
+    3 & c_3 & 0 & c_3 & & &  \\ 
+    4 & c_4 & 0 & 0 & c_4 & \\
+    \vdots & & \vdots & \vdots & \ddots & \ddots &  \\
+    S & c_S & 0 & & \dots & 0 & c_S \\
     \hline
-    & & \multicolumn{4}{c}{ \boldsymbol b^T }
+    & & b_1 & b_2 & \dots & & b_S
 \end{array}
-```math
+```
+
+Currently implemented are the third-order, three stage method by Ralston [`RK33`](@ref) 
+and the canonical fourth-order, four stage method by Kutta [`RK44`](@ref).
 """
 abstract type SubDiagonalAlgorithm end
 
 """
     SubDiagonalRelaxationAlgorithm
-Abstract type for sub-diagonal Runge-Kutta algorithms
-(see [`SubDiagonalAlgorithm`](@ref)) with relaxation to achieve
-entropy-conservation/stability.
+
+Abstract type for sub-diagonal Runge-Kutta algorithms (see [`SubDiagonalAlgorithm`](@ref)) 
+with relaxation to achieve entropy-conservation/stability.
+In addition to the standard Runge-Kutta method, these algorithms are equipped with a
+relaxation solver [`AbstractRelaxationSolver`](@ref) which is used to compute the relaxation parameter ``\\gamma``.
+This allows the relaxation methods to suppress entropy defects due to the time stepping.
+
+For details on the relaxation procedure, see
+- Ketcheson (2019)
+  Relaxation Runge-Kutta Methods: Conservation and Stability for Inner-Product Norms
+  [DOI: 10.1137/19M1263662](https://doi.org/10.1137/19M1263662)
+- Ranocha et al. (2020)
+  Relaxation Runge-Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier-Stokes Equations  
+  [DOI: 10.1137/19M1263480](https://doi.org/10.1137/19M1263480)
+
+Currently implemented are the third-order, three stage method by Ralston [`RK33`](@ref) 
+and the canonical fourth-order, four stage method by Kutta [`RK44`](@ref).
 """
 abstract type SubDiagonalRelaxationAlgorithm end
 
 """
     RK33()
 
-Relaxation version of Ralston's third-order Runge-Kutta method.
-This method has minimum local error bound among the S=p=3 methods.
+Relaxation version of Ralston's third-order Runge-Kutta method, implemented as a [`SubDiagonalAlgorithm`](@ref).
+The weight vector is given by ``\\boldsymbol b = [2/9, 1/3, 4/9]`` and the 
+abscissae/timesteps by ``\\boldsymbol c = [0.0, 0.5, 0.75]``.
+
+This method has minimum local error bound among the ``S=p=3`` methods.
+- Ralston (1962)
+  Runge-Kutta Methods with Minimum Error Bounds
+  [DOI: 10.1090/S0025-5718-1962-0150954-0](https://doi.org/10.1090/S0025-5718-1962-0150954-0)
 """
 struct RK33 <: SubDiagonalAlgorithm
     b::SVector{3, Float64}
@@ -53,9 +76,16 @@ function RK33()
     return RK33(b, c)
 end
 
-struct RelaxationRK33{RelaxationSolver} <: SubDiagonalRelaxationAlgorithm
+"""
+    RelaxationRK33(; relaxation_solver = RelaxationSolverNewton())
+
+Relaxation version of Ralston's third-order Runge-Kutta method [`RK33()`](@ref), 
+implemented as a [`SubDiagonalRelaxationAlgorithm`](@ref).
+The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
+"""
+struct RelaxationRK33{AbstractRelaxationSolver} <: SubDiagonalRelaxationAlgorithm
     sub_diag_alg::RK33
-    relaxation_solver::RelaxationSolver
+    relaxation_solver::AbstractRelaxationSolver
 end
 function RelaxationRK33(; relaxation_solver = RelaxationSolverNewton())
     return RelaxationRK33{typeof(relaxation_solver)}(RK33(), relaxation_solver)
@@ -64,7 +94,9 @@ end
 """
     RK44()
 
-Relaxation version of the classical fourth-order Runge-Kutta method.
+The canonical fourth-order Runge-Kutta method, implemented as a [`SubDiagonalAlgorithm`](@ref).
+The weight vector is given by ``\\boldsymbol b = [1/6, 1/3, 1/3, 1/6]`` and the 
+abscissae/timesteps by ``\\boldsymbol c = [0.0, 0.5, 0.5, 1.0]``.
 """
 struct RK44 <: SubDiagonalAlgorithm
     b::SVector{4, Float64}
@@ -77,9 +109,16 @@ function RK44()
     return RK44(b, c)
 end
 
-struct RelaxationRK44{RelaxationSolver} <: SubDiagonalRelaxationAlgorithm
+"""
+    RelaxationRK44(; relaxation_solver = RelaxationSolverNewton())
+
+Relaxation version of the canonical fourth-order Runge-Kutta method [`RK44()`](@ref), 
+implemented as a [`SubDiagonalRelaxationAlgorithm`](@ref).
+The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
+"""
+struct RelaxationRK44{AbstractRelaxationSolver} <: SubDiagonalRelaxationAlgorithm
     sub_diag_alg::RK44
-    relaxation_solver::RelaxationSolver
+    relaxation_solver::AbstractRelaxationSolver
 end
 function RelaxationRK44(; relaxation_solver = RelaxationSolverNewton())
     return RelaxationRK44{typeof(relaxation_solver)}(RK44(), relaxation_solver)
@@ -89,9 +128,10 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct SubDiagRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F, Alg,
-                                           SimpleIntegrator2NOptions, # Re-used
-                                           RelaxationSolver} <: AbstractTimeIntegrator
+mutable struct SubDiagRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F,
+                                           Alg, SimpleIntegrator2NOptions, # Re-used
+                                           AbstractRelaxationSolver} <:
+               RelaxationIntegrator
     u::uType
     du::uType
     u_tmp::uType
@@ -105,20 +145,10 @@ mutable struct SubDiagRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F,
     alg::Alg # `SubDiagonalRelaxationAlgorithm`
     opts::SimpleIntegrator2NOptions
     finalstep::Bool # added for convenience
-    # Addition for Relaxation methodology/efficient implementation
+    # Addition for Relaxation methodology
     direction::uType
-    # Entropy Relaxation additions
     gamma::RealT
-    relaxation_solver::RelaxationSolver
-end
-
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::SubDiagRelaxationIntegrator, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
+    relaxation_solver::AbstractRelaxationSolver
 end
 
 function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
@@ -215,6 +245,7 @@ function step!(integrator::SubDiagRelaxationIntegrator)
                                            integrator.dt
             end
 
+            # Entropy change due to current stage
             dS += alg.b[stage] * integrator.dt *
                   int_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
         end
