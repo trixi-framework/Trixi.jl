@@ -71,7 +71,8 @@ end
 ###############################################################################
 # Calculation of local bounds using low-order FV solution
 
-@inline function calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+@inline function calc_bounds_twosided!(var_min, var_max, variable, 
+                                       u, t, semi, equations)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
@@ -103,7 +104,9 @@ end
     end
 
     # Values at element boundary
-    calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi, equations, mesh)
+    calc_bounds_twosided_interface!(var_min, var_max, variable, 
+                                    u, t, semi, equations,
+                                    mesh)
 end
 
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable,
