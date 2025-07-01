@@ -71,8 +71,8 @@ end
 ###############################################################################
 # Calculation of local bounds using low-order FV solution
 
-@inline function calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+@inline function calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
         var_min[:, :, element] .= typemax(eltype(var_min))
@@ -103,12 +103,13 @@ end
     end
 
     # Values at element boundary
-    calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi, mesh)
+    calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi, equations, mesh)
 end
 
-@inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
+@inline function calc_bounds_twosided_interface!(var_min, var_max, variable,
+                                                 u, t, semi, equations,
                                                  mesh::TreeMesh2D)
-    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
@@ -290,7 +291,7 @@ end
 end
 
 @inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi, variable)
-    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
 
@@ -298,7 +299,7 @@ end
     variable_string = string(variable)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
-    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
+    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
 
     @threaded for element in eachelement(dg, semi.cache)
         for j in eachnode(dg), i in eachnode(dg)
