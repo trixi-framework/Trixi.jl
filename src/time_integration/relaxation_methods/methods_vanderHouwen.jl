@@ -200,8 +200,7 @@ function init(ode::ODEProblem, alg::vanderHouwenRelaxationAlgorithm;
     gamma = one(eltype(u))
 
     integrator = vanderHouwenRelaxationIntegrator(u, du, u_tmp, t, dt, zero(dt), iter,
-                                                  ode.p,
-                                                  (prob = ode,), ode.f,
+                                                  ode.p, (prob = ode,), ode.f,
                                                   alg.van_der_houwen_alg,
                                                   SimpleIntegrator2NOptions(callback,
                                                                             ode.tspan;

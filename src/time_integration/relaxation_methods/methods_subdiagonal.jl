@@ -84,7 +84,7 @@ implemented as a [`SubDiagonalRelaxationAlgorithm`](@ref).
 The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
 """
 struct RelaxationRK33{AbstractRelaxationSolver} <: SubDiagonalRelaxationAlgorithm
-    sub_diag_alg::RK33
+    sub_diagonal_alg::RK33
     relaxation_solver::AbstractRelaxationSolver
 end
 function RelaxationRK33(; relaxation_solver = RelaxationSolverNewton())
@@ -117,7 +117,7 @@ implemented as a [`SubDiagonalRelaxationAlgorithm`](@ref).
 The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
 """
 struct RelaxationRK44{AbstractRelaxationSolver} <: SubDiagonalRelaxationAlgorithm
-    sub_diag_alg::RK44
+    sub_diagonal_alg::RK44
     relaxation_solver::AbstractRelaxationSolver
 end
 function RelaxationRK44(; relaxation_solver = RelaxationSolverNewton())
@@ -128,9 +128,9 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct SubDiagRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F,
-                                           Alg, SimpleIntegrator2NOptions, # Re-used
-                                           AbstractRelaxationSolver} <:
+mutable struct SubDiagonalRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F,
+                                               Alg, SimpleIntegrator2NOptions, # Re-used
+                                               AbstractRelaxationSolver} <:
                RelaxationIntegrator
     u::uType
     du::uType
@@ -164,14 +164,15 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
     # For entropy relaxation
     gamma = one(eltype(u))
 
-    integrator = SubDiagRelaxationIntegrator(u, du, u_tmp, t, dt, zero(dt), iter, ode.p,
-                                             (prob = ode,), ode.f, alg.sub_diag_alg,
-                                             SimpleIntegrator2NOptions(callback,
-                                                                       ode.tspan;
-                                                                       kwargs...),
-                                             false,
-                                             direction,
-                                             gamma, alg.relaxation_solver)
+    integrator = SubDiagonalRelaxationIntegrator(u, du, u_tmp, t, dt, zero(dt), iter,
+                                                 ode.p, (prob = ode,), ode.f,
+                                                 alg.sub_diagonal_alg,
+                                                 SimpleIntegrator2NOptions(callback,
+                                                                           ode.tspan;
+                                                                           kwargs...),
+                                                 false,
+                                                 direction,
+                                                 gamma, alg.relaxation_solver)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -196,7 +197,7 @@ function solve(ode::ODEProblem,
     solve!(integrator)
 end
 
-function step!(integrator::SubDiagRelaxationIntegrator)
+function step!(integrator::SubDiagonalRelaxationIntegrator)
     @unpack prob = integrator.sol
     @unpack alg = integrator
     t_end = last(prob.tspan)
@@ -289,7 +290,7 @@ function step!(integrator::SubDiagRelaxationIntegrator)
 end
 
 # used for AMR
-function Base.resize!(integrator::SubDiagRelaxationIntegrator, new_size)
+function Base.resize!(integrator::SubDiagonalRelaxationIntegrator, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
