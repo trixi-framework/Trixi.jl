@@ -61,33 +61,33 @@ function Base.resize!(elements::P4estElementContainer, capacity)
 
     resize!(_node_coordinates, n_dims * n_nodes^n_dims * capacity)
     elements.node_coordinates = unsafe_wrap_or_alloc(ArrayType,
-                                                     pointer(_node_coordinates),
+                                                     _node_coordinates,
                                                      (n_dims,
                                                       ntuple(_ -> n_nodes, n_dims)...,
                                                       capacity))
 
     resize!(_jacobian_matrix, n_dims^2 * n_nodes^n_dims * capacity)
     elements.jacobian_matrix = unsafe_wrap_or_alloc(ArrayType,
-                                                    pointer(_jacobian_matrix),
+                                                    _jacobian_matrix,
                                                     (n_dims, n_dims,
                                                      ntuple(_ -> n_nodes, n_dims)...,
                                                      capacity))
 
     resize!(_contravariant_vectors, length(_jacobian_matrix))
     elements.contravariant_vectors = unsafe_wrap_or_alloc(ArrayType,
-                                                          pointer(_contravariant_vectors),
+                                                          _contravariant_vectors,
                                                           size(elements.jacobian_matrix))
 
     resize!(_inverse_jacobian, n_nodes^n_dims * capacity)
     elements.inverse_jacobian = unsafe_wrap_or_alloc(ArrayType,
-                                                     pointer(_inverse_jacobian),
+                                                     _inverse_jacobian,
                                                      (ntuple(_ -> n_nodes, n_dims)...,
                                                       capacity))
 
     resize!(_surface_flux_values,
             n_variables * n_nodes^(n_dims - 1) * (n_dims * 2) * capacity)
     elements.surface_flux_values = unsafe_wrap_or_alloc(ArrayType,
-                                                        pointer(_surface_flux_values),
+                                                        _surface_flux_values,
                                                         (n_variables,
                                                          ntuple(_ -> n_nodes,
                                                                 n_dims - 1)...,
