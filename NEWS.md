@@ -5,11 +5,44 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.12 from v0.11.x
+
+#### Added
+
+- Arbitrary solution-dependent quantities can now be saved in the `SaveSolutionCallback` (and thus later on visualized) ([#2298]).
+- Added support for nonconservative terms with "local * jump" formulation in `VolumeIntegralSubcellLimiting` ([#2429]).
+
+#### Changed
+
+- When using the `VolumeIntegralSubcellLimiting` with the `SubcellLimiterIDP` the
+  `:limiting_coefficient` must be explicitly provided to the `SaveSolutionCallback` via
+  ```julia
+  save_sol_cb = SaveSolutionCallback(interval = 42,
+                                     extra_node_variables = (:limiting_coefficient,))
+  ```
+  i.e., is no longer automatically saved ([#2298]).
+
+#### Deprecated
+
+#### Removed
+
+- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and 
+  `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via 
+  [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/). 
+  This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, 
+  `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
+- The additional `ìnitial_cache` entries in the caches of `SemidiscretizationHyperbolic`
+  and `SemidiscretizationHyperbolicParabolic`, and the corresponding keyword arguments of
+  their constructors have been removed. ([#2399])
 
 ## Changes in the v0.11 lifecycle
 
 #### Added
 
+- Added symmetry plane/reflective wall velocity+stress boundary conditions for the compressible Navier-Stokes equations in 2D and 3D. 
+  Currently available only for the `P4estMesh` mesh type, `GradientVariablesPrimitive`, and `Adiabatic` heat boundary condition ([#2416]).
+- Added `LaplaceDiffusionEntropyVariables1D`, `LaplaceDiffusionEntropyVariables2D`, and `LaplaceDiffusionEntropyVariables3D`. These add scalar diffusion to each
+  equation of a system, but apply diffusion in terms of the entropy variables, which symmetrizes the viscous formulation and ensures semi-discrete entropy dissipation ([#2406]).
 - Added the three-dimensional multi-ion magneto-hydrodynamics (MHD) equations with a
   generalized Lagrange multipliers (GLM) divergence cleaning technique ([#2215]).
 - New time integrator `PairedExplicitRK4`, implementing the fourth-order

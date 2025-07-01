@@ -816,6 +816,31 @@ end
     @test isapprox(lift_f, 0.005621910087395724, atol = 1e-13)
 end
 
+@trixi_testset "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl"),
+                        l2=[
+                            6.191672324705442e-6,
+                            0.00011583392224949682,
+                            0.00011897020463459889,
+                            0.006467379086802275
+                        ],
+                        linf=[
+                            0.0017446176443216936,
+                            0.06961708834164942,
+                            0.037063246278530367,
+                            1.4435072005258793
+                        ], tspan=(0.0, 0.01),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
@@ -910,6 +935,88 @@ end
                             3.643975012834931
                         ],
                         tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl"),
+                        l2=[
+                            0.1987691550257618,
+                            0.1003336666735962,
+                            0.1599420846677608,
+                            0.07314642823482713
+                        ],
+                        linf=[
+                            0.8901520920065688,
+                            0.47421178500575756,
+                            0.38859478648621326,
+                            0.3247497921546598
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_freestream_symmetry.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_freestream_symmetry.jl"),
+                        l2=[
+                            4.37868326434923e-15,
+                            7.002449644031901e-16,
+                            1.0986677074164136e-14,
+                            1.213800745067394e-14
+                        ],
+                        linf=[
+                            2.531308496145357e-14,
+                            3.8367543336926215e-15,
+                            4.9960036108132044e-14,
+                            6.705747068735946e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_blast_reflective.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_blast_reflective.jl"),
+                        l2=[
+                            0.08271777454941344,
+                            0.10020048140682014,
+                            0.10020048140682006,
+                            0.5954017435122945
+                        ],
+                        linf=[
+                            0.4785944470287504,
+                            0.7205772140501768,
+                            0.7205772140501767,
+                            3.25120873497427
+                        ],
+                        tspan=(0.0, 0.05),
+                        abstol=1e-7, reltol=1e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
