@@ -60,15 +60,48 @@ end
            S_old - gamma * dS
 end
 
-""" 
+"""
     AbstractRelaxationSolver
 
 Abstract type for relaxation solvers used to compute the relaxation paramter `` \\gamma`` 
-in the entropy relaxation time integration methods [`SubDiagonalRelaxationAlgorithm`](@ref) and [`VanderHouwenRelaxationAlgorithm`](@ref).
-Implemented methods are # TODO
+in the entropy relaxation time integration methods 
+[`SubDiagonalRelaxationAlgorithm`](@ref) and [`VanderHouwenRelaxationAlgorithm`](@ref).
+Implemented methods are [`RelaxationSolverBisection`](@ref) and [`RelaxationSolverNewton`](@ref).
 """
 abstract type AbstractRelaxationSolver end
 
+@doc raw"""
+    RelaxationSolverBisection(; max_iterations = 25,
+                                root_tol = 1e-15, gamma_tol = 1e-13,
+                                gamma_min = 0.1, gamma_max = 1.2)
+
+Solve the relaxation equation 
+```math
+\eta \big(\boldsymbol U_{n+1}(\gamma_n) \big) = 
+\eta \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=} 
+\eta(\boldsymbol U_n) + \gamma_n \Delta \eta (\boldsymbol U_n)
+```
+with true entropy change
+```math
+\Delta \eta \coloneqq 
+\Delta t \sum_{i=1}^S b_i 
+\left \langle \frac{\partial \eta(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}}, 
+\boldsymbol K_i 
+\right \rangle	
+```
+for the relaxation parameter `` \gamma_n`` using a bisection method.
+Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonalAlgorithm`](@ref) or [`vanderHouwenRelaxationAlgorithm`].
+
+# Arguments
+- `max_iterations::Int`: Maximum number of bisection iterations.
+- `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e., 
+                     the absolute defect of the left and right-hand side of the equation above, i.e., 
+                     the solver stops if ``\left|\eta_{n+1} - \left(\eta_n + \gamma_n \Delta \eta( \boldsymbol U_n) \right) \right| \leq \text{root\_tol}``.
+- `gamma_tol::RealT`: Absolute tolerance for the bracketing interval length, i.e., the bisection stops if 
+                     ``|\gamma_{\text{max}} - \gamma_{\text{min}}| \leq \text{gamma\_tol}``.
+- `gamma_min::RealT`: Lower bound of the initial bracketing interval.
+- `gamma_max::RealT`: Upper bound of the initial bracketing interval.
+"""
 struct RelaxationSolverBisection{RealT <: Real} <: AbstractRelaxationSolver
     # General parameters
     max_iterations::Int # Maximum number of bisection iterations
@@ -86,39 +119,16 @@ function RelaxationSolverBisection(; max_iterations = 25,
                                      gamma_min, gamma_max)
 end
 
-struct RelaxationSolverSecant{RealT <: Real} <: AbstractRelaxationSolver
-    # General parameters
-    max_iterations::Int # Maximum number of bisection iterations
-    root_tol::RealT     # Function-tolerance for the relaxation equation
-    gamma_tol::RealT    # Absolute tolerance for the bracketing interval length
-    # Method-specific parameters
-    gamma_min::RealT    # Lower bound of the initial bracketing interval
-    gamma_max::RealT    # Upper bound of the initial bracketing interval 
-end
-
-function RelaxationSolverSecant(; max_iterations = 15,
-                                root_tol = 1e-15, gamma_tol = 1e-13,
-                                gamma_min = 0.1, gamma_max = 1.2)
-    return RelaxationSolverSecant(max_iterations, root_tol, gamma_tol,
-                                  gamma_min, gamma_max)
-end
-function Base.show(io::IO,
-                   relaxation_solver::Union{RelaxationSolverBisection,
-                                            RelaxationSolverSecant})
-    if typeof(relaxation_solver) <: RelaxationSolverBisection
-        solver_type = "RelaxationSolverBisection"
-    elseif typeof(relaxation_solver) <: RelaxationSolverSecant
-        solver_type = "RelaxationSolverSecant"
-    end
-    print(io, "$solver_type(max_iterations=", relaxation_solver.max_iterations,
+function Base.show(io::IO, relaxation_solver::RelaxationSolverBisection)
+    print(io, "RelaxationSolverBisection(max_iterations=",
+          relaxation_solver.max_iterations,
           ", root_tol=", relaxation_solver.root_tol,
           ", gamma_tol=", relaxation_solver.gamma_tol,
           ", gamma_min=", relaxation_solver.gamma_min,
           ", gamma_max=", relaxation_solver.gamma_max, ")")
 end
 function Base.show(io::IO, ::MIME"text/plain",
-                   relaxation_solver::Union{RelaxationSolverBisection,
-                                            RelaxationSolverSecant})
+                   relaxation_solver::RelaxationSolverBisection)
     if get(io, :compact, false)
         show(io, relaxation_solver)
     else
@@ -129,61 +139,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "gamma_min" => relaxation_solver.gamma_min,
             "gamma_max" => relaxation_solver.gamma_max
         ]
-        if typeof(relaxation_solver) <: RelaxationSolverBisection
-            solver_type = "RelaxationSolverBisection"
-        elseif typeof(relaxation_solver) <: RelaxationSolverSecant
-            solver_type = "RelaxationSolverSecant"
-        end
-        summary_box(io, solver_type, setup)
-    end
-end
-
-"""
-    RelaxationSolverNewton(; max_iterations = 5,
-                             root_tol = 1e-15, gamma_tol = 1e-13,
-                             gamma_min = 1e-13, step_scaling = 1.0)
-"""
-struct RelaxationSolverNewton{RealT <: Real} <: AbstractRelaxationSolver
-    # General parameters
-    max_iterations::Int # Maximum number of Newton iterations
-    root_tol::RealT     # Function-tolerance for the relaxation equation
-    gamma_tol::RealT    # Absolute tolerance for the Newton update step size
-    # Method-specific parameters
-    # Minimum relaxation parameter. If the Newton iteration computes a value smaller than this, 
-    # the relaxation parameter is set to 1.
-    gamma_min::RealT
-    step_scaling::RealT # Scaling factor for the Newton step
-end
-function RelaxationSolverNewton(; max_iterations = 5,
-                                root_tol = 1e-15, gamma_tol = 1e-13,
-                                gamma_min = 1e-13, step_scaling = 1.0)
-    return RelaxationSolverNewton(max_iterations, root_tol, gamma_tol,
-                                  gamma_min, step_scaling)
-end
-
-function Base.show(io::IO,
-                   relaxation_solver::RelaxationSolverNewton)
-    print(io, "RelaxationSolverNewton(max_iterations=",
-          relaxation_solver.max_iterations,
-          ", root_tol=", relaxation_solver.root_tol,
-          ", gamma_tol=", relaxation_solver.gamma_tol,
-          ", gamma_min=", relaxation_solver.gamma_min,
-          ", step_scaling=", relaxation_solver.step_scaling, ")")
-end
-
-function Base.show(io::IO, ::MIME"text/plain",
-                   relaxation_solver::RelaxationSolverNewton)
-    if get(io, :compact, false)
-        show(io, relaxation_solver)
-    else
-        setup = [
-            "max_iterations" => relaxation_solver.max_iterations,
-            "root_tol" => relaxation_solver.root_tol,
-            "gamma_tol" => relaxation_solver.gamma_tol,
-            "gamma_min" => relaxation_solver.gamma_min,
-            "step_scaling" => relaxation_solver.step_scaling
-        ]
-        summary_box(io, "RelaxationSolverNewton", setup)
+        summary_box(io, "RelaxationSolverBisection", setup)
     end
 end
 
@@ -239,6 +195,9 @@ function relaxation_solver!(integrator,
                                                                   S_old, dS,
                                                                   u_tmp_wrap, mesh,
                                                                   equations, dg, cache)
+            if abs(r_gamma) <= root_tol
+                break
+            end
 
             if r_gamma < 0
                 gamma_min = integrator.gamma
@@ -254,84 +213,81 @@ function relaxation_solver!(integrator,
     return nothing
 end
 
-function relaxation_solver!(integrator,
-                            u_tmp_wrap, u_wrap, dir_wrap,
-                            S_old, dS,
-                            mesh, equations, dg::DG, cache,
-                            relaxation_solver::RelaxationSolverSecant)
-    @unpack root_tol = relaxation_solver
+@doc raw"""
+    RelaxationSolverNewton(; max_iterations = 5,
+                             root_tol = 1e-15, gamma_tol = 1e-13,
+                             gamma_min = 1e-13, step_scaling = 1.0)
 
-    @threaded for element in eachelement(dg, cache)
-        @views @. u_tmp_wrap[.., element] = u_wrap[.., element] + # gamma = 1
-                                            dir_wrap[.., element]
+Solve the relaxation equation 
+```math
+\eta \big(\boldsymbol U_{n+1}(\gamma_n) \big) = 
+\eta \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=} 
+\eta(\boldsymbol U_n) + \gamma_n \Delta \eta (\boldsymbol U_n)
+```
+with true entropy change
+```math
+\Delta \eta \coloneqq 
+\Delta t \sum_{i=1}^S b_i 
+\left \langle \frac{\partial \eta(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}}, 
+\boldsymbol K_i 
+\right \rangle	
+```
+for the relaxation parameter `` \gamma_n`` using a bisection method.
+Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonalAlgorithm`](@ref) or [`vanderHouwenRelaxationAlgorithm`].
+
+# Arguments
+- `max_iterations::Int`: Maximum number of Newton iterations.
+- `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e., 
+                     the absolute defect of the left and right-hand side of the equation above, i.e.,
+                     the solver stops if ``|\eta_{n+1} - (\eta_n + \gamma_n \Delta \eta( \boldsymbol U_n))| \leq \text{root_tol}``.
+- `gamma_tol::RealT`: Absolute tolerance for the Newton update step size, i.e., the solver stops if 
+                      ``|\gamma_{\text{new}} - \gamma_{\text{old}}| \leq \text{gamma\_tol}``.
+- `gamma_min::RealT`: Minimum relaxation parameter. If the Newton iteration results a value smaller than this, 
+                      the relaxation parameter is set to 1.
+- `step_scaling::RealT`: Scaling factor for the Newton step. For `step_scaling > 1` the Newton procedure is accelerated, while for `step_scaling < 1` it is damped.
+"""
+struct RelaxationSolverNewton{RealT <: Real} <: AbstractRelaxationSolver
+    # General parameters
+    max_iterations::Int # Maximum number of Newton iterations
+    root_tol::RealT     # Function-tolerance for the relaxation equation
+    gamma_tol::RealT    # Absolute tolerance for the Newton update step size
+    # Method-specific parameters
+    # Minimum relaxation parameter. If the Newton iteration computes a value smaller than this, 
+    # the relaxation parameter is set to 1.
+    gamma_min::RealT
+    step_scaling::RealT # Scaling factor for the Newton step
+end
+function RelaxationSolverNewton(; max_iterations = 5,
+                                root_tol = 1e-15, gamma_tol = 1e-13,
+                                gamma_min = 1e-13, step_scaling = 1.0)
+    return RelaxationSolverNewton(max_iterations, root_tol, gamma_tol,
+                                  gamma_min, step_scaling)
+end
+
+function Base.show(io::IO,
+                   relaxation_solver::RelaxationSolverNewton)
+    print(io, "RelaxationSolverNewton(max_iterations=",
+          relaxation_solver.max_iterations,
+          ", root_tol=", relaxation_solver.root_tol,
+          ", gamma_tol=", relaxation_solver.gamma_tol,
+          ", gamma_min=", relaxation_solver.gamma_min,
+          ", step_scaling=", relaxation_solver.step_scaling, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   relaxation_solver::RelaxationSolverNewton)
+    if get(io, :compact, false)
+        show(io, relaxation_solver)
+    else
+        setup = [
+            "max_iterations" => relaxation_solver.max_iterations,
+            "root_tol" => relaxation_solver.root_tol,
+            "gamma_tol" => relaxation_solver.gamma_tol,
+            "gamma_min" => relaxation_solver.gamma_min,
+            "step_scaling" => relaxation_solver.step_scaling
+        ]
+        summary_box(io, "RelaxationSolverNewton", setup)
     end
-    @trixi_timeit timer() "Δη" r_1=entropy_difference(1, S_old, dS,
-                                                      u_tmp_wrap, mesh,
-                                                      equations, dg, cache)
-    if abs(r_1) <= root_tol
-        integrator.gamma = 1
-        return nothing
-    end
-
-    @unpack max_iterations, gamma_tol, gamma_min, gamma_max = relaxation_solver
-
-    # Naming aliases to avoid confusion
-    gamma_0, gamma_1 = gamma_min, gamma_max
-
-    @threaded for element in eachelement(dg, cache)
-        @views @. u_tmp_wrap[.., element] = u_wrap[.., element] +
-                                            gamma_1 * dir_wrap[.., element]
-    end
-    @trixi_timeit timer() "Δη" r_1=entropy_difference(gamma_1, S_old, dS,
-                                                      u_tmp_wrap, mesh,
-                                                      equations, dg, cache)
-
-    @threaded for element in eachelement(dg, cache)
-        @views @. u_tmp_wrap[.., element] = u_wrap[.., element] +
-                                            gamma_0 * dir_wrap[.., element]
-    end
-    @trixi_timeit timer() "Δη" r_0=entropy_difference(gamma_0, S_old, dS,
-                                                      u_tmp_wrap, mesh,
-                                                      equations, dg, cache)
-
-    # Check if there exists a root for `r` in the interval [gamma_0, gamma_1] = [gamma_min, gamma_max]
-    if r_1 > 0 && r_0 < 0
-        # Perform first step which does not require extra evaluation of the `entropy_difference` function
-        # We consider `gamma_1 = gamma_max` as the better initial guess, as this is for the default values most likely closer to the root
-        gamma_0 = gamma_1 - r_1 * (gamma_1 - gamma_0) / (r_1 - r_0)
-        # Switch order of 0, 1:
-        gamma_0, gamma_1 = gamma_1, gamma_0
-
-        iterations = 1
-        integrator.gamma = gamma_1 # Write result back to integrator
-        while abs(gamma_1 - gamma_0) > gamma_tol && iterations < max_iterations
-            @threaded for element in eachelement(dg, cache)
-                @views @. u_tmp_wrap[.., element] = u_wrap[.., element] +
-                                                    gamma_1 * dir_wrap[.., element]
-            end
-            r_0 = r_1
-            @trixi_timeit timer() "Δη" r_1=entropy_difference(gamma_1, S_old, dS,
-                                                              u_tmp_wrap, mesh,
-                                                              equations, dg, cache)
-
-            gamma_0 = gamma_1 - r_1 * (gamma_1 - gamma_0) / (r_1 - r_0)
-            # Switch order of 0, 1:
-            gamma_0, gamma_1 = gamma_1, gamma_0
-
-            iterations += 1
-            integrator.gamma = gamma_1 # Write result back to integrator
-
-            # Catch failure
-            if integrator.gamma < gamma_min
-                break
-                integrator.gamma = 1
-            end
-        end
-    else # No proper bracketing interval found
-        integrator.gamma = 1
-    end
-
-    return nothing
 end
 
 function relaxation_solver!(integrator,
