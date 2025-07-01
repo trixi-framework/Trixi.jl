@@ -172,14 +172,18 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
-    # Reformat the global solutions vector.
-    @autoinfiltrate
-    u_ode_reformatted = Vector{real(semi)}(undef, nvariables(semi.semis[1].equations)*ndofs(semi))
-    u_ode_reformatted_reshape = reshape(u_ode_reformatted,
-                                        (nvariables(semi.semis[1].equations),
-                                         n_nodes,
-                                         n_nodes,
-                                         length(semi.mesh_ids)))
+
+    # Determine how many ndofs*nvariables we have in the global solutions array.
+    @autoinfiltrate    
+    global ndofs_nvars_global = 0
+    foreach_enumerate(semi.semis) do (i, semi_)
+        global ndofs_nvars_global
+        ndofs_nvars_global += nvariables(semi_.equations)*length(semi_.mesh.cell_ids)
+    end
+
+    # Create the global solution vector.
+    u_ode = Vector{real(semi)}(undef, ndofs_nvars_global*n_nodes^2)
+
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
@@ -187,15 +191,41 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                                 (nvariables(semi_.equations),
                                  n_nodes, n_nodes,
                                  Int(length(u_loc) / (n_nodes^2 * nvariables(semi_.equations)))))
-        u_ode_reformatted_reshape[:, :, :, semi.mesh_ids .== i] .= u_loc_reshape
+        for i_node in 1:n_nodes, j_node in 1:n_nodes, element in 1:Int(ndofs(semi)/n_nodes^2)
+            if element in semi_.mesh.cell_ids
+                for var in 1:nvariables(semi_.equations)
+                    u_ode[var + 
+                          nvariables(semi_.equations)*i_node +
+                          nvariables(semi_.equations)*n_nodes*j_node +
+                          nvariables(semi_.equations)*n_nodes^2*element] = u_loc_reshape[var, i_node, j_node, global_element_id_to_local(element, semi_.mesh)]
+                end
+            end
+        end
     end
 
     # Call rhs! for each semidiscretization
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, u_ode_reformatted, semi, semi_, t)
+        rhs!(du_loc, u_loc, u_ode, semi, semi_, t)
     end
+
+    # # Extract the global solution vector from the local solutions.
+    # foreach_enumerate(semi.semis) do (i, semi_)
+    #     u_loc = get_system_u_ode(u_ode, i, semi)
+    #     u_loc_reshape = reshape(u_loc,
+    #                             (nvariables(semi_.equations),
+    #                              n_nodes, n_nodes,
+    #                              Int(length(u_loc) / (n_nodes^2 * nvariables(semi_.equations)))))
+    #     u_ode_reformatted_reshape[:, :, :, semi.mesh_ids .== i] .= u_loc_reshape
+    # end
+
+    # # Call rhs! for each semidiscretization
+    # foreach_enumerate(semi.semis) do (i, semi_)
+    #     u_loc = get_system_u_ode(u_ode, i, semi)
+    #     du_loc = get_system_u_ode(du_ode, i, semi)
+    #     rhs!(du_loc, u_loc, u_ode_reformatted, semi, semi_, t)
+    # end
 
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
