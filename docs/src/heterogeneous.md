@@ -4,15 +4,16 @@ Support for heterogeneous computing is currently being worked on.
 
 ## The use of Adapt.jl
 
-[`Adapt.jl`](https://github.com/JuliaGPU/Adapt.jl) is a package in the JuliaGPU family that allows for
+[Adapt.jl](https://github.com/JuliaGPU/Adapt.jl) is a package in the
+[JuliaGPU](https://github.com/JuliaGPU) family that allows for
 the translation of nested data structures. The primary goal is to allow the substitution of `Array` 
-at the storage leaves with a GPU array like `CuArray`.
+at the storage leaves with a GPU array like `CuArray` from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl).
 
 To facilitate this data structures must be parameterized, so instead of:
 
 ```julia
-struct Container
-   data::Array{Float64,2}
+struct Container <: Trixi.AbstractContainer
+   data::Array{Float64, 2}
 end
 ```
 
@@ -47,7 +48,19 @@ function Adapt.parent_type(::Type{<:Container{D}}) where D
 end
 ```
 
-```julia-repl
+All together we can use this machinery to perform conversions of a container.
+
+```jldoctest
+julia> import Trixi, Adapt
+
+julia> struct Container{D<:AbstractArray} <: Trixi.AbstractContainer
+           data::D
+       end
+
+julia> Adapt.@adapt_structure(Container)
+
+julia> Adapt.parent_type(::Type{<:Container{D}}) where D = D
+
 julia> C = Container(zeros(3))
 Container{Vector{Float64}}([0.0, 0.0, 0.0])
 
@@ -65,7 +78,7 @@ CuArray
 
 ## Element-type conversion with `Trixi.trixi_adapt`.
 
-We can use Trixi.trixi_adapt to perform both an element-type and a storage-type adoption
+We can use [`Trixi.trixi_adapt`](@ref) to perform both an element-type and a storage-type adoption
 
 ```julia-repl
 julia> C = Container(zeros(3))

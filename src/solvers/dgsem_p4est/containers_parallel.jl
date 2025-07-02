@@ -222,9 +222,10 @@ function init_mpi_mortars!(mpi_mortars, mesh::ParallelP4estMesh, basis, elements
 end
 
 function Adapt.adapt_structure(to, mpi_mortars::P4estMPIMortarContainer)
-    # TODO: Vector of Vector type data structure does not work on GPUs,
-    # must be redesigned. This skeleton implementation here just exists just
-    # for compatibility with the rest of the KA.jl solver code
+    # Only parts of this container are adapted, since we currently don't
+    # use `local_neighbor_ids`, `local_neighbor_positions`, `normal_directions`
+    # on the GPU. If we do need them we need to redesign this to use the VecOfArrays
+    # approach.
 
     _u = adapt(to, mpi_mortars._u)
     _node_indices = mpi_mortars._node_indices
