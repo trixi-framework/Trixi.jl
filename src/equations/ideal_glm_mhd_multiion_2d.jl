@@ -1166,14 +1166,14 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
     psi_B2_avg = 0.5f0 * (B2_ll * psi_ll + B2_rr * psi_rr)
 
     # Magnetic field components from f^MHD
-    f6 = equations.c_h * psi_avg * normal_direction[1] +
-         (v2_plus_avg * B1_avg - v1_plus_avg * B2_avg) * normal_direction[2]
-    f7 = (v1_plus_avg * B2_avg - v2_plus_avg * B1_avg) * normal_direction[1] +
-         equations.c_h * psi_avg * normal_direction[2]
-    f8 = (v1_plus_avg * B3_avg - v3_plus_avg * B1_avg) * normal_direction[1] +
-         (v2_plus_avg * B3_avg - v3_plus_avg * B2_avg) * normal_direction[2]
-    f9 = equations.c_h * B1_avg * normal_direction[1] +
-         equations.c_h * B2_avg * normal_direction[2]
+    f6 = (equations.c_h * psi_avg * normal_direction[1] +
+          (v2_plus_avg * B1_avg - v1_plus_avg * B2_avg) * normal_direction[2])
+    f7 = ((v1_plus_avg * B2_avg - v2_plus_avg * B1_avg) * normal_direction[1] +
+          equations.c_h * psi_avg * normal_direction[2])
+    f8 = ((v1_plus_avg * B3_avg - v3_plus_avg * B1_avg) * normal_direction[1] +
+          (v2_plus_avg * B3_avg - v3_plus_avg * B2_avg) * normal_direction[2])
+    f9 = (equations.c_h * B1_avg * normal_direction[1] +
+          equations.c_h * B2_avg * normal_direction[2])
 
     # Start building the flux
     f[1] = f6
