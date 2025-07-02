@@ -1,15 +1,8 @@
-# The following statements below outside the `@muladd begin ... end` block, as otherwise
-# Revise.jl might be broken
+# We don't use `@muladd` in this file because otherwise we could not use the macros defined
+# here inside the same `@muladd` block.
 
 include("containers.jl")
 include("math.jl")
-
-# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
-# Since these FMAs can increase the performance of many numerical algorithms,
-# we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
-#! format: noindent
 
 """
     PerformanceCounter()
@@ -337,4 +330,113 @@ function download(src_url, file_path)
 
     return file_path
 end
-end # @muladd
+
+# This data type wraps regular arrays and redefines broadcasting and common operations
+# like `fill!` and `copyto!` to use multithreading with `@threaded`.
+# See https://github.com/trixi-framework/TrixiParticles.jl/pull/722 for more details
+# and benchmarks.
+struct ThreadedBroadcastArray{T, N, A <: AbstractArray{T, N}} <: AbstractArray{T, N}
+    array::A
+end
+
+Base.parent(A::ThreadedBroadcastArray) = A.array
+Base.pointer(A::ThreadedBroadcastArray) = pointer(parent(A))
+Base.size(A::ThreadedBroadcastArray) = size(parent(A))
+Base.IndexStyle(::Type{<:ThreadedBroadcastArray}) = IndexLinear()
+
+# Make sure that `ThreadedBroadcastArray` is treated by `wrap_array` like the array it wraps
+function LoopVectorization.check_args(x::ThreadedBroadcastArray)
+    return LoopVectorization.check_args(x.array)
+end
+
+function Base.similar(A::ThreadedBroadcastArray, ::Type{T}) where {T}
+    return ThreadedBroadcastArray(similar(A.array, T))
+end
+
+Base.@propagate_inbounds function Base.getindex(A::ThreadedBroadcastArray, i...)
+    return getindex(A.array, i...)
+end
+
+Base.@propagate_inbounds function Base.setindex!(A::ThreadedBroadcastArray, x, i...)
+    setindex!(A.array, x, i...)
+    return A
+end
+
+# For things like `A .= 0` where `A` is a `ThreadedBroadcastArray`
+function Base.fill!(A::ThreadedBroadcastArray{T}, x) where {T}
+    xT = x isa T ? x : convert(T, x)::T
+    @threaded for i in eachindex(A.array)
+        @inbounds A.array[i] = xT
+    end
+
+    return A
+end
+
+# Based on
+# copyto_unaliased!(deststyle::IndexStyle, dest::AbstractArray, srcstyle::IndexStyle, src::AbstractArray)
+# defined in base/abstractarray.jl.
+function Base.copyto!(dest::ThreadedBroadcastArray, src::AbstractArray)
+    if eachindex(dest) == eachindex(src)
+        # Shared-iterator implementation
+        @threaded for I in eachindex(dest)
+            @inbounds dest.array[I] = src[I]
+        end
+    else
+        # Dual-iterator implementation
+        @threaded for (Idest, Isrc) in zip(eachindex(dest), eachindex(src))
+            @inbounds dest.array[Idest] = src[Isrc]
+        end
+    end
+
+    return dest
+end
+
+# Broadcasting style for `ThreadedBroadcastArray`.
+function Broadcast.BroadcastStyle(::Type{ThreadedBroadcastArray{T, N, A}}) where {T, N, A}
+    return Broadcast.ArrayStyle{ThreadedBroadcastArray}()
+end
+
+# The threaded broadcast style wins over any other array style.
+# For things like `A .+ B` where `A` is a `ThreadedBroadcastArray` and `B` is a
+# `RecursiveArrayTools.ArrayPartition`.
+#
+# https://docs.julialang.org/en/v1/manual/interfaces/
+# "It is worth noting that you do not need to (and should not) define both argument orders
+# of this call;
+# defining one is sufficient no matter what order the user supplies the arguments in."
+function Broadcast.BroadcastStyle(s1::Broadcast.ArrayStyle{ThreadedBroadcastArray},
+                                  ::Broadcast.AbstractArrayStyle)
+    return s1
+end
+
+# To avoid ambiguity with the function above
+function Broadcast.BroadcastStyle(s1::Broadcast.ArrayStyle{ThreadedBroadcastArray},
+                                  ::Broadcast.DefaultArrayStyle)
+    return s1
+end
+
+# This is called by Polyester.jl
+@inline Base.ndims(::Type{<:Broadcast.Extruded{<:ThreadedBroadcastArray}}) = 1
+
+# Based on copyto!(dest::AbstractArray, bc::Broadcasted{Nothing})
+# defined in base/broadcast.jl.
+# For things like `A .= B .+ C` where `A` is a `ThreadedBroadcastArray`.
+function Broadcast.copyto!(dest::ThreadedBroadcastArray,
+                           bc::Broadcast.Broadcasted{Nothing})
+    # Check bounds
+    axes(dest.array) == axes(bc) || Broadcast.throwdm(axes(dest.array), axes(bc))
+
+    bc_ = Base.Broadcast.preprocess(dest.array, bc)
+
+    @threaded for i in eachindex(bc_)
+        @inbounds dest.array[i] = bc_[i]
+    end
+    return dest
+end
+
+# For things like `C = A .+ B` where `A` or `B` is a `ThreadedBroadcastArray`.
+# `C` will be allocated with this function.
+function Base.similar(::Broadcast.Broadcasted{Broadcast.ArrayStyle{ThreadedBroadcastArray}},
+                      ::Type{T}, dims) where {T}
+    return ThreadedBroadcastArray(similar(Array{T}, dims))
+end
