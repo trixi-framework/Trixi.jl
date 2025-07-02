@@ -760,9 +760,8 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg:
     end
 end
 
-function compute_coefficients!(backend::Any, func, t, mesh::AbstractMesh{2}, equations,
-                               dg::DG,
-                               cache)
+function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
+                               equations, dg::DG, cache)
     @unpack node_coordinates = cache.elements
     @threaded for element in eachelement(dg, cache)
         compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
@@ -773,8 +772,6 @@ end
 function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
                                equations, dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
-    # 1 cache not as argument
-    # 2 mesh not
     @unpack node_coordinates = cache.elements
     kernel! = compute_coefficients_kernel!(backend)
     kernel!(u, func, t, equations, dg, node_coordinates,
