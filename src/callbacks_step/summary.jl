@@ -209,7 +209,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
 
     # technical details
     setup = Pair{String, Any}["#threads" => Threads.nthreads()]
-    if !_PREFERENCE_POLYESTER
+    if _PREFERENCE_THREADING !== :polyester
         push!(setup, "Polyester" => "disabled")
     end
     if !_PREFERENCE_LOOPVECTORIZATION
