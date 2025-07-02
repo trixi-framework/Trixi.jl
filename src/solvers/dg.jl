@@ -739,8 +739,8 @@ end
                  nelements(dg, cache)))
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg::DG,
-                               cache)
+function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
+                               equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
@@ -795,8 +795,8 @@ function compute_coefficients_element!(u, func, t, equations, dg::DG,
     end
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG,
-                               cache)
+function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
+                               equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
