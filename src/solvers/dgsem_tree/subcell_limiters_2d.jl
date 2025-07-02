@@ -18,9 +18,9 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
 
     cache = (;)
     if bar_states
-        container_bar_states = Trixi.ContainerBarStates{real(basis)}(0,
-                                                                     nvariables(equations),
-                                                                     nnodes(basis))
+        container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
+                                                                       nvariables(equations),
+                                                                       nnodes(basis))
         cache = (; cache..., container_bar_states)
     end
 
@@ -716,9 +716,9 @@ function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquat
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterMCL2D{real(basis)}(0,
                                                                                    nvariables(equations),
                                                                                    nnodes(basis))
-    container_bar_states = Trixi.ContainerBarStates{real(basis)}(0,
-                                                                 nvariables(equations),
-                                                                 nnodes(basis))
+    container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
+                                                                   nvariables(equations),
+                                                                   nnodes(basis))
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.

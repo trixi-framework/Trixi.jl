@@ -1549,7 +1549,8 @@ function Base.resize!(container::ContainerSubcellLimiterMCL2D, capacity)
 end
 
 # Container data structure (structure-of-arrays style) for variables used for subcell limiting using bar states
-mutable struct ContainerBarStates{uEltype <: Real}
+# TODO: Use NDIMS for dimension independence
+mutable struct ContainerBarStates2D{uEltype <: Real}
     bar_states1::Array{uEltype, 4}            # [variable, i, j, element]
     bar_states2::Array{uEltype, 4}            # [variable, i, j, element]
     lambda1::Array{uEltype, 3}                # [i, j, element]
@@ -1565,9 +1566,10 @@ mutable struct ContainerBarStates{uEltype <: Real}
     _normal_direction_eta::Vector{uEltype}
 end
 
-function ContainerBarStates{uEltype}(capacity::Integer, n_variables,
-                                     n_nodes) where {uEltype <: Real}
+function ContainerBarStates2D{uEltype}(capacity::Integer, n_variables,
+                                       n_nodes) where {uEltype <: Real}
     nan_uEltype = convert(uEltype, NaN)
+    n_dims = 2
 
     # Initialize fields with defaults
     _bar_states1 = fill(nan_uEltype, n_variables * (n_nodes + 1) * n_nodes * capacity)
@@ -1583,33 +1585,34 @@ function ContainerBarStates{uEltype}(capacity::Integer, n_variables,
     lambda2 = unsafe_wrap(Array, pointer(_lambda2), (n_nodes, n_nodes + 1, capacity))
 
     _normal_direction_xi = fill(nan_uEltype,
-                                (n_variables - 2) * (n_nodes - 1) * n_nodes * capacity)
+                                n_dims * (n_nodes - 1) * n_nodes * capacity)
     normal_direction_xi = unsafe_wrap(Array, pointer(_normal_direction_xi),
-                                      (n_variables - 2, n_nodes - 1, n_nodes, capacity))
+                                      (n_dims, n_nodes - 1, n_nodes, capacity))
 
     _normal_direction_eta = fill(nan_uEltype,
-                                 (n_variables - 2) * n_nodes * (n_nodes - 1) * capacity)
+                                 n_dims * n_nodes * (n_nodes - 1) * capacity)
     normal_direction_eta = unsafe_wrap(Array, pointer(_normal_direction_eta),
-                                       (n_variables - 2, n_nodes, n_nodes - 1,
+                                       (n_dims, n_nodes, n_nodes - 1,
                                         capacity))
 
-    return ContainerBarStates{uEltype}(bar_states1, bar_states2, lambda1, lambda2,
-                                       normal_direction_xi, normal_direction_eta,
-                                       _bar_states1, _bar_states2, _lambda1, _lambda2,
-                                       _normal_direction_xi, _normal_direction_eta)
+    return ContainerBarStates2D{uEltype}(bar_states1, bar_states2, lambda1, lambda2,
+                                         normal_direction_xi, normal_direction_eta,
+                                         _bar_states1, _bar_states2, _lambda1, _lambda2,
+                                         _normal_direction_xi, _normal_direction_eta)
 end
 
-nvariables(container::ContainerBarStates) = size(container.bar_states1, 1)
-nnodes(container::ContainerBarStates) = size(container.bar_states1, 3)
+nvariables(container::ContainerBarStates2D) = size(container.bar_states1, 1)
+nnodes(container::ContainerBarStates2D) = size(container.bar_states1, 3)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(container::ContainerBarStates, capacity)
+function Base.resize!(container::ContainerBarStates2D, capacity)
     n_variables = nvariables(container)
     n_nodes = nnodes(container)
+    n_dims = size(container.normal_direction_xi, 1)
 
     @unpack _bar_states1, _bar_states2 = container
     resize!(_bar_states1, n_variables * (n_nodes + 1) * n_nodes * capacity)
@@ -1629,14 +1632,14 @@ function Base.resize!(container::ContainerBarStates, capacity)
 
     @unpack _normal_direction_xi, _normal_direction_eta = container
     resize!(_normal_direction_xi,
-            (n_variables - 2) * (n_nodes - 1) * n_nodes * capacity)
+            n_dims * (n_nodes - 1) * n_nodes * capacity)
     container.normal_direction_xi = unsafe_wrap(Array, pointer(_normal_direction_xi),
-                                                (n_variables - 2, n_nodes - 1, n_nodes,
+                                                (n_dims, n_nodes - 1, n_nodes,
                                                  capacity))
     resize!(_normal_direction_eta,
-            (n_variables - 2) * n_nodes * (n_nodes - 1) * capacity)
+            n_dims * n_nodes * (n_nodes - 1) * capacity)
     container.normal_direction_eta = unsafe_wrap(Array, pointer(_normal_direction_eta),
-                                                 (n_variables - 2, n_nodes, n_nodes - 1,
+                                                 (n_dims, n_nodes, n_nodes - 1,
                                                   capacity))
 
     return nothing
