@@ -245,11 +245,9 @@ function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                                UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
                                T8codeMesh{2}},
-                   equations, dg::DG, cache; normalize = true, semi) where {Func}
-    @unpack solver = semi
+                   equations, dg::DG, cache; normalize = true) where {Func}
     @unpack boundaries = cache
     m = methods(func)
-    @autoinfiltrate
     if (m[1].nargs == 2) || (func == cons2cons)
         return integrate_via_indices(u, mesh, equations, dg, cache;
                                      normalize = normalize) do u, i, j, element,
