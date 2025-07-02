@@ -1248,7 +1248,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
 
         # total energy flux is complicated and involves the previous eight components
         vk1_plus_mag_avg = 0.5f0 * (vk1_plus_ll[k] * mag_norm_ll +
-                            vk1_plus_rr[k] * mag_norm_rr)
+                           vk1_plus_rr[k] * mag_norm_rr)
         vk2_plus_mag_avg = 0.5f0 * (vk2_plus_ll[k] * mag_norm_ll +
                             vk2_plus_rr[k] * mag_norm_rr)
         # Euler part
