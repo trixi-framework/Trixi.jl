@@ -353,7 +353,7 @@ end
 
 # This version is used for parabolic gradient computations
 @inline function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
-                                      nonconservative_terms::False,
+                                      have_nonconservative_terms::False,
                                       equations::AbstractEquationsParabolic,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
@@ -847,7 +847,7 @@ end
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::P4estMesh{3},
-                                   nonconservative_terms::False,
+                                   have_nonconservative_terms::False,
                                    equations::AbstractEquationsParabolic,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
