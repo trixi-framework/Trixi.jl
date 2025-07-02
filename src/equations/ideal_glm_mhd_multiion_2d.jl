@@ -1256,7 +1256,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
              f2 * v1_avg + f3 * v2_avg + f4 * v3_avg
         # MHD part
         f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg -
-               0.5f0 * v1_plus_mag_avg * normal_direction[1] - 0.5f0 * v2_plus_mag_avg +
+               0.5f0 * vk1_plus_mag_avg * normal_direction[1] - 0.5f0 * vk2_plus_mag_avg +
                normal_direction[2] +
                (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) *
                vel_dot_mag_avg                # Same terms as in Derigs (but with v_plus)
