@@ -5,6 +5,14 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+
+## Changes in the v0.12 lifecycle
+
+#### Added
+
+- Simulations can now be restarted from other runs with different polynomial degrees, i.e.,
+  the solution variables are correctly converted via interpolation or L2 projection ([#2358]).
+
 ## Changes when updating to v0.12 from v0.11.x
 
 #### Added
@@ -49,6 +57,8 @@ for human readability.
   paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 - Passive tracers for arbitrary equations with density and flow variables ([#2364])
+- Simulations can now be restarted from other runs with different polynomial degrees, i.e.,
+  the solution variables are correctly converted via interpolation or L2 projection ([#2358]).
 
 #### Deprecated
 
