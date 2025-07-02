@@ -1,6 +1,5 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using CUDA
 
 ###############################################################################
 # semidiscretization of the linear advection equation
@@ -29,7 +28,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0); real_type = nothing, storage_type = CuArray)
+ode = semidiscretize(semi, (0.0, 1.0); real_type = nothing, storage_type = nothing)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -56,6 +55,6 @@ callbacks = CallbackSet(summary_callback)
 #       Uncomment the calls below to discover missing functionality.
 
 # # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
-            ode_default_options()..., callback = callbacks);
+#sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+#            dt = 1e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
+#            ode_default_options()..., callback = callbacks);
