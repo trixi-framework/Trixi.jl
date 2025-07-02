@@ -176,7 +176,7 @@ Same as [`compute_coefficients`](@ref) but stores the result in `u_ode`.
 function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, semi)
     # Call `compute_coefficients` defined by the solver
-    backend = get_backend(semi)
+    backend = trixi_backend(semi)
     compute_coefficients!(backend, u, func, t, mesh_equations_solver_cache(semi)...)
 end
 

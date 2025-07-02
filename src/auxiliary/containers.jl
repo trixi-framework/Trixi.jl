@@ -406,6 +406,14 @@ function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage
     return unsafe_wrap_or_alloc(Storage, vec, size)
 end
 
+function trixi_backend(x)
+    backend = get_backend(x)
+    if _PREFERENCE_USE_NATIVE_THREADING && backend isa KernelAbstractions.CPU
+        backend = nothing
+    end
+    return backend
+end
+
 function KernelAbstractions.get_backend(semi::AbstractSemidiscretization)
     KernelAbstractions.get_backend(semi.cache.elements.node_coordinates)
 end
