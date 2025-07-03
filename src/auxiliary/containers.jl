@@ -358,11 +358,12 @@ Return the computational backend for `x`, which is either a KernelAbstractions b
 If the backend is `nothing`, the default multi-threaded CPU backend is used.
 """
 function trixi_backend(x)
-    backend = get_backend(x)
-    if _PREFERENCE_USE_NATIVE_THREADING && backend isa KernelAbstractions.CPU
-        backend = nothing
+    # TODO: https://github.com/trixi-framework/Trixi.jl/pull/2417
+    if (_PREFERENCE_POLYESTER && LoopVectorization.check_args(x)) ||
+       (_PREFERENCE_USE_NATIVE_THREADING && get_backend(x) isa KernelAbstractions.CPU)
+        return nothing
     end
-    return backend
+    return get_backend(x)
 end
 
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
