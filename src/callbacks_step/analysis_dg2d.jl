@@ -270,13 +270,11 @@ function integrate(func::Func, u,
 end
 
 # Andrew's functions for computing the derivatives.
-function DGSpaceDerivative_WeakForm!(
-    dg,
-    cache,
-    u,
-    direction::Int,
-    equations
-)
+function DGSpaceDerivative_WeakForm!(dg,
+                                     cache,
+                                     u,
+                                     direction::Int,
+                                     equations)
     # Get the required variables.
     @unpack derivative_dhat = dg.basis
 
