@@ -259,7 +259,8 @@ function integrate(func::Func, u,
     end
     if (m[1].nargs == 3) && (func != cons2cons)
         return integrate_via_indices(u, mesh, equations, dg, cache;
-                              normalize = normalize) do u, i, j, element, equations, dg
+                                     normalize = normalize) do u, i, j, element,
+                                                               equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
             gradients = DGSpaceDerivative_WeakForm!(dg, cache, u, 1, equations)
 
