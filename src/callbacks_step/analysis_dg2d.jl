@@ -259,7 +259,8 @@ function integrate(func::Func, u,
     end
     if (m[1].nargs == 3) && (func != cons2cons)
         return integrate_via_indices(u, mesh, equations, dg, cache;
-                              normalize = normalize) do u, i, j, element, equations, dg
+                                     normalize = normalize) do u, i, j, element,
+                                                               equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
             gradients = DGSpaceDerivative_WeakForm!(dg, cache, u, 1, equations)
 
@@ -269,13 +270,11 @@ function integrate(func::Func, u,
 end
 
 # Andrew's functions for computing the derivatives.
-function DGSpaceDerivative_WeakForm!(
-    dg,
-    cache,
-    u,
-    direction::Int,
-    equations
-)
+function DGSpaceDerivative_WeakForm!(dg,
+                                     cache,
+                                     u,
+                                     direction::Int,
+                                     equations)
     # Get the required variables.
     @unpack derivative_dhat = dg.basis
 
@@ -300,13 +299,14 @@ function DGSpaceDerivative_WeakForm!(
     return gradients
 end
 
-function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64}, D::Matrix{Float64}, N::Int)
+function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64},
+                        D::Matrix{Float64}, N::Int)
     for i in 0:N
         t = 0.0
         for j in 0:N
-            t += D[i+1, j+1] * Phi[j+1]  # Adjust for 1-based indexing
+            t += D[i + 1, j + 1] * Phi[j + 1]  # Adjust for 1-based indexing
         end
-        Phi_prime[i+1] = t
+        Phi_prime[i + 1] = t
     end
 end
 
