@@ -366,6 +366,16 @@ function trixi_backend(x)
     return get_backend(x)
 end
 
+# TODO: Remove once we have https://github.com/SciML/RecursiveArrayTools.jl/pull/455
+function trixi_backend(x::VectorOfArray)
+    u = parent(x)
+    if length(u) == 0
+        error("VectorOfArray is empty, cannot determine backend.")
+    end
+    # Use the backend of the first element in the parent array
+    return KernelAbstractions.get_backend(u[1])
+end
+
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
 # Adapt.adapt (ArgumentError, see
