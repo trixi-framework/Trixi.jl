@@ -329,6 +329,11 @@ function Adapt.unwrap_type(C::Type{<:AbstractContainer})
 end
 
 # TODO: Upstream to Adapt
+"""
+    storage_type(x)
+
+Return the storage type of `x`, which is a concrete array type, such as `Array`, `CuArray`, or `ROCArray`.
+"""
 function storage_type(x)
     return storage_type(typeof(x))
 end
@@ -343,6 +348,21 @@ end
 
 function storage_type(C::Type{<:AbstractContainer})
     return storage_type(Adapt.unwrap_type(C))
+end
+
+# backend handling
+"""
+    trixi_backend(x)
+
+Return the computational backend for `x`, which is either a KernelAbstractions backend or `nothing`.
+If the backend is `nothing`, the default multi-threaded CPU backend is used.
+"""
+function trixi_backend(x)
+    backend = get_backend(x)
+    if _PREFERENCE_USE_NATIVE_THREADING && backend isa KernelAbstractions.CPU
+        backend = nothing
+    end
+    return backend
 end
 
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
@@ -364,6 +384,11 @@ end
 
 struct TrixiAdaptor{Storage, Real} end
 
+"""
+    trixi_adapt(storage, real, x)
+
+Adapt `x` to the storage type `Storage` and real type `Real`.
+"""
 function trixi_adapt(storage, real, x)
     adapt(TrixiAdaptor{storage, real}(), x)
 end
@@ -406,15 +431,4 @@ function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage
     return unsafe_wrap_or_alloc(Storage, vec, size)
 end
 
-function trixi_backend(x)
-    backend = get_backend(x)
-    if _PREFERENCE_USE_NATIVE_THREADING && backend isa KernelAbstractions.CPU
-        backend = nothing
-    end
-    return backend
-end
-
-function KernelAbstractions.get_backend(semi::AbstractSemidiscretization)
-    KernelAbstractions.get_backend(semi.cache.elements.node_coordinates)
-end
 end # @muladd

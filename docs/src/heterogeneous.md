@@ -19,19 +19,27 @@ end
 
 They must be written as:
 
-```julia
+```jldoctest adapt; output = false, setup=:(import Trixi)
 struct Container{D<:AbstractArray} <: Trixi.AbstractContainer
    data::D
 end
+
+# output
+
 ```
 
 furthermore, we need to define a function that allows for the conversion of storage
 of our types: 
 
-```julia
+```jldoctest adapt; output = false
+using Adapt
+
 function Adapt.adapt_structure(to, C::Container)
     return Container(adapt(to, C.data))
 end
+
+# output
+
 ```
 
 or simply
@@ -42,31 +50,27 @@ Adapt.@adapt_structure(Container)
 
 additionally, we must define `Adapt.parent_type`.
 
-```julia
+```jldoctest adapt; output = false
 function Adapt.parent_type(::Type{<:Container{D}}) where D
     return D
 end
+
+# output
+
 ```
 
 All together we can use this machinery to perform conversions of a container.
 
-```jldoctest
-julia> import Trixi, Adapt
-
-julia> struct Container{D<:AbstractArray} <: Trixi.AbstractContainer
-           data::D
-       end
-
-julia> Adapt.@adapt_structure(Container)
-
-julia> Adapt.parent_type(::Type{<:Container{D}}) where D = D
-
+```jldoctest adapt
 julia> C = Container(zeros(3))
 Container{Vector{Float64}}([0.0, 0.0, 0.0])
 
 julia> Trixi.storage_type(C)
 Array
+```
 
+
+```julia-repl
 julia> using CUDA
 
 julia> GPU_C = adapt(CuArray, C)
@@ -80,13 +84,15 @@ CuArray
 
 We can use [`Trixi.trixi_adapt`](@ref) to perform both an element-type and a storage-type adoption
 
-```julia-repl
+```jldoctest adapt
 julia> C = Container(zeros(3))
 Container{Vector{Float64}}([0.0, 0.0, 0.0])
 
 julia> Trixi.trixi_adapt(Array, Float32, C)
 Container{Vector{Float32}}(Float32[0.0, 0.0, 0.0])
+```
 
+```julia-repl
 julia> Trixi.trixi_adapt(CuArray, Float32, C)
 Container{CuArray{Float32, 1, CUDA.DeviceMemory}}(Float32[0.0, 0.0, 0.0])
 ```
