@@ -13,18 +13,18 @@ function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
     fstar_primary_threaded = [Array{uEltype, 4}(undef, nvariables(equations),
                                                 nnodes(mortar_l2),
                                                 nnodes(mortar_l2), 4)
-                              for _ in 1:Threads.nthreads()]
+                              for _ in 1:Threads.nthreads()] |> VecOfArrays
     fstar_secondary_threaded = [Array{uEltype, 4}(undef, nvariables(equations),
                                                   nnodes(mortar_l2),
                                                   nnodes(mortar_l2), 4)
-                                for _ in 1:Threads.nthreads()]
+                                for _ in 1:Threads.nthreads()] |> VecOfArrays
 
     fstar_tmp_threaded = [Array{uEltype, 3}(undef, nvariables(equations),
                                             nnodes(mortar_l2), nnodes(mortar_l2))
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.nthreads()] |> VecOfArrays
     u_threaded = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2),
                                     nnodes(mortar_l2))
-                  for _ in 1:Threads.nthreads()]
+                  for _ in 1:Threads.nthreads()] |> VecOfArrays
 
     (; fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded, u_threaded)
 end
