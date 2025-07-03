@@ -47,7 +47,7 @@ end
                         l2=nothing,   # [Float32(8.311947673061856e-6)],
                         linf=nothing, # [Float32(6.627000273229378e-5)],
                         real_type=Float32,
-                        storage_type=CuArray)
+                        storage_type=ROCArray)
     # # Ensure that we do not have excessive memory allocations
     # # (e.g., from type instabilities)
     # let
