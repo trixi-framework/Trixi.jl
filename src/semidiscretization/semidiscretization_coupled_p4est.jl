@@ -191,11 +191,10 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     end
 
     # Create the global solution vector.
-    u_ode = Vector{real(semi)}(undef, ndofs_nvars_global*n_nodes^2)
+    u_global = Vector{real(semi)}(undef, ndofs_nvars_global*n_nodes^2) .+ 123.456
 
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
-        println(i)
         u_loc = get_system_u_ode(u_ode, i, semi)
         u_loc_reshape = reshape(u_loc,
                                 (nvariables(semi_.equations),
@@ -204,8 +203,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         for i_node in 1:n_nodes, j_node in 1:n_nodes, element in 1:Int(ndofs(semi)/n_nodes^2)
             if element in semi_.mesh.cell_ids
                 for var in 1:nvariables(semi_.equations)
-                    u_ode[semi.element_offset[i] +
-                          (var -1) +
+                    u_global[semi.element_offset[i] +
+                          (var - 1) +
                           nvariables(semi_.equations)*(i_node-1) +
                           nvariables(semi_.equations)*n_nodes*(j_node-1) +
                           nvariables(semi_.equations)*n_nodes^2*(global_element_id_to_local(element, semi_.mesh)-1)] = u_loc_reshape[var, i_node, j_node, global_element_id_to_local(element, semi_.mesh)]
@@ -218,7 +217,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, u_ode, semi, semi_, t)
+        rhs!(du_loc, u_loc, u_global, semi, semi_, t)
     end
 
     # # Extract the global solution vector from the local solutions.
@@ -501,23 +500,26 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         i_index_g = i_index
     end
-    # Perform integer division to get the right shape of the array.
-    # u_global_reshape = reshape(u_global,
-    #                            (nvariables(equations), n_nodes, n_nodes, length(u_global) ÷ (n_nodes^2 * nvariables(equations))))
-    # u_boundary_to_convert = u_global_reshape[:, i_index_g, j_index_g, element_index_global]
+
+    # Determine the index and semi of the other semidiscretization.
+    idx_other = semi.mesh_ids[element_index_global]
+    semi_other = semi.semis[idx_other]
+
+    # Determine the index of this semidiscretization.
+    idx_this = semi.mesh_ids[mesh.cell_ids[element_index]]
+
     # @autoinfiltrate
-    i = semi.mesh_ids[element_index_global]
-    semi_ = semi.semis[i]
-    u_boundary_to_convert = Vector{real(semi)}(undef, nvariables(semi_.equations))
-    for var in 1:nvariables(semi_.equations)
-        u_boundary_to_convert[var] = u_global[semi.element_offset[i] +
+    # Get the neighboring value and convert it.
+    u_boundary_to_convert = Vector{real(semi)}(undef, nvariables(semi_other.equations))
+    for var in 1:nvariables(semi_other.equations)
+        u_boundary_to_convert[var] = u_global[semi.element_offset[idx_other] +
                                             (var-1) +
-                                            nvariables(semi_.equations)*(i_index_g-1) +
-                                            nvariables(semi_.equations)*n_nodes*(j_index_g-1) +
-                                            nvariables(semi_.equations)*n_nodes^2*(global_element_id_to_local(element_index_global, semi_.mesh)-1)]
+                                            nvariables(semi_other.equations)*(i_index_g-1) +
+                                            nvariables(semi_other.equations)*n_nodes*(j_index_g-1) +
+                                            nvariables(semi_other.equations)*n_nodes^2*(global_element_id_to_local(element_index_global, semi_other.mesh)-1)]
     end
     x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
-    u_boundary = boundary_condition.coupling_converter(x, u_boundary_to_convert, equations, equations)
+    u_boundary = boundary_condition.coupling_converter[idx_this, idx_other](x, u_boundary_to_convert, equations, equations)
 
     orientation = normal_direction
 
