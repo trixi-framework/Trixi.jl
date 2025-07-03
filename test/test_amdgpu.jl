@@ -14,16 +14,16 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
 @trixi_testset "elixir_advection_basic_gpu.jl native" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
-                        l2=nothing,   # [Float32(8.311947673061856e-6)],
-                        linf=nothing,)
+                        l2=8.311947673061856e-6,
+                        linf=6.627000273229378e-5,)
     # # Ensure that we do not have excessive memory allocations
     # # (e.g., from type instabilities)
-    # let
-    #     t = sol.t[end]
-    #     u_ode = sol.u[end]
-    #     du_ode = similar(u_ode)
-    #     @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    # end
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
@@ -46,8 +46,10 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=nothing,   # [Float32(8.311947673061856e-6)],
                         linf=nothing, # [Float32(6.627000273229378e-5)],
+                        RealT=Float32,
                         real_type=Float32,
-                        storage_type=ROCArray)
+                        storage_type=ROCArray,
+                        sol=nothing,) # TODO: Remove this once we can run the simulation on the GPU 
     # # Ensure that we do not have excessive memory allocations
     # # (e.g., from type instabilities)
     # let
