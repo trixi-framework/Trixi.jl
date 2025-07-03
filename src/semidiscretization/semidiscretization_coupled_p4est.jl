@@ -24,6 +24,7 @@ mutable struct SemidiscretizationCoupledP4est{S, Indices, EquationList} <:
     performance_counter::PerformanceCounter
     global_element_ids::Vector{Int}
     local_element_ids::Vector{Int}
+    element_offset::Vector{Int}
     mesh_ids::Vector{Int}
 end
 
@@ -52,6 +53,7 @@ function SemidiscretizationCoupledP4est(semis...)
     # Create correspondence between global (to the parent mesh) cell IDs and local (to the mesh view) cell IDs.
     global_element_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
     local_element_ids = zeros(Int, size(global_element_ids))
+    element_offset = ones(Int, length(semis))
     mesh_ids = zeros(Int, size(global_element_ids))
     for i in 1:length(semis)
         local_element_ids[semis[i].mesh.cell_ids] = global_element_id_to_local(global_element_ids[semis[i].mesh.cell_ids],
@@ -66,6 +68,7 @@ function SemidiscretizationCoupledP4est(semis...)
                                                                 performance_counter,
                                                                 global_element_ids,
                                                                 local_element_ids,
+                                                                element_offset,
                                                                 mesh_ids)
 end
 
@@ -174,11 +177,17 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
 
     # Determine how many ndofs*nvariables we have in the global solutions array.
-    @autoinfiltrate    
     global ndofs_nvars_global = 0
     foreach_enumerate(semi.semis) do (i, semi_)
         global ndofs_nvars_global
         ndofs_nvars_global += nvariables(semi_.equations)*length(semi_.mesh.cell_ids)
+    end
+
+    # Determine the element indecx offset for the global solutions array.
+    # @autoinfiltrate
+    for i in 2:nsystems(semi)
+        semi.element_offset[i] = semi.element_offset[i-1] +
+                                  n_nodes^2*nvariables(semi.semis[i-1])*length(semi.semis[i-1].mesh.cell_ids)
     end
 
     # Create the global solution vector.
@@ -186,6 +195,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
 
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
+        println(i)
         u_loc = get_system_u_ode(u_ode, i, semi)
         u_loc_reshape = reshape(u_loc,
                                 (nvariables(semi_.equations),
@@ -194,10 +204,11 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         for i_node in 1:n_nodes, j_node in 1:n_nodes, element in 1:Int(ndofs(semi)/n_nodes^2)
             if element in semi_.mesh.cell_ids
                 for var in 1:nvariables(semi_.equations)
-                    u_ode[var + 
-                          nvariables(semi_.equations)*i_node +
-                          nvariables(semi_.equations)*n_nodes*j_node +
-                          nvariables(semi_.equations)*n_nodes^2*element] = u_loc_reshape[var, i_node, j_node, global_element_id_to_local(element, semi_.mesh)]
+                    u_ode[semi.element_offset[i] +
+                          (var -1) +
+                          nvariables(semi_.equations)*(i_node-1) +
+                          nvariables(semi_.equations)*n_nodes*(j_node-1) +
+                          nvariables(semi_.equations)*n_nodes^2*(global_element_id_to_local(element, semi_.mesh)-1)] = u_loc_reshape[var, i_node, j_node, global_element_id_to_local(element, semi_.mesh)]
                 end
             end
         end
@@ -448,7 +459,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              normal_direction,
                                                              surface_flux_function,
                                                              direction,
-                                                             u_global)
+                                                             u_global, semi)
     n_nodes = length(mesh.parent.nodes)
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
@@ -491,10 +502,20 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         i_index_g = i_index
     end
     # Perform integer division to get the right shape of the array.
-    u_global_reshape = reshape(u_global,
-                               (nvariables(equations), n_nodes, n_nodes, length(u_global) ÷ (n_nodes^2 * nvariables(equations))))
-    u_boundary_to_convert = u_global_reshape[:, i_index_g, j_index_g, element_index_global]
-    @autoinfiltrate
+    # u_global_reshape = reshape(u_global,
+    #                            (nvariables(equations), n_nodes, n_nodes, length(u_global) ÷ (n_nodes^2 * nvariables(equations))))
+    # u_boundary_to_convert = u_global_reshape[:, i_index_g, j_index_g, element_index_global]
+    # @autoinfiltrate
+    i = semi.mesh_ids[element_index_global]
+    semi_ = semi.semis[i]
+    u_boundary_to_convert = Vector{real(semi)}(undef, nvariables(semi_.equations))
+    for var in 1:nvariables(semi_.equations)
+        u_boundary_to_convert[var] = u_global[semi.element_offset[i] +
+                                            (var-1) +
+                                            nvariables(semi_.equations)*(i_index_g-1) +
+                                            nvariables(semi_.equations)*n_nodes*(j_index_g-1) +
+                                            nvariables(semi_.equations)*n_nodes^2*(global_element_id_to_local(element_index_global, semi_.mesh)-1)]
+    end
     x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
     u_boundary = boundary_condition.coupling_converter(x, u_boundary_to_convert, equations, equations)
 

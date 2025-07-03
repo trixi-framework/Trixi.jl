@@ -341,7 +341,7 @@ end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::P4estMeshView{2},
-                             equations, surface_integral, dg::DG, u_global) where {BC}
+                             equations, surface_integral, dg::DG, u_global, semi) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
     index_range = eachnode(dg)
@@ -367,7 +367,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
                                 equations, surface_integral, dg, cache,
                                 i_node, j_node,
                                 node, direction, element, boundary,
-                                u_global)
+                                u_global, semi)
 
             i_node += i_node_step
             j_node += j_node_step
@@ -413,7 +413,7 @@ end
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
-                                     boundary_index, u_global)
+                                     boundary_index, u_global, semi)
     @unpack boundaries = cache
     @unpack contravariant_vectors = cache.elements
     @unpack surface_flux = surface_integral
@@ -427,7 +427,7 @@ end
 
     flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
                                element_index, normal_direction, surface_flux,
-                               normal_direction, u_global)
+                               normal_direction, u_global, semi)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
