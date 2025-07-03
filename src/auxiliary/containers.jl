@@ -441,5 +441,4 @@ end
 function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage}
     return unsafe_wrap_or_alloc(Storage, vec, size)
 end
-
 end # @muladd
