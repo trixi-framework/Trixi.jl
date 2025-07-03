@@ -110,7 +110,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_paper_self_gravitating_gas_dynamics.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "CUDA" || 
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "CUDA"
         import CUDA
         if CUDA.functional()
             include("test_cuda.jl")
