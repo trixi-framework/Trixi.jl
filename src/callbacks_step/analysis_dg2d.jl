@@ -318,7 +318,8 @@ function DGSpaceDerivative_WeakForm!(dg,
     return gradients
 end
 
-function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64}, D::Matrix{Float64}, N::Int)
+function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64},
+                        D::Matrix{Float64}, N::Int)
     for i in 0:N
         t = 0.0
         for j in 0:N
