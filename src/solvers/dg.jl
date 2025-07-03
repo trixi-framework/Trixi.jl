@@ -642,7 +642,7 @@ include("fdsbp_unstructured/fdsbp.jl")
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
-    u_ode = similar(cache.elements.node_coordinates,
+    u_ode = similar(cache.elements.node_coordinates, eltype(cache.elements),
                     nvariables(equations) * nnodes(dg)^ndims(mesh) *
                     nelements(dg, cache))
     fill!(u_ode, zero(eltype(u_ode)))
