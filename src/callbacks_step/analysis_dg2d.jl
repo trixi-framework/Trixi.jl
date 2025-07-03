@@ -287,25 +287,6 @@ function DGSpaceDerivative_WeakForm!(
     l_minus = dg.basis.boundary_interpolation[:, 1]
     l_plus = dg.basis.boundary_interpolation[:, 2]
 
-#     nvars, Np = size(u)
-#     @autoinfiltrate
-#     F = similar(u)
-#     F_prime = similar(u)
-#
-#     # Multiply Dhat * F for each variable
-#     for k in 1:nvars
-#         for i in 1:Np
-#             F_prime[i, k] = sum(D[i, j] * F[j, k] for j in 1:Np)
-#         end
-#     end
-#
-#     # Store into gradients array
-#     for i in 1:Np
-#         for k in 1:nvars
-#             gradients[k, i] = F_prime[i, k]
-#         end
-#     end
-
     n_vars, Np, _, n_elements = size(u)
     gradients = similar(u)
 
