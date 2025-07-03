@@ -209,7 +209,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
             local_values_threaded, flux_threaded, rotated_flux_threaded)
 end
 
-function compute_coefficients!(u, initial_condition, t,
+function compute_coefficients!(::Nothing, u, initial_condition, t,
                                mesh::DGMultiMesh, equations, dg::DGMulti, cache)
     md = mesh.md
     rd = dg.basis

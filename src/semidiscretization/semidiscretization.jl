@@ -174,9 +174,9 @@ end
 Same as [`compute_coefficients`](@ref) but stores the result in `u_ode`.
 """
 function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
+    backend = trixi_backend(u_ode)
     u = wrap_array(u_ode, semi)
     # Call `compute_coefficients` defined by the solver
-    backend = trixi_backend(u) # TODO(vchuravy/bengee) select on u or semi?
     compute_coefficients!(backend, u, func, t, mesh_equations_solver_cache(semi)...)
 end
 
