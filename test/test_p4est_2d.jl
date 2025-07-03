@@ -36,7 +36,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 end
 
 @trixi_testset "elixir_advection_basic.jl (Float32)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
