@@ -325,7 +325,7 @@ function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64},
         for j in 0:N
             t += D[i + 1, j + 1] * Phi[j + 1]  # Adjust for 1-based indexing
         end
-        Phi_prime[i+1] = t
+        Phi_prime[i + 1] = t
     end
 end
 
