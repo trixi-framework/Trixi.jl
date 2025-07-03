@@ -369,12 +369,17 @@ end
 # TODO: Remove once we have https://github.com/SciML/RecursiveArrayTools.jl/pull/455
 function trixi_backend(x::VectorOfArray)
     u = parent(x)
+    # FIXME(vchuravy): This is a workaround because KA.get_backend is ambivalent of where a SArray is residing.
+    if eltype(u) <: StaticArrays.StaticArray
+        return nothing
+    end
     if length(u) == 0
         error("VectorOfArray is empty, cannot determine backend.")
     end
     # Use the backend of the first element in the parent array
-    return KernelAbstractions.get_backend(u[1])
+    return get_backend(u[1])
 end
+
 
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
