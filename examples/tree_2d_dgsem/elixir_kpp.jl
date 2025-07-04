@@ -73,7 +73,7 @@ end
 ###############################################################################
 # semidiscretization of the KPP problem
 equation = KPPEquation2D()
-surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_ec
 # Can also compare solution obtained without using entropy-conservative flux. This will not converge
 # to the correct (entropy) solution!
