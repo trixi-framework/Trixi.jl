@@ -1097,7 +1097,7 @@ end
                             0.0,
                             2.6014507178710646e-5
                         ],
-                        surface_flux=(flux_lax_friedrichs,
+                        surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
                                       flux_nonconservative_powell_local_jump),
                         volume_flux=(flux_central,
                                      flux_nonconservative_powell_local_jump),
