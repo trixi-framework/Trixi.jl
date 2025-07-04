@@ -866,7 +866,7 @@ end
     return v
 end
 
-@inline function enstrophy(u, gradients,
+@inline function enstrophy_multi_euler(u, gradients,
                            equations::CompressibleEulerMulticomponentEquations2D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 

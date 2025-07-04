@@ -247,6 +247,7 @@ function integrate(func::Func, u,
                                T8codeMesh{2}},
                    equations, dg::DG, cache; normalize = true) where {Func}
     @unpack boundaries = cache
+    @autoinfiltrate
     m = methods(func)
     if (m[1].nargs == 2) || (func == cons2cons)
         return integrate_via_indices(u, mesh, equations, dg, cache;
@@ -257,14 +258,15 @@ function integrate(func::Func, u,
             func(u_local, equations)
         end
     end
-    if (m[1].nargs == 3) && (func != cons2cons)
+    if (m[1].nargs == 4) && (func != cons2cons)
         return integrate_via_indices(u, mesh, equations, dg, cache;
                                      normalize = normalize) do u, i, j, element,
                                                                equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
             gradients = DGSpaceDerivative_WeakForm!(dg, cache, u, 1, equations)
 
-            func(u_local, gradients, equations)
+#             func(u_local, gradients, equations)
+            return 0.0
         end
     end
 end
@@ -289,6 +291,7 @@ function DGSpaceDerivative_WeakForm!(dg,
     n_vars, Np, _, n_elements = size(u)
     gradients = similar(u)
 
+    @autoinfiltrate
     for elem in 1:n_elements
         for v in 1:n_vars
             # Contract D in the ξ̂ (first spatial) direction
@@ -299,16 +302,16 @@ function DGSpaceDerivative_WeakForm!(dg,
     return gradients
 end
 
-function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64},
-                        D::Matrix{Float64}, N::Int)
-    for i in 0:N
-        t = 0.0
-        for j in 0:N
-            t += D[i + 1, j + 1] * Phi[j + 1]  # Adjust for 1-based indexing
-        end
-        Phi_prime[i + 1] = t
-    end
-end
+# function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64},
+#                         D::Matrix{Float64}, N::Int)
+#     for i in 0:N
+#         t = 0.0
+#         for j in 0:N
+#             t += D[i + 1, j + 1] * Phi[j + 1]  # Adjust for 1-based indexing
+#         end
+#         Phi_prime[i + 1] = t
+#     end
+# end
 
 function compute_flux_array!(Flux, u, direction, equations)
     Np, nvars = size(Flux)

@@ -235,7 +235,7 @@ export density, pressure, density_pressure, velocity, global_mean_vars,
        equilibrium_distribution, waterheight, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
        cross_helicity,
-       enstrophy, magnetic_field, divergence_cleaning_field
+       enstrophy, magnetic_field, divergence_cleaning_field, enstrophy_multi_euler
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
