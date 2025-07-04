@@ -90,7 +90,7 @@ end
                             0.003287251595115295
                         ],
                         surface_flux=(FluxPlusDissipation(flux_ruedaramirez_etal,
-                                                          DissipationLaxFriedrichsEntropyVariables()),
+                                                          DissipationLaxFriedrichsEntropyVariables(max_abs_speed_naive)),
                                       flux_nonconservative_ruedaramirez_etal))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -136,7 +136,8 @@ end
                             0.49493751138636366,
                             0.003287414714660175
                         ],
-                        surface_flux=(flux_lax_friedrichs, flux_nonconservative_central))
+                        surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
+                                      flux_nonconservative_central))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

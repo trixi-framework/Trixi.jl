@@ -555,9 +555,9 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_free_stream.jl with FluxRotated(flux_lax_friedrichs)" begin
+@trixi_testset "elixir_euler_free_stream.jl with FluxRotated(FluxLaxFriedrichs(max_abs_speed_naive))" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
-                        surface_flux=FluxRotated(flux_lax_friedrichs),
+                        surface_flux=FluxRotated(FluxLaxFriedrichs(max_abs_speed_naive)),
                         l2=[
                             2.063350241405049e-15,
                             1.8571016296925367e-14,
@@ -1097,7 +1097,7 @@ end
                             0.0,
                             2.6014507178710646e-5
                         ],
-                        surface_flux=(flux_lax_friedrichs,
+                        surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
                                       flux_nonconservative_powell_local_jump),
                         volume_flux=(flux_central,
                                      flux_nonconservative_powell_local_jump),

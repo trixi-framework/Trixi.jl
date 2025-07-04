@@ -126,9 +126,9 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_free_stream.jl with FluxRotated(flux_lax_friedrichs)" begin
+@trixi_testset "elixir_euler_free_stream.jl with FluxRotated(FluxLaxFriedrichs(max_abs_speed_naive))" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
-                        surface_flux=FluxRotated(flux_lax_friedrichs),
+                        surface_flux=FluxRotated(FluxLaxFriedrichs(max_abs_speed_naive)),
                         l2=[
                             2.8815700334367128e-15,
                             9.361915278236651e-15,
@@ -280,7 +280,7 @@ end
     end
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl with flux_lax_friedrichs" begin
+@trixi_testset "elixir_mhd_alfven_wave.jl with FluxLaxFriedrichs(max_abs_speed_naive)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[0.0030477691235949685, 0.00145609137038748,
                             0.0009092809766088607, 0.0017949926915475929,
@@ -292,7 +292,8 @@ end
                             0.02126543791857216, 0.031563506812970266,
                             0.02116105422516923, 0.03419432640106229,
                             0.020324891223351533],
-                        surface_flux=(flux_lax_friedrichs, flux_nonconservative_powell),)
+                        surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
+                                      flux_nonconservative_powell),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
