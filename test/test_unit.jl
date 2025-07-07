@@ -1359,7 +1359,7 @@ end
     orientations = [1, 2, 3]
     for orientation in orientations
         @test flux_godunov(1.5 * u, u, orientation, equation) ≈
-              FluxLaxFriedrichs(max_abs_speed_naive)(1.5 * u, u, orientation, equation)
+              flux_lax_friedrichs(1.5 * u, u, orientation, equation)
     end
 
     normal_directions = [SVector(1.0, 0.0, 0.0),
