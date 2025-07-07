@@ -10,21 +10,24 @@
 function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal compare performance of different types
-    fstar_primary_threaded = [Array{uEltype, 4}(undef, nvariables(equations),
-                                                nnodes(mortar_l2),
-                                                nnodes(mortar_l2), 4)
-                              for _ in 1:Threads.nthreads()] |> VectorOfArray
-    fstar_secondary_threaded = [Array{uEltype, 4}(undef, nvariables(equations),
+    fstar_primary_threaded = VectorOfArray([Array{uEltype, 4}(undef,
+                                                              nvariables(equations),
+                                                              nnodes(mortar_l2),
+                                                              nnodes(mortar_l2), 4)
+                                            for _ in 1:Threads.nthreads()])
+    fstar_secondary_threaded = VectorOfArray([Array{uEltype, 4}(undef,
+                                                                nvariables(equations),
+                                                                nnodes(mortar_l2),
+                                                                nnodes(mortar_l2), 4)
+                                              for _ in 1:Threads.nthreads()])
+    fstar_tmp_threaded = VectorOfArray([Array{uEltype, 3}(undef, nvariables(equations),
+                                                          nnodes(mortar_l2),
+                                                          nnodes(mortar_l2))
+                                        for _ in 1:Threads.nthreads()])
+    u_threaded = VectorOfArray([Array{uEltype, 3}(undef, nvariables(equations),
                                                   nnodes(mortar_l2),
-                                                  nnodes(mortar_l2), 4)
-                                for _ in 1:Threads.nthreads()] |> VectorOfArray
-
-    fstar_tmp_threaded = [Array{uEltype, 3}(undef, nvariables(equations),
-                                            nnodes(mortar_l2), nnodes(mortar_l2))
-                          for _ in 1:Threads.nthreads()] |> VectorOfArray
-    u_threaded = [Array{uEltype, 3}(undef, nvariables(equations), nnodes(mortar_l2),
-                                    nnodes(mortar_l2))
-                  for _ in 1:Threads.nthreads()] |> VectorOfArray
+                                                  nnodes(mortar_l2))
+                                for _ in 1:Threads.nthreads()])
 
     (; fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded, u_threaded)
 end
@@ -519,9 +522,9 @@ function prolong2mortars!(cache, u,
 
         # Buffer to copy solution values of the large element in the correct orientation
         # before interpolating
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = cache.u_threaded.u[Threads.threadid()]
         # temporary buffer for projections
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        fstar_tmp = fstar_tmp_threaded.u[Threads.threadid()]
 
         # Copy solution of large element face to buffer in the
         # correct orientation
@@ -590,9 +593,9 @@ function calc_mortar_flux!(surface_flux_values,
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_primary = fstar_primary_threaded[Threads.threadid()]
-        fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        fstar_primary = fstar_primary_threaded.u[Threads.threadid()]
+        fstar_secondary = fstar_secondary_threaded.u[Threads.threadid()]
+        fstar_tmp = fstar_tmp_threaded.u[Threads.threadid()]
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -638,7 +641,7 @@ function calc_mortar_flux!(surface_flux_values,
 
         # Buffer to interpolate flux values of the large element to before
         # copying in the correct orientation
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = cache.u_threaded.u[Threads.threadid()]
 
         # in calc_interface_flux!, the interface flux is computed once over each
         # interface using the normal from the "primary" element. The result is then

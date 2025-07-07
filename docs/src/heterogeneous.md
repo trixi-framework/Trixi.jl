@@ -121,13 +121,12 @@ end
 
 1.  Put the inner code in a new function `rhs_fct_per_element`. Besides the index
     `element`, pass all required fields as arguments, but make sure to `@unpack` them from
-    their structs in adavance.
+    their structs in advance.
 
 2.  Where `trixi_rhs_fct` is called, get the backend, i.e. the hardware we are currently
     running on via `trixi_backend(x)`.
     This will, e.g., work with `u_ode`. Internally, `KernelAbstractions.jl`'s `get_backend`
     will be called, i.e. `KernelAbstractions.jl` has to know the type of `x`.
-
     ```julia
     backend = trixi_backend(u_ode)
     ```

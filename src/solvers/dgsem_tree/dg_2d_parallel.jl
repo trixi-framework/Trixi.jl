@@ -11,10 +11,10 @@
 # TODO: MPI dimension agnostic
 mutable struct MPICache{uEltype <: Real}
     mpi_neighbor_ranks::Vector{Int}
-    mpi_neighbor_interfaces::Vector{Vector{Int}}
-    mpi_neighbor_mortars::Vector{Vector{Int}}
-    mpi_send_buffers::Vector{Vector{uEltype}}
-    mpi_recv_buffers::Vector{Vector{uEltype}}
+    mpi_neighbor_interfaces::VectorOfArray{Int, 2, Vector{Vector{Int}}}
+    mpi_neighbor_mortars::VectorOfArray{Int, 2, Vector{Vector{Int}}}
+    mpi_send_buffers::VectorOfArray{uEltype, 2, Vector{Vector{uEltype}}}
+    mpi_recv_buffers::VectorOfArray{uEltype, 2, Vector{Vector{uEltype}}}
     mpi_send_requests::Vector{MPI.Request}
     mpi_recv_requests::Vector{MPI.Request}
     n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
