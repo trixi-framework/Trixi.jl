@@ -214,7 +214,7 @@ i.e., the wave speeds used in `max_dt` which computes the maximum stable time st
 For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
 
-Defaults to [`min_max_speed_naive`](@ref) if no specialized version for the ' equations` at hand is available.
+Defaults to [`min_max_speed_naive`](@ref) if no specialized version for the 'equations` at hand is available.
 """
 @inline function max_abs_speed(u_ll, u_rr,
                                orientation_or_normal_direction,
