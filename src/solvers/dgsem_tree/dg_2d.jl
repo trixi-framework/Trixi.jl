@@ -38,14 +38,14 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                                   UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}},
+                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing,
                       dg::DG, uEltype)
     NamedTuple()
 end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}}, equations,
+                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
@@ -68,7 +68,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
 end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}}, equations,
+                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
     A3dp1_x = Array{uEltype, 3}
@@ -90,7 +90,7 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                                  P4estMesh{2}, P4estMeshView{2}, P4estMeshView{2}, T8codeMesh{2}},
                       equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
@@ -313,6 +313,18 @@ function calc_volume_integral!(du, u,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         flux_differencing_kernel!(du, u, element, mesh,
+                                  nonconservative_terms, equations,
+                                  volume_integral.volume_flux, dg, cache)
+    end
+end
+
+function calc_volume_integral!(du, u,
+                               mesh::P4estMeshView{2},
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::DGSEM, cache)
+    @threaded for element in eachelement(dg, cache)
+        flux_differencing_kernel!(du, u, element, mesh.parent,
                                   nonconservative_terms, equations,
                                   volume_integral.volume_flux, dg, cache)
     end
