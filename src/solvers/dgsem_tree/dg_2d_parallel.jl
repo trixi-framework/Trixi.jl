@@ -28,10 +28,10 @@ function MPICache(uEltype)
         throw(ArgumentError("MPICache only supports bitstypes, $uEltype is not a bitstype."))
     end
     mpi_neighbor_ranks = Vector{Int}(undef, 0)
-    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0)
-    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0)
-    mpi_send_buffers = Vector{Vector{uEltype}}(undef, 0)
-    mpi_recv_buffers = Vector{Vector{uEltype}}(undef, 0)
+    mpi_neighbor_interfaces = VectorOfArray(Vector{Vector{Int}}(undef, 0))
+    mpi_neighbor_mortars = VectorOfArray(Vector{Vector{Int}}(undef, 0))
+    mpi_send_buffers = VectorOfArray(Vector{Vector{uEltype}}(undef, 0))
+    mpi_recv_buffers = VectorOfArray(Vector{Vector{uEltype}}(undef, 0))
     mpi_send_requests = Vector{MPI.Request}(undef, 0)
     mpi_recv_requests = Vector{MPI.Request}(undef, 0)
     n_elements_by_rank = OffsetArray(Vector{Int}(undef, 0), 0:-1)
@@ -431,12 +431,14 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
     mortar_ids = collect(1:nmpimortars(mpi_mortars))[p]
 
     # For each neighbor rank, init connectivity data structures
-    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
-    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
+    mpi_neighbor_interfaces = VectorOfArray(
+        Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks)))
+    mpi_neighbor_mortars = VectorOfArray(
+        Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks)))
     for (index, rank) in enumerate(mpi_neighbor_ranks)
-        mpi_neighbor_interfaces[index] = interface_ids[findall(x -> (x == rank),
+        mpi_neighbor_interfaces.u[index] = interface_ids[findall(x -> (x == rank),
                                                                neighbor_ranks_interface)]
-        mpi_neighbor_mortars[index] = mortar_ids[findall(x -> (rank in x),
+        mpi_neighbor_mortars.u[index] = mortar_ids[findall(x -> (rank in x),
                                                          neighbor_ranks_mortar)]
     end
 
