@@ -8,10 +8,10 @@
 mutable struct P4estMPICache{BufferType <: DenseVector,
                              VecInt <: DenseVector{<:Integer}}
     mpi_neighbor_ranks::Vector{Int}
-    mpi_neighbor_interfaces::VecOfArrays{VecInt}
-    mpi_neighbor_mortars::VecOfArrays{VecInt}
-    mpi_send_buffers::VecOfArrays{BufferType}
-    mpi_recv_buffers::VecOfArrays{BufferType}
+    mpi_neighbor_interfaces::VectorOfArray{VecInt}
+    mpi_neighbor_mortars::VectorOfArray{VecInt}
+    mpi_send_buffers::VectorOfArray{BufferType}
+    mpi_recv_buffers::VectorOfArray{BufferType}
     mpi_send_requests::Vector{MPI.Request}
     mpi_recv_requests::Vector{MPI.Request}
     n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
@@ -26,10 +26,10 @@ function P4estMPICache(uEltype)
     end
 
     mpi_neighbor_ranks = Vector{Int}(undef, 0)
-    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0) |> VecOfArrays
-    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0) |> VecOfArrays
-    mpi_send_buffers = Vector{Vector{uEltype}}(undef, 0) |> VecOfArrays
-    mpi_recv_buffers = Vector{Vector{uEltype}}(undef, 0) |> VecOfArrays
+    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0) |> VectorOfArray
+    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0) |> VectorOfArray
+    mpi_send_buffers = Vector{Vector{uEltype}}(undef, 0) |> VectorOfArray
+    mpi_recv_buffers = Vector{Vector{uEltype}}(undef, 0) |> VectorOfArray
     mpi_send_requests = Vector{MPI.Request}(undef, 0)
     mpi_recv_requests = Vector{MPI.Request}(undef, 0)
     n_elements_by_rank = OffsetArray(Vector{Int}(undef, 0), 0:-1)
@@ -291,10 +291,10 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
     first_element_global_id = Int(mesh.p4est.global_first_quadrant[mpi_rank() + 1]) + 1
     @assert n_elements_global==sum(n_elements_by_rank) "error in total number of elements"
 
-    mpi_neighbor_interfaces = VecOfArrays(_mpi_neighbor_interfaces)
-    mpi_neighbor_mortars = VecOfArrays(_mpi_neighbor_mortars)
-    mpi_send_buffers = VecOfArrays(_mpi_send_buffers)
-    mpi_recv_buffers = VecOfArrays(_mpi_recv_buffers)
+    mpi_neighbor_interfaces = VectorOfArray(_mpi_neighbor_interfaces)
+    mpi_neighbor_mortars = VectorOfArray(_mpi_neighbor_mortars)
+    mpi_send_buffers = VectorOfArray(_mpi_send_buffers)
+    mpi_recv_buffers = VectorOfArray(_mpi_recv_buffers)
 
     # TODO reuse existing structures
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
