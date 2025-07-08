@@ -367,7 +367,7 @@ function trixi_backend(x)
 end
 
 function KernelAbstractions.get_backend(::StaticArrays.StaticArraysCore.SVector)
-    return false
+    return nothing
 end
 
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be

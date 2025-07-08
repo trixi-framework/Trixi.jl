@@ -444,7 +444,7 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
     end
 
     # Sanity checks that we counted all interfaces exactly once
-    @assert sum(length(v) for v in mpi_neighbor_interfaces) ==
+    @assert sum(length(v) for v in mpi_neighbor_interfaces.u) ==
             nmpiinterfaces(mpi_interfaces)
 
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars

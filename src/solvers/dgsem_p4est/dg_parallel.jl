@@ -337,7 +337,7 @@ function init_mpi_neighbor_connectivity(mpi_interfaces, mpi_mortars,
     end
 
     # Check that all interfaces were counted exactly once
-    @assert mapreduce(length, +, mpi_neighbor_interfaces; init = 0) ==
+    @assert mapreduce(length, +, mpi_neighbor_interfaces.u; init = 0) ==
             nmpiinterfaces(mpi_interfaces)
 
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
