@@ -532,6 +532,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                 0.5f0 *
                 surface_flux_function[2](u_inner, u_boundary, orientation,
                                          equations))
+        @autoinfiltrate
     else
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
     end
