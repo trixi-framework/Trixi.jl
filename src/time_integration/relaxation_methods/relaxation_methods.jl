@@ -2,6 +2,9 @@ abstract type RelaxationIntegrator <: AbstractTimeIntegrator end
 
 get_tmp_cache(integrator::RelaxationIntegrator) = (integrator.u_tmp,)
 
+# some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
+u_modified!(integrator::RelaxationIntegrator, ::Bool) = false
+
 # stop the time integration
 function terminate!(integrator::RelaxationIntegrator)
     integrator.finalstep = true
