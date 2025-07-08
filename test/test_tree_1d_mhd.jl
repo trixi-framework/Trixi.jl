@@ -134,6 +134,40 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_weak_blast_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_er.jl"),
+                        l2=[
+                            0.06235606029775228,
+                            0.13376358501169155,
+                            0.04200306897227495,
+                            0.04200306897227495,
+                            0.17897757358916297,
+                            4.130462730494001e-17,
+                            0.03905093606845905,
+                            0.03905093606845905
+                        ],
+                        linf=[
+                            0.16943753987808507,
+                            0.25472859074686766,
+                            0.09735873061500042,
+                            0.09735873061500042,
+                            0.37688713379601024,
+                            1.1102230246251565e-16,
+                            0.09703534893823451,
+                            0.09703534893823451
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10_000
+    end
+end
+
 @trixi_testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
                         l2=[

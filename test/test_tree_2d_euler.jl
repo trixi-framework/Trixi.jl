@@ -939,6 +939,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_vortex_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
+                        l2=[
+                            0.02611496923463018,
+                            0.13818025954635707,
+                            0.1145998003738507,
+                            0.43782807412514374
+                        ],
+                        linf=[
+                            0.2918576463853375,
+                            1.1190399077794473,
+                            0.7978297239645427,
+                            3.8946074175428738
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10_000
+    end
+end
+
 @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[

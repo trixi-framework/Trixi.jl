@@ -198,6 +198,31 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_weak_blast_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_weak_blast_er.jl"),
+                        l2=[
+                            0.1199630838410077,
+                            0.15621960583175515,
+                            0.44836353019484665
+                        ],
+                        linf=[
+                            0.22555469972567477,
+                            0.29412938937656014,
+                            0.8558237244455067
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10_000
+    end
+end
+
 @trixi_testset "elixir_linearizedeuler_characteristic_system.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearizedeuler_characteristic_system.jl"),
