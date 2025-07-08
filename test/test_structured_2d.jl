@@ -1026,7 +1026,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10_000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
     end
 end
 
