@@ -366,6 +366,10 @@ function trixi_backend(x)
     return get_backend(x)
 end
 
+function KernelAbstractions.get_backend(::StaticArraysCore.SVector{1, Float64})
+    return false
+end
+
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
 # Adapt.adapt (ArgumentError, see
