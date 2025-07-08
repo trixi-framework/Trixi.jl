@@ -29,12 +29,12 @@ function init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars,
         mpi_send_buffers.u[index] = Vector{uEltype}(undef,
                                                     length(mpi_neighbor_interfaces.u[index]) *
                                                     data_size +
-                                                    length(mpi_neighbor_mortars[index]) *
+                                                    length(mpi_neighbor_mortars.u[index]) *
                                                     n_small_elements * 2 * data_size)
         mpi_recv_buffers.u[index] = Vector{uEltype}(undef,
                                                     length(mpi_neighbor_interfaces.u[index]) *
                                                     data_size +
-                                                    length(mpi_neighbor_mortars[index]) *
+                                                    length(mpi_neighbor_mortars.u[index]) *
                                                     n_small_elements * 2 * data_size)
     end
 
