@@ -63,7 +63,7 @@ end
 """
     AbstractRelaxationSolver
 
-Abstract type for relaxation solvers used to compute the relaxation paramter `` \\gamma`` 
+Abstract type for relaxation solvers used to compute the relaxation parameter `` \\gamma`` 
 in the entropy relaxation time integration methods 
 [`SubDiagonalRelaxationAlgorithm`](@ref) and [`VanderHouwenRelaxationAlgorithm`](@ref).
 Implemented methods are [`RelaxationSolverBisection`](@ref) and [`RelaxationSolverNewton`](@ref).
