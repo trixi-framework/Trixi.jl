@@ -366,7 +366,7 @@ function trixi_backend(x)
     return get_backend(x)
 end
 
-function KernelAbstractions.get_backend(::StaticArrays.StaticArraysCore.SVector{1, Float64})
+function KernelAbstractions.get_backend(::StaticArrays.StaticArraysCore.SVector)
     return false
 end
 
