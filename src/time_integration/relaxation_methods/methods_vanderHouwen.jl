@@ -273,7 +273,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         du_wrap = wrap_array(integrator.du, prob.p)
         # Entropy change due to first stage
         dS = alg.b[1] * integrator.dt *
-             int_w_dot_stage(du_wrap, u_wrap, mesh, equations, dg, cache)
+             integrate_w_dot_stage(du_wrap, u_wrap, mesh, equations, dg, cache)
 
         @threaded for i in eachindex(integrator.u)
             integrator.u_tmp[i] = integrator.u[i] +
@@ -287,7 +287,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
 
             # Entropy change due to current stage
             dS += alg.b[stage] * integrator.dt *
-                  int_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
+                  integrate_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
 
             @threaded for i in eachindex(integrator.u)
                 integrator.direction[i] += alg.b[stage] * integrator.du[i] *
@@ -308,7 +308,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
                      integrator.t + alg.c[num_stages] * integrator.dt)
 
         dS += alg.b[num_stages] * integrator.dt *
-              int_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
+              integrate_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
 
         @threaded for i in eachindex(integrator.u)
             integrator.direction[i] += alg.b[num_stages] * integrator.du[i] *

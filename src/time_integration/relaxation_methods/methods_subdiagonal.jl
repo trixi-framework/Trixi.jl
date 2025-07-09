@@ -233,7 +233,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
         du_wrap = wrap_array(integrator.du, prob.p)
         # Entropy change due to first stage
         dS = alg.b[1] * integrator.dt *
-             int_w_dot_stage(du_wrap, u_wrap, mesh, equations, dg, cache)
+             integrate_w_dot_stage(du_wrap, u_wrap, mesh, equations, dg, cache)
 
         # Second to last stage
         for stage in 2:length(alg.c)
@@ -250,7 +250,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
             # Entropy change due to current stage
             dS += alg.b[stage] * integrator.dt *
-                  int_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
+                  integrate_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
         end
 
         direction_wrap = wrap_array(integrator.direction, prob.p)

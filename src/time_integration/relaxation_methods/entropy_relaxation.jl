@@ -5,9 +5,9 @@
 @muladd begin
 #! format: noindent
 
-@inline function int_w_dot_stage(stage, u_stage,
-                                 mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                                 equations, dg::DG, cache)
+@inline function integrate_w_dot_stage(stage, u_stage,
+                                       mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                       equations, dg::DG, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
         integrate_via_indices(u_stage, mesh, equations, dg, cache,
@@ -20,11 +20,11 @@
     end
 end
 
-@inline function int_w_dot_stage(stage, u_stage,
-                                 mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                             UnstructuredMesh2D, P4estMesh{2},
-                                             T8codeMesh{2}},
-                                 equations, dg::DG, cache)
+@inline function integrate_w_dot_stage(stage, u_stage,
+                                       mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                   UnstructuredMesh2D, P4estMesh{2},
+                                                   T8codeMesh{2}},
+                                       equations, dg::DG, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
         integrate_via_indices(u_stage, mesh, equations, dg, cache,
@@ -37,10 +37,10 @@ end
     end
 end
 
-@inline function int_w_dot_stage(stage, u_stage,
-                                 mesh::Union{TreeMesh{3}, StructuredMesh{3},
-                                             P4estMesh{3}, T8codeMesh{3}},
-                                 equations, dg::DG, cache)
+@inline function integrate_w_dot_stage(stage, u_stage,
+                                       mesh::Union{TreeMesh{3}, StructuredMesh{3},
+                                                   P4estMesh{3}, T8codeMesh{3}},
+                                       equations, dg::DG, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
         integrate_via_indices(u_stage, mesh, equations, dg, cache,
@@ -313,7 +313,8 @@ function relaxation_solver!(integrator,
             break
         end
 
-        dr = int_w_dot_stage(dir_wrap, u_tmp_wrap, mesh, equations, dg, cache) - dS
+        dr = integrate_w_dot_stage(dir_wrap, u_tmp_wrap, mesh, equations, dg, cache) -
+             dS
 
         step = step_scaling * r_gamma / dr
         if abs(step) <= gamma_tol
