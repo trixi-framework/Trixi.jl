@@ -81,7 +81,7 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
                                    SimpleIntegratorSSPOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
-    r0::uType
+    u_tmp::uType
     t::RealT
     tdir::RealT # DIRection of time integration, i.e., if one marches forward or backward in time
     dt::RealT # current time step
@@ -126,11 +126,11 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
                dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
-    r0 = similar(u)
+    u_tmp = similar(u)
     t = first(ode.tspan)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
-    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, dt, iter, ode.p,
+    integrator = SimpleIntegratorSSP(u, du, u_tmp, t, tdir, dt, dt, iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...),
@@ -177,7 +177,7 @@ function solve!(integrator::SimpleIntegratorSSP)
             terminate!(integrator)
         end
 
-        @. integrator.r0 = integrator.u
+        @. integrator.u_tmp = integrator.u
         for stage in eachindex(alg.c)
             t_stage = integrator.t + integrator.dt * alg.c[stage]
             # compute du
@@ -191,7 +191,7 @@ function solve!(integrator::SimpleIntegratorSSP)
             end
 
             # perform convex combination
-            @. integrator.u = (alg.numerator_a[stage] * integrator.r0 +
+            @. integrator.u = (alg.numerator_a[stage] * integrator.u_tmp +
                                alg.numerator_b[stage] * integrator.u) /
                               alg.denominator[stage]
         end
@@ -233,7 +233,7 @@ function solve!(integrator::SimpleIntegratorSSP)
 end
 
 # get a cache where the RHS can be stored
-get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.r0,)
+get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
@@ -271,7 +271,7 @@ end
 function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
-    resize!(integrator.r0, new_size)
+    resize!(integrator.u_tmp, new_size)
 
     # Resize container
     # new_size = n_variables * n_nodes^n_dims * n_elements
