@@ -624,7 +624,7 @@ end
         u = prim2cons(SVector(rho, v1, v2, p), equations)
         x = SVector(1.0, 2.0)
         t = 0.5
-        surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
+        surface_flux = flux_lax_friedrichs
 
         outward_direction = SVector(0.2, -0.3)
         @test flux(u, outward_direction, equations) ≈
@@ -647,8 +647,7 @@ end
         u = prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
         x = SVector(1.0, 2.0)
         t = 0.5
-        surface_fluxes = (FluxLaxFriedrichs(max_abs_speed_naive),
-                          flux_nonconservative_powell)
+        surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_powell)
 
         outward_direction = SVector(0.2, 0.3)
 
@@ -936,7 +935,7 @@ end
 
         orientations = [1, 2]
         for orientation in orientations
-            @test FluxLaxFriedrichs(max_abs_speed_naive)(u, u, orientation, equations) ≈
+            @test flux_lax_friedrichs(u, u, orientation, equations) ≈
                   flux(u, orientation, equations)
         end
 
@@ -946,8 +945,7 @@ end
             SVector(-1.2, 0.3)]
 
         for normal_direction in normal_directions
-            @test FluxLaxFriedrichs(max_abs_speed_naive)(u, u, normal_direction,
-                                                         equations) ≈
+            @test flux_lax_friedrichs(u, u, normal_direction, equations) ≈
                   flux(u, normal_direction, equations)
         end
     end

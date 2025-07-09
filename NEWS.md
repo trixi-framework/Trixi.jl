@@ -10,7 +10,9 @@ for human readability.
 #### Changed
 
 - Default wave-speed estimate used within `flux_lax_friedrichs` changed from `max_abs_speed_naive` to
-  `max_abs_speed` which is less diffusive: `FluxLaxFriedrichs(max_abs_speed = max_abs_speed)` instead of
+  `max_abs_speed` which is less diffusive.
+  In v0.13, `flux_lax_friedrichs = FluxLaxFriedrichs(max_abs_speed = max_abs_speed)`
+  instead of the previous default 
   `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)` ([#2458]).
   
 ## Changes when updating to v0.12 from v0.11.x

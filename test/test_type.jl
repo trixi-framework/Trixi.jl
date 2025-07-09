@@ -80,7 +80,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             directions = [1, 2, 3, 4]
             normal_direction = SVector(one(RealT), zero(RealT))
 
-            surface_flux_function = FluxLaxFriedrichs(max_abs_speed_naive)
+            surface_flux_function = flux_lax_friedrichs
             dissipation = DissipationLocalLaxFriedrichs()
 
             @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
@@ -141,7 +141,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             orientation = 1
             directions = [1, 2]
 
-            surface_flux_function = FluxLaxFriedrichs(max_abs_speed_naive)
+            surface_flux_function = flux_lax_friedrichs
 
             @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
             @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
@@ -225,7 +225,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             directions = [1, 2, 3, 4]
             normal_direction = SVector(one(RealT), zero(RealT))
 
-            surface_flux_function = FluxLaxFriedrichs(max_abs_speed_naive)
+            surface_flux_function = flux_lax_friedrichs
             flux_lmars = FluxLMARS(340)
 
             @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
@@ -379,7 +379,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             directions = [1, 2, 3, 4, 5, 6]
             normal_direction = SVector(one(RealT), zero(RealT), zero(RealT))
 
-            surface_flux_function = FluxLaxFriedrichs(max_abs_speed_naive)
+            surface_flux_function = flux_lax_friedrichs
             flux_lmars = FluxLMARS(340)
 
             @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
@@ -2365,7 +2365,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             orientation = 1
             directions = [1, 2]
 
-            surface_flux_function = FluxLaxFriedrichs(max_abs_speed_naive)
+            surface_flux_function = flux_lax_friedrichs
             @test eltype(@inferred initial_condition_density_wave(x, t, equations)) == RealT
 
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
