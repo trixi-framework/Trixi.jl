@@ -146,7 +146,7 @@ mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
     sol::Sol # faked
     f::F # `rhs!` of the semidiscretization
     alg::Alg # SimpleAlgorithm3Sstar
-    opts::SimpleIntegrator2NOptions
+    opts::SimpleIntegrator2NOptions # Re-used
     finalstep::Bool # added for convenience
 end
 
