@@ -5,6 +5,10 @@ using Trixi
 
 equations = IdealGlmMhdEquations3D(5 / 3)
 
+# Volume flux stabilizes the simulation - in contrast to standard DGSEM with 
+# `surface_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)` only which crashes.
+# To turn this into a convergence test, use a flux with some dissipation, e.g.
+# `flux_lax_friedrichs` or `flux_hll`.
 flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3, surface_flux = flux,
                volume_integral = VolumeIntegralFluxDifferencing(flux))

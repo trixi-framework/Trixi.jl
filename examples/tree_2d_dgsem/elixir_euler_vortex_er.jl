@@ -57,9 +57,10 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 end
 initial_condition = initial_condition_isentropic_vortex
 
-# Volume flux adds some (minimal) disspation, thus stabilizing the simulation - 
-# in contrast to standard DGSEM with `surface_flux = flux_ranocha` only
-# To make this convergence test ready, switch to standard weak form DGSEM with e.g. HLL flux
+# Volume flux stabilizes the simulation - in contrast to standard DGSEM with 
+# `surface_flux = flux_ranocha` only which crashes.
+# To turn this into a convergence test, use a flux with some dissipation, e.g.
+# `flux_lax_friedrichs` or `flux_hll`.
 solver = DGSEM(polydeg = 2, surface_flux = flux_ranocha,
                volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 

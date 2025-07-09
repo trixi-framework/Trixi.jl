@@ -12,7 +12,8 @@
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
         integrate_via_indices(u_stage, mesh, equations, dg, cache,
                               stage) do u_stage, i, element, equations, dg, stage
-            w_node = cons2entropy(get_node_vars(u_stage, equations, dg, i, element),
+            w_node = cons2entropy(get_node_vars(u_stage, equations, dg,
+                                                i, element),
                                   equations) # entropy variables
             stage_node = get_node_vars(stage, equations, dg, i, element)
             dot(w_node, stage_node)
@@ -29,7 +30,8 @@ end
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
         integrate_via_indices(u_stage, mesh, equations, dg, cache,
                               stage) do u_stage, i, j, element, equations, dg, stage
-            w_node = cons2entropy(get_node_vars(u_stage, equations, dg, i, j, element),
+            w_node = cons2entropy(get_node_vars(u_stage, equations, dg,
+                                                i, j, element),
                                   equations) # entropy variables
             stage_node = get_node_vars(stage, equations, dg, i, j, element)
             dot(w_node, stage_node)
@@ -45,8 +47,8 @@ end
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
         integrate_via_indices(u_stage, mesh, equations, dg, cache,
                               stage) do u_stage, i, j, k, element, equations, dg, stage
-            w_node = cons2entropy(get_node_vars(u_stage, equations, dg, i, j, k,
-                                                element),
+            w_node = cons2entropy(get_node_vars(u_stage, equations, dg,
+                                                i, j, k, element),
                                   equations) # entropy variables
             stage_node = get_node_vars(stage, equations, dg, i, j, k, element)
             dot(w_node, stage_node)

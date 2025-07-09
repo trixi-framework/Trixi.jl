@@ -5,8 +5,8 @@ using Trixi
 
 equations = CompressibleEulerEquations1D(1.4)
 
-# Volume flux adds some (minimal) disspation, thus stabilizing the simulation - 
-# in contrast to standard DGSEM with `surface_flux = flux_ranocha` only
+# Volume flux stabilizes the simulation - in contrast to standard DGSEM with 
+# `surface_flux = flux_ranocha` only which crashes.
 solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
                volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
