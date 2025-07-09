@@ -59,6 +59,7 @@ initial_condition = initial_condition_isentropic_vortex
 
 # Volume flux adds some (minimal) disspation, thus stabilizing the simulation - 
 # in contrast to standard DGSEM with `surface_flux = flux_ranocha` only
+# To make this convergence test ready, switch to standard weak form DGSEM with e.g. HLL flux
 solver = DGSEM(polydeg = 2, surface_flux = flux_ranocha,
                volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 

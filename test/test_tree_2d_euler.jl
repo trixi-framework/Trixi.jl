@@ -970,6 +970,33 @@ end
     @test_nowarn display(relaxation_solver)
 end
 
+@trixi_testset "elixir_euler_vortex_er.jl (R-RK33)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
+                        ode_alg=Trixi.RelaxationRK33(relaxation_solver = relaxation_solver),
+                        [
+                            0.025995019899574135,
+                            0.13819344495634148,
+                            0.11469504942586545,
+                            0.4359454100477519
+                        ],
+                        linf=[
+                            0.29437520073939794,
+                            1.1173671735186181,
+                            0.7947503781263374,
+                            3.826840709109897
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
+    end
+end
+
 @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[

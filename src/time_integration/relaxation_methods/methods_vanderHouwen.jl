@@ -183,6 +183,8 @@ mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType, Params, So
     direction::uType
     gamma::RealT
     relaxation_solver::AbstractRelaxationSolver
+    # Note: Could add another register which would store the summed-up 
+    # dot products ∑ₖ (wₖ ⋅ kₖ) and then integrate only once and not per stage k
 end
 
 function init(ode::ODEProblem, alg::vanderHouwenRelaxationAlgorithm;
@@ -357,7 +359,7 @@ function Base.resize!(integrator::vanderHouwenRelaxationIntegrator, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
     resize!(integrator.k_prev, new_size)
-
+    # Relaxation addition
     resize!(integrator.direction, new_size)
 end
 end # @muladd

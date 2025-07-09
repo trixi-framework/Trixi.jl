@@ -149,6 +149,8 @@ mutable struct SubDiagonalRelaxationIntegrator{RealT <: Real, uType, Params, Sol
     direction::uType
     gamma::RealT
     relaxation_solver::AbstractRelaxationSolver
+    # Note: Could add another register which would store the summed-up 
+    # dot products ∑ₖ (wₖ ⋅ kₖ) and then integrate only once and not per stage k
 end
 
 function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
@@ -294,7 +296,7 @@ function Base.resize!(integrator::SubDiagonalRelaxationIntegrator, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
-
+    # Relaxation addition
     resize!(integrator.direction, new_size)
 end
 end # @muladd
