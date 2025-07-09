@@ -335,9 +335,9 @@ function prolong2mpimortars!(cache, u,
             if position == 5 # -> large element
                 # Buffer to copy solution values of the large element in the correct orientation
                 # before interpolating
-                u_buffer = cache.u_threaded[Threads.threadid()]
+                u_buffer = cache.u_threaded.u[Threads.threadid()]
                 # temporary buffer for projections
-                fstar_tmp = cache.fstar_tmp_threaded[Threads.threadid()]
+                fstar_tmp = cache.fstar_tmp_threaded.u[Threads.threadid()]
 
                 i_large = i_large_start
                 j_large = j_large_start
@@ -423,9 +423,9 @@ function calc_mpi_mortar_flux!(surface_flux_values,
 
     @threaded for mortar in eachmpimortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_primary = fstar_primary_threaded[Threads.threadid()]
-        fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        fstar_primary = fstar_primary_threaded.u[Threads.threadid()]
+        fstar_secondary = fstar_secondary_threaded.u[Threads.threadid()]
+        fstar_tmp = fstar_tmp_threaded.u[Threads.threadid()]
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -465,7 +465,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
 
         # Buffer to interpolate flux values of the large element to before
         # copying in the correct orientation
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = cache.u_threaded.u[Threads.threadid()]
 
         mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations, mortar_l2, dg, cache,
