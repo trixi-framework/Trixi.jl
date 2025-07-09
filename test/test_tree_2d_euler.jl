@@ -967,6 +967,8 @@ end
     # test both short and long printing formats
     @test_nowarn show(relaxation_solver)
     println()
+    @test_nowarn println(relaxation_solver)
+    println()
     @test_nowarn display(relaxation_solver)
 end
 
