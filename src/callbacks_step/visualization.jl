@@ -57,13 +57,14 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
-    VisualizationCallback(; interval=0,
-                            solution_variables=cons2prim,
-                            variable_names=[],
-                            show_mesh=false,
-                            plot_data_creator=PlotData2D,
-                            plot_creator=show_plot,
-                            plot_arguments...)
+    VisualizationCallback(semi; 
+                          interval=0,
+                          solution_variables=cons2prim,
+                          variable_names=[],
+                          show_mesh=false,
+                          plot_data_creator=PlotData2D,
+                          plot_creator=show_plot,
+                          plot_arguments...)
 
 Create a callback that visualizes results during a simulation, also known as *in-situ
 visualization*.
@@ -77,12 +78,14 @@ same way as for the [`SaveSolutionCallback`](@ref). The variables to be actually
 selected by providing a single string or a list of strings to `variable_names`, and if `show_mesh`
 is `true`, an additional plot with the mesh will be generated.
 
-To customize the generated figure, `plot_data_creator` allows to use different plot data types. With
-`plot_creator` you can further specify an own function to visualize results, which must support the
+To customize the generated figure, `plot_data_creator` allows to use different plot data types.
+Currently provided are [`PlotData1D`](@ref) and [`PlotData2D`](@ref), while the latter is used for both 2D and 3D.
+With `plot_creator` you can further specify an own function to visualize results, which must support the
 same interface as the default implementation [`show_plot`](@ref). All remaining
 keyword arguments are collected and passed as additional arguments to the plotting command.
 """
-function VisualizationCallback(; interval = 0,
+function VisualizationCallback(semi; 
+                               interval = 0,
                                solution_variables = cons2prim,
                                variable_names = [],
                                show_mesh = false,
@@ -93,6 +96,11 @@ function VisualizationCallback(; interval = 0,
 
     if variable_names isa String
         variable_names = String[variable_names]
+    end
+
+    if ndims(semi) == 1 && plot_data_creator != PlotData1D
+        @warn "The default `PlotData2D` for is not working for 1D semidiscretizations.
+               Set `plot_data_creator = PlotData1D` instead."
     end
 
     visualization_callback = VisualizationCallback(interval,
