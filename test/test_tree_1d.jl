@@ -64,7 +64,10 @@ end
                             l2=[0.00017373554109980247],
                             linf=[0.0006021275678165239],
                             maxiters=1,
-                            initial_condition=Trixi.initial_condition_sin)
+                            initial_condition=Trixi.initial_condition_sin,
+                            callbacks=CallbackSet(summary_callback,
+                                                  analysis_callback,
+                                                  stepsize_callback))
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_constant" begin
@@ -72,7 +75,10 @@ end
                             l2=[2.441369287653687e-16],
                             linf=[4.440892098500626e-16],
                             maxiters=1,
-                            initial_condition=initial_condition_constant)
+                            initial_condition=initial_condition_constant,
+                            callbacks=CallbackSet(summary_callback,
+                                                  analysis_callback,
+                                                  stepsize_callback))
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
