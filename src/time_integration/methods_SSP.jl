@@ -116,7 +116,7 @@ end
 has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)
 first_tstop(integrator::SimpleIntegratorSSP) = first(integrator.opts.tstops)
 
-function init(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
+function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
@@ -156,7 +156,7 @@ end
 The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
 of type `SimpleAlgorithmSSP`.
 """
-function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
+function solve(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
