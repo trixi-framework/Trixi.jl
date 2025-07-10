@@ -116,14 +116,8 @@ end
 has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)
 first_tstop(integrator::SimpleIntegratorSSP) = first(integrator.opts.tstops)
 
-"""
-    solve(ode, alg; dt, callbacks, kwargs...)
-
-The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
-of type `SimpleAlgorithmSSP`.
-"""
-function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
-               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
+function init(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
+              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp = similar(u)
@@ -153,6 +147,20 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
         init_callback(stage_callback, integrator.p)
     end
 
+    return integrator
+end
+
+"""
+    solve(ode, alg; dt, callbacks, kwargs...)
+
+The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
+of type `SimpleAlgorithmSSP`.
+"""
+function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
+               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
+    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+
+    # Start actual solve
     solve!(integrator)
 end
 
@@ -277,20 +285,5 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     # new_size = n_variables * n_nodes^n_dims * n_elements
     n_elements = nelements(integrator.p.solver, integrator.p.cache)
     resize!(integrator.p, n_elements)
-end
-
-function Base.resize!(semi::AbstractSemidiscretization, new_size)
-    resize!(semi, semi.solver.volume_integral, new_size)
-end
-
-Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
-
-function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
-    # Resize container antidiffusive_fluxes
-    resize!(semi.cache.antidiffusive_fluxes, new_size)
-
-    # Resize container subcell_limiter_coefficients
-    @unpack limiter = volume_integral
-    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 end
 end # @muladd
