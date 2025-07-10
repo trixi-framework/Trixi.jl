@@ -43,7 +43,7 @@ installation and postprocessing procedures. Its features include:
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
 * Custom explicit time integration schemes
-  * Linear stability optimized methods via Paired-Explicit Runge-Kutta methods
+  * Maximized linear stability via Paired-Explicit Runge-Kutta methods
   * Relaxation Runge-Kutta methods for entropy-conservative/stable time integration
 * Native support for differentiable programming
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
