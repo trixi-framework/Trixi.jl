@@ -71,7 +71,7 @@ visualization = VisualizationCallback(semi; interval = 1, plot_data_creator = Pl
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, 
+                        save_restart,
                         save_solution, visualization,
                         stepsize_callback)
 
