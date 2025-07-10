@@ -12,10 +12,6 @@ function get_element_variables!(element_variables, u, mesh, equations,
     nothing
 end
 
-# Baseline version for `AbstractVolumeIntegral` which does nothing.
-# Specialized versions for instance for `VolumeIntegralSubcellLimiting`
-Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
-
 # Function to define "element variables" for the SaveSolutionCallback. It does
 # nothing by default, but can be specialized for certain mesh types. For instance,
 # parallel meshes output the mpi rank as an "element variable".
