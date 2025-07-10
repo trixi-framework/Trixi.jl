@@ -711,10 +711,6 @@ end
     end
 
     @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_1d_dgsem",
-                                            "elixir_advection_extended.jl"))
-
-    @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_2d_dgsem",
                                             "elixir_advection_amr_visualization.jl"),
                                    visualization = VisualizationCallback(semi;

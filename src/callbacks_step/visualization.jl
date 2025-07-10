@@ -99,8 +99,8 @@ function VisualizationCallback(semi;
     end
 
     if ndims(semi) == 1 && plot_data_creator != PlotData1D
-        @warn "The default `PlotData2D` for is not working for 1D semidiscretizations.
-               Set `plot_data_creator = PlotData1D` instead."
+        @warn "The default `PlotData2D` for is not working for 1D semidiscretizations. " *
+              "Set `plot_data_creator = PlotData1D` instead."
     end
 
     visualization_callback = VisualizationCallback(interval,
