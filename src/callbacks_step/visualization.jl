@@ -84,7 +84,7 @@ With `plot_creator` you can further specify an own function to visualize results
 same interface as the default implementation [`show_plot`](@ref). All remaining
 keyword arguments are collected and passed as additional arguments to the plotting command.
 """
-function VisualizationCallback(semi; 
+function VisualizationCallback(semi;
                                interval = 0,
                                solution_variables = cons2prim,
                                variable_names = [],
