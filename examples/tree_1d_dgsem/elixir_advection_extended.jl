@@ -66,7 +66,7 @@ save_solution = SaveSolutionCallback(interval = 100,
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Enable in-situ visualization with a new plot generated at every time step
-visualization = VisualizationCallback(semi; interval = 1, plot_data_creator = PlotData1D)
+visualization = VisualizationCallback(semi; interval = 1)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,

@@ -63,9 +63,6 @@ Base.eltype(pd::AbstractPlotData) = Pair{String, PlotDataSeries{typeof(pd)}}
 
 Holds all relevant data for creating 2D plots of multiple solution variables and to visualize the
 mesh.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <:
        AbstractPlotData{2}
@@ -123,9 +120,6 @@ end
 
 Holds all relevant data for creating 1D plots of multiple solution variables and to visualize the
 mesh.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{1}
     x::Coordinates
@@ -177,9 +171,6 @@ end
     getmesh(pd::AbstractPlotData)
 
 Extract grid lines from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 getmesh(pd::AbstractPlotData) = PlotMesh(pd)
 
@@ -206,9 +197,6 @@ When visualizing data from a three-dimensional simulation, a 2D slice is extract
 `slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 
 # Examples
 ```julia
@@ -294,9 +282,6 @@ end
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
 returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData2D(sol::TrixiODESolution; kwargs...)
     PlotData2D(sol.u[end], sol.prob.p; kwargs...)
@@ -548,9 +533,6 @@ This applies analogously to three-dimensional simulations, where `slice` may be 
 Another way to visualize 2D/3D data is by creating a plot along a given curve.
 This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
 which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData1D(u_ode, semi; kwargs...)
     PlotData1D(wrap_array_native(u_ode, semi),
@@ -761,9 +743,6 @@ end
 Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!`
 (which returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData1D(sol::TrixiODESolution; kwargs...)
     PlotData1D(sol.u[end], sol.prob.p; kwargs...)
