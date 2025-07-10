@@ -88,7 +88,10 @@ end
                             maxiters=1,
                             initial_condition=Trixi.initial_condition_linear_x,
                             boundary_conditions=Trixi.boundary_condition_linear_x,
-                            periodicity=false)
+                            periodicity=false,
+                            callbacks=CallbackSet(summary_callback,
+                                                  analysis_callback,
+                                                  stepsize_callback))
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
@@ -98,7 +101,10 @@ end
                             maxiters=1,
                             initial_condition=initial_condition_convergence_test,
                             boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
-                            periodicity=false)
+                            periodicity=false,
+                            callbacks=CallbackSet(summary_callback,
+                                                  analysis_callback,
+                                                  stepsize_callback))
     end
 end
 
