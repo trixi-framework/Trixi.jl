@@ -1002,16 +1002,16 @@ end
 @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
-                            0.026114970863760464,
-                            0.13818026366504646,
-                            0.11459980516454522,
-                            0.43782810828453017
+                            0.03341239373099515,
+                            0.026673245711492915,
+                            0.026678871434568822,
+                            0.12397486476145089
                         ],
                         linf=[
-                            0.291857647532793,
-                            1.1190399735748837,
-                            0.7978297836428636,
-                            3.8946074827244157
+                            0.3290981764688339,
+                            0.3812055782309788,
+                            0.3812041851225023,
+                            1.168251216556933
                         ],
                         periodicity=false,
                         boundary_conditions=boundary_condition_slip_wall,
