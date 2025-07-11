@@ -94,7 +94,7 @@ function VisualizationCallback(semi, plot_data_creator = nothing;
         variable_names = String[variable_names]
     end
 
-    if plot_data_creator === nothing
+    if plot_data_creator === nothing # No custom plot data type provided
         if ndims(semi) == 1
             plot_data_creator = PlotData1D
         else # 2D or 3D

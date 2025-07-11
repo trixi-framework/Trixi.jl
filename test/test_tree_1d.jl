@@ -185,7 +185,7 @@ end
                 redirect_stderr(f) do
                     trixi_include(joinpath(EXAMPLES_DIR,
                                            "elixir_advection_extended.jl"),
-                                  visualization_callback = TrivialCallback(),
+                                  visualization = TrivialCallback(),
                                   summary_callback = TrivialCallback(),
                                   analysis_callback = TrivialCallback(),
                                   alive_callback = TrivialCallback())
