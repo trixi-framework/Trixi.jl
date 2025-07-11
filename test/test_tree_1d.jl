@@ -65,7 +65,7 @@ end
                             linf=[0.0006021275678165239],
                             maxiters=1,
                             initial_condition=Trixi.initial_condition_sin,
-                            visualization = TrivialCallback())
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_constant" begin
@@ -74,7 +74,7 @@ end
                             linf=[4.440892098500626e-16],
                             maxiters=1,
                             initial_condition=initial_condition_constant,
-                            visualization = TrivialCallback())
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
@@ -85,7 +85,7 @@ end
                             initial_condition=Trixi.initial_condition_linear_x,
                             boundary_conditions=Trixi.boundary_condition_linear_x,
                             periodicity=false,
-                            visualization = TrivialCallback())
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
@@ -96,7 +96,7 @@ end
                             initial_condition=initial_condition_convergence_test,
                             boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
                             periodicity=false,
-                            visualization = TrivialCallback())
+                            visualization=TrivialCallback())
     end
 end
 
