@@ -201,6 +201,7 @@ function relaxation_solver!(integrator,
                 break
             end
 
+            # Bisect interval
             if r_gamma < 0
                 gamma_min = integrator.gamma
             else
