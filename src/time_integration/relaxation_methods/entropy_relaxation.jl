@@ -59,7 +59,7 @@ end
 @inline function entropy_difference(gamma, S_old, dS, u_gamma_dir, mesh,
                                     equations, dg::DG, cache)
     return integrate(entropy_math, u_gamma_dir, mesh, equations, dg, cache) -
-           S_old - gamma * dS
+           S_old - gamma * dS # `dS` is true entropy change computed from stages
 end
 
 """
@@ -159,7 +159,7 @@ function relaxation_solver!(integrator,
     @trixi_timeit timer() "Δη" r_1=entropy_difference(1, S_old, dS,
                                                       u_tmp_wrap, mesh,
                                                       equations, dg, cache)
-    if abs(r_1) <= root_tol
+    if abs(r_1) <= root_tol # Check if `gamma = 1` already meets root tolerance
         integrator.gamma = 1
         return nothing
     end
@@ -197,7 +197,7 @@ function relaxation_solver!(integrator,
                                                                   S_old, dS,
                                                                   u_tmp_wrap, mesh,
                                                                   equations, dg, cache)
-            if abs(r_gamma) <= root_tol
+            if abs(r_gamma) <= root_tol # Sufficiently close at root
                 break
             end
 
@@ -311,19 +311,20 @@ function relaxation_solver!(integrator,
                                                               u_tmp_wrap, mesh,
                                                               equations, dg, cache)
 
-        if abs(r_gamma) <= root_tol
+        if abs(r_gamma) <= root_tol # Sufficiently close at root
             break
         end
 
+        # Derivative of object relaxation function `r` with respect to `gamma`
         dr = integrate_w_dot_stage(dir_wrap, u_tmp_wrap, mesh, equations, dg, cache) -
              dS
 
-        step = step_scaling * r_gamma / dr
-        if abs(step) <= gamma_tol
+        step = step_scaling * r_gamma / dr # Newton-Raphson update step
+        if abs(step) <= gamma_tol # Prevent unnecessary small steps
             break
         end
 
-        integrator.gamma -= step
+        integrator.gamma -= step # Perform Newton-Raphson update
         iterations += 1
     end
 
