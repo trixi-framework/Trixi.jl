@@ -146,7 +146,7 @@ mutable struct SubDiagonalRelaxationIntegrator{RealT <: Real, uType, Params, Sol
     opts::SimpleIntegrator2NOptions
     finalstep::Bool # added for convenience
     # Addition for Relaxation methodology
-    direction::uType
+    direction::uType # RK update, i.e., sum of stages K_i times weights b_i
     gamma::RealT
     relaxation_solver::AbstractRelaxationSolver
     # Note: Could add another register which would store the summed-up 
@@ -222,6 +222,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         u_wrap = wrap_array(integrator.u, prob.p)
         u_tmp_wrap = wrap_array(integrator.u_tmp, prob.p)
+        # Entropy of previous iterate
         S_old = integrate(entropy_math, u_wrap, mesh, equations, dg, cache)
 
         # First stage

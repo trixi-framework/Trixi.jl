@@ -180,7 +180,7 @@ mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType, Params, So
     # Addition for efficient implementation
     k_prev::uType
     # Addition for Relaxation methodology
-    direction::uType
+    direction::uType # RK update, i.e., sum of stages K_i times weights b_i
     gamma::RealT
     relaxation_solver::AbstractRelaxationSolver
     # Note: Could add another register which would store the summed-up 
@@ -258,6 +258,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         mesh, equations, dg, cache = mesh_equations_solver_cache(prob.p)
 
         u_wrap = wrap_array(integrator.u, prob.p)
+        # Entropy of previous iterate
         S_old = integrate(entropy_math, u_wrap, mesh, equations, dg, cache)
 
         u_tmp_wrap = wrap_array(integrator.u_tmp, prob.p)
