@@ -121,7 +121,7 @@ end
 
 1.  Put the inner code in a new function `rhs_fct_per_element`. Besides the index
     `element`, pass all required fields as arguments, but make sure to `@unpack` them from
-    their structs in adavance.
+    their structs in advance.
 
 2.  Where `trixi_rhs_fct` is called, get the backend, i.e. the hardware we are currently
     running on via `trixi_backend(x)`.
