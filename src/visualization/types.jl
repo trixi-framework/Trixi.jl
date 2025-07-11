@@ -3,7 +3,6 @@
 # This is a union of a Trixi.jl-specific SciMLBase.ODESolution and of Trixi.jl's own
 # TimeIntegratorSolution.
 #
-# Note: This is an experimental feature and may be changed in future releases without notice.
 #! format: off
 const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, discType, P} where
     {T, N, uType, uType2, DType, tType, rateType, discType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
@@ -42,9 +41,6 @@ end
     Base.getindex(pd::AbstractPlotData, variable_name)
 
 Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function Base.getindex(pd::AbstractPlotData, variable_name)
     variable_id = findfirst(isequal(variable_name), pd.variable_names)
@@ -140,8 +136,6 @@ function Base.show(io::IO, pd::PlotData1D)
 end
 
 # Auxiliary data structure for visualizing a single variable
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 struct PlotDataSeries{PD <: AbstractPlotData}
     plot_data::PD
     variable_id::Int
