@@ -93,6 +93,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+# Ensure exact entropy conservation by employing a relaxation Runge-Kutta method
 relaxation_solver = Trixi.RelaxationSolverBisection(max_iterations = 20,
                                                     root_tol = eps(Float64),
                                                     gamma_tol = eps(Float64))

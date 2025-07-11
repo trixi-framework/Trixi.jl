@@ -234,7 +234,7 @@ s(\boldsymbol u) \coloneqq - \underbrace{\rho}_{\equiv u_1} \cdot s_\text{therm}
 ```
 The total entropy $\eta$ is then obtained by integrating the mathematical entropy $s$ over the domain $\Omega$:
 ```math
-\eta(t) \coloneqq \eta \big(\boldsymbol u(t, \boldsymbol x) \big)	= \int_{\Omega} s \big (\boldsymbol u(t, \boldsymbol x) \big ) \, \text{d} \boldsymbol x \tag{1}
+\eta(t) \coloneqq \eta \big(\boldsymbol u(t, \boldsymbol x) \big) = \int_{\Omega} s \big (\boldsymbol u(t, \boldsymbol x) \big ) \, \text{d} \boldsymbol x \tag{1}
 ```
 
 For a semidiscretized partial differential equation (PDE) of the form
