@@ -185,6 +185,8 @@ mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType, Params, So
     relaxation_solver::AbstractRelaxationSolver
     # Note: Could add another register which would store the summed-up 
     # dot products ∑ₖ (wₖ ⋅ kₖ) and then integrate only once and not per stage k
+    # Could also add option `recompute_entropy` for entropy-conservative problems
+    # to save redundant computations.
 end
 
 function init(ode::ODEProblem, alg::vanderHouwenRelaxationAlgorithm;
