@@ -532,7 +532,9 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                 0.5f0 *
                 surface_flux_function[2](u_inner, u_boundary, orientation,
                                          equations))
-        @autoinfiltrate
+        # Look into the flux flux function and if we supply correct values. They might be caused by improper 'orientation' too.
+        # Check if there are any uinitialized values. Perhaps within the flux function.
+        # Run with boundscheck on.
     else
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
     end
@@ -547,46 +549,46 @@ function allocate_coupled_boundary_condition(boundary_condition, direction, mesh
     return nothing
 end
 
-################################################################################
-### DGSEM/structured
-################################################################################
+# ################################################################################
+# ### DGSEM/structured
+# ################################################################################
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
-                                                  orientation,
-                                                  boundary_condition::BoundaryConditionCoupledP4est,
-                                                  mesh::Union{StructuredMesh,
-                                                              StructuredMeshView},
-                                                  equations,
-                                                  surface_integral, dg::DG, cache,
-                                                  direction, node_indices,
-                                                  surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
-    @unpack surface_flux = surface_integral
+# @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+#                                                   orientation,
+#                                                   boundary_condition::BoundaryConditionCoupledP4est,
+#                                                   mesh::Union{StructuredMesh,
+#                                                               StructuredMeshView},
+#                                                   equations,
+#                                                   surface_integral, dg::DG, cache,
+#                                                   direction, node_indices,
+#                                                   surface_node_indices, element)
+#     @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+#     @unpack surface_flux = surface_integral
 
-    cell_indices = get_boundary_indices(element, orientation, mesh)
+#     cell_indices = get_boundary_indices(element, orientation, mesh)
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+#     u_inner = get_node_vars(u, equations, dg, node_indices..., element)
 
-    # If the mapping is orientation-reversing, the contravariant vectors' orientation
-    # is reversed as well. The normal vector must be oriented in the direction
-    # from `left_element` to `right_element`, or the numerical flux will be computed
-    # incorrectly (downwind direction).
-    sign_jacobian = sign(inverse_jacobian[node_indices..., element])
+#     # If the mapping is orientation-reversing, the contravariant vectors' orientation
+#     # is reversed as well. The normal vector must be oriented in the direction
+#     # from `left_element` to `right_element`, or the numerical flux will be computed
+#     # incorrectly (downwind direction).
+#     sign_jacobian = sign(inverse_jacobian[node_indices..., element])
 
-    # Contravariant vector Ja^i is the normal vector
-    normal = sign_jacobian *
-             get_contravariant_vector(orientation, contravariant_vectors,
-                                      node_indices..., element)
+#     # Contravariant vector Ja^i is the normal vector
+#     normal = sign_jacobian *
+#              get_contravariant_vector(orientation, contravariant_vectors,
+#                                       node_indices..., element)
 
-    # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
-    # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
-    flux = sign_jacobian * boundary_condition(u_inner, normal, direction, cell_indices,
-                              surface_node_indices, surface_flux, equations)
+#     # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
+#     # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
+#     flux = sign_jacobian * boundary_condition(u_inner, normal, direction, cell_indices,
+#                               surface_node_indices, surface_flux, equations)
 
-    for v in eachvariable(equations)
-        surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
-    end
-end
+#     for v in eachvariable(equations)
+#         surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
+#     end
+# end
 
 function get_boundary_indices(element, orientation,
                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2}})
@@ -600,5 +602,45 @@ function get_boundary_indices(element, orientation,
     end
 
     return cell_indices
+end
+
+function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupledP4est,
+                                glm_speed_callback, dt, t)
+    @unpack glm_scale, cfl, semi_indices = glm_speed_callback
+
+    if length(semi_indices) == 0
+        throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
+    end
+
+    # Check that all MHD semidiscretizations received a GLM cleaning speed update.
+    for (semi_index, semi) in enumerate(semi_coupled.semis)
+        if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
+            !(semi_index in semi_indices))
+            error("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
+        end
+    end
+
+    if cfl isa Real # Case for constant CFL
+        cfl_number = cfl
+    else # Variable CFL
+        cfl_number = cfl(t)
+    end
+
+    for semi_index in semi_indices
+        semi = semi_coupled.semis[semi_index]
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+        # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number,
+                                                mesh, equations, solver, cache)
+
+        # c_h is proportional to its own time step divided by the complete MHD time step
+        # We use @reset here since the equations are immutable (to work on GPUs etc.).
+        # Thus, we need to modify the equations field of the semidiscretization.
+        @reset equations.c_h = glm_scale * c_h_deltat / dt
+        semi.equations = equations
+    end
+
+    return semi_coupled
 end
 end # @muladd
