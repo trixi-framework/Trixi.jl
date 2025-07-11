@@ -14,7 +14,7 @@
                               stage) do u_stage, i, element, equations, dg, stage
             w_node = cons2entropy(get_node_vars(u_stage, equations, dg,
                                                 i, element),
-                                  equations) # entropy variables
+                                  equations)
             stage_node = get_node_vars(stage, equations, dg, i, element)
             dot(w_node, stage_node)
         end
@@ -32,7 +32,7 @@ end
                               stage) do u_stage, i, j, element, equations, dg, stage
             w_node = cons2entropy(get_node_vars(u_stage, equations, dg,
                                                 i, j, element),
-                                  equations) # entropy variables
+                                  equations)
             stage_node = get_node_vars(stage, equations, dg, i, j, element)
             dot(w_node, stage_node)
         end
@@ -49,7 +49,7 @@ end
                               stage) do u_stage, i, j, k, element, equations, dg, stage
             w_node = cons2entropy(get_node_vars(u_stage, equations, dg,
                                                 i, j, k, element),
-                                  equations) # entropy variables
+                                  equations)
             stage_node = get_node_vars(stage, equations, dg, i, j, k, element)
             dot(w_node, stage_node)
         end
