@@ -27,6 +27,34 @@ isdir(outdir) && rm(outdir, recursive = true)
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+    semi32 = Trixi.trixi_adapt(Array, Float32, semi)
+    @test real(semi32.solver) == Float32
+    @test real(semi32.solver.basis) == Float32
+    @test real(semi32.solver.mortar) == Float32
+    # TODO: remake ignores the mesh itself as well
+    @test real(semi32.mesh) == Float64
+end
+
+@trixi_testset "elixir_advection_basic.jl (Float32)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
+                        # Expected errors are exactly the same as with TreeMesh!
+                        l2=[Float32(8.311947673061856e-6)],
+                        linf=[Float32(6.627000273229378e-5)],
+                        RealT=Float32,
+                        real_type=Float32)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+    @test real(ode.p.solver) == Float32
+    @test real(ode.p.solver.basis) == Float32
+    @test real(ode.p.solver.mortar) == Float32
+    # TODO: remake ignores the mesh itself as well
+    @test real(ode.p.mesh) == Float64
 end
 
 @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
