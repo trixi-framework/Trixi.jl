@@ -62,6 +62,14 @@ end
            S_old - gamma * dS # `dS` is true entropy change computed from stages
 end
 
+@inline function add_direction!(u_tmp_wrap, u_wrap, dir_wrap, gamma,
+                                dg::DG, cache)
+    @threaded for element in eachelement(dg, cache)
+        @views @. u_tmp_wrap[.., element] = u_wrap[.., element] +
+                                            gamma * dir_wrap[.., element]
+    end
+end
+
 """
     AbstractRelaxationSolver
 
@@ -91,7 +99,7 @@ with true entropy change
 \boldsymbol K_i 
 \right \rangle	
 ```
-for the relaxation parameter `` \gamma_n`` using a bisection method.
+for the relaxation parameter ``\gamma_n`` using a bisection method.
 Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonalAlgorithm`](@ref) or [`vanderHouwenRelaxationAlgorithm`].
 
 # Arguments
@@ -150,34 +158,14 @@ function relaxation_solver!(integrator,
                             S_old, dS,
                             mesh, equations, dg::DG, cache,
                             relaxation_solver::RelaxationSolverBisection)
-    @unpack root_tol = relaxation_solver
+    @unpack max_iterations, root_tol, gamma_tol, gamma_min, gamma_max = relaxation_solver
 
-    @threaded for element in eachelement(dg, cache)
-        @views @. u_tmp_wrap[.., element] = u_wrap[.., element] + # gamma = 1
-                                            dir_wrap[.., element]
-    end
-    @trixi_timeit timer() "Δη" r_1=entropy_difference(1, S_old, dS,
-                                                      u_tmp_wrap, mesh,
-                                                      equations, dg, cache)
-    if abs(r_1) <= root_tol # Check if `gamma = 1` already meets root tolerance
-        integrator.gamma = 1
-        return nothing
-    end
-
-    @unpack max_iterations, gamma_tol, gamma_min, gamma_max = relaxation_solver
-
-    @threaded for element in eachelement(dg, cache)
-        @views @. u_tmp_wrap[.., element] = u_wrap[.., element] +
-                                            gamma_max * dir_wrap[.., element]
-    end
+    add_direction!(u_tmp_wrap, u_wrap, dir_wrap, gamma_max, dg, cache)
     @trixi_timeit timer() "Δη" r_max=entropy_difference(gamma_max, S_old, dS,
                                                         u_tmp_wrap, mesh,
                                                         equations, dg, cache)
 
-    @threaded for element in eachelement(dg, cache)
-        @views @. u_tmp_wrap[.., element] = u_wrap[.., element] +
-                                            gamma_min * dir_wrap[.., element]
-    end
+    add_direction!(u_tmp_wrap, u_wrap, dir_wrap, gamma_min, dg, cache)
     @trixi_timeit timer() "Δη" r_min=entropy_difference(gamma_min, S_old, dS,
                                                         u_tmp_wrap, mesh,
                                                         equations, dg, cache)
@@ -188,11 +176,7 @@ function relaxation_solver!(integrator,
         while gamma_max - gamma_min > gamma_tol && iterations < max_iterations
             integrator.gamma = (gamma_max + gamma_min) / 2
 
-            @threaded for element in eachelement(dg, cache)
-                @views @. u_tmp_wrap[.., element] = u_wrap[.., element] +
-                                                    integrator.gamma *
-                                                    dir_wrap[.., element]
-            end
+            add_direction!(u_tmp_wrap, u_wrap, dir_wrap, integrator.gamma, dg, cache)
             @trixi_timeit timer() "Δη" r_gamma=entropy_difference(integrator.gamma,
                                                                   S_old, dS,
                                                                   u_tmp_wrap, mesh,
@@ -235,7 +219,8 @@ with true entropy change
 \boldsymbol K_i 
 \right \rangle	
 ```
-for the relaxation parameter `` \gamma_n`` using a bisection method.
+for the relaxation parameter ``\gamma_n`` using Newton's method.
+The derivative of the relaxation function is known and can be directly computed.
 Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonalAlgorithm`](@ref) or [`vanderHouwenRelaxationAlgorithm`].
 
 # Arguments
@@ -302,11 +287,7 @@ function relaxation_solver!(integrator,
 
     iterations = 0
     while iterations < max_iterations
-        @threaded for element in eachelement(dg, cache)
-            @views @. u_tmp_wrap[.., element] = u_wrap[.., element] +
-                                                integrator.gamma *
-                                                dir_wrap[.., element]
-        end
+        add_direction!(u_tmp_wrap, u_wrap, dir_wrap, integrator.gamma, dg, cache)
         @trixi_timeit timer() "Δη" r_gamma=entropy_difference(integrator.gamma,
                                                               S_old, dS,
                                                               u_tmp_wrap, mesh,

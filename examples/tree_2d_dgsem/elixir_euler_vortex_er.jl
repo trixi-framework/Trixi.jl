@@ -95,9 +95,10 @@ callbacks = CallbackSet(summary_callback,
 
 # Ensure exact entropy conservation by employing a relaxation Runge-Kutta method
 relaxation_solver = Trixi.RelaxationSolverBisection(max_iterations = 20,
+                                                    gamma_min = 0.95, gamma_max = 1.05,
                                                     root_tol = eps(Float64),
                                                     gamma_tol = eps(Float64))
-ode_alg = Trixi.RelaxationCKL43(relaxation_solver = relaxation_solver)
+ode_alg = Trixi.RelaxationRK33(relaxation_solver = relaxation_solver)
 
 sol = Trixi.solve(ode, ode_alg,
                   dt = 42.0, save_everystep = false, callback = callbacks);

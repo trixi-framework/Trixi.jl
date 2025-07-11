@@ -942,16 +942,16 @@ end
 @trixi_testset "elixir_euler_vortex_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
                         l2=[
-                            0.02611496923463018,
-                            0.13818025954635707,
-                            0.1145998003738507,
-                            0.43782807412514374
+                            0.026114970863760863,
+                            0.13818026366504743,
+                            0.11459980516454676,
+                            0.43782810828453217
                         ],
                         linf=[
-                            0.2918576463853375,
-                            1.1190399077794473,
-                            0.7978297239645427,
-                            3.8946074175428738
+                            0.29185764753284327,
+                            1.1190399735747936,
+                            0.7978297836428783,
+                            3.894607482724812
                         ])
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
@@ -975,17 +975,17 @@ end
 @trixi_testset "elixir_euler_vortex_er.jl (R-RK33)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
                         ode_alg=Trixi.RelaxationRK33(relaxation_solver = relaxation_solver),
-                        [
-                            0.025995019899574135,
-                            0.13819344495634148,
-                            0.11469504942586545,
-                            0.4359454100477519
+                        l2=[
+                            0.025995020930689842,
+                            0.13819344892870639,
+                            0.11469505305717383,
+                            0.4359454337643767
                         ],
                         linf=[
-                            0.29437520073939794,
-                            1.1173671735186181,
-                            0.7947503781263374,
-                            3.826840709109897
+                            0.2943752117960875,
+                            1.117367261310035,
+                            0.7947504441122044,
+                            3.8268407898978882
                         ])
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
