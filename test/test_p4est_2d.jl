@@ -362,6 +362,14 @@ end
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
+
+    # Test `resize!`
+    ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks)
+    integrator = Trixi.init(ode, ode_alg, dt = 42.0, callback = callbacks)
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
 end
 
 @trixi_testset "elixir_euler_sedov.jl with HLLC Flux" begin

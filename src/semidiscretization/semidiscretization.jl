@@ -160,6 +160,11 @@ function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
     compute_coefficients!(u, func, t, mesh_equations_solver_cache(semi)...)
 end
 
+# Required for `VolumeIntegralSubcellLimiting` volume integral
+function Base.resize!(semi::AbstractSemidiscretization, new_size)
+    resize!(semi, semi.solver.volume_integral, new_size)
+end
+
 """
     linear_structure(semi::AbstractSemidiscretization;
                      t0=zero(real(semi)))
