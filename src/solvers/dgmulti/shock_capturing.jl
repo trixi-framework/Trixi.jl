@@ -85,8 +85,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         # Here, we reshape modal coefficients to expose the tensor product structure.
         to_N_minus_one = Base.OneTo(dg.basis.N - 1)
         to_N = Base.OneTo(dg.basis.N)
-        to_N_plus_one = Base.OneTo(dg.basis.N + 1)
-        modal = Base.ReshapedArray(modal_, ntuple(Returns(to_N_plus_one), NDIMS), ())
+        modal = Base.ReshapedArray(modal_, ntuple(Returns(dg.basis.N + 1), NDIMS), ())
 
         # Calculate total energies for all modes, all modes minus the highest mode, and
         # all modes without the two highest modes
