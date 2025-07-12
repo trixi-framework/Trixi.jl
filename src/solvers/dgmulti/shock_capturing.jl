@@ -83,16 +83,20 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         # Thus, Base.ReshapedArray should be used if you are setting values in the array.
         # `reshape` is fine if you are only accessing values.
         # Here, we reshape modal coefficients to expose the tensor product structure.
-        modal = Base.ReshapedArray(modal_, ntuple(_ -> dg.basis.N + 1, NDIMS), ())
+        to_N_minus_one = Base.OneTo(dg.basis.N - 1)
+        to_N = Base.OneTo(dg.basis.N)
+        to_N_plus_one = Base.OneTo(dg.basis.N + 1)
+        modal = Base.ReshapedArray(modal_, ntuple(Returns(to_N_plus_one), NDIMS), ())
 
         # Calculate total energies for all modes, all modes minus the highest mode, and
         # all modes without the two highest modes
-        total_energy = sum(x -> x^2, modal)
-        clip_1_ranges = ntuple(_ -> Base.OneTo(dg.basis.N), NDIMS)
-        clip_2_ranges = ntuple(_ -> Base.OneTo(dg.basis.N - 1), NDIMS)
+        square = x -> x^2
+        total_energy = sum(square, modal)
+        clip_1_ranges = ntuple(Returns(to_N), NDIMS)
+        clip_2_ranges = ntuple(Returns(to_N_minus_one), NDIMS)
         # These splattings do not seem to allocate as of Julia 1.9.0?
-        total_energy_clip1 = sum(x -> x^2, view(modal, clip_1_ranges...))
-        total_energy_clip2 = sum(x -> x^2, view(modal, clip_2_ranges...))
+        total_energy_clip1 = sum(square, view(modal, clip_1_ranges...))
+        total_energy_clip2 = sum(square, view(modal, clip_2_ranges...))
 
         # Calculate energy in higher modes
         if !(iszero(total_energy))
