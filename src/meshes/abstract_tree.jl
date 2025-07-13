@@ -171,7 +171,16 @@ leaf_cells_by_rank(t::AbstractTree, rank) = leaf_cells(t)
 local_leaf_cells(t::AbstractTree) = leaf_cells(t)
 
 # Count the number of leaf cells.
-count_leaf_cells(t::AbstractTree) = length(leaf_cells(t))
+function count_leaf_cells(t::AbstractTree)
+    count = 0
+    for cell_id in 1:length(t)
+        if is_leaf(t, cell_id)
+            count += 1
+        end
+    end
+
+    return count
+end
 
 @inline function cell_coordinates(t::AbstractTree{NDIMS}, cell) where {NDIMS}
     SVector(ntuple(d -> t.coordinates[d, cell], Val(NDIMS)))

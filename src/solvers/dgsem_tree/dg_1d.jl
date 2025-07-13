@@ -13,20 +13,24 @@
 # the RHS etc.
 function create_cache(mesh::TreeMesh{1}, equations,
                       dg::DG, RealT, uEltype)
+    # Determine the size of full solution vectors to obtain the default AD types
+    # used by ForwardDiff.jl to create compatible caches as `DiffCache`.
+    N = ncells(mesh) * nnodes(dg)^ndims(mesh) * nvariables(equations)
+
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
+    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype, N)
 
-    interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
+    interfaces = init_interfaces(leaf_cell_ids, mesh, elements, N)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, N)
 
     cache = (; elements, interfaces, boundaries)
 
     # Add specialized parts of the cache required to compute the volume integral etc.
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, uEltype, N)...)
 
     return cache
 end
@@ -34,33 +38,33 @@ end
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+                      volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype, N)
     NamedTuple()
 end
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
+                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype, N)
     cache = create_cache(mesh, equations,
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
                          dg, uEltype)
 
     A2dp1_x = Array{uEltype, 2}
-    fstar1_L_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
-                                for _ in 1:Threads.nthreads()]
-    fstar1_R_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
-                                for _ in 1:Threads.nthreads()]
+    fstar1_L_threaded = [DiffCache(A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1), N)
+                         for _ in 1:Threads.nthreads()]
+    fstar1_R_threaded = [DiffCache(A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1), N)
+                         for _ in 1:Threads.nthreads()]
 
     return (; cache..., fstar1_L_threaded, fstar1_R_threaded)
 end
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
-                      uEltype)
+                      uEltype, N)
     A2dp1_x = Array{uEltype, 2}
-    fstar1_L_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
-                                for _ in 1:Threads.nthreads()]
-    fstar1_R_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
-                                for _ in 1:Threads.nthreads()]
+    fstar1_L_threaded = [DiffCache(A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1), N)
+                         for _ in 1:Threads.nthreads()]
+    fstar1_R_threaded = [DiffCache(A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1), N)
+                         for _ in 1:Threads.nthreads()]
 
     return (; fstar1_L_threaded, fstar1_R_threaded)
 end
@@ -307,8 +311,8 @@ end
     @unpack inverse_weights = dg.basis
 
     # Calculate FV two-point fluxes
-    fstar1_L = fstar1_L_threaded[Threads.threadid()]
-    fstar1_R = fstar1_R_threaded[Threads.threadid()]
+    fstar1_L = get_tmp(fstar1_L_threaded[Threads.threadid()], u)
+    fstar1_R = get_tmp(fstar1_R_threaded[Threads.threadid()], u)
     calcflux_fv!(fstar1_L, fstar1_R, u, mesh, nonconservative_terms, equations,
                  volume_flux_fv,
                  dg, element, cache)
@@ -381,7 +385,7 @@ end
 function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations, dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
-    interfaces_u = interfaces.u
+    interfaces_u = get_temp(interfaces.u, u)
 
     @threaded for interface in eachinterface(dg, cache)
         left_element = neighbor_ids[1, interface]
@@ -402,7 +406,8 @@ function calc_interface_flux!(surface_flux_values,
                               nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
-    @unpack u, neighbor_ids, orientations = cache.interfaces
+    @unpack neighbor_ids, orientations = cache.interfaces
+    u = get_tmp(cache.interfaces.u, surface_flux_values)
 
     @threaded for interface in eachinterface(dg, cache)
         # Get neighboring elements
@@ -431,7 +436,8 @@ function calc_interface_flux!(surface_flux_values,
                               nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
-    @unpack u, neighbor_ids, orientations = cache.interfaces
+    @unpack neighbor_ids, orientations = cache.interfaces
+    u = get_tmp(cache.interfaces.u, surface_flux_values)
 
     @threaded for interface in eachinterface(dg, cache)
         # Get neighboring elements
@@ -525,7 +531,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
     @unpack surface_flux = surface_integral
-    @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    @unpack neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    u = get_tmp(cache.boundaries.u, surface_flux_values)
 
     @threaded for boundary in first_boundary:last_boundary
         # Get neighboring element
@@ -557,7 +564,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                           nonconservative_terms::True, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
-    @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    @unpack neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    u = get_tmp(cache.boundaries.u, surface_flux_values)
 
     @threaded for boundary in first_boundary:last_boundary
         # Get neighboring element
@@ -590,7 +598,7 @@ end
 function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral, dg::DGSEM, cache)
     @unpack boundary_interpolation = dg.basis
-    @unpack surface_flux_values = cache.elements
+    surface_flux_values = get_tmp(cache.elements.surface_flux_values, u)
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # Access the factors only once before beginning the loop to increase performance.

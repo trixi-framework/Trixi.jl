@@ -220,7 +220,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "length" => mesh.tree.length_level_0,
             "periodicity" => mesh.tree.periodicity,
             "current #cells" => mesh.tree.length,
-            "#leaf-cells" => count_leaf_cells(mesh.tree),
+            "#leaf-cells" => ncells(mesh),
             "maximum #cells" => mesh.tree.capacity
         ]
         summary_box(io, "TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}",
@@ -229,6 +229,7 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 @inline Base.ndims(mesh::TreeMesh) = ndims(mesh.tree)
+@inline ncells(mesh::TreeMesh) = count_leaf_cells(mesh.tree)
 
 # Obtain the mesh filename from a restart file
 function get_restart_mesh_filename(restart_filename, mpi_parallel::False)

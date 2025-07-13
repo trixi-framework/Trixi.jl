@@ -57,6 +57,7 @@ using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
+using PreallocationTools: PreallocationTools, DiffCache, get_tmp
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION

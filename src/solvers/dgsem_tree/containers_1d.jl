@@ -6,6 +6,11 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements
+# TODO: We now have to update the containers here. Thus, all fields should be
+#       wrapped in a `DiffCache`. However, this also means that the optimizations
+#       like using `_node_coordinates` and `_surface_flux_values` will make this
+#       more ugly - and we may need to use internals of PreallocationTools.jl
+#       for this.
 mutable struct ElementContainer1D{RealT <: Real, uEltype <: Real} <: AbstractContainer
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 3}      # [orientation, i, elements]
@@ -77,7 +82,7 @@ end
     eachelement(elements::ElementContainer1D)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the elements in `elements`. 
+for the elements in `elements`.
 In particular, not the elements themselves are returned.
 """
 @inline eachelement(elements::ElementContainer1D) = Base.OneTo(nelements(elements))
