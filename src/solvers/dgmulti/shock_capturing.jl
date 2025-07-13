@@ -89,8 +89,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
 
         # Calculate total energies for all modes, all modes minus the highest mode, and
         # all modes without the two highest modes
-        square = x -> x^2
-        total_energy = sum(square, modal)
+        total_energy = sum(abs2, modal)
         clip_1_ranges = ntuple(Returns(to_N), NDIMS)
         clip_2_ranges = ntuple(Returns(to_N_minus_one), NDIMS)
         # These splattings do not seem to allocate as of Julia 1.9.0?
