@@ -17,7 +17,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                  "elixir_advection_diffusion.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
                         l2=[8.40483031802723e-6],
-                        linf=[2.8990878868540015e-5])
+                        linf=[2.899087786395471e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -62,7 +62,7 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_restart.jl"),
                         l2=[1.0679933947301556e-5],
-                        linf=[3.910500545667439e-5])
+                        linf=[3.910500469289646e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -165,9 +165,9 @@ end
                             0.001496626616191212
                         ],
                         linf=[
-                            0.0029963751636357117,
-                            0.0028639041695096433,
-                            0.012691132694550689
+                            0.0029963750445691772,
+                            0.002863904416491592,
+                            0.01269113341266781
                         ],
                         atol=1e-10)
     # Ensure that we do not have excessive memory allocations
@@ -216,13 +216,13 @@ end
                                                                                 Prandtl = prandtl_number()),
                         l2=[
                             2.5278845598681636e-5,
-                            2.5540145802666872e-5,
-                            0.0001211867535580826
+                            2.5538884774356816e-5,
+                            0.00012118293863523099
                         ],
                         linf=[
                             0.0001466387202588848,
-                            0.00019422419092429135,
-                            0.0009556449835592673
+                            0.0001942257659360519,
+                            0.0009556393581480194
                         ],
                         atol=1e-9)
     # Ensure that we do not have excessive memory allocations
@@ -250,7 +250,7 @@ end
                         linf=[
                             0.00011850494672183132,
                             0.00018987676556476442,
-                            0.0009597423024825247
+                            0.0009597509690966177
                         ],
                         atol=1e-9)
     # Ensure that we do not have excessive memory allocations

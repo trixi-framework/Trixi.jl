@@ -6,13 +6,27 @@ using Trixi
 
 equations = CompressibleEulerEquations1D(1.4)
 
+# Specify the initial condition as a discontinuous initial condition (see docstring of 
+# `DiscontinuousFunction` for more information) which comes with a specialized 
+# initialization routine suited for Riemann problems.
+# In short, if a discontinuity is right at an interface, the boundary nodes (which are at the same location)
+# on that interface will be initialized with the left and right state of the discontinuity, i.e., 
+#                         { u_1, if element = left element and x_{element}^{(n)} = x_jump
+# u(x_jump, t, element) = {
+#                         { u_2, if element = right element and x_{element}^{(1)} = x_jump
+# This is realized by shifting the outer DG nodes inwards, i.e., on reference element
+# the outer nodes at `[-1, 1]` are shifted inwards to `[-1 + ε, 1 - ε]` with machine precision `ε`.
+struct InitialConditionSedovBlastWave <: DiscontinuousFunction end
+
 """
-    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
+    (initial_condition_sedov_blast_wave::InitialConditionSedovBlastWave)(x, t, 
+                                                                         equations::CompressibleEulerEquations1D)
 
 The Sedov blast wave setup based on Flash
 - https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
 """
-function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
+function (initial_condition_sedov_blast_wave::InitialConditionSedovBlastWave)(x, t,
+                                                                              equations::CompressibleEulerEquations1D)
     # Set up polar coordinates
     RealT = eltype(x)
     inicenter = SVector(0)
@@ -34,7 +48,9 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
 
     return prim2cons(SVector(rho, v1, p), equations)
 end
-initial_condition = initial_condition_sedov_blast_wave
+# Note calling the constructor of the struct: `InitialConditionSedovBlastWave()` instead of
+# `initial_condition_sedov_blast_wave` !
+initial_condition = InitialConditionSedovBlastWave()
 
 surface_flux = flux_hllc
 basis = LobattoLegendreBasis(3)

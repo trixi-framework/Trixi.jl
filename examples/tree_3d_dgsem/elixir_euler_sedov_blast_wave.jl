@@ -6,8 +6,20 @@ using Trixi
 
 equations = CompressibleEulerEquations3D(1.4)
 
+# Specify the initial condition as a discontinuous initial condition (see docstring of 
+# `DiscontinuousFunction` for more information) which comes with a specialized 
+# initialization routine suited for the Riemann problems.
+# In short, if a discontinuity is right at an interface, the boundary nodes (which are at the same location)
+# on that interface will be initialized with the left and right state of the discontinuity, i.e., 
+#                         { u_1, if element = left element and x_{element}^{(n)} = x_jump
+# u(x_jump, t, element) = {
+#                         { u_2, if element = right element and x_{element}^{(1)} = x_jump
+# This is realized by shifting the outer DG nodes inwards, i.e., on reference element
+# the outer nodes are at `[-1, 1]` are shifted to `[-1 + ε, 1 - ε]` with machine precision `ε`.
+struct InitialConditionSedovSelfGravity <: DiscontinuousFunction end
+
 """
-    initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations3D)
+    (initial_condition_sedov_self_gravity::InitialConditionSedovSelfGravity)(x, t, equations::CompressibleEulerEquations3D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
@@ -17,7 +29,8 @@ based on
 - https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
 Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
 """
-function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations3D)
+function (initial_condition_sedov_self_gravity::InitialConditionSedovSelfGravity)(x, t,
+                                                                                  equations::CompressibleEulerEquations3D)
     # Calculate radius as distance from origin
     r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
 
@@ -47,7 +60,9 @@ function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEuler
 
     return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
-initial_condition = initial_condition_sedov_self_gravity
+# Note calling the constructor of the struct: `InitialConditionSedovSelfGravity()` instead of 
+# `initial_condition_sedov_self_gravity` !
+initial_condition = InitialConditionSedovSelfGravity()
 
 """
     boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
