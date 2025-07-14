@@ -397,46 +397,46 @@ function unsafe_wrap_or_alloc(to, vector, size)
     end
 end
 
-struct TrixiAdaptor{Storage, Real} end
+struct TrixiAdaptor{Storage, RealT} end
 
 """
-    trixi_adapt(storage, real, x)
+    trixi_adapt(Storage, RealT, x)
 
-Adapt `x` to the storage type `Storage` and real type `Real`.
+Adapt `x` to the storage type `Storage` and real type `RealT`.
 """
-function trixi_adapt(storage, real, x)
-    adapt(TrixiAdaptor{storage, real}(), x)
+function trixi_adapt(Storage, RealT, x)
+    adapt(TrixiAdaptor{Storage, RealT}(), x)
 end
 
 # Custom rules
 # 1. handling of StaticArrays
-function Adapt.adapt_storage(::TrixiAdaptor{<:Any, Real},
-                             x::StaticArrays.StaticArray{S, T, N}) where {Real, S, T, N}
-    StaticArrays.similar_type(x, Real)(x)
+function Adapt.adapt_storage(::TrixiAdaptor{<:Any, RealT},
+                             x::StaticArrays.StaticArray) where {RealT}
+    StaticArrays.similar_type(x, RealT)(x)
 end
 
 # 2. Handling of Arrays
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
-                             x::AbstractArray{T}) where {Storage, Real,
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
+                             x::AbstractArray{T}) where {Storage, RealT,
                                                          T <: AbstractFloat}
-    adapt(Storage{Real}, x)
+    adapt(Storage{RealT}, x)
 end
 
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
-                             x::AbstractArray{T}) where {Storage, Real,
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
+                             x::AbstractArray{T}) where {Storage, RealT,
                                                          T <: StaticArrays.StaticArray}
-    adapt(Storage{StaticArrays.similar_type(T, Real)}, x)
+    adapt(Storage{StaticArrays.similar_type(T, RealT)}, x)
 end
 
 # Our threaded cache contains MArray, it is unlikely that we would want to adapt those
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
-                             x::Array{T}) where {Storage, Real,
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
+                             x::Array{T}) where {Storage, RealT,
                                                  T <: StaticArrays.MArray}
-    adapt(Array{StaticArrays.similar_type(T, Real)}, x)
+    adapt(Array{StaticArrays.similar_type(T, RealT)}, x)
 end
 
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
-                             x::AbstractArray) where {Storage, Real}
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
+                             x::AbstractArray) where {Storage, RealT}
     adapt(Storage, x)
 end
 
