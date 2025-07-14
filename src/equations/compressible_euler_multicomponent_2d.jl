@@ -878,8 +878,8 @@ end
 @inline function vorticity(u, gradients,
                            equations::CompressibleEulerMulticomponentEquations2D)
     # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
-    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
-    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+    dv1dx, dv2dx = gradients[1][1:2]
+    dv1dy, dv2dy = gradients[2][1:2]
 
     return dv2dx - dv1dy
 end

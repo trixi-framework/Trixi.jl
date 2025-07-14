@@ -260,15 +260,13 @@ function integrate(func::Func, u,
     if (m[1].nargs == 4) && (func != cons2cons)
         gradients_x = DGSpaceDerivative_WeakForm!(dg, cache, u, 1, equations)
         gradients_y = DGSpaceDerivative_WeakForm!(dg, cache, u, 2, equations)
-        gradients = Vector([gradients_x, gradients_y])
-        @autoinfiltrate
         return integrate_via_indices(u, mesh, equations, dg, cache;
                                      normalize = normalize) do u, i, j, element,
                                                                equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
+            gradients_local = Vector([gradients_x[:, i, j, element], gradients_y[:, i, j, element]])
 
-            func(u_local, gradients, equations)
-            return 0.0
+            func(u_local, gradients_local, equations)
         end
     end
 end
