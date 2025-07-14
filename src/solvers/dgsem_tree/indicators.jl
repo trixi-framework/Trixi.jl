@@ -266,8 +266,10 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 """
-    IndicatorClamp(equations::AbstractEquations, basis; min=0.0, max=1.0, variable)
-    IndicatorClamp(semi::AbstractSemidiscretization; min=0.0, max=1.0, variable)
+    IndicatorClamp(equations::AbstractEquations, basis;
+                   min=0.0, max=1.0, variable)
+    IndicatorClamp(semi::AbstractSemidiscretization;
+                   min=0.0, max=1.0, variable)
 
 A simple indicator returning 1.0 when the element average of `variable` lies within [min,max].
 Returns -1.0 otherwise.
@@ -279,15 +281,15 @@ struct IndicatorClamp{RealT <: Real, Variable, Cache <: NamedTuple} <: AbstractI
     cache::Cache
 end
 
-function IndicatorClamp(equations::AbstractEquations, basis; min = 0.0, max = 1.0,
-                        variable)
+function IndicatorClamp(equations::AbstractEquations, basis;
+                        min = 0.0, max = 1.0, variable)
     cache = create_cache(IndicatorClamp, equations, basis)
     IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max, variable,
                                                                  cache)
 end
 
-function IndicatorClamp(semi::AbstractSemidiscretization; min = 0.0, max = 1.0,
-                        variable)
+function IndicatorClamp(semi::AbstractSemidiscretization; 
+                        min = 0.0, max = 1.0, variable)
     cache = create_cache(IndicatorClamp, semi)
     return IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max,
                                                                         variable, cache)

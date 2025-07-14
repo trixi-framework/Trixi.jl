@@ -257,12 +257,14 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
     return alpha
 end
 
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{3},
                       basis::LobattoLegendreBasis)
     alpha = Vector{real(basis)}()
     return (; alpha, basis.weights)
 end
 
+# this method is used when the indicator is constructed as for AMR
 function create_cache(type::Type{IndicatorClamp}, mesh, equations::AbstractEquations{3},
                       dg::DGSEM, cache)
     cache = create_cache(type, equations, dg.basis)
