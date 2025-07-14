@@ -872,7 +872,7 @@ end
 
     omega = vorticity(u, gradients, equations)
 
-    return 0.5f0 * u[1] * omega^2
+    return 0.5f0 * omega^2
 end
 
 @inline function vorticity(u, gradients,
