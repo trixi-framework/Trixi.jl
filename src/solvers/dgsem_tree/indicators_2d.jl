@@ -255,8 +255,8 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 4},
 
         for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
-            mean += indicator_clamp.variable(u_local, equations) * weights[i] *
-                    weights[j]
+            mean += indicator_clamp.variable(u_local, equations) *
+                    weights[i] * weights[j]
         end
         mean *= 0.25 # Divide by reference element area
 

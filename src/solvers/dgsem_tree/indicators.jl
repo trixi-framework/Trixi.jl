@@ -284,11 +284,11 @@ end
 function IndicatorClamp(equations::AbstractEquations, basis;
                         min = 0.0, max = 1.0, variable)
     cache = create_cache(IndicatorClamp, equations, basis)
-    IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max, variable,
-                                                                 cache)
+    IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max,
+                                                                 variable, cache)
 end
 
-function IndicatorClamp(semi::AbstractSemidiscretization; 
+function IndicatorClamp(semi::AbstractSemidiscretization;
                         min = 0.0, max = 1.0, variable)
     cache = create_cache(IndicatorClamp, semi)
     return IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max,
@@ -299,8 +299,8 @@ function Base.show(io::IO, indicator::IndicatorClamp)
     @nospecialize indicator # reduce precompilation time
 
     print(io, "IndicatorClamp(")
-    print(io, "min=", indicator.min, ", max=", indicator.max, ", variable=",
-          indicator.variable, ")")
+    print(io, "min=", indicator.min, ", max=", indicator.max,
+          ", variable=", indicator.variable, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorClamp)
