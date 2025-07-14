@@ -68,7 +68,7 @@ Source terms used for convergence tests in combination with
     return SVector(du)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::TrafficFlowLWREquations1D)
     return SVector(equations.v_max * u[1] * (1 - u[1]))
 end

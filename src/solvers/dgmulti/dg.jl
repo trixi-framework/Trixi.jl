@@ -42,6 +42,8 @@ end
     end
 end
 
+@inline nelements(dg::DGMulti, cache) = size(cache.u_values)[end]
+
 """
     eachdim(mesh)
 
@@ -282,9 +284,8 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 # interpolates from solution coefficients to face quadrature points
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
-                             surface_integral, dg::DGMulti)
+function prolong2interfaces!(cache, u,
+                             mesh::DGMultiMesh, equations, dg::DGMulti)
     rd = dg.basis
     @unpack u_face_values = cache
     apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
@@ -430,9 +431,8 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
 end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations, surface_integral,
-                             dg::DGMultiSBP)
+function prolong2interfaces!(cache, u,
+                             mesh::DGMultiMesh, equations, dg::DGMultiSBP)
     rd = dg.basis
     @unpack Fmask = rd
     @unpack u_face_values = cache
@@ -645,7 +645,7 @@ function rhs!(du, u, t, mesh, equations,
     end
 
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     @trixi_timeit timer() "interface flux" begin
