@@ -5,13 +5,13 @@
 @muladd begin
 #! format: noindent
 
-mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataCreator,
+mutable struct VisualizationCallback{PlotDataCreator, SolutionVariables, VariableNames,
                                      PlotCreator}
+    plot_data_creator::PlotDataCreator
     interval::Int
     solution_variables::SolutionVariables
     variable_names::VariableNames
     show_mesh::Bool
-    plot_data_creator::PlotDataCreator
     plot_creator::PlotCreator
     plot_arguments::Dict{Symbol, Any}
 end
@@ -22,13 +22,13 @@ function Base.show(io::IO,
                                                                     VisualizationCallback
                                                                     }
     visualization_callback = cb.affect!
-    @unpack interval, plot_arguments, solution_variables, variable_names, show_mesh, plot_creator, plot_data_creator = visualization_callback
+    @unpack plot_data_creator, interval, plot_arguments, solution_variables, variable_names, show_mesh, plot_creator = visualization_callback
     print(io, "VisualizationCallback(",
+          "plot_data_creator=", plot_data_creator, ", ",
           "interval=", interval, ", ",
           "solution_variables=", solution_variables, ", ",
           "variable_names=", variable_names, ", ",
           "show_mesh=", show_mesh, ", ",
-          "plot_data_creator=", plot_data_creator, ", ",
           "plot_creator=", plot_creator, ", ",
           "plot_arguments=", plot_arguments, ")")
 end
@@ -44,13 +44,13 @@ function Base.show(io::IO, ::MIME"text/plain",
         visualization_callback = cb.affect!
 
         setup = [
+            "plot data creator" => visualization_callback.plot_data_creator,
             "interval" => visualization_callback.interval,
             "plot arguments" => visualization_callback.plot_arguments,
             "solution variables" => visualization_callback.solution_variables,
             "variable names" => visualization_callback.variable_names,
             "show mesh" => visualization_callback.show_mesh,
-            "plot creator" => visualization_callback.plot_creator,
-            "plot data creator" => visualization_callback.plot_data_creator
+            "plot creator" => visualization_callback.plot_creator
         ]
         summary_box(io, "VisualizationCallback", setup)
     end
@@ -81,7 +81,7 @@ With `plot_creator` you can further specify an own function to visualize results
 same interface as the default implementation [`show_plot`](@ref). All remaining
 keyword arguments are collected and passed as additional arguments to the plotting command.
 """
-function VisualizationCallback(semi, plot_data_creator = nothing;
+function VisualizationCallback(semi, plot_data_creator;
                                interval = 0,
                                solution_variables = cons2prim,
                                variable_names = [],
@@ -102,10 +102,11 @@ function VisualizationCallback(semi, plot_data_creator = nothing;
         end
     end
 
-    visualization_callback = VisualizationCallback(interval,
+    visualization_callback = VisualizationCallback(plot_data_creator,
+                                                   interval,
                                                    solution_variables, variable_names,
                                                    show_mesh,
-                                                   plot_data_creator, plot_creator,
+                                                   plot_creator,
                                                    Dict{Symbol, Any}(plot_arguments))
 
     # Warn users if they create a visualization callback without having loaded the Plots package
@@ -152,7 +153,7 @@ end
 function (visualization_callback::VisualizationCallback)(integrator)
     u_ode = integrator.u
     semi = integrator.p
-    @unpack plot_arguments, solution_variables, variable_names, show_mesh, plot_data_creator, plot_creator = visualization_callback
+    @unpack plot_data_creator, plot_arguments, solution_variables, variable_names, show_mesh, plot_creator = visualization_callback
 
     # Extract plot data
     plot_data = plot_data_creator(u_ode, semi, solution_variables = solution_variables)
