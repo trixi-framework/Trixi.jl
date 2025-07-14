@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -89,13 +88,14 @@ rho_inf = 1.4
 u_inf = 0.38
 l_inf = 1.0 # Diameter of circle
 
-drag_coefficient = AnalysisSurfaceIntegral((:x_neg,),
-                                           DragCoefficientPressure(aoa, rho_inf, u_inf,
-                                                                   l_inf))
+force_boundary_symbol = (:x_neg,)
+drag_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
+                                           DragCoefficientPressure2D(aoa, rho_inf, u_inf,
+                                                                     l_inf))
 
-lift_coefficient = AnalysisSurfaceIntegral((:x_neg,),
-                                           LiftCoefficientPressure(aoa, rho_inf, u_inf,
-                                                                   l_inf))
+lift_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
+                                           LiftCoefficientPressure2D(aoa, rho_inf, u_inf,
+                                                                     l_inf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -119,7 +119,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 sol = solve(ode,
             CarpenterKennedy2N54(williamson_condition = false;
-                                 thread = OrdinaryDiffEq.True()),
+                                 thread = Trixi.True());
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

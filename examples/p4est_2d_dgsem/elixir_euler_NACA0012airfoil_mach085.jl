@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -14,8 +13,10 @@ aoa() = pi / 180.0 # 1 Degree angle of attack
 c_inf(equations) = sqrt(equations.gamma * p_inf() / rho_inf())
 u_inf(equations) = mach_inf() * c_inf(equations)
 
-@inline function initial_condition_mach085_flow(x, t,
-                                                equations::CompressibleEulerEquations2D)
+# Leave `equations` unspecified here to enable usage of `BoundaryConditionDirichlet(initial_condition)`
+# in the "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" which includes this elixir to
+# demonstrate restarting/initializing a hyperbolic-parabolic simulation from a purely hyperbolic simulation.
+@inline function initial_condition_mach085_flow(x, t, equations)
     v1 = u_inf(equations) * cos(aoa())
     v2 = u_inf(equations) * sin(aoa())
 
@@ -86,12 +87,14 @@ l_inf = 1.0 # Length of airfoil
 
 force_boundary_names = (:AirfoilBottom, :AirfoilTop)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
-                                           DragCoefficientPressure(aoa(), rho_inf(),
-                                                                   u_inf(equations), l_inf))
+                                           DragCoefficientPressure2D(aoa(), rho_inf(),
+                                                                     u_inf(equations),
+                                                                     l_inf))
 
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
-                                           LiftCoefficientPressure(aoa(), rho_inf(),
-                                                                   u_inf(equations), l_inf))
+                                           LiftCoefficientPressure2D(aoa(), rho_inf(),
+                                                                     u_inf(equations),
+                                                                     l_inf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -121,12 +124,15 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
+save_restart = SaveRestartCallback(interval = 10_000,
+                                   save_final_restart = true)
+
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        save_solution, save_restart,
                         stepsize_callback, amr_callback)
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK54(thread = OrdinaryDiffEq.True()),
+sol = solve(ode, SSPRK54(thread = Trixi.True());
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

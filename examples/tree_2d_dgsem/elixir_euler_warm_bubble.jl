@@ -1,9 +1,9 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # Warm bubble test case from
 # - Wicker, L. J., and Skamarock, W. C. (1998)
-#   A time-splitting scheme for the elastic equations incorporating 
+#   A time-splitting scheme for the elastic equations incorporating
 #   second-order Runge–Kutta time differencing
 #   [DOI: 10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2](https://doi.org/10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2)
 # See also
@@ -11,7 +11,7 @@ using Trixi
 #   A Benchmark Simulation for Moist Nonhydrostatic Numerical Models
 #   [DOI: 10.1175/1520-0493(2002)130<2917:ABSFMN>2.0.CO;2](https://doi.org/10.1175/1520-0493(2002)130<2917:ABSFMN>2.0.CO;2)
 # - Carpenter, Droegemeier, Woodward, Hane (1990)
-#   Application of the Piecewise Parabolic Method (PPM) to 
+#   Application of the Piecewise Parabolic Method (PPM) to
 #   Meteorological Modeling
 #   [DOI: 10.1175/1520-0493(1990)118<0586:AOTPPM>2.0.CO;2](https://doi.org/10.1175/1520-0493(1990)118<0586:AOTPPM>2.0.CO;2)
 struct WarmBubbleSetup
@@ -28,21 +28,22 @@ end
 
 # Initial condition
 function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquations2D)
+    RealT = eltype(x)
     @unpack g, c_p, c_v = setup
 
     # center of perturbation
-    center_x = 10000.0
-    center_z = 2000.0
+    center_x = 10000
+    center_z = 2000
     # radius of perturbation
-    radius = 2000.0
+    radius = 2000
     # distance of current x to center of perturbation
     r = sqrt((x[1] - center_x)^2 + (x[2] - center_z)^2)
 
     # perturbation in potential temperature
-    potential_temperature_ref = 300.0
-    potential_temperature_perturbation = 0.0
+    potential_temperature_ref = 300
+    potential_temperature_perturbation = zero(RealT)
     if r <= radius
-        potential_temperature_perturbation = 2 * cospi(0.5 * r / radius)^2
+        potential_temperature_perturbation = 2 * cospi(0.5f0 * r / radius)^2
     end
     potential_temperature = potential_temperature_ref + potential_temperature_perturbation
 
@@ -50,7 +51,7 @@ function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquations2D)
     exner = 1 - g / (c_p * potential_temperature) * x[2]
 
     # pressure
-    p_0 = 100_000.0  # reference pressure
+    p_0 = 100_000  # reference pressure
     R = c_p - c_v    # gas constant (dry air)
     p = p_0 * exner^(c_p / R)
 
@@ -60,9 +61,9 @@ function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquations2D)
     # density
     rho = p / (R * T)
 
-    v1 = 20.0
-    v2 = 0.0
-    E = c_v * T + 0.5 * (v1^2 + v2^2)
+    v1 = 20
+    v2 = 0
+    E = c_v * T + 0.5f0 * (v1^2 + v2^2)
     return SVector(rho, rho * v1, rho * v2, rho * E)
 end
 
@@ -96,11 +97,9 @@ volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (20_000.0, 10_000.0)
+coordinates_min = (0.0, -5000.0)
+coordinates_max = (20_000.0, 15_000.0)
 
-# Same coordinates as in examples/structured_2d_dgsem/elixir_euler_warm_bubble.jl
-# However TreeMesh will generate a 20_000 x 20_000 square domain instead
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
                 n_cells_max = 10_000,
@@ -142,9 +141,7 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             maxiters = 1.0e7,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-summary_callback()
+            ode_default_options()..., callback = callbacks);

@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -19,7 +18,7 @@ volume_flux = flux_ec
 surface_flux = flux_lax_friedrichs
 
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = surface_flux,
+                                                 volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -35,7 +34,8 @@ mesh = TreeMesh(coordinate_min, coordinate_max,
 
 # Discontinuous initial condition (Riemann Problem) leading to a shock to test e.g. correct shock speed.
 function initial_condition_shock(x, t, equation::InviscidBurgersEquation1D)
-    scalar = x[1] < 0.5 ? 1.5 : 0.5
+    RealT = eltype(x)
+    scalar = x[1] < 0.5f0 ? convert(RealT, 1.5f0) : convert(RealT, 0.5f0)
 
     return SVector(scalar)
 end
@@ -84,8 +84,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 42, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

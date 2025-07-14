@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -17,14 +16,15 @@ Torrilhon's shock tube test case for one dimensional ideal MHD equations.
 """
 function initial_condition_torrilhon_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
     # domain must be set to [-1, 1.5], γ = 5/3, final time = 0.4
-    rho = x[1] <= 0 ? 3.0 : 1.0
-    v1 = 0.0
-    v2 = 0.0
-    v3 = 0.0
-    p = x[1] <= 0 ? 3.0 : 1.0
-    B1 = 1.5
-    B2 = x[1] <= 0 ? 1.0 : cos(1.5)
-    B3 = x[1] <= 0 ? 0.0 : sin(1.5)
+    RealT = eltype(x)
+    rho = x[1] <= 0 ? 3 : 1
+    v1 = 0
+    v2 = 0
+    v3 = 0
+    p = x[1] <= 0 ? 3 : 1
+    B1 = 1.5f0
+    B2 = x[1] <= 0 ? one(RealT) : cos(RealT(1.5f0))
+    B3 = x[1] <= 0 ? zero(RealT) : sin(RealT(1.5f0))
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
 initial_condition = initial_condition_torrilhon_shock_tube
@@ -85,7 +85,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

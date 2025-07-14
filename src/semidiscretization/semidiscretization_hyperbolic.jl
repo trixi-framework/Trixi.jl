@@ -53,8 +53,7 @@ end
                                  source_terms=nothing,
                                  boundary_conditions=boundary_condition_periodic,
                                  RealT=real(solver),
-                                 uEltype=RealT,
-                                 initial_cache=NamedTuple())
+                                 uEltype=RealT)
 
 Construct a semidiscretization of a hyperbolic PDE.
 """
@@ -63,12 +62,10 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       boundary_conditions = boundary_condition_periodic,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
-                                      RealT = real(solver), uEltype = RealT,
-                                      initial_cache = NamedTuple())
+                                      RealT = real(solver), uEltype = RealT)
     @assert ndims(mesh) == ndims(equations)
 
-    cache = (; create_cache(mesh, equations, solver, RealT, uEltype)...,
-             initial_cache...)
+    cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 
@@ -214,6 +211,7 @@ end
 
 # No checks for these meshes yet available
 function check_periodicity_mesh_boundary_conditions(mesh::Union{P4estMesh,
+                                                                P4estMeshView,
                                                                 UnstructuredMesh2D,
                                                                 T8codeMesh,
                                                                 DGMultiMesh},
@@ -222,7 +220,8 @@ end
 
 # No actions needed for periodic boundary conditions
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
-                                                                StructuredMesh},
+                                                                StructuredMesh,
+                                                                StructuredMeshView},
                                                     boundary_conditions::BoundaryConditionPeriodic)
 end
 

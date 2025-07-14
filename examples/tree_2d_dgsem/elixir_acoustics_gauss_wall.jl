@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -26,9 +26,10 @@ A Gaussian pulse, used in the `gauss_wall` example elixir in combination with
 [`boundary_condition_wall`](@ref). Uses the global mean values from `equations`.
 """
 function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
-    v1_prime = 0.0
-    v2_prime = 0.0
-    p_prime = exp(-log(2) * (x[1]^2 + (x[2] - 25)^2) / 25)
+    RealT = eltype(x)
+    v1_prime = 0
+    v2_prime = 0
+    p_prime = exp(-log(convert(RealT, 2)) * (x[1]^2 + (x[2] - 25)^2) / 25)
 
     prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
 
@@ -68,9 +69,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks)
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks)

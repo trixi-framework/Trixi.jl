@@ -17,7 +17,7 @@ the maximum possible speed (e.g. due to speed limits) is $v_{\text{max}}$.
 For more details see e.g. Section 11.1 of 
 - Randall LeVeque (2002)
 Finite Volume Methods for Hyperbolic Problems
-[DOI: 10.1017/CBO9780511791253]https://doi.org/10.1017/CBO9780511791253
+[DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquations{1, 1}
     v_max::RealT
@@ -68,7 +68,7 @@ Source terms used for convergence tests in combination with
     return SVector(du)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::TrafficFlowLWREquations1D)
     return SVector(equations.v_max * u[1] * (1 - u[1]))
 end
@@ -76,8 +76,8 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    λ_max = max(abs(equations.v_max * (1 - 2 * u_ll[1])),
-                abs(equations.v_max * (1 - 2 * u_rr[1])))
+    return max(abs(equations.v_max * (1 - 2 * u_ll[1])),
+               abs(equations.v_max * (1 - 2 * u_rr[1])))
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes

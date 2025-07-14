@@ -61,8 +61,8 @@ function integrate(func::Func, u_ode, semi::AbstractSemidiscretization;
     integrate(func, u, mesh, equations, solver, cache, normalize = normalize)
 end
 
-function integrate(u, semi::AbstractSemidiscretization; normalize = true)
-    integrate(cons2cons, u, semi; normalize = normalize)
+function integrate(u_ode, semi::AbstractSemidiscretization; normalize = true)
+    integrate(cons2cons, u_ode, semi; normalize = normalize)
 end
 
 """
@@ -102,7 +102,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::AbstractString)
+    semidiscretize(semi::AbstractSemidiscretization, tspan, 
+                   restart_file::AbstractString)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
@@ -276,6 +277,11 @@ function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     return J
 end
 
+# unpack u if it is wrapped in VectorOfArray (mainly for DGMulti solvers)
+jacobian_ad_forward(semi::AbstractSemidiscretization, t0, u0_ode::VectorOfArray) = jacobian_ad_forward(semi,
+                                                                                                       t0,
+                                                                                                       parent(u0_ode))
+
 # This version is specialized to `StructArray`s used by some `DGMulti` solvers.
 # We need to convert the numerical solution vectors since ForwardDiff cannot
 # handle arrays of `SVector`s.
@@ -354,8 +360,10 @@ function get_element_variables!(element_variables, u_ode,
     get_element_variables!(element_variables, u, mesh_equations_solver_cache(semi)...)
 end
 
-function get_node_variables!(node_variables, semi::AbstractSemidiscretization)
-    get_node_variables!(node_variables, mesh_equations_solver_cache(semi)...)
+# Required for storing `extra_node_variables` in the `SaveSolutionCallback`.
+# Not to be confused with `get_node_vars` which returns the variables of the simulated equation.
+function get_node_variables!(node_variables, u_ode, semi::AbstractSemidiscretization)
+    get_node_variables!(node_variables, u_ode, mesh_equations_solver_cache(semi)...)
 end
 
 # To implement AMR and use OrdinaryDiffEq.jl etc., we have to be a bit creative.

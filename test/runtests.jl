@@ -18,21 +18,9 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         # cf. https://github.com/JuliaParallel/MPI.jl/pull/391
         @test true
 
-        # There are spurious test failures of Trixi.jl with MPI on Windows, see
-        # https://github.com/trixi-framework/Trixi.jl/issues/901
-        # To reduce their impact, we do not test MPI with coverage on Windows.
-        # This reduces the chance to hit a spurious test failure by one half.
-        # In addition, it looks like the Linux GitHub runners run out of memory during the 3D tests
-        # with coverage, so we currently do not test MPI with coverage on Linux. For more details,
-        # see the discussion at https://github.com/trixi-framework/Trixi.jl/pull/1062#issuecomment-1035901020
-        cmd = string(Base.julia_cmd())
-        coverage = occursin("--code-coverage", cmd) &&
-                   !occursin("--code-coverage=none", cmd)
-        if !(coverage && Sys.iswindows()) && !(coverage && Sys.isapple())
-            # We provide a `--heap-size-hint` to avoid/reduce out-of-memory errors during CI testing
-            mpiexec() do cmd
-                run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G $(abspath("test_mpi.jl"))`)
-            end
+        # We provide a `--heap-size-hint` to avoid/reduce out-of-memory errors during CI testing
+        mpiexec() do cmd
+            run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G $(abspath("test_mpi.jl"))`)
         end
     end
 
@@ -50,23 +38,18 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_tree_1d.jl")
         include("test_tree_2d_part1.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part2"
         include("test_tree_2d_part2.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part3"
         include("test_tree_2d_part3.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part4"
         include("test_tree_3d_part1.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part5"
         include("test_tree_3d_part2.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part6"
         include("test_tree_3d_part3.jl")
     end
@@ -80,7 +63,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "p4est_part1"
         include("test_p4est_2d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "p4est_part2"
         include("test_p4est_3d.jl")
     end
@@ -88,7 +70,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "t8code_part1"
         include("test_t8code_2d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "t8code_part2"
         include("test_t8code_3d.jl")
     end
@@ -100,9 +81,11 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_dgmulti_3d.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part1"
         include("test_parabolic_1d.jl")
         include("test_parabolic_2d.jl")
+    end
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part2"
         include("test_parabolic_3d.jl")
     end
 
@@ -111,7 +94,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_type.jl")
         include("test_visualization.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part2"
         include("test_special_elixirs.jl")
         include("test_aqua.jl")
@@ -120,7 +102,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part1"
         include("test_performance_specializations_2d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part2"
         include("test_performance_specializations_3d.jl")
     end

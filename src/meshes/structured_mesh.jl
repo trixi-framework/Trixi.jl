@@ -23,7 +23,11 @@ mutable struct StructuredMesh{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
 end
 
 """
-    StructuredMesh(cells_per_dimension, mapping; RealT=Float64, unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
+    StructuredMesh(cells_per_dimension, mapping;
+                   RealT = Float64,
+                   periodicity = true,
+                   unsaved_changes = true, 
+                   mapping_as_string = mapping2string(mapping, length(cells_per_dimension), RealT=RealT))
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -43,10 +47,13 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
                                The code string must define the mapping function with the name `mapping`.
                                This will be changed in the future, see [https://github.com/trixi-framework/Trixi.jl/issues/541](https://github.com/trixi-framework/Trixi.jl/issues/541).
 """
-function StructuredMesh(cells_per_dimension, mapping; RealT = Float64,
-                        periodicity = true, unsaved_changes = true,
+function StructuredMesh(cells_per_dimension, mapping;
+                        RealT = Float64,
+                        periodicity = true,
+                        unsaved_changes = true,
                         mapping_as_string = mapping2string(mapping,
-                                                           length(cells_per_dimension)))
+                                                           length(cells_per_dimension),
+                                                           RealT))
     NDIMS = length(cells_per_dimension)
 
     # Convert periodicity to a Tuple of a Bool for every dimension
@@ -60,14 +67,15 @@ function StructuredMesh(cells_per_dimension, mapping; RealT = Float64,
         # Default case if periodicity is an iterable
         periodicity = Tuple(periodicity)
     end
-
     return StructuredMesh{NDIMS, RealT}(Tuple(cells_per_dimension), mapping,
                                         mapping_as_string, periodicity, "",
                                         unsaved_changes)
 end
 
 """
-    StructuredMesh(cells_per_dimension, faces; RealT=Float64, unsaved_changes=true, faces_as_string=faces2string(faces))
+    StructuredMesh(cells_per_dimension, faces; 
+                   RealT = Float64,
+                   periodicity = true)
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -85,7 +93,8 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function StructuredMesh(cells_per_dimension, faces::Tuple; RealT = Float64,
+function StructuredMesh(cells_per_dimension, faces::Tuple;
+                        RealT = Float64,
                         periodicity = true)
     NDIMS = length(cells_per_dimension)
 
@@ -95,18 +104,14 @@ function StructuredMesh(cells_per_dimension, faces::Tuple; RealT = Float64,
     mapping = transfinite_mapping(faces)
 
     # Collect definitions of face functions in one string (separated by semicolons)
-    face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS - 1))
-    join_newline(strings) = join(strings, "\n")
+    face2substring(face) = code_string(face, ntuple(_ -> RealT, NDIMS - 1))
+    join_newline(strings) = join(strings, ";")
 
     faces_definition = faces .|> face2substring .|> string |> join_newline
 
     # Include faces definition in `mapping_as_string` to allow for evaluation
     # without knowing the face functions
-    mapping_as_string = """
-        $faces_definition
-        faces = $(string(faces))
-        mapping = transfinite_mapping(faces)
-        """
+    mapping_as_string = """$faces_definition;faces = $(string(faces));mapping = transfinite_mapping(faces)"""
 
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
@@ -114,7 +119,8 @@ function StructuredMesh(cells_per_dimension, faces::Tuple; RealT = Float64,
 end
 
 """
-    StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
+    StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
+                   periodicity = true)
 
 Create a StructuredMesh that represents a uncurved structured mesh with a rectangular domain.
 
@@ -129,20 +135,19 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                         periodicity = true)
     RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
 
+    coordinates_min_max_check(coordinates_min, coordinates_max)
+
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
-    mapping_as_string = """
-        coordinates_min = $coordinates_min
-        coordinates_max = $coordinates_max
-        mapping = coordinates2mapping(coordinates_min, coordinates_max)
-        """
+
+    mapping_as_string = """coordinates_min = $coordinates_min;coordinates_max = $coordinates_max;mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
                           mapping_as_string = mapping_as_string)
 end
 
 # Extract a string of the code that defines the mapping function
-function mapping2string(mapping, ndims)
-    string(code_string(mapping, ntuple(_ -> Float64, ndims)))
+function mapping2string(mapping, ndims, RealT = Float64)
+    string(code_string(mapping, ntuple(_ -> RealT, ndims)))
 end
 
 # An internal function wrapping `CodeTracking.code_string` with additional
@@ -166,6 +171,11 @@ end
 # Convert min and max coordinates of a rectangle to the corresponding transformation mapping
 function coordinates2mapping(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
     mapping(xi) = linear_interpolate(xi, coordinates_min[1], coordinates_max[1])
+end
+# Convenience function for 1D: Do not insist on tuples
+function coordinates2mapping(coordinates_min::RealT,
+                             coordinates_max::RealT) where {RealT <: Real}
+    mapping(xi) = linear_interpolate(xi, coordinates_min, coordinates_max)
 end
 
 function coordinates2mapping(coordinates_min::NTuple{2}, coordinates_max::NTuple{2})
@@ -345,12 +355,31 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
                        "StructuredMesh{" * string(ndims(mesh)) * ", " *
                        string(real(mesh)) * "}")
         summary_line(io, "size", size(mesh))
-
-        summary_line(io, "mapping", "")
         # Print code lines of mapping_as_string
-        mapping_lines = split(mesh.mapping_as_string, ";")
-        for i in eachindex(mapping_lines)
-            summary_line(increment_indent(io), "line $i", strip(mapping_lines[i]))
+        if occursin("\n", mesh.mapping_as_string)
+            mapping_lines = replace(mesh.mapping_as_string, '\n' => ';')
+        else
+            mapping_lines = mesh.mapping_as_string
+        end
+
+        mapping_lines = split(mapping_lines, ";")
+
+        if occursin("coordinates", mesh.mapping_as_string)
+            summary_line(io, "mapping", "linear")
+            coordinates_min = eval(Meta.parse(split(mapping_lines[1], "= ")[2]))
+            coordinates_max = eval(Meta.parse(split(mapping_lines[2], "= ")[2]))
+            dims = length(coordinates_max)
+            summary_line(increment_indent(io), "domain",
+                         join(["[$(coordinates_min[i]), $(coordinates_max[i])]"
+                               for i in 1:dims], "x"))
+        elseif occursin("mapping", mesh.mapping_as_string)
+            summary_line(io, "mapping", "custom mapping")
+        else
+            # At the moment this is not being used
+            summary_line(io, "mapping", "")
+            for i in eachindex(mapping_lines)
+                summary_line(increment_indent(io), "line $i", strip(mapping_lines[i]))
+            end
         end
         summary_footer(io)
     end

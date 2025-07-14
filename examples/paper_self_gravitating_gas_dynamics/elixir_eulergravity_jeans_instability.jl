@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 """
@@ -101,7 +100,7 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 ###############################################################################
 # ODE solvers, callbacks etc.
 tspan = (0.0, 5.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
@@ -133,11 +132,12 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t,
                                               u_gravity) do u, i, j, element,
                                                             equations_euler, dg,
                                                             equations_gravity, u_gravity
-        u_euler_local = Trixi.get_node_vars(u_euler, equations_euler, dg, i, j, element)
-        u_gravity_local = Trixi.get_node_vars(u_gravity, equations_gravity, dg, i, j,
-                                              element)
+        u_euler_local = get_node_vars(u_euler, equations_euler, dg, i, j, element)
+        u_gravity_local = get_node_vars(u_gravity, equations_gravity, dg, i, j, element)
         # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
-        return (u_euler_local[1] - 1.5e7) * u_gravity_local[1]
+        # For formula of potential energy see
+        # "Galactic Dynamics" by Binney and Tremaine, 2nd ed., equation (2.18)
+        return 0.5f0 * (u_euler_local[1] - 1.5f7) * u_gravity_local[1]
     end
     return e_potential
 end
@@ -155,8 +155,8 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);
+
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)

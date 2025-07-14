@@ -13,6 +13,33 @@ struct TimeIntegratorSolution{tType, uType, P}
     prob::P
 end
 
+# Abstract supertype of Trixi.jl's own time integrators for dispatch
+abstract type AbstractTimeIntegrator end
+
+# Interface required by DiffEqCallbacks.jl
+function DiffEqBase.get_tstops(integrator::AbstractTimeIntegrator)
+    return integrator.opts.tstops
+end
+function DiffEqBase.get_tstops_array(integrator::AbstractTimeIntegrator)
+    return get_tstops(integrator).valtree
+end
+function DiffEqBase.get_tstops_max(integrator::AbstractTimeIntegrator)
+    return maximum(get_tstops_array(integrator))
+end
+
+function finalize_callbacks(integrator::AbstractTimeIntegrator)
+    callbacks = integrator.opts.callback
+
+    if callbacks isa CallbackSet
+        foreach(callbacks.discrete_callbacks) do cb
+            cb.finalize(cb, integrator.u, integrator.t, integrator)
+        end
+        foreach(callbacks.continuous_callbacks) do cb
+            cb.finalize(cb, integrator.u, integrator.t, integrator)
+        end
+    end
+end
+
 include("methods_2N.jl")
 include("methods_3Sstar.jl")
 include("methods_SSP.jl")

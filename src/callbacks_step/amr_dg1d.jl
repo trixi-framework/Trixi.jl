@@ -283,17 +283,4 @@ function coarsen_elements!(u::AbstractArray{<:Any, 3}, element_id,
         set_node_vars!(u, acc, equations, dg, i, element_id)
     end
 end
-
-# this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{1}, equations,
-                      dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
-end
-
-function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{1},
-                      equations, dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
-end
 end # @muladd
