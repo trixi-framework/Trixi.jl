@@ -16,10 +16,13 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (8, 8)
 
 # Create parent P4estMesh with 8 x 8 trees and 8 x 8 elements
+# Since we couple through the boundaries, the periodicity does not matter here,
+# but it is to trigger parts of the code for the test.
 parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,
                         coordinates_max = coordinates_max,
-                        initial_refinement_level = 0)
+                        initial_refinement_level = 0,
+			periodic=(false, false))
 
 # Define the mesh views.
 cell_ids1 = vcat((1:18), (23:26), (31:34), (39:42), (47:64))
