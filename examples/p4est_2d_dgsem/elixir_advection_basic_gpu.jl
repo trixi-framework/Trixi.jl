@@ -49,6 +49,7 @@ stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, stepsize_callback)
+# TODO: GPU. The `analysis_callback` needs to be updated for GPU support
 # analysis_callback, save_solution, stepsize_callback)
 
 ###############################################################################

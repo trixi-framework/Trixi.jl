@@ -366,7 +366,7 @@ function trixi_backend(x)
     return get_backend(x)
 end
 
-# TODO: Remove once we have https://github.com/SciML/RecursiveArrayTools.jl/pull/455
+# TODO: After https://github.com/SciML/RecursiveArrayTools.jl/pull/455 we need to investigate the right way to handle StaticArray as uEltype for MultiDG.
 function trixi_backend(x::VectorOfArray)
     u = parent(x)
     # FIXME(vchuravy): This is a workaround because KA.get_backend is ambivalent of where a SArray is residing.
