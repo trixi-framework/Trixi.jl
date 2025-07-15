@@ -5,6 +5,13 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.12 lifecycle
+
+#### Added
+- Initial support for adapting data-structures between different storage arrays was added. This enables future work to support GPU with Trixi ([#2212]).
+
+#### Deprecated
+
 ## Changes when updating to v0.12 from v0.11.x
 
 #### Added
