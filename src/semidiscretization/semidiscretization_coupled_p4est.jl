@@ -204,8 +204,24 @@ end
 ### AnalysisCallback
 ################################################################################
 
+"""
+    AnalysisCallbackCoupledP4est(semi, callbacks...)
+
+Combine multiple analysis callbacks for coupled simulations with a
+[`SemidiscretizationCoupled`](@ref). For each coupled system, an indididual
+[`AnalysisCallback`](@ref) **must** be created and passed to the `AnalysisCallbackCoupledP4est` **in
+order**, i.e., in the same sequence as the indidvidual semidiscretizations are stored in the
+`SemidiscretizationCoupled`.
+
+!!! warning "Experimental code"
+    This is an experimental feature and can change any time.
+"""
+struct AnalysisCallbackCoupledP4est{CB}
+    callbacks::CB
+end
+
 function Base.show(io::IO, ::MIME"text/plain",
-                   cb_coupled::DiscreteCallback{<:Any, <:AnalysisCallbackCoupled})
+                   cb_coupled::DiscreteCallback{<:Any, <:AnalysisCallbackCoupledP4est})
     @nospecialize cb_coupled # reduce precompilation time
 
     if get(io, :compact, false)
@@ -213,7 +229,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         analysis_callback_coupled = cb_coupled.affect!
 
-        summary_header(io, "AnalysisCallbackCoupled")
+        summary_header(io, "AnalysisCallbackCoupledP4est")
         for (i, cb) in enumerate(analysis_callback_coupled.callbacks)
             summary_line(io, "Callback #$i", "")
             show(increment_indent(io), MIME"text/plain"(), cb)
@@ -223,12 +239,12 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 # Convenience constructor for the coupled callback that gets called directly from the elixirs
-function AnalysisCallbackCoupled(semi_coupled, callbacks...)
+function AnalysisCallbackCoupledP4est(semi_coupled, callbacks...)
     if length(callbacks) != nsystems(semi_coupled)
-        error("an AnalysisCallbackCoupled requires one AnalysisCallback for each semidiscretization")
+        error("an AnalysisCallbackCoupledP4est requires one AnalysisCallback for each semidiscretization")
     end
 
-    analysis_callback_coupled = AnalysisCallbackCoupled{typeof(callbacks)}(callbacks)
+    analysis_callback_coupled = AnalysisCallbackCoupledP4est{typeof(callbacks)}(callbacks)
 
     # This callback is triggered if any of its subsidiary callbacks' condition is triggered
     condition = (u, t, integrator) -> any(callbacks) do callback
@@ -242,7 +258,7 @@ end
 
 # This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
 function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_coupled, t,
-                     integrator) where {Condition, Affect! <: AnalysisCallbackCoupled}
+                     integrator) where {Condition, Affect! <: AnalysisCallbackCoupledP4est}
     analysis_callback_coupled = cb_coupled.affect!
     semi_coupled = integrator.p
     du_ode_coupled = first(get_tmp_cache(integrator))
@@ -258,7 +274,7 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
 end
 
 # This method gets called from OrdinaryDiffEq's `solve(...)`
-function (analysis_callback_coupled::AnalysisCallbackCoupled)(integrator)
+function (analysis_callback_coupled::AnalysisCallbackCoupledP4est)(integrator)
     semi_coupled = integrator.p
     u_ode_coupled = integrator.u
     du_ode_coupled = first(get_tmp_cache(integrator))
@@ -283,7 +299,7 @@ end
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                                                                 Affect! <:
-                                                                AnalysisCallbackCoupled}
+                                                                AnalysisCallbackCoupledP4est}
     semi_coupled = sol.prob.p
     u_ode_coupled = sol.u[end]
     @unpack callbacks = cb.affect!
