@@ -258,7 +258,8 @@ end
 
 # This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
 function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_coupled, t,
-                     integrator) where {Condition, Affect! <: AnalysisCallbackCoupledP4est}
+                     integrator) where {Condition,
+                                        Affect! <: AnalysisCallbackCoupledP4est}
     analysis_callback_coupled = cb_coupled.affect!
     semi_coupled = integrator.p
     du_ode_coupled = first(get_tmp_cache(integrator))
