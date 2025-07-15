@@ -300,7 +300,8 @@ end
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                                                                 Affect! <:
-                                                                AnalysisCallbackCoupledP4est}
+                                                                AnalysisCallbackCoupledP4est
+                                                                }
     semi_coupled = sol.prob.p
     u_ode_coupled = sol.u[end]
     @unpack callbacks = cb.affect!
