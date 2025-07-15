@@ -22,7 +22,7 @@ parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,
                         coordinates_max = coordinates_max,
                         initial_refinement_level = 0,
-			periodic=(false, false))
+                        periodicity=false)
 
 # Define the mesh views.
 cell_ids1 = vcat((1:18), (23:26), (31:34), (39:42), (47:64))
