@@ -109,7 +109,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
             # prior to projection
             for old_element_id in 1:old_n_elements
                 for v in eachvariable(equations)
-                    old_u[v, .., old_element_id] ./= old_inverse_jacobian[.., old_element_id]
+                    old_u[v, .., old_element_id] ./= old_inverse_jacobian[..,
+                                                                          old_element_id]
                 end
             end
         end
@@ -147,7 +148,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
                 if mesh isa P4estMesh
                     # Copy old element data to new element container and remove Jacobian scaling
                     for v in eachvariable(equations)
-                        u[v, .., element_id] .*= old_inverse_jacobian[.., old_element_id]
+                        u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
+                                                 old_inverse_jacobian[..,
+                                                                      old_element_id])
                     end
                 else # isa TreeMesh
                     @views u[:, .., element_id] .= old_u[:, .., old_element_id]
@@ -299,9 +302,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
             # prior to projection
             for old_element_id in 1:old_n_elements
                 for v in eachvariable(equations)
-                    old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
-                                                     old_inverse_jacobian[..,
-                                                                          old_element_id])
+                    old_u[v, .., old_element_id] ./= old_inverse_jacobian[..,
+                                                                          old_element_id]
                 end
             end
         end
@@ -492,9 +494,8 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
         # prior to interpolation or projection
         for old_element_id in 1:old_nelems
             for v in eachvariable(equations)
-                old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
-                                                 old_inverse_jacobian[..,
-                                                                      old_element_id])
+                old_u[v, .., old_element_id] ./= old_inverse_jacobian[..,
+                                                                      old_element_id]
             end
         end
 
