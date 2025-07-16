@@ -158,7 +158,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
     analysis_callback.initial_state_integrals = initial_state_integrals
     @unpack analyzer, save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
 
-    if semi.sover isa DG
+    if semi.sover isa DGSEM # Avoid errors with DGMult and FDSBP
         if length(analyzer.nodes) != 2 * polydeg(semi.solver.basis) + 1
             @warn "AnalysisCallback has not the standard number of analysis nodes for this solver.
             This might lead to unexpected results. 
