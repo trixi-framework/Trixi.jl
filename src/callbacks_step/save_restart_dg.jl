@@ -61,6 +61,7 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
         all_variables[v, .., :] = read(file["variables_$v"])
     end
 
+    #=
     if mesh isa P4estMesh # TODO T8Code and Unstructured?
         # Reconstruct basis of the solver used in the restart file
         basis_file = LobattoLegendreBasis(polydeg_file)
@@ -76,6 +77,7 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
             end
         end
     end
+    =#
 
     # Perform interpolation/projection to new polynomial degree
     for element in eachelement(dg, cache)
@@ -83,6 +85,7 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
                                                 all_variables[.., element])
     end
 
+    #=
     if mesh isa P4estMesh # TODO T8Code and Unstructured?
         # Apply Jacobian of the new solver to the coefficients
         inverse_jacobian = cache.elements.inverse_jacobian
@@ -94,6 +97,7 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
             end
         end
     end
+    =#
 
     return nothing
 end
