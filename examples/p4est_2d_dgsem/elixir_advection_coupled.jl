@@ -62,7 +62,7 @@ summary_callback = SummaryCallback()
 # We require this definition for the test, even though we don't use it in the CallbackSet.
 analysis_callback1 = AnalysisCallback(semi1, interval = 100)
 analysis_callback2 = AnalysisCallback(semi2, interval = 100)
-analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
+analysis_callback = AnalysisCallbackCoupledP4est(semi, analysis_callback1, analysis_callback2)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,
