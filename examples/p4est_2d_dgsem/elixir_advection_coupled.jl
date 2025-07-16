@@ -34,6 +34,8 @@ mesh2 = P4estMeshView(parent_mesh, cell_ids2)
 # Define a trivial coupling function.
 coupling_function = (x, u, equations_other, equations_own) -> u
 
+# The mesh is coupled across the physical boundaries, which makes this setup
+# effectively double periodic.
 boundary_conditions = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_function),
                            :y_neg => BoundaryConditionCoupledP4est(coupling_function),
                            :y_pos => BoundaryConditionCoupledP4est(coupling_function),
