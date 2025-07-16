@@ -158,10 +158,12 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
     analysis_callback.initial_state_integrals = initial_state_integrals
     @unpack analyzer, save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
 
-    if length(analyzer.nodes) != 2 * polydeg(semi.solver.basis) + 1
-        @warn "AnalysisCallback has not the standard number of analysis nodes for this solver.
-         This might lead to unexpected results. 
-         You might want to reinitialize the `AnalysiCallback` for the actually simulated semidiscretization."
+    if semi.sover isa DG
+        if length(analyzer.nodes) != 2 * polydeg(semi.solver.basis) + 1
+            @warn "AnalysisCallback has not the standard number of analysis nodes for this solver.
+            This might lead to unexpected results. 
+            You might want to reinitialize the `AnalysiCallback` for the actually simulated semidiscretization."
+        end
     end
 
     if save_analysis && mpi_isroot()
