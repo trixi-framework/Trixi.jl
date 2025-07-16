@@ -72,7 +72,8 @@ jobs:
           - t8code_part1
           - t8code_part2
           - unstructured_dgmulti
-          - parabolic
+          - parabolic_part1
+          - parabolic_part2
           - paper_self_gravitating_gas_dynamics
           - misc_part1
           - misc_part2

@@ -18,6 +18,7 @@ for human readability.
 #### Added
 
 - Arbitrary solution-dependent quantities can now be saved in the `SaveSolutionCallback` (and thus later on visualized) ([#2298]).
+- Added support for nonconservative terms with "local * jump" formulation in `VolumeIntegralSubcellLimiting` ([#2429]).
 
 #### Changed
 
