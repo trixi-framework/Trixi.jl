@@ -24,7 +24,8 @@ parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         initial_refinement_level = 0,
                         periodicity = false)
 
-# Define the mesh views.
+# Define the mesh views consisting of a small square in the center
+# and a square ring around it.
 cell_ids1 = vcat((1:18), (23:26), (31:34), (39:42), (47:64))
 mesh1 = P4estMeshView(parent_mesh, cell_ids1)
 cell_ids2 = vcat((19:22), (27:30), (35:38), (43:46))
