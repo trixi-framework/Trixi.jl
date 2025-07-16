@@ -50,7 +50,7 @@ end
 # Load solution variables from restart file and 
 # convert them to a different polynomial degree.
 # Version for non-MPI-parallel run
-function convert_restart_file_polydeg!(u, file,
+function convert_restart_file_polydeg!(u, file, polydeg_file,
                                        mesh, equations, dg::DGSEM, cache,
                                        nnodes_file, conversion_matrix)
     all_variables = zeros(eltype(u),
@@ -61,15 +61,47 @@ function convert_restart_file_polydeg!(u, file,
         all_variables[v, .., :] = read(file["variables_$v"])
     end
 
+    if mesh isa P4estMesh # TODO T8Code and Unstructured?
+        basis_file = LobattoLegendreBasis(polydeg_file)
+        # Reconstruct basis of the solver used in the restart file
+        # Here it suffices to get the polynomial degree right, 
+        # the volume integral etc. is not required
+        dg_file = DGSEM(basis_file, dg.surface_flux)
+
+        # Reconstruct containers as used within the simulation that created the restart file
+        reinitialize_containers!(mesh, equations, dg_file, cache)
+        file_inverse_jacobian = cache.elements.inverse_jacobian
+        # Multiply file jacobian prior to interpolation/projection
+        for element_id in eachelement(dg, cache)
+            for v in eachvariable(equations)
+                all_variables[v, .., element_id] .= (all_variables[v, .., element_id] ./
+                                                    file_inverse_jacobian[..,
+                                                                        element_id])
+            end
+        end
+    end
+
     # Perform interpolation/projection to new polynomial degree
     for element in eachelement(dg, cache)
         u[.., element] = multiply_dimensionwise(conversion_matrix,
                                                 all_variables[.., element])
     end
+
+    if mesh isa P4estMesh # TODO T8Code and Unstructured?
+        # Reinitialize the cache to the current polynomial degree
+        reinitialize_cache!(mesh, equations, dg, cache)
+        inverse_jacobian = cache.elements.inverse_jacobian
+        # Divide interpolated/projected coefficients by the current inverse jacobian
+        for element_id in eachelement(dg, cache)
+            for v in eachvariable(equations)
+                u[v, .., element_id] .*=  inverse_jacobian[.., element_id]
+            end
+        end
+    end
 end
 
 # Version for MPI-parallel run with serial I/O, i.e., `HDF5.has_parallel() == false`
-function convert_restart_file_polydeg!(u_global, file,
+function convert_restart_file_polydeg!(u_global, file, polydeg_file,
                                        mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                                    ParallelT8codeMesh}, equations,
                                        dg::DGSEM, cache,
@@ -92,7 +124,7 @@ function convert_restart_file_polydeg!(u_global, file,
 end
 
 # Version for MPI-parallel run with MPI-parallel I/O, i.e., `HDF5.has_parallel() == true`
-function convert_restart_file_polydeg!(u, file, slice,
+function convert_restart_file_polydeg!(u, file, polydeg_file, slice,
                                        mesh, equations, dg::DGSEM, cache,
                                        nnodes_file, conversion_matrix)
     all_variables = zeros(eltype(u),
@@ -159,7 +191,8 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
                                                                    nodes_solver,
                                                                    Val(:gauss_lobatto))
             end
-            convert_restart_file_polydeg!(u, file, mesh, equations, dg, cache,
+            convert_restart_file_polydeg!(u, file, polydeg_file,
+                                          mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
         else # Read in variables separately
             for v in eachvariable(equations)
@@ -360,7 +393,8 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
             # Read data of each process in slices (ranks start with 0)
             slice = (cum_node_counts_file[mpi_rank() + 1] + 1):cum_node_counts_file[mpi_rank() + 2]
 
-            convert_restart_file_polydeg!(u, file, slice, mesh, equations, dg, cache,
+            convert_restart_file_polydeg!(u, file, polydeg_file, slice, 
+                                          mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
         else # Read in variables separately
             # Calculate element and node counts by MPI rank
@@ -450,7 +484,8 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
                               ntuple(_ -> nnodes(dg), ndims(mesh))...,
                               nelementsglobal(mesh, dg, cache)))
 
-            convert_restart_file_polydeg!(u_global, file, mesh, equations, dg, cache,
+            convert_restart_file_polydeg!(u_global, file, polydeg_file,
+                                          mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
             for v in eachvariable(equations)
                 sendbuf = MPI.VBuffer(@view(u_global[v, .., :]), node_counts)
