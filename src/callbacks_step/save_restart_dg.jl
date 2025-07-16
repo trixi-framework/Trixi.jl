@@ -62,15 +62,11 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
     end
 
     if mesh isa P4estMesh # TODO T8Code and Unstructured?
-        basis_file = LobattoLegendreBasis(polydeg_file)
         # Reconstruct basis of the solver used in the restart file
-        # Here it suffices to get the polynomial degree right, 
-        # the volume integral etc. is not required
-        dg_file = DGSEM(basis_file, dg.surface_flux)
-
-        # Reconstruct containers as used within the simulation that created the restart file
-        reinitialize_containers!(mesh, equations, dg_file, cache)
-        inverse_jacobian_file = cache.elements.inverse_jacobian
+        basis_file = LobattoLegendreBasis(polydeg_file)
+        # Reconstruct elements of the solver used in the restart file
+        elements_file = init_elements(mesh, equations, basis_file, eltype(u))
+        inverse_jacobian_file = elements_file.inverse_jacobian
 
         # Multiply file Jacobian prior to interpolation/projection
         for element_id in eachelement(dg, cache)
@@ -88,8 +84,7 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
     end
 
     if mesh isa P4estMesh # TODO T8Code and Unstructured?
-        # Reinitialize the cache to the current polynomial degree
-        reinitialize_cache!(mesh, equations, dg, cache)
+        # Apply Jacobian of the new solver to the coefficients
         inverse_jacobian = cache.elements.inverse_jacobian
 
         # Divide interpolated/projected coefficients by the current inverse Jacobian
@@ -99,6 +94,8 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
             end
         end
     end
+
+    return nothing
 end
 
 # Version for MPI-parallel run with serial I/O, i.e., `HDF5.has_parallel() == false`
@@ -122,6 +119,8 @@ function convert_restart_file_polydeg!(u_global, file, polydeg_file,
                                                        all_variables_global[..,
                                                                             element])
     end
+
+    return nothing
 end
 
 # Version for MPI-parallel run with MPI-parallel I/O, i.e., `HDF5.has_parallel() == true`
@@ -144,6 +143,8 @@ function convert_restart_file_polydeg!(u, file, polydeg_file, slice,
         u[.., element] = multiply_dimensionwise(conversion_matrix,
                                                 all_variables[.., element])
     end
+
+    return nothing
 end
 
 function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
