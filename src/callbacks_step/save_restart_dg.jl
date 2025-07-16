@@ -70,13 +70,13 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
 
         # Reconstruct containers as used within the simulation that created the restart file
         reinitialize_containers!(mesh, equations, dg_file, cache)
-        file_inverse_jacobian = cache.elements.inverse_jacobian
-        # Multiply file jacobian prior to interpolation/projection
+        inverse_jacobian_file = cache.elements.inverse_jacobian
+
+        # Multiply file Jacobian prior to interpolation/projection
         for element_id in eachelement(dg, cache)
             for v in eachvariable(equations)
-                all_variables[v, .., element_id] .= (all_variables[v, .., element_id] ./
-                                                    file_inverse_jacobian[..,
-                                                                        element_id])
+                all_variables[v, .., element_id] ./= inverse_jacobian_file[..,
+                                                                           element_id]
             end
         end
     end
@@ -91,10 +91,11 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
         # Reinitialize the cache to the current polynomial degree
         reinitialize_cache!(mesh, equations, dg, cache)
         inverse_jacobian = cache.elements.inverse_jacobian
-        # Divide interpolated/projected coefficients by the current inverse jacobian
+
+        # Divide interpolated/projected coefficients by the current inverse Jacobian
         for element_id in eachelement(dg, cache)
             for v in eachvariable(equations)
-                u[v, .., element_id] .*=  inverse_jacobian[.., element_id]
+                u[v, .., element_id] .*= inverse_jacobian[.., element_id]
             end
         end
     end
@@ -393,7 +394,7 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
             # Read data of each process in slices (ranks start with 0)
             slice = (cum_node_counts_file[mpi_rank() + 1] + 1):cum_node_counts_file[mpi_rank() + 2]
 
-            convert_restart_file_polydeg!(u, file, polydeg_file, slice, 
+            convert_restart_file_polydeg!(u, file, polydeg_file, slice,
                                           mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
         else # Read in variables separately

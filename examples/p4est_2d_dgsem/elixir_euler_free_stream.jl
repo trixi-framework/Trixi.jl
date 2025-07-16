@@ -75,11 +75,15 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+save_restart = SaveRestartCallback(interval = 500,
+                                   save_final_restart = true)
+
 stepsize_callback = StepsizeCallback(cfl = 2.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
+                        #save_solution,
+                        save_restart,
                         stepsize_callback)
 
 ###############################################################################
