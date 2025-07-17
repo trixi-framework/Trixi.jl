@@ -217,6 +217,11 @@ export initial_condition_constant,
        initial_condition_weak_blast_wave
 
 export boundary_condition_do_nothing,
+       boundary_condition_default_p4est_2D,
+       boundary_condition_default_p4est_3D,
+       boundary_condition_default_structured_1D,
+       boundary_condition_default_structured_2D,
+       boundary_condition_default_structured_3D,
        boundary_condition_periodic,
        BoundaryConditionDirichlet,
        BoundaryConditionNeumann,
