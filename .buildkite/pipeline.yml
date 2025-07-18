@@ -1,3 +1,5 @@
+env:
+
 steps:
   - label: "CUDA Julia {{matrix.version}}"
     matrix:
@@ -7,8 +9,9 @@ steps:
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-    command: |
-      true
+      - JuliaCI/julia-test#v1: ~
+    env:
+      TRIXI_TEST: "CUDA"
     agents:
       queue: "juliagpu"
       cuda: "*"
