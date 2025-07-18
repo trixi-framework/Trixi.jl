@@ -79,20 +79,27 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         # multiply by invVDM::SimpleKronecker
         LinearAlgebra.mul!(modal_, inverse_vandermonde, indicator)
 
+        # Create Returns functors to return the constructor args (e.g., Base.OneTo(dg.basis.N)) no matter what
+        # Returns(Base.OneTo(dg.basis.N)) equiv to _ -> Base.OneTo(dg.basis.N), with possibly fewer allocs
+        return_N_plus_one = Returns(dg.basis.N + 1)
+        return_to_N_minus_one = Returns(Base.OneTo(dg.basis.N - 1))
+        return_to_N = Returns(Base.OneTo(dg.basis.N))
+
         # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
         # Thus, Base.ReshapedArray should be used if you are setting values in the array.
         # `reshape` is fine if you are only accessing values.
         # Here, we reshape modal coefficients to expose the tensor product structure.
-        modal = Base.ReshapedArray(modal_, ntuple(_ -> dg.basis.N + 1, NDIMS), ())
+
+        modal = Base.ReshapedArray(modal_, ntuple(return_N_plus_one, NDIMS), ())
 
         # Calculate total energies for all modes, all modes minus the highest mode, and
         # all modes without the two highest modes
-        total_energy = sum(x -> x^2, modal)
-        clip_1_ranges = ntuple(_ -> Base.OneTo(dg.basis.N), NDIMS)
-        clip_2_ranges = ntuple(_ -> Base.OneTo(dg.basis.N - 1), NDIMS)
+        total_energy = sum(abs2, modal)
+        clip_1_ranges = ntuple(return_to_N, NDIMS)
+        clip_2_ranges = ntuple(return_to_N_minus_one, NDIMS)
         # These splattings do not seem to allocate as of Julia 1.9.0?
-        total_energy_clip1 = sum(x -> x^2, view(modal, clip_1_ranges...))
-        total_energy_clip2 = sum(x -> x^2, view(modal, clip_2_ranges...))
+        total_energy_clip1 = sum(abs2, view(modal, clip_1_ranges...))
+        total_energy_clip2 = sum(abs2, view(modal, clip_2_ranges...))
 
         # Calculate energy in higher modes
         if !(iszero(total_energy))

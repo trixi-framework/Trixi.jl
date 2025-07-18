@@ -128,7 +128,7 @@ mutable struct P4estMPIMortarContainer{NDIMS, uEltype <: Real, RealT <: Real, ND
     u::uArray                                      # [small/large side, variable, position, i, j, mortar]
     local_neighbor_ids::Vector{Vector{Int}}        # [mortar][ids]
     local_neighbor_positions::Vector{Vector{Int}}  # [mortar][positions]
-    node_indices::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
+    node_indices::Matrix{NTuple{NDIMS, Symbol}}    # [small/large, mortar]
     normal_directions::Array{RealT, NDIMSP2}       # [dimension, i, j, position, mortar]
     # internal `resize!`able storage
     _u::uVector
@@ -222,6 +222,7 @@ function init_mpi_mortars!(mpi_mortars, mesh::ParallelP4estMesh, basis, elements
 end
 
 function Adapt.adapt_structure(to, mpi_mortars::P4estMPIMortarContainer)
+    # TODO: GPU
     # Only parts of this container are adapted, since we currently don't
     # use `local_neighbor_ids`, `local_neighbor_positions`, `normal_directions`
     # on the GPU. If we do need them we need to redesign this to use the VecOfArrays

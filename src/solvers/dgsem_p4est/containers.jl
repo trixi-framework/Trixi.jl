@@ -213,8 +213,8 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
                AbstractContainer
-    u::uArray       # [primary/secondary, variable, i, j, interface]
-    neighbor_ids::IdsMatrix                   # [primary/secondary, interface]
+    u::uArray                   # [primary/secondary, variable, i, j, interface]
+    neighbor_ids::IdsMatrix     # [primary/secondary, interface]
     node_indices::IndicesMatrix # [primary/secondary, interface]
 
     # internal `resize!`able storage
@@ -335,10 +335,10 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       DenseVector{NTuple{NDIMS, Symbol}},
                                       uVector <: DenseVector{uEltype}} <:
                AbstractContainer
-    u::uArray       # [variables, i, j, boundary]
-    neighbor_ids::IdsVector                 # [boundary]
+    u::uArray                   # [variables, i, j, boundary]
+    neighbor_ids::IdsVector     # [boundary]
     node_indices::IndicesVector # [boundary]
-    name::Vector{Symbol}                # [boundary]
+    name::Vector{Symbol}        # [boundary]
 
     # internal `resize!`able storage
     _u::uVector
