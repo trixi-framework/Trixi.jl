@@ -19,7 +19,8 @@ optimal performance, but switching backends can be useful for comparisons or deb
 - `:polyester`: Uses the default [Polyester.jl](https://github.com/JuliaSIMD/Polyester.jl)
 - `:static`: Uses Julia's built-in static thread scheduling via `Threads.@threads :static`
 - `:serial`: Disables threading, executing loops serially
-- `:kernelabstractions`: Preferentially use the KernelAbstractions kernels written in Trixi.jl, falling back to :static execution.
+- `:kernelabstractions`: Preferentially use the [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl)
+  kernels written in Trixi.jl, falling back to `:static` execution.
 """
 function set_threading_backend!(backend::Symbol = :polyester; force = true)
     valid_backends = (:polyester, :static, :serial, :kernelabstractions)
