@@ -15,6 +15,8 @@ using ECOS: Optimizer
 # PERK Single p3 Constructors
 using NLsolve: nlsolve
 
+using SciMLBase: ODEProblem
+
 include("test_trixi.jl")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
@@ -700,6 +702,35 @@ end
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval = -1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
+end
+
+@timed_testset "resize! RelaxationIntegrators" begin
+    function trivial_ode!(du, u, p, t)
+        du[1] = -p * u[1]
+    end
+    u0 = [1.0]
+    tspan = (0.0, 1.0)
+    p = 1.0
+    ode_prob = ODEProblem(trivial_ode!, u0, tspan, p)
+
+    ode_alg = Trixi.RelaxationRK44()
+    integrator = Trixi.init(ode_prob, ode_alg; dt = 1.0)
+
+    resize!(integrator, 1001)
+    @test length(integrator.u) == 1001
+    @test length(integrator.du) == 1001
+    @test length(integrator.u_tmp) == 1001
+    @test length(integrator.direction) == 1001
+
+    ode_alg = Trixi.RelaxationCKL54()
+    integrator = Trixi.init(ode_prob, ode_alg; dt = 1.0)
+
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
+    @test length(integrator.k_prev) == 42
+    @test length(integrator.direction) == 42
 end
 
 @timed_testset "Consistency check for single point flux: CEMCE" begin
