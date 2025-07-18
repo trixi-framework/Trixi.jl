@@ -27,6 +27,15 @@ function DiffEqBase.get_tstops_max(integrator::AbstractTimeIntegrator)
     return maximum(get_tstops_array(integrator))
 end
 
+function unstable_check(dt, u_ode, integrator::AbstractTimeIntegrator, t)
+    if mpi_isparallel()
+        u_isfinite = MPI.Allreduce!(Ref(all(isfinite, u_ode)), Base.min, mpi_comm())[]
+    else
+        u_isfinite = all(isfinite, u_ode)
+    end
+    return !isfinite(dt) || !u_isfinite
+end
+
 function finalize_callbacks(integrator::AbstractTimeIntegrator)
     callbacks = integrator.opts.callback
 
