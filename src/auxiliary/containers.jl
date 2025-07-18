@@ -360,7 +360,7 @@ If the backend is `nothing`, the default multi-threaded CPU backend is used.
 function trixi_backend(x)
     # TODO: https://github.com/trixi-framework/Trixi.jl/pull/2417
     if (_PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(x)) ||
-       (_PREFERENCE_THREADING === :kernelabstractions &&
+       (_PREFERENCE_THREADING !== :kernelabstractions &&
         get_backend(x) isa KernelAbstractions.CPU)
         return nothing
     end
