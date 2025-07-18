@@ -25,6 +25,7 @@ TrixiBase = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
 path = ".."
 
 [compat]
+Adapt = "4"
 CairoMakie = "0.12, 0.13, 0.14, 0.15"
 Changelog = "1.1"
 Convex = "0.16"
