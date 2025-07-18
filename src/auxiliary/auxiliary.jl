@@ -212,10 +212,13 @@ macro threaded(expr)
         quote
             $Trixi.@batch $(expr)
         end
-    elseif _PREFERENCE_THREADING === :static
+    elseif _PREFERENCE_THREADING === :static ||
+           _PREFERENCE_THREADING === :kernelabstractions
         # The following code is a simple version using only `Threads.@threads` from the
         # standard library with an additional check whether only a single thread is used
         # to reduce some overhead (and allocations) for serial execution.
+        # If we want to execute on KernelAbstractions, we use the static backend here to fallback on,
+        # for loops that do not yet support GPU execution.
         quote
             let
                 if $Threads.nthreads() == 1
