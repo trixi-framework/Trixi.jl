@@ -38,14 +38,14 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                                   UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}},
+                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing,
                       dg::DG, uEltype)
     NamedTuple()
 end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}}, equations,
+                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
@@ -68,7 +68,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
 end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}}, equations,
+                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
     A3dp1_x = Array{uEltype, 3}
@@ -90,7 +90,7 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                                  P4estMesh{2}, P4estMeshView{2}, P4estMeshView{2}, T8codeMesh{2}},
                       equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
@@ -111,7 +111,7 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+              mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
@@ -147,6 +147,75 @@ function rhs!(du, u, t,
     @trixi_timeit timer() "boundary flux" begin
         calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
+    end
+
+    # Prolong solution to mortars
+    @trixi_timeit timer() "prolong2mortars" begin
+        prolong2mortars!(cache, u, mesh, equations,
+                         dg.mortar, dg)
+    end
+
+    # Calculate mortar fluxes
+    @trixi_timeit timer() "mortar flux" begin
+        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+                          have_nonconservative_terms(equations), equations,
+                          dg.mortar, dg.surface_integral, dg, cache)
+    end
+
+    # Calculate surface integrals
+    @trixi_timeit timer() "surface integral" begin
+        calc_surface_integral!(du, u, mesh, equations,
+                               dg.surface_integral, dg, cache)
+    end
+
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+
+    # Calculate source terms
+    @trixi_timeit timer() "source terms" begin
+        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+    end
+
+    return nothing
+end
+
+function rhs!(du, u, t, u_global, semis,
+              mesh::P4estMeshView{2},
+              equations,
+              boundary_conditions, source_terms::Source,
+              dg::DG, cache) where {Source}
+    # Reset du
+    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+
+    # Calculate volume integral
+    @trixi_timeit timer() "volume integral" begin
+        calc_volume_integral!(du, u, mesh,
+                              have_nonconservative_terms(equations), equations,
+                              dg.volume_integral, dg, cache)
+    end
+
+    # Prolong solution to interfaces
+    @trixi_timeit timer() "prolong2interfaces" begin
+        prolong2interfaces!(cache, u, mesh, equations, dg)
+    end
+
+    # Calculate interface fluxes
+    @trixi_timeit timer() "interface flux" begin
+        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg, cache)
+    end
+
+    # Prolong solution to boundaries
+    @trixi_timeit timer() "prolong2boundaries" begin
+        prolong2boundaries!(cache, u, u_global, semis, mesh, equations,
+                            dg.surface_integral, dg)
+    end
+
+    # Calculate boundary fluxes
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+                            dg.surface_integral, dg, u_global, semis)
     end
 
     # Prolong solution to mortars
@@ -244,6 +313,18 @@ function calc_volume_integral!(du, u,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         flux_differencing_kernel!(du, u, element, mesh,
+                                  nonconservative_terms, equations,
+                                  volume_integral.volume_flux, dg, cache)
+    end
+end
+
+function calc_volume_integral!(du, u,
+                               mesh::P4estMeshView{2},
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::DGSEM, cache)
+    @threaded for element in eachelement(dg, cache)
+        flux_differencing_kernel!(du, u, element, mesh.parent,
                                   nonconservative_terms, equations,
                                   volume_integral.volume_flux, dg, cache)
     end
