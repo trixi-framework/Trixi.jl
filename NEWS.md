@@ -10,7 +10,7 @@ for human readability.
 
 #### Changed
 
-- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester` function got renamed to `Trixi.set_threading_backend` ([#2476]).
+- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!` function got renamed to `Trixi.set_threading_backend!` ([#2476]).
 
 #### Deprecated
 
