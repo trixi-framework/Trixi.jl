@@ -173,7 +173,7 @@ M = diagm(weights)
 # ```math
 # \frac{dx}{2} \int_{-1, N}^1 \dot{u}(\xi, t) \underline{l}(\xi)d\xi = \frac{dx}{2} M \underline{\dot{u}}(t),
 # ```
-# where $\underline{\dot{u}} = (\dot{u}_0, ..., \dot{u}_N)^T$ and $\underline{l}$ respectively.
+# where $\underline{\dot{u}} = (\dot{u}_0, \dots, \dot{u}_N)^T$ and $\underline{l} = (l_0, \dots, l_N)^T$ respectively.
 
 # **Note:** Since the LGL quadrature with $N+1$ nodes is exact up to functions of degree $2N-1$ and
 # $\dot{u}(\xi, t) l_i(\xi)$ is of degree $2N$, in general the following holds

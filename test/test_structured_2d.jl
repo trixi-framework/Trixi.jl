@@ -1503,6 +1503,84 @@ end
         end
     end
 end
+
+@trixi_testset "elixir_lbm_lid_driven_cavity.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_lid_driven_cavity.jl"),
+                        l2=[
+                            0.0013650620243296592,
+                            0.00022198751341720896,
+                            0.0012598874493852138,
+                            0.0003717179135584138,
+                            0.0004378131417115368,
+                            0.0003981707758995024,
+                            0.00025217328296435736,
+                            0.00026487031088613346,
+                            0.0004424433618470548
+                        ],
+                        linf=[
+                            0.024202160934419875,
+                            0.011909887052061488,
+                            0.021787515301598115,
+                            0.03618036838142735,
+                            0.008017773116953682,
+                            0.0068482058999433,
+                            0.010286155761527443,
+                            0.009919734282811003,
+                            0.05568155678921127
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_lbm_eulerpolytropic_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_eulerpolytropic_coupled.jl"),
+                        l2=[
+                            0.004425408662988481,
+                            0.004450324455480091,
+                            6.443442487292444e-17,
+                            0.0013646410236054789,
+                            0.000492124768468392,
+                            0.00035879680384107377,
+                            0.0004921247684683822,
+                            0.0003411602559013719,
+                            8.969920096027091e-5,
+                            8.969920096027404e-5,
+                            0.00034116025590136945,
+                            0.001968499073873568
+                        ],
+                        linf=[
+                            0.009769926457488198,
+                            0.009821015729172138,
+                            3.313984464407251e-16,
+                            0.003072464362545338,
+                            0.001104208150516095,
+                            0.000791310479149987,
+                            0.0011042081505159979,
+                            0.000768116090636338,
+                            0.0001978276197874898,
+                            0.00019782761978750715,
+                            0.0007681160906363102,
+                            0.0044168326020643245
+                        ])
+
+    @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
