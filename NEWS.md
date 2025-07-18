@@ -5,6 +5,7 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+
 ## Changes when updating to v0.13 from v0.12.x
 
 #### Changed
@@ -14,7 +15,16 @@ for human readability.
   In v0.13, `flux_lax_friedrichs = FluxLaxFriedrichs(max_abs_speed = max_abs_speed)`
   instead of the previous default 
   `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)` ([#2458]).
-  
+
+
+## Changes in the v0.12 lifecycle
+
+#### Added
+- Initial support for adapting data-structures between different storage arrays was added. This enables future work to support GPU with Trixi ([#2212]).
+
+#### Deprecated
+
+
 ## Changes when updating to v0.12 from v0.11.x
 
 #### Added
