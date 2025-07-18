@@ -261,7 +261,12 @@ function get_proposed_dt(integrator::SimpleIntegratorSSP)
 end
 
 function unstable_check(dt, u_ode, integrator::SimpleIntegratorSSP)
-    if !isfinite(dt) || !all(isfinite, u_ode)
+    if mpi_isparallel()
+        u_isfinite = MPI.Allreduce!(Ref(all(isfinite, u_ode)), Base.min, mpi_comm())[]
+    else
+        u_isfinite = all(isfinite, u_ode)
+    end
+    if !isfinite(dt) || !u_isfinite
         @warn "Instability detected. Aborting"
         terminate!(integrator)
     end
