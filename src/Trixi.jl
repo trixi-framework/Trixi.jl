@@ -309,7 +309,7 @@ export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
 
-export ode_norm, ode_unstable_check
+export ode_norm, ode_unstable_check, unstable_check
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
