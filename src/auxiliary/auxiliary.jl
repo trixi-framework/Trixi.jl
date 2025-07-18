@@ -206,16 +206,19 @@ and [https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-re
 macro threaded(expr)
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
-    expr = if _PREFERENCE_POLYESTER
+    expr = @static if _PREFERENCE_THREADING === :polyester
         # Currently using `@batch` from Polyester.jl is more efficient,
         # bypasses the Julia task scheduler and provides parallelization with less overhead.
         quote
             $Trixi.@batch $(expr)
         end
-    else
+    elseif _PREFERENCE_THREADING === :static ||
+           _PREFERENCE_THREADING === :kernelabstractions
         # The following code is a simple version using only `Threads.@threads` from the
         # standard library with an additional check whether only a single thread is used
         # to reduce some overhead (and allocations) for serial execution.
+        # If we want to execute on KernelAbstractions, we use the static backend here to fallback on,
+        # for loops that do not yet support GPU execution.
         quote
             let
                 if $Threads.nthreads() == 1
@@ -224,6 +227,10 @@ macro threaded(expr)
                     $Threads.@threads :static $(expr)
                 end
             end
+        end
+    elseif _PREFERENCE_THREADING === :serial
+        quote
+            $(expr)
         end
     end
     # Use `esc(quote ... end)` for nested macro calls as suggested in
