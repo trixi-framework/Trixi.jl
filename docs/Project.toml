@@ -21,8 +21,8 @@ Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 Trixi2Vtk = "bc1476a1-1ca6-4cc3-950b-c312b255ff95"
 TrixiBase = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
 
-[sources]
-Trixi = {path = ".."}
+[sources.Trixi]
+path = ".."
 
 [compat]
 CairoMakie = "0.12, 0.13, 0.14, 0.15"
@@ -42,5 +42,6 @@ OrdinaryDiffEqSSPRK = "1.2"
 OrdinaryDiffEqTsit5 = "1.1"
 Plots = "1.9"
 Test = "1"
+Trixi = "0.12"
 Trixi2Vtk = "0.3.16"
 TrixiBase = "0.1.1"
