@@ -436,6 +436,8 @@ function calc_interface_flux!(surface_flux_values,
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations)
+            # TODO: Accumulate fluxes, i.e., `+=`? 
+            # Reset would then be handled by `reset_du!`
             surface_flux_values[v, left_direction, left_id] = flux[v]
             surface_flux_values[v, right_direction, right_id] = flux[v]
         end

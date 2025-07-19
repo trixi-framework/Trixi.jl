@@ -8,6 +8,7 @@
 # du .= zero(eltype(du)) doesn't scale when using multiple threads.
 # See https://github.com/trixi-framework/Trixi.jl/pull/924 for a performance comparison.
 function reset_du!(du, dg, cache, element_indices = eachelement(dg, cache))
+    # TODO: Reset surface flux values here?
     @threaded for element in element_indices
         du[.., element] .= zero(eltype(du))
     end
