@@ -233,8 +233,17 @@ end
 @trixi_testset "elixir_euler_weak_blast_er.jl (R-RK33)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_er.jl"),
-                        ode_alg = Trixi.RelaxationRK33(relaxation_solver = relaxation_solver),
-                        l2 = [0.11997439414534555, 0.15623739827340377, 0.44845187190603175], linf = [0.23093281301723256, 0.29607139943366695, 0.8777410365921128])
+                        ode_alg=Trixi.RelaxationRK33(relaxation_solver = relaxation_solver),
+                        l2=[
+                            0.11997439414534555,
+                            0.15623739827340377,
+                            0.44845187190603175
+                        ],
+                        linf=[
+                            0.23093281301723256,
+                            0.29607139943366695,
+                            0.8777410365921128
+                        ])
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
