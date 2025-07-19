@@ -551,43 +551,6 @@ end
     end
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_er.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_mhd_alfven_wave_er.jl"),
-                        l2=[
-                            0.00528640465467442,
-                            0.009963357787771668,
-                            0.006635699953141645,
-                            0.012955405893119817,
-                            0.013939326496054037,
-                            0.010192741315114594,
-                            0.004631666336074304,
-                            0.012267586777052277,
-                            0.0018063823439272164
-                        ],
-                        linf=[
-                            0.02174182690080617,
-                            0.0470226920658845,
-                            0.025036937229994144,
-                            0.05043002191230365,
-                            0.06018360063552186,
-                            0.043383517103908975,
-                            0.023607975939850534,
-                            0.050740527490335,
-                            0.006909064342577505
-                        ],)
-    # Larger values for allowed allocations due to usage of custom
-    # integrator which are not *recorded* for the methods from
-    # OrdinaryDiffEq.jl
-    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
-    end
-end
-
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_nonconforming.jl"),

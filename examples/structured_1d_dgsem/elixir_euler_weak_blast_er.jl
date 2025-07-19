@@ -46,7 +46,7 @@ callbacks = CallbackSet(summary_callback,
 relaxation_solver = Trixi.RelaxationSolverNewton(max_iterations = 5,
                                                  root_tol = eps(Float64),
                                                  gamma_tol = eps(Float64))
-ode_alg = Trixi.RelaxationRK44(relaxation_solver = relaxation_solver)
+ode_alg = Trixi.RelaxationRK33(relaxation_solver = relaxation_solver)
 
 sol = Trixi.solve(ode, ode_alg,
                   dt = 42.0, save_everystep = false, callback = callbacks);

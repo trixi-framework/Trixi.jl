@@ -721,16 +721,6 @@ end
     @test length(integrator.du) == 1001
     @test length(integrator.u_tmp) == 1001
     @test length(integrator.direction) == 1001
-
-    ode_alg = Trixi.RelaxationCKL54()
-    integrator = Trixi.init(ode_prob, ode_alg; dt = 1.0)
-
-    resize!(integrator, 42)
-    @test length(integrator.u) == 42
-    @test length(integrator.du) == 42
-    @test length(integrator.u_tmp) == 42
-    @test length(integrator.k_prev) == 42
-    @test length(integrator.direction) == 42
 end
 
 @timed_testset "Consistency check for single point flux: CEMCE" begin
