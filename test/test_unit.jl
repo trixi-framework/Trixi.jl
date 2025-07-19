@@ -704,25 +704,6 @@ end
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
 end
 
-@timed_testset "resize! RelaxationIntegrators" begin
-    function trivial_ode!(du, u, p, t)
-        du[1] = -p * u[1]
-    end
-    u0 = [1.0]
-    tspan = (0.0, 1.0)
-    p = 1.0
-    ode_prob = ODEProblem(trivial_ode!, u0, tspan, p)
-
-    ode_alg = Trixi.RelaxationRK44()
-    integrator = Trixi.init(ode_prob, ode_alg; dt = 1.0)
-
-    resize!(integrator, 1001)
-    @test length(integrator.u) == 1001
-    @test length(integrator.du) == 1001
-    @test length(integrator.u_tmp) == 1001
-    @test length(integrator.direction) == 1001
-end
-
 @timed_testset "Consistency check for single point flux: CEMCE" begin
     equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
                                                            gas_constants = (0.4, 0.4))

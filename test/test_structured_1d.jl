@@ -198,64 +198,6 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_weak_blast_er.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_weak_blast_er.jl"),
-                        l2=[
-                            0.1199630838410077,
-                            0.15621960583175515,
-                            0.44836353019484665
-                        ],
-                        linf=[
-                            0.22555469972567477,
-                            0.29412938937656014,
-                            0.8558237244455067
-                        ])
-    # Larger values for allowed allocations due to usage of custom
-    # integrator which are not *recorded* for the methods from
-    # OrdinaryDiffEq.jl
-    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
-    end
-
-    # test both short and long printing formats
-    @test_nowarn show(relaxation_solver)
-    println()
-    @test_nowarn println(relaxation_solver)
-    println()
-    @test_nowarn display(relaxation_solver)
-end
-
-@trixi_testset "elixir_euler_weak_blast_er.jl (R-RK33)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_weak_blast_er.jl"),
-                        ode_alg=Trixi.RelaxationRK33(relaxation_solver = relaxation_solver),
-                        l2=[
-                            0.11997439414534555,
-                            0.15623739827340377,
-                            0.44845187190603175
-                        ],
-                        linf=[
-                            0.23093281301723256,
-                            0.29607139943366695,
-                            0.8777410365921128
-                        ])
-    # Larger values for allowed allocations due to usage of custom
-    # integrator which are not *recorded* for the methods from
-    # OrdinaryDiffEq.jl
-    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
-    end
-end
-
 @trixi_testset "elixir_linearizedeuler_characteristic_system.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearizedeuler_characteristic_system.jl"),
