@@ -69,7 +69,7 @@ TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
 
 [compat]
-AMDGPU = "1.3.5"
+AMDGPU = "1.3.5, 2"
 Accessors = "0.1.36"
 Adapt = "4"
 CUDA = "5.8"
