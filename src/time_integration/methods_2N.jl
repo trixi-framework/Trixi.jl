@@ -109,15 +109,6 @@ mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
     finalstep::Bool # added for convenience
 end
 
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
-end
-
 function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
@@ -150,22 +141,6 @@ function solve(ode::ODEProblem, alg::SimpleAlgorithm2N;
 
     # Start actual solve
     solve!(integrator)
-end
-
-function solve!(integrator::SimpleIntegrator2N)
-    @unpack prob = integrator.sol
-
-    integrator.finalstep = false
-
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        step!(integrator)
-    end # "main loop" timer
-
-    finalize_callbacks(integrator)
-
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
 end
 
 function step!(integrator::SimpleIntegrator2N)
@@ -225,21 +200,10 @@ function step!(integrator::SimpleIntegrator2N)
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::SimpleIntegrator2N) = integrator.du
 get_tmp_cache(integrator::SimpleIntegrator2N) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegrator2N, ::Bool) = false
-
-# used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::SimpleIntegrator2N, dt)
-    integrator.dt = dt
-end
-
-# Required e.g. for `glm_speed_callback`
-function get_proposed_dt(integrator::SimpleIntegrator2N)
-    return integrator.dt
-end
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegrator2N)
