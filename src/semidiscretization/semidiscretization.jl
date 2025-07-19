@@ -82,14 +82,33 @@ end
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+
+The optional keyword arguments `storage_type` and `real_type` configure the underlying computational
+datastructures. `storage_type` changes the fundamental array type being used, allowing the
+experimental use of `CuArray` or other GPU array types. `real_type` changes the computational data type being used.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
-                        reset_threads = true)
+                        reset_threads = true,
+                        storage_type = nothing,
+                        real_type = nothing)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
     if reset_threads
         Polyester.reset_threads!()
+    end
+
+    if !(storage_type === nothing && real_type === nothing)
+        if storage_type === nothing
+            storage_type = Array
+        end
+        if real_type === nothing
+            real_type = real(semi)
+        end
+        semi = trixi_adapt(storage_type, real_type, semi)
+        if eltype(tspan) !== real_type
+            tspan = convert.(real_type, tspan)
+        end
     end
 
     u0_ode = compute_coefficients(first(tspan), semi)
@@ -155,9 +174,10 @@ end
 Same as [`compute_coefficients`](@ref) but stores the result in `u_ode`.
 """
 function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
+    backend = trixi_backend(u_ode)
     u = wrap_array(u_ode, semi)
     # Call `compute_coefficients` defined by the solver
-    compute_coefficients!(u, func, t, mesh_equations_solver_cache(semi)...)
+    compute_coefficients!(backend, u, func, t, mesh_equations_solver_cache(semi)...)
 end
 
 # Required for `VolumeIntegralSubcellLimiting` volume integral
