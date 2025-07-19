@@ -415,6 +415,9 @@ struct DG{Basis, Mortar, SurfaceIntegral, VolumeIntegral}
     volume_integral::VolumeIntegral
 end
 
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(DG)
+
 function Base.show(io::IO, dg::DG)
     @nospecialize dg # reduce precompilation time
 
@@ -639,8 +642,11 @@ include("fdsbp_unstructured/fdsbp.jl")
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
-    zeros(eltype(cache.elements),
-          nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    u_ode = similar(cache.elements.node_coordinates, eltype(cache.elements),
+                    nvariables(equations) * nnodes(dg)^ndims(mesh) *
+                    nelements(dg, cache))
+    fill!(u_ode, zero(eltype(u_ode)))
+    return u_ode
 end
 
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
@@ -683,7 +689,8 @@ end
         #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
+        ArrayType = Trixi.storage_type(u_ode)
+        unsafe_wrap(ArrayType{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
                     (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
                      nelements(dg, cache)))
     end
@@ -732,8 +739,8 @@ end
                  nelements(dg, cache)))
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg::DG,
-                               cache)
+function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
+                               equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
@@ -753,20 +760,43 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg:
     end
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations, dg::DG,
-                               cache)
+function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
+                               equations, dg::DG, cache)
+    @unpack node_coordinates = cache.elements
     @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     j, element)
-            u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, element)
-        end
+        compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
+                                      element)
     end
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG,
-                               cache)
+function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
+                               equations, dg::DG, cache)
+    nelements(dg, cache) == 0 && return nothing
+    @unpack node_coordinates = cache.elements
+    kernel! = compute_coefficients_kernel!(backend)
+    kernel!(u, func, t, equations, dg, node_coordinates,
+            ndrange = nelements(dg, cache))
+    return nothing
+end
+
+@kernel function compute_coefficients_kernel!(u, func, t, equations,
+                                              dg::DG, node_coordinates)
+    element = @index(Global)
+    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates, element)
+end
+
+function compute_coefficients_element!(u, func, t, equations, dg::DG,
+                                       node_coordinates, element)
+    for j in eachnode(dg), i in eachnode(dg)
+        x_node = get_node_coords(node_coordinates, equations, dg, i,
+                                 j, element)
+        u_node = func(x_node, t, equations)
+        set_node_vars!(u, u_node, equations, dg, i, j, element)
+    end
+end
+
+function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
+                               equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,

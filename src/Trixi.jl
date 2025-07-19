@@ -20,6 +20,7 @@ const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
 const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
 const _PREFERENCE_POLYESTER = @load_preference("polyester", true)
 const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
+const _PREFERENCE_USE_NATIVE_THREADING = @load_preference("native_threading", true)
 
 # Include other packages that are used in Trixi.jl
 # (standard library packages first, other packages next, all of them sorted alphabetically)
@@ -50,6 +51,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
 
 using DelimitedFiles: readdlm
 using Downloads: Downloads
+using Adapt: Adapt, adapt
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
 using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
@@ -58,6 +60,7 @@ using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
+using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
     using LoopVectorization: LoopVectorization, @turbo, indices
@@ -132,6 +135,7 @@ include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
+include("auxiliary/vector_of_arrays.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
 include("auxiliary/t8code.jl")
@@ -190,6 +194,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
+       flux_nonconservative_powell_local_jump,
        flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal,
        flux_nonconservative_central,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
