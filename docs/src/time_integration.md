@@ -298,7 +298,7 @@ H(\boldsymbol U_n) +
 ```
 This comes only at the price that one needs to solve the scalar nonlinear equation (6) for $\gamma$ at every time step.
 To do so, [`Trixi.RelaxationSolverNewton`](@ref) is implemented in Trixi.jl.
-These can then be supplied to the relaxation time algorithms such as [`Trixi.RelaxationRK33`](@ref), [`Trixi.RelaxationRK44`](@ref), [`Trixi.RelaxationCKL43`](@ref), and [`Trixi.RelaxationCKL54`](@ref) via specifying the `relaxation_solver` keyword argument:
+These can then be supplied to the relaxation time algorithms such as [`Trixi.RelaxationRK33`](@ref) and [`Trixi.RelaxationRK44`](@ref) via specifying the `relaxation_solver` keyword argument:
 ```julia
 ode_algorithm = Trixi.RelaxationCKL43(solver = Trixi.RelaxationSolverNewton())
 ```

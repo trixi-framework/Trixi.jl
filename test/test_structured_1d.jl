@@ -201,6 +201,7 @@ end
 @trixi_testset "elixir_euler_weak_blast_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_er.jl"),
+                        analysis_interval=100,
                         l2=[
                             0.1199630838410077,
                             0.15621960583175515,
@@ -234,6 +235,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_er.jl"),
                         ode_alg=Trixi.RelaxationRK33(relaxation_solver = relaxation_solver),
+                        analysis_interval=100,
                         l2=[
                             0.11997439414534555,
                             0.15623739827340377,

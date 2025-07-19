@@ -26,7 +26,8 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_callback = AnalysisCallback(semi, interval = 1,
+analysis_interval = 1
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_errors = Symbol[], # Switch off error computation
                                      # Note: `entropy` defaults to mathematical entropy
                                      analysis_integrals = (entropy,),
@@ -46,7 +47,7 @@ callbacks = CallbackSet(summary_callback,
 relaxation_solver = Trixi.RelaxationSolverNewton(max_iterations = 5,
                                                  root_tol = eps(Float64),
                                                  gamma_tol = eps(Float64))
-ode_alg = Trixi.RelaxationRK33(relaxation_solver = relaxation_solver)
+ode_alg = Trixi.RelaxationRK44(relaxation_solver = relaxation_solver)
 
 sol = Trixi.solve(ode, ode_alg,
                   dt = 42.0, save_everystep = false, callback = callbacks);
