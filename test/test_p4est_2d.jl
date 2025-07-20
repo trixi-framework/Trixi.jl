@@ -394,23 +394,27 @@ end
     # Test `resize!`
     ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks)
     integrator = Trixi.init(ode, ode_alg, dt = 42.0, callback = callbacks)
+
     resize!(integrator, 42)
     @test length(integrator.u) == 42
     @test length(integrator.du) == 42
     @test length(integrator.u_tmp) == 42
 
     # Test `resize!` for non `VolumeIntegralSubcellLimiting`
-    solver = DGSEM(basis, surface_flux)
-    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
-    tspan = (0.0, 3.0)
-    ode = semidiscretize(semi, tspan)
-    ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = (;))
-    callbacks = CallbackSet(summary_callback)
-    integrator = Trixi.init(ode, ode_alg, dt = 11.0, callback = callbacks)
-    resize!(integrator, 4711)
-    @test length(integrator.u) == 4711
-    @test length(integrator.du) == 4711
-    @test length(integrator.u_tmp) == 4711
+    let
+        solver = DGSEM(basis, surface_flux)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+        ode = semidiscretize(semi, tspan)
+        ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = (;))
+        callbacks = CallbackSet(summary_callback)
+        integrator = Trixi.init(ode, ode_alg, dt = 11.0, callback = callbacks)
+
+        resize!(integrator, 4711)
+        @test length(integrator.u) == 4711
+        @test length(integrator.du) == 4711
+        @test length(integrator.u_tmp) == 4711
+    end
 end
 
 @trixi_testset "elixir_euler_sedov.jl with HLLC Flux" begin
