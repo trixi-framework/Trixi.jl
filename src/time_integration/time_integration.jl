@@ -16,6 +16,9 @@ end
 # Abstract supertype of Trixi.jl's own time integrators for dispatch
 abstract type AbstractTimeIntegrator end
 
+# Abstract supertype for the time integration algorithms of Trixi.jl
+abstract type AbstractTimeIntegrationAlgorithm end
+
 # get a cache where the RHS can be stored
 get_du(integrator::AbstractTimeIntegrator) = integrator.du
 
@@ -36,6 +39,15 @@ end
 # Required e.g. for `glm_speed_callback` 
 function get_proposed_dt(integrator::AbstractTimeIntegrator)
     return integrator.dt
+end
+
+# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
+function solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
+               dt, callback = nothing, kwargs...)
+    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+
+    # Start actual solve
+    solve!(integrator)
 end
 
 function solve!(integrator::AbstractTimeIntegrator)

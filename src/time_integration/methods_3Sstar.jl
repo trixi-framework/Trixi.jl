@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Abstract base type for time integration schemes of storage class `3S*`
-abstract type SimpleAlgorithm3Sstar end
+abstract type SimpleAlgorithm3Sstar <: AbstractTimeIntegrationAlgorithm end
 
 """
     HypDiffN3Erk3Sstar52()
@@ -131,9 +131,7 @@ struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
 end
 
 mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
-                                      # Re-use options
-                                      SimpleIntegrator2NOptions} <:
-               AbstractTimeIntegrator
+                                      SimpleIntegratorOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
     u_tmp1::uType
@@ -146,7 +144,7 @@ mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
     sol::Sol # faked
     f::F # `rhs!` of the semidiscretization
     alg::Alg # SimpleAlgorithm3Sstar
-    opts::SimpleIntegrator2NOptions # Re-used
+    opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
 end
 
@@ -161,9 +159,9 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
     integrator = SimpleIntegrator3Sstar(u, du, u_tmp1, u_tmp2, t, dt, zero(dt), iter,
                                         ode.p,
                                         (prob = ode,), ode.f, alg,
-                                        SimpleIntegrator2NOptions(callback,
-                                                                  ode.tspan;
-                                                                  kwargs...), false)
+                                        SimpleIntegratorOptions(callback,
+                                                                ode.tspan;
+                                                                kwargs...), false)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -176,15 +174,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
     end
 
     return integrator
-end
-
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
 end
 
 function step!(integrator::SimpleIntegrator3Sstar)

@@ -265,6 +265,9 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+# Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
+Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
+
 function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
     # Resize container antidiffusive_fluxes
     resize!(semi.cache.antidiffusive_fluxes, new_size)

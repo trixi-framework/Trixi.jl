@@ -7,7 +7,7 @@
 
 # Abstract base type for time integration schemes of explicit strong stability-preserving (SSP)
 # Runge-Kutta (RK) methods. They are high-order time discretizations that guarantee the TVD property.
-abstract type SimpleAlgorithmSSP end
+abstract type SimpleAlgorithmSSP <: AbstractTimeIntegrationAlgorithm end
 
 """
     SimpleSSPRK33(; stage_callbacks=())
@@ -148,20 +148,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     end
 
     return integrator
-end
-
-"""
-    solve(ode, alg; dt, callbacks, kwargs...)
-
-The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
-of type `SimpleAlgorithmSSP`.
-"""
-function solve(ode::ODEProblem, alg::SimpleAlgorithmSSP;
-               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
 end
 
 function solve!(integrator::SimpleIntegratorSSP)
