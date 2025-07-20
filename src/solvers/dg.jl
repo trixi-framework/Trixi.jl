@@ -177,8 +177,61 @@ function Base.show(io::IO, mime::MIME"text/plain",
 end
 
 function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralShockCapturingHG, dg,
-                                cache)
+                                volume_integral::VolumeIntegralShockCapturingHG,
+                                dg, cache)
+    # call the indicator to get up-to-date values for IO
+    volume_integral.indicator(u, mesh, equations, dg, cache)
+    get_element_variables!(element_variables, volume_integral.indicator,
+                           volume_integral)
+end
+
+"""
+    VolumeIntegralAdaptive(indicator;
+                           volume_integral_default = VolumeIntegralWeakForm(),
+                           volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central))
+
+TODO
+Possible combinations: Default [`VolumeIntegralWeakForm`](@ref) and [`VolumeIntegralFluxDifferencing`], but also 
+possible [`VolumeIntegralWeakForm()`](@ref) and [`VolumeIntegralShockCapturingHG`](@ref)
+"""
+struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
+                              Indicator} <: AbstractVolumeIntegral
+    volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
+    volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
+    indicator::Indicator
+end
+
+function VolumeIntegralAdaptive(indicator;
+                                volume_integral_default = VolumeIntegralWeakForm(),
+                                volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central))
+    VolumeIntegralAdaptive{typeof(volume_integral_default),
+                           typeof(volume_integral_stabilized),
+                           typeof(indicator)}(volume_integral_default,
+                                              volume_integral_stabilized,
+                                              indicator)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralAdaptive)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralAdaptive")
+        summary_line(io, "volume integral default",
+                     integral.volume_integral_default)
+        summary_line(io, "volume integral stabilized",
+                     integral.volume_integral_stabilized)
+        # TODO: Revisit integrator print
+        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
+        summary_footer(io)
+    end
+end
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralAdaptive,
+                                dg, cache)
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator(u, mesh, equations, dg, cache)
     get_element_variables!(element_variables, volume_integral.indicator,

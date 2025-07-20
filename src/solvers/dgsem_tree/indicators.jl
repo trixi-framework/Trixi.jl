@@ -264,4 +264,58 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
         summary_box(io, "IndicatorMax", setup)
     end
 end
+
+struct IndicatorEntropyViolation{EntropyFunction, RealT <: Real, Cache <: NamedTuple} <:
+       AbstractIndicator
+    entropy_function::EntropyFunction
+    threshold::RealT
+    cache::Cache
+end
+
+# this method is used when the indicator is constructed as for adaptive volume integrals
+function IndicatorEntropyViolation(basis; entropy_function = entropy, threshold = 1e-9)
+    cache = create_cache(IndicatorEntropyViolation, basis)
+    IndicatorEntropyViolation{typeof(entropy_function),
+                              typeof(threshold),
+                              typeof(cache)}(entropy_function,
+                                             threshold, cache)
+end
+
+# this method is used when the indicator is constructed as for AMR
+function IndicatorEntropyViolation(semi::AbstractSemidiscretization;
+                                   entropy_function = entropy, threshold = 1e-9)
+    cache = create_cache(IndicatorMax, semi)
+    return IndicatorEntropyViolation{typeof(variable),
+                                     typeof(threshold),
+                                     typeof(cache)}(entropy_function,
+                                                    threshold, cache)
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyViolation)
+    @nospecialize indicator # reduce precompilation time
+
+    print(io, "IndicatorEntropyViolation(")
+    print(io, "entropy_function=", indicator.entropy_function, ")")
+    # TODO
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyViolation)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "indicator entropy function" => indicator.entropy_function
+        # TODO
+        ]
+        summary_box(io, "IndicatorEntropyViolation", setup)
+    end
+end
+
+function get_element_variables!(element_variables, indicator::IndicatorEntropyViolation,
+                                ::VolumeIntegralAdaptive)
+    element_variables[:indicator_volume_integral_adaptive] = Int.(indicator.cache.alpha)
+    return nothing
+end
 end # @muladd

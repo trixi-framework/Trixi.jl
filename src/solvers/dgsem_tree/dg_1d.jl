@@ -54,6 +54,13 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
 end
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+                      volume_integral::VolumeIntegralAdaptive, dg::DG, uEltype)
+    return create_cache(mesh, equations,
+                        volume_integral.volume_integral_stabilized,
+                        dg, uEltype)
+end
+
+function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
     A2dp1_x = Array{uEltype, 2}
@@ -276,6 +283,42 @@ function calc_volume_integral!(du, u,
             # Calculate FV volume integral contribution
             fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
                        dg, cache, element, alpha_element)
+        end
+    end
+
+    return nothing
+end
+
+function calc_volume_integral!(du, u,
+                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
+                                                                       VolumeIntegralFD,
+                                                                       Indicator},
+                               dg::DGSEM,
+                               cache) where {
+                                             VolumeIntegralFD <:
+                                             VolumeIntegralFluxDifferencing,
+                                             Indicator <: AbstractIndicator}
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+
+    # Calculate decision variable
+    decision = @trixi_timeit timer() "decision variable" indicator(u, mesh, equations,
+                                                                   dg, cache)
+
+    @threaded for element in eachelement(dg, cache)
+        stabilized_version = decision[element]
+
+        # TODO: Generalize/Dispatch or introduce yet sub-functions of the volume integrals
+        if stabilized_version
+            flux_differencing_kernel!(du, u, element, mesh,
+                                      nonconservative_terms, equations,
+                                      volume_integral_stabilized.volume_flux,
+                                      dg, cache)
+        else
+            weak_form_kernel!(du, u, element, mesh,
+                              nonconservative_terms, equations,
+                              dg, cache)
         end
     end
 
