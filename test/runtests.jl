@@ -118,4 +118,13 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
             @warn "Unable to run CUDA tests on this machine"
         end
     end
+
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "AMDGPU"
+        import AMDGPU
+        if AMDGPU.functional()
+            include("test_amdgpu.jl")
+        else
+            @warn "Unable to run AMDGPU tests on this machine"
+        end
+    end
 end
