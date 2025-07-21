@@ -42,15 +42,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
-
-basis = LobattoLegendreBasis(3)
-indicator = Trixi.IndicatorEntropyViolation(basis; threshold = 1e-6)
-volume_integral = Trixi.VolumeIntegralAdaptive(indicator;
-                                               volume_integral_default = VolumeIntegralWeakForm(),
-                                               volume_integral_stabilized = VolumeIntegralFluxDifferencing(volume_flux))
-
-solver = DGSEM(basis, surface_flux, volume_integral)               
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))           
 
 boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition),
                        x_pos = BoundaryConditionDirichlet(initial_condition),
@@ -87,7 +79,7 @@ glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        #save_solution,
+                        save_solution,
                         stepsize_callback,
                         glm_speed_callback)
 
