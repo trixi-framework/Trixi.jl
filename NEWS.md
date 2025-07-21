@@ -5,6 +5,17 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+
+## Changes when updating to v0.13 from v0.12.x
+
+#### Changed
+
+- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!` function got renamed to `Trixi.set_threading_backend!` ([#2476]).
+
+#### Deprecated
+
+#### Removed
+
 ## Changes in the v0.12 lifecycle
 
 #### Added
