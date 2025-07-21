@@ -202,9 +202,7 @@ function create_cache(::Type{IndicatorEntropyViolation}, basis::LobattoLegendreB
     entropy_old = Vector{real(basis)}()
     alpha = Vector{Bool}()
 
-    indicator_threaded = Vector{real(basis)}(undef, Threads.nthreads())
-
-    return (; alpha, entropy_old, indicator_threaded)
+    return (; alpha, entropy_old)
 end
 
 # this method is used when the indicator is constructed as for AMR
@@ -219,7 +217,7 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
                                                                   mesh, equations,
                                                                   dg::DGSEM, cache;
                                                                   kwargs...)
-    @unpack alpha, entropy_old, indicator_threaded = indicator_entropy_violation.cache
+    @unpack alpha, entropy_old = indicator_entropy_violation.cache
     resize!(alpha, nelements(dg, cache))
     @unpack entropy_function, threshold = indicator_entropy_violation
 
@@ -237,26 +235,20 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
         end
     else
         @threaded for element in eachelement(dg, cache)
-            #entropy_element = indicator_threaded[Threads.threadid()]
             entropy_element = zero(eltype(u))
-            #indicator_threaded[Threads.threadid()] = zero(eltype(u))
 
             # Calculate indicator variables at Gauss-Lobatto nodes
             for i in eachnode(dg)
                 u_local = get_node_vars(u, equations, dg, i, element)
                 entropy_element += entropy_function(u_local, equations)
-                #indicator_threaded[Threads.threadid()] += entropy_function(u_local, equations)
             end
 
-            #if entropy_element - entropy_old[element] > threshold
-            if entropy_element - entropy_old[element] > 1e-9
-                #if indicator_threaded[Threads.threadid()] - entropy_old[element] > threshold
+            if entropy_element - entropy_old[element] > threshold
                 alpha[element] = true
             else
                 alpha[element] = false
             end
             entropy_old[element] = entropy_element
-            #entropy_old[element] = indicator_threaded[Threads.threadid()]
         end
     end
 
