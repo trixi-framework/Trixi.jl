@@ -379,6 +379,45 @@ function calc_volume_integral!(du, u,
                                            UnstructuredMesh2D, P4estMesh{2},
                                            T8codeMesh{2}},
                                nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
+                                                                       VolumeIntegralFD,
+                                                                       Indicator},
+                               dg::DGSEM,
+                               cache) where {
+                                             VolumeIntegralFD <:
+                                             VolumeIntegralFluxDifferencing,
+                                             Indicator <: AbstractIndicator}
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+
+    # Calculate decision variable
+    decision = @trixi_timeit timer() "decision variable" indicator(u, mesh, equations,
+                                                                   dg, cache)
+
+    @threaded for element in eachelement(dg, cache)
+        stabilized_version = decision[element]
+
+        # TODO: Generalize/Dispatch or introduce yet sub-functions of the volume integrals
+        if stabilized_version
+            flux_differencing_kernel!(du, u, element, mesh,
+                                      nonconservative_terms, equations,
+                                      volume_integral_stabilized.volume_flux,
+                                      dg, cache)
+        else
+            weak_form_kernel!(du, u, element, mesh,
+                              nonconservative_terms, equations,
+                              dg, cache)
+        end
+    end
+
+    return nothing
+end
+
+# TODO: Taal dimension agnostic
+function calc_volume_integral!(du, u,
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}},
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)
     @unpack volume_flux_fv = volume_integral

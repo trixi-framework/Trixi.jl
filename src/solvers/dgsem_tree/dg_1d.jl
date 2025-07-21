@@ -289,6 +289,7 @@ function calc_volume_integral!(du, u,
     return nothing
 end
 
+# TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
