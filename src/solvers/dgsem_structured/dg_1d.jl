@@ -70,9 +70,9 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
     return nothing
 end
 
-# TODO: Taal dimension agnostic
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D structured meshes
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::StructuredMesh{1}, equations, surface_integral,
+                             mesh::StructuredMesh, equations, surface_integral,
                              dg::DG)
     @assert isperiodic(mesh)
 end

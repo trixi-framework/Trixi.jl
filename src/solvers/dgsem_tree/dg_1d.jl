@@ -122,8 +122,8 @@ function rhs!(du, u, t,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -164,8 +164,10 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
+# For curved meshes averaging of the mapping terms, stored in `cache.elements.contravariant_vectors`, 
+# is peeled apart from the evaluation of the physical fluxes in each Cartesian direction.
+function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -242,9 +244,8 @@ end
     end
 end
 
-# TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -282,9 +283,8 @@ function calc_volume_integral!(du, u,
     return nothing
 end
 
-# TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)
@@ -492,9 +492,9 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-# TODO: Taal dimension agnostic
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
+                             mesh::TreeMesh, equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
 end
 
@@ -630,9 +630,9 @@ function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
     return nothing
 end
 
-# TODO: Taal dimension agnostic
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function calc_sources!(du, u, t, source_terms::Nothing,
-                       equations::AbstractEquations{1}, dg::DG, cache)
+                       equations::AbstractEquations, dg::DG, cache)
     return nothing
 end
 
