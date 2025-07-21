@@ -224,7 +224,7 @@ end
 function Adapt.adapt_structure(to, mpi_mortars::P4estMPIMortarContainer)
     # Only parts of this container are adapted, since we currently don't
     # use `local_neighbor_ids`, `local_neighbor_positions`, `normal_directions`
-    # on the GPU. If we do need them we need to redesign this to use the VecOfArrays
+    # on the GPU. If we do need them we need to redesign this to use the VectorOfArray
     # approach.
 
     _u = adapt(to, mpi_mortars._u)

@@ -44,7 +44,10 @@ function P4estMPICache(uEltype)
                            first_element_global_id)
 end
 
-@inline Base.eltype(::P4estMPICache{uEltype}) where {uEltype} = uEltype
+@inline Base.eltype(::P4estMPICache{BufferType}) where {BufferType} = eltype(BufferType)
+
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(P4estMPICache)
 
 ##
 # Note that the code in `start_mpi_send`/`finish_mpi_receive!` is sensitive to inference on (at least) Julia 1.10.
@@ -266,16 +269,20 @@ end
 
 function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
                          mpi_interfaces, mpi_mortars, nvars, n_nodes, uEltype)
-    mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_interfaces,
-                                                                                                       mpi_mortars,
-                                                                                                       mesh)
-
-    mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(mpi_neighbor_interfaces,
-                                                                                                        mpi_neighbor_mortars,
-                                                                                                        ndims(mesh),
-                                                                                                        nvars,
-                                                                                                        n_nodes,
-                                                                                                        uEltype)
+    mpi_neighbor_ranks,
+    mpi_neighbor_interfaces,
+    mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_interfaces,
+                                                          mpi_mortars,
+                                                          mesh)
+    mpi_send_buffers,
+    mpi_recv_buffers,
+    mpi_send_requests,
+    mpi_recv_requests = init_mpi_data_structures(mpi_neighbor_interfaces,
+                                                 mpi_neighbor_mortars,
+                                                 ndims(mesh),
+                                                 nvars,
+                                                 n_nodes,
+                                                 uEltype)
 
     # Determine local and total number of elements
     n_elements_global = Int(mesh.p4est.global_num_quadrants[])
