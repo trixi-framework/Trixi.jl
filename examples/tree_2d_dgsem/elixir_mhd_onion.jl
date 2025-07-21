@@ -44,6 +44,14 @@ volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
+basis = LobattoLegendreBasis(3)
+indicator = Trixi.IndicatorEntropyViolation(basis; threshold = 1e-6)
+volume_integral = Trixi.VolumeIntegralAdaptive(indicator;
+                                               volume_integral_default = VolumeIntegralWeakForm(),
+                                               volume_integral_stabilized = VolumeIntegralFluxDifferencing(volume_flux))
+
+solver = DGSEM(basis, surface_flux, volume_integral)               
+
 boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition),
                        x_pos = BoundaryConditionDirichlet(initial_condition),
                        y_neg = BoundaryConditionDirichlet(initial_condition),
