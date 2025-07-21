@@ -64,7 +64,8 @@ end
                             l2=[0.00017373554109980247],
                             linf=[0.0006021275678165239],
                             maxiters=1,
-                            initial_condition=Trixi.initial_condition_sin)
+                            initial_condition=Trixi.initial_condition_sin,
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_constant" begin
@@ -72,7 +73,8 @@ end
                             l2=[2.441369287653687e-16],
                             linf=[4.440892098500626e-16],
                             maxiters=1,
-                            initial_condition=initial_condition_constant)
+                            initial_condition=initial_condition_constant,
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
@@ -82,7 +84,8 @@ end
                             maxiters=1,
                             initial_condition=Trixi.initial_condition_linear_x,
                             boundary_conditions=Trixi.boundary_condition_linear_x,
-                            periodicity=false)
+                            periodicity=false,
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
@@ -92,7 +95,8 @@ end
                             maxiters=1,
                             initial_condition=initial_condition_convergence_test,
                             boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
-                            periodicity=false)
+                            periodicity=false,
+                            visualization=TrivialCallback())
     end
 end
 
@@ -181,6 +185,7 @@ end
                 redirect_stderr(f) do
                     trixi_include(joinpath(EXAMPLES_DIR,
                                            "elixir_advection_extended.jl"),
+                                  visualization = TrivialCallback(),
                                   summary_callback = TrivialCallback(),
                                   analysis_callback = TrivialCallback(),
                                   alive_callback = TrivialCallback())

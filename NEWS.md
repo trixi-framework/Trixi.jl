@@ -17,7 +17,13 @@ for human readability.
   In v0.13, `flux_lax_friedrichs = FluxLaxFriedrichs(max_abs_speed = max_abs_speed)`
   instead of the previous default 
   `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)` ([#2458]).
+- The signature of the `VisualizationCallback` constructor changed.
+  In the new version, it is mandatory to pass the semidiscretization `semi` to
+  determine the default plotting type (1D for 1D simulations, 2D for 2D and 3D simulations).
+  This can further be customized via the keyword argument `plot_data_creator`, which had
+  the default value `plot_data_creator = PlotData2D` before the change ([#2468]).
 
+#### Removed
 
 - Deprecations introduced in earlier versions of Trixi.jl have been removed.
 
