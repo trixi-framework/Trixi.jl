@@ -109,7 +109,7 @@ function apply_smoothing!(mesh::TreeMesh{1}, alpha, alpha_tmp, dg, cache)
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations,
+function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{1},
                       basis::LobattoLegendreBasis)
     alpha = Vector{real(basis)}()
 
@@ -159,7 +159,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 3},
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorMax}, equations::AbstractEquations,
+function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{1},
                       basis::LobattoLegendreBasis)
     alpha = Vector{real(basis)}()
 
