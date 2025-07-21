@@ -144,6 +144,18 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
     end
 end
 
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{3},
+                      basis::LobattoLegendreBasis)
+    alpha = Vector{real(basis)}()
+
+    A = Array{real(basis), ndims(equations)}
+    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
+                          for _ in 1:Threads.nthreads()]
+
+    return (; alpha, indicator_threaded)
+end
+
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
                                    mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
@@ -191,6 +203,18 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
     end
 
     return alpha
+end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{3},
+                      basis::LobattoLegendreBasis)
+    alpha = Vector{real(basis)}()
+
+    A = Array{real(basis), ndims(equations)}
+    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
+                          for _ in 1:Threads.nthreads()]
+
+    return (; alpha, indicator_threaded)
 end
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
