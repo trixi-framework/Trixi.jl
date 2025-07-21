@@ -630,9 +630,9 @@ function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
     return nothing
 end
 
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+# Need dimension specific version to avoid error at dispatching
 function calc_sources!(du, u, t, source_terms::Nothing,
-                       equations::AbstractEquations, dg::DG, cache)
+                       equations::AbstractEquations{1}, dg::DG, cache)
     return nothing
 end
 

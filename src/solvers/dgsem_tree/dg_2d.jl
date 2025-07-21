@@ -1085,6 +1085,12 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
     return nothing
 end
 
+# Need dimension specific version to avoid error at dispatching
+function calc_sources!(du, u, t, source_terms::Nothing,
+                       equations::AbstractEquations{2}, dg::DG, cache)
+    return nothing
+end
+
 function calc_sources!(du, u, t, source_terms,
                        equations::AbstractEquations{2}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
