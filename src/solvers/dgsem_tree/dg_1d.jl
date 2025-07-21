@@ -33,7 +33,8 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+function create_cache(mesh, equations,
                       volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
     NamedTuple()
 end
