@@ -10,6 +10,8 @@ for human readability.
 
 #### Changed
 
+- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!` 
+  function got renamed to `Trixi.set_threading_backend!` ([#2476]).
 - Default wave-speed estimate used within `flux_lax_friedrichs` changed from `max_abs_speed_naive` to
   `max_abs_speed` which is less diffusive.
   In v0.13, `flux_lax_friedrichs = FluxLaxFriedrichs(max_abs_speed = max_abs_speed)`
