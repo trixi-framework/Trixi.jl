@@ -16,6 +16,9 @@ for human readability.
 
 #### Removed
 
+- Deprecations introduced in earlier versions of Trixi.jl have been removed.
+
+
 ## Changes in the v0.12 lifecycle
 
 #### Added
@@ -44,10 +47,10 @@ for human readability.
 
 #### Removed
 
-- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and 
-  `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via 
-  [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/). 
-  This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, 
+- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and
+  `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via
+  [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/).
+  This also affects the related functions `hydrostatic_reconstruction_audusse_etal`,
   `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
 - The additional `ìnitial_cache` entries in the caches of `SemidiscretizationHyperbolic`
   and `SemidiscretizationHyperbolicParabolic`, and the corresponding keyword arguments of
@@ -57,7 +60,7 @@ for human readability.
 
 #### Added
 
-- Added symmetry plane/reflective wall velocity+stress boundary conditions for the compressible Navier-Stokes equations in 2D and 3D. 
+- Added symmetry plane/reflective wall velocity+stress boundary conditions for the compressible Navier-Stokes equations in 2D and 3D.
   Currently available only for the `P4estMesh` mesh type, `GradientVariablesPrimitive`, and `Adiabatic` heat boundary condition ([#2416]).
 - Added `LaplaceDiffusionEntropyVariables1D`, `LaplaceDiffusionEntropyVariables2D`, and `LaplaceDiffusionEntropyVariables3D`. These add scalar diffusion to each
   equation of a system, but apply diffusion in terms of the entropy variables, which symmetrizes the viscous formulation and ensures semi-discrete entropy dissipation ([#2406]).
@@ -70,8 +73,8 @@ for human readability.
 
 #### Deprecated
 
-- The (2D) aerodynamic coefficients 
-  `DragCoefficientPressure, LiftCoefficientPressure, DragCoefficientShearStress, LiftCoefficientShearStress` have been renamed to 
+- The (2D) aerodynamic coefficients
+  `DragCoefficientPressure, LiftCoefficientPressure, DragCoefficientShearStress, LiftCoefficientShearStress` have been renamed to
   `DragCoefficientPressure2D, LiftCoefficientPressure2D, DragCoefficientShearStress2D, LiftCoefficientShearStress2D`. ([#2375])
 
 ## Changes when updating to v0.11 from v0.10.x
