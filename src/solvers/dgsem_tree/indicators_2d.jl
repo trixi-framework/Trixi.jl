@@ -230,4 +230,47 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
 
     return alpha
 end
+
+function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArray{<:Any,
+                                                                                   4},
+                                                                  mesh, equations,
+                                                                  dg::DGSEM, cache;
+                                                                  kwargs...)
+    @unpack alpha, entropy_old = indicator_entropy_violation.cache
+    resize!(alpha, nelements(dg, cache))
+    @unpack entropy_function, threshold = indicator_entropy_violation
+
+    # Beginning of simulation or after AMR
+    if length(entropy_old) != nelements(dg, cache)
+        resize!(entropy_old, nelements(dg, cache))
+
+        @threaded for element in eachelement(dg, cache)
+            entropy_old[element] = zero(eltype(u))
+            for j in eachnode(dg), i in eachnode(dg)
+                u_local = get_node_vars(u, equations, dg, i, j, element)
+                entropy_old[element] += entropy_function(u_local, equations)
+            end
+            alpha[element] = true # Be conservative: Use stabilized volume integral everywhere
+        end
+    else
+        @threaded for element in eachelement(dg, cache)
+            entropy_element = zero(eltype(u))
+
+            # Calculate indicator variables at Gauss-Lobatto nodes
+            for j in eachnode(dg), i in eachnode(dg)
+                u_local = get_node_vars(u, equations, dg, i, j, element)
+                entropy_element += entropy_function(u_local, equations)
+            end
+
+            if entropy_element - entropy_old[element] > threshold
+                alpha[element] = true
+            else
+                alpha[element] = false
+            end
+            entropy_old[element] = entropy_element
+        end
+    end
+
+    return alpha
+end
 end # @muladd

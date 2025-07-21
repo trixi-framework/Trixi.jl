@@ -207,7 +207,7 @@ end
 
 # this method is used when the indicator is constructed as for AMR
 function create_cache(typ::Type{IndicatorEntropyViolation}, mesh,
-                      equations::AbstractEquations{1},
+                      equations::AbstractEquations,
                       dg::DGSEM, cache)
     cache = create_cache(typ, dg.basis)
 end
