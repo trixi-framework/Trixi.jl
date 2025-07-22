@@ -120,6 +120,15 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
     return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
 
+"""
+    semidiscretize(semi::AbstractSemidiscretization, tspan)
+
+Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
+that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+
+The arguments `jac_prototype` and `coloring` are SparseDiffTools objects which will be used 
+to reduce repeating calculations as part of the ODE solve.
+"""
 function semidiscretize(semi::AbstractSemidiscretization, jac_prototype, coloring, tspan;
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
