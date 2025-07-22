@@ -6,7 +6,8 @@ using Trixi
 advection_velocity = (1.0, 1.0, 1.0)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
-solver = DGSEM(polydeg = 2, surface_flux = flux_central) # Entropy-conservative setup
+solver = DGSEM(polydeg = 2, surface_flux = flux_central,
+               volume_integral = VolumeIntegralFluxDifferencing(flux_central)) # Entropy-conservative setup
 
 coordinates_min = (-1.0, -1.0, -1.0)
 coordinates_max = (1.0, 1.0, 1.0)

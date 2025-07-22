@@ -117,7 +117,7 @@ end
 
 @trixi_testset "elixir_advection_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_er.jl"),
-                        l2=[0.005193350046804779], linf=[0.025986449703268133])
+                        l2=[0.005193350046804989], linf=[0.025986449703267578])
 
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
