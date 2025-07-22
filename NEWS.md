@@ -5,12 +5,36 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+
+## Changes when updating to v0.13 from v0.12.x
+
+#### Changed
+
+- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!` 
+  function got renamed to `Trixi.set_threading_backend!` ([#2476]).
+- Default wave-speed estimate used within `flux_lax_friedrichs` changed from `max_abs_speed_naive` to
+  `max_abs_speed` which is less diffusive.
+  In v0.13, `flux_lax_friedrichs = FluxLaxFriedrichs(max_abs_speed = max_abs_speed)`
+  instead of the previous default 
+  `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)` ([#2458]).
+- The signature of the `VisualizationCallback` constructor changed.
+  In the new version, it is mandatory to pass the semidiscretization `semi` to
+  determine the default plotting type (1D for 1D simulations, 2D for 2D and 3D simulations).
+  This can further be customized via the keyword argument `plot_data_creator`, which had
+  the default value `plot_data_creator = PlotData2D` before the change ([#2468]).
+
+#### Removed
+
+- Deprecations introduced in earlier versions of Trixi.jl have been removed.
+
+
 ## Changes in the v0.12 lifecycle
 
 #### Added
 - Initial support for adapting data-structures between different storage arrays was added. This enables future work to support GPU with Trixi ([#2212]).
 
 #### Deprecated
+
 
 ## Changes when updating to v0.12 from v0.11.x
 
@@ -33,10 +57,10 @@ for human readability.
 
 #### Removed
 
-- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and 
-  `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via 
-  [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/). 
-  This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, 
+- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and
+  `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via
+  [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/).
+  This also affects the related functions `hydrostatic_reconstruction_audusse_etal`,
   `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
 - The additional `ìnitial_cache` entries in the caches of `SemidiscretizationHyperbolic`
   and `SemidiscretizationHyperbolicParabolic`, and the corresponding keyword arguments of
@@ -46,7 +70,7 @@ for human readability.
 
 #### Added
 
-- Added symmetry plane/reflective wall velocity+stress boundary conditions for the compressible Navier-Stokes equations in 2D and 3D. 
+- Added symmetry plane/reflective wall velocity+stress boundary conditions for the compressible Navier-Stokes equations in 2D and 3D.
   Currently available only for the `P4estMesh` mesh type, `GradientVariablesPrimitive`, and `Adiabatic` heat boundary condition ([#2416]).
 - Added `LaplaceDiffusionEntropyVariables1D`, `LaplaceDiffusionEntropyVariables2D`, and `LaplaceDiffusionEntropyVariables3D`. These add scalar diffusion to each
   equation of a system, but apply diffusion in terms of the entropy variables, which symmetrizes the viscous formulation and ensures semi-discrete entropy dissipation ([#2406]).
@@ -59,8 +83,8 @@ for human readability.
 
 #### Deprecated
 
-- The (2D) aerodynamic coefficients 
-  `DragCoefficientPressure, LiftCoefficientPressure, DragCoefficientShearStress, LiftCoefficientShearStress` have been renamed to 
+- The (2D) aerodynamic coefficients
+  `DragCoefficientPressure, LiftCoefficientPressure, DragCoefficientShearStress, LiftCoefficientShearStress` have been renamed to
   `DragCoefficientPressure2D, LiftCoefficientPressure2D, DragCoefficientShearStress2D, LiftCoefficientShearStress2D`. ([#2375])
 
 ## Changes when updating to v0.11 from v0.10.x
