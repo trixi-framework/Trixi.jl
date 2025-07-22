@@ -129,7 +129,7 @@ end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
 mutable struct SubDiagonalRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F,
-                                               Alg, SimpleIntegrator2NOptions, # Re-used
+                                               Alg, SimpleIntegratorOptions,
                                                AbstractRelaxationSolver} <:
                RelaxationIntegrator
     u::uType
@@ -143,7 +143,7 @@ mutable struct SubDiagonalRelaxationIntegrator{RealT <: Real, uType, Params, Sol
     sol::Sol # faked
     f::F # `rhs` of the semidiscretization
     alg::Alg # `SubDiagonalRelaxationAlgorithm`
-    opts::SimpleIntegrator2NOptions
+    opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
     # Addition for Relaxation methodology
     direction::uType # RK update, i.e., sum of stages K_i times weights b_i
@@ -171,9 +171,9 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
     integrator = SubDiagonalRelaxationIntegrator(u, du, u_tmp, t, dt, zero(dt), iter,
                                                  ode.p, (prob = ode,), ode.f,
                                                  alg.sub_diagonal_alg,
-                                                 SimpleIntegrator2NOptions(callback,
-                                                                           ode.tspan;
-                                                                           kwargs...),
+                                                 SimpleIntegratorOptions(callback,
+                                                                         ode.tspan;
+                                                                         kwargs...),
                                                  false,
                                                  direction,
                                                  gamma, alg.relaxation_solver)
