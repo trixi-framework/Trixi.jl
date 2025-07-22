@@ -42,8 +42,8 @@ function get_proposed_dt(integrator::AbstractTimeIntegrator)
 end
 
 """
-    solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm; 
-          dt, callbacks, kwargs...)
+    Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm; 
+                dt, callbacks, kwargs...)
 
 Fakes `solve` from https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
 """
