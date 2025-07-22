@@ -15,8 +15,6 @@ using ECOS: Optimizer
 # PERK Single p3 Constructors
 using NLsolve: nlsolve
 
-using SciMLBase: ODEProblem
-
 include("test_trixi.jl")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
