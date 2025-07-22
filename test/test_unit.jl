@@ -710,7 +710,8 @@ end
     mesh = TreeMesh((0.0,), (1.0,),
                     initial_refinement_level = 2,
                     n_cells_max = 30_000)
-    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_convergence_test,
                                         solver)
     u0 = zeros(4)
     tspan = (0.0, 1.0)
