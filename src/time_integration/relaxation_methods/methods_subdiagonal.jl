@@ -147,7 +147,7 @@ mutable struct SubDiagonalRelaxationIntegrator{RealT <: Real, uType, Params, Sol
     finalstep::Bool # added for convenience
     # Addition for Relaxation methodology
     direction::uType # RK update, i.e., sum of stages K_i times weights b_i
-    gamma::RealT
+    gamma::RealT # Relaxation parameter
     S_old::RealT # Entropy of previous iterate
     relaxation_solver::AbstractRelaxationSolver
     # Note: Could add another register which would store the summed-up 
