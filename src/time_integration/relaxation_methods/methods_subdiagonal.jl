@@ -148,6 +148,7 @@ mutable struct SubDiagonalRelaxationIntegrator{RealT <: Real, uType, Params, Sol
     # Addition for Relaxation methodology
     direction::uType # RK update, i.e., sum of stages K_i times weights b_i
     gamma::RealT
+    S_old::RealT # Entropy of previous iterate
     relaxation_solver::AbstractRelaxationSolver
     # Note: Could add another register which would store the summed-up 
     # dot products ∑ₖ (wₖ ⋅ kₖ) and then integrate only once and not per stage k
@@ -168,6 +169,11 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
     # For entropy relaxation
     gamma = one(eltype(u))
 
+    semi = ode.p
+    u_wrap = wrap_array(u, semi)
+    S_old = integrate(entropy_math, u_wrap, semi.mesh, semi.equations, semi.solver,
+                      semi.cache)
+
     integrator = SubDiagonalRelaxationIntegrator(u, du, u_tmp, t, dt, zero(dt), iter,
                                                  ode.p, (prob = ode,), ode.f,
                                                  alg.sub_diagonal_alg,
@@ -175,8 +181,8 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
                                                                          ode.tspan;
                                                                          kwargs...),
                                                  false,
-                                                 direction,
-                                                 gamma, alg.relaxation_solver)
+                                                 direction, gamma, S_old,
+                                                 alg.relaxation_solver)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -224,8 +230,6 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         u_wrap = wrap_array(integrator.u, prob.p)
         u_tmp_wrap = wrap_array(integrator.u_tmp, prob.p)
-        # Entropy of previous iterate
-        S_old = integrate(entropy_math, u_wrap, mesh, equations, dg, cache)
 
         # First stage
         integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
@@ -260,8 +264,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         @trixi_timeit timer() "Relaxation solver" relaxation_solver!(integrator,
                                                                      u_tmp_wrap, u_wrap,
-                                                                     direction_wrap,
-                                                                     S_old, dS,
+                                                                     direction_wrap, dS,
                                                                      mesh, equations,
                                                                      dg, cache,
                                                                      integrator.relaxation_solver)

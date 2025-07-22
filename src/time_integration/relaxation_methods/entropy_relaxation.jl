@@ -158,8 +158,7 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 function relaxation_solver!(integrator,
-                            u_tmp_wrap, u_wrap, dir_wrap,
-                            S_old, dS,
+                            u_tmp_wrap, u_wrap, dir_wrap, dS,
                             mesh, equations, dg::DG, cache,
                             relaxation_solver::RelaxationSolverNewton)
     @unpack max_iterations, root_tol, gamma_tol, gamma_min, step_scaling = relaxation_solver
@@ -168,7 +167,7 @@ function relaxation_solver!(integrator,
     while iterations < max_iterations
         add_direction!(u_tmp_wrap, u_wrap, dir_wrap, integrator.gamma, dg, cache)
         @trixi_timeit timer() "Δη" r_gamma=entropy_difference(integrator.gamma,
-                                                              S_old, dS,
+                                                              integrator.S_old, dS,
                                                               u_tmp_wrap, mesh,
                                                               equations, dg, cache)
 
@@ -194,6 +193,8 @@ function relaxation_solver!(integrator,
        isinf(integrator.gamma)
         integrator.gamma = 1
     end
+    # Update old entropy
+    integrator.S_old += integrator.gamma * dS
 
     return nothing
 end
