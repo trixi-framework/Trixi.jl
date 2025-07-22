@@ -29,7 +29,7 @@ methods with a Butcher tableau of the form
 Currently implemented are the third-order, three stage method by Ralston [`RK33`](@ref) 
 and the canonical fourth-order, four stage method by Kutta [`RK44`](@ref).
 """
-abstract type SubDiagonalAlgorithm end
+abstract type SubDiagonalAlgorithm <: AbstractTimeIntegrationAlgorithm end
 
 """
     SubDiagonalRelaxationAlgorithm
@@ -51,7 +51,7 @@ For details on the relaxation procedure, see
 Currently implemented are the third-order, three stage method by Ralston [`RK33`](@ref) 
 and the canonical fourth-order, four stage method by Kutta [`RK44`](@ref).
 """
-abstract type SubDiagonalRelaxationAlgorithm end
+abstract type SubDiagonalRelaxationAlgorithm <: AbstractTimeIntegrationAlgorithm end
 
 """
     RK33()
