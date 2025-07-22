@@ -8,18 +8,27 @@
 const TRIXI_UUID = UUID("a7f1ee26-1774-49b1-8366-f1abc58fbfcb")
 
 """
-    Trixi.set_polyester!(toggle::Bool; force = true)
+    Trixi.set_threading_backend!(backend::Symbol; force = true)
 
-Toggle the usage of [Polyester.jl](https://github.com/JuliaSIMD/Polyester.jl) for multithreading.
-By default, Polyester.jl is enabled, but it can
-be useful for performance comparisons to switch to the Julia core backend.
+Toggle and/or switch backend behavior used in multithreaded loops inside Trixi.jl.
+The selected backend affects the behavior of Trixi.jl's [`@threaded`](@ref) macro, which is used
+throughout the codebase for parallel loops. By default, Polyester.jl is enabled for
+optimal performance, but switching backends can be useful for comparisons or debugging.
 
-This does not fully disable Polyester.jl,
-but only its use as part of Trixi.jl's [`@threaded`](@ref) macro.
+# Available backends
+- `:polyester`: Uses the default [Polyester.jl](https://github.com/JuliaSIMD/Polyester.jl)
+- `:static`: Uses Julia's built-in static thread scheduling via `Threads.@threads :static`
+- `:serial`: Disables threading, executing loops serially
+- `:kernelabstractions`: Preferentially use the [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl)
+  kernels written in Trixi.jl, falling back to `:static` execution.
 """
-function set_polyester!(toggle::Bool; force = true)
-    set_preferences!(TRIXI_UUID, "polyester" => toggle, force = force)
-    @info "Please restart Julia and reload Trixi.jl for the `polyester` change to take effect"
+function set_threading_backend!(backend::Symbol = :polyester; force = true)
+    valid_backends = (:polyester, :static, :serial, :kernelabstractions)
+    if !(backend in valid_backends)
+        throw(ArgumentError("Invalid threading backend: $(backend). Current options are: $(join(valid_backends, ", "))"))
+    end
+    set_preferences!(TRIXI_UUID, "backend" => backend, force = force)
+    @info "Please restart Julia and reload Trixi.jl for the `backend` change to take effect"
 end
 
 """
@@ -51,9 +60,6 @@ function set_sqrt_type!(type; force = true)
     set_preferences!(TRIXI_UUID, "sqrt" => type, force = force)
     @info "Please restart Julia and reload Trixi.jl for the `sqrt` computation change to take effect"
 end
-
-# TODO: deprecation introduced in v0.8
-@deprecate set_sqrt_type(type; force = true) set_sqrt_type!(type; force = true) false
 
 @static if _PREFERENCE_SQRT == "sqrt_Trixi_NaN"
     """
@@ -105,9 +111,6 @@ function set_log_type!(type; force = true)
     set_preferences!(TRIXI_UUID, "log" => type, force = force)
     @info "Please restart Julia and reload Trixi.jl for the `log` computation change to take effect"
 end
-
-# TODO: deprecation introduced in v0.8
-@deprecate set_log_type(type; force = true) set_log_type!(type; force = true) false
 
 @static if _PREFERENCE_LOG == "log_Trixi_NaN"
     """

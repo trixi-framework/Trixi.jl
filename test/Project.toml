@@ -1,6 +1,5 @@
 [deps]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
-AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
@@ -35,7 +34,6 @@ TrixiTest = "0a316866-cbd0-4425-8bcb-08103b2c1f26"
 [compat]
 Adapt = "4"
 ADTypes = "1.11"
-AMDGPU = "1.3.5"
 Aqua = "0.8"
 CairoMakie = "0.12, 0.13, 0.14, 0.15"
 Convex = "0.16"

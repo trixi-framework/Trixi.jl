@@ -111,12 +111,12 @@ end
                boundary_names, treeIDs, neighIDs, faces, duals,
                orientations, levels, num_elements_per_tree)
 
-Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine. 
+Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine.
 
 # Arguments
-- `ndims`: Dimension of the mesh. 
-- `ntrees`: Global number of trees. 
-- `nelements`: Global number of elements. 
+- `ndims`: Dimension of the mesh.
+- `ntrees`: Global number of trees.
+- `nelements`: Global number of elements.
 - `tree_node_coordinates`: Node coordinates for each tree: [dimension, i, j, k, tree]
 - `nodes`: Array of interpolation nodes.
 - `boundary_names`: List of boundary names.
@@ -1578,10 +1578,3 @@ function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
 
     return treeIDs, neighIDs, faces, duals, orientations
 end
-
-#! format: off
-@deprecate T8codeMesh{2}(conn::Ptr{p4est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
-@deprecate T8codeMesh{3}(conn::Ptr{p8est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
-@deprecate T8codeMesh{2}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 2; kwargs...)
-@deprecate T8codeMesh{3}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 3; kwargs...)
-#! format: on
