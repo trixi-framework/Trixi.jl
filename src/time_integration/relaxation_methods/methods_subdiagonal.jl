@@ -26,7 +26,7 @@ methods with a Butcher tableau of the form
 \end{array}
 ```
 
-Currently implemented are the third-order, three-stage method by Ralston [`RK33`](@ref) 
+Currently implemented are the third-order, three-stage method by Ralston [`Ralston3`](@ref) 
 and the canonical fourth-order, four-stage method by Kutta [`RK44`](@ref).
 """
 abstract type SubDiagonalAlgorithm <: AbstractTimeIntegrationAlgorithm end
@@ -48,13 +48,13 @@ For details on the relaxation procedure, see
   Relaxation Runge-Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier-Stokes Equations  
   [DOI: 10.1137/19M1263480](https://doi.org/10.1137/19M1263480)
 
-Currently implemented are the third-order, three-stage method by Ralston [`RK33`](@ref) 
+Currently implemented are the third-order, three-stage method by Ralston [`Ralston3`](@ref) 
 and the canonical fourth-order, four-stage method by Kutta [`RK44`](@ref).
 """
 abstract type SubDiagonalRelaxationAlgorithm <: AbstractTimeIntegrationAlgorithm end
 
 """
-    RK33()
+    Ralston3()
 
 Relaxation version of Ralston's third-order Runge-Kutta method, implemented as a [`SubDiagonalAlgorithm`](@ref).
 The weight vector is given by ``\\boldsymbol b = [2/9, 1/3, 4/9]`` and the 
@@ -65,30 +65,30 @@ This method has minimum local error bound among the ``S=p=3`` methods.
   Runge-Kutta Methods with Minimum Error Bounds
   [DOI: 10.1090/S0025-5718-1962-0150954-0](https://doi.org/10.1090/S0025-5718-1962-0150954-0)
 """
-struct RK33 <: SubDiagonalAlgorithm
+struct Ralston3 <: SubDiagonalAlgorithm
     b::SVector{3, Float64}
     c::SVector{3, Float64}
 end
-function RK33()
+function Ralston3()
     b = SVector(2 / 9, 1 / 3, 4 / 9)
     c = SVector(0.0, 0.5, 0.75)
 
-    return RK33(b, c)
+    return Ralston3(b, c)
 end
 
 """
-    RelaxationRK33(; relaxation_solver = RelaxationSolverNewton())
+    RelaxationRalston3(; relaxation_solver = RelaxationSolverNewton())
 
-Relaxation version of Ralston's third-order Runge-Kutta method [`RK33()`](@ref), 
+Relaxation version of Ralston's third-order Runge-Kutta method [`Ralston3()`](@ref), 
 implemented as a [`SubDiagonalRelaxationAlgorithm`](@ref).
 The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
 """
-struct RelaxationRK33{AbstractRelaxationSolver} <: SubDiagonalRelaxationAlgorithm
-    sub_diagonal_alg::RK33
+struct RelaxationRalston3{AbstractRelaxationSolver} <: SubDiagonalRelaxationAlgorithm
+    sub_diagonal_alg::Ralston3
     relaxation_solver::AbstractRelaxationSolver
 end
-function RelaxationRK33(; relaxation_solver = RelaxationSolverNewton())
-    return RelaxationRK33{typeof(relaxation_solver)}(RK33(), relaxation_solver)
+function RelaxationRalston3(; relaxation_solver = RelaxationSolverNewton())
+    return RelaxationRalston3{typeof(relaxation_solver)}(Ralston3(), relaxation_solver)
 end
 
 """
@@ -253,7 +253,8 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
                          integrator.t + alg.c[stage] * integrator.dt)
             b_dt = alg.b[stage] * integrator.dt
             @threaded for i in eachindex(integrator.u)
-                integrator.direction[i] = integrator.direction[i] + b_dt * integrator.du[i]
+                integrator.direction[i] = integrator.direction[i] +
+                                          b_dt * integrator.du[i]
             end
 
             # Entropy change due to current stage
@@ -275,7 +276,8 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         # Do relaxed update
         @threaded for i in eachindex(integrator.u)
-            integrator.u[i] = integrator.u[i] + integrator.gamma * integrator.direction[i]
+            integrator.u[i] = integrator.u[i] +
+                              integrator.gamma * integrator.direction[i]
         end
     end
 
