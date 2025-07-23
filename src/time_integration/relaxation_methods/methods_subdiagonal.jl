@@ -233,8 +233,9 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         # First stage
         integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
+        b1_dt = alg.b[1] * integrator.dt
         @threaded for i in eachindex(integrator.u)
-            integrator.direction[i] = alg.b[1] * integrator.du[i] * integrator.dt
+            integrator.direction[i] = b1_dt * integrator.du[i]
         end
 
         du_wrap = wrap_array(integrator.du, prob.p)
@@ -244,15 +245,15 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         # Second to last stage
         for stage in 2:length(alg.c)
+            c_dt = alg.c[stage] * integrator.dt
             @threaded for i in eachindex(integrator.u)
-                integrator.u_tmp[i] = integrator.u[i] +
-                                      alg.c[stage] * integrator.dt * integrator.du[i]
+                integrator.u_tmp[i] = integrator.u[i] + c_dt * integrator.du[i]
             end
             integrator.f(integrator.du, integrator.u_tmp, prob.p,
                          integrator.t + alg.c[stage] * integrator.dt)
+            b_dt = alg.b[stage] * integrator.dt
             @threaded for i in eachindex(integrator.u)
-                integrator.direction[i] += alg.b[stage] * integrator.du[i] *
-                                           integrator.dt
+                integrator.direction[i] = integrator.direction[i] + b_dt * integrator.du[i]
             end
 
             # Entropy change due to current stage
@@ -274,7 +275,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         # Do relaxed update
         @threaded for i in eachindex(integrator.u)
-            integrator.u[i] += integrator.gamma * integrator.direction[i]
+            integrator.u[i] = integrator.u[i] + integrator.gamma * integrator.direction[i]
         end
     end
 
