@@ -394,6 +394,7 @@ end
     # Test `resize!`
     ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks)
     integrator = Trixi.init(ode, ode_alg, dt = 42.0, callback = callbacks)
+
     resize!(integrator, 42)
     @test length(integrator.u) == 42
     @test length(integrator.du) == 42
