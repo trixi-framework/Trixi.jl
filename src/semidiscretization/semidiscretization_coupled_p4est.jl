@@ -547,7 +547,10 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                             nvariables(semi_other.equations)*n_nodes^2*(global_element_id_to_local(element_index_global, semi_other.mesh)-1)]
     end
     x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
-    u_boundary = boundary_condition.coupling_converter[idx_this, idx_other](x, u_boundary_to_convert, equations, equations)
+    u_boundary = boundary_condition.coupling_converter[idx_this, idx_other](x,
+                                                                            u_boundary_to_convert,
+                                                                            equations,
+                                                                            equations)
 
     orientation = normal_direction
 
