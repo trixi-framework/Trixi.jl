@@ -22,24 +22,6 @@
 end
 
 @inline function integrate_w_dot_stage(stage, u_stage,
-                                       mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                                   UnstructuredMesh2D, P4estMesh{2},
-                                                   T8codeMesh{2}},
-                                       equations, dg::DG, cache)
-    @trixi_timeit timer() "Integrate w ⋅ k" begin
-        # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
-        integrate_via_indices(u_stage, mesh, equations, dg, cache,
-                              stage) do u_stage, i, j, element, equations, dg, stage
-            w_node = cons2entropy(get_node_vars(u_stage, equations, dg,
-                                                i, j, element),
-                                  equations)
-            stage_node = get_node_vars(stage, equations, dg, i, j, element)
-            dot(w_node, stage_node)
-        end
-    end
-end
-
-@inline function integrate_w_dot_stage(stage, u_stage,
                                        mesh::Union{TreeMesh{3}, StructuredMesh{3},
                                                    P4estMesh{3}, T8codeMesh{3}},
                                        equations, dg::DG, cache)
