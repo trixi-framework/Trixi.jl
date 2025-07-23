@@ -7,7 +7,7 @@ import Base: *, zero, one # For overloading
 ### Hacks ###
 
 # Required for setting up the Lobatto Legendre basis for abstract `Real` type
-function Trixi.eps(::Union{Type{Real}, Int}, RealT = Float64)
+function Trixi.eps(::Type{Real}, RealT = Float64)
     return eps(RealT)
 end
 
@@ -47,7 +47,9 @@ equations = LinearScalarAdvectionEquation2D(advection_velocities)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 d = 3
 # `RealT = Real` requires fewer overloads than the more explicit `RealT = Num`
+# solver_real used for computing the Jacobian
 solver_real = DGSEM(polydeg = d, surface_flux = flux_lax_friedrichs, RealT = Real)
+# solver_float used for solving using the Jacobian
 solver_float = DGSEM(polydeg = d, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
@@ -91,7 +93,7 @@ sparse_cache = sparse_jacobian_cache(adtype, sd, rhs, du_ode, u0_ode)
 ###############################################################################
 #  callback functions during the time integration
 
-ode = semidiscretize(semi_float, sparse_cache.jac_prototype, sparse_cache.coloring.colorvec, tSpan)
+ode = semidiscretize(semi_float, tSpan, sparse_cache.jac_prototype, sparse_cache.coloring.colorvec)
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi_float, interval = 100)

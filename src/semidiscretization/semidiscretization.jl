@@ -126,10 +126,10 @@ end
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 
-The arguments `jac_prototype` and `coloring` are SparseDiffTools objects which will be used 
+The arguments `jac_prototype` and `coloring` are SparseDiffTools.jl objects which will be used 
 to reduce repeating calculations as part of the ODE solve.
 """
-function semidiscretize(semi::AbstractSemidiscretization, jac_prototype, coloring, tspan;
+function semidiscretize(semi::AbstractSemidiscretization, tspan, jac_prototype, coloring;
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
@@ -144,6 +144,8 @@ function semidiscretize(semi::AbstractSemidiscretization, jac_prototype, colorin
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
     iip = true # is-inplace, i.e., we modify a vector when calling rhs!
     specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
+    # See SparseDiffTools.jl docs for the typing of jac_prototype and colorvec
+    # https://github.com/JuliaDiff/SparseDiffTools.jl 
     ode = SciMLBase.ODEFunction(rhs!, jac_prototype=jac_prototype, colorvec=coloring)
     return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
 end
