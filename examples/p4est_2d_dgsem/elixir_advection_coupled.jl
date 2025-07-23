@@ -16,12 +16,16 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (8, 8)
 
 # Create parent P4estMesh with 8 x 8 trees and 8 x 8 elements
+# Since we couple through the boundaries, the periodicity does not matter here,
+# but it is to trigger parts of the code for the test.
 parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,
                         coordinates_max = coordinates_max,
-                        initial_refinement_level = 0)
+                        initial_refinement_level = 0,
+                        periodicity = false)
 
-# Define the mesh views.
+# Define the mesh views consisting of a small square in the center
+# and a square ring around it.
 cell_ids1 = vcat((1:18), (23:26), (31:34), (39:42), (47:64))
 mesh1 = P4estMeshView(parent_mesh, cell_ids1)
 cell_ids2 = vcat((19:22), (27:30), (35:38), (43:46))
@@ -30,6 +34,8 @@ mesh2 = P4estMeshView(parent_mesh, cell_ids2)
 # Define a trivial coupling function.
 coupling_function = (x, u, equations_other, equations_own) -> u
 
+# The mesh is coupled across the physical boundaries, which makes this setup
+# effectively double periodic.
 boundary_conditions = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_function),
                            :y_neg => BoundaryConditionCoupledP4est(coupling_function),
                            :y_pos => BoundaryConditionCoupledP4est(coupling_function),
@@ -59,7 +65,7 @@ summary_callback = SummaryCallback()
 # We require this definition for the test, even though we don't use it in the CallbackSet.
 analysis_callback1 = AnalysisCallback(semi1, interval = 100)
 analysis_callback2 = AnalysisCallback(semi2, interval = 100)
-analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
+analysis_callback = AnalysisCallbackCoupledP4est(semi, analysis_callback1, analysis_callback2)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,

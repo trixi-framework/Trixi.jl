@@ -17,9 +17,9 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupledP4est{S, Indices, EquationList} <:
+mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
                AbstractSemidiscretization
-    semis::S
+    semis::Semis
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
     global_element_ids::Vector{Int}
@@ -168,7 +168,7 @@ function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
 end
 
 @inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupledP4est)
-    @view u_ode[semi.u_indices[index]]
+    return @view u_ode[semi.u_indices[index]]
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
@@ -247,8 +247,24 @@ end
 ### AnalysisCallback
 ################################################################################
 
+"""
+    AnalysisCallbackCoupledP4est(semi, callbacks...)
+
+Combine multiple analysis callbacks for coupled simulations with a
+[`SemidiscretizationCoupled`](@ref). For each coupled system, an indididual
+[`AnalysisCallback`](@ref) **must** be created and passed to the `AnalysisCallbackCoupledP4est` **in
+order**, i.e., in the same sequence as the indidvidual semidiscretizations are stored in the
+`SemidiscretizationCoupled`.
+
+!!! warning "Experimental code"
+    This is an experimental feature and can change any time.
+"""
+struct AnalysisCallbackCoupledP4est{CB}
+    callbacks::CB
+end
+
 function Base.show(io::IO, ::MIME"text/plain",
-                   cb_coupled::DiscreteCallback{<:Any, <:AnalysisCallbackCoupled})
+                   cb_coupled::DiscreteCallback{<:Any, <:AnalysisCallbackCoupledP4est})
     @nospecialize cb_coupled # reduce precompilation time
 
     if get(io, :compact, false)
@@ -256,7 +272,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         analysis_callback_coupled = cb_coupled.affect!
 
-        summary_header(io, "AnalysisCallbackCoupled")
+        summary_header(io, "AnalysisCallbackCoupledP4est")
         for (i, cb) in enumerate(analysis_callback_coupled.callbacks)
             summary_line(io, "Callback #$i", "")
             show(increment_indent(io), MIME"text/plain"(), cb)
@@ -266,12 +282,12 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 # Convenience constructor for the coupled callback that gets called directly from the elixirs
-function AnalysisCallbackCoupled(semi_coupled, callbacks...)
+function AnalysisCallbackCoupledP4est(semi_coupled, callbacks...)
     if length(callbacks) != nsystems(semi_coupled)
-        error("an AnalysisCallbackCoupled requires one AnalysisCallback for each semidiscretization")
+        error("an AnalysisCallbackCoupledP4est requires one AnalysisCallback for each semidiscretization")
     end
 
-    analysis_callback_coupled = AnalysisCallbackCoupled{typeof(callbacks)}(callbacks)
+    analysis_callback_coupled = AnalysisCallbackCoupledP4est{typeof(callbacks)}(callbacks)
 
     # This callback is triggered if any of its subsidiary callbacks' condition is triggered
     condition = (u, t, integrator) -> any(callbacks) do callback
@@ -285,7 +301,8 @@ end
 
 # This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
 function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_coupled, t,
-                     integrator) where {Condition, Affect! <: AnalysisCallbackCoupled}
+                     integrator) where {Condition,
+                                        Affect! <: AnalysisCallbackCoupledP4est}
     analysis_callback_coupled = cb_coupled.affect!
     semi_coupled = integrator.p
     du_ode_coupled = first(get_tmp_cache(integrator))
@@ -301,7 +318,7 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
 end
 
 # This method gets called from OrdinaryDiffEq's `solve(...)`
-function (analysis_callback_coupled::AnalysisCallbackCoupled)(integrator)
+function (analysis_callback_coupled::AnalysisCallbackCoupledP4est)(integrator)
     semi_coupled = integrator.p
     u_ode_coupled = integrator.u
     du_ode_coupled = first(get_tmp_cache(integrator))
@@ -326,12 +343,21 @@ end
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                                                                 Affect! <:
-                                                                AnalysisCallbackCoupled}
+                                                                AnalysisCallbackCoupledP4est
+                                                                }
     semi_coupled = sol.prob.p
     u_ode_coupled = sol.u[end]
     @unpack callbacks = cb.affect!
 
     uEltype = real(semi_coupled)
+    error_indices = Array([
+                              1,
+                              1 .+
+                              cumsum(nvariables(semi_coupled.semis[i].equations)
+                                     for i in eachindex(semi_coupled.semis))[begin:end]...
+                          ])
+    length_error_array = sum(nvariables(semi_coupled.semis[i].equations)
+                             for i in eachindex(semi_coupled.semis))
     l2_error_collection = uEltype[]
     linf_error_collection = uEltype[]
     for i in eachsystem(semi_coupled)
@@ -361,7 +387,8 @@ function save_mesh(semi::SemidiscretizationCoupledP4est, output_directory, times
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
         if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh, output_directory; system = string(i),
+            mesh.current_filename = save_mesh_file(mesh, output_directory;
+                                                   system = string(i),
                                                    timestep = timestep)
             mesh.unsaved_changes = false
         end
@@ -448,8 +475,9 @@ function Base.eltype(boundary_condition::BoundaryConditionCoupledP4est)
 end
 
 """
-Extract the boundary values from te neighboring element.
+Extract the boundary values from the neighboring element.
 This requires values from other mesh views.
+This currently only works for Cartesian meshes.
 """
 function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equations,
                                                              cache,
@@ -547,100 +575,5 @@ function allocate_coupled_boundary_condition(boundary_condition, direction, mesh
                                              equations,
                                              solver)
     return nothing
-end
-
-# ################################################################################
-# ### DGSEM/structured
-# ################################################################################
-
-# @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
-#                                                   orientation,
-#                                                   boundary_condition::BoundaryConditionCoupledP4est,
-#                                                   mesh::Union{StructuredMesh,
-#                                                               StructuredMeshView},
-#                                                   equations,
-#                                                   surface_integral, dg::DG, cache,
-#                                                   direction, node_indices,
-#                                                   surface_node_indices, element)
-#     @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
-#     @unpack surface_flux = surface_integral
-
-#     cell_indices = get_boundary_indices(element, orientation, mesh)
-
-#     u_inner = get_node_vars(u, equations, dg, node_indices..., element)
-
-#     # If the mapping is orientation-reversing, the contravariant vectors' orientation
-#     # is reversed as well. The normal vector must be oriented in the direction
-#     # from `left_element` to `right_element`, or the numerical flux will be computed
-#     # incorrectly (downwind direction).
-#     sign_jacobian = sign(inverse_jacobian[node_indices..., element])
-
-#     # Contravariant vector Ja^i is the normal vector
-#     normal = sign_jacobian *
-#              get_contravariant_vector(orientation, contravariant_vectors,
-#                                       node_indices..., element)
-
-#     # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
-#     # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
-#     flux = sign_jacobian * boundary_condition(u_inner, normal, direction, cell_indices,
-#                               surface_node_indices, surface_flux, equations)
-
-#     for v in eachvariable(equations)
-#         surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
-#     end
-# end
-
-function get_boundary_indices(element, orientation,
-                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}})
-    cartesian_indices = CartesianIndices(size(mesh))
-    if orientation == 1
-        # Get index of element in y-direction
-        cell_indices = (cartesian_indices[element][2],)
-    else # orientation == 2
-        # Get index of element in x-direction
-        cell_indices = (cartesian_indices[element][1],)
-    end
-
-    return cell_indices
-end
-
-function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupledP4est,
-                                glm_speed_callback, dt, t)
-    @unpack glm_scale, cfl, semi_indices = glm_speed_callback
-
-    if length(semi_indices) == 0
-        throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
-    end
-
-    # Check that all MHD semidiscretizations received a GLM cleaning speed update.
-    for (semi_index, semi) in enumerate(semi_coupled.semis)
-        if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
-            !(semi_index in semi_indices))
-            error("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
-        end
-    end
-
-    if cfl isa Real # Case for constant CFL
-        cfl_number = cfl
-    else # Variable CFL
-        cfl_number = cfl(t)
-    end
-
-    for semi_index in semi_indices
-        semi = semi_coupled.semis[semi_index]
-        mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-
-        # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number,
-                                                mesh, equations, solver, cache)
-
-        # c_h is proportional to its own time step divided by the complete MHD time step
-        # We use @reset here since the equations are immutable (to work on GPUs etc.).
-        # Thus, we need to modify the equations field of the semidiscretization.
-        @reset equations.c_h = glm_scale * c_h_deltat / dt
-        semi.equations = equations
-    end
-
-    return semi_coupled
 end
 end # @muladd

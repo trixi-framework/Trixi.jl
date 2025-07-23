@@ -156,6 +156,7 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
         end
     end
 
+    # Create the boundary vector for u, which will be populated later.
     boundaries.u = zeros(typeof(boundaries_parent.u).parameters[1],
                          (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2],
                           size(boundaries.node_indices)[end]))
@@ -254,7 +255,7 @@ function global_element_id_to_local(id::Int, mesh::P4estMeshView)
     return local_id
 end
 
-# Convert a global cell id to a local cell id in the mesh view.
+# Convert an array of global cell ids to a local cell id in the mesh view.
 function global_element_id_to_local(id::AbstractArray, mesh::P4estMeshView)
     # Find the index of the cell id in the mesh view
     local_id = zeros(Int, length(id))
