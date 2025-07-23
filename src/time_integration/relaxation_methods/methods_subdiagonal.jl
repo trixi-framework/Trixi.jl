@@ -26,16 +26,16 @@ methods with a Butcher tableau of the form
 \end{array}
 ```
 
-Currently implemented are the third-order, three stage method by Ralston [`RK33`](@ref) 
-and the canonical fourth-order, four stage method by Kutta [`RK44`](@ref).
+Currently implemented are the third-order, three-stage method by Ralston [`Ralston3`](@ref) 
+and the canonical fourth-order, four-stage method by Kutta [`RK44`](@ref).
 """
-abstract type SubDiagonalAlgorithm end
+abstract type SubDiagonalAlgorithm <: AbstractTimeIntegrationAlgorithm end
 
 """
     SubDiagonalRelaxationAlgorithm
 
 Abstract type for sub-diagonal Runge-Kutta algorithms (see [`SubDiagonalAlgorithm`](@ref)) 
-with relaxation to achieve entropy-conservation/stability.
+with relaxation to achieve entropy conservation/stability.
 In addition to the standard Runge-Kutta method, these algorithms are equipped with a
 relaxation solver [`AbstractRelaxationSolver`](@ref) which is used to compute the relaxation parameter ``\\gamma``.
 This allows the relaxation methods to suppress entropy defects due to the time stepping.
@@ -48,13 +48,13 @@ For details on the relaxation procedure, see
   Relaxation Runge-Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier-Stokes Equations  
   [DOI: 10.1137/19M1263480](https://doi.org/10.1137/19M1263480)
 
-Currently implemented are the third-order, three stage method by Ralston [`RK33`](@ref) 
-and the canonical fourth-order, four stage method by Kutta [`RK44`](@ref).
+Currently implemented are the third-order, three-stage method by Ralston [`Ralston3`](@ref) 
+and the canonical fourth-order, four-stage method by Kutta [`RK44`](@ref).
 """
-abstract type SubDiagonalRelaxationAlgorithm end
+abstract type SubDiagonalRelaxationAlgorithm <: AbstractTimeIntegrationAlgorithm end
 
 """
-    RK33()
+    Ralston3()
 
 Relaxation version of Ralston's third-order Runge-Kutta method, implemented as a [`SubDiagonalAlgorithm`](@ref).
 The weight vector is given by ``\\boldsymbol b = [2/9, 1/3, 4/9]`` and the 
@@ -65,30 +65,30 @@ This method has minimum local error bound among the ``S=p=3`` methods.
   Runge-Kutta Methods with Minimum Error Bounds
   [DOI: 10.1090/S0025-5718-1962-0150954-0](https://doi.org/10.1090/S0025-5718-1962-0150954-0)
 """
-struct RK33 <: SubDiagonalAlgorithm
+struct Ralston3 <: SubDiagonalAlgorithm
     b::SVector{3, Float64}
     c::SVector{3, Float64}
 end
-function RK33()
+function Ralston3()
     b = SVector(2 / 9, 1 / 3, 4 / 9)
     c = SVector(0.0, 0.5, 0.75)
 
-    return RK33(b, c)
+    return Ralston3(b, c)
 end
 
 """
-    RelaxationRK33(; relaxation_solver = RelaxationSolverNewton())
+    RelaxationRalston3(; relaxation_solver = RelaxationSolverNewton())
 
-Relaxation version of Ralston's third-order Runge-Kutta method [`RK33()`](@ref), 
+Relaxation version of Ralston's third-order Runge-Kutta method [`Ralston3()`](@ref), 
 implemented as a [`SubDiagonalRelaxationAlgorithm`](@ref).
 The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
 """
-struct RelaxationRK33{AbstractRelaxationSolver} <: SubDiagonalRelaxationAlgorithm
-    sub_diagonal_alg::RK33
+struct RelaxationRalston3{AbstractRelaxationSolver} <: SubDiagonalRelaxationAlgorithm
+    sub_diagonal_alg::Ralston3
     relaxation_solver::AbstractRelaxationSolver
 end
-function RelaxationRK33(; relaxation_solver = RelaxationSolverNewton())
-    return RelaxationRK33{typeof(relaxation_solver)}(RK33(), relaxation_solver)
+function RelaxationRalston3(; relaxation_solver = RelaxationSolverNewton())
+    return RelaxationRalston3{typeof(relaxation_solver)}(Ralston3(), relaxation_solver)
 end
 
 """
@@ -129,7 +129,7 @@ end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
 mutable struct SubDiagonalRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F,
-                                               Alg, SimpleIntegrator2NOptions, # Re-used
+                                               Alg, SimpleIntegratorOptions,
                                                AbstractRelaxationSolver} <:
                RelaxationIntegrator
     u::uType
@@ -143,11 +143,12 @@ mutable struct SubDiagonalRelaxationIntegrator{RealT <: Real, uType, Params, Sol
     sol::Sol # faked
     f::F # `rhs` of the semidiscretization
     alg::Alg # `SubDiagonalRelaxationAlgorithm`
-    opts::SimpleIntegrator2NOptions
+    opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
     # Addition for Relaxation methodology
     direction::uType # RK update, i.e., sum of stages K_i times weights b_i
-    gamma::RealT
+    gamma::RealT # Relaxation parameter
+    S_old::RealT # Entropy of previous iterate
     relaxation_solver::AbstractRelaxationSolver
     # Note: Could add another register which would store the summed-up 
     # dot products ∑ₖ (wₖ ⋅ kₖ) and then integrate only once and not per stage k
@@ -168,15 +169,20 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
     # For entropy relaxation
     gamma = one(eltype(u))
 
+    semi = ode.p
+    u_wrap = wrap_array(u, semi)
+    S_old = integrate(entropy, u_wrap, semi.mesh, semi.equations, semi.solver,
+                      semi.cache)
+
     integrator = SubDiagonalRelaxationIntegrator(u, du, u_tmp, t, dt, zero(dt), iter,
                                                  ode.p, (prob = ode,), ode.f,
                                                  alg.sub_diagonal_alg,
-                                                 SimpleIntegrator2NOptions(callback,
-                                                                           ode.tspan;
-                                                                           kwargs...),
+                                                 SimpleIntegratorOptions(callback,
+                                                                         ode.tspan;
+                                                                         kwargs...),
                                                  false,
-                                                 direction,
-                                                 gamma, alg.relaxation_solver)
+                                                 direction, gamma, S_old,
+                                                 alg.relaxation_solver)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -224,13 +230,12 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         u_wrap = wrap_array(integrator.u, prob.p)
         u_tmp_wrap = wrap_array(integrator.u_tmp, prob.p)
-        # Entropy of previous iterate
-        S_old = integrate(entropy_math, u_wrap, mesh, equations, dg, cache)
 
         # First stage
         integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
+        b1_dt = alg.b[1] * integrator.dt
         @threaded for i in eachindex(integrator.u)
-            integrator.direction[i] = alg.b[1] * integrator.du[i] * integrator.dt
+            integrator.direction[i] = b1_dt * integrator.du[i]
         end
 
         du_wrap = wrap_array(integrator.du, prob.p)
@@ -240,15 +245,16 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         # Second to last stage
         for stage in 2:length(alg.c)
+            c_dt = alg.c[stage] * integrator.dt
             @threaded for i in eachindex(integrator.u)
-                integrator.u_tmp[i] = integrator.u[i] +
-                                      alg.c[stage] * integrator.dt * integrator.du[i]
+                integrator.u_tmp[i] = integrator.u[i] + c_dt * integrator.du[i]
             end
             integrator.f(integrator.du, integrator.u_tmp, prob.p,
                          integrator.t + alg.c[stage] * integrator.dt)
+            b_dt = alg.b[stage] * integrator.dt
             @threaded for i in eachindex(integrator.u)
-                integrator.direction[i] += alg.b[stage] * integrator.du[i] *
-                                           integrator.dt
+                integrator.direction[i] = integrator.direction[i] +
+                                          b_dt * integrator.du[i]
             end
 
             # Entropy change due to current stage
@@ -260,8 +266,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         @trixi_timeit timer() "Relaxation solver" relaxation_solver!(integrator,
                                                                      u_tmp_wrap, u_wrap,
-                                                                     direction_wrap,
-                                                                     S_old, dS,
+                                                                     direction_wrap, dS,
                                                                      mesh, equations,
                                                                      dg, cache,
                                                                      integrator.relaxation_solver)
@@ -271,7 +276,8 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         # Do relaxed update
         @threaded for i in eachindex(integrator.u)
-            integrator.u[i] += integrator.gamma * integrator.direction[i]
+            integrator.u[i] = integrator.u[i] +
+                              integrator.gamma * integrator.direction[i]
         end
     end
 

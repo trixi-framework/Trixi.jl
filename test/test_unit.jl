@@ -705,16 +705,20 @@ end
 end
 
 @timed_testset "resize! RelaxationIntegrators" begin
-    function trivial_ode!(du, u, p, t)
-        du[1] = -p * u[1]
-    end
-    u0 = [1.0]
+    equations = LinearScalarAdvectionEquation1D(42.0)
+    solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
+    mesh = TreeMesh((0.0,), (1.0,),
+                    initial_refinement_level = 2,
+                    n_cells_max = 30_000)
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_convergence_test,
+                                        solver)
+    u0 = zeros(4)
     tspan = (0.0, 1.0)
-    p = 1.0
-    ode_prob = ODEProblem(trivial_ode!, u0, tspan, p)
+    ode = semidiscretize(semi, tspan)
 
     ode_alg = Trixi.RelaxationRK44()
-    integrator = Trixi.init(ode_prob, ode_alg; dt = 1.0)
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0)
 
     resize!(integrator, 1001)
     @test length(integrator.u) == 1001

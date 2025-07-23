@@ -7,7 +7,7 @@
 
 # Abstract base type for time integration schemes of explicit strong stability-preserving (SSP)
 # Runge-Kutta (RK) methods. They are high-order time discretizations that guarantee the TVD property.
-abstract type SimpleAlgorithmSSP end
+abstract type SimpleAlgorithmSSP <: AbstractTimeIntegrationAlgorithm end
 
 """
     SimpleSSPRK33(; stage_callbacks=())
@@ -131,7 +131,8 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                                      false, true, false)
 
     # resize container
-    resize!(integrator.p, nelements(integrator.p.solver, integrator.p.cache))
+    resize!(integrator.p, integrator.p.solver.volume_integral,
+            nelements(integrator.p.solver, integrator.p.cache))
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -148,20 +149,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     end
 
     return integrator
-end
-
-"""
-    solve(ode, alg; dt, callbacks, kwargs...)
-
-The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
-of type `SimpleAlgorithmSSP`.
-"""
-function solve(ode::ODEProblem, alg::SimpleAlgorithmSSP;
-               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
 end
 
 function solve!(integrator::SimpleIntegratorSSP)
@@ -284,6 +271,6 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     # Resize container
     # new_size = n_variables * n_nodes^n_dims * n_elements
     n_elements = nelements(integrator.p.solver, integrator.p.cache)
-    resize!(integrator.p, n_elements)
+    resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
 end
 end # @muladd

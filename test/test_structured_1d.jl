@@ -201,15 +201,14 @@ end
 @trixi_testset "elixir_euler_weak_blast_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_er.jl"),
-                        l2=[
-                            0.1199630838410077,
-                            0.15621960583175515,
-                            0.44836353019484665
-                        ],
+                        analysis_interval=100,
+                        l2=[0.1199630838410044,
+                            0.1562196058317499,
+                            0.44836353019483344],
                         linf=[
-                            0.22555469972567477,
-                            0.29412938937656014,
-                            0.8558237244455067
+                            0.2255546997256792,
+                            0.29412938937652194,
+                            0.8558237244455227
                         ])
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from

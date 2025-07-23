@@ -14,7 +14,7 @@ end
 @inline function update_t_relaxation!(integrator::RelaxationIntegrator)
     # Check if due to entropy relaxation the final time would not be reached
     if integrator.finalstep == true && integrator.gamma != 1
-        integrator.gamma = 1.0
+        integrator.gamma = 1
     end
     integrator.t += integrator.gamma * integrator.dt
 

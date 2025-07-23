@@ -26,7 +26,8 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_callback = AnalysisCallback(semi, interval = 1,
+analysis_interval = 1
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_errors = Symbol[], # Switch off error computation
                                      # Note: `entropy` defaults to mathematical entropy
                                      analysis_integrals = (entropy,),

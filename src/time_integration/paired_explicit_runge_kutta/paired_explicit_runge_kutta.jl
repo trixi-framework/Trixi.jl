@@ -10,14 +10,14 @@ include("polynomial_optimizer.jl")
 
 # Abstract base type for both single/standalone and multi-level
 # PERK (Paired Explicit Runge-Kutta) time integration schemes
-abstract type AbstractPairedExplicitRK end
+abstract type AbstractPairedExplicitRK <: AbstractTimeIntegrationAlgorithm end
 # Abstract base type for single/standalone PERK time integration schemes
 abstract type AbstractPairedExplicitRKSingle <: AbstractPairedExplicitRK end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct PairedExplicitRKOptions{Callback, TStops}
     callback::Callback # callbacks; used in Trixi
-    adaptive::Bool # whether the algorithm is adaptive
+    adaptive::Bool # whether the algorithm is adaptive (false)
     dtmax::Float64 # ignored
     maxiters::Int # maximal number of time steps
     tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
@@ -82,15 +82,6 @@ end
 
 has_tstop(integrator::AbstractPairedExplicitRKIntegrator) = !isempty(integrator.opts.tstops)
 first_tstop(integrator::AbstractPairedExplicitRKIntegrator) = first(integrator.opts.tstops)
-
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::AbstractPairedExplicitRK;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
-end
 
 # Function that computes the first stage of a general PERK method
 @inline function PERK_k1!(integrator::AbstractPairedExplicitRKIntegrator, p)
