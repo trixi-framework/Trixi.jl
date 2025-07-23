@@ -300,5 +300,5 @@ This comes only at the price that one needs to solve the scalar nonlinear equati
 To do so, [`Trixi.RelaxationSolverNewton`](@ref) is implemented in Trixi.jl.
 These can then be supplied to the relaxation time algorithms such as [`Trixi.RelaxationRK33`](@ref) and [`Trixi.RelaxationRK44`](@ref) via specifying the `relaxation_solver` keyword argument:
 ```julia
-ode_algorithm = Trixi.RelaxationCKL43(solver = Trixi.RelaxationSolverNewton())
+ode_algorithm = Trixi.RelaxationRK44(solver = Trixi.RelaxationSolverNewton())
 ```
