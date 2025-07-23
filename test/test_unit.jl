@@ -15,8 +15,6 @@ using ECOS: Optimizer
 # PERK Single p3 Constructors
 using NLsolve: nlsolve
 
-using SciMLBase: ODEProblem
-
 include("test_trixi.jl")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
@@ -716,11 +714,9 @@ end
     u0 = zeros(4)
     tspan = (0.0, 1.0)
     ode = semidiscretize(semi, tspan)
-    inplace = true
-    ode_prob = ODEProblem{inplace}(ode, u0, tspan, semi)
 
     ode_alg = Trixi.RelaxationRK44()
-    integrator = Trixi.init(ode_prob, ode_alg; dt = 1.0)
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0)
 
     resize!(integrator, 1001)
     @test length(integrator.u) == 1001
