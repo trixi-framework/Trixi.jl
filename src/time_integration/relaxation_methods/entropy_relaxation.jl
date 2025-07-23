@@ -106,7 +106,8 @@ Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonal
 - `max_iterations::Int`: Maximum number of Newton iterations.
 - `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e., 
                      the absolute defect of the left and right-hand side of the equation above, i.e.,
-                     the solver stops if ``|\eta_{n+1} - (\eta_n + \gamma_n \Delta \eta( \boldsymbol U_n))| \leq \text{root_tol}``.
+                     the solver stops if
+                     ``|\eta_{n+1} - (\eta_n + \gamma_n \Delta \eta( \boldsymbol U_n))| \leq \text{root\_tol}``.
 - `gamma_tol::RealT`: Absolute tolerance for the Newton update step size, i.e., the solver stops if 
                       ``|\gamma_{\text{new}} - \gamma_{\text{old}}| \leq \text{gamma\_tol}``.
 - `gamma_min::RealT`: Minimum relaxation parameter. If the Newton iteration results a value smaller than this, 
@@ -164,17 +165,16 @@ function relaxation_solver!(integrator,
     @unpack max_iterations, root_tol, gamma_tol, gamma_min, step_scaling = relaxation_solver
 
     iterations = 0
-    gamma_residual = 0
+    entropy_residual = 0
     while iterations < max_iterations
         add_direction!(u_tmp_wrap, u_wrap, dir_wrap, integrator.gamma, dg, cache)
-        @trixi_timeit timer() "Δη" gamma_residual=entropy_difference(integrator.gamma,
-                                                                     integrator.S_old,
-                                                                     dS,
-                                                                     u_tmp_wrap, mesh,
-                                                                     equations, dg,
-                                                                     cache)
+        @trixi_timeit timer() "Δη" entropy_residual=entropy_difference(integrator.gamma,
+                                                                       integrator.S_old,
+                                                                       dS, u_tmp_wrap,
+                                                                       mesh, equations,
+                                                                       dg, cache)
 
-        if abs(gamma_residual) <= root_tol # Sufficiently close at root
+        if abs(entropy_residual) <= root_tol # Sufficiently close at root
             break
         end
 
@@ -182,7 +182,7 @@ function relaxation_solver!(integrator,
         dr = integrate_w_dot_stage(dir_wrap, u_tmp_wrap, mesh, equations, dg, cache) -
              dS
 
-        step = step_scaling * gamma_residual / dr # Newton-Raphson update step
+        step = step_scaling * entropy_residual / dr # Newton-Raphson update step
         if abs(step) <= gamma_tol # Prevent unnecessary small steps
             break
         end
@@ -195,10 +195,10 @@ function relaxation_solver!(integrator,
     if integrator.gamma < gamma_min || isnan(integrator.gamma) ||
        isinf(integrator.gamma)
         integrator.gamma = 1
-        gamma_residual = 0 # May be very large, avoid using this in `S_old`
+        entropy_residual = 0 # May be very large, avoid using this in `S_old`
     end
     # Update old entropy
-    integrator.S_old += integrator.gamma * dS + gamma_residual
+    integrator.S_old += integrator.gamma * dS + entropy_residual
 
     return nothing
 end
