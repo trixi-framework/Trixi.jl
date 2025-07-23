@@ -58,7 +58,7 @@ end
 
 @inline function entropy_difference(gamma, S_old, dS, u_gamma_dir, mesh,
                                     equations, dg::DG, cache)
-    return integrate(entropy_math, u_gamma_dir, mesh, equations, dg, cache) -
+    return integrate(entropy, u_gamma_dir, mesh, equations, dg, cache) -
            S_old - gamma * dS # `dS` is true entropy change computed from stages
 end
 

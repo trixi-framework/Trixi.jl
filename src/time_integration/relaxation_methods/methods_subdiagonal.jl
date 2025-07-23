@@ -26,8 +26,8 @@ methods with a Butcher tableau of the form
 \end{array}
 ```
 
-Currently implemented are the third-order, three stage method by Ralston [`RK33`](@ref) 
-and the canonical fourth-order, four stage method by Kutta [`RK44`](@ref).
+Currently implemented are the third-order, three-stage method by Ralston [`RK33`](@ref) 
+and the canonical fourth-order, four-stage method by Kutta [`RK44`](@ref).
 """
 abstract type SubDiagonalAlgorithm <: AbstractTimeIntegrationAlgorithm end
 
@@ -35,7 +35,7 @@ abstract type SubDiagonalAlgorithm <: AbstractTimeIntegrationAlgorithm end
     SubDiagonalRelaxationAlgorithm
 
 Abstract type for sub-diagonal Runge-Kutta algorithms (see [`SubDiagonalAlgorithm`](@ref)) 
-with relaxation to achieve entropy-conservation/stability.
+with relaxation to achieve entropy conservation/stability.
 In addition to the standard Runge-Kutta method, these algorithms are equipped with a
 relaxation solver [`AbstractRelaxationSolver`](@ref) which is used to compute the relaxation parameter ``\\gamma``.
 This allows the relaxation methods to suppress entropy defects due to the time stepping.
@@ -48,8 +48,8 @@ For details on the relaxation procedure, see
   Relaxation Runge-Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier-Stokes Equations  
   [DOI: 10.1137/19M1263480](https://doi.org/10.1137/19M1263480)
 
-Currently implemented are the third-order, three stage method by Ralston [`RK33`](@ref) 
-and the canonical fourth-order, four stage method by Kutta [`RK44`](@ref).
+Currently implemented are the third-order, three-stage method by Ralston [`RK33`](@ref) 
+and the canonical fourth-order, four-stage method by Kutta [`RK44`](@ref).
 """
 abstract type SubDiagonalRelaxationAlgorithm <: AbstractTimeIntegrationAlgorithm end
 
@@ -171,7 +171,7 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
 
     semi = ode.p
     u_wrap = wrap_array(u, semi)
-    S_old = integrate(entropy_math, u_wrap, semi.mesh, semi.equations, semi.solver,
+    S_old = integrate(entropy, u_wrap, semi.mesh, semi.equations, semi.solver,
                       semi.cache)
 
     integrator = SubDiagonalRelaxationIntegrator(u, du, u_tmp, t, dt, zero(dt), iter,
