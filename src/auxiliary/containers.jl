@@ -358,9 +358,9 @@ Return the computational backend for `x`, which is either a KernelAbstractions b
 If the backend is `nothing`, the default multi-threaded CPU backend is used.
 """
 function trixi_backend(x)
-    # TODO: https://github.com/trixi-framework/Trixi.jl/pull/2417
-    if (_PREFERENCE_POLYESTER && LoopVectorization.check_args(x)) ||
-       (_PREFERENCE_USE_NATIVE_THREADING && get_backend(x) isa KernelAbstractions.CPU)
+    if (_PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(x)) ||
+       (_PREFERENCE_THREADING !== :kernelabstractions &&
+        get_backend(x) isa KernelAbstractions.CPU)
         return nothing
     end
     return get_backend(x)

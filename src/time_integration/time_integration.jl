@@ -16,6 +16,61 @@ end
 # Abstract supertype of Trixi.jl's own time integrators for dispatch
 abstract type AbstractTimeIntegrator end
 
+# Abstract supertype for the time integration algorithms of Trixi.jl
+abstract type AbstractTimeIntegrationAlgorithm end
+
+# get a cache where the RHS can be stored
+get_du(integrator::AbstractTimeIntegrator) = integrator.du
+
+# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
+function Base.getproperty(integrator::AbstractTimeIntegrator, field::Symbol)
+    if field === :stats
+        return (naccept = getfield(integrator, :iter),)
+    end
+    # general fallback
+    return getfield(integrator, field)
+end
+
+# used by adaptive timestepping algorithms in DiffEq
+function set_proposed_dt!(integrator::AbstractTimeIntegrator, dt)
+    (integrator.dt = dt; integrator.dtcache = dt)
+end
+
+# Required e.g. for `glm_speed_callback` 
+function get_proposed_dt(integrator::AbstractTimeIntegrator)
+    return integrator.dt
+end
+
+"""
+    Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm; 
+                dt, callbacks, kwargs...)
+
+Fakes `solve` from https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
+"""
+function solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
+               dt, callback = nothing, kwargs...)
+    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+
+    # Start actual solve
+    solve!(integrator)
+end
+
+function solve!(integrator::AbstractTimeIntegrator)
+    @unpack prob = integrator.sol
+
+    integrator.finalstep = false
+
+    @trixi_timeit timer() "main loop" while !integrator.finalstep
+        step!(integrator)
+    end
+
+    finalize_callbacks(integrator)
+
+    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
+                                  (prob.u0, integrator.u),
+                                  integrator.sol.prob)
+end
+
 # Interface required by DiffEqCallbacks.jl
 function DiffEqBase.get_tstops(integrator::AbstractTimeIntegrator)
     return integrator.opts.tstops
