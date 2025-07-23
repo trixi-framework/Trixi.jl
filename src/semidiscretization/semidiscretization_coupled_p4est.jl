@@ -541,10 +541,10 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     u_boundary_to_convert = Vector{real(semi)}(undef, nvariables(semi_other.equations))
     for var in 1:nvariables(semi_other.equations)
         u_boundary_to_convert[var] = u_global[semi.element_offset[idx_other] +
-                                            (var-1) +
-                                            nvariables(semi_other.equations)*(i_index_g-1) +
-                                            nvariables(semi_other.equations)*n_nodes*(j_index_g-1) +
-                                            nvariables(semi_other.equations)*n_nodes^2*(global_element_id_to_local(element_index_global, semi_other.mesh)-1)]
+                                              (var - 1) +
+                                              nvariables(semi_other.equations) * (i_index_g - 1) +
+                                              nvariables(semi_other.equations) * n_nodes * (j_index_g - 1) +
+                                              nvariables(semi_other.equations) * n_nodes^2 * (global_element_id_to_local(element_index_global, semi_other.mesh) - 1)]
     end
     x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
     u_boundary = boundary_condition.coupling_converter[idx_this, idx_other](x,
