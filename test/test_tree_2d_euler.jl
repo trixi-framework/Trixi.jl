@@ -970,6 +970,8 @@ end
     @test_nowarn println(relaxation_solver)
     println()
     @test_nowarn display(relaxation_solver)
+    # Test `:compact` printing
+    show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), relaxation_solver)
 end
 
 @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
