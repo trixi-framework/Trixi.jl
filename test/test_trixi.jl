@@ -1,5 +1,6 @@
 using Test: @test
 using TrixiTest
+import Trixi
 
 macro test_trixi_include(expr, args...)
     local add_to_additional_ignore_content = [
