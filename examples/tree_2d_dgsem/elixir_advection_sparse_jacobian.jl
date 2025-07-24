@@ -10,7 +10,7 @@ using .TrixiSparseDiffToolsExt
 ###############################################################################
 ### semidiscretization of the linear advection equation ###
 
-advection_velocity = (1.0, 1.1)
+advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # `RealT = Real` requires fewer overloads than the more explicit `RealT = Num`
@@ -36,7 +36,7 @@ semi_float = SemidiscretizationHyperbolic(mesh, equations,
                                           solver_float)
 
 t0 = 0.0
-t_end = 10.0
+t_end = 1.0
 t_span = (t0, t_end)
 
 # Call `semidiscretize` to create the ODE problem to have access to the initial condition.
@@ -76,5 +76,6 @@ callbacks = CallbackSet(analysis_callback, summary_callback)
 ###############################################################################
 # Run the simulation using ImplicitEuler method
 
-sol = solve(ode, ImplicitEuler(; autodiff = AutoFiniteDiff());
-            dt = 1.0, save_everystep = false, callback = callbacks);
+sol = solve(ode, SDIRK2(; autodiff = AutoFiniteDiff());
+            adaptive = false,
+            dt = 0.5, save_everystep = false, callback = callbacks);
