@@ -77,5 +77,4 @@ callbacks = CallbackSet(analysis_callback, summary_callback)
 # Run the simulation using ImplicitEuler method
 
 sol = solve(ode, SDIRK2(; autodiff = AutoFiniteDiff());
-            adaptive = false,
-            dt = 0.5, save_everystep = false, callback = callbacks);
+            adaptive = true, dt = 0.1, save_everystep = false, callback = callbacks);

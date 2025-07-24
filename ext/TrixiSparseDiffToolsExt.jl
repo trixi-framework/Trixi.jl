@@ -1,7 +1,7 @@
 # Package extension for using SparseDiffTools with Trixi for implicit solvers
 module TrixiSparseDiffToolsExt
 
-import Base: eps, zero, one, * # For overloading with type `Real`
+import Base: eps, zero, one, *, sqrt # For overloading with type `Real`
 
 ###############################################################################
 ### Hacks ###
@@ -14,8 +14,8 @@ end
 # There are several places in trixi where they do `one(RealT)` or `zero(uEltype)` where `RealT` or `uEltype` is `Real`.
 # This returns an `Int64`, i.e., `1` or `0`, respectively.
 # We don't want `Int`s for the sparsity detection, so we override this behavior.
-Base.one(::Type{Real}, RealT = Float64) = Base.one(RealT)
-Base.zero(::Type{Real}, RealT = Float64) = Base.zero(RealT)
+one(::Type{Real}, RealT = Float64) = Base.one(RealT)
+zero(::Type{Real}, RealT = Float64) = Base.zero(RealT)
 
 # Multiplying two Matrix{Real}s gives a Matrix{Any}.
 # This causes problems when instantiating the Legendre basis, which calls
