@@ -3,7 +3,7 @@ module TrixiSparseDiffToolsExt
 
 using Trixi
 
-import Base: *, zero, one # For overloading
+import Base: *, zero, one # For overloading with type `Real`
 
 ###############################################################################
 ### Hacks ###
@@ -20,8 +20,10 @@ Base.one(::Type{Real}) = 1.0
 Base.zero(::Type{Real}) = 0.0
 
 # Multiplying two Matrix{Real}s gives a Matrix{Any}.
-# This causes problems when instantiating the Legendre basis.
-# Called in `calc_{forward,reverse}_{upper, lower}`
+# This causes problems when instantiating the Legendre basis, which calls
+# `calc_{forward,reverse}_{upper, lower}` which in turn uses the matrix multiplication
+# which is overloaded here in construction of the interpolation/projection operators 
+# required for mortars.
 function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
     m, n = size(A, 1), size(B, 2)
     kA = size(A, 2)
