@@ -161,7 +161,7 @@ end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
 mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F,
-                                                Alg, SimpleIntegrator2NOptions, # Re-used
+                                                Alg, SimpleIntegratorOptions,
                                                 AbstractRelaxationSolver} <:
                RelaxationIntegrator
     u::uType
@@ -175,13 +175,14 @@ mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType, Params, So
     sol::Sol # faked
     f::F # `rhs` of the semidiscretization
     alg::Alg # `vanderHouwenRelaxationAlgorithm`
-    opts::SimpleIntegrator2NOptions
+    opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
     # Addition for efficient implementation
     k_prev::uType
     # Addition for Relaxation methodology
     direction::uType # RK update, i.e., sum of stages K_i times weights b_i
-    gamma::RealT
+    gamma::RealT # Relaxation parameter
+    S_old::RealT # Entropy of previous iterate
     relaxation_solver::AbstractRelaxationSolver
     # Note: Could add another register which would store the summed-up 
     # dot products ∑ₖ (wₖ ⋅ kₖ) and then integrate only once and not per stage k
@@ -200,17 +201,21 @@ function init(ode::ODEProblem, alg::vanderHouwenRelaxationAlgorithm;
     iter = 0
 
     # For entropy relaxation
-    direction = similar(u)
+    direction = zero(u)
     gamma = one(eltype(u))
+    semi = ode.p
+    u_wrap = wrap_array(u, semi)
+    S_old = integrate(entropy, u_wrap, semi.mesh, semi.equations, semi.solver,
+                      semi.cache)
 
     integrator = vanderHouwenRelaxationIntegrator(u, du, u_tmp, t, dt, zero(dt), iter,
                                                   ode.p, (prob = ode,), ode.f,
                                                   alg.van_der_houwen_alg,
-                                                  SimpleIntegrator2NOptions(callback,
-                                                                            ode.tspan;
-                                                                            kwargs...),
+                                                  SimpleIntegratorOptions(callback,
+                                                                          ode.tspan;
+                                                                          kwargs...),
                                                   false,
-                                                  k_prev, direction, gamma,
+                                                  k_prev, direction, gamma, S_old,
                                                   alg.relaxation_solver)
 
     # initialize callbacks
@@ -258,11 +263,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         num_stages = length(alg.c)
 
         mesh, equations, dg, cache = mesh_equations_solver_cache(prob.p)
-
         u_wrap = wrap_array(integrator.u, prob.p)
-        # Entropy of previous iterate
-        S_old = integrate(entropy_math, u_wrap, mesh, equations, dg, cache)
-
         u_tmp_wrap = wrap_array(integrator.u_tmp, prob.p)
 
         # First stage
@@ -322,8 +323,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
 
         @trixi_timeit timer() "Relaxation solver" relaxation_solver!(integrator,
                                                                      u_tmp_wrap, u_wrap,
-                                                                     direction_wrap,
-                                                                     S_old, dS,
+                                                                     direction_wrap, dS,
                                                                      mesh, equations,
                                                                      dg, cache,
                                                                      integrator.relaxation_solver)

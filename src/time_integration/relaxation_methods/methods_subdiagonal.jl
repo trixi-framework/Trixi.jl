@@ -161,14 +161,13 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
     u = copy(ode.u0)
     du = zero(u)
     u_tmp = zero(u)
-    direction = zero(u)
 
     t = first(ode.tspan)
     iter = 0
 
     # For entropy relaxation
+    direction = zero(u)
     gamma = one(eltype(u))
-
     semi = ode.p
     u_wrap = wrap_array(u, semi)
     S_old = integrate(entropy, u_wrap, semi.mesh, semi.equations, semi.solver,

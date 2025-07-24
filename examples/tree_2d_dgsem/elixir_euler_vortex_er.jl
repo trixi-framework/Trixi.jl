@@ -58,7 +58,7 @@ end
 initial_condition = initial_condition_isentropic_vortex
 
 # Volume flux stabilizes the simulation - in contrast to standard DGSEM with 
-# `surface_flux = flux_ranocha` only which crashes.
+# `surface_flux = flux_ranocha` only (which crashes).
 # To turn this into a convergence test, use a flux with some dissipation, e.g.
 # `flux_lax_friedrichs` or `flux_hll`.
 solver = DGSEM(polydeg = 2, surface_flux = flux_ranocha,
@@ -80,7 +80,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_callback = AnalysisCallback(semi, interval = 10,
-                                     analysis_errors = Symbol[], # Switch off error computation
+                                     analysis_errors = Symbol[], # Switch off error computation to save some time
                                      analysis_integrals = (entropy,),
                                      save_analysis = true)
 
@@ -94,7 +94,8 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # Ensure exact entropy conservation by employing a relaxation Runge-Kutta method
-relaxation_solver = Trixi.RelaxationSolverBisection(max_iterations = 20,
+# Bisection solver is in general not recommended, as way more iterations than for the Newton case are needed
+relaxation_solver = Trixi.RelaxationSolverBisection(max_iterations = 30,
                                                     gamma_min = 0.95, gamma_max = 1.05,
                                                     root_tol = eps(Float64),
                                                     gamma_tol = eps(Float64))

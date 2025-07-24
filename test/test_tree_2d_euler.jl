@@ -942,16 +942,16 @@ end
 @trixi_testset "elixir_euler_vortex_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
                         l2=[
-                            0.02599502091923521,
-                            0.13819344886988208,
-                            0.11469505300951963,
-                            0.43594543353906123
+                            0.02611497083247329,
+                            0.1381802635983644,
+                            0.11459980510262816,
+                            0.43782810743830725
                         ],
                         linf=[
-                            0.29437521194706684,
-                            1.1173672608832734,
-                            0.7947504445475198,
-                            3.826840788735659
+                            0.2918576464635866,
+                            1.1190399715083816,
+                            0.7978297797951908,
+                            3.8946074718596115
                         ])
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
@@ -970,33 +970,6 @@ end
     @test_nowarn println(relaxation_solver)
     println()
     @test_nowarn display(relaxation_solver)
-end
-
-@trixi_testset "elixir_euler_vortex_er.jl (R-CKL43)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
-                        ode_alg=Trixi.RelaxationCKL43(relaxation_solver = relaxation_solver),
-                        l2=[
-                            0.026114970863760464,
-                            0.13818026366504646,
-                            0.11459980516454522,
-                            0.43782810828453017
-                        ],
-                        linf=[
-                            0.291857647532793,
-                            1.1190399735748837,
-                            0.7978297836428636,
-                            3.8946074827244157
-                        ])
-    # Larger values for allowed allocations due to usage of custom
-    # integrator which are not *recorded* for the methods from
-    # OrdinaryDiffEq.jl
-    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
-    end
 end
 
 @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin

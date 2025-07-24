@@ -106,7 +106,8 @@ Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonal
 - `max_iterations::Int`: Maximum number of bisection iterations.
 - `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e., 
                      the absolute defect of the left and right-hand side of the equation above, i.e., 
-                     the solver stops if ``\left|\eta_{n+1} - \left(\eta_n + \gamma_n \Delta \eta( \boldsymbol U_n) \right) \right| \leq \text{root\_tol}``.
+                     the solver stops if
+                     ``\left|\eta_{n+1} - \left(\eta_n + \gamma_n \Delta \eta( \boldsymbol U_n) \right) \right| \leq \text{root\_tol}``.
 - `gamma_tol::RealT`: Absolute tolerance for the bracketing interval length, i.e., the bisection stops if 
                      ``|\gamma_{\text{max}} - \gamma_{\text{min}}| \leq \text{gamma\_tol}``.
 - `gamma_min::RealT`: Lower bound of the initial bracketing interval.
@@ -153,23 +154,22 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-function relaxation_solver!(integrator,
-                            u_tmp_wrap, u_wrap, dir_wrap,
-                            S_old, dS,
+function relaxation_solver!(integrator, u_tmp_wrap, u_wrap, dir_wrap, dS,
                             mesh, equations, dg::DG, cache,
                             relaxation_solver::RelaxationSolverBisection)
     @unpack max_iterations, root_tol, gamma_tol, gamma_min, gamma_max = relaxation_solver
 
     add_direction!(u_tmp_wrap, u_wrap, dir_wrap, gamma_max, dg, cache)
-    @trixi_timeit timer() "Δη" r_max=entropy_difference(gamma_max, S_old, dS,
+    @trixi_timeit timer() "ΔH" r_max=entropy_difference(gamma_max, integrator.S_old, dS,
                                                         u_tmp_wrap, mesh,
                                                         equations, dg, cache)
 
     add_direction!(u_tmp_wrap, u_wrap, dir_wrap, gamma_min, dg, cache)
-    @trixi_timeit timer() "Δη" r_min=entropy_difference(gamma_min, S_old, dS,
+    @trixi_timeit timer() "ΔH" r_min=entropy_difference(gamma_min, integrator.S_old, dS,
                                                         u_tmp_wrap, mesh,
                                                         equations, dg, cache)
 
+    entropy_residual = 0
     # Check if there exists a root for `r` in the interval [gamma_min, gamma_max]
     if r_max > 0 && r_min < 0
         iterations = 0
@@ -177,16 +177,19 @@ function relaxation_solver!(integrator,
             integrator.gamma = (gamma_max + gamma_min) / 2
 
             add_direction!(u_tmp_wrap, u_wrap, dir_wrap, integrator.gamma, dg, cache)
-            @trixi_timeit timer() "Δη" r_gamma=entropy_difference(integrator.gamma,
-                                                                  S_old, dS,
-                                                                  u_tmp_wrap, mesh,
-                                                                  equations, dg, cache)
-            if abs(r_gamma) <= root_tol # Sufficiently close at root
+            @trixi_timeit timer() "ΔH" entropy_residual=entropy_difference(integrator.gamma,
+                                                                           integrator.S_old,
+                                                                           dS,
+                                                                           u_tmp_wrap,
+                                                                           mesh,
+                                                                           equations,
+                                                                           dg, cache)
+            if abs(entropy_residual) <= root_tol # Sufficiently close at root
                 break
             end
 
             # Bisect interval
-            if r_gamma < 0
+            if entropy_residual < 0
                 gamma_min = integrator.gamma
             else
                 gamma_max = integrator.gamma
@@ -195,7 +198,15 @@ function relaxation_solver!(integrator,
         end
     else # No proper bracketing interval found
         integrator.gamma = 1
+        add_direction!(u_tmp_wrap, u_wrap, dir_wrap, integrator.gamma, dg, cache)
+        @trixi_timeit timer() "ΔH" entropy_residual=entropy_difference(integrator.gamma,
+                                                                       integrator.S_old,
+                                                                       dS, u_tmp_wrap,
+                                                                       mesh, equations,
+                                                                       dg, cache)
     end
+    # Update old entropy
+    integrator.S_old += integrator.gamma * dS + entropy_residual
 
     return nothing
 end
@@ -289,7 +300,7 @@ function relaxation_solver!(integrator,
     entropy_residual = 0
     while iterations < max_iterations
         add_direction!(u_tmp_wrap, u_wrap, dir_wrap, integrator.gamma, dg, cache)
-        @trixi_timeit timer() "Δη" entropy_residual=entropy_difference(integrator.gamma,
+        @trixi_timeit timer() "ΔH" entropy_residual=entropy_difference(integrator.gamma,
                                                                        integrator.S_old,
                                                                        dS, u_tmp_wrap,
                                                                        mesh, equations,
