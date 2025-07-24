@@ -35,9 +35,8 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
 @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), directory, elixir),
-                                   tspan = (0, 0.1))
+    @test_trixi_include(joinpath(examples_dir(), directory, elixir),
+                        tspan=(0, 0.1))
 
     # Constructor tests
     if mesh == "TreeMesh"
@@ -136,10 +135,9 @@ end
 
 @timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
     # Run Trixi.jl
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_1d_dgsem",
-                                            "elixir_euler_blast_wave.jl"),
-                                   tspan = (0, 0.1))
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_euler_blast_wave.jl"),
+                        tspan=(0, 0.1))
 
     # Constructor
     @test PlotData1D(sol) isa PlotData1D
@@ -399,31 +397,28 @@ end
     # Test two different approximation types since these use different memory layouts:
     # - structure of arrays for `Polynomial()`
     # - array of structures for `SBP()`
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "dgmulti_1d",
-                                            "elixir_euler_flux_diff.jl"),
-                                   tspan = (0.0, 0.0),
-                                   approximation_type = Polynomial())
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_1d",
+                                 "elixir_euler_flux_diff.jl"),
+                        tspan=(0.0, 0.0),
+                        approximation_type=Polynomial())
     @test PlotData1D(sol) isa PlotData1D
     initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
-
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "dgmulti_1d",
-                                            "elixir_euler_flux_diff.jl"),
-                                   tspan = (0.0, 0.0),
-                                   approximation_type = SBP())
     @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
+
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_1d",
+                                 "elixir_euler_flux_diff.jl"),
+                        tspan=(0.0, 0.0),
+                        approximation_type=SBP())
     @test PlotData1D(sol) isa PlotData1D
     @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
 
 @timed_testset "1D plot recipes (StructuredMesh)" begin
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "structured_1d_dgsem",
-                                            "elixir_euler_source_terms.jl"),
-                                   tspan = (0.0, 0.0))
+    @test_trixi_include(joinpath(examples_dir(), "structured_1d_dgsem",
+                                 "elixir_euler_source_terms.jl"),
+                        tspan=(0.0, 0.0))
 
     pd = PlotData1D(sol)
     initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
@@ -436,20 +431,18 @@ end
 end
 
 @timed_testset "plot time series" begin
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_2d_dgsem",
-                                            "elixir_acoustics_gaussian_source.jl"),
-                                   tspan = (0, 0.05))
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_acoustics_gaussian_source.jl"),
+                        tspan=(0, 0.05))
 
     @trixi_test_nowarn Plots.plot(time_series, 1)
     @test PlotData1D(time_series, 1) isa PlotData1D
 end
 
 @timed_testset "adapt_to_mesh_level" begin
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_2d_dgsem",
-                                            "elixir_advection_basic.jl"),
-                                   analysis_callback = Trixi.TrivialCallback())
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        analysis_callback=Trixi.TrivialCallback())
     @test adapt_to_mesh_level(sol, 5) isa Tuple
 
     u_ode_level5, semi_level5 = adapt_to_mesh_level(sol, 5)
@@ -461,11 +454,10 @@ end
 end
 
 @timed_testset "plot 3D" begin
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_3d_dgsem",
-                                            "elixir_advection_basic.jl"),
-                                   analysis_callback = Trixi.TrivialCallback(),
-                                   initial_refinement_level = 1)
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        analysis_callback=Trixi.TrivialCallback(),
+                        initial_refinement_level=1)
     @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice = :yz) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice = :xz) isa Trixi.PlotData2DCartesian
@@ -490,9 +482,8 @@ end
         end
     end
 
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "structured_3d_dgsem",
-                                            "elixir_advection_basic.jl"))
+    @test_trixi_include(joinpath(examples_dir(), "structured_3d_dgsem",
+                                 "elixir_advection_basic.jl"))
 
     @testset "1D plot from 3D solution and general mesh" begin
         @testset "Create 1D plot as slice" begin
@@ -714,14 +705,13 @@ end
         ENV["GKSwstype"] = "100"
     end
 
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_2d_dgsem",
-                                            "elixir_advection_amr_visualization.jl"),
-                                   visualization = VisualizationCallback(semi;
-                                                                         interval = 20,
-                                                                         clims = (0, 1),
-                                                                         plot_creator = Trixi.save_plot),
-                                   tspan = (0.0, 3.0))
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_amr_visualization.jl"),
+                        visualization=VisualizationCallback(semi;
+                                                            interval = 20,
+                                                            clims = (0, 1),
+                                                            plot_creator = Trixi.save_plot),
+                        tspan=(0.0, 3.0))
 
     @testset "elixir_advection_amr_visualization.jl with save_plot" begin
         @test isfile(joinpath(outdir, "solution_000000000.png"))
@@ -748,9 +738,8 @@ end
 end
 
 @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "unstructured_2d_dgsem",
-                                            "elixir_euler_wall_bc.jl"))
+    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem",
+                                 "elixir_euler_wall_bc.jl"))
 
     # test interactive surface plot
     @trixi_test_nowarn Trixi.iplot(sol)
