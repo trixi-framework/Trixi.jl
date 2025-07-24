@@ -55,10 +55,11 @@ rhs = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_real, t0)
 
 # Taken from example linked above to detect the pattern and choose how to do the AutoDiff automatically
 sd = SymbolicsSparsityDetection()
-adtype = AutoSparse(AutoFiniteDiff()) # alternatively: `AutoSparseFiniteDiff()`
+ad_type = AutoFiniteDiff()
+sparse_adtype = AutoSparse(ad_type)
 
 # `sparse_cache` will reduce calculation time when Jacobian is calculated multiple times
-sparse_cache = sparse_jacobian_cache(adtype, sd, rhs, du_ode, u0_ode)
+sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
 
 ###############################################################################
 
@@ -76,5 +77,5 @@ callbacks = CallbackSet(analysis_callback, summary_callback)
 ###############################################################################
 # Run the simulation using ImplicitEuler method
 
-sol = solve(ode_sparsity, SDIRK2(; autodiff = AutoFiniteDiff()); # `AutoForwardDiff()` is not yet working
+sol = solve(ode_sparsity, SDIRK2(; autodiff = ad_type); # `AutoForwardDiff()` is not yet working
             adaptive = true, dt = 0.1, save_everystep = false, callback = callbacks);
