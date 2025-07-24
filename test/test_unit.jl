@@ -715,14 +715,24 @@ end
     tspan = (0.0, 1.0)
     ode = semidiscretize(semi, tspan)
 
-    ode_alg = Trixi.RelaxationRK44()
-    integrator = Trixi.init(ode, ode_alg; dt = 1.0)
+    ode_alg = Trixi.RelaxationRK44() # SubDiagonalAlgorithm
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # SubDiagonalRelaxationIntegrator
 
     resize!(integrator, 1001)
     @test length(integrator.u) == 1001
     @test length(integrator.du) == 1001
     @test length(integrator.u_tmp) == 1001
     @test length(integrator.direction) == 1001
+
+    ode_alg = Trixi.RelaxationCKL54() # vanderHouwenAlgorithm
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # vanderHouwenRelaxationIntegrator
+
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
+    @test length(integrator.k_prev) == 42
+    @test length(integrator.direction) == 42
 end
 
 @timed_testset "Consistency check for single point flux: CEMCE" begin
