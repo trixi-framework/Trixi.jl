@@ -7,7 +7,7 @@
 
 # Abstract base type for time integration schemes of explicit strong stability-preserving (SSP)
 # Runge-Kutta (RK) methods. They are high-order time discretizations that guarantee the TVD property.
-abstract type SimpleAlgorithmSSP end
+abstract type SimpleAlgorithmSSP <: AbstractTimeIntegrationAlgorithm end
 
 """
     SimpleSSPRK33(; stage_callbacks=())
@@ -81,7 +81,7 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
                                    SimpleIntegratorSSPOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
-    r0::uType
+    u_tmp::uType
     t::RealT
     tdir::RealT # DIRection of time integration, i.e., if one marches forward or backward in time
     dt::RealT # current time step
@@ -116,37 +116,23 @@ end
 has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)
 first_tstop(integrator::SimpleIntegratorSSP) = first(integrator.opts.tstops)
 
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::SimpleIntegratorSSP, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
-end
-
-"""
-    solve(ode, alg; dt, callbacks, kwargs...)
-
-The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
-of type `SimpleAlgorithmSSP`.
-"""
-function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
-               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
+function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
+              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
-    r0 = similar(u)
+    u_tmp = similar(u)
     t = first(ode.tspan)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
-    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, dt, iter, ode.p,
+    integrator = SimpleIntegratorSSP(u, du, u_tmp, t, tdir, dt, dt, iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...),
                                      false, true, false)
 
     # resize container
-    resize!(integrator.p, nelements(integrator.p.solver, integrator.p.cache))
+    resize!(integrator.p, integrator.p.solver.volume_integral,
+            nelements(integrator.p.solver, integrator.p.cache))
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -162,7 +148,7 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
         init_callback(stage_callback, integrator.p)
     end
 
-    solve!(integrator)
+    return integrator
 end
 
 function solve!(integrator::SimpleIntegratorSSP)
@@ -186,7 +172,7 @@ function solve!(integrator::SimpleIntegratorSSP)
             terminate!(integrator)
         end
 
-        @. integrator.r0 = integrator.u
+        @. integrator.u_tmp = integrator.u
         for stage in eachindex(alg.c)
             t_stage = integrator.t + integrator.dt * alg.c[stage]
             # compute du
@@ -200,7 +186,7 @@ function solve!(integrator::SimpleIntegratorSSP)
             end
 
             # perform convex combination
-            @. integrator.u = (alg.numerator_a[stage] * integrator.r0 +
+            @. integrator.u = (alg.numerator_a[stage] * integrator.u_tmp +
                                alg.numerator_b[stage] * integrator.u) /
                               alg.denominator[stage]
         end
@@ -242,21 +228,10 @@ function solve!(integrator::SimpleIntegratorSSP)
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::SimpleIntegratorSSP) = integrator.du
-get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.r0,)
+get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
-
-# used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::SimpleIntegratorSSP, dt)
-    (integrator.dt = dt; integrator.dtcache = dt)
-end
-
-# used by adaptive timestepping algorithms in DiffEq
-function get_proposed_dt(integrator::SimpleIntegratorSSP)
-    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
-end
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
@@ -291,26 +266,11 @@ end
 function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
-    resize!(integrator.r0, new_size)
+    resize!(integrator.u_tmp, new_size)
 
     # Resize container
     # new_size = n_variables * n_nodes^n_dims * n_elements
     n_elements = nelements(integrator.p.solver, integrator.p.cache)
-    resize!(integrator.p, n_elements)
-end
-
-function Base.resize!(semi::AbstractSemidiscretization, new_size)
-    resize!(semi, semi.solver.volume_integral, new_size)
-end
-
-Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
-
-function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
-    # Resize container antidiffusive_fluxes
-    resize!(semi.cache.antidiffusive_fluxes, new_size)
-
-    # Resize container subcell_limiter_coefficients
-    @unpack limiter = volume_integral
-    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+    resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
 end
 end # @muladd
