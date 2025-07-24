@@ -146,6 +146,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan, jac_prototype, 
     specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
     # See SparseDiffTools.jl docs for the typing of jac_prototype and colorvec
     # https://github.com/JuliaDiff/SparseDiffTools.jl 
+    # TODO: Do we need to convert the `jac_prototype` to real type, as seen here:
+    # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
     ode = SciMLBase.ODEFunction(rhs!, jac_prototype=jac_prototype, colorvec=coloring)
     return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
 end
