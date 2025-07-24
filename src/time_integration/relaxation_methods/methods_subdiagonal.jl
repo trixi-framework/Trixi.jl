@@ -232,6 +232,8 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         # First stage
         integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
+        # Try to enable optimizations due to `muladd` by computing this factor only once, see
+        # https://github.com/trixi-framework/Trixi.jl/pull/2480#discussion_r2224529532
         b1_dt = alg.b[1] * integrator.dt
         @threaded for i in eachindex(integrator.u)
             integrator.direction[i] = b1_dt * integrator.du[i]
@@ -239,8 +241,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         du_wrap = wrap_array(integrator.du, prob.p)
         # Entropy change due to first stage
-        dS = alg.b[1] * integrator.dt *
-             integrate_w_dot_stage(du_wrap, u_wrap, mesh, equations, dg, cache)
+        dS = b1_dt * integrate_w_dot_stage(du_wrap, u_wrap, mesh, equations, dg, cache)
 
         # Second to last stage
         for stage in 2:length(alg.c)
@@ -257,7 +258,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
             end
 
             # Entropy change due to current stage
-            dS += alg.b[stage] * integrator.dt *
+            dS += b_dt *
                   integrate_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
         end
 
