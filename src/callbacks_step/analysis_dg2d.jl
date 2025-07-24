@@ -258,8 +258,8 @@ function integrate(func::Func, u,
         end
     end
     if (m[1].nargs == 4) && (func != cons2cons)
-        gradients_x = DGSpaceDerivative_WeakForm!(dg, cache, u, 1, equations)
-        gradients_y = DGSpaceDerivative_WeakForm!(dg, cache, u, 2, equations)
+        gradients_x = DGSpaceDerivative_WeakForm!(dg, cache, u, 1, equations, mesh)
+        gradients_y = DGSpaceDerivative_WeakForm!(dg, cache, u, 2, equations, mesh)
         return integrate_via_indices(u, mesh, equations, dg, cache;
                                      normalize = normalize) do u, i, j, element,
                                                                equations, dg
@@ -271,30 +271,100 @@ function integrate(func::Func, u,
     end
 end
 
+# Return the derivatives of the interpolatied polynomial.
+function lagrange_derivatives(x, y)
+    n = length(x)
+    dydx = zeros(n)
+
+    for i in 1:n
+        for j in 1:n
+            if i != j
+                term = y[j] / (x[i] - x[j])
+                for k in 1:n
+                    if k != i && k != j
+                        term *= (x[i] - x[k]) / (x[j] - x[k])
+                    end
+                end
+                dydx[i] += term
+            end
+        end
+    end
+
+    return dydx
+end
+
 # Andrew's functions for computing the derivatives.
 function DGSpaceDerivative_WeakForm!(dg,
                                      cache,
                                      u,
                                      direction::Int,
-                                     equations)
+                                     equations,
+                                     mesh)
     # Get the required variables.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_dhat, weights = dg.basis
+
+    # Compute the surface flux terms.
+    surface_flux_values = similar(u)
+    Trixi.calc_surface_integral!(surface_flux_values, u, mesh, equations, dg.surface_integral, dg, cache)
 
     # Translations.
     D = derivative_dhat
     spA_Dhat = D
-    J = 1 ./ cache.elements.inverse_jacobian
-    weights = dg.basis.weights
-    l_minus = dg.basis.boundary_interpolation[:, 1]
-    l_plus = dg.basis.boundary_interpolation[:, 2]
 
     n_vars, Np, _, n_elements = size(u)
     gradients = similar(u)
 
-    for elem in 1:n_elements
-        for v in 1:n_vars
-            # Contract D in the ξ̂ (first spatial) direction
-            gradients[v, :, :, elem] .= D * u[v, :, :, elem]
+    u_local = zeros((n_vars, Np, Np))
+
+    if direction == 1
+        for elem in 1:n_elements
+            # We work in primitive variables here.
+            for i in 1:Np
+                for j in 1:Np
+                    u_local[:, i, j] = cons2prim(u[:, i, j, elem], equations)
+                end
+            end
+            # Volume contributions (weak form)
+            for v in 1:n_vars
+                # Interpolate polynomial.
+                for j in 1:Np
+                    x = cache.elements.node_coordinates[1, :, j, elem]
+                    y = u_local[v, :, j]
+                    gradients[v, :, j, elem] .= lagrange_derivatives(x, y)
+                end
+
+#                 # Contract D in the ξ̂ (first spatial) direction
+#                 gradients[v, :, :, elem] .= D * u[v, :, :, elem]
+#                 # Average over element.
+
+                average = sum(gradients[v, :, :, elem]/Np^2)
+                gradients[v, :, :, elem] .= average
+            end
+        end
+    elseif direction == 2
+        for elem in 1:n_elements
+            # We work in primitive variables here.
+            for i in 1:Np
+                for j in 1:Np
+                    u_local[:, i, j] = cons2prim(u[:, i, j, elem], equations)
+                end
+            end
+            # Volume contributions (weak form)
+            for v in 1:n_vars
+                # Interpolate polynomial.
+                for i in 1:Np
+                    x = cache.elements.node_coordinates[2, i, :, elem]
+                    y = u_local[v, i, :]
+                    gradients[v, i, :, elem] .= lagrange_derivatives(x, y)
+                end
+
+#                 # Contract D in the ξ̂ (first spatial) direction
+#                 gradients[v, :, :, elem] .= u[v, :, :, elem] * D'
+
+                # Average over element.
+                average = sum(gradients[v, :, :, elem]/Np^2)
+                gradients[v, :, :, elem] .= average
+            end
         end
     end
 
