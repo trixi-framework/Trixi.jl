@@ -63,18 +63,18 @@ sparse_cache = sparse_jacobian_cache(adtype, sd, rhs, du_ode, u0_ode)
 ###############################################################################
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
-ode_float_detection = semidiscretize(semi_float, t_span,
-                                     sparse_cache.jac_prototype,
-                                     sparse_cache.coloring.colorvec)
+ode_sparsity = semidiscretize(semi_float, t_span,
+                              sparse_cache.jac_prototype,
+                              sparse_cache.coloring.colorvec)
 
 analysis_callback = AnalysisCallback(semi_float, interval = 100)
 summary_callback = SummaryCallback()
 
-# Note: No `stepsize_callback` due to implicit solver
+# Note: No `stepsize_callback` due to implicit solver with adaptive timestep control
 callbacks = CallbackSet(analysis_callback, summary_callback)
 
 ###############################################################################
 # Run the simulation using ImplicitEuler method
 
-sol = solve(ode, SDIRK2(; autodiff = AutoFiniteDiff());
+sol = solve(ode_sparsity, SDIRK2(; autodiff = AutoFiniteDiff());
             adaptive = true, dt = 0.1, save_everystep = false, callback = callbacks);
