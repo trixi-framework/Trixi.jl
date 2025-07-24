@@ -87,15 +87,15 @@ abstract type AbstractRelaxationSolver end
 
 Solve the relaxation equation 
 ```math
-\eta \big(\boldsymbol U_{n+1}(\gamma_n) \big) = 
-\eta \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=} 
-\eta(\boldsymbol U_n) + \gamma_n \Delta \eta (\boldsymbol U_n)
+H \big(\boldsymbol U_{n+1}(\gamma_n) \big) = 
+H \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=} 
+H(\boldsymbol U_n) + \gamma_n \Delta H (\boldsymbol U_n)
 ```
 with true entropy change
 ```math
-\Delta \eta \coloneqq 
+\Delta H \coloneqq 
 \Delta t \sum_{i=1}^S b_i 
-\left \langle \frac{\partial \eta(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}}, 
+\left \langle \frac{\partial H(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}}, 
 \boldsymbol K_i 
 \right \rangle	
 ```
@@ -107,7 +107,7 @@ Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonal
 - `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e., 
                      the absolute defect of the left and right-hand side of the equation above, i.e., 
                      the solver stops if
-                     ``\left|\eta_{n+1} - \left(\eta_n + \gamma_n \Delta \eta( \boldsymbol U_n) \right) \right| \leq \text{root\_tol}``.
+                     ``\left|H_{n+1} - \left(H_n + \gamma_n \Delta H( \boldsymbol U_n) \right) \right| \leq \text{root\_tol}``.
 - `gamma_tol::RealT`: Absolute tolerance for the bracketing interval length, i.e., the bisection stops if 
                      ``|\gamma_{\text{max}} - \gamma_{\text{min}}| \leq \text{gamma\_tol}``.
 - `gamma_min::RealT`: Lower bound of the initial bracketing interval.
@@ -218,15 +218,15 @@ end
 
 Solve the relaxation equation 
 ```math
-\eta \big(\boldsymbol U_{n+1}(\gamma_n) \big) = 
-\eta \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=} 
-\eta(\boldsymbol U_n) + \gamma_n \Delta \eta (\boldsymbol U_n)
+H \big(\boldsymbol U_{n+1}(\gamma_n) \big) = 
+H \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=} 
+H(\boldsymbol U_n) + \gamma_n \Delta H (\boldsymbol U_n)
 ```
 with true entropy change
 ```math
-\Delta \eta \coloneqq 
+\Delta H \coloneqq 
 \Delta t \sum_{i=1}^S b_i 
-\left \langle \frac{\partial \eta(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}}, 
+\left \langle \frac{\partial H(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}}, 
 \boldsymbol K_i 
 \right \rangle	
 ```
@@ -239,7 +239,7 @@ Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonal
 - `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e., 
                      the absolute defect of the left and right-hand side of the equation above, i.e.,
                      the solver stops if
-                     ``|\eta_{n+1} - (\eta_n + \gamma_n \Delta \eta( \boldsymbol U_n))| \leq \text{root\_tol}``.
+                     ``|H_{n+1} - (H_n + \gamma_n \Delta H( \boldsymbol U_n))| \leq \text{root\_tol}``.
 - `gamma_tol::RealT`: Absolute tolerance for the Newton update step size, i.e., the solver stops if 
                       ``|\gamma_{\text{new}} - \gamma_{\text{old}}| \leq \text{gamma\_tol}``.
 - `gamma_min::RealT`: Minimum relaxation parameter. If the Newton iteration results a value smaller than this, 
