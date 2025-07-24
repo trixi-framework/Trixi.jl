@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Abstract base type for time integration schemes of storage class `3S*`
-abstract type SimpleAlgorithm3Sstar end
+abstract type SimpleAlgorithm3Sstar <: AbstractTimeIntegrationAlgorithm end
 
 """
     HypDiffN3Erk3Sstar52()
@@ -130,23 +130,8 @@ struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
     end
 end
 
-mutable struct SimpleIntegrator3SstarOptions{Callback}
-    callback::Callback # callbacks; used in Trixi.jl
-    adaptive::Bool # whether the algorithm is adaptive; ignored
-    dtmax::Float64 # ignored
-    maxiters::Int # maximal number of time steps
-    tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
-end
-
-function SimpleIntegrator3SstarOptions(callback, tspan; maxiters = typemax(Int),
-                                       kwargs...)
-    SimpleIntegrator3SstarOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                                    [last(tspan)])
-end
-
 mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
-                                      SimpleIntegrator3SstarOptions} <:
-               AbstractTimeIntegrator
+                                      SimpleIntegratorOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
     u_tmp1::uType
@@ -159,21 +144,13 @@ mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
     sol::Sol # faked
     f::F # `rhs!` of the semidiscretization
     alg::Alg # SimpleAlgorithm3Sstar
-    opts::SimpleIntegrator3SstarOptions
+    opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
 end
 
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::SimpleIntegrator3Sstar, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
-end
-
 function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
-              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing,
+              unstable_check = ode_unstable_check, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp1 = similar(u)
@@ -183,9 +160,9 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
     integrator = SimpleIntegrator3Sstar(u, du, u_tmp1, u_tmp2, t, dt, zero(dt), iter,
                                         ode.p,
                                         (prob = ode,), ode.f, alg,
-                                        SimpleIntegrator3SstarOptions(callback,
-                                                                      ode.tspan;
-                                                                      kwargs...), false)
+                                        SimpleIntegratorOptions(callback,
+                                                                ode.tspan;
+                                                                kwargs...), false)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -198,31 +175,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
     end
 
     return integrator
-end
-
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
-end
-
-function solve!(integrator::SimpleIntegrator3Sstar)
-    @unpack prob = integrator.sol
-
-    integrator.finalstep = false
-
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        step!(integrator)
-    end # "main loop" timer
-
-    finalize_callbacks(integrator)
-
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
 end
 
 function step!(integrator::SimpleIntegrator3Sstar)
@@ -288,23 +240,12 @@ function step!(integrator::SimpleIntegrator3Sstar)
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::SimpleIntegrator3Sstar) = integrator.du
 function get_tmp_cache(integrator::SimpleIntegrator3Sstar)
     (integrator.u_tmp1, integrator.u_tmp2)
 end
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegrator3Sstar, ::Bool) = false
-
-# used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::SimpleIntegrator3Sstar, dt)
-    integrator.dt = dt
-end
-
-# Required e.g. for `glm_speed_callback`
-function get_proposed_dt(integrator::SimpleIntegrator3Sstar)
-    return integrator.dt
-end
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegrator3Sstar)
