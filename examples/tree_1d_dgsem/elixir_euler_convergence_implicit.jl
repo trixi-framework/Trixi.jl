@@ -88,6 +88,7 @@ callbacks = CallbackSet(analysis_callback, summary_callback)
 ###############################################################################
 # Run the simulation using ImplicitEuler method
 
-sol = solve(ode, Kvaerno4(; autodiff = AutoFiniteDiff()); # `AutoForwardDiff()` is not yet working
+# `AutoForwardDiff()` is not yet working, probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
+sol = solve(ode, Kvaerno4(; autodiff = AutoFiniteDiff());
             adaptive = false,
             dt = 0.5, save_everystep = false, callback = callbacks);
