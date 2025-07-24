@@ -100,7 +100,7 @@ with true entropy change
 \right \rangle	
 ```
 for the relaxation parameter ``\gamma_n`` using a bisection method.
-Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonalAlgorithm`](@ref) or [`vanderHouwenRelaxationAlgorithm`].
+Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonalAlgorithm`](@ref) or [`vanderHouwenRelaxationAlgorithm`](@ref).
 
 # Arguments
 - `max_iterations::Int`: Maximum number of bisection iterations.
@@ -232,7 +232,7 @@ with true entropy change
 ```
 for the relaxation parameter ``\gamma_n`` using Newton's method.
 The derivative of the relaxation function is known and can be directly computed.
-Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonalAlgorithm`](@ref) or [`vanderHouwenRelaxationAlgorithm`].
+Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonalAlgorithm`](@ref) or [`vanderHouwenRelaxationAlgorithm`](@ref).
 
 # Arguments
 - `max_iterations::Int`: Maximum number of Newton iterations.

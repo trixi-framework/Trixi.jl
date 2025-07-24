@@ -101,5 +101,5 @@ relaxation_solver = Trixi.RelaxationSolverBisection(max_iterations = 30,
                                                     gamma_tol = eps(Float64))
 ode_alg = Trixi.RelaxationCKL43(relaxation_solver = relaxation_solver)
 
-sol = Trixi.solve(ode, ode_alg,
+sol = Trixi.solve(ode, ode_alg;
                   dt = 42.0, save_everystep = false, callback = callbacks);

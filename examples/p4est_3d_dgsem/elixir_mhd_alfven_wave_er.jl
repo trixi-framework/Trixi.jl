@@ -58,5 +58,5 @@ relaxation_solver = Trixi.RelaxationSolverNewton(max_iterations = 5,
                                                  gamma_tol = eps(Float64))
 ode_alg = Trixi.RelaxationCKL54(relaxation_solver = relaxation_solver)
 
-sol = Trixi.solve(ode, ode_alg,
+sol = Trixi.solve(ode, ode_alg;
                   dt = 42.0, save_everystep = false, callback = callbacks);
