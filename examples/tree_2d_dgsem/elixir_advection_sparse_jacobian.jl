@@ -76,5 +76,5 @@ callbacks = CallbackSet(analysis_callback, summary_callback)
 ###############################################################################
 # Run the simulation using ImplicitEuler method
 
-sol = solve(ode_sparsity, SDIRK2(; autodiff = AutoFiniteDiff());
+sol = solve(ode_sparsity, SDIRK2(; autodiff = AutoFiniteDiff()); # `AutoForwardDiff()` is not yet working
             adaptive = true, dt = 0.1, save_everystep = false, callback = callbacks);
