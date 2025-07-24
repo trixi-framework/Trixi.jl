@@ -28,9 +28,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
                                                  initial_condition, dg)
-    @test_nowarn_mod show(stdout, semi)
-    @test_nowarn_mod show(stdout, MIME"text/plain"(), semi)
-    @test_nowarn_mod show(stdout, boundary_condition_do_nothing)
+    @trixi_test_nowarn show(stdout, semi)
+    @trixi_test_nowarn show(stdout, MIME"text/plain"(), semi)
+    @trixi_test_nowarn show(stdout, boundary_condition_do_nothing)
 
     @test nvariables(semi) == nvariables(equations)
     @test Base.ndims(semi) == Base.ndims(mesh)

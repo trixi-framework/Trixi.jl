@@ -53,7 +53,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     pd = PlotData2D(sol)
 
     # show
-    @test_nowarn_mod show(stdout, pd)
+    @trixi_test_nowarn show(stdout, pd)
     println(stdout)
 
     # getindex
@@ -79,22 +79,22 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     pds = pd["p"]
     @test pds.plot_data == pd
     @test pds.variable_id == 4
-    @test_nowarn_mod show(stdout, pds)
+    @trixi_test_nowarn show(stdout, pds)
     println(stdout)
 
     # getmesh/PlotMesh
     @test getmesh(pd) == Trixi.PlotMesh(pd)
     @test getmesh(pd).plot_data == pd
-    @test_nowarn_mod show(stdout, getmesh(pd))
+    @trixi_test_nowarn show(stdout, getmesh(pd))
     println(stdout)
 
     @testset "2D plot recipes" begin
         pd = PlotData2D(sol)
 
-        @test_nowarn_mod Plots.plot(sol)
-        @test_nowarn_mod Plots.plot(pd)
-        @test_nowarn_mod Plots.plot(pd["p"])
-        @test_nowarn_mod Plots.plot(getmesh(pd))
+        @trixi_test_nowarn Plots.plot(sol)
+        @trixi_test_nowarn Plots.plot(pd)
+        @trixi_test_nowarn Plots.plot(pd["p"])
+        @trixi_test_nowarn Plots.plot(getmesh(pd))
 
         semi = sol.prob.p
         if mesh == "DGMulti"
@@ -104,30 +104,30 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                 u = sol.u[end]
             end
             scalar_data = StructArrays.component(u, 1)
-            @test_nowarn_mod Plots.plot(ScalarPlotData2D(scalar_data, semi))
+            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
         else
             cache = semi.cache
             x = view(cache.elements.node_coordinates, 1, :, :, :)
-            @test_nowarn_mod Plots.plot(ScalarPlotData2D(x, semi))
+            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(x, semi))
         end
     end
 
     @testset "1D plot from 2D solution" begin
         if mesh != "DGMulti"
             @testset "Create 1D plot as slice" begin
-                @test_nowarn_mod PlotData1D(sol, slice = :y, point = (0.5, 0.0)) isa
-                                 PlotData1D
-                @test_nowarn_mod PlotData1D(sol, slice = :x, point = (0.5, 0.0)) isa
-                                 PlotData1D
+                @trixi_test_nowarn PlotData1D(sol, slice = :y, point = (0.5, 0.0)) isa
+                                   PlotData1D
+                @trixi_test_nowarn PlotData1D(sol, slice = :x, point = (0.5, 0.0)) isa
+                                   PlotData1D
                 pd1D = PlotData1D(sol, slice = :y, point = (0.5, 0.0))
-                @test_nowarn_mod Plots.plot(pd1D)
+                @trixi_test_nowarn Plots.plot(pd1D)
 
                 @testset "Create 1D plot along curve" begin
                     curve = zeros(2, 10)
                     curve[1, :] = range(-1, 1, length = 10)
-                    @test_nowarn_mod PlotData1D(sol, curve = curve) isa PlotData1D
+                    @trixi_test_nowarn PlotData1D(sol, curve = curve) isa PlotData1D
                     pd1D = PlotData1D(sol, curve = curve)
-                    @test_nowarn_mod Plots.plot(pd1D)
+                    @trixi_test_nowarn Plots.plot(pd1D)
                 end
             end
         end
@@ -146,7 +146,7 @@ end
     pd = PlotData1D(sol)
 
     # show
-    @test_nowarn_mod show(stdout, pd)
+    @trixi_test_nowarn show(stdout, pd)
     println(stdout)
 
     # getindex
@@ -170,13 +170,13 @@ end
     pds = pd["p"]
     @test pds.plot_data == pd
     @test pds.variable_id == 3
-    @test_nowarn_mod show(stdout, pds)
+    @trixi_test_nowarn show(stdout, pds)
     println(stdout)
 
     # getmesh/PlotMesh
     @test getmesh(pd) == Trixi.PlotMesh(pd)
     @test getmesh(pd).plot_data == pd
-    @test_nowarn_mod show(stdout, getmesh(pd))
+    @trixi_test_nowarn show(stdout, getmesh(pd))
     println(stdout)
 
     # nvisnodes
@@ -189,15 +189,15 @@ end
     @testset "1D plot recipes" begin
         pd = PlotData1D(sol)
 
-        @test_nowarn_mod Plots.plot(sol)
-        @test_nowarn_mod Plots.plot(sol, reinterpolate = false)
-        @test_nowarn_mod Plots.plot(pd)
-        @test_nowarn_mod Plots.plot(pd["p"])
-        @test_nowarn_mod Plots.plot(getmesh(pd))
+        @trixi_test_nowarn Plots.plot(sol)
+        @trixi_test_nowarn Plots.plot(sol, reinterpolate = false)
+        @trixi_test_nowarn Plots.plot(pd)
+        @trixi_test_nowarn Plots.plot(pd["p"])
+        @trixi_test_nowarn Plots.plot(getmesh(pd))
         initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
                                                                   equations)
-        @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
-        @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
+        @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
+        @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
     end
 
     # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
@@ -208,7 +208,7 @@ end
         variable_names = string.('a':'e')
         mesh_vertices_x1d = [x[begin], x[end]]
         fake1d = PlotData1D(x, data1d, variable_names, mesh_vertices_x1d, 0)
-        @test_nowarn_mod Plots.plot(fake1d)
+        @trixi_test_nowarn Plots.plot(fake1d)
 
         y = x
         data2d = [rand(11, 11) for _ in 1:5]
@@ -216,7 +216,7 @@ end
         mesh_vertices_y2d = [0.0, 0.0, 1.0, 1.0]
         fake2d = Trixi.PlotData2DCartesian(x, y, data2d, variable_names,
                                            mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
-        @test_nowarn_mod Plots.plot(fake2d)
+        @trixi_test_nowarn Plots.plot(fake2d)
     end
 end
 
@@ -406,17 +406,17 @@ end
                                    approximation_type = Polynomial())
     @test PlotData1D(sol) isa PlotData1D
     initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
-    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
-    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "dgmulti_1d",
                                             "elixir_euler_flux_diff.jl"),
                                    tspan = (0.0, 0.0),
                                    approximation_type = SBP())
+    @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
+    @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
     @test PlotData1D(sol) isa PlotData1D
-    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
-    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
+    @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
+    @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
 
 @timed_testset "1D plot recipes (StructuredMesh)" begin
@@ -427,12 +427,12 @@ end
 
     pd = PlotData1D(sol)
     initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
-    @test_nowarn_mod Plots.plot(sol)
-    @test_nowarn_mod Plots.plot(pd)
-    @test_nowarn_mod Plots.plot(pd["p"])
-    @test_nowarn_mod Plots.plot(sol.u[end], semi)
-    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
-    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
+    @trixi_test_nowarn Plots.plot(sol)
+    @trixi_test_nowarn Plots.plot(pd)
+    @trixi_test_nowarn Plots.plot(pd["p"])
+    @trixi_test_nowarn Plots.plot(sol.u[end], semi)
+    @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
+    @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
 
 @timed_testset "plot time series" begin
@@ -441,7 +441,7 @@ end
                                             "elixir_acoustics_gaussian_source.jl"),
                                    tspan = (0, 0.05))
 
-    @test_nowarn_mod Plots.plot(time_series, 1)
+    @trixi_test_nowarn Plots.plot(time_series, 1)
     @test PlotData1D(time_series, 1) isa PlotData1D
 end
 
@@ -472,21 +472,21 @@ end
 
     @testset "1D plot from 3D solution and Tree-mesh" begin
         @testset "Create 1D plot as slice" begin
-            @test_nowarn_mod PlotData1D(sol) isa PlotData1D
+            @trixi_test_nowarn PlotData1D(sol) isa PlotData1D
             pd1D = PlotData1D(sol)
-            @test_nowarn_mod Plots.plot(pd1D)
-            @test_nowarn_mod PlotData1D(sol, slice = :y, point = (0.5, 0.3, 0.1)) isa
-                             PlotData1D
-            @test_nowarn_mod PlotData1D(sol, slice = :z, point = (0.1, 0.3, 0.3)) isa
-                             PlotData1D
+            @trixi_test_nowarn Plots.plot(pd1D)
+            @trixi_test_nowarn PlotData1D(sol, slice = :y, point = (0.5, 0.3, 0.1)) isa
+                               PlotData1D
+            @trixi_test_nowarn PlotData1D(sol, slice = :z, point = (0.1, 0.3, 0.3)) isa
+                               PlotData1D
         end
 
         @testset "Create 1D plot along curve" begin
             curve = zeros(3, 10)
             curve[1, :] = range(-1.0, -0.5, length = 10)
-            @test_nowarn_mod PlotData1D(sol, curve = curve) isa PlotData1D
+            @trixi_test_nowarn PlotData1D(sol, curve = curve) isa PlotData1D
             pd1D = PlotData1D(sol, curve = curve)
-            @test_nowarn_mod Plots.plot(pd1D)
+            @trixi_test_nowarn Plots.plot(pd1D)
         end
     end
 
@@ -496,21 +496,21 @@ end
 
     @testset "1D plot from 3D solution and general mesh" begin
         @testset "Create 1D plot as slice" begin
-            @test_nowarn_mod PlotData1D(sol) isa PlotData1D
+            @trixi_test_nowarn PlotData1D(sol) isa PlotData1D
             pd1D = PlotData1D(sol)
-            @test_nowarn_mod Plots.plot(pd1D)
-            @test_nowarn_mod PlotData1D(sol, slice = :y, point = (0.5, 0.3, 0.1)) isa
-                             PlotData1D
-            @test_nowarn_mod PlotData1D(sol, slice = :z, point = (0.1, 0.3, 0.3)) isa
-                             PlotData1D
+            @trixi_test_nowarn Plots.plot(pd1D)
+            @trixi_test_nowarn PlotData1D(sol, slice = :y, point = (0.5, 0.3, 0.1)) isa
+                               PlotData1D
+            @trixi_test_nowarn PlotData1D(sol, slice = :z, point = (0.1, 0.3, 0.3)) isa
+                               PlotData1D
         end
 
         @testset "Create 1D plot along curve" begin
             curve = zeros(3, 10)
             curve[1, :] = range(-1.0, 1.0, length = 10)
-            @test_nowarn_mod PlotData1D(sol, curve = curve) isa PlotData1D
+            @trixi_test_nowarn PlotData1D(sol, curve = curve) isa PlotData1D
             pd1D = PlotData1D(sol, curve = curve)
-            @test_nowarn_mod Plots.plot(pd1D)
+            @trixi_test_nowarn Plots.plot(pd1D)
         end
     end
 
@@ -702,7 +702,7 @@ end
                                  "elixir_hypdiff_lax_friedrichs.jl"),
                         maxiters=1, analysis_callback=Trixi.TrivialCallback(),
                         initial_refinement_level=1)
-    @test_nowarn_mod Plots.plot(sol)
+    @trixi_test_nowarn Plots.plot(sol)
 end
 
 @timed_testset "VisualizationCallback" begin
@@ -730,10 +730,10 @@ end
     end
 
     @testset "show" begin
-        @test_nowarn_mod show(stdout, visualization)
+        @trixi_test_nowarn show(stdout, visualization)
         println(stdout)
 
-        @test_nowarn_mod show(stdout, "text/plain", visualization)
+        @trixi_test_nowarn show(stdout, "text/plain", visualization)
         println(stdout)
     end
 
@@ -753,34 +753,34 @@ end
                                             "elixir_euler_wall_bc.jl"))
 
     # test interactive surface plot
-    @test_nowarn_mod Trixi.iplot(sol)
+    @trixi_test_nowarn Trixi.iplot(sol)
 
     # also test when using PlotData2D object
     @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
-    @test_nowarn_mod Makie.plot(PlotData2D(sol))
+    @trixi_test_nowarn Makie.plot(PlotData2D(sol))
 
     # test interactive ScalarPlotData2D plotting
     semi = sol.prob.p
     x = view(semi.cache.elements.node_coordinates, 1, :, :, :) # extracts the node x coordinates
     y = view(semi.cache.elements.node_coordinates, 2, :, :, :) # extracts the node x coordinates
-    @test_nowarn_mod iplot(ScalarPlotData2D(x .+ y, semi), plot_mesh = true)
+    @trixi_test_nowarn iplot(ScalarPlotData2D(x .+ y, semi), plot_mesh = true)
 
     # test heatmap plot
-    @test_nowarn_mod Makie.plot(sol, plot_mesh = true)
+    @trixi_test_nowarn Makie.plot(sol, plot_mesh = true)
 
     # test unpacking/iteration for FigureAndAxes
     fa = Makie.plot(sol)
     fig, axes = fa
-    @test_nowarn_mod Base.show(fa) === nothing
-    @test_nowarn_mod typeof(fig) <: Makie.Figure
-    @test_nowarn_mod typeof(axes) <: AbstractArray{<:Makie.Axis}
+    @trixi_test_nowarn Base.show(fa) === nothing
+    @trixi_test_nowarn typeof(fig) <: Makie.Figure
+    @trixi_test_nowarn typeof(axes) <: AbstractArray{<:Makie.Axis}
 
     # test plotting of constant solutions with Makie
     # related issue: https://github.com/MakieOrg/Makie.jl/issues/931
     for i in eachindex(sol.u)
         fill!(sol.u[i], one(eltype(sol.u[i])))
     end
-    @test_nowarn_mod Trixi.iplot(sol)
+    @trixi_test_nowarn Trixi.iplot(sol)
 end
 end
 
