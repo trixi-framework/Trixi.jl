@@ -302,4 +302,6 @@ These can then be supplied to the relaxation time algorithms such as [`Trixi.Rel
 ```julia
 ode_algorithm = Trixi.RelaxationRK44(solver = Trixi.RelaxationSolverNewton())
 ode_algorithm = Trixi.RelaxationRalston3(solver = Trixi.RelaxationSolverNewton())
+ode_algorithm = Trixi.RelaxationCKL43(solver = Trixi.RelaxationSolverNewton())
+ode_algorithm = Trixi.RelaxationCKL54(solver = Trixi.RelaxationSolverNewton())
 ```
