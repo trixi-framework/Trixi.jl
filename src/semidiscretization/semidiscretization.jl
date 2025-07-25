@@ -177,6 +177,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
     # See SparseDiffTools.jl docs (https://github.com/JuliaDiff/SparseDiffTools.jl) for documentation of `jac_prototype` and `colorvec`
     # TODO: Do we need to convert the `jac_prototype` to real type, as seen here:
     # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
+    # TODO: Supply for linear problems the sparse Jacobian, i.e., not only the prototype
     ode = SciMLBase.ODEFunction(rhs!, jac_prototype=jac_prototype, colorvec=coloring)
     return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
 end
