@@ -59,6 +59,7 @@ end
 end
 
 @trixi_testset "elixir_advection_float128.jl" begin
+    using Quadmath: Float128
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_float128.jl"),
                         l2=Float128[6.49879312655540217059228636803492411e-09],
                         linf=Float128[5.35548407857266390181158920649552284e-08])

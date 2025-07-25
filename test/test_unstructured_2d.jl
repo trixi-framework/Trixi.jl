@@ -90,6 +90,7 @@ end
 end
 
 @trixi_testset "elixir_euler_basic.jl" begin
+    using Trixi: default_example_unstructured
     @test_trixi_include(default_example_unstructured(),
                         l2=[
                             0.0007213418215265047,

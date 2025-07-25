@@ -1,5 +1,6 @@
-using Test: @test
+using Test: @test, @testset
 using TrixiTest
+using Trixi: examples_dir
 
 macro test_trixi_include(expr, args...)
     local add_to_additional_ignore_content = [

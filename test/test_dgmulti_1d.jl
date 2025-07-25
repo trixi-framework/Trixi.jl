@@ -94,6 +94,7 @@ end
 end
 
 @trixi_testset "elixir_euler_flux_diff.jl (convergence)" begin
+    using Trixi: convergence_test
     mean_convergence = convergence_test(@__MODULE__,
                                         joinpath(EXAMPLES_DIR,
                                                  "elixir_euler_flux_diff.jl"), 3)
@@ -135,6 +136,7 @@ end
 end
 
 @trixi_testset "elixir_euler_flux_diff.jl (FD SBP)" begin
+    using SummationByPartsOperators: SummationByPartsOperators
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 4,
@@ -208,6 +210,7 @@ end
 end
 
 @trixi_testset "DGMulti with periodic SBP unit test" begin
+    using Trixi: periodic_derivative_operator, DGMulti, DGMultiMesh
     # see https://github.com/trixi-framework/Trixi.jl/pull/1013
     global D = periodic_derivative_operator(derivative_order = 1,
                                             accuracy_order = 4,

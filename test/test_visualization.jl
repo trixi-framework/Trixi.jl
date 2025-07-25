@@ -221,6 +221,7 @@ end
 @timed_testset "1D plot from 2D solution" begin
     @trixi_testset "Create 1D plot along curve" begin
         using OrdinaryDiffEqSSPRK
+        using Trixi
 
         @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
             equations = CompressibleEulerEquations2D(1.4)
@@ -258,6 +259,7 @@ end
     end
 
     @trixi_testset "PlotData1D gives correct results" begin
+        using Trixi
         equations = CompressibleEulerEquations2D(1.4)
         solver = DGSEM(polydeg = 3,
                        surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
@@ -508,7 +510,7 @@ end
     @timed_testset "1D plot from 3D solution on P4estMesh and T8codeMesh" begin
         @trixi_testset "Create 1D plot along curve" begin
             using OrdinaryDiffEqSSPRK
-
+            using Trixi
             @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
                 equations = CompressibleEulerEquations3D(1.4)
                 solver = DGSEM(polydeg = 3,
@@ -546,6 +548,7 @@ end
     end
 
     @trixi_testset "PlotData1D gives correct results" begin
+        using Trixi
         equations = CompressibleEulerEquations3D(1.4)
         solver = DGSEM(polydeg = 3,
                        surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))

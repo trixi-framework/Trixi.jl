@@ -222,6 +222,7 @@ end
     # Define new physics
     using Trixi
     using Trixi: AbstractEquations, get_node_vars
+    using StaticArrays: SVector
 
     # Since there is no native support for variable coefficients, we use two
     # variables: one for the basic unknown `u` and another one for the coefficient `a`

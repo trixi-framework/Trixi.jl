@@ -363,6 +363,7 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    using Trixi: Trixi, DGSEM, SemidiscretizationHyperbolic, semidiscretize, CallbackSet
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
@@ -956,6 +957,7 @@ end
 end
 
 @trixi_testset "elixir_euler_SD7003airfoil.jl" begin
+    using Trixi: SemidiscretizationHyperbolic, AnalysisCallback
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_SD7003airfoil.jl"),
                         semi=SemidiscretizationHyperbolic(mesh, equations,
                                                           initial_condition, solver;

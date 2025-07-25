@@ -31,6 +31,7 @@ end
 
 @trixi_testset "Additional tests in 3D" begin
     @trixi_testset "compressible Euler" begin
+        using Trixi: CompressibleEulerEquations3D
         eqn = CompressibleEulerEquations3D(1.4)
 
         @test isapprox(energy_total([1.0, 2.0, 3.0, 4.0, 20.0], eqn), 20.0)
@@ -39,6 +40,7 @@ end
     end
 
     @trixi_testset "hyperbolic diffusion" begin
+        using Trixi: HyperbolicDiffusionEquations3D
         @test_nowarn HyperbolicDiffusionEquations3D(nu = 1.0)
         eqn = HyperbolicDiffusionEquations3D(nu = 1.0)
     end
