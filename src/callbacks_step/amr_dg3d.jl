@@ -10,7 +10,7 @@
 # from the parent element into the eight children elements. The solution on each child
 # element is then recovered by dividing by the new element Jacobians.
 function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                 equations, dg::DGSEM, cache, elements_to_refine)
+                 equations, dg::DGSEM, cache, elements_to_refine, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_refine)
         if mpi_isparallel()
@@ -106,6 +106,11 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
         @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
     end
 
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        limiter!(u, mesh, equations, dg, cache)
+    end
+
     return nothing
 end
 
@@ -191,7 +196,7 @@ end
 # element is then recovered by dividing by the new element Jacobian.
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                  equations, dg::DGSEM, cache, elements_to_remove)
+                  equations, dg::DGSEM, cache, elements_to_remove, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
         if mpi_isparallel()
@@ -294,6 +299,11 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
     end
 
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        limiter!(u, mesh, equations, dg, cache)
+    end
+
     return nothing
 end
 
@@ -383,7 +393,7 @@ end
 
 # Coarsen and refine elements in the DG solver based on a difference list.
 function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
-                dg::DGSEM, cache, difference)
+                dg::DGSEM, cache, difference, limiter!)
 
     # Return early if there is nothing to do.
     if !any(difference .!= 0)
@@ -495,6 +505,11 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
             end
         end # while
     end # GC.@preserve old_u_ode old_inverse_jacobian
+
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        limiter!(u, mesh, equations, dg, cache)
+    end
 
     return nothing
 end
