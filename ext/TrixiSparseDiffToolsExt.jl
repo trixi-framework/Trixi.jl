@@ -1,4 +1,5 @@
-# Package extension for using SparseDiffTools with Trixi for implicit solvers
+# Package extension for using SparseDiffTools with Trixi for constructing sparse Jacobians
+# for efficient implicit time-stepping methods.
 module TrixiSparseDiffToolsExt
 
 import Base: eps, zero, one, * # For overloading with type `Real`
