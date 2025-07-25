@@ -68,14 +68,15 @@ ode_sparsity = semidiscretize(semi_float, t_span,
                               sparse_cache.jac_prototype,
                               sparse_cache.coloring.colorvec)
 
-analysis_callback = AnalysisCallback(semi_float, interval = 100)
+analysis_callback = AnalysisCallback(semi_float, interval = 10)
 summary_callback = SummaryCallback()
 
-# Note: No `stepsize_callback` due to implicit solver with adaptive timestep control
+# Note: No `stepsize_callback` due to (implicit) solver with adaptive timestep control
 callbacks = CallbackSet(analysis_callback, summary_callback)
 
 ###############################################################################
 # Run the simulation using ImplicitEuler method
 
-sol = solve(ode_sparsity, SDIRK2(; autodiff = ad_type); # `AutoForwardDiff()` is not yet working
+# using `ode_sparsity` instead of `ode` results in speedup of factors 10-15!
+sol = solve(ode_sparsity, TRBDF2(; autodiff = ad_type); # `AutoForwardDiff()` is not yet working
             adaptive = true, dt = 0.1, save_everystep = false, callback = callbacks);
