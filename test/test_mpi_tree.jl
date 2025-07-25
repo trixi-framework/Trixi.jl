@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 
 # Needed to skip certain tests on Windows CI
 CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()

@@ -13,7 +13,7 @@ include("test_trixi.jl")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples")
+EXAMPLES_DIR = examples_dir()
 
 @testset "Special elixirs" begin
 #! format: noindent

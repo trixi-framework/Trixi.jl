@@ -5,6 +5,8 @@ using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = examples_dir()
+
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
@@ -43,7 +45,7 @@ end
 end
 
 @trixi_testset "Displaying components 3D" begin
-    @test_nowarn include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_nowarn include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                   "elixir_advection_amr.jl"))
 
     # test both short and long printing formats
