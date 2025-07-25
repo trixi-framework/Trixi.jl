@@ -1,15 +1,13 @@
 # Package extension for using SparseDiffTools with Trixi for implicit solvers
 module TrixiSparseDiffToolsExt
 
-import Base: eps, zero, one, *, sqrt # For overloading with type `Real`
+import Base: eps, zero, one, * # For overloading with type `Real`
 
 ###############################################################################
 ### Hacks ###
 
 # Required for setting up the Lobatto-Legendre basis for abstract `Real` type
-function eps(::Type{Real}, RealT = Float64)
-    return eps(RealT)
-end
+eps(::Type{Real}, RealT = Float64) = eps(RealT)
 
 # There are several places in trixi where they do `one(RealT)` or `zero(uEltype)` where `RealT` or `uEltype` is `Real`.
 # This returns an `Int64`, i.e., `1` or `0`, respectively.
