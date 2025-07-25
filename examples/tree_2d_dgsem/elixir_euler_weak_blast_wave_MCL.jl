@@ -55,7 +55,7 @@ limiter_mcl = SubcellLimiterMCL(equations, basis;
                                 Plotting = true)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_mcl;
                                                 volume_flux_dg = volume_flux,
-                                                volume_flux_fv = flux_lax_friedrichs)
+                                                volume_flux_fv = FluxLaxFriedrichs(max_abs_speed_naive))
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)

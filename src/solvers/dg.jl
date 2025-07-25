@@ -266,6 +266,26 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+# Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
+Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
+
+function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
+    # Resize container antidiffusive_fluxes
+    resize!(semi.cache.antidiffusive_fluxes, new_size)
+
+    # Resize container subcell_limiter_coefficients
+    @unpack limiter = volume_integral
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    # Calc subcell normal directions before StepsizeCallback
+    if limiter isa SubcellLimiterMCL ||
+       (limiter isa SubcellLimiterIDP && limiter.bar_states)
+        resize!(limiter.cache.container_bar_states, new_size)
+        calc_normal_directions!(limiter.cache.container_bar_states,
+                                mesh_equations_solver_cache(semi)...)
+    end
+end
+
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralSubcellLimiting, dg,
                                 cache)
@@ -681,7 +701,7 @@ end
     # since LoopVectorization does not support `ForwardDiff.Dual`s. Hence, we use
     # optimized `PtrArray`s whenever possible and fall back to plain `Array`s
     # otherwise.
-    if _PREFERENCE_POLYESTER && LoopVectorization.check_args(u_ode)
+    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(u_ode)
         # This version using `PtrArray`s from StrideArrays.jl is very fast and
         # does not result in allocations.
         #
@@ -716,7 +736,7 @@ end
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
     # See comments on the DGSEM version above
-    if _PREFERENCE_POLYESTER && LoopVectorization.check_args(u_ode)
+    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(u_ode)
         # Here, we do not specialize on the number of nodes using `StaticInt` since
         # - it will not be type stable (SBP operators just store it as a runtime value)
         # - FD methods tend to use high node counts
