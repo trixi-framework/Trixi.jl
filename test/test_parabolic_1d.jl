@@ -104,7 +104,8 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence_periodic.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_periodic.jl"),
                         l2=[
                             0.0001133835907077494,
                             6.226282245610444e-5,
@@ -126,7 +127,8 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl: GradientVariablesEntropy" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence_periodic.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_periodic.jl"),
                         equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
@@ -152,7 +154,8 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence_walls.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_walls.jl"),
                         l2=[
                             0.0004702331100298379,
                             0.0003218173539588441,
@@ -175,7 +178,8 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl: GradientVariablesEntropy" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence_walls.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_walls.jl"),
                         equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
@@ -202,7 +206,8 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence_walls_amr.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_walls_amr.jl"),
                         equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number()),
@@ -228,7 +233,8 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence_walls_amr.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_walls_amr.jl"),
                         equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
