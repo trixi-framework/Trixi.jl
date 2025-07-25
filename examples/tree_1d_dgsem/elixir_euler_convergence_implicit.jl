@@ -14,7 +14,7 @@ include("../../ext/TrixiSparseDiffToolsExt.jl")
 using .TrixiSparseDiffToolsExt
 
 ###############################################################################
-### semidiscretization of the linear advection equation ###
+### equations and solver ###
 
 equations = CompressibleEulerEquations2D(1.4)
 
@@ -27,6 +27,9 @@ surface_flux = flux_lax_friedrichs
 solver_real = DGSEM(polydeg = 3, surface_flux = surface_flux, RealT = Real)
 # `solver_float` is  used for the subsequent simulation
 solver_float = DGSEM(polydeg = 3, surface_flux = surface_flux)
+
+###############################################################################
+### mesh ###
 
 # Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D and [0, 2] instead of [0, 3]
 function mapping(xi_, eta_)
@@ -44,6 +47,9 @@ function mapping(xi_, eta_)
 end
 cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, mapping)
+
+###############################################################################
+### semidiscretizations ###
 
 initial_condition = initial_condition_convergence_test
 
@@ -85,6 +91,7 @@ sparse_adtype = AutoSparse(ad_type)
 sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
 
 ###############################################################################
+### Set up sparse-aware ODEProblem ###
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_float_jac_sparse = semidiscretize(semi_float, t_span,
@@ -99,6 +106,7 @@ summary_callback = SummaryCallback()
 callbacks = CallbackSet(analysis_callback, alive_callback, summary_callback)
 
 ###############################################################################
+### solve the ODE problem ###
 
 sol = solve(ode_float_jac_sparse, # using `ode_float` is essentially infeasible, even single step takes ages!
             # `AutoForwardDiff()` is not yet working, probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers

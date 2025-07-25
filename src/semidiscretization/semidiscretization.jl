@@ -121,38 +121,6 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan)
-
-Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
-that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
-
-The arguments `jac_prototype` and `coloring` are SparseDiffTools.jl objects which will be used 
-to reduce repeating calculations as part of the ODE solve.
-"""
-function semidiscretize(semi::AbstractSemidiscretization, tspan, jac_prototype, coloring;
-                        reset_threads = true)
-    # Optionally reset Polyester.jl threads. See
-    # https://github.com/trixi-framework/Trixi.jl/issues/1583
-    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
-    if reset_threads
-        Polyester.reset_threads!()
-    end
-
-    u0_ode = compute_coefficients(first(tspan), semi)
-    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
-    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
-    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-    iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-    specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
-    # See SparseDiffTools.jl docs for the typing of jac_prototype and colorvec
-    # https://github.com/JuliaDiff/SparseDiffTools.jl 
-    # TODO: Do we need to convert the `jac_prototype` to real type, as seen here:
-    # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
-    ode = SciMLBase.ODEFunction(rhs!, jac_prototype=jac_prototype, colorvec=coloring)
-    return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
-end
-
-"""
     semidiscretize(semi::AbstractSemidiscretization, tspan, 
                    restart_file::AbstractString)
 
@@ -178,6 +146,42 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
     specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
     return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
+
+"""
+    semidiscretize(semi::AbstractSemidiscretization, tspan,
+                   jac_prototype, coloring)
+
+Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
+that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+
+The arguments `jac_prototype` and `coloring` stem from [SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl)
+and specify the sparsity structure of the Jacobian to enable efficient implicit time stepping.
+"""
+function semidiscretize(semi::AbstractSemidiscretization, tspan, 
+                        jac_prototype, coloring;
+                        reset_threads = true)
+    # Optionally reset Polyester.jl threads. See
+    # https://github.com/trixi-framework/Trixi.jl/issues/1583
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
+    if reset_threads
+        Polyester.reset_threads!()
+    end
+
+    u0_ode = compute_coefficients(first(tspan), semi)
+    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
+    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
+    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs!
+    specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
+
+    # See SparseDiffTools.jl docs (https://github.com/JuliaDiff/SparseDiffTools.jl) for documentation of `jac_prototype` and `colorvec`
+    # TODO: Do we need to convert the `jac_prototype` to real type, as seen here:
+    # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
+    ode = SciMLBase.ODEFunction(rhs!, jac_prototype=jac_prototype, colorvec=coloring)
+    return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
+end
+
+# TODO: version with restart file & sparse Jacobians
 
 """
     compute_coefficients(func, t, semi::AbstractSemidiscretization)
