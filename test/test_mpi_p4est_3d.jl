@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 
 @testset "P4estMesh MPI 3D" begin
 #! format: noindent

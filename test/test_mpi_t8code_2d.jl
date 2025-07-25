@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "t8code_2d_dgsem")
 
 @testset "T8codeMesh MPI 2D" begin
 #! format: noindent
