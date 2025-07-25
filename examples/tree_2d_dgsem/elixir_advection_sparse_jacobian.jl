@@ -8,10 +8,10 @@ include("../../ext/TrixiSparseDiffToolsExt.jl")
 using .TrixiSparseDiffToolsExt
 
 ###############################################################################
-### semidiscretization of the linear advection equation ###
+### semidiscretizations of the linear advection equation ###
 
 advection_velocity = (0.2, -0.7)
-equations = LinearScalarAdvectionEquation2D(advection_velocity)
+equation = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # `RealT = Real` requires fewer overloads than the more explicit `RealT = Num` from Symbolics
 # `solver_real` is used for computing the Jacobian sparsity pattern
@@ -27,11 +27,11 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000)
 
 # `semi_real` is used for computing the Jacobian sparsity pattern
-semi_real = SemidiscretizationHyperbolic(mesh, equations,
+semi_real = SemidiscretizationHyperbolic(mesh, equation,
                                          initial_condition_convergence_test,
                                          solver_real)
 # `semi_float` is  used for the subsequent simulation
-semi_float = SemidiscretizationHyperbolic(mesh, equations,
+semi_float = SemidiscretizationHyperbolic(mesh, equation,
                                           initial_condition_convergence_test,
                                           solver_float)
 
@@ -62,6 +62,7 @@ sparse_adtype = AutoSparse(ad_type)
 sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
 
 ###############################################################################
+### Set up sparse-aware ODEProblem ###
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_float_jac_sparse = semidiscretize(semi_float, t_span,
@@ -75,6 +76,7 @@ summary_callback = SummaryCallback()
 callbacks = CallbackSet(analysis_callback, summary_callback)
 
 ###############################################################################
+### solve the ODE problem ###
 
 sol = solve(ode_float_jac_sparse, # using `ode_float_jac_sparse` instead of `ode_float` results in speedup of factors 10-15!
             # `AutoForwardDiff()` is not yet working, probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
