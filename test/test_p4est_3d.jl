@@ -62,7 +62,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[9.773852895157622e-6],
-                        linf=[0.0005853874124926162],)
+                        linf=[0.0005853874124926162])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -106,7 +106,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.002590388934758452],
-                        linf=[0.01840757696885409],)
+                        linf=[0.01840757696885409])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -548,6 +548,43 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_mhd_alfven_wave_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_er.jl"),
+                        l2=[
+                            0.0052864046546744065,
+                            0.009963357787771665,
+                            0.006635699953141596,
+                            0.01295540589311982,
+                            0.013939326496053958,
+                            0.010192741315114568,
+                            0.004631666336074305,
+                            0.012267586777052244,
+                            0.0018063823439272181
+                        ],
+                        linf=[
+                            0.021741826900806394,
+                            0.0470226920658848,
+                            0.025036937229995254,
+                            0.05043002191230382,
+                            0.06018360063552164,
+                            0.04338351710391075,
+                            0.023607975939848536,
+                            0.050740527490335,
+                            0.006909064342577296
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
     end
 end
 

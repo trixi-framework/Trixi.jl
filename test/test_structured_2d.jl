@@ -59,7 +59,7 @@ end
                             6.314906965187994e-5,
                             6.31490696496595e-5,
                             6.314906965032563e-5
-                        ],)
+                        ])
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         errors = analysis_callback(sol)
@@ -95,7 +95,7 @@ end
                         linf=[
                             6.627000273318195e-5,
                             6.62700027264096e-5
-                        ],)
+                        ])
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         # Ensure that we do not have excessive memory allocations
@@ -275,7 +275,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.219208035582454e-6],
-                        linf=[3.438434404412494e-5],)
+                        linf=[3.438434404412494e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -1167,7 +1167,7 @@ end
                             5.317911003777098e-7,
                             9.92786092363085e-7,
                             3.430672968714232e-8
-                        ],)
+                        ])
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         errors = analysis_callback(sol)
