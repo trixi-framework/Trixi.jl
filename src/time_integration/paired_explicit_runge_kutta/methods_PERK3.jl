@@ -111,17 +111,17 @@ The original paper is
   Third-order Paired Explicit Runge-Kutta schemes for stiff systems of equations
   [DOI: 10.1016/j.jcp.2022.111470](https://doi.org/10.1016/j.jcp.2022.111470)
 
-  While the changes to SSPRK33 base-scheme are described in 
+  While the changes to SSPRK33 base-scheme are described in
 - Doehring, Schlottke-Lakemper, Gassner, Torrilhon (2024)
   Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
-  [DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)                      
+  [DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)
 
 # Arguments
 - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (PERK) method.
-- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
+- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in
     the Butcher tableau of the Runge Kutta method.
     The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
-- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown.
     In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
 - `tspan`: Time span of the simulation.
 - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
@@ -132,8 +132,8 @@ The original paper is
     $S$ is the number of stages. Default is `1.0f0`.
 
 !!! note
-    To use this integrator, the user must import the 
-    [Convex.jl](https://github.com/jump-dev/Convex.jl), 
+    To use this integrator, the user must import the
+    [Convex.jl](https://github.com/jump-dev/Convex.jl),
     [ECOS.jl](https://github.com/jump-dev/ECOS.jl), and
     [NLSolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) packages
     unless the A-matrix coefficients are provided in a `a_<num_stages>.txt` file.
@@ -208,7 +208,8 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK3;
-              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing,
+              unstable_check = ode_unstable_check, kwargs...)
     u0 = copy(ode.u0)
     du = zero(u0)
     u_tmp = zero(u0)

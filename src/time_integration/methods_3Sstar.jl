@@ -149,7 +149,8 @@ mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
 end
 
 function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
-              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing,
+              unstable_check = ode_unstable_check, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp1 = similar(u)
