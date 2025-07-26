@@ -61,7 +61,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                                UnstructuredMesh2D, P4estMesh{2},
                                                P4estMeshView{2}, T8codeMesh{2}},
-                                   nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -104,7 +104,7 @@ end
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
-                                           nonconservative_terms::False, equations,
+                                           have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -162,7 +162,7 @@ end
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
-                                           nonconservative_terms::True, equations,
+                                           have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -231,7 +231,7 @@ end
                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                           UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
-                              nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -302,7 +302,7 @@ end
                               mesh::Union{StructuredMesh{2}, StructuredMesh{2},
                                           UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
-                              nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -393,7 +393,7 @@ end
 
 function calc_interface_flux!(cache, u,
                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
-                              nonconservative_terms, # can be True/False
+                              have_nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
     @unpack elements = cache
 
@@ -405,14 +405,14 @@ function calc_interface_flux!(cache, u,
         calc_interface_flux!(elements.surface_flux_values,
                              elements.left_neighbors[1, element],
                              element, 1, u, mesh,
-                             nonconservative_terms, equations,
+                             have_nonconservative_terms, equations,
                              surface_integral, dg, cache)
 
         # Interfaces in y-direction (`orientation` = 2)
         calc_interface_flux!(elements.surface_flux_values,
                              elements.left_neighbors[2, element],
                              element, 2, u, mesh,
-                             nonconservative_terms, equations,
+                             have_nonconservative_terms, equations,
                              surface_integral, dg, cache)
     end
 
@@ -423,7 +423,7 @@ end
                                       orientation, u,
                                       mesh::Union{StructuredMesh{2},
                                                   StructuredMeshView{2}},
-                                      nonconservative_terms::False, equations,
+                                      have_nonconservative_terms::False, equations,
                                       surface_integral, dg::DG, cache)
     # This is slow for LSA, but for some reason faster for Euler (see #519)
     if left_element <= 0 # left_element = 0 at boundaries
@@ -481,9 +481,9 @@ end
                                       orientation, u,
                                       mesh::Union{StructuredMesh{2},
                                                   StructuredMeshView{2}},
-                                      nonconservative_terms::True, equations,
+                                      have_nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache)
-    # See comment on `calc_interface_flux!` with `nonconservative_terms::False`
+    # See comment on `calc_interface_flux!` with `have_nonconservative_terms::False`
     if left_element <= 0 # left_element = 0 at boundaries
         return nothing
     end
