@@ -13,8 +13,10 @@ aoa() = pi / 180.0 # 1 Degree angle of attack
 c_inf(equations) = sqrt(equations.gamma * p_inf() / rho_inf())
 u_inf(equations) = mach_inf() * c_inf(equations)
 
-@inline function initial_condition_mach085_flow(x, t,
-                                                equations::CompressibleEulerEquations2D)
+# Leave `equations` unspecified here to enable usage of `BoundaryConditionDirichlet(initial_condition)`
+# in the "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" which includes this elixir to
+# demonstrate restarting/initializing a hyperbolic-parabolic simulation from a purely hyperbolic simulation.
+@inline function initial_condition_mach085_flow(x, t, equations)
     v1 = u_inf(equations) * cos(aoa())
     v2 = u_inf(equations) * sin(aoa())
 
@@ -25,7 +27,14 @@ end
 initial_condition = initial_condition_mach085_flow
 
 volume_flux = flux_ranocha_turbo
-surface_flux = flux_lax_friedrichs
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -122,7 +131,11 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
+save_restart = SaveRestartCallback(interval = 10_000,
+                                   save_final_restart = true)
+
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        save_solution, save_restart,
                         stepsize_callback, amr_callback)
 
 ###############################################################################

@@ -167,7 +167,7 @@ end
                             0.04103131887989486,
                             0.03990424032494211,
                             0.13094018584692968
-                        ],)
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -816,6 +816,31 @@ end
     @test isapprox(lift_f, 0.005621910087395724, atol = 1e-13)
 end
 
+@trixi_testset "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl"),
+                        l2=[
+                            6.191672324705442e-6,
+                            0.00011583392224949682,
+                            0.00011897020463459889,
+                            0.006467379086802275
+                        ],
+                        linf=[
+                            0.0017446176443216936,
+                            0.06961708834164942,
+                            0.037063246278530367,
+                            1.4435072005258793
+                        ], tspan=(0.0, 0.01),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
@@ -920,6 +945,31 @@ end
     end
 end
 
+@trixi_testset "elixir_navierstokes_poiseuille_flow.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_poiseuille_flow.jl"),
+                        l2=[
+                            0.028671228188785286,
+                            0.2136420195921885,
+                            0.009953689550858224,
+                            0.13216036594768157
+                        ],
+                        linf=[
+                            0.30901218409540543,
+                            1.3488655161645846,
+                            0.1304661713119874,
+                            1.2094591729756736],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl"),
@@ -964,6 +1014,31 @@ end
                             3.8367543336926215e-15,
                             4.9960036108132044e-14,
                             6.705747068735946e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_couette_flow.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_couette_flow.jl"),
+                        l2=[
+                            0.009585252225488753,
+                            0.007939233099864973,
+                            0.0007617512688442657,
+                            0.027229870237669436
+                        ],
+                        linf=[
+                            0.027230029149270862,
+                            0.027230451118692933,
+                            0.0038642959675975713,
+                            0.04738248734987671
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

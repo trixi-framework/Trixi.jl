@@ -1200,7 +1200,7 @@ end
                             0.03857193149447702,
                             0.031090457959835893,
                             0.12125130332971423
-                        ],)
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -1209,6 +1209,41 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
+
+@trixi_testset "elixir_euler_vortex_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
+                        l2=[
+                            0.02611497083247329,
+                            0.1381802635983644,
+                            0.11459980510262816,
+                            0.43782810743830725
+                        ],
+                        linf=[
+                            0.2918576464635866,
+                            1.1190399715083816,
+                            0.7978297797951908,
+                            3.8946074718596115
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
+    end
+
+    # test both short and long printing formats
+    @test_nowarn show(relaxation_solver)
+    println()
+    @test_nowarn println(relaxation_solver)
+    println()
+    @test_nowarn display(relaxation_solver)
+    # Test `:compact` printing
+    show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), relaxation_solver)
 end
 
 @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
