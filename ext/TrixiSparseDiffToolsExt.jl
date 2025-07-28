@@ -10,7 +10,7 @@ import Base: eps, zero, one, * # For overloading with type `Real`
 # Required for setting up the Lobatto-Legendre basis for abstract `Real` type
 eps(::Type{Real}, RealT = Float64) = eps(RealT)
 
-# There are several places in trixi where they do `one(RealT)` or `zero(uEltype)` where `RealT` or `uEltype` is `Real`.
+# There are some places where `one(RealT)` or `zero(uEltype)` is called where `RealT` or `uEltype` is `Real`.
 # This returns an `Int64`, i.e., `1` or `0`, respectively.
 # We don't want `Int`s for the sparsity detection, so we override this behavior.
 one(::Type{Real}, RealT = Float64) = Base.one(RealT)
