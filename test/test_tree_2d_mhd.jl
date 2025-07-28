@@ -79,6 +79,40 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_alfven_wave_dirichlet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_dirichlet.jl"),
+                        l2=[
+                            0.00011004538877483271,
+                            5.926645116290825e-6,
+                            5.931933718790244e-6,
+                            8.482384248361835e-6,
+                            1.4150070042287573e-6,
+                            1.3803265179621126e-6,
+                            1.373512939846543e-6,
+                            2.2630780221312974e-6,
+                            8.186309170400813e-7
+                        ],
+                        linf=[
+                            0.0002801680361144143,
+                            1.8417644682994228e-5,
+                            1.8537339994670332e-5,
+                            3.0471153402808482e-5,
+                            8.604473854645356e-6,
+                            1.0055681487042278e-5,
+                            1.0191055124897375e-5,
+                            1.7660034751995624e-5,
+                            4.141061665063549e-6
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_alfven_wave_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_mortar.jl"),
                         l2=[
@@ -423,7 +457,14 @@ end
                             6.1013422157115546e-03
                         ],
                         tspan=(0.0, 0.003),
-                        surface_flux=(flux_lax_friedrichs,
+                        # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+                        # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+                        # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+                        # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+                        # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+                        # We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+                        # `StepsizeCallback` (CFL-Condition) and less diffusion.
+                        surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
                                       flux_nonconservative_powell_local_jump),
                         volume_flux=(flux_derigs_etal,
                                      flux_nonconservative_powell_local_jump))
@@ -444,26 +485,26 @@ end
 @trixi_testset "elixir_mhd_onion.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_onion.jl"),
                         l2=[
-                            0.006145640006695229,
-                            0.04298975807664192,
-                            0.009442308964500174,
+                            0.006145640007814805,
+                            0.04298975802036206,
+                            0.009442308958879332,
                             0.0,
-                            0.02346607469023923,
-                            0.003700848117140891,
-                            0.006939946296076548,
+                            0.023466074687332656,
+                            0.0037008482451226085,
+                            0.006939946291086656,
                             0.0,
-                            2.6525346114387833e-6
+                            2.6526292145616063e-6
                         ],
                         linf=[
                             0.04034000344526789,
-                            0.25073951149407847,
-                            0.05597857594719315,
+                            0.25073951149407886,
+                            0.05597857594719327,
                             0.0,
                             0.14115800038105397,
-                            0.019956735193905284,
+                            0.019956735193905117,
                             0.03867389126521381,
                             0.0,
-                            2.1686817834633456e-5
+                            2.168681783467941e-5
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

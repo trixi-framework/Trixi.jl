@@ -2,6 +2,7 @@ module TestExamplesUnstructuredMesh2D
 
 using Test
 using Trixi
+using Adapt
 
 include("test_trixi.jl")
 
@@ -32,6 +33,12 @@ isdir(outdir) && rm(outdir, recursive = true)
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+    semi32 = Trixi.trixi_adapt(Array, Float32, semi)
+    @test real(semi32.solver) == Float32
+    @test real(semi32.solver.basis) == Float32
+    @test real(semi32.solver.mortar) == Float32
+    # TODO: remake ignores the mesh as well
+    @test real(semi32.mesh) == Float64
 end
 
 @trixi_testset "elixir_euler_free_stream.jl" begin
@@ -120,7 +127,7 @@ end
                             0.005243995459478956,
                             0.004685630332338153,
                             0.01750217718347713
-                        ],)
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -272,16 +279,28 @@ end
 
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
-                        l2=[5.376431895349634e-5, 0.09999999205016862,
-                            0.09999999205016788, 0.14142135386740418,
-                            8.767116801867206e-6, 0.09999999259645777,
-                            0.09999999259645763, 0.14142135397626523,
-                            1.1559626795684309e-5],
-                        linf=[0.00039380173293024345, 0.14144879547840894,
-                            0.14144879547843608, 0.2000330663752416,
-                            7.021503828519293e-5, 0.14146450834000124,
-                            0.1414645083399998, 0.20006708807562765,
-                            0.0001375806459241173],
+                        l2=[
+                            5.376431895412192e-5,
+                            5.726534580355943e-6,
+                            5.726534579460349e-6,
+                            8.042559401201605e-6,
+                            8.767116801923284e-6,
+                            8.757526880961968e-6,
+                            8.757526880997833e-6,
+                            5.967347965592433e-6,
+                            1.1559626795627886e-5
+                        ],
+                        linf=[
+                            0.0003938017329335741,
+                            6.142949254589469e-5,
+                            6.14294924101838e-5,
+                            5.739052872502648e-5,
+                            7.021503827919773e-5,
+                            7.103939568409157e-5,
+                            7.103939571029283e-5,
+                            6.708807562941232e-5,
+                            0.00013758064592803195
+                        ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
