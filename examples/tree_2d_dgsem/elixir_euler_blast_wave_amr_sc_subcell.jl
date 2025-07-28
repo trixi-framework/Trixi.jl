@@ -35,7 +35,6 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
 end
 initial_condition = initial_condition_blast_wave
 
-# surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
