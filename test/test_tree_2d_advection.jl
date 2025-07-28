@@ -41,9 +41,9 @@ end
 end
 
 @trixi_testset "elixir_advection_implicit_sparse_jacobian.jl with polydeg=2" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                        l2=[0.02134571266411136],
-                        linf=[0.04347734797775926],
+    @test_trixi_include("/home/purple/trixi/Trixi.jl/examples/tree_2d_dgsem/elixir_advection_implicit_sparse_jacobian.jl",
+                        l2=[3.61524158e-03],
+                        linf=[6.44083371e-03],
                         polydeg=2)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -51,7 +51,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi_float, t)) < 1000
     end
 end
 
