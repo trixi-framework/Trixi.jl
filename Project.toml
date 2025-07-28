@@ -68,7 +68,6 @@ TrixiCUDAExt = "CUDA"
 TrixiConvexECOSExt = ["Convex", "ECOS"]
 TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
-TrixiSparseDiffToolsExt = ["SparseDiffTools", "Symbolics"]
 
 [compat]
 Accessors = "0.1.36"
