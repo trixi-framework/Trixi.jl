@@ -332,6 +332,11 @@ end
                                                 "elixir_euler_ad.jl"))
     end
 end
+
+@timed_testset "Measurements" begin
+    @test_nowarn_mod trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                            "elixir_advection_uncertainty.jl"))
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
