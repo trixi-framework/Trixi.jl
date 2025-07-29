@@ -69,7 +69,7 @@ semi_float = SemidiscretizationHyperbolic(mesh, equation,
                                           initial_condition_convergence_test,
                                           solver_float)
 
-t0 = 0.0 # Re-used for the ODE function
+t0 = 0.0 # Re-used for the ODE function defined below
 t_end = 1.0
 t_span = (t0, t_end)
 
