@@ -165,7 +165,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 sol = solve(ode,
-            # Use (diagonally) implicit Runge-Kutta method with Jacobian-free Newton-Krylov (GMRES) solver
+            # Use (diagonally) implicit Runge-Kutta method with Jacobian-free (!) Newton-Krylov (GMRES) solver
             # See https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
             KenCarp47(autodiff = AutoFiniteDiff(), linsolve = KrylovJL_GMRES());
             ode_default_options()..., callback = callbacks)
