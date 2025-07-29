@@ -866,6 +866,31 @@ end
     end
 end
 
+@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
+                        l2=[
+                            0.0050454344200822595,
+                            0.004688806400845471,
+                            2.636511509998046e-5,
+                            0.0047873461533362765
+                        ],
+                        linf=[
+                            0.02208819271861917,
+                            0.024209434405893293,
+                            0.0007989190783110008,
+                            0.026948544666356877
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_navierstokes_SD7003airfoil.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_SD7003airfoil.jl"),
