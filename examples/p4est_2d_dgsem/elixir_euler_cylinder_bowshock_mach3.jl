@@ -1,6 +1,9 @@
 using Trixi
 using OrdinaryDiffEqSSPRK
 
+###############################################################################
+# Geometry & boundary conditions
+
 # Mapping to create a "close-up" mesh around the second quadrant of a cylinder,
 # implemented by Georgii Oblapenko. If you use this in your own work, please cite:
 #
@@ -39,20 +42,21 @@ function mapping_cylinder_shock_fitted(xi_, eta_,
         (spline_points[1], 0.0),
         (spline_points[2], spline_points[2]),
         (0.0, spline_points[3])
-    ] # 3 points that define the geometry of the cylinder-shock-fitted mesh
-
-    # spline has form R[1] + c * eta_01^2 + d * eta_01^3, such that derivative w.r.t eta_01 is 0 at eta_01 = 0
+    ] # 3 points that define the geometry of the mesh which follows the shape of the shock (known a-priori)
     R = [sqrt(shock_shape[i][1]^2 + shock_shape[i][2]^2) for i in 1:3]  # 3 radii
-    spline_matrix = [1.0 1.0; 0.25 0.125] # find cubic spline coefficients
+
+    # Construct spline with form R[1] + c2 * eta_01^2 + c3 * eta_01^3,
+    # chosen such that derivative w.r.t eta_01 is 0 at eta_01 = 0
+    spline_matrix = [1.0 1.0; 0.25 0.125]
     spline_RHS = [R[3] - R[1], R[2] - R[1]]
-    spline_cd = spline_matrix \ spline_RHS
+    spline_coeffs = spline_matrix \ spline_RHS # c2, c3
 
-    eta_01 = (eta_ + 1) / 2 # Transform eta from [-1, 1] to [0, 1]
-    xi_01 = 0.5 * (-xi_ + 1.0) # "Flip" xi from [-1, 1] to [0, 1]
+    eta_01 = (eta_ + 1) / 2 # Transform `eta_` in [-1, 1] to `eta_01` in [0, 1]
+    xi_01 = (-xi_ + 1) / 2 # "Flip" `xi_` in [-1, 1] to `xi_01` in [0, 1] (note `x_pos` and `x_neg` in sketch above!)
 
-    R_outer = R[1] + spline_cd[1] * eta_01^2 + spline_cd[2] * eta_01^3
+    R_outer = R[1] + spline_coeffs[1] * eta_01^2 + spline_coeffs[2] * eta_01^3
 
-    angle = -π / 4 + eta_ * π / 4
+    angle = -π / 4 + eta_ * π / 4 # Angle runs from -90° to 0°
     r = (cylinder_radius + xi_01 * (R_outer - cylinder_radius))
 
     return SVector(round(r * sin(angle); digits = 8), round(r * cos(angle); digits = 8))
@@ -60,10 +64,10 @@ end
 
 @inline function initial_condition_mach3_flow(x, t, equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
-    rho_freestream = 1.4 # = gamma
-    v1 = 3.0 # Mach 3
-    v2 = 0.0
-    p_freestream = 1.0
+    rho_freestream = equations.gamma
+    v1 = 3.0 # => Mach 3 for unity speed of sound
+    v2 = 0
+    p_freestream = 1
     prim = SVector(rho_freestream, v1, v2, p_freestream)
     return prim2cons(prim, equations)
 end
@@ -79,14 +83,17 @@ end
     return flux
 end
 
-gamma = 1.4
-equations = CompressibleEulerEquations2D(gamma)
-
 # For physical significance of boundary conditions, see sketch at `mapping_cylinder_shock_fitted`
 boundary_conditions = Dict(:x_neg => boundary_condition_supersonic_inflow,
                            :y_neg => boundary_condition_slip_wall, # Induce symmetry by slip wall
                            :y_pos => boundary_condition_do_nothing,
                            :x_pos => boundary_condition_slip_wall)
+
+###############################################################################
+# Equations, mesh and solver
+
+gamma = 1.4
+equations = CompressibleEulerEquations2D(gamma)
 
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -126,6 +133,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_mach3_flo
                                     solver,
                                     boundary_conditions = boundary_conditions)
 
+###############################################################################
+# Semidiscretization & callbacks
+
 tspan = (0.0, 5.0) # More or less stationary shock position reached
 ode = semidiscretize(semi, tspan)
 
@@ -155,6 +165,9 @@ callbacks = CallbackSet(summary_callback,
 
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
                                                      variables = (Trixi.density, pressure))
+
+###############################################################################
+# Run the simulation
 
 sol = solve(ode, SSPRK33(stage_limiter! = stage_limiter!, thread = Trixi.True());
             dt = 1.6e-5, # Fixed timestep works decent here
