@@ -8,7 +8,10 @@ using SparseDiffTools, Symbolics
 # In the Trixi implementation, we overload the sqrt function to first check if the argument 
 # is < 0 and then return NaN instead of an error.
 # To turn off this behaviour, we switch back to the Base implementation here.
-Trixi.set_sqrt_type!("sqrt_Base")
+# Redirect the warning to stdout to satisfy the CI tests which fail for anything in stderr
+redirect_stderr(stdout) do  
+    Trixi.set_sqrt_type!("sqrt_Base")
+end
 
 import Base: eps, zero, one, * # For overloading with type `Real`
 
