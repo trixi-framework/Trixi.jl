@@ -40,11 +40,10 @@ end
     end
 end
 
-@trixi_testset "elixir_advection_implicit_sparse_jacobian.jl with polydeg=2" begin
-    @test_trixi_include("/home/purple/trixi/Trixi.jl/examples/tree_2d_dgsem/elixir_advection_implicit_sparse_jacobian.jl",
-                        l2=[3.61524158e-03],
-                        linf=[6.44083371e-03],
-                        polydeg=2)
+@trixi_testset "elixir_advection_implicit_sparse_jacobian.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_implicit_sparse_jacobian.jl"),
+                        l2=[3.00325333e-03],
+                        linf=[4.25625100e-03])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
