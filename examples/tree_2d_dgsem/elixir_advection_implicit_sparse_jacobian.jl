@@ -73,7 +73,7 @@ t0 = 0.0 # Re-used for the ODE function
 t_end = 1.0
 t_span = (t0, t_end)
 
-# Call `semidiscretize` to create the ODE problem to have access to the initial condition.
+# Call `semidiscretize` on `semi_float` to create the ODE problem to have access to the initial condition.
 # For the linear example considered here one could also use an arbitrary vector for the initial condition.
 ode_float = semidiscretize(semi_float, t_span)
 u0_ode = ode_float.u0
@@ -92,7 +92,8 @@ sd = SymbolicsSparsityDetection()
 ad_type = AutoFiniteDiff()
 sparse_adtype = AutoSparse(ad_type)
 
-# `sparse_cache` will reduce calculation time when Jacobian is calculated multiple times
+# `sparse_cache` will reduce calculation time when Jacobian is calculated multiple times,
+# which is in principle not required for the linear problem considered here.
 sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
 
 ###############################################################################

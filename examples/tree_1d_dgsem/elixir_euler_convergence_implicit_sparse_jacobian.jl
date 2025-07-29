@@ -65,7 +65,8 @@ solver_float = DGSEM(polydeg = 3, surface_flux = surface_flux)
 ###############################################################################
 ### mesh ###
 
-# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D and [0, 2] instead of [0, 3]
+# Mapping as described in https://arxiv.org/abs/2012.12040,
+# reduced to 2D on [0, 2]^2 instead of [0, 3]^3
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0,2]
     xi = xi_ + 1
@@ -98,12 +99,11 @@ semi_float = SemidiscretizationHyperbolic(mesh, equations,
                                           solver_float,
                                           source_terms = source_terms_convergence_test)
 
-t0 = 0.0 # Re-used for the ODE function
+t0 = 0.0 # Re-used for the ODE function defined below
 t_end = 5.0
 t_span = (t0, t_end)
 
-# Call `semidiscretize` to create the ODE problem to have access to the initial condition.
-# For the linear example considered here one could also use an arbitrary vector for the initial condition.
+# Call `semidiscretize` on `semi_float` to create the ODE problem to have access to the initial condition.
 ode_float = semidiscretize(semi_float, t_span)
 u0_ode = ode_float.u0
 du_ode = similar(u0_ode)
@@ -116,7 +116,7 @@ du_ode = similar(u0_ode)
 # (see example function `f` from https://docs.sciml.ai/SparseDiffTools/dev/#Example)
 rhs = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_real, t0)
 
-# Taken from example linked above to detect the pattern and choose how to do the AutoDiff automatically
+# Taken from example linked above to detect the pattern and choose how to do the differentiation
 sd = SymbolicsSparsityDetection()
 ad_type = AutoForwardDiff()
 sparse_adtype = AutoSparse(ad_type)
