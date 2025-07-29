@@ -104,6 +104,14 @@ ode_float_jac_sparse = semidiscretize(semi_float, t_span,
                                       sparse_cache.jac_prototype,
                                       sparse_cache.coloring.colorvec)
 
+# Note: We experimented for linear problems with providing the constant, sparse Jacobian directly via
+#
+# const jac_sparse = sparse_jacobian(sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)
+# const jac_sparse_func!(J, u, p, t) = jac_sparse
+# SciMLBase.ODEFunction(rhs!, jac_prototype=float.(jac_prototype), colorvec=colorvec, jac = jac_sparse_func!)
+#
+# which turned out to be significantly slower than just using the prototype and the coloring vector. 
+
 analysis_callback = AnalysisCallback(semi_float, interval = 10)
 summary_callback = SummaryCallback()
 

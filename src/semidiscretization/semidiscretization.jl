@@ -149,16 +149,16 @@ end
 
 """
     semidiscretize(semi::AbstractSemidiscretization, tspan,
-                   jac_prototype, coloring)
+                   jac_prototype::AbstractMatrix, colorvec::AbstractVector)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 
-The arguments `jac_prototype` and `coloring` stem from [SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl)
+The arguments `jac_prototype` and the `colorvec` are expected to come from [SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl)
 and specify the sparsity structure of the Jacobian to enable efficient implicit time stepping.
 """
-function semidiscretize(semi::AbstractSemidiscretization, tspan, 
-                        jac_prototype, coloring;
+function semidiscretize(semi::AbstractSemidiscretization, tspan,
+                        jac_prototype::AbstractMatrix, colorvec::AbstractVector;
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
@@ -175,14 +175,22 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
     specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
 
     # See SparseDiffTools.jl docs (https://github.com/JuliaDiff/SparseDiffTools.jl) for documentation of `jac_prototype` and `colorvec`
-    # TODO: Do we need to convert the `jac_prototype` to real type, as seen here:
+
+    # Convert the `jac_prototype` to real type, as seen here:
     # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
-    # TODO: Supply for linear problems the sparse Jacobian, i.e., not only the prototype
-    ode = SciMLBase.ODEFunction(rhs!, jac_prototype=jac_prototype, colorvec=coloring)
+    ode = SciMLBase.ODEFunction(rhs!, jac_prototype = float.(jac_prototype),
+                                colorvec = colorvec)
+
+    # Note: We experimented for linear problems with providing the constant, sparse Jacobian directly via
+    #
+    # const jac_sparse = sparse_jacobian(sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)
+    # const jac_sparse_func!(J, u, p, t) = jac_sparse
+    # SciMLBase.ODEFunction(rhs!, jac_prototype=float.(jac_prototype), colorvec=colorvec, jac = jac_sparse_func!)
+    #
+    # which turned out to be significantly slower than just using the prototype and the coloring vector. 
+
     return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
 end
-
-# TODO: version with restart file & sparse Jacobians
 
 """
     compute_coefficients(func, t, semi::AbstractSemidiscretization)
