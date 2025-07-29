@@ -29,4 +29,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback)
 
 sol = solve(ode, RDPK3SpFSAL49();
             ode_default_options()..., callback = callbacks);
-
