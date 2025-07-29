@@ -7,7 +7,7 @@ using SparseDiffTools, Symbolics
 # We need to avoid if-clauses to be able to use `Num` type from Symbolics.
 # In the Trixi implementation, we overload the sqrt function to first check if the argument 
 # is < 0 and then return NaN instead of an error.
-# To turn off this behaviour, we switch back to the Base implementation here
+# To turn off this behaviour, we switch back to the Base implementation here.
 Trixi.set_sqrt_type!("sqrt_Base")
 
 import Base: eps, zero, one, * # For overloading with type `Real`
