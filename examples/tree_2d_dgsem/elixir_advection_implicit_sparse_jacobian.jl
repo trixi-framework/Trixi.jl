@@ -47,10 +47,6 @@ end
 advection_velocity = (0.2, -0.7)
 equation = LinearScalarAdvectionEquation2D(advection_velocity)
 
-
-
-
-polydeg = 3
 # `RealT = Real` requires fewer overloads than the more explicit `RealT = Num` from Symbolics
 # `solver_real` is used for computing the Jacobian sparsity pattern
 solver_real = DGSEM(polydeg = polydeg, surface_flux = flux_godunov, RealT = Real)
