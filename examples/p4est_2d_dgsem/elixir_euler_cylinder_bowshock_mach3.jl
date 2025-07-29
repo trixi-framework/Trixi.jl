@@ -41,7 +41,7 @@ function mapping_cylinder_shock_fitted(xi_, eta_,
         (0.0, spline_points[3])
     ] # 3 points that define the geometry of the cylinder-shock-fitted mesh
 
-    # spline has form R[1] + c * eta_01^2 + d * eta_01^3, derivative w.r.t eta_01 is 0 at eta_01 = 0
+    # spline has form R[1] + c * eta_01^2 + d * eta_01^3, such that derivative w.r.t eta_01 is 0 at eta_01 = 0
     R = [sqrt(shock_shape[i][1]^2 + shock_shape[i][2]^2) for i in 1:3]  # 3 radii
     spline_matrix = [1.0 1.0; 0.25 0.125] # find cubic spline coefficients
     spline_RHS = [R[3] - R[1], R[2] - R[1]]
