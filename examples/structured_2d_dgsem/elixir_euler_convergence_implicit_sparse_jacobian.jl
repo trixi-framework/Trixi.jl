@@ -132,12 +132,12 @@ ode_float_jac_sparse = semidiscretize(semi_float, t_span,
                                       sparse_cache.jac_prototype,
                                       sparse_cache.coloring.colorvec)
 
+summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi_float, interval = 50)
 alive_callback = AliveCallback(alive_interval = 3)
-summary_callback = SummaryCallback()
 
 # Note: No `stepsize_callback` due to implicit solver
-callbacks = CallbackSet(analysis_callback, alive_callback, summary_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 ###############################################################################
 ### solve the ODE problem ###
