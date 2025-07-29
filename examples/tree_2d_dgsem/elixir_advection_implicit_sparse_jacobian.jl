@@ -112,11 +112,13 @@ ode_float_jac_sparse = semidiscretize(semi_float, t_span,
 #
 # which turned out to be significantly slower than just using the prototype and the coloring vector. 
 
-analysis_callback = AnalysisCallback(semi_float, interval = 10)
 summary_callback = SummaryCallback()
+analysis_callback = AnalysisCallback(semi_float, interval = 10)
+save_restart = SaveRestartCallback(interval = 100,
+                                   save_final_restart = true)
 
 # Note: No `stepsize_callback` due to (implicit) solver with adaptive timestep control
-callbacks = CallbackSet(analysis_callback, summary_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_restart)
 
 ###############################################################################
 ### solve the ODE problem ###
