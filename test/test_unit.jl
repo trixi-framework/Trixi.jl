@@ -2611,105 +2611,94 @@ end
     end
 end
 
-###############################################################################
-### Hack ###
-# Multiplying two Matrix{Real}s gives a Matrix{Any}.
-# This causes problems when instantiating the Legendre basis.
-# Called in `calc_{forward,reverse}_{upper, lower}`
-# This must remain outside the @testset because when it is inside, 
-# we lose access to regular multiplication (for example `Int`` * `Int``)
-# and we crash elsewhere
-function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
-    m, n = size(A, 1), size(B, 2)
-    kA = size(A, 2)
-    kB = size(B, 1)
-    @assert kA == kB "Matrix dimensions must match for multiplication"
-    
-    C = Matrix{Real}(undef, m, n)
-    for i in 1:m, j in 1:n
-        #acc::Real = zero(promote_type(typeof(A[i,1]), typeof(B[1,j])))
-        acc = zero(Real)
-        for k in 1:kA
-            acc += A[i,k] * B[k,j]
-        end
-        C[i,j] = acc
-    end
-    return C
-end
-
-@testset "Sparse Jacobian of rhs() should match 'full' Jacobian" begin
+@testset "SparseDiff Jacobian = ForwardDiff Jacobian" begin
     ###############################################################################
-    ### Hack ###
+    ### Hacks ###
+
+    # Multiplying two Matrix{Real}s gives a Matrix{Any}.
+    # This causes problems when instantiating the Legendre basis.
+    # Called in `calc_{forward,reverse}_{upper, lower}`
+    # This must remain outside the @testset because when it is inside, 
+    # we lose access to regular multiplication (for example `Int`` * `Int``)
+    # and we crash elsewhere
+    function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
+        m, n = size(A, 1), size(B, 2)
+        kA = size(A, 2)
+        kB = size(B, 1)
+        @assert kA == kB "Matrix dimensions must match for multiplication"
+        
+        C = Matrix{Real}(undef, m, n)
+        for i in 1:m, j in 1:n
+            #acc::Real = zero(promote_type(typeof(A[i,1]), typeof(B[1,j])))
+            acc = zero(Real)
+            for k in 1:kA
+                acc += A[i,k] * B[k,j]
+            end
+            C[i,j] = acc
+        end
+        return C
+    end
 
     # Required for setting up the Lobatto Legendre basis for abstract `Real` type
     function Trixi.eps(::Union{Type{Real}, Int}, RealT = Float64)
         return eps(RealT)
     end
-    aaa = 2 * 2
     
     ###############################################################################
-    ### semidiscretization of the linear advection equation ###
 
-    advection_velocities = (1.0, 1.1)
+    advection_velocities = (0.2, -0.7)
     equations = LinearScalarAdvectionEquation2D(advection_velocities)
 
-    # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-    d = 3
-    # SD for SpareDiff, FD for ForwardDiff
-    # `RealT = Real` requires fewer overloads than the more explicit `RealT = Num`
-    solver_SD = DGSEM(polydeg = d, surface_flux = flux_lax_friedrichs, RealT = Real)
-    solver_FD = DGSEM(polydeg = d, surface_flux = flux_lax_friedrichs)
+    # `RealT = Real` requires fewer overloads than the more explicit `RealT = Num` from Symbolics.
+    # `solver_real` is used for computing the Jacobian sparsity pattern
+    solver_real = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = Real)
+    # `solver_float` is  used for the subsequent simulation
+    solver_float = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-    coordinates_min = (-1.0, -1.0)# minimum coordinate
-    coordinates_max = (1.0, 1.0) # maximum coordinate
+    coordinates_min = (-1.0, -1.0)
+    coordinates_max = (1.0, 1.0)
 
-    # Create a uniformly refined mesh with periodic boundaries
-    RefinementLevel = 5
     mesh = TreeMesh(coordinates_min, coordinates_max,
-                    initial_refinement_level = RefinementLevel,
-                    n_cells_max = 30_000) # set maximum capacity of tree data structure
+                    initial_refinement_level = 5,
+                    n_cells_max = 30_000)
 
-    # A semidiscretization collects data structures and functions for the spatial discretization
-    semi_SD = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                        solver_SD)
-    semi_FD = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                        solver_FD)
+    # `semi_real` is used for computing the Jacobian sparsity pattern
+    semi_real = SemidiscretizationHyperbolic(mesh, equations,
+                                             initial_condition_convergence_test,
+                                             solver_real)
+    # `semi_float` is  used for the subsequent simulation
+    semi_float = SemidiscretizationHyperbolic(mesh, equations,
+                                              initial_condition_convergence_test,
+                                              solver_float)
 
-    # 2^RefinementLevel = 16 elements, (d+1) local polynomial coefficients per element
-    N = Int(2^RefinementLevel * (d+1))
-    u0_ode = zeros(N*N)
-    du_ode = 80 * ones(N*N) # initialize with something
-    t0 = 0.0
+    t0 = 0.0 # Re-used for the ODE function defined below
+    t_end = 5.0
+    t_span = (t0, t_end)
+
+    # Call `semidiscretize` on `semi_float` to create the ODE problem to have access to the initial condition.
+    ode_float = semidiscretize(semi_float, t_span)
+    u0_ode = ode_float.u0
+    du_ode = similar(u0_ode)
 
     ###############################################################################
     ### Compute the Jacobian with SparseDiffTools ###
 
-    # Create a function with two parameters:du_ode and u0_ode
+    # Create a function with two parameters: `du_ode` and `u0_ode`
     # to fulfill the requirments of an in_place function in SparseDiffTools
-    rhs = (du_ode,u0_ode)->Trixi.rhs!(du_ode, u0_ode, semi_SD, t0)
+    # (see example function `f` from https://docs.sciml.ai/SparseDiffTools/dev/#Example)
+    rhs = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_real, t0)
 
-    #From the example to detect the pattern and choose how to do the AutoDiff automatically
+    # Taken from example linked above to detect the pattern and choose how to do the differentiation
+    ad_type = AutoForwardDiff()
+    sparse_adtype = AutoSparse(ad_type)
     sd = SymbolicsSparsityDetection()
-    adtype = AutoSparseFiniteDiff()
+    sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
+    jac_sparse = sparse_jacobian(sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)
 
-    #From the example provided in SparseDiffTools. cache will reduce calculation time when Jacobian will be calculated multiple times
-    cache = sparse_jacobian_cache(adtype, sd, rhs, du_ode, u0_ode)
-    J_SD = sparse_jacobian(adtype, cache, rhs, du_ode, u0_ode)
+    jac_forward_diff = jacobian_ad_forward(semi_real)
 
-    ###############################################################################
-    ### Compute the Jacobian with ForwardDiff in order to compare with SparseDiff Jacobian ###
-    config = ForwardDiff.JacobianConfig(nothing, du_ode, u0_ode)
-
-    # See https://juliadiff.org/ForwardDiff.jl/v0.7/dev/how_it_works.html#Dual-Number-Implementation-1
-    uEltype = eltype(config)
-
-    # Change type of u0_ode and du_ode to automatic-differentiation type
-    u0_ode_FD = Vector{uEltype}(u0_ode)
-    du_ode_FD = Vector{uEltype}(du_ode)
-
-    J_FD = jacobian_ad_forward(semi_FD)
-
-    @test J_SD ≈ J_FD
+    @test jac_sparse == jac_forward_diff
+end
 end
 
 end #module
