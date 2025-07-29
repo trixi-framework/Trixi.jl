@@ -52,7 +52,7 @@ end
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# Can for sparsity detection only use `flux_lax_friedrichs` at the moment since this is 
+# For sparsity detection we can only use `flux_lax_friedrichs` at the moment since this is 
 # `if`-clause free
 surface_flux = flux_lax_friedrichs
 
