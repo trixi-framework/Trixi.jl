@@ -333,7 +333,6 @@ end
     end
 end
 
-
 @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
                         l2=[
