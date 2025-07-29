@@ -176,8 +176,8 @@ end
                                             "elixir_advection_uncertainty.jl"))
 
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_uncertainty.jl"),
-                        l2=Measurement{Float64}[0.0012576893000440965 ± 0.017581020765034417],
-                        linf=Measurement{Float64}[0.004425204509676317 ± 0.0633672486044246])
+                        l2=[0.0012576893000440965 ± 0.017581020765034417],
+                        linf=[0.004425204509676317 ± 0.0633672486044246])
     # Using Measurements.jl actually allocates quite significantly
     let
         t = sol.t[end]
