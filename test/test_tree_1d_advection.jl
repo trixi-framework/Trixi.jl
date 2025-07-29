@@ -169,6 +169,23 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_advection_uncertainty.jl" begin
+    # Run this first to collect LoopVectorization warnings before error-check run
+    @test_nowarn_mod trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                            "elixir_advection_uncertainty.jl"))
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_uncertainty.jl"),
+                        l2=Measurement{Float64}[0.0012576893000440965 ± 0.017581020765034417],
+                        linf=Measurement{Float64}[0.004425204509676317 ± 0.0633672486044246])
+    # Using Measurements.jl actually allocotes quite significantly
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100_000
+    end
+end
 end
 
 end # module

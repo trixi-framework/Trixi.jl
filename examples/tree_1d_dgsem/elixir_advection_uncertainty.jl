@@ -5,8 +5,8 @@ using Measurements # For propagating uncertainty/measurement errors in parameter
 # Note the `±` operator for defining uncertain parameters
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
-x_min = (-1.0)
-x_max = (1.0)
+x_min = (-1.0,)
+x_max = (1.0,)
 mesh = TreeMesh(x_min, x_max,
                 n_cells_max = 10^5, initial_refinement_level = 5)
 
@@ -20,9 +20,9 @@ tspan = (0.0, 1.5)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
-alive_callback = AliveCallback(alive_interval = 5)
+analysis_callback = AnalysisCallback(semi, interval = 50)
 
-callbacks = CallbackSet(summary_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
