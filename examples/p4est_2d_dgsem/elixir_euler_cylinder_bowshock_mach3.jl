@@ -19,22 +19,24 @@ using OrdinaryDiffEqSSPRK
 #   Computers & Fluids, 2025.
 #   [DOI: 10.1016/j.compfluid.2025.106640](https://doi.org/10.1016/j.compfluid.2025.106640)
 #
-# The mapping produces the following geometry:
-#   _________ x_pos___________
-#  |                          |
-#  |                          |
-#  |                          y
-#  |                          _
-#  |                          p
-#  x                          o
-#  _                          s
-#  p         (Gas)            |
-#  o                          |
-#  s                          . 
-#  |                        . 
-#  |                      .  <- x_neg
-#  |                     .    
-#  |                    .  (Cylinder)
+# The mapping produces the following geometry & shock (indicated by the asterisks `* `):
+#                  ____x_neg____
+#                 |             |
+#               |               |
+#             |                 |
+#            |                * |
+#           |               *   y
+#          |   Inflow     *     _
+#         |    state    *       p
+#         x           *         o
+#        _           *          s
+#       n           *           |
+#      e           *            |
+#     g         Shock          . 
+#     |          *           . 
+#    |          *          .  <- x_pos
+#   |          *          .    
+#  |          *         .  (Cylinder)
 #  |_______y_neg_______.
 function mapping_cylinder_shock_fitted(xi_, eta_,
                                        cylinder_radius, spline_points)
@@ -52,7 +54,7 @@ function mapping_cylinder_shock_fitted(xi_, eta_,
     spline_coeffs = spline_matrix \ spline_RHS # c2, c3
 
     eta_01 = (eta_ + 1) / 2 # Transform `eta_` in [-1, 1] to `eta_01` in [0, 1]
-    xi_01 = (-xi_ + 1) / 2 # "Flip" `xi_` in [-1, 1] to `xi_01` in [0, 1] (note `x_pos` and `x_neg` in sketch above!)
+    xi_01 = (-xi_ + 1) / 2 # "Flip" `xi_` in [-1, 1] to `xi_01` in [0, 1]
 
     R_outer = R[1] + spline_coeffs[1] * eta_01^2 + spline_coeffs[2] * eta_01^3
 
@@ -84,10 +86,10 @@ end
 end
 
 # For physical significance of boundary conditions, see sketch at `mapping_cylinder_shock_fitted`
-boundary_conditions = Dict(:x_neg => boundary_condition_supersonic_inflow,
+boundary_conditions = Dict(:x_neg => boundary_condition_supersonic_inflow, # Supersonic inflow
                            :y_neg => boundary_condition_slip_wall, # Induce symmetry by slip wall
-                           :y_pos => boundary_condition_do_nothing,
-                           :x_pos => boundary_condition_slip_wall)
+                           :y_pos => boundary_condition_do_nothing, # Free outflow 
+                           :x_pos => boundary_condition_slip_wall) # Cylinder
 
 ###############################################################################
 # Equations, mesh and solver
@@ -116,7 +118,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 trees_per_dimension = (25, 25)
 
 cylinder_radius = 0.5
-spline_points = [1.32, 1.05, 2.25]
+spline_points = [1.32, 1.05, 2.25] # Follow from a-priori known shock shape
 cylinder_mapping = (xi, eta) -> mapping_cylinder_shock_fitted(xi, eta,
                                                               cylinder_radius,
                                                               spline_points)
@@ -124,7 +126,7 @@ cylinder_mapping = (xi, eta) -> mapping_cylinder_shock_fitted(xi, eta,
 mesh = P4estMesh(trees_per_dimension,
                  polydeg = polydeg,
                  mapping = cylinder_mapping,
-                 periodicity = (false, false))
+                 periodicity = false)
 
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
