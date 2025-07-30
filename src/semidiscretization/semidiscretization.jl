@@ -222,6 +222,11 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
     iip = true # is-inplace, i.e., we modify a vector when calling rhs!
     specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
 
+    # See SparseDiffTools.jl docs (https://github.com/JuliaDiff/SparseDiffTools.jl) for documentation of `jac_prototype` and `colorvec`
+
+    # Convert the `jac_prototype` to real type, as seen here:
+    # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
+
     ode = SciMLBase.ODEFunction(rhs!, jac_prototype = float.(jac_prototype),
                                 colorvec = colorvec)
 
