@@ -110,14 +110,11 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - name: TrixiTest.jl dev version
-        env:
-          JULIA_PKG_PRECOMPILE_AUTO: 0
+        shell: julia --project="./test" --color=yes {0}
         run: |
-          mkdir dev
-          cd dev
-          git clone -b bg/provide-more-test-macros https://github.com/trixi-framework/TrixiTest.jl
-          cd ..
-          julia --project=./test -e 'using Pkg; Pkg.develop(path="./dev/TrixiTest.jl")'
+          using Pkg
+          Pkg.add(PackageSpec(url="https://github.com/trixi-framework/TrixiTest.jl", rev="bg/provide-more-test-macros"))
+          Pkg.instantiate()
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         with:
