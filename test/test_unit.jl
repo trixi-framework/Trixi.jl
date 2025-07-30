@@ -2657,7 +2657,8 @@ end
 
     # `RealT = Real` requires fewer overloads than the more explicit `RealT = Num` from Symbolics.
     # `solver_real` is used for computing the Jacobian sparsity pattern
-    solver_real = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = Real)
+    solver_real = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                        RealT = Real)
     # `solver_float` is  used for the subsequent simulation
     solver_float = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
                          RealT = float_type)
