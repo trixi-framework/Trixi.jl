@@ -113,6 +113,9 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
+      - name: TrixiTest.jl dev version
+        run: |
+          julia --project=./test -e 'using Pkg; Pkg.add(url="https://https://github.com/trixi-framework/TrixiTest.jl", rev="bg/provide-more-test-macros")'
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         with:
