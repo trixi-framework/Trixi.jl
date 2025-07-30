@@ -109,10 +109,6 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      - uses: julia-actions/cache@v2
-      - uses: julia-actions/julia-buildpkg@v1
-        env:
-          PYTHON: ''
       - name: TrixiTest.jl dev version
         env:
           JULIA_PKG_PRECOMPILE_AUTO: 0
