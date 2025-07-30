@@ -17,7 +17,8 @@ macro test_trixi_include(expr, args...)
     ]
     args = append_to_kwargs(args, :additional_ignore_content,
                             add_to_additional_ignore_content)
-    quote
-        @test_trixi_include_base($(esc(expr)), $(args...))
+    ex = quote
+        @test_trixi_include_base($expr, $(args...))
     end
+    return esc(ex)
 end
