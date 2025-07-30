@@ -416,9 +416,8 @@ end
 end
 
 @trixi_testset "test_quasi_1D_entropy" begin
-    using StaticArrays: SVector
     using Trixi: CompressibleEulerEquationsQuasi1D, CompressibleEulerEquations1D,
-                 entropy
+                 entropy, SVector
     a = 0.9
     u_1D = SVector(1.1, 0.2, 2.1)
     u_quasi_1D = SVector(a * 1.1, a * 0.2, a * 2.1, a)
