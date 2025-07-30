@@ -3,7 +3,7 @@ module TestUnit
 using Test
 using Trixi
 
-using LinearAlgebra
+using LinearAlgebra: norm, dot
 using DelimitedFiles: readdlm
 
 # Use Convex and ECOS to load the extension that extends functions for testing
@@ -15,11 +15,9 @@ using ECOS: Optimizer
 # PERK Single p3 Constructors
 using NLsolve: nlsolve
 
-using SparseArrays
-using ForwardDiff
-using SparseDiffTools, Symbolics
-
-import Base: * # For overloading
+# For sparsity detection with Symbolics
+using SparseArrays, SparseDiffTools, Symbolics
+import Base: * # For overloading for abstract type `Real` (used for sparsity detection)
 
 include("test_trixi.jl")
 
@@ -2612,15 +2610,28 @@ end
 end
 
 @testset "SparseDiff Jacobian = ForwardDiff Jacobian" begin
-    ###############################################################################
-    ### Hacks ###
+    ###############################################################################################
+    ### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
+
+    # Required for setting up the Lobatto-Legendre basis for abstract `Real` type.
+    # Constructing the Lobatto-Legendre basis with `Real` instead of `Num` is 
+    # significantly easier as we do not have to care about e.g. if-clauses.
+    # As a consquence, we need to provide some overloads hinting towards the intended behavior.
+
+    float_type = Float64 # Actual floating point type for the simulation
+
+    # Newton tolerance for finding LGL nodes & weights
+    Trixi.eps(::Type{Real}) = Base.eps(float_type)
+    # There are some places where `one(RealT)` or `zero(uEltype)` is called where `RealT` or `uEltype` is `Real`.
+    # This returns an `Int64`, i.e., `1` or `0`, respectively which gives errors when a floating-point alike type is expected.
+    Trixi.one(::Type{Real}) = Base.one(float_type)
+    Trixi.zero(::Type{Real}) = Base.zero(float_type)
 
     # Multiplying two Matrix{Real}s gives a Matrix{Any}.
-    # This causes problems when instantiating the Legendre basis.
-    # Called in `calc_{forward,reverse}_{upper, lower}`
-    # This must remain outside the @testset because when it is inside, 
-    # we lose access to regular multiplication (for example `Int`` * `Int``)
-    # and we crash elsewhere
+    # This causes problems when instantiating the Legendre basis, which calls
+    # `calc_{forward,reverse}_{upper, lower}` which in turn uses the matrix multiplication
+    # which is overloaded here in construction of the interpolation/projection operators 
+    # required for mortars.
     function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
         m, n = size(A, 1), size(B, 2)
         kA = size(A, 2)
@@ -2639,12 +2650,7 @@ end
         return C
     end
 
-    # Required for setting up the Lobatto Legendre basis for abstract `Real` type
-    function Trixi.eps(::Union{Type{Real}, Int}, RealT = Float64)
-        return eps(RealT)
-    end
-
-    ###############################################################################
+    ###############################################################################################
 
     advection_velocities = (0.2, -0.7)
     equations = LinearScalarAdvectionEquation2D(advection_velocities)
@@ -2653,13 +2659,14 @@ end
     # `solver_real` is used for computing the Jacobian sparsity pattern
     solver_real = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = Real)
     # `solver_float` is  used for the subsequent simulation
-    solver_float = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+    solver_float = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                         RealT = float_type)
 
     coordinates_min = (-1.0, -1.0)
     coordinates_max = (1.0, 1.0)
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
-                    initial_refinement_level = 5,
+                    initial_refinement_level = 4,
                     n_cells_max = 30_000)
 
     # `semi_real` is used for computing the Jacobian sparsity pattern
@@ -2680,7 +2687,7 @@ end
     u0_ode = ode_float.u0
     du_ode = similar(u0_ode)
 
-    ###############################################################################
+    ###############################################################################################
     ### Compute the Jacobian with SparseDiffTools ###
 
     # Create a function with two parameters: `du_ode` and `u0_ode`
@@ -2695,9 +2702,11 @@ end
     sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
     jac_sparse = sparse_jacobian(sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)
 
-    jac_forward_diff = jacobian_ad_forward(semi_real)
+    jac_forward_diff = jacobian_ad_forward(semi_float)
 
     @test jac_sparse == jac_forward_diff
+    @test Matrix(jac_sparse) == jac_forward_diff
+    @test jac_sparse == sparse(jac_forward_diff)
 end
 end
 
