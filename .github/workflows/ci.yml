@@ -121,7 +121,7 @@ jobs:
           cd dev
           git clone -b bg/provide-more-test-macros https://github.com/trixi-framework/TrixiTest.jl
           cd ..
-          julia --project=./test -e 'using Pkg; Pkg.develop("./dev/TrixiTest.jl")'
+          julia --project=./test -e 'using Pkg; Pkg.develop(path="./dev/TrixiTest.jl")'
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         with:
