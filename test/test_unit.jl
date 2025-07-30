@@ -2609,7 +2609,7 @@ end
     end
 end
 
-@testset "SparseDiff Jacobian = ForwardDiff Jacobian" begin
+@testset "SparseDiff Jacobian = {ForwardDiff Jacobian, LinearStructure}" begin
     ###############################################################################################
     ### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
 
@@ -2707,6 +2707,12 @@ end
     @test jac_sparse == jac_forward_diff
     @test Matrix(jac_sparse) == jac_forward_diff
     @test jac_sparse == sparse(jac_forward_diff)
+
+    A, _ = linear_structure(semi_float)
+
+    @test jac_sparse == A
+    @test Matrix(jac_sparse) == A
+    @test jac_sparse == sparse(A)
 end
 end
 
