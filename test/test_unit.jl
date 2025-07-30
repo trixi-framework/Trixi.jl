@@ -2625,16 +2625,16 @@ end
         m, n = size(A, 1), size(B, 2)
         kA = size(A, 2)
         kB = size(B, 1)
-        @assert kA == kB "Matrix dimensions must match for multiplication"
-        
+        @assert kA==kB "Matrix dimensions must match for multiplication"
+
         C = Matrix{Real}(undef, m, n)
         for i in 1:m, j in 1:n
             #acc::Real = zero(promote_type(typeof(A[i,1]), typeof(B[1,j])))
             acc = zero(Real)
             for k in 1:kA
-                acc += A[i,k] * B[k,j]
+                acc += A[i, k] * B[k, j]
             end
-            C[i,j] = acc
+            C[i, j] = acc
         end
         return C
     end
@@ -2643,7 +2643,7 @@ end
     function Trixi.eps(::Union{Type{Real}, Int}, RealT = Float64)
         return eps(RealT)
     end
-    
+
     ###############################################################################
 
     advection_velocities = (0.2, -0.7)

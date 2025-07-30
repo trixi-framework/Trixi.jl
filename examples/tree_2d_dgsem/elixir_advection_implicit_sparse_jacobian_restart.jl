@@ -22,6 +22,7 @@ ode_float_jac_sparse = semidiscretize(semi_float, t_span,
 # run the simulation
 
 sol = solve(ode_float_jac_sparse, # using `ode_float_jac_sparse` instead of `ode_float` results in speedup of factors 10-15!
-            # `AutoForwardDiff()` is not yet working, probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
-            TRBDF2(; autodiff = ad_type); # `AutoForwardDiff()` is not yet working
+            # Default `AutoForwardDiff()` is not yet working,
+            # probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
+            TRBDF2(; autodiff = ad_type);
             adaptive = true, dt = dt_restart, save_everystep = false, callback = callbacks);

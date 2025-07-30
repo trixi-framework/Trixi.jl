@@ -4,28 +4,24 @@ using OrdinaryDiffEqSDIRK
 # Functionality for automatic sparsity detection
 using SparseDiffTools, Symbolics
 
-# We need to avoid if-clauses to be able to use `Num` type from Symbolics.
-# In the Trixi implementation, we overload the sqrt function to first check if the argument 
-# is < 0 and then return NaN instead of an error.
-# To turn off this behaviour, we switch back to the Base implementation here.
-# Redirect the warning to stdout to satisfy the CI tests which fail for anything in stderr
-redirect_stderr(stdout) do  
-    Trixi.set_sqrt_type!("sqrt_Base")
-end
+import Base: * # For overloading with type `Real`
 
-import Base: eps, zero, one, * # For overloading with type `Real`
+###############################################################################################
+### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
 
-###############################################################################
-### Hacks ###
+# Required for setting up the Lobatto-Legendre basis for abstract `Real` type.
+# Constructing the Lobatto-Legendre basis with `Real` instead of `Num` is 
+# significantly easier as we do not have to care about e.g. if-clauses.
+# As a consquence, we need to provide some overloads hinting towards the intended behavior.
 
-# Required for setting up the Lobatto-Legendre basis for abstract `Real` type
-eps(::Type{Real}, RealT = Float64) = eps(RealT)
+const float_type = Float64 # Actual floating point type for the simulation
 
+# Newton tolerance for finding LGL nodes & weights
+Trixi.eps(::Type{Real}) = Base.eps(float_type)
 # There are some places where `one(RealT)` or `zero(uEltype)` is called where `RealT` or `uEltype` is `Real`.
-# This returns an `Int64`, i.e., `1` or `0`, respectively.
-# We don't want `Int`s for the sparsity detection, so we override this behavior.
-one(::Type{Real}, RealT = Float64) = Base.one(RealT)
-zero(::Type{Real}, RealT = Float64) = Base.zero(RealT)
+# This returns an `Int64`, i.e., `1` or `0`, respectively which gives errors when a floating-point alike type is expected.
+Trixi.one(::Type{Real}) = Base.one(float_type)
+Trixi.zero(::Type{Real}) = Base.zero(float_type)
 
 # Multiplying two Matrix{Real}s gives a Matrix{Any}.
 # This causes problems when instantiating the Legendre basis, which calls
@@ -50,7 +46,13 @@ function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
     return C
 end
 
-###############################################################################
+# We need to avoid if-clauses to be able to use `Num` type from Symbolics without additional hazzle.
+# In the Trixi implementation, we overload the sqrt function to first check if the argument 
+# is < 0 and then return NaN instead of an error.
+# To turn off this behaviour, we switch back to the Base implementation here which does not contain an if-clause.
+Trixi.sqrt(x::Num) = Base.sqrt(x)
+
+###############################################################################################
 ### equations and solver ###
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -63,9 +65,9 @@ surface_flux = flux_lax_friedrichs
 # `solver_real` is used for computing the Jacobian sparsity pattern
 solver_real = DGSEM(polydeg = 3, surface_flux = surface_flux, RealT = Real)
 # `solver_float` is  used for the subsequent simulation
-solver_float = DGSEM(polydeg = 3, surface_flux = surface_flux)
+solver_float = DGSEM(polydeg = 3, surface_flux = surface_flux, RealT = float_type)
 
-###############################################################################
+###############################################################################################
 ### mesh ###
 
 # Mapping as described in https://arxiv.org/abs/2012.12040,
@@ -86,7 +88,7 @@ end
 cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
-###############################################################################
+###############################################################################################
 ### semidiscretizations ###
 
 initial_condition = initial_condition_convergence_test
@@ -111,7 +113,7 @@ ode_float = semidiscretize(semi_float, t_span)
 u0_ode = ode_float.u0
 du_ode = similar(u0_ode)
 
-###############################################################################
+###############################################################################################
 ### Compute the Jacobian with SparseDiffTools ###
 
 # Create a function with two parameters: `du_ode` and `u0_ode`
@@ -127,8 +129,13 @@ sparse_adtype = AutoSparse(ad_type)
 # `sparse_cache` will reduce calculation time when Jacobian is calculated multiple times
 sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
 
-###############################################################################
+###############################################################################################
 ### Set up sparse-aware ODEProblem ###
+
+# Revert overrides from above for the actual simulation
+Trixi.eps(x::Type{Real}) = Base.eps(x)
+Trixi.one(x::Type{Real}) = Base.one(x)
+Trixi.zero(x::Type{Real}) = Base.zero(x)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_float_jac_sparse = semidiscretize(semi_float, t_span,
@@ -142,10 +149,11 @@ alive_callback = AliveCallback(alive_interval = 3)
 # Note: No `stepsize_callback` due to implicit solver
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
-###############################################################################
+###############################################################################################
 ### solve the ODE problem ###
 
 sol = solve(ode_float_jac_sparse, # using `ode_float` is essentially infeasible, even single step takes ages!
-            # `AutoForwardDiff()` is not yet working, probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
+            # Default `AutoForwardDiff()` is not yet working,
+            # probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
             Kvaerno4(; autodiff = AutoFiniteDiff());
-            dt = 0.01, save_everystep = false, callback = callbacks);
+            dt = 0.05, save_everystep = false, callback = callbacks);

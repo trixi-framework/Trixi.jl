@@ -6,17 +6,22 @@ using SparseDiffTools, Symbolics
 
 import Base: eps, zero, one, * # For overloading with type `Real`
 
-###############################################################################
-### Hacks ###
+###############################################################################################
+### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
 
-# Required for setting up the Lobatto-Legendre basis for abstract `Real` type
-eps(::Type{Real}, RealT = Float64) = eps(RealT)
+# Required for setting up the Lobatto-Legendre basis for abstract `Real` type.
+# Constructing the Lobatto-Legendre basis with `Real` instead of `Num` is 
+# significantly easier as we do not have to care about e.g. if-clauses.
+# As a consquence, we need to provide some overloads hinting towards the intended behavior.
 
+const float_type = Float64 # Actual floating point type for the simulation
+
+# Newton tolerance for finding LGL nodes & weights
+Trixi.eps(::Type{Real}) = Base.eps(float_type)
 # There are some places where `one(RealT)` or `zero(uEltype)` is called where `RealT` or `uEltype` is `Real`.
-# This returns an `Int64`, i.e., `1` or `0`, respectively.
-# We don't want `Int`s for the sparsity detection, so we override this behavior.
-one(::Type{Real}, RealT = Float64) = Base.one(RealT)
-zero(::Type{Real}, RealT = Float64) = Base.zero(RealT)
+# This returns an `Int64`, i.e., `1` or `0`, respectively which gives errors when a floating-point alike type is expected.
+Trixi.one(::Type{Real}) = Base.one(float_type)
+Trixi.zero(::Type{Real}) = Base.zero(float_type)
 
 # Multiplying two Matrix{Real}s gives a Matrix{Any}.
 # This causes problems when instantiating the Legendre basis, which calls
@@ -41,7 +46,7 @@ function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
     return C
 end
 
-###############################################################################
+###############################################################################################
 ### semidiscretizations of the linear advection equation ###
 
 advection_velocity = (0.2, -0.7)
@@ -79,7 +84,7 @@ ode_float = semidiscretize(semi_float, t_span)
 u0_ode = ode_float.u0
 du_ode = similar(u0_ode)
 
-###############################################################################
+###############################################################################################
 ### Compute the Jacobian with SparseDiffTools ###
 
 # Create a function with two parameters: `du_ode` and `u0_ode`
@@ -96,8 +101,13 @@ sparse_adtype = AutoSparse(ad_type)
 # which is in principle not required for the linear problem considered here.
 sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
 
-###############################################################################
+###############################################################################################
 ### Set up sparse-aware ODEProblem ###
+
+# Revert overrides from above for the actual simulation
+Trixi.eps(x::Type{Real}) = Base.eps(x)
+Trixi.one(x::Type{Real}) = Base.one(x)
+Trixi.zero(x::Type{Real}) = Base.zero(x)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_float_jac_sparse = semidiscretize(semi_float, t_span,
@@ -120,10 +130,11 @@ save_restart = SaveRestartCallback(interval = 100,
 # Note: No `stepsize_callback` due to (implicit) solver with adaptive timestep control
 callbacks = CallbackSet(summary_callback, analysis_callback, save_restart)
 
-###############################################################################
+###############################################################################################
 ### solve the ODE problem ###
 
 sol = solve(ode_float_jac_sparse, # using `ode_float_jac_sparse` instead of `ode_float` results in speedup of factors 10-15!
-            # `AutoForwardDiff()` is not yet working, probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
-            TRBDF2(; autodiff = ad_type); # `AutoForwardDiff()` is not yet working
+            # Default `AutoForwardDiff()` is not yet working,
+            # probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
+            TRBDF2(; autodiff = ad_type);
             adaptive = true, dt = 0.1, save_everystep = false, callback = callbacks);
