@@ -4,6 +4,7 @@ using Test
 using Trixi
 
 using LinearAlgebra: norm, dot
+using SparseArrays
 using DelimitedFiles: readdlm
 
 # Use Convex and ECOS to load the extension that extends functions for testing
@@ -16,7 +17,7 @@ using ECOS: Optimizer
 using NLsolve: nlsolve
 
 # For sparsity detection with Symbolics
-using SparseArrays, SparseDiffTools, Symbolics
+using SparseDiffTools, Symbolics
 import Base: * # For overloading for abstract type `Real` (used for sparsity detection)
 
 include("test_trixi.jl")
@@ -2609,6 +2610,29 @@ end
     end
 end
 
+# Multiplying two Matrix{Real}s gives a Matrix{Any}.
+# This causes problems when instantiating the Legendre basis, which calls
+# `calc_{forward,reverse}_{upper, lower}` which in turn uses the matrix multiplication
+# which is overloaded here in construction of the interpolation/projection operators 
+# required for mortars.
+function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
+    m, n = size(A, 1), size(B, 2)
+    kA = size(A, 2)
+    kB = size(B, 1)
+    @assert kA==kB "Matrix dimensions must match for multiplication"
+
+    C = Matrix{Real}(undef, m, n)
+    for i in 1:m, j in 1:n
+        #acc::Real = zero(promote_type(typeof(A[i,1]), typeof(B[1,j])))
+        acc = zero(Real)
+        for k in 1:kA
+            acc += A[i, k] * B[k, j]
+        end
+        C[i, j] = acc
+    end
+    return C
+end
+
 @testset "SparseDiff Jacobian = {ForwardDiff Jacobian, LinearStructure}" begin
     ###############################################################################################
     ### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
@@ -2626,29 +2650,6 @@ end
     # This returns an `Int64`, i.e., `1` or `0`, respectively which gives errors when a floating-point alike type is expected.
     Trixi.one(::Type{Real}) = Base.one(float_type)
     Trixi.zero(::Type{Real}) = Base.zero(float_type)
-
-    # Multiplying two Matrix{Real}s gives a Matrix{Any}.
-    # This causes problems when instantiating the Legendre basis, which calls
-    # `calc_{forward,reverse}_{upper, lower}` which in turn uses the matrix multiplication
-    # which is overloaded here in construction of the interpolation/projection operators 
-    # required for mortars.
-    function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
-        m, n = size(A, 1), size(B, 2)
-        kA = size(A, 2)
-        kB = size(B, 1)
-        @assert kA==kB "Matrix dimensions must match for multiplication"
-
-        C = Matrix{Real}(undef, m, n)
-        for i in 1:m, j in 1:n
-            #acc::Real = zero(promote_type(typeof(A[i,1]), typeof(B[1,j])))
-            acc = zero(Real)
-            for k in 1:kA
-                acc += A[i, k] * B[k, j]
-            end
-            C[i, j] = acc
-        end
-        return C
-    end
 
     ###############################################################################################
 
@@ -2711,8 +2712,8 @@ end
 
     A, _ = linear_structure(semi_float)
 
-    @test jac_sparse == A
-    @test Matrix(jac_sparse) == A
+    @test jac_sparse == Matrix(A)
+    @test Matrix(jac_sparse) == Matrix(A)
     @test jac_sparse == sparse(A)
 end
 end
