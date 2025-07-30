@@ -10,7 +10,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 @testset "Compressible Euler Multicomponent" begin
     @trixi_testset "Testing entropy2cons and cons2entropy" begin
         using ForwardDiff
-        using Trixi: CompressibleEulerMulticomponentEquations1D, cons2entropy, entropy2cons, SVector
+        using Trixi: CompressibleEulerMulticomponentEquations1D, cons2entropy, entropy2cons,
+                     SVector
         gammas = (1.3272378792562836, 1.5269959187969864, 1.8362285750521512,
                   1.0409061360276926, 1.4652015053812224, 1.3626493264184423)
         gas_constants = (1.817636851910076, 6.760820475922636, 5.588953939749113,
