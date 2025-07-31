@@ -30,7 +30,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
 end # MPI
 
 @trixi_testset "MPI supporting functionality" begin
-    using Trixi: SVector
+    using Trixi: ode_norm, SVector
     t = 0.5
     let u = 1.0
         @test ode_norm(u, t) ≈ Trixi.DiffEqBase.ODE_DEFAULT_NORM(u, t)
