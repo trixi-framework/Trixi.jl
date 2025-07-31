@@ -177,6 +177,7 @@ struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
     local_factor::Bool
     mortar_l2::Mortar
     local_mortar_weights::Matrix{RealT}
+    output_directory::String
 end
 
 struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES, Mortar,
@@ -188,10 +189,12 @@ struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES, Mortar,
     forward_lower_low_order::ForwardMatrix
     reverse_upper_low_order::ReverseMatrix
     reverse_lower_low_order::ReverseMatrix
+    output_directory::String
 end
 
 function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
-                   local_factor = true, first_order = true, pure_low_order = false)
+                   local_factor = true, first_order = true, pure_low_order = false,
+                   output_directory = "out")
     RealT = real(basis)
     nnodes_ = nnodes(basis)
 
@@ -213,7 +216,8 @@ function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
                                                                              forward_upper_low_order,
                                                                              forward_lower_low_order,
                                                                              reverse_upper_low_order,
-                                                                             reverse_lower_low_order)
+                                                                             reverse_lower_low_order,
+                                                                             output_directory)
     else
         local_mortar_weights = calc_mortar_weights(basis, RealT;
                                                    first_order = first_order)
@@ -221,7 +225,8 @@ function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
         LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(pure_low_order,
                                                                     local_factor,
                                                                     mortar_l2,
-                                                                    local_mortar_weights)
+                                                                    local_mortar_weights,
+                                                                    output_directory)
     end
 end
 

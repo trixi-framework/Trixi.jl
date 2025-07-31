@@ -213,15 +213,16 @@ end
         end
     end
     # Provisional analysis of limiting factor
+    (; output_directory) = dg.mortar
     if length(limiting_factor) > 0
-        open(joinpath("out", "mortar_limiting_factor.txt"), "a") do f
+        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
             print(f, t)
             print(f, ", ", minimum(limiting_factor), ", ", maximum(limiting_factor),
                   ", ", sum(limiting_factor) / length(limiting_factor))
             println(f)
         end
     else
-        open(joinpath("out", "mortar_limiting_factor.txt"), "a") do f
+        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
             print(f, t)
             print(f, ", ", 0.0, ", ", 0.0, ", ", 0.0)
             println(f)
