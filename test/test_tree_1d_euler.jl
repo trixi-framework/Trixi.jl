@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 
 @testset "Compressible Euler" begin
 #! format: noindent
@@ -415,6 +415,8 @@ end
 end
 
 @trixi_testset "test_quasi_1D_entropy" begin
+    using Trixi: CompressibleEulerEquationsQuasi1D, CompressibleEulerEquations1D,
+                 entropy, SVector
     a = 0.9
     u_1D = SVector(1.1, 0.2, 2.1)
     u_quasi_1D = SVector(a * 1.1, a * 0.2, a * 2.1, a)
