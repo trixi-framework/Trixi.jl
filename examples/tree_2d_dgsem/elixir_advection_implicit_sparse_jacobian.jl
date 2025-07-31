@@ -4,7 +4,7 @@ using OrdinaryDiffEqSDIRK
 # Functionality for automatic sparsity detection
 using SparseDiffTools, Symbolics
 
-import Base: eps, zero, one, * # For overloading with type `Real`
+import Base: * # For overloading with type `Real`
 
 ###############################################################################################
 ### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
