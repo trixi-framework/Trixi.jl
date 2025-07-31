@@ -29,10 +29,10 @@ end
 @trixi_testset "elixir_advection_extended.jl with periodic operators" begin
     using Trixi: periodic_derivative_operator
     global D = periodic_derivative_operator(derivative_order = 1,
-                                                                      accuracy_order = 4,
-                                                                      xmin = 0.0,
-                                                                      xmax = 1.0,
-                                                                      N = 40)
+                                            accuracy_order = 4,
+                                            xmin = 0.0,
+                                            xmax = 1.0,
+                                            N = 40)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[1.1239649404463432e-5],
                         linf=[1.5895264629195438e-5],
