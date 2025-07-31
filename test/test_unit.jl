@@ -2640,7 +2640,7 @@ end
     # Required for setting up the Lobatto-Legendre basis for abstract `Real` type.
     # Constructing the Lobatto-Legendre basis with `Real` instead of `Num` is 
     # significantly easier as we do not have to care about e.g. if-clauses.
-    # As a consquence, we need to provide some overloads hinting towards the intended behavior.
+    # As a consequence, we need to provide some overloads hinting towards the intended behavior.
 
     float_type = Float64 # Actual floating point type for the simulation
 
@@ -2693,7 +2693,7 @@ end
     ### Compute the Jacobian with SparseDiffTools ###
 
     # Create a function with two parameters: `du_ode` and `u0_ode`
-    # to fulfill the requirments of an in_place function in SparseDiffTools
+    # to fulfill the requirements of an in_place function in SparseDiffTools
     # (see example function `f` from https://docs.sciml.ai/SparseDiffTools/dev/#Example)
     rhs = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_real, t0)
 

@@ -12,7 +12,7 @@ import Base: * # For overloading with type `Real`
 # Required for setting up the Lobatto-Legendre basis for abstract `Real` type.
 # Constructing the Lobatto-Legendre basis with `Real` instead of `Num` is 
 # significantly easier as we do not have to care about e.g. if-clauses.
-# As a consquence, we need to provide some overloads hinting towards the intended behavior.
+# As a consequence, we need to provide some overloads hinting towards the intended behavior.
 
 const float_type = Float64 # Actual floating point type for the simulation
 
@@ -46,7 +46,7 @@ function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
     return C
 end
 
-# We need to avoid if-clauses to be able to use `Num` type from Symbolics without additional hazzle.
+# We need to avoid if-clauses to be able to use `Num` type from Symbolics without additional hassle.
 # In the Trixi implementation, we overload the sqrt function to first check if the argument 
 # is < 0 and then return NaN instead of an error.
 # To turn off this behaviour, we switch back to the Base implementation here which does not contain an if-clause.
@@ -117,7 +117,7 @@ du_ode = similar(u0_ode)
 ### Compute the Jacobian with SparseDiffTools ###
 
 # Create a function with two parameters: `du_ode` and `u0_ode`
-# to fulfill the requirments of an in_place function in SparseDiffTools
+# to fulfill the requirements of an in_place function in SparseDiffTools
 # (see example function `f` from https://docs.sciml.ai/SparseDiffTools/dev/#Example)
 rhs = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_real, t0)
 
