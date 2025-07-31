@@ -42,7 +42,7 @@ end
 @trixi_testset "elixir_advection_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         l2=[0.3540206249507417],
-                        linf=[0.9999896603382347],)
+                        linf=[0.9999896603382347])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -56,7 +56,7 @@ end
 @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
                         l2=[4.283508859843524e-6],
-                        linf=[3.235356127918171e-5],)
+                        linf=[3.235356127918171e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -168,6 +168,23 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_advection_uncertainty.jl" begin
+    # Run this first to collect LoopVectorization warnings before error-check run
+    @test_nowarn_mod trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                            "elixir_advection_uncertainty.jl"))
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_uncertainty.jl"),
+                        l2=[0.0012576893000440965 ± 0.017581020765034417],
+                        linf=[0.004425204509676317 ± 0.0633672486044246])
+    # Using Measurements.jl actually allocates quite significantly
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100_000
     end
 end
 end

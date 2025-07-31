@@ -128,7 +128,7 @@ end
                             0.005243995459478956,
                             0.004685630332338153,
                             0.01750217718347713
-                        ],)
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

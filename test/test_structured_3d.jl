@@ -62,7 +62,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.0025903889347585777],
-                        linf=[0.018407576968841655],)
+                        linf=[0.018407576968841655])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -276,7 +276,7 @@ end
                             0.01282206030593043, 0.03911437990598213,
                             0.021962225923304324, 0.03169774571258743,
                             0.021591564663781426, 0.034028148178115364,
-                            0.020084593242858988],)
+                            0.020084593242858988])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
