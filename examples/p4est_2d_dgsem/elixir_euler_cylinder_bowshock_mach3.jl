@@ -41,20 +41,31 @@ using OrdinaryDiffEqSSPRK
 function mapping_cylinder_shock_fitted(xi_, eta_,
                                        cylinder_radius, spline_points)
     shock_shape = [
-        (spline_points[1], 0.0),
-        (spline_points[2], spline_points[2]),
-        (0.0, spline_points[3])
+        (spline_points[1], 0.0), # Shock position on the stagnation line (`y_neg`, y = 0)
+        (spline_points[2], spline_points[2]), # Shock position at -45° angle
+        (0.0, spline_points[3]) # Shock position at outflow (`y_pos`, x = x_max)
     ] # 3 points that define the geometry of the mesh which follows the shape of the shock (known a-priori)
-    R = [sqrt(shock_shape[i][1]^2 + shock_shape[i][2]^2) for i in 1:3]  # 3 radii
+    R = [sqrt(shock_shape[i][1]^2 + shock_shape[i][2]^2) for i in 1:3] # 3 radii
 
     # Construct spline with form R[1] + c2 * eta_01^2 + c3 * eta_01^3,
-    # chosen such that derivative w.r.t eta_01 is 0 at eta_01 = 0
+    # chosen such that derivative w.r.t eta_01 is 0 at eta_01 = 0 such that
+    # we have symmetry along the stagnation line (`y_neg`, y = 0).
+    #
+    # A single cubic spline doesn't fit the shock perfectly,
+    # but is the simplest curve that does a reasonable job and it also can be easily computed analytically.
+    # The choice of points on the stagnation line and outflow region is somewhat self-evident
+    # (capture the minimum and maximum extent of the shock stand-off),
+    # and the point at the 45 degree angle seemed the most logical to add
+    # since it only requires one additional value (and not two),
+    # simplifies the math a bit, and the angle lies exactly in between the other angles.
     spline_matrix = [1.0 1.0; 0.25 0.125]
     spline_RHS = [R[3] - R[1], R[2] - R[1]]
     spline_coeffs = spline_matrix \ spline_RHS # c2, c3
 
     eta_01 = (eta_ + 1) / 2 # Transform `eta_` in [-1, 1] to `eta_01` in [0, 1]
-    xi_01 = (-xi_ + 1) / 2 # "Flip" `xi_` in [-1, 1] to `xi_01` in [0, 1]
+    # "Flip" `xi_` in [-1, 1] to `xi_01` in [0, 1] since
+    # shock positions where originally for first quadrant, here we use second quadrant
+    xi_01 = (-xi_ + 1) / 2
 
     R_outer = R[1] + spline_coeffs[1] * eta_01^2 + spline_coeffs[2] * eta_01^3
 
@@ -118,7 +129,9 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 trees_per_dimension = (25, 25)
 
 cylinder_radius = 0.5
-spline_points = [1.32, 1.05, 2.25] # Follow from a-priori known shock shape
+# Follow from a-priori known shock shape, originally for first qaudrant,
+# here transformed to second quadrant, see `mapping_cylinder_shock_fitted`.
+spline_points = [1.32, 1.05, 2.25]
 cylinder_mapping = (xi, eta) -> mapping_cylinder_shock_fitted(xi, eta,
                                                               cylinder_radius,
                                                               spline_points)
