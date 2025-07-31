@@ -20,7 +20,7 @@ end
 
 # this method is used when the indicator is constructed as for AMR
 function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations{1}, dg::DGSEM, cache)
+                      equations::AbstractEquations, dg::DGSEM, cache)
     create_cache(typ, equations, dg.basis)
 end
 
@@ -120,7 +120,7 @@ function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{1},
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{1},
+function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations,
                       dg::DGSEM, cache)
     create_cache(typ, equations, dg.basis)
 end
@@ -170,7 +170,7 @@ function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{1},
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{1},
+function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations,
                       dg::DGSEM, cache)
     cache = create_cache(typ, equations, dg.basis)
 end
