@@ -52,25 +52,27 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
-mutable struct SimpleIntegratorSSPOptions{Callback, TStops}
+mutable struct SimpleIntegratorSSPOptions{Callback, UnstableCheck, TStops}
     callback::Callback # callbacks; used in Trixi
+    unstable_check::UnstableCheck # unstable check function
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
     maxiters::Int # maximal number of time steps
     tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
-function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
+function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int),
+                                    unstable_check = unstable_check, kwargs...)
     tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
     # We add last(tspan) to make sure that the time integration stops at the end time
     push!(tstops_internal, last(tspan))
     # We add 2 * last(tspan) because add_tstop!(integrator, t) is only called by DiffEqCallbacks.jl if tstops contains a time that is larger than t
     # (https://github.com/SciML/DiffEqCallbacks.jl/blob/025dfe99029bd0f30a2e027582744528eb92cd24/src/iterative_and_periodic.jl#L92)
     push!(tstops_internal, 2 * last(tspan))
-    SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
-                                                                          false, Inf,
-                                                                          maxiters,
-                                                                          tstops_internal)
+    SimpleIntegratorSSPOptions{typeof(callback), typeof(unstable_check),
+                               typeof(tstops_internal)}(callback, unstable_check,
+                                                        false, Inf, maxiters,
+                                                        tstops_internal)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
@@ -117,7 +119,8 @@ has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)
 first_tstop(integrator::SimpleIntegratorSSP) = first(integrator.opts.tstops)
 
 function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
-              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing,
+              unstable_check = ode_unstable_check, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp = similar(u)
@@ -127,6 +130,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     integrator = SimpleIntegratorSSP(u, du, u_tmp, t, tdir, dt, dt, iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
+                                                                unstable_check = unstable_check,
                                                                 kwargs...),
                                      false, true, false)
 
@@ -156,6 +160,7 @@ function solve!(integrator::SimpleIntegratorSSP)
     @unpack alg = integrator
     t_end = last(prob.tspan)
     callbacks = integrator.opts.callback
+    (; unstable_check) = integrator.opts
 
     integrator.finalstep = false
     @trixi_timeit timer() "main loop" while !integrator.finalstep
@@ -204,6 +209,11 @@ function solve!(integrator::SimpleIntegratorSSP)
                     return nothing
                 end
             end
+        end
+
+        if unstable_check(integrator.dt, integrator.u, integrator, integrator.t)
+            @warn "Instability detected. Aborting"
+            terminate!(integrator)
         end
 
         # respect maximum number of iterations

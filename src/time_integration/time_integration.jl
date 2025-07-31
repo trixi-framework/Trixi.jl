@@ -36,20 +36,22 @@ function set_proposed_dt!(integrator::AbstractTimeIntegrator, dt)
     (integrator.dt = dt; integrator.dtcache = dt)
 end
 
-# Required e.g. for `glm_speed_callback` 
+# Required e.g. for `glm_speed_callback`
 function get_proposed_dt(integrator::AbstractTimeIntegrator)
     return integrator.dt
 end
 
 """
-    Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm; 
+    Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
                 dt, callbacks, kwargs...)
 
 Fakes `solve` from https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
 """
 function solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+               dt, callback = nothing,
+               unstable_check = ode_unstable_check, kwargs...)
+    integrator = init(ode, alg, dt = dt, callback = callback,
+                      unstable_check = unstable_check; kwargs...)
 
     # Start actual solve
     solve!(integrator)
@@ -80,6 +82,15 @@ function DiffEqBase.get_tstops_array(integrator::AbstractTimeIntegrator)
 end
 function DiffEqBase.get_tstops_max(integrator::AbstractTimeIntegrator)
     return maximum(get_tstops_array(integrator))
+end
+
+function unstable_check(dt, u_ode, integrator::AbstractTimeIntegrator, t)
+    if mpi_isparallel()
+        u_isfinite = MPI.Allreduce!(Ref(all(isfinite, u_ode)), Base.min, mpi_comm())[]
+    else
+        u_isfinite = all(isfinite, u_ode)
+    end
+    return !isfinite(dt) || !u_isfinite
 end
 
 function finalize_callbacks(integrator::AbstractTimeIntegrator)

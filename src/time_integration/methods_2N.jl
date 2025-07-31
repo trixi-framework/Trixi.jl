@@ -110,7 +110,8 @@ mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
 end
 
 function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
-              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing,
+              unstable_check = ode_unstable_check, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp = similar(u)

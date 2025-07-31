@@ -108,7 +108,7 @@ end
 The following structures and methods provide an implementation of
 the fourth-order paired explicit Runge-Kutta (P-ERK) method
 optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
-The method has been proposed in 
+The method has been proposed in
 
 - D. Doehring, L. Christmann, M. Schlottke-Lakemper, G. J. Gassner and M. Torrilhon (2024).
   Fourth-Order Paired-Explicit Runge-Kutta Methods
@@ -116,10 +116,10 @@ The method has been proposed in
 
 # Arguments
 - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.
-- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
+- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in
     the Butcher tableau of the Runge Kutta method.
     The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
-- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown.
     In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
 - `tspan`: Time span of the simulation.
 - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
@@ -130,16 +130,16 @@ The method has been proposed in
 
 !!! note
     To use this integrator, the user must import the
-    [Convex.jl](https://github.com/jump-dev/Convex.jl) and 
+    [Convex.jl](https://github.com/jump-dev/Convex.jl) and
     [ECOS.jl](https://github.com/jump-dev/ECOS.jl) packages
-    unless the coefficients are provided in a `a_<num_stages>.txt` file.   
+    unless the coefficients are provided in a `a_<num_stages>.txt` file.
 """
 struct PairedExplicitRK4 <: AbstractPairedExplicitRKSingle
     num_stages::Int # S
 
     # Optimized coefficients, i.e., flexible part of the Butcher array matrix A.
     a_matrix::Union{Matrix{Float64}, Nothing}
-    # This part of the Butcher array matrix A is constant for all PERK methods, i.e., 
+    # This part of the Butcher array matrix A is constant for all PERK methods, i.e.,
     # regardless of the optimized coefficients.
     a_matrix_constant::SMatrix{2, 3, Float64}
     c::Vector{Float64}
@@ -208,7 +208,8 @@ mutable struct PairedExplicitRK4Integrator{RealT <: Real, uType, Params, Sol, F,
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK4;
-              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing,
+              unstable_check = ode_unstable_check, kwargs...)
     u0 = copy(ode.u0)
     du = zero(u0)
     u_tmp = zero(u0)
