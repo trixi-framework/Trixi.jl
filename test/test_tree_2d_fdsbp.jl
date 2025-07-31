@@ -27,8 +27,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_fdsbp")
 end
 
 @trixi_testset "elixir_advection_extended.jl with periodic operators" begin
-    using SummationByPartsOperators: SummationByPartsOperators
-    global D = SummationByPartsOperators.periodic_derivative_operator(derivative_order = 1,
+    using Trixi: periodic_derivative_operator
+    global D = periodic_derivative_operator(derivative_order = 1,
                                                                       accuracy_order = 4,
                                                                       xmin = 0.0,
                                                                       xmax = 1.0,

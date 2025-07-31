@@ -20,8 +20,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                             linf=[6.627000273229378e-5])
 
         @testset "error-based step size control" begin
-            Trixi.mpi_isroot() && println("-"^100)
-            Trixi.mpi_isroot() &&
+            mpi_isroot() && println("-"^100)
+            mpi_isroot() &&
                 println("elixir_advection_basic.jl with error-based step size control")
 
             # Use callbacks without stepsize_callback to test error-based step size control
@@ -30,7 +30,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                         ode_default_options()..., callback = callbacks)
             summary_callback()
             errors = analysis_callback(sol)
-            if Trixi.mpi_isroot()
+            if mpi_isroot()
                 @test errors.l2≈[3.3022040342579066e-5] rtol=1.0e-4
                 @test errors.linf≈[0.00011787417954578494] rtol=1.0e-4
             end

@@ -230,6 +230,7 @@ end
 end
 
 @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
+    using Trixi: Trixi
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_1d_dgsem"),
                                  "elixir_euler_convergence_pure_fv.jl"),
                         mesh=StructuredMesh(16, (0.0,), (2.0,)),

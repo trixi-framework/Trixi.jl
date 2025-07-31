@@ -535,7 +535,7 @@ end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
-    using SummationByPartsOperators: SummationByPartsOperators
+    using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 4,
@@ -570,7 +570,7 @@ end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (FD SBP, EC)" begin
-    using SummationByPartsOperators: SummationByPartsOperators
+    using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 4,
@@ -686,7 +686,7 @@ end
 end
 
 @trixi_testset "elixir_euler_fdsbp_periodic.jl (CGSEM)" begin
-    using SummationByPartsOperators: SummationByPartsOperators
+    using Trixi: SummationByPartsOperators
     D_local = SummationByPartsOperators.legendre_derivative_operator(xmin = 0.0,
                                                                      xmax = 1.0,
                                                                      N = 4)

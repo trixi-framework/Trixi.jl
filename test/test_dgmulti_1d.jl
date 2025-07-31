@@ -136,7 +136,7 @@ end
 end
 
 @trixi_testset "elixir_euler_flux_diff.jl (FD SBP)" begin
-    using SummationByPartsOperators: SummationByPartsOperators
+    using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 4,

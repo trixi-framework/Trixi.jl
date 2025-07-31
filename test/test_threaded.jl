@@ -19,21 +19,21 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
     @trixi_testset "elixir_advection_restart.jl" begin
         elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                           "elixir_advection_extended.jl")
-        Trixi.mpi_isroot() && println("═"^100)
-        Trixi.mpi_isroot() && println(elixir)
+        mpi_isroot() && println("═"^100)
+        mpi_isroot() && println(elixir)
         trixi_include(@__MODULE__, elixir, tspan = (0.0, 10.0))
         l2_expected, linf_expected = analysis_callback(sol)
 
         elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                           "elixir_advection_restart.jl")
-        Trixi.mpi_isroot() && println("═"^100)
-        Trixi.mpi_isroot() && println(elixir)
+        mpi_isroot() && println("═"^100)
+        mpi_isroot() && println(elixir)
         # Errors are exactly the same as in the elixir_advection_extended.jl
         trixi_include(@__MODULE__, elixir)
         l2_actual, linf_actual = analysis_callback(sol)
 
-        Trixi.mpi_isroot() && @test l2_actual == l2_expected
-        Trixi.mpi_isroot() && @test linf_actual == linf_expected
+        mpi_isroot() && @test l2_actual == l2_expected
+        mpi_isroot() && @test linf_actual == linf_expected
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

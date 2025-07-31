@@ -31,7 +31,8 @@ end
 
 @trixi_testset "Additional tests in 3D" begin
     @trixi_testset "compressible Euler" begin
-        using Trixi: CompressibleEulerEquations3D
+        using Trixi: CompressibleEulerEquations3D, energy_total, energy_kinetic,
+                     energy_internal
         eqn = CompressibleEulerEquations3D(1.4)
 
         @test isapprox(energy_total([1.0, 2.0, 3.0, 4.0, 20.0], eqn), 20.0)

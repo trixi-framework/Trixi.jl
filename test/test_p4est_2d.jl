@@ -895,6 +895,7 @@ end
 end
 
 @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
+    using Trixi: Trixi
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_2d_dgsem"),
                                  "elixir_euler_blast_wave_pure_fv.jl"),
                         l2=[
