@@ -47,17 +47,41 @@ function perform_idp_correction!(u, dt,
 end
 
 @inline function calc_limiting_factor!(u, semi, t, dt)
+    (; limiting_factor) = semi.cache.mortars
+    limiting_factor .= zeros(eltype(limiting_factor))
+
+    index_rho = 1 # TODO
+    limiting_positivity_conservative!(limiting_factor, u, dt, semi, index_rho)
+
+    # Provisional analysis of limiting factor
+    (; output_directory) = semi.dg.mortar
+    if length(limiting_factor) > 0
+        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
+            print(f, t)
+            print(f, ", ", minimum(limiting_factor), ", ", maximum(limiting_factor),
+                  ", ", sum(limiting_factor) / length(limiting_factor))
+            println(f)
+        end
+    else
+        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
+            print(f, t)
+            print(f, ", ", 0.0, ", ", 0.0, ", ", 0.0)
+            println(f)
+        end
+    end
+
+    return nothing
+end
+
+@inline function limiting_positivity_conservative!(limiting_factor, u, dt, semi,
+                                                   var_index)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
 
-    (; limiting_factor, orientations) = cache.mortars
+    (; orientations) = cache.mortars
     (; surface_flux_values, surface_flux_values_high_order) = cache.elements
     (; boundary_interpolation) = dg.basis
 
-    limiting_factor .= zeros(eltype(limiting_factor))
-
     (; positivity_correction_factor) = dg.volume_integral.limiter
-
-    index_rho = 1 # TODO
 
     for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -90,9 +114,9 @@ end
                     indices_large = (i, 1)
                 end
             end
-            var_upper = u[index_rho, indices_small..., upper_element]
-            var_lower = u[index_rho, indices_small..., lower_element]
-            var_large = u[index_rho, indices_large..., large_element]
+            var_upper = u[var_index, indices_small..., upper_element]
+            var_lower = u[var_index, indices_small..., lower_element]
+            var_large = u[var_index, indices_large..., large_element]
             var_min_upper = min(var_min_upper, var_upper)
             var_min_lower = min(var_min_lower, var_lower)
             var_min_large = min(var_min_large, var_large)
@@ -138,9 +162,9 @@ end
             # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
             # This sign switch is directly applied to the boundary interpolation factors here.
 
-            var_upper = u[index_rho, indices_small..., upper_element]
-            var_lower = u[index_rho, indices_small..., lower_element]
-            var_large = u[index_rho, indices_large..., large_element]
+            var_upper = u[var_index, indices_small..., upper_element]
+            var_lower = u[var_index, indices_small..., lower_element]
+            var_large = u[var_index, indices_large..., large_element]
 
             if min(var_upper, var_lower, var_large) < 0
                 error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
@@ -157,26 +181,26 @@ end
                                                           large_element)
 
             # Calculate Pm
-            flux_lower_high_order = surface_flux_values_high_order[index_rho, i,
+            flux_lower_high_order = surface_flux_values_high_order[var_index, i,
                                                                    direction_small,
                                                                    lower_element]
-            flux_lower_low_order = surface_flux_values[index_rho, i, direction_small,
+            flux_lower_low_order = surface_flux_values[var_index, i, direction_small,
                                                        lower_element]
             flux_difference_lower = factor_small *
                                     (flux_lower_high_order - flux_lower_low_order)
 
-            flux_upper_high_order = surface_flux_values_high_order[index_rho, i,
+            flux_upper_high_order = surface_flux_values_high_order[var_index, i,
                                                                    direction_small,
                                                                    upper_element]
-            flux_upper_low_order = surface_flux_values[index_rho, i, direction_small,
+            flux_upper_low_order = surface_flux_values[var_index, i, direction_small,
                                                        upper_element]
             flux_difference_upper = factor_small *
                                     (flux_upper_high_order - flux_upper_low_order)
 
-            flux_large_high_order = surface_flux_values_high_order[index_rho, i,
+            flux_large_high_order = surface_flux_values_high_order[var_index, i,
                                                                    direction_large,
                                                                    large_element]
-            flux_large_low_order = surface_flux_values_high_order[index_rho, i,
+            flux_large_low_order = surface_flux_values_high_order[var_index, i,
                                                                   direction_large,
                                                                   large_element]
             flux_difference_large = factor_large *
@@ -210,22 +234,6 @@ end
 
             limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Qm_upper,
                                           1 - Qm_lower, 1 - Qm_large)
-        end
-    end
-    # Provisional analysis of limiting factor
-    (; output_directory) = dg.mortar
-    if length(limiting_factor) > 0
-        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
-            print(f, t)
-            print(f, ", ", minimum(limiting_factor), ", ", maximum(limiting_factor),
-                  ", ", sum(limiting_factor) / length(limiting_factor))
-            println(f)
-        end
-    else
-        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
-            print(f, t)
-            print(f, ", ", 0.0, ", ", 0.0, ", ", 0.0)
-            println(f)
         end
     end
 
