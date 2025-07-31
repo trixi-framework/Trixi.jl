@@ -51,7 +51,8 @@ For details on the relaxation procedure, see
 Currently implemented are the third-order, three-stage method by Ralston [`Ralston3`](@ref) 
 and the canonical fourth-order, four-stage method by Kutta [`RK44`](@ref).
 """
-abstract type SubDiagonalRelaxationAlgorithm <: AbstractTimeIntegrationAlgorithm end
+abstract type SubDiagonalRelaxationAlgorithm <:
+              AbstractRelaxationTimeIntegrationAlgorithm end
 
 """
     Ralston3()
@@ -194,16 +195,6 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
     end
 
     return integrator
-end
-
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem,
-               alg::SubDiagonalRelaxationAlgorithm;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
 end
 
 function step!(integrator::SubDiagonalRelaxationIntegrator)
