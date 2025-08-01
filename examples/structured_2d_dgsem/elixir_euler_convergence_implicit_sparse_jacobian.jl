@@ -132,7 +132,8 @@ sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
 ###############################################################################################
 ### Set up sparse-aware ODEProblem ###
 
-# Revert overrides from above for the actual simulation
+# Revert overrides from above for the actual simulation - 
+# not strictly necessary, but good practice
 Trixi.eps(x::Type{Real}) = Base.eps(x)
 Trixi.one(x::Type{Real}) = Base.one(x)
 Trixi.zero(x::Type{Real}) = Base.zero(x)
