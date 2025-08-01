@@ -54,7 +54,7 @@ end
     limiting_positivity_conservative!(limiting_factor, u, dt, semi, index_rho)
 
     # Provisional analysis of limiting factor
-    (; output_directory) = semi.dg.mortar
+    (; output_directory) = semi.solver.mortar
     if length(limiting_factor) > 0
         open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
             print(f, t)
