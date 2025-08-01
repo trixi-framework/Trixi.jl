@@ -65,6 +65,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 # Use implicit-explicit Runge-Kutta method with Jacobian-free (!) Newton-Krylov (GMRES) solver
 # See https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
-ode_alg = IMEXEulerARK(autodiff = AutoFiniteDiff(), linsolve = KrylovJL_GMRES())
+ode_alg = IMEXEuler(autodiff = AutoFiniteDiff(), linsolve = KrylovJL_GMRES())
 sol = solve(ode, ode_alg;
             dt = 0.1, ode_default_options()..., callback = callbacks)
