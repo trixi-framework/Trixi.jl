@@ -18,7 +18,6 @@ using NLsolve: nlsolve
 
 # For sparsity detection with Symbolics
 using SparseDiffTools, Symbolics
-#import Base: * # For overloading for abstract type `Real` (used for sparsity detection)
 
 include("test_trixi.jl")
 
