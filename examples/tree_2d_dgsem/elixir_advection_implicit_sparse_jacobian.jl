@@ -4,8 +4,6 @@ using OrdinaryDiffEqSDIRK
 # Functionality for automatic sparsity detection
 using SparseDiffTools, Symbolics
 
-import Base: * # For overloading with type `Real`
-
 ###############################################################################################
 ### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
 
@@ -22,6 +20,9 @@ Trixi.eps(::Type{Real}) = Base.eps(float_type)
 # This returns an `Int64`, i.e., `1` or `0`, respectively which gives errors when a floating-point alike type is expected.
 Trixi.one(::Type{Real}) = Base.one(float_type)
 Trixi.zero(::Type{Real}) = Base.zero(float_type)
+
+module RealMatMulOverload
+import Base: * # For overloading for abstract type `Real` (used for sparsity detection)
 
 # Multiplying two Matrix{Real}s gives a Matrix{Any}.
 # This causes problems when instantiating the Legendre basis, which calls
@@ -45,6 +46,9 @@ function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
     end
     return C
 end
+end
+
+import .RealMatMulOverload
 
 ###############################################################################################
 ### semidiscretizations of the linear advection equation ###

@@ -18,7 +18,7 @@ using NLsolve: nlsolve
 
 # For sparsity detection with Symbolics
 using SparseDiffTools, Symbolics
-import Base: * # For overloading for abstract type `Real` (used for sparsity detection)
+#import Base: * # For overloading for abstract type `Real` (used for sparsity detection)
 
 include("test_trixi.jl")
 
@@ -2610,6 +2610,9 @@ end
     end
 end
 
+module RealMatMulOverload
+import Base: * # For overloading for abstract type `Real` (used for sparsity detection)
+
 # Multiplying two Matrix{Real}s gives a Matrix{Any}.
 # This causes problems when instantiating the Legendre basis, which calls
 # `calc_{forward,reverse}_{upper, lower}` which in turn uses the matrix multiplication
@@ -2632,8 +2635,10 @@ function *(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
     end
     return C
 end
+end
 
 @testset "SparseDiff Jacobian = {ForwardDiff Jacobian, LinearStructure}" begin
+    import .RealMatMulOverload
     ###############################################################################################
     ### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
 
