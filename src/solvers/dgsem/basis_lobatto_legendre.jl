@@ -171,6 +171,96 @@ end
 left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
+       AbstractMortarL2{RealT}
+    pure_low_order::Bool
+    local_factor::Bool
+    mortar_l2::Mortar
+    local_mortar_weights::Matrix{RealT}
+    output_directory::String
+end
+
+struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES, Mortar,
+                                           ForwardMatrix <: AbstractMatrix{RealT},
+                                           ReverseMatrix <: AbstractMatrix{RealT}} <:
+       AbstractMortarL2{RealT}
+    mortar_l2::Mortar
+    forward_upper_low_order::ForwardMatrix
+    forward_lower_low_order::ForwardMatrix
+    reverse_upper_low_order::ReverseMatrix
+    reverse_lower_low_order::ReverseMatrix
+    output_directory::String
+end
+
+function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
+                   local_factor = true, first_order = true, pure_low_order = false,
+                   output_directory = "out")
+    RealT = real(basis)
+    nnodes_ = nnodes(basis)
+
+    mortar_l2 = MortarL2(basis)
+
+    if alternative
+        forward_upper_low_order = calc_forward_upper_low_order(nnodes_, RealT)
+        forward_lower_low_order = calc_forward_lower_low_order(nnodes_, RealT)
+        reverse_upper_low_order = calc_reverse_upper_low_order(nnodes_,
+                                                               Val(:gauss_lobatto),
+                                                               RealT)
+        reverse_lower_low_order = calc_reverse_lower_low_order(nnodes_,
+                                                               Val(:gauss_lobatto),
+                                                               RealT)
+
+        LobattoLegendreMortarIDPAlternative{RealT, nnodes_, typeof(mortar_l2),
+                                            typeof(forward_upper_low_order),
+                                            typeof(reverse_upper_low_order)}(mortar_l2,
+                                                                             forward_upper_low_order,
+                                                                             forward_lower_low_order,
+                                                                             reverse_upper_low_order,
+                                                                             reverse_lower_low_order,
+                                                                             output_directory)
+    else
+        local_mortar_weights = calc_mortar_weights(basis, RealT;
+                                                   first_order = first_order)
+
+        LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(pure_low_order,
+                                                                    local_factor,
+                                                                    mortar_l2,
+                                                                    local_mortar_weights,
+                                                                    output_directory)
+    end
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+    # TODO
+    print(io, "LobattoLegendreMortarIDP{", real(mortar), "}(polydeg=", polydeg(mortar),
+          ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+    # TODO
+    print(io, "LobattoLegendreMortarIDP{", real(mortar),
+          "} with polynomials of degree ",
+          polydeg(mortar))
+end
+
+@inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortarIDP{RealT, NNODES}) where {RealT,
+                                                                                NNODES}
+    NNODES
+end
+
+@inline function nnodes(mortar::LobattoLegendreMortarIDPAlternative{RealT, NNODES}) where {
+                                                                                           RealT,
+                                                                                           NNODES
+                                                                                           }
+    NNODES
+end
+
+@inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
+@inline polydeg(mortar::LobattoLegendreMortarIDPAlternative) = nnodes(mortar) - 1
+
 struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
                                ForwardMatrix <: AbstractMatrix{RealT},
                                ReverseMatrix <: AbstractMatrix{RealT}} <:
@@ -569,6 +659,32 @@ function lagrange_interpolating_polynomials(x, nodes, wbary)
 
     for i in 1:n_nodes
         polynomials[i] /= total
+    end
+
+    return polynomials
+end
+
+function low_order_interpolating_polynomials(x, nodes)
+    n_nodes = length(nodes)
+    polynomials = zeros(eltype(nodes), n_nodes)
+
+    for i in 1:n_nodes
+        # Avoid division by zero when `x` is close to node by using
+        # the Kronecker-delta property at nodes
+        # of the Lagrange interpolation polynomials.
+        if isapprox(x, nodes[i], rtol = eps(x))
+            polynomials[i] = 1
+            return polynomials
+        end
+    end
+
+    for i in 1:(n_nodes - 1)
+        if nodes[i] < x < nodes[i + 1]
+            diff = nodes[i + 1] - nodes[i]
+            polynomials[i] = (nodes[i + 1] - x) / diff
+            polynomials[i + 1] = (x - nodes[i]) / diff
+            break
+        end
     end
 
     return polynomials

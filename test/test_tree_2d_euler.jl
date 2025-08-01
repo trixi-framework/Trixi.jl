@@ -58,6 +58,127 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (alternative implementation)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_amr_sc_subcell.jl"),
+                        alternative=true,
+                        l2=[
+                            6.792434932529532e-5,
+                            6.120715609381622e-5,
+                            6.055378873143237e-5,
+                            0.00014030465047211284
+                        ],
+                        linf=[
+                            0.0005470070709066022,
+                            0.0004685919440707842,
+                            0.00047891796273047404,
+                            0.0015576242650183758
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (global factor)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_amr_sc_subcell.jl"),
+                        alternative=false, local_factor=false,
+                        l2=[
+                            2.4110239842278583e-6,
+                            2.154630267786356e-6,
+                            2.1283762418750586e-6,
+                            6.113773134527389e-6
+                        ],
+                        linf=[
+                            1.696740325396462e-5,
+                            1.695721640926351e-5,
+                            1.656799716243107e-5,
+                            5.129734239561756e-5
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (local factor, first order)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_amr_sc_subcell.jl"),
+                        alternative=false, local_factor=true, first_order=true,
+                        l2=[
+                            2.411023984333364e-6,
+                            2.154630267960894e-6,
+                            2.1283762418214893e-6,
+                            6.113773134665568e-6
+                        ],
+                        linf=[
+                            1.6967403261958225e-5,
+                            1.6957216406598974e-5,
+                            1.6567997161320847e-5,
+                            5.1297342376521726e-5
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (local factor, second order)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_amr_sc_subcell.jl"),
+                        alternative=false, local_factor=true, first_order=false,
+                        # Note: Not conservative
+                        l2=[
+                            2.411023984473762e-6,
+                            2.154630268012045e-6,
+                            2.128376241902082e-6,
+                            6.113773134790818e-6
+                        ],
+                        linf=[
+                            1.696740326551094e-5,
+                            1.6957216412816223e-5,
+                            1.6567997168426274e-5,
+                            5.129734239517347e-5
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_euler_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         l2=[
@@ -80,6 +201,32 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_density_wave_amr_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_density_wave_amr_sc_subcell.jl"),
+                        initial_refinement_level=2,
+                        l2=[
+                            0.10807450110533318,
+                            0.010807450110533516,
+                            0.021614900221066703,
+                            0.0027018625276321187
+                        ],
+                        linf=[
+                            0.5774808056100666,
+                            0.057748080561012716,
+                            0.11549616112202077,
+                            0.014437020140242396
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
@@ -396,6 +543,131 @@ end
                         ],
                         tspan=(0.0, 0.5),
                         initial_refinement_level=4,)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (local factor, first order)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_amr_sc_subcell.jl"),
+                        alternative=false, local_factor=true, first_order=true,
+                        l2=[
+                            0.5661095633829809,
+                            0.23409350473734566,
+                            0.23444762919022388,
+                            0.7046253692202586
+                        ],
+                        linf=[
+                            2.327553246065897,
+                            1.18389063705703,
+                            1.1882587446238897,
+                            2.973075034259535
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (local factor, second order)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_amr_sc_subcell.jl"),
+                        alternative=false, local_factor=true, first_order=false,
+                        # Note: Not conservative
+                        l2=[
+                            0.5660728669927354,
+                            0.23401814607355093,
+                            0.23426327082527165,
+                            0.7044435028845455
+                        ],
+                        linf=[
+                            2.3276786116939987,
+                            1.1830410764310964,
+                            1.1873953794481305,
+                            2.9749500856720905
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (global factor)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_amr_sc_subcell.jl"),
+                        alternative=false, local_factor=false,
+                        l2=[
+                            0.5600381797334268,
+                            0.23233414830994564,
+                            0.23145717236645028,
+                            0.7031488010819059
+                        ],
+                        linf=[
+                            2.336405445386398,
+                            1.178086434026379,
+                            1.185087035395828,
+                            2.9660035923836605
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (alternative implementation)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_amr_sc_subcell.jl"),
+                        alternative=true,
+                        l2=[
+                            0.5664551909566969,
+                            0.2341427667598265,
+                            0.23453132963657158,
+                            0.7046830527027006
+                        ],
+                        linf=[
+                            2.3242557645384525,
+                            1.192819817641742,
+                            1.1980797336997144,
+                            2.972294202188677
+                        ],
+                        tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
