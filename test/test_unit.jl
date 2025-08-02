@@ -2609,8 +2609,6 @@ end
     end
 end
 
-#module RealMatMulOverload
-
 # Multiplying two Matrix{Real}s gives a Matrix{Any}.
 # This causes problems when instantiating the Legendre basis, which calls
 # `calc_{forward,reverse}_{upper, lower}` which in turn uses the matrix multiplication
@@ -2633,10 +2631,8 @@ function Base.:*(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
     end
     return C
 end
-#end
 
 @testset "SparseDiff Jacobian = {ForwardDiff Jacobian, LinearStructure}" begin
-    #import .RealMatMulOverload
     ###############################################################################################
     ### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
 
