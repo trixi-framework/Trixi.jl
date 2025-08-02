@@ -40,6 +40,34 @@ end
     end
 end
 
+@trixi_testset "elixir_advection_implicit_sparse_jacobian.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_implicit_sparse_jacobian.jl"),
+                        l2=[0.003003253325111022], linf=[0.004256250998163846])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi_float, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_advection_implicit_sparse_jacobian_restart.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_implicit_sparse_jacobian_restart.jl"),
+                        l2=[0.004964299251933375], linf=[0.007028151045231468])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi_float, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_advection_restart.jl" begin
     using OrdinaryDiffEqSSPRK: SSPRK43
     println("═"^100)
