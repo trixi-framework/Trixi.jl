@@ -36,13 +36,13 @@ function set_proposed_dt!(integrator::AbstractTimeIntegrator, dt)
     (integrator.dt = dt; integrator.dtcache = dt)
 end
 
-# Required e.g. for `glm_speed_callback` 
+# Required e.g. for `glm_speed_callback`
 function get_proposed_dt(integrator::AbstractTimeIntegrator)
     return integrator.dt
 end
 
 """
-    Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm; 
+    Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
                 dt, callbacks, kwargs...)
 
 Fakes `solve` from https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
@@ -67,8 +67,7 @@ function solve!(integrator::AbstractTimeIntegrator)
     finalize_callbacks(integrator)
 
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
+                                  (prob.u0, integrator.u), prob)
 end
 
 # Interface required by DiffEqCallbacks.jl
