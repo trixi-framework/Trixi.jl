@@ -1,3 +1,5 @@
+abstract type AbstractRelaxationTimeIntegrationAlgorithm <: AbstractTimeIntegrationAlgorithm end
+
 abstract type RelaxationIntegrator <: AbstractTimeIntegrator end
 
 get_tmp_cache(integrator::RelaxationIntegrator) = (integrator.u_tmp,)
