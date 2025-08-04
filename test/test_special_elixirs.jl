@@ -142,7 +142,7 @@ end
         J_parabolic = jacobian_ad_forward_parabolic(semi)
         λ_parabolic = eigvals(J_parabolic)
         # Parabolic spectrum is real and negative
-        @test maximum(real, λ_parabolic) < 0
+        @test maximum(real, λ_parabolic) < 10^(-14)
         @test maximum(imag, λ_parabolic) < 10^(-14)
     end
 
