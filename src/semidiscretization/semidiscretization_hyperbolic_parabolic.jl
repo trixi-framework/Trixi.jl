@@ -383,7 +383,7 @@ end
 
 Uses the *parabolic part* of the right-hand side operator of the [`SemidiscretizationHyperbolicParabolic`](@ref) `semi`
 and forward mode automatic differentiation to compute the Jacobian `J` of the 
-parabolic/diffusive contribution only at state `u0_ode` and time `t0`.
+parabolic/diffusive contribution only at time `t0` and state `u0_ode`.
 
 This might be useful for operator-splitting methods, e.g., the construction of optimized 
 time integrators which optimize different methods for the hyperbolic and parabolic part separately.
