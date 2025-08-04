@@ -138,6 +138,12 @@ end
         J = jacobian_ad_forward(semi)
         λ = eigvals(J)
         @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+        J_parabolic = jacobian_ad_forward_parabolic(semi)
+        λ_parabolic = eigvals(J_parabolic)
+        # Parabolic spectrum is real and negative
+        @test maximum(real, λ_parabolic) < 0
+        @test maximum(imag, λ_parabolic) < 10^(-14)
     end
 
     @timed_testset "Compressible Euler equations" begin
@@ -219,6 +225,12 @@ end
         J = jacobian_ad_forward(semi)
         λ = eigvals(J)
         @test maximum(real, λ) < 0.2
+
+        J_parabolic = jacobian_ad_forward_parabolic(semi)
+        λ_parabolic = eigvals(J_parabolic)
+        # Parabolic spectrum is real and negative
+        @test maximum(real, λ_parabolic) < 10^(-16)
+        @test maximum(imag, λ_parabolic) < 10^(-15)
     end
 
     @timed_testset "MHD" begin

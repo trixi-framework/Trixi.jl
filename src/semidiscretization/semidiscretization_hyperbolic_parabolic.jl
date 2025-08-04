@@ -375,4 +375,45 @@ function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u
 
     return J
 end
+
+"""
+    jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic;
+                                  t0=zero(real(semi)),
+                                  u0_ode=compute_coefficients(t0, semi))
+
+Uses the *parabolic part* of the right-hand side operator of the [`SemidiscretizationHyperbolicParabolic`](@ref) `semi`
+and forward mode automatic differentiation to compute the Jacobian `J` of the 
+parabolic/diffusive contribution only at state `u0_ode` and time `t0`.
+
+This might be useful for operator-splitting methods, e.g., the construction of optimized 
+time integrators which optimize different methods for the hyperbolic and parabolic part separately.
+"""
+function jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic;
+                                       t0 = zero(real(semi)),
+                                       u0_ode = compute_coefficients(t0, semi))
+    jacobian_ad_forward_parabolic(semi, t0, u0_ode)
+end
+
+# The following version is for plain arrays
+function jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic,
+                                       t0, u0_ode)
+    du_ode = similar(u0_ode)
+    config = ForwardDiff.JacobianConfig(nothing, du_ode, u0_ode)
+
+    # Use a function barrier since the generation of the `config` we use above
+    # is not type-stable
+    _jacobian_ad_forward_parabolic(semi, t0, u0_ode, du_ode, config)
+end
+
+function _jacobian_ad_forward_parabolic(semi, t0, u0_ode, du_ode, config)
+    new_semi = remake(semi, uEltype = eltype(config))
+    # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
+    J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
+        Trixi.rhs_parabolic!(du_ode, u_ode, new_semi, t0)
+    end
+
+    return J
+end
 end # @muladd

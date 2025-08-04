@@ -220,7 +220,7 @@ end
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and simple second order finite difference to compute the Jacobian `J`
-of the semidiscretization `semi` at state `u0_ode`.
+of the semidiscretization `semi` at state `u0_ode` and time `t0`.
 """
 function jacobian_fd(semi::AbstractSemidiscretization;
                      t0 = zero(real(semi)),
@@ -267,7 +267,7 @@ end
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and forward mode automatic differentiation to compute the Jacobian `J`
-of the semidiscretization `semi` at state `u0_ode`.
+of the semidiscretization `semi` at state `u0_ode` and time `t0`.
 """
 function jacobian_ad_forward(semi::AbstractSemidiscretization;
                              t0 = zero(real(semi)),
