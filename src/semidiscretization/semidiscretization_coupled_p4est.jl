@@ -422,6 +422,46 @@ function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCouple
     return dt
 end
 
+function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupledP4est,
+                                glm_speed_callback, dt, t)
+    @unpack glm_scale, cfl, semi_indices = glm_speed_callback
+
+    if length(semi_indices) == 0
+        throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
+    end
+
+    # Check that all MHD semidiscretizations received a GLM cleaning speed update.
+    for (semi_index, semi) in enumerate(semi_coupled.semis)
+        if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
+            !(semi_index in semi_indices))
+            error("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
+        end
+    end
+
+    if cfl isa Real # Case for constant CFL
+        cfl_number = cfl
+    else # Variable CFL
+        cfl_number = cfl(t)
+    end
+
+    for semi_index in semi_indices
+        semi = semi_coupled.semis[semi_index]
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+        # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number,
+                                                mesh, equations, solver, cache)
+
+        # c_h is proportional to its own time step divided by the complete MHD time step
+        # We use @reset here since the equations are immutable (to work on GPUs etc.).
+        # Thus, we need to modify the equations field of the semidiscretization.
+        @reset equations.c_h = glm_scale * c_h_deltat / dt
+        semi.equations = equations
+    end
+
+    return semi_coupled
+end
+
 ################################################################################
 ### Equations
 ################################################################################
