@@ -87,6 +87,7 @@ jobs:
         with:
           coverage: false
           allow_reresolve: false
+          mode: all
         env:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
