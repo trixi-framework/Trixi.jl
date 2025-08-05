@@ -79,7 +79,7 @@ jobs:
         with:
           skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
           projects: ., test
-          mode: all
+          mode: deps
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
