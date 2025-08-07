@@ -122,13 +122,13 @@ end
 
 
 """
-    boundary_condition_default_2D
+    boundary_condition_default_p4est_2D
 
 Create a default boundary condition dictionary for p4est meshes in 2D
 that use the standard boundary naming convention.
 
 This function applies the same boundary condition to all standard boundaries:
-- `:x_neg`: negative x-direction boundary  
+- `:x_neg`: negative x-direction boundary
 - `:x_pos`: positive x-direction boundary
 - `:y_neg`: negative y-direction boundary
 - `:y_pos`: positive y-direction boundary
@@ -140,12 +140,12 @@ This function applies the same boundary condition to all standard boundaries:
 - `Dict{Symbol, Any}`: Dictionary mapping boundary names to the boundary condition
 
 """
-function boundary_condition_default_p4est_2D(boundarycondition)
-       
-     return Dict(:x_neg => boundarycondition,
-                 :y_neg => boundarycondition,
-                 :y_pos => boundarycondition,
-                 :x_pos => boundarycondition)
+function boundary_condition_default_p4est_2D(boundary_condition)
+
+     return Dict(:x_neg => boundary_condition,
+                 :y_neg => boundary_condition,
+                 :y_pos => boundary_condition,
+                 :x_pos => boundary_condition)
 end 
 
 """
@@ -166,14 +166,14 @@ This function applies the same boundary condition to all standard boundaries:
 
 """
 
-function boundary_condition_default_p4est_3D(boundarycondition)
-       
-     return Dict(:x_neg => boundarycondition,
-                           :x_pos => boundarycondition,
-                           :y_neg => boundarycondition,
-                           :y_pos => boundarycondition,
-                           :z_neg => boundarycondition,
-                           :z_pos => boundarycondition)
+function boundary_condition_default_p4est_3D(boundary_condition)
+
+     return Dict(:x_neg => boundary_condition,
+                  :x_pos => boundary_condition,
+                  :y_neg => boundary_condition,
+                  :y_pos => boundary_condition,
+                  :z_neg => boundary_condition,
+                  :z_pos => boundary_condition)
 end
 
 
@@ -190,10 +190,10 @@ This function applies the same boundary condition to all standard boundaries:
 - Named tuple mapping boundary names to the boundary condition
 """
 
-function boundary_condition_default_structured_1D(boundarycondition)
- 
-    return (x_neg = boundarycondition,
-            x_pos = boundarycondition)
+function boundary_condition_default_structured_1D(boundary_condition)
+
+    return (x_neg = boundary_condition,
+            x_pos = boundary_condition)
 end
 """
     boundary_condition_default_structured_2D
@@ -209,12 +209,12 @@ This function applies the same boundary condition to all standard boundaries:
 # Returns
 - Named tuple mapping boundary names to the boundary condition
 """
-function boundary_condition_default_structured_2D(boundarycondition)
- 
-    return (x_neg = boundarycondition,
-            x_pos = boundarycondition,
-            y_neg = boundarycondition,
-            y_pos = boundarycondition)
+function boundary_condition_default_structured_2D(boundary_condition)
+
+    return (x_neg = boundary_condition,
+            x_pos = boundary_condition,
+            y_neg = boundary_condition,
+            y_pos = boundary_condition)
 end
 """
     boundary_condition_default_structured_3D
@@ -232,15 +232,83 @@ This function applies the same boundary condition to all standard boundaries:
 # Returns
 - Named tuple mapping boundary names to the boundary condition
 """
-function boundary_condition_default_structured_3D(boundarycondition)
- 
-    return (x_neg = boundarycondition,
-            x_pos = boundarycondition,
-            y_neg = boundarycondition,
-            y_pos = boundarycondition,
-            z_neg = boundarycondition,
-            z_pos = boundarycondition)
+function boundary_condition_default_structured_3D(boundary_condition)
+
+    return (x_neg = boundary_condition,
+            x_pos = boundary_condition,
+            y_neg = boundary_condition,
+            y_pos = boundary_condition,
+            z_neg = boundary_condition,
+            z_pos = boundary_condition)
 
 end 
 
+
+"""
+    boundary_condition_default_tree_1D
+Create a default boundary condition dictionary for tree meshes in 1D
+that use the standard boundary naming convention.
+This function applies the same boundary condition to all standard boundaries:
+- `:x_neg`: negative x-direction boundary
+- `:x_pos`: positive x-direction boundary
+# Arguments
+- `boundary_condition`: The boundary condition function to apply to all boundaries
+# Returns
+- Named tuple mapping boundary names to the boundary condition
+
+"""
+function boundary_condition_default_tree_1D(boundary_condition)
+
+    return (x_neg = boundary_condition,
+            x_pos = boundary_condition)
+end
+
+"""
+    boundary_condition_default_tree_2D
+Create a default boundary condition dictionary for tree meshes in 2D
+that use the standard boundary naming convention.
+This function applies the same boundary condition to all standard boundaries:
+- `:x_neg`: negative x-direction boundary    
+- `:x_pos`: positive x-direction boundary
+- `:y_neg`: negative y-direction boundary
+- `:y_pos`: positive y-direction boundary
+# Arguments
+- `boundary_condition`: The boundary condition function to apply to all boundaries
+# Returns
+- Named tuple mapping boundary names to the boundary condition
+"""
+function boundary_condition_default_tree_2D(boundary_condition)
+
+    return (x_neg = boundary_condition,
+            x_pos = boundary_condition,
+            y_neg = boundary_condition,
+            y_pos = boundary_condition)
+end
+
+"""
+    boundary_condition_default_tree_3D
+Create a default boundary condition dictionary for tree meshes in 3D
+that use the standard boundary naming convention.
+This function applies the same boundary condition to all standard boundaries:
+- `:x_neg`: negative x-direction boundary
+- `:x_pos`: positive x-direction boundary
+- `:y_neg`: negative y-direction boundary
+- `:y_pos`: positive y-direction boundary
+- `:z_neg`: negative z-direction boundary
+- `:z_pos`: positive z-direction boundary
+# Arguments
+- `boundary_condition`: The boundary condition function to apply to all boundaries
+# Returns
+- Named tuple mapping boundary names to the boundary condition
+"""
+
+function boundary_condition_default_tree_3D(boundary_condition)
+
+    return (x_neg = boundary_condition,
+            x_pos = boundary_condition,
+            y_neg = boundary_condition,
+            y_pos = boundary_condition,
+            z_neg = boundary_condition,
+            z_pos = boundary_condition)
+end
 end#@muladd
