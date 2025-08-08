@@ -19,7 +19,9 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_fv = surface_flux)
 
 mortar = MortarIDP(basis; alternative = false, local_factor = true,
-                   basis_function = :piecewise_constant)
+                   basis_function = :piecewise_constant,
+                   positivity_variables_cons = [1],
+                   positivity_variables_nonlinear = [])
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-1.0, -1.0)
