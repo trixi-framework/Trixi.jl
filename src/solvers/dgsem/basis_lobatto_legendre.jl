@@ -193,7 +193,8 @@ struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES, Mortar,
 end
 
 function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
-                   local_factor = true, first_order = true, pure_low_order = false,
+                   local_factor = true, basis_function = :piecewise_constant,
+                   pure_low_order = false,
                    output_directory = "out")
     RealT = real(basis)
     nnodes_ = nnodes(basis)
@@ -220,7 +221,7 @@ function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
                                                                              output_directory)
     else
         local_mortar_weights = calc_mortar_weights(basis, RealT;
-                                                   first_order = first_order)
+                                                   basis_function = basis_function)
 
         LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(pure_low_order,
                                                                     local_factor,

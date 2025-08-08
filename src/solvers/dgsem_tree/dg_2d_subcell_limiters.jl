@@ -83,15 +83,17 @@ function create_cache(mesh::TreeMesh{2},
      fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
 end
 
-function calc_mortar_weights(basis, RealT; first_order = true)
+function calc_mortar_weights(basis, RealT; basis_function = :piecewise_constant)
     n_nodes = nnodes(basis)
     # Saving the sum over row/column in entries with last index.
     weights = zeros(RealT, n_nodes + 1, 2 * n_nodes + 1)
 
-    if first_order
-        calc_mortar_weights_first_order!(weights, n_nodes, RealT)
+    if basis_function == :piecewise_constant
+        calc_mortar_weights_piecewise_constant!(weights, n_nodes, RealT)
+    elseif basis_function == :piecewise_linear
+        calc_mortar_weights_piecewise_linear!(weights, basis)
     else
-        calc_mortar_weights_second_order!(weights, basis)
+        error("Unsupported basis function type: $basis_function")
     end
 
     for i in eachnode(basis), j in eachnode(basis)
@@ -106,7 +108,7 @@ function calc_mortar_weights(basis, RealT; first_order = true)
     return weights
 end
 
-function calc_mortar_weights_first_order!(mortar_weights, n_nodes, RealT)
+function calc_mortar_weights_piecewise_constant!(mortar_weights, n_nodes, RealT)
     _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
     cum_weights = [zero(RealT); cumsum(weights)] .- 1.0
 
@@ -131,7 +133,7 @@ function calc_mortar_weights_first_order!(mortar_weights, n_nodes, RealT)
     return mortar_weights
 end
 
-function calc_mortar_weights_second_order!(weights, basis)
+function calc_mortar_weights_piecewise_linear!(weights, basis)
     (; nodes) = basis
     n_nodes = nnodes(basis)
     nodes_lower = 0.5f0 * nodes .- 0.5f0

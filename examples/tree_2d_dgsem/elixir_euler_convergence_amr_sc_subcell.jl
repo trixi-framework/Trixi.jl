@@ -24,7 +24,8 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_fv = surface_flux)
 
 mortar = MortarIDP(basis; alternative = false, local_factor = true,
-                   first_order = true, pure_low_order = false,)
+                   basis_function = :piecewise_constant,
+                   pure_low_order = false)
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-1.0, -1.0)
@@ -77,8 +78,8 @@ stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        # amr_callback,
                         save_solution,
+                        # amr_callback,
                         stepsize_callback)
 
 ###############################################################################
