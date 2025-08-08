@@ -137,6 +137,113 @@ end
         end
     end
 
+    for mortar in eachmortar(dg, cache)
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        orientation = cache.mortars.orientations[mortar]
+
+        for i in eachnode(dg)
+            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+                if orientation == 1
+                    # L2 mortars in x-direction
+                    indices_small = (1, i)
+                    indices_large = (nnodes(dg), i)
+                else
+                    # L2 mortars in y-direction
+                    indices_small = (i, 1)
+                    indices_large = (i, nnodes(dg))
+                end
+            else # large_sides[mortar] == 2 -> small elements on left side
+                if orientation == 1
+                    # L2 mortars in x-direction
+                    indices_small = (nnodes(dg), i)
+                    indices_large = (1, i)
+                else
+                    # L2 mortars in y-direction
+                    indices_small = (i, nnodes(dg))
+                    indices_large = (i, 1)
+                end
+            end
+            u_lower = get_node_vars(u, equations, dg, indices_small...,
+                                    lower_element)
+            u_upper = get_node_vars(u, equations, dg, indices_small...,
+                                    upper_element)
+            u_large = get_node_vars(u, equations, dg, indices_large...,
+                                    large_element)
+            var_lower = u_lower[variable]
+            var_upper = u_upper[variable]
+            var_large = u_large[variable]
+
+            for j in eachnode(dg)
+                if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+                    if orientation == 1
+                        # L2 mortars in x-direction
+                        indices_small = (1, j)
+                        indices_large = (nnodes(dg), j)
+                    else
+                        # L2 mortars in y-direction
+                        indices_small = (j, 1)
+                        indices_large = (j, nnodes(dg))
+                    end
+                else # large_sides[mortar] == 2 -> small elements on left side
+                    if orientation == 1
+                        # L2 mortars in x-direction
+                        indices_small = (nnodes(dg), j)
+                        indices_large = (1, j)
+                    else
+                        # L2 mortars in y-direction
+                        indices_small = (j, nnodes(dg))
+                        indices_large = (j, 1)
+                    end
+                end
+
+                alternative_implementation = dg.mortar isa
+                                             LobattoLegendreMortarIDPAlternative
+                # Inluding neighbor values to computation of bounds if local mortar weights are non-zero
+                # TODO: Is there a better way to do this? Inluding all neighbor values? Or use a weighted mean?
+                # For the alternative implementation, we include all values.
+                if alternative_implementation ||
+                   dg.mortar.local_mortar_weights[i, j] > 0
+                    var_min[indices_small..., lower_element] = min(var_min[indices_small...,
+                                                                           lower_element],
+                                                                   var_large)
+                    var_max[indices_small..., lower_element] = max(var_max[indices_small...,
+                                                                           lower_element],
+                                                                   var_large)
+                end
+                if alternative_implementation ||
+                   dg.mortar.local_mortar_weights[j, i] > 0
+                    var_min[indices_large..., large_element] = min(var_min[indices_large...,
+                                                                           large_element],
+                                                                   var_lower)
+                    var_max[indices_large..., large_element] = max(var_max[indices_large...,
+                                                                           large_element],
+                                                                   var_lower)
+                end
+                if alternative_implementation ||
+                   dg.mortar.local_mortar_weights[i, j + nnodes(dg)] > 0
+                    var_min[indices_small..., upper_element] = min(var_min[indices_small...,
+                                                                           upper_element],
+                                                                   var_large)
+                    var_max[indices_small..., upper_element] = max(var_max[indices_small...,
+                                                                           upper_element],
+                                                                   var_large)
+                end
+                if alternative_implementation ||
+                   dg.mortar.local_mortar_weights[j, i + nnodes(dg)] > 0
+                    var_min[indices_large..., large_element] = min(var_min[indices_large...,
+                                                                           large_element],
+                                                                   var_upper)
+                    var_max[indices_large..., large_element] = max(var_max[indices_large...,
+                                                                           large_element],
+                                                                   var_upper)
+                end
+            end
+        end
+    end
+
     # Calc bounds at physical boundaries
     for boundary in eachboundary(dg, cache)
         element = cache.boundaries.neighbor_ids[boundary]
