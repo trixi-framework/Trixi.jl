@@ -770,6 +770,8 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
             set_node_vars!(u, u_node, equations, dg, i, element)
         end
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
@@ -779,6 +781,8 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
         compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
                                       element)
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
@@ -805,6 +809,8 @@ function compute_coefficients_element!(u, func, t, equations, dg::DG,
         u_node = func(x_node, t, equations)
         set_node_vars!(u, u_node, equations, dg, i, j, element)
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
@@ -817,6 +823,8 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
             set_node_vars!(u, u_node, equations, dg, i, j, k, element)
         end
     end
+
+    return nothing
 end
 
 # Discretizations specific to each mesh type of Trixi.jl
