@@ -201,8 +201,8 @@ end
 
                 alternative_implementation = dg.mortar isa
                                              LobattoLegendreMortarIDPAlternative
-                # Inluding neighbor values to computation of bounds if local mortar weights are non-zero
-                # TODO: Is there a better way to do this? Inluding all neighbor values? Or use a weighted mean?
+                # Including neighbor values to computation of bounds if local mortar weights are non-zero
+                # TODO: Is there a better way to do this? Including all neighbor values? Or use a weighted mean?
                 # For the alternative implementation, we include all values.
                 if alternative_implementation ||
                    dg.mortar.local_mortar_weights[i, j] > 0
