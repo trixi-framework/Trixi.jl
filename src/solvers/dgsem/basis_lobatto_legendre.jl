@@ -171,8 +171,11 @@ end
 left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
-struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES,
+                                LimitingVariablesNonlinear, Mortar} <:
        AbstractMortarL2{RealT}
+    positivity_variables_cons::Vector{Int}
+    positivity_variables_nonlinear::LimitingVariablesNonlinear
     pure_low_order::Bool
     local_factor::Bool
     mortar_l2::Mortar
@@ -180,10 +183,13 @@ struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
     output_directory::String
 end
 
-struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES, Mortar,
+struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES,
+                                           LimitingVariablesNonlinear, Mortar,
                                            ForwardMatrix <: AbstractMatrix{RealT},
                                            ReverseMatrix <: AbstractMatrix{RealT}} <:
        AbstractMortarL2{RealT}
+    positivity_variables_cons::Vector{Int}
+    positivity_variables_nonlinear::LimitingVariablesNonlinear
     mortar_l2::Mortar
     forward_upper_low_order::ForwardMatrix
     forward_lower_low_order::ForwardMatrix
@@ -192,7 +198,10 @@ struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES, Mortar,
     output_directory::String
 end
 
-function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
+function MortarIDP(basis::LobattoLegendreBasis;
+                   positivity_variables_cons = [1], # TODO: String["rho"]
+                   positivity_variables_nonlinear = [Trixi.pressure], # TODO: []
+                   alternative = false,
                    local_factor = true, basis_function = :piecewise_constant,
                    pure_low_order = false,
                    output_directory = "out")
@@ -211,9 +220,13 @@ function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
                                                                Val(:gauss_lobatto),
                                                                RealT)
 
-        LobattoLegendreMortarIDPAlternative{RealT, nnodes_, typeof(mortar_l2),
+        LobattoLegendreMortarIDPAlternative{RealT, nnodes_,
+                                            typeof(positivity_variables_nonlinear),
+                                            typeof(mortar_l2),
                                             typeof(forward_upper_low_order),
-                                            typeof(reverse_upper_low_order)}(mortar_l2,
+                                            typeof(reverse_upper_low_order)}(positivity_variables_cons,
+                                                                             positivity_variables_nonlinear,
+                                                                             mortar_l2,
                                                                              forward_upper_low_order,
                                                                              forward_lower_low_order,
                                                                              reverse_upper_low_order,
@@ -223,11 +236,14 @@ function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
         local_mortar_weights = calc_mortar_weights(basis, RealT;
                                                    basis_function = basis_function)
 
-        LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(pure_low_order,
-                                                                    local_factor,
-                                                                    mortar_l2,
-                                                                    local_mortar_weights,
-                                                                    output_directory)
+        LobattoLegendreMortarIDP{RealT, nnodes_, typeof(positivity_variables_nonlinear),
+                                 typeof(mortar_l2)}(positivity_variables_cons,
+                                                    positivity_variables_nonlinear,
+                                                    pure_low_order,
+                                                    local_factor,
+                                                    mortar_l2,
+                                                    local_mortar_weights,
+                                                    output_directory)
     end
 end
 

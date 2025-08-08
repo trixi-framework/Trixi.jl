@@ -118,10 +118,11 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (local factor, first order)" begin
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (local factor, piecewise constant)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_amr_sc_subcell.jl"),
-                        alternative=false, local_factor=true, first_order=true,
+                        alternative=false, local_factor=true,
+                        basis_function==:piecewise_constant,
                         l2=[
                             2.411023984333364e-6,
                             2.154630267960894e-6,
@@ -148,10 +149,11 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (local factor, second order)" begin
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (local factor, piecewise linear)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_amr_sc_subcell.jl"),
-                        alternative=false, local_factor=true, first_order=false,
+                        alternative=false, local_factor=true,
+                        basis_function==:piecewise_linear,
                         # Note: Not conservative
                         l2=[
                             2.411023984473762e-6,
@@ -557,10 +559,11 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (local factor, first order)" begin
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (local factor, piecewise constant)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
-                        alternative=false, local_factor=true, first_order=true,
+                        alternative=false, local_factor=true,
+                        basis_function==:piecewise_constant,
                         l2=[
                             0.5661095633829809,
                             0.23409350473734566,
@@ -588,10 +591,11 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (local factor, second order)" begin
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (local factor, piecewise linear)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
-                        alternative=false, local_factor=true, first_order=false,
+                        alternative=false, local_factor=true,
+                        basis_function==:piecewise_linear,
                         # Note: Not conservative
                         l2=[
                             0.5660728669927354,

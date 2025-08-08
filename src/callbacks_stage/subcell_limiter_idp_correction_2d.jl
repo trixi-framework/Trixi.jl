@@ -48,14 +48,17 @@ end
 
 # TODO: Move next three functions somewhere else, e.g., to `subcell_limiters.jl`
 @inline function calc_limiting_factor!(u, semi, t, dt)
+    (; positivity_variables_cons, positivity_variables_nonlinear) = semi.solver.mortar
     (; limiting_factor) = semi.cache.mortars
     limiting_factor .= zeros(eltype(limiting_factor))
 
-    index_rho = 1 # TODO
-    limiting_positivity_conservative!(limiting_factor, u, dt, semi, index_rho)
+    for var_index in positivity_variables_cons
+        limiting_positivity_conservative!(limiting_factor, u, dt, semi, var_index)
+    end
 
-    variable = pressure # TODO
-    limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, variable)
+    for variable in positivity_variables_nonlinear
+        limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, variable)
+    end
 
     # Provisional analysis of limiting factor
     (; output_directory) = semi.solver.mortar

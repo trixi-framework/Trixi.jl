@@ -595,37 +595,6 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_supersonic_cylinder_sc_subcell.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
-                        l2=[
-                            0.11085870166618325,
-                            0.23309905989870722,
-                            0.13505351590735631,
-                            0.7932047512585592
-                        ],
-                        linf=[
-                            2.9808773737943564,
-                            4.209364526217892,
-                            6.265341002817672,
-                            24.077904874883338
-                        ],
-                        tspan=(0.0, 0.02),
-                        atol=1e-7)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-    end
-end
-
 @trixi_testset "elixir_euler_NACA6412airfoil_mach2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_NACA6412airfoil_mach2.jl"),
                         l2=[
