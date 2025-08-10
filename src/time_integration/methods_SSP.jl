@@ -232,6 +232,8 @@ function step!(integrator::SimpleIntegratorSSP)
         @warn "Interrupted. Larger maxiters is needed."
         terminate!(integrator)
     end
+
+    return nothing
 end
 
 # get a cache where the RHS can be stored
@@ -243,6 +245,8 @@ u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
     integrator.finalstep = true
+
+    return nothing
 end
 
 """
@@ -267,6 +271,8 @@ function modify_dt_for_tstops!(integrator::SimpleIntegratorSSP)
                             min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
         end
     end
+
+    return nothing
 end
 
 # used for AMR
@@ -279,5 +285,7 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     # new_size = n_variables * n_nodes^n_dims * n_elements
     n_elements = nelements(integrator.p.solver, integrator.p.cache)
     resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
+
+    return nothing
 end
 end # @muladd

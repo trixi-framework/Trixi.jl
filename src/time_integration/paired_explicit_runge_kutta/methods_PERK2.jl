@@ -304,5 +304,7 @@ function step!(integrator::PairedExplicitRK2Integrator)
         @warn "Interrupted. Larger maxiters is needed."
         terminate!(integrator)
     end
+
+    return nothing
 end
 end # @muladd

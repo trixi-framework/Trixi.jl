@@ -280,6 +280,8 @@ end
         integrator.u[i] += 0.5 * integrator.dt *
                            (integrator.k1[i] + integrator.du[i])
     end
+
+    return nothing
 end
 
 function step!(integrator::PairedExplicitRK4Integrator)
@@ -333,5 +335,7 @@ function step!(integrator::PairedExplicitRK4Integrator)
         @warn "Interrupted. Larger maxiters is needed."
         terminate!(integrator)
     end
+
+    return nothing
 end
 end # @muladd

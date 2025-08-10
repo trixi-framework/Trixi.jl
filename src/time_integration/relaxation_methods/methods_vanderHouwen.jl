@@ -355,6 +355,8 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         @warn "Interrupted. Larger maxiters is needed."
         terminate!(integrator)
     end
+
+    return nothing
 end
 
 # used for AMR
@@ -365,5 +367,7 @@ function Base.resize!(integrator::vanderHouwenRelaxationIntegrator, new_size)
     resize!(integrator.k_prev, new_size)
     # Relaxation addition
     resize!(integrator.direction, new_size)
+
+    return nothing
 end
 end # @muladd

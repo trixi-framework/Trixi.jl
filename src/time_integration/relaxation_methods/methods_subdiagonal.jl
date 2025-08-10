@@ -289,6 +289,8 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
         @warn "Interrupted. Larger maxiters is needed."
         terminate!(integrator)
     end
+
+    return nothing
 end
 
 # used for AMR
@@ -298,5 +300,7 @@ function Base.resize!(integrator::SubDiagonalRelaxationIntegrator, new_size)
     resize!(integrator.u_tmp, new_size)
     # Relaxation addition
     resize!(integrator.direction, new_size)
+
+    return nothing
 end
 end # @muladd
