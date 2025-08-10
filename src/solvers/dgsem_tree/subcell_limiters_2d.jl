@@ -139,6 +139,113 @@ end
         end
     end
 
+    for mortar in eachmortar(dg, cache)
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        orientation = cache.mortars.orientations[mortar]
+
+        for i in eachnode(dg)
+            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+                if orientation == 1
+                    # L2 mortars in x-direction
+                    indices_small = (1, i)
+                    indices_large = (nnodes(dg), i)
+                else
+                    # L2 mortars in y-direction
+                    indices_small = (i, 1)
+                    indices_large = (i, nnodes(dg))
+                end
+            else # large_sides[mortar] == 2 -> small elements on left side
+                if orientation == 1
+                    # L2 mortars in x-direction
+                    indices_small = (nnodes(dg), i)
+                    indices_large = (1, i)
+                else
+                    # L2 mortars in y-direction
+                    indices_small = (i, nnodes(dg))
+                    indices_large = (i, 1)
+                end
+            end
+            u_lower = get_node_vars(u, equations, dg, indices_small...,
+                                    lower_element)
+            u_upper = get_node_vars(u, equations, dg, indices_small...,
+                                    upper_element)
+            u_large = get_node_vars(u, equations, dg, indices_large...,
+                                    large_element)
+            var_lower = u_lower[variable]
+            var_upper = u_upper[variable]
+            var_large = u_large[variable]
+
+            for j in eachnode(dg)
+                if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+                    if orientation == 1
+                        # L2 mortars in x-direction
+                        indices_small = (1, j)
+                        indices_large = (nnodes(dg), j)
+                    else
+                        # L2 mortars in y-direction
+                        indices_small = (j, 1)
+                        indices_large = (j, nnodes(dg))
+                    end
+                else # large_sides[mortar] == 2 -> small elements on left side
+                    if orientation == 1
+                        # L2 mortars in x-direction
+                        indices_small = (nnodes(dg), j)
+                        indices_large = (1, j)
+                    else
+                        # L2 mortars in y-direction
+                        indices_small = (j, nnodes(dg))
+                        indices_large = (j, 1)
+                    end
+                end
+
+                alternative_implementation = dg.mortar isa
+                                             LobattoLegendreMortarIDPAlternative
+                # Including neighbor values to computation of bounds if local mortar weights are non-zero
+                # TODO: Is there a better way to do this? Including all neighbor values? Or use a weighted mean?
+                # For the alternative implementation, we include all values.
+                if alternative_implementation ||
+                   dg.mortar.local_mortar_weights[i, j] > 0
+                    var_min[indices_small..., lower_element] = min(var_min[indices_small...,
+                                                                           lower_element],
+                                                                   var_large)
+                    var_max[indices_small..., lower_element] = max(var_max[indices_small...,
+                                                                           lower_element],
+                                                                   var_large)
+                end
+                if alternative_implementation ||
+                   dg.mortar.local_mortar_weights[j, i] > 0
+                    var_min[indices_large..., large_element] = min(var_min[indices_large...,
+                                                                           large_element],
+                                                                   var_lower)
+                    var_max[indices_large..., large_element] = max(var_max[indices_large...,
+                                                                           large_element],
+                                                                   var_lower)
+                end
+                if alternative_implementation ||
+                   dg.mortar.local_mortar_weights[i, j + nnodes(dg)] > 0
+                    var_min[indices_small..., upper_element] = min(var_min[indices_small...,
+                                                                           upper_element],
+                                                                   var_large)
+                    var_max[indices_small..., upper_element] = max(var_max[indices_small...,
+                                                                           upper_element],
+                                                                   var_large)
+                end
+                if alternative_implementation ||
+                   dg.mortar.local_mortar_weights[j, i + nnodes(dg)] > 0
+                    var_min[indices_large..., large_element] = min(var_min[indices_large...,
+                                                                           large_element],
+                                                                   var_upper)
+                    var_max[indices_large..., large_element] = max(var_max[indices_large...,
+                                                                           large_element],
+                                                                   var_upper)
+                end
+            end
+        end
+    end
+
     # Calc bounds at physical boundaries
     for boundary in eachboundary(dg, cache)
         element = cache.boundaries.neighbor_ids[boundary]
@@ -516,8 +623,9 @@ end
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element, variable,
                                      min_or_max, initial_check, final_check,
-                                     inverse_jacobian, dt, equations, dg, cache,
-                                     limiter)
+                                     inverse_jacobian, dt,
+                                     equations::AbstractEquations{2},
+                                     dg, cache, limiter)
     (; inverse_weights) = dg.basis
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
 
@@ -527,7 +635,7 @@ end
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1_R, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+    newton_loop!(alpha, bound, u, (i, j, element), variable, min_or_max, initial_check,
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     # positive xi direction
@@ -535,14 +643,14 @@ end
                          inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1_L, equations, dg, i + 1, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+    newton_loop!(alpha, bound, u, (i, j, element), variable, min_or_max, initial_check,
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     # negative eta direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2_R, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+    newton_loop!(alpha, bound, u, (i, j, element), variable, min_or_max, initial_check,
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     # positive eta direction
@@ -550,18 +658,19 @@ end
                          inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2_L, equations, dg, i, j + 1,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+    newton_loop!(alpha, bound, u, (i, j, element), variable, min_or_max, initial_check,
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     return nothing
 end
 
-@inline function newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max,
+# TODO: Move to `subcell_limiters.jl` since it is dimension independent
+@inline function newton_loop!(alpha, bound, u, alpha_indices, variable, min_or_max,
                               initial_check, final_check, equations, dt, limiter,
                               antidiffusive_flux)
     newton_reltol, newton_abstol = limiter.newton_tolerances
 
-    beta = 1 - alpha[i, j, element]
+    beta = 1 - alpha[alpha_indices...]
 
     beta_L = 0 # alpha = 1
     beta_R = beta # No higher beta (lower alpha) than the current one
@@ -640,7 +749,7 @@ end
     end
 
     new_alpha = 1 - beta
-    alpha[i, j, element] = new_alpha
+    alpha[alpha_indices...] = new_alpha
 
     return nothing
 end
