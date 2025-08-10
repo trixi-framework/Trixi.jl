@@ -221,34 +221,49 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
     resize!(alpha, nelements(dg, cache))
     @unpack entropy_function, threshold = indicator_entropy_violation
 
-    # Beginning of simulation or after AMR
+    # For computing the mean value
+    @unpack weights = dg.basis
+
+    # Beginning of simulation or after AMR: Need to compute `entropy_old` for every element
     if length(entropy_old) != nelements(dg, cache)
         resize!(entropy_old, nelements(dg, cache))
 
         @threaded for element in eachelement(dg, cache)
-            entropy_old[element] = zero(eltype(u))
+            # Compute mean state
+            u_mean = zero(get_node_vars(u, equations, dg, 1, element))
             for i in eachnode(dg)
-                u_local = get_node_vars(u, equations, dg, i, element)
-                entropy_old[element] += entropy_function(u_local, equations)
+                u_node = get_node_vars(u, equations, dg, i, element)
+                u_mean += u_node * weights[i]
             end
+            # note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
+            u_mean = u_mean / 2
+
+            # Compute entropy of the mean state
+            entropy_old[element] = entropy_function(u_mean, equations)
+
             alpha[element] = true # Be conservative: Use stabilized volume integral everywhere
         end
     else
         @threaded for element in eachelement(dg, cache)
-            entropy_element = zero(eltype(u))
-
-            # Calculate indicator variables at Gauss-Lobatto nodes
+            # Compute mean state
+            u_mean = zero(get_node_vars(u, equations, dg, 1, element))
             for i in eachnode(dg)
-                u_local = get_node_vars(u, equations, dg, i, element)
-                entropy_element += entropy_function(u_local, equations)
+                u_node = get_node_vars(u, equations, dg, i, element)
+                u_mean += u_node * weights[i]
             end
+            # note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
+            u_mean = u_mean / 2
 
+            # Compute entropy of the mean state
+            entropy_element = entropy_function(u_mean, equations)
+
+            # Check if entropy growth exceeds threshold
             if entropy_element - entropy_old[element] > threshold
                 alpha[element] = true
             else
                 alpha[element] = false
             end
-            entropy_old[element] = entropy_element
+            entropy_old[element] = entropy_element # Update `entropy_old`
         end
     end
 
