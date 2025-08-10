@@ -61,7 +61,7 @@ end
 
 function Base.eltype(::ElementContainer{NDIMS, RealT, uEltype}) where {NDIMS, RealT,
                                                                        uEltype}
-    uEltype
+    return uEltype
 end
 
 include("containers_1d.jl")
