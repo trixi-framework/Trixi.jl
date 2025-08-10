@@ -231,6 +231,26 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
     return alpha
 end
 
+# Used in `IndicatorEntropyViolation` and the (stage-) limiters
+# `PositivityPreservingLimiterZhangShu` and `EntropyBoundedLimiter`.
+@inline function compute_u_mean(u::AbstractArray{<:Any, 4},
+                                mesh, equations, dg::DGSEM, cache,
+                                element)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
+    total_volume = zero(eltype(u))
+    for j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                       i, j, element)))
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        u_mean += u_node * weights[i] * weights[j] * volume_jacobian
+        total_volume += weights[i] * weights[j] * volume_jacobian
+    end
+    return u_mean / total_volume # normalize with the total volume
+end
+
 function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArray{<:Any,
                                                                                    4},
                                                                   mesh, equations,
@@ -250,16 +270,7 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
 
         @threaded for element in eachelement(dg, cache)
             # Compute mean state
-            u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
-            total_volume = zero(eltype(u))
-            for j in eachnode(dg), i in eachnode(dg)
-                volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
-                                                               i, j, element)))
-                u_node = get_node_vars(u, equations, dg, i, j, element)
-                u_mean += u_node * weights[i] * weights[j] * volume_jacobian
-                total_volume += weights[i] * weights[j] * volume_jacobian
-            end
-            u_mean = u_mean / total_volume # normalize with the total volume
+            u_mean = compute_u_mean(u, mesh, equations, dg, cache, element)
 
             # Compute entropy of the mean state
             entropy_old[element] = entropy_function(u_mean, equations)
@@ -269,16 +280,7 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
     else
         @threaded for element in eachelement(dg, cache)
             # Compute mean state
-            u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
-            total_volume = zero(eltype(u))
-            for j in eachnode(dg), i in eachnode(dg)
-                volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
-                                                               i, j, element)))
-                u_node = get_node_vars(u, equations, dg, i, j, element)
-                u_mean += u_node * weights[i] * weights[j] * volume_jacobian
-                total_volume += weights[i] * weights[j] * volume_jacobian
-            end
-            u_mean = u_mean / total_volume # normalize with the total volume
+            u_mean = compute_u_mean(u, mesh, equations, dg, cache, element)
 
             # Compute entropy of the mean state
             entropy_element = entropy_function(u_mean, equations)
