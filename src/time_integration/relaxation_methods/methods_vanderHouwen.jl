@@ -30,7 +30,7 @@ Currently implemented methods are the Carpenter-Kennedy-Lewis 4-stage, 3rd-order
 and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`CKL54`](@ref) which are optimized for the 
 compressible Navier-Stokes equations.
 """
-abstract type vanderHouwenAlgorithm end
+abstract type vanderHouwenAlgorithm <: AbstractTimeIntegrationAlgorithm end
 
 """
     vanderHouwenRelaxationAlgorithm
@@ -53,7 +53,8 @@ Currently implemented methods are the Carpenter-Kennedy-Lewis 4-stage, 3rd-order
 and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`RelaxationCKL54`](@ref) which are optimized for the 
 compressible Navier-Stokes equations.
 """
-abstract type vanderHouwenRelaxationAlgorithm end
+abstract type vanderHouwenRelaxationAlgorithm <:
+              AbstractRelaxationTimeIntegrationAlgorithm end
 
 """
     CKL43()
@@ -233,16 +234,6 @@ function init(ode::ODEProblem, alg::vanderHouwenRelaxationAlgorithm;
     return integrator
 end
 
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem,
-               alg::vanderHouwenRelaxationAlgorithm;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
-end
-
 function step!(integrator::vanderHouwenRelaxationIntegrator)
     @unpack prob = integrator.sol
     @unpack alg = integrator
@@ -301,7 +292,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
 
             bsminus1_minus_as = alg.b[stage - 1] - alg.a[stage]
             @threaded for i in eachindex(integrator.u)
-                # Try to enable optimizations due to `muladd` by avoidin `+=`
+                # Try to enable optimizations due to `muladd` by avoiding `+=`
                 # https://github.com/trixi-framework/Trixi.jl/pull/2480#discussion_r2224531702
                 integrator.direction[i] = integrator.direction[i] +
                                           bs_dt * integrator.du[i]
