@@ -187,6 +187,8 @@ end
                                        equations, dg, i, j, kk, element)
         end
     end
+
+    return nothing
 end
 
 @inline function flux_differencing_kernel!(du, u,
@@ -268,6 +270,8 @@ end
         multiply_add_to_node_vars!(du, alpha * 0.5f0, integral_contribution, equations,
                                    dg, i, j, k, element)
     end
+
+    return nothing
 end
 
 # Computing the normal vector for the FV method on curvilinear subcells.
@@ -784,6 +788,8 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                                              element)
         end
     end
+
+    return nothing
 end
 
 function apply_jacobian!(du,

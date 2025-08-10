@@ -274,6 +274,8 @@ end
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index,
         secondary_direction_index, secondary_element_index] = -flux_[v]
     end
+
+    return nothing
 end
 
 # Inlined function for interface flux computation for flux + nonconservative terms
@@ -312,6 +314,8 @@ end
                                                                 0.5f0 *
                                                                 noncons_secondary[v])
     end
+
+    return nothing
 end
 
 function prolong2boundaries!(cache, u,
@@ -398,6 +402,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
             k_node += k_node_step_j
         end
     end
+
+    return nothing
 end
 
 # inlined version of the boundary flux calculation along a physical interface
@@ -432,6 +438,8 @@ end
         surface_flux_values[v, i_node_index, j_node_index,
         direction_index, element_index] = flux_[v]
     end
+
+    return nothing
 end
 
 # inlined version of the boundary flux calculation along a physical interface
@@ -472,6 +480,8 @@ end
         direction_index, element_index] = flux[v] + 0.5f0 *
                                                     noncons_flux[v]
     end
+
+    return nothing
 end
 
 function prolong2mortars!(cache, u,
@@ -674,6 +684,8 @@ end
                    i_node_index, j_node_index, position_index)
     set_node_vars!(fstar_secondary, flux, equations, dg,
                    i_node_index, j_node_index, position_index)
+
+    return nothing
 end
 
 # Inlined version of the mortar flux computation on small elements for conservation fluxes
@@ -710,6 +722,8 @@ end
                    i_node_index,
                    j_node_index,
                    position_index)
+
+    return nothing
 end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,

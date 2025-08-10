@@ -153,71 +153,18 @@ end
 
 function solve!(integrator::SimpleIntegratorSSP)
     @unpack prob = integrator.sol
-    @unpack alg = integrator
-    t_end = last(prob.tspan)
-    callbacks = integrator.opts.callback
 
     integrator.finalstep = false
+
     @trixi_timeit timer() "main loop" while !integrator.finalstep
-        if isnan(integrator.dt)
-            error("time step size `dt` is NaN")
-        end
-
-        modify_dt_for_tstops!(integrator)
-
-        # if the next iteration would push the simulation beyond the end time, set dt accordingly
-        if integrator.t + integrator.dt > t_end ||
-           isapprox(integrator.t + integrator.dt, t_end)
-            integrator.dt = t_end - integrator.t
-            terminate!(integrator)
-        end
-
-        @. integrator.u_tmp = integrator.u
-        for stage in eachindex(alg.c)
-            t_stage = integrator.t + integrator.dt * alg.c[stage]
-            # compute du
-            integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
-
-            # perform forward Euler step
-            @. integrator.u = integrator.u + integrator.dt * integrator.du
-
-            for stage_callback in alg.stage_callbacks
-                stage_callback(integrator.u, integrator, stage)
-            end
-
-            # perform convex combination
-            @. integrator.u = (alg.numerator_a[stage] * integrator.u_tmp +
-                               alg.numerator_b[stage] * integrator.u) /
-                              alg.denominator[stage]
-        end
-
-        integrator.iter += 1
-        integrator.t += integrator.dt
-
-        @trixi_timeit timer() "Step-Callbacks" begin
-            # handle callbacks
-            if callbacks isa CallbackSet
-                foreach(callbacks.discrete_callbacks) do cb
-                    if cb.condition(integrator.u, integrator.t, integrator)
-                        cb.affect!(integrator)
-                    end
-                    return nothing
-                end
-            end
-        end
-
-        # respect maximum number of iterations
-        if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-            @warn "Interrupted. Larger maxiters is needed."
-            terminate!(integrator)
-        end
+        step!(integrator)
     end
 
     # Empty the tstops array.
     # This cannot be done in terminate!(integrator::SimpleIntegratorSSP) because DiffEqCallbacks.PeriodicCallbackAffect would return at error.
     extract_all!(integrator.opts.tstops)
 
-    for stage_callback in alg.stage_callbacks
+    for stage_callback in integrator.alg.stage_callbacks
         finalize_callback(stage_callback, integrator.p)
     end
 
@@ -225,6 +172,66 @@ function solve!(integrator::SimpleIntegratorSSP)
 
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                                   (prob.u0, integrator.u), prob)
+end
+
+function step!(integrator::SimpleIntegratorSSP)
+    @unpack prob = integrator.sol
+    @unpack alg = integrator
+    t_end = last(prob.tspan)
+    callbacks = integrator.opts.callback
+
+    @assert !integrator.finalstep
+    if isnan(integrator.dt)
+        error("time step size `dt` is NaN")
+    end
+
+    modify_dt_for_tstops!(integrator)
+
+    # if the next iteration would push the simulation beyond the end time, set dt accordingly
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
+        integrator.dt = t_end - integrator.t
+        terminate!(integrator)
+    end
+
+    @. integrator.u_tmp = integrator.u
+    for stage in eachindex(alg.c)
+        t_stage = integrator.t + integrator.dt * alg.c[stage]
+        # compute du
+        integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
+
+        # perform forward Euler step
+        @. integrator.u = integrator.u + integrator.dt * integrator.du
+
+        for stage_callback in alg.stage_callbacks
+            stage_callback(integrator.u, integrator, stage)
+        end
+
+        # perform convex combination
+        @. integrator.u = (alg.numerator_a[stage] * integrator.u_tmp +
+                           alg.numerator_b[stage] * integrator.u) /
+                          alg.denominator[stage]
+    end
+    integrator.iter += 1
+    integrator.t += integrator.dt
+
+    @trixi_timeit timer() "Step-Callbacks" begin
+        # handle callbacks
+        if callbacks isa CallbackSet
+            foreach(callbacks.discrete_callbacks) do cb
+                if cb.condition(integrator.u, integrator.t, integrator)
+                    cb.affect!(integrator)
+                end
+                return nothing
+            end
+        end
+    end
+
+    # respect maximum number of iterations
+    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
+        @warn "Interrupted. Larger maxiters is needed."
+        terminate!(integrator)
+    end
 end
 
 # get a cache where the RHS can be stored

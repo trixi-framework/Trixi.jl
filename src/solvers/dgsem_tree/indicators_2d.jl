@@ -123,7 +123,7 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
         alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper], alpha[large])
     end
 
-    return alpha
+    return nothing
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals

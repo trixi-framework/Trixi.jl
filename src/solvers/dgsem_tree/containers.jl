@@ -50,6 +50,8 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
         init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars,
                         nvariables(equations), nnodes(dg), eltype(elements))
     end
+
+    return nothing
 end
 
 # Dimension-specific implementations

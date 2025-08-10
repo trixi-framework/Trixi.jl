@@ -337,6 +337,8 @@ function calc_interface_flux!(surface_flux_values,
             surface_flux_values[v, right_direction, right_id] = flux[v]
         end
     end
+
+    return nothing
 end
 
 function calc_interface_flux!(surface_flux_values,
@@ -423,6 +425,8 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                                      have_nonconservative_terms(equations), equations,
                                      surface_integral, dg, cache,
                                      2, firsts[2], lasts[2])
+
+    return nothing
 end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 3},

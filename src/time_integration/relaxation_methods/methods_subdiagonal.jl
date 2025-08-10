@@ -51,7 +51,8 @@ For details on the relaxation procedure, see
 Currently implemented are the third-order, three-stage method by Ralston [`Ralston3`](@ref) 
 and the canonical fourth-order, four-stage method by Kutta [`RK44`](@ref).
 """
-abstract type SubDiagonalRelaxationAlgorithm <: AbstractTimeIntegrationAlgorithm end
+abstract type SubDiagonalRelaxationAlgorithm <:
+              AbstractRelaxationTimeIntegrationAlgorithm end
 
 """
     Ralston3()
@@ -161,14 +162,13 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
     u = copy(ode.u0)
     du = zero(u)
     u_tmp = zero(u)
-    direction = zero(u)
 
     t = first(ode.tspan)
     iter = 0
 
     # For entropy relaxation
+    direction = zero(u)
     gamma = one(eltype(u))
-
     semi = ode.p
     u_wrap = wrap_array(u, semi)
     S_old = integrate(entropy, u_wrap, semi.mesh, semi.equations, semi.solver,
@@ -197,16 +197,6 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
     return integrator
 end
 
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem,
-               alg::SubDiagonalRelaxationAlgorithm;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
-end
-
 function step!(integrator::SubDiagonalRelaxationIntegrator)
     @unpack prob = integrator.sol
     @unpack alg = integrator
@@ -233,6 +223,8 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         # First stage
         integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
+        # Try to enable optimizations due to `muladd` by computing this factor only once, see
+        # https://github.com/trixi-framework/Trixi.jl/pull/2480#discussion_r2224529532
         b1_dt = alg.b[1] * integrator.dt
         @threaded for i in eachindex(integrator.u)
             integrator.direction[i] = b1_dt * integrator.du[i]
@@ -240,8 +232,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
 
         du_wrap = wrap_array(integrator.du, prob.p)
         # Entropy change due to first stage
-        dS = alg.b[1] * integrator.dt *
-             integrate_w_dot_stage(du_wrap, u_wrap, mesh, equations, dg, cache)
+        dS = b1_dt * integrate_w_dot_stage(du_wrap, u_wrap, mesh, equations, dg, cache)
 
         # Second to last stage
         for stage in 2:length(alg.c)
@@ -258,7 +249,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
             end
 
             # Entropy change due to current stage
-            dS += alg.b[stage] * integrator.dt *
+            dS += b_dt *
                   integrate_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
         end
 
