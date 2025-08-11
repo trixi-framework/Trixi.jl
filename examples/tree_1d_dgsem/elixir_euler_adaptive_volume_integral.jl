@@ -9,14 +9,19 @@ initial_condition = initial_condition_weak_blast_wave
 
 basis = LobattoLegendreBasis(5)
 surface_flux = flux_lax_friedrichs
+# Note: Plain weak form volume integral is still stable for this problem
 
-indicator = Trixi.IndicatorEntropyViolation(basis; threshold = 1e-6)
-volume_integral = Trixi.VolumeIntegralAdaptive(indicator;
-                                               volume_integral_default = VolumeIntegralWeakForm(),
-                                               volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_ranocha))
+volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(flux_ranocha)
+
+# Standard Flux-Differencing volume integral, roughly twice as expensive as the adaptive one
+#solver = DGSEM(basis, surface_flux, volume_integral_fluxdiff)
+
+indicator = IndicatorEntropyViolation(basis; threshold = 1e-6)
+volume_integral = VolumeIntegralAdaptive(indicator;
+                                         volume_integral_default = VolumeIntegralWeakForm(),
+                                         volume_integral_stabilized = volume_integral_fluxdiff)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
-#solver = DGSEM(basis, surface_flux, VolumeIntegralFluxDifferencing(flux_ranocha))
 
 coordinates_min = (-2.0,)
 coordinates_max = (2.0,)
@@ -39,16 +44,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
-
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        #save_solution,
                         stepsize_callback)
 
 ###############################################################################
