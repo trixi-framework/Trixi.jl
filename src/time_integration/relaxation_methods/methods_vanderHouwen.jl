@@ -237,7 +237,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         error("time step size `dt` is NaN")
     end
 
-    limit_dt!(integrator)
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Relaxation vdH RK integration step" begin
         num_stages = length(alg.c)

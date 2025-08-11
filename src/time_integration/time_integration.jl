@@ -38,7 +38,12 @@ end
     return nothing
 end
 
-@inline function limit_dt!(integrator::AbstractTimeIntegrator)
+# Required e.g. for `glm_speed_callback`
+@inline function get_proposed_dt(integrator::AbstractTimeIntegrator)
+    return integrator.dt
+end
+
+@inline function limit_dt!(integrator::AbstractTimeIntegrator, t_end)
     # if the next iteration would push the simulation beyond the end time, set dt accordingly
     if integrator.t + integrator.dt > t_end ||
        isapprox(integrator.t + integrator.dt, t_end)
@@ -47,11 +52,6 @@ end
     end
 
     return nothing
-end
-
-# Required e.g. for `glm_speed_callback`
-@inline function get_proposed_dt(integrator::AbstractTimeIntegrator)
-    return integrator.dt
 end
 
 function initialize_callbacks!(callbacks::Union{CallbackSet, Nothing},

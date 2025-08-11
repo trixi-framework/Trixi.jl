@@ -179,7 +179,7 @@ function step!(integrator::SimpleIntegrator3Sstar)
         error("time step size `dt` is NaN")
     end
 
-    limit_dt!(integrator)
+    limit_dt!(integrator, t_end)
 
     # one time step
     integrator.u_tmp1 .= zero(eltype(integrator.u_tmp1))

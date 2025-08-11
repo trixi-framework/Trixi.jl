@@ -252,7 +252,7 @@ function step!(integrator::PairedExplicitRK2Integrator)
 
     modify_dt_for_tstops!(integrator)
 
-    limit_dt!(integrator)
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
         # First and second stage are identical across all single/standalone PERK methods

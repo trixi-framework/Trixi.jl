@@ -200,7 +200,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
         error("time step size `dt` is NaN")
     end
 
-    limit_dt!(integrator)
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Relaxation sub-diagonal RK integration step" begin
         mesh, equations, dg, cache = mesh_equations_solver_cache(prob.p)

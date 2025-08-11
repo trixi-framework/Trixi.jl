@@ -137,7 +137,7 @@ function step!(integrator::SimpleIntegrator2N)
         error("time step size `dt` is NaN")
     end
 
-    limit_dt!(integrator)
+    limit_dt!(integrator, t_end)
 
     # one time step
     integrator.u_tmp .= 0
