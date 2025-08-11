@@ -209,17 +209,7 @@ function step!(integrator::SimpleIntegratorSSP)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
     # respect maximum number of iterations
     if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep

@@ -58,6 +58,21 @@ function initialize_callbacks!(callback::Union{CallbackSet, Nothing},
     return nothing
 end
 
+function handle_callbacks!(callbacks::Union{CallbackSet, Nothing},
+                           integrator::AbstractTimeIntegrator)
+    # handle callbacks
+    if callbacks isa CallbackSet
+        foreach(callbacks.discrete_callbacks) do cb
+            if cb.condition(integrator.u, integrator.t, integrator)
+                cb.affect!(integrator)
+            end
+            return nothing
+        end
+    end
+
+    return nothing
+end
+
 """
     Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
                 dt, callbacks, kwargs...)
