@@ -121,7 +121,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan, 
+    semidiscretize(semi::AbstractSemidiscretization, tspan,
                    restart_file::AbstractString)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
@@ -306,7 +306,7 @@ end
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and simple second order finite difference to compute the Jacobian `J`
-of the semidiscretization `semi` at state `u0_ode`.
+of the semidiscretization `semi` at time `t0` and state `u0_ode`.
 """
 function jacobian_fd(semi::AbstractSemidiscretization;
                      t0 = zero(real(semi)),
@@ -326,7 +326,7 @@ function jacobian_fd(semi::AbstractSemidiscretization;
     # use second order finite difference to estimate Jacobian matrix
     for idx in eachindex(u0_ode)
         # determine size of fluctuation
-        epsilon = sqrt(eps(u0_ode[idx]))
+        epsilon = sqrt(eps(typeof(u0_ode[idx])))
 
         # plus fluctuation
         u_ode[idx] = u0_ode[idx] + epsilon
@@ -336,7 +336,7 @@ function jacobian_fd(semi::AbstractSemidiscretization;
         u_ode[idx] = u0_ode[idx] - epsilon
         rhs!(dum_ode, u_ode, semi, t0)
 
-        # restore linearisation state
+        # restore linearization state
         u_ode[idx] = u0_ode[idx]
 
         # central second order finite difference
@@ -353,7 +353,7 @@ end
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and forward mode automatic differentiation to compute the Jacobian `J`
-of the semidiscretization `semi` at state `u0_ode`.
+of the semidiscretization `semi` at time `t0` and state `u0_ode`.
 """
 function jacobian_ad_forward(semi::AbstractSemidiscretization;
                              t0 = zero(real(semi)),
@@ -374,7 +374,7 @@ end
 function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
-    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
         Trixi.rhs!(du_ode, u_ode, new_semi, t0)
@@ -408,7 +408,7 @@ end
 function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
     new_semi = remake(semi, uEltype = eltype(config))
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
-    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain,
                              config) do du_ode_plain, u_ode_plain
