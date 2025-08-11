@@ -231,6 +231,26 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
     return alpha
 end
 
+# Used in `IndicatorEntropyViolation` and the (stage-) limiters
+# `PositivityPreservingLimiterZhangShu` and `EntropyBoundedLimiter`.
+@inline function compute_u_mean(u::AbstractArray{<:Any, 4},
+                                mesh, equations, dg::DGSEM, cache,
+                                element)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
+    total_volume = zero(eltype(u))
+    for j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                       i, j, element)))
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        u_mean += u_node * weights[i] * weights[j] * volume_jacobian
+        total_volume += weights[i] * weights[j] * volume_jacobian
+    end
+    return u_mean / total_volume # normalize with the total volume
+end
+
 function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArray{<:Any,
                                                                                    4},
                                                                   mesh, equations,
@@ -240,34 +260,38 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
     resize!(alpha, nelements(dg, cache))
     @unpack entropy_function, threshold = indicator_entropy_violation
 
-    # Beginning of simulation or after AMR
+    # For computing the mean value
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    # Beginning of simulation or after AMR: Need to compute `entropy_old` for every element
     if length(entropy_old) != nelements(dg, cache)
         resize!(entropy_old, nelements(dg, cache))
 
         @threaded for element in eachelement(dg, cache)
-            entropy_old[element] = zero(eltype(u))
-            for j in eachnode(dg), i in eachnode(dg)
-                u_local = get_node_vars(u, equations, dg, i, j, element)
-                entropy_old[element] += entropy_function(u_local, equations)
-            end
+            # Compute mean state
+            u_mean = compute_u_mean(u, mesh, equations, dg, cache, element)
+
+            # Compute entropy of the mean state
+            entropy_old[element] = entropy_function(u_mean, equations)
+
             alpha[element] = true # Be conservative: Use stabilized volume integral everywhere
         end
     else
         @threaded for element in eachelement(dg, cache)
-            entropy_element = zero(eltype(u))
+            # Compute mean state
+            u_mean = compute_u_mean(u, mesh, equations, dg, cache, element)
 
-            # Calculate indicator variables at Gauss-Lobatto nodes
-            for j in eachnode(dg), i in eachnode(dg)
-                u_local = get_node_vars(u, equations, dg, i, j, element)
-                entropy_element += entropy_function(u_local, equations)
-            end
+            # Compute entropy of the mean state
+            entropy_element = entropy_function(u_mean, equations)
 
+            # Check if entropy growth exceeds threshold
             if entropy_element - entropy_old[element] > threshold
                 alpha[element] = true
             else
                 alpha[element] = false
             end
-            entropy_old[element] = entropy_element
+            entropy_old[element] = entropy_element # Update `entropy_old`
         end
     end
 

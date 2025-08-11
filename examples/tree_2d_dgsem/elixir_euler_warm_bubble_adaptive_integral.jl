@@ -94,10 +94,13 @@ surface_flux = FluxLMARS(340.0)
 
 volume_flux = flux_kennedy_gruber
 
-indicator = Trixi.IndicatorEntropyViolation(basis; threshold = 1e-3)
-volume_integral = Trixi.VolumeIntegralAdaptive(indicator;
-                                               volume_integral_default = VolumeIntegralWeakForm(),
-                                               volume_integral_stabilized = VolumeIntegralFluxDifferencing(volume_flux))
+indicator = IndicatorEntropyViolation(basis; threshold = 1e-3)
+volume_integral = VolumeIntegralAdaptive(indicator;
+                                         volume_integral_default = VolumeIntegralWeakForm(),
+                                         volume_integral_stabilized = VolumeIntegralFluxDifferencing(volume_flux))
+
+# This would be the standard version
+#volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
@@ -140,12 +143,11 @@ stepsize_callback = StepsizeCallback(cfl = 0.8)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
-                        save_solution,
+                        #save_solution,
                         stepsize_callback)
 
 ###############################################################################
 # run the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.True());
-            maxiters = 1.0e7,
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            maxiters = 1.0e7, dt = 1.0, # solve needs a value here, will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

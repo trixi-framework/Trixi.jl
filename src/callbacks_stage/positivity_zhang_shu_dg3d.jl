@@ -22,17 +22,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         value_min < threshold || continue
 
         # compute mean value
-        u_mean = zero(get_node_vars(u, equations, dg, 1, 1, 1, element))
-        total_volume = zero(eltype(u))
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
-                                                           i, j, k, element)))
-            u_node = get_node_vars(u, equations, dg, i, j, k, element)
-            u_mean += u_node * weights[i] * weights[j] * weights[k] * volume_jacobian
-            total_volume += weights[i] * weights[j] * weights[k] * volume_jacobian
-        end
-        # normalize with the total volume
-        u_mean = u_mean / total_volume
+        u_mean = compute_u_mean(u, mesh, equations, dg, cache, element)
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).

@@ -265,6 +265,27 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
     end
 end
 
+@doc raw"""
+    IndicatorEntropyViolation(basis;
+                              entropy_function=entropy, threshold=1e-9)
+
+This indicator checks the "entropy-violation" observed from timestep ``n \to n+1`` by
+computing the difference in entropy ``\eta`` (determined by the `entropy_function`) as
+```math
+\Delta \eta_m^{(n+1)} = \eta^{(n+1)}(\bar{\boldsymbol{u}}_m) - \eta^{(n)}(\bar{\boldsymbol{u}}_m)
+```
+for every element `m` in the mesh.
+The `entropy_function` is evaluated at the mean state ``\bar{\boldsymbol{u}}`` and defaults
+to [`entropy`](@ref).
+
+The indicator returns for each cell ``m`` a boolean value indicating
+whether the entropy growth/violation ``\Delta \eta_m^{(n+1)}`` exceeds the `threshold`.
+Thus, for the mathematical entropy (default for `entropy`) which should not grow globally(!)
+over the course of a simulation, this can be used to identify troubled cells.
+
+Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
+more advanced/stable volume integral for the troubled cells.
+"""
 struct IndicatorEntropyViolation{EntropyFunction, RealT <: Real, Cache <: NamedTuple} <:
        AbstractIndicator
     entropy_function::EntropyFunction
