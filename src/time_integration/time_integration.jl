@@ -38,6 +38,17 @@ end
     return nothing
 end
 
+@inline function limit_dt!(integrator::AbstractTimeIntegrator)
+    # if the next iteration would push the simulation beyond the end time, set dt accordingly
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
+        integrator.dt = t_end - integrator.t
+        terminate!(integrator)
+    end
+
+    return nothing
+end
+
 # Required e.g. for `glm_speed_callback`
 @inline function get_proposed_dt(integrator::AbstractTimeIntegrator)
     return integrator.dt

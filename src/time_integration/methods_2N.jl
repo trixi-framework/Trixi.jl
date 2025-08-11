@@ -137,12 +137,7 @@ function step!(integrator::SimpleIntegrator2N)
         error("time step size `dt` is NaN")
     end
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator)
 
     # one time step
     integrator.u_tmp .= 0
