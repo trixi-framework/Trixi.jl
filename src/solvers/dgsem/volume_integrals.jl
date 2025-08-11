@@ -5,7 +5,13 @@
 @muladd begin
 #! format: noindent
 
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+function create_cache(mesh, equations,
+                      volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+    return NamedTuple()
+end
+
+# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
@@ -19,7 +25,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
+# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
 # For curved meshes averaging of the mapping terms, stored in `cache.elements.contravariant_vectors`, 
 # is peeled apart from the evaluation of the physical fluxes in each Cartesian direction.
 function calc_volume_integral!(du, u, mesh,
@@ -35,7 +41,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
@@ -74,7 +80,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
@@ -89,5 +95,4 @@ function calc_volume_integral!(du, u, mesh,
 
     return nothing
 end
-
 end # @muladd

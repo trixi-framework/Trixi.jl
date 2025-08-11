@@ -28,7 +28,7 @@ end
                    Val(ndims(contravariant_vectors) - 3)))
 end
 
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D structured meshes
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `StructuredMesh`es.
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::StructuredMesh, equations, surface_integral,
                              dg::DG)

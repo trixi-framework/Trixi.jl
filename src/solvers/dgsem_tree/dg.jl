@@ -15,13 +15,7 @@ end
     return inverse_jacobian[element]
 end
 
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
-function create_cache(mesh, equations,
-                      volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
-    return NamedTuple()
-end
-
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `TreeMesh`es.
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::TreeMesh, equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
