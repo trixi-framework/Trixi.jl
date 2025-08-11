@@ -71,4 +71,6 @@ end
 @inline polydeg(dg::DGSEM) = polydeg(dg.basis)
 
 Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
+
+include("volume_integrals.jl")
 end # @muladd

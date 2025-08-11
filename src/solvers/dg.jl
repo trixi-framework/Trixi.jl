@@ -827,6 +827,16 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
     return nothing
 end
 
+# du .= zero(eltype(du)) doesn't scale when using multiple threads.
+# See https://github.com/trixi-framework/Trixi.jl/pull/924 for a performance comparison.
+function reset_du!(du, dg, cache)
+    @threaded for element in eachelement(dg, cache)
+        du[.., element] .= zero(eltype(du))
+    end
+
+    return nothing
+end
+
 # Discretizations specific to each mesh type of Trixi.jl
 # If some functionality is shared by multiple combinations of meshes/solvers,
 # it is defined in the directory of the most basic mesh and solver type.
