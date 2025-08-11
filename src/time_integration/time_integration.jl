@@ -32,14 +32,14 @@ function Base.getproperty(integrator::AbstractTimeIntegrator, field::Symbol)
 end
 
 # used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::AbstractTimeIntegrator, dt)
+@inline function set_proposed_dt!(integrator::AbstractTimeIntegrator, dt)
     (integrator.dt = dt; integrator.dtcache = dt)
 
     return nothing
 end
 
 # Required e.g. for `glm_speed_callback`
-function get_proposed_dt(integrator::AbstractTimeIntegrator)
+@inline function get_proposed_dt(integrator::AbstractTimeIntegrator)
     return integrator.dt
 end
 
@@ -68,6 +68,16 @@ function handle_callbacks!(callbacks::Union{CallbackSet, Nothing},
             end
             return nothing
         end
+    end
+
+    return nothing
+end
+
+@inline function check_max_iter!(integrator::AbstractTimeIntegrator)
+    # respect maximum number of iterations
+    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
+        @warn "Interrupted. Larger maxiters is needed."
+        terminate!(integrator)
     end
 
     return nothing

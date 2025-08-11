@@ -165,11 +165,7 @@ function step!(integrator::SimpleIntegrator2N)
 
     @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
 
     return nothing
 end
