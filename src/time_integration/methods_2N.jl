@@ -121,15 +121,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
                                     SimpleIntegratorOptions(callback, ode.tspan;
                                                             kwargs...), false)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with the 2N storage time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
 end

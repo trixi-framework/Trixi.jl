@@ -184,15 +184,7 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
                                                  direction, gamma, S_old,
                                                  alg.relaxation_solver)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with sub-diagonal time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
 end

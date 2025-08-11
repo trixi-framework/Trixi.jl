@@ -134,16 +134,10 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     resize!(integrator.p, integrator.p.solver.volume_integral,
             nelements(integrator.p.solver, integrator.p.cache))
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with the SSP time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    # Standard callbacks
+    initialize_callbacks!(callback, integrator)
 
+    # Addition for `SimpleAlgorithmSSP` which may have stage callbacks
     for stage_callback in alg.stage_callbacks
         init_callback(stage_callback, integrator.p)
     end

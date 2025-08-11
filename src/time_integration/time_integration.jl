@@ -43,6 +43,21 @@ function get_proposed_dt(integrator::AbstractTimeIntegrator)
     return integrator.dt
 end
 
+function initialize_callbacks!(callback::Union{CallbackSet, Nothing},
+                               integrator::AbstractTimeIntegrator)
+    # initialize callbacks
+    if callback isa CallbackSet
+        foreach(callback.continuous_callbacks) do cb
+            throw(ArgumentError("Continuous callbacks are unsupported."))
+        end
+        foreach(callback.discrete_callbacks) do cb
+            cb.initialize(cb, integrator.u, integrator.t, integrator)
+        end
+    end
+
+    return nothing
+end
+
 """
     Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
                 dt, callbacks, kwargs...)
