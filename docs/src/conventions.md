@@ -76,6 +76,24 @@ set via the keywords
   documented with a docstring (but maybe with comments using `#`).
 
 
+## Structure of the `solver` directory
+
+If some functionality is shared by multiple combinations of meshes/solvers,
+it is defined in the directory of the most basic mesh and solver type.
+An example for this is the `rhs!` function which lays out the sequence of functions 
+which compose the overall right-hand-side function fed to the ODE integrator.
+Since this general "recipe" can be unified for different meshes of a certain dimension,
+a shared implementation is used to minimize code duplication.
+
+The most basic (in the sense that it is most tested and developed) solver type in Trixi.jl is
+[`DGSEM`](@ref) due to historic reasons and background of the main contributors.
+We consider the [`TreeMesh`](@ref) to be the most basic mesh type since it is Cartesian
+and was the first mesh in Trixi.jl.
+Thus, shared implementations for more advanced meshes such as the [`P4estMesh`](@ref) can be found in
+the `src/solvers/dgsem_tree` directory, while only necessary specifics are actually placed in
+`src/solvers/dgsem_p4est`.
+
+
 ## Array types and wrapping
 
 To allow adaptive mesh refinement efficiently when using time integrators from
