@@ -110,8 +110,8 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{3},
-                      equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::TreeMesh{3}, equations,
+                      mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal compare performance of different types
     A3d = Array{uEltype, 3}
     fstar_primary_upper_left_threaded = A3d[A3d(undef, nvariables(equations),
