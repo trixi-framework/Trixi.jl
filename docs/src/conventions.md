@@ -90,8 +90,8 @@ The most basic (in the sense that it is most tested and developed) solver type i
 We consider the [`TreeMesh`](@ref) to be the most basic mesh type since it is Cartesian
 and was the first mesh in Trixi.jl.
 Thus, shared implementations for more advanced meshes such as the [`P4estMesh`](@ref) can be found in
-the `src/solvers/dgsem_tree` directory, while only necessary specifics are actually placed in
-`src/solvers/dgsem_p4est`.
+the `src/solvers/dgsem_tree/` directory, while only necessary specifics are actually placed in
+`src/solvers/dgsem_p4est/`.
 
 
 ## Array types and wrapping
