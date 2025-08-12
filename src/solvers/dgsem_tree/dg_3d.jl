@@ -148,11 +148,13 @@ function create_cache(mesh::TreeMesh{3}, equations,
                                   nnodes(mortar_l2))
                               for _ in 1:Threads.nthreads()]
 
-    (; fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
-     fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
-     fstar_secondary_upper_left_threaded, fstar_secondary_upper_right_threaded,
-     fstar_secondary_lower_left_threaded, fstar_secondary_lower_right_threaded,
-     fstar_tmp1_threaded)
+    cache = (; fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
+             fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
+             fstar_secondary_upper_left_threaded, fstar_secondary_upper_right_threaded,
+             fstar_secondary_lower_left_threaded, fstar_secondary_lower_right_threaded,
+             fstar_tmp1_threaded)
+
+    return cache
 end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
