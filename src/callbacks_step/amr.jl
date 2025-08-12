@@ -746,7 +746,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
 end
 
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
-                                     equations, dg::DG, cache, semi::SemidiscretizationHyperbolicSplit,
+                                     equations, dg::DG, cache,
+                                     semi::SemidiscretizationHyperbolicSplit,
                                      t, iter;
                                      only_refine = false, only_coarsen = false,
                                      passive_args = ())

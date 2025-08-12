@@ -7,7 +7,6 @@ using SparseDiffTools ## This is needed to force 'autodiff = AutoFiniteDiff()' i
 
 equations = IdealGlmMhdEquations3D(1.4)
 function flux_zero(u_ll, u_rr, normal_direction, equations::IdealGlmMhdEquations3D)
-
     return zero(u_ll)
 end
 """
@@ -60,8 +59,10 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv = surface_flux)
 
 solver_explicit = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
-               volume_integral = volume_integral)
-solver_implicit = DGSEM(polydeg = polydeg, surface_flux = (flux_zero, flux_zero), volume_integral = VolumeIntegralFluxDifferencing((flux_zero, flux_zero)))
+                        volume_integral = volume_integral)
+solver_implicit = DGSEM(polydeg = polydeg, surface_flux = (flux_zero, flux_zero),
+                        volume_integral = VolumeIntegralFluxDifferencing((flux_zero,
+                                                                          flux_zero)))
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but with slightly less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
@@ -143,7 +144,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode,  
-SBDF(order = 1,autodiff = AutoFiniteDiff());
+sol = solve(ode,
+            SBDF(order = 1, autodiff = AutoFiniteDiff());
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
