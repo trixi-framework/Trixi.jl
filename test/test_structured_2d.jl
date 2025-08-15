@@ -319,6 +319,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_convergence_implicit_sparse_jacobian.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_implicit_sparse_jacobian.jl"),
+                        t_end=1.0,
+                        l2=[
+                            0.0025545032994391684,
+                            0.002584889213509444,
+                            0.002585815262287157,
+                            0.0031668773337868226
+                        ],
+                        linf=[
+                            0.010367159504632184,
+                            0.00932621263313771,
+                            0.008372785091579793,
+                            0.011242647117395421
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi_float, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
                         l2=[
