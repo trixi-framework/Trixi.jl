@@ -243,6 +243,7 @@ function jacobian_fd(semi::AbstractSemidiscretization;
         # This is the approach used by FiniteDiff.jl to compute the
         # step size, which assures that the finite difference is accurate
         # for very small and very large absolute values `u0_ode[idx]`.
+        # See https://github.com/trixi-framework/Trixi.jl/pull/2514#issuecomment-3190534904.
         absstep = sqrt(eps(typeof(u0_ode[idx])))
         relstep = absstep
         epsilon = max(relstep * abs(u0_ode[idx]), absstep)
