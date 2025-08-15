@@ -308,7 +308,6 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-# TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
                                          T8codeMesh},
