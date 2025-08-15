@@ -44,15 +44,14 @@ boundary_conditions_parabolic = boundary_condition_periodic
 solver_parabolic = ViscousFormulationLocalDG()
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
-                                             solver;
-                                             solver_parabolic,
+                                             solver; solver_parabolic,
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
+# Create ODE problem with time span from 0.0 to 0.1
 tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
