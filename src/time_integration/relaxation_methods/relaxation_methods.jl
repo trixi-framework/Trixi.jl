@@ -11,6 +11,8 @@ u_modified!(integrator::RelaxationIntegrator, ::Bool) = false
 function terminate!(integrator::RelaxationIntegrator)
     integrator.finalstep = true
     empty!(integrator.opts.tstops)
+
+    return nothing
 end
 
 @inline function update_t_relaxation!(integrator::RelaxationIntegrator)
