@@ -199,8 +199,8 @@ struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES,
 end
 
 function MortarIDP(basis::LobattoLegendreBasis;
-                   positivity_variables_cons = [1], # TODO: String["rho"]
-                   positivity_variables_nonlinear = [Trixi.pressure], # TODO: []
+                   positivity_variables_cons = Int[], # TODO: String[], "rho" instead of 1
+                   positivity_variables_nonlinear = [],
                    alternative = false,
                    local_factor = true, basis_function = :piecewise_constant,
                    pure_low_order = false,

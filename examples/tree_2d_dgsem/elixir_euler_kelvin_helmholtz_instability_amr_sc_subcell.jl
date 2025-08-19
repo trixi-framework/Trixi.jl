@@ -43,7 +43,8 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_fv = surface_flux)
 mortar = MortarIDP(basis; alternative = false, local_factor = true,
                    basis_function = :piecewise_constant,
-                #    basis_function = :piecewise_linear,
+                   positivity_variables_cons = [1],
+                   positivity_variables_nonlinear = [pressure],
                    pure_low_order = false)
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
@@ -109,9 +110,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(),
-                   BoundsCheckCallback(save_errors = false, interval = 100))
-# `interval` is used when calling this elixir in the tests with `save_errors=true`.
+stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

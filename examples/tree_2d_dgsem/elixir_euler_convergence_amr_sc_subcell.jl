@@ -25,6 +25,9 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
 
 mortar = MortarIDP(basis; alternative = false, local_factor = true,
                    basis_function = :piecewise_constant,
+                   # basis_function = :piecewise_linear,
+                   positivity_variables_cons = [1],
+                   positivity_variables_nonlinear = [pressure],
                    pure_low_order = false)
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
@@ -62,17 +65,19 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-# amr_indicator = IndicatorMax(semi, variable = first)
+amr_indicator = IndicatorMax(semi, variable = first)
 
-# amr_controller = ControllerThreeLevel(semi, amr_indicator,
-#                                       base_level = initial_refinement_level,
-#                                       med_level = initial_refinement_level + 1, med_threshold = 2.0,
-#                                       max_level = initial_refinement_level + 2, max_threshold = 2.05)
+amr_controller = ControllerThreeLevel(semi, amr_indicator,
+                                      base_level = initial_refinement_level,
+                                      med_level = initial_refinement_level + 1,
+                                      med_threshold = 2.0,
+                                      max_level = initial_refinement_level + 2,
+                                      max_threshold = 2.05)
 
-# amr_callback = AMRCallback(semi, amr_controller,
-#                            interval = 1,
-#                            adapt_initial_condition = true,
-#                            adapt_initial_condition_only_refine = false)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 1,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = false)
 
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 

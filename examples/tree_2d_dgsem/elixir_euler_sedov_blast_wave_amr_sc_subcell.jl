@@ -53,7 +53,10 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
-mortar = MortarIDP(basis, basis_function = :piecewise_constant, pure_low_order = false)
+mortar = MortarIDP(basis; basis_function = :piecewise_constant,
+                   positivity_variables_cons = [1],
+                   positivity_variables_nonlinear = [pressure],
+                   pure_low_order = false)
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-2.0, -2.0)
@@ -108,11 +111,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# positivity limiter necessary for this tough example
-stage_limiter! = LimiterZhangShuLocalBounds(limiters = (:positivity,),
-                                            variables = (pressure,))
-
-stage_callbacks = (SubcellLimiterIDPCorrection(), #stage_limiter!,
+stage_callbacks = (SubcellLimiterIDPCorrection(),
                    BoundsCheckCallback(save_errors = false))
 
 sol = Trixi.solve(ode,
