@@ -97,7 +97,7 @@ rhs = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_real, t0)
 
 # Taken from example linked above to detect the pattern and choose how to do the AutoDiff automatically
 sd = SymbolicsSparsityDetection()
-ad_type = AutoFiniteDiff()
+ad_type = AutoFiniteDiff() # `AutoForwardDiff()` does also work, but not strictly necessary for sparsity detection only
 sparse_adtype = AutoSparse(ad_type)
 
 # `sparse_cache` will reduce calculation time when Jacobian is calculated multiple times,
