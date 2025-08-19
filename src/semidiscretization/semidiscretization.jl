@@ -88,7 +88,7 @@ end
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 
-The optional keyword arguments:
+Optional keyword arguments:
 - `jac_prototype` and `colorvec`: Expected to come from [SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl)
   and specify the sparsity structure of the Jacobian to enable efficient implicit time stepping.
 - `storage_type` and `real_type`: Configure the underlying computational datastructures. 
@@ -121,9 +121,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         end
     end
 
-    # Determine initial condition
-    u0_ode = compute_coefficients(first(tspan), semi)
-    
+    u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
+
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
@@ -147,7 +146,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         # end
         # SciMLBase.ODEFunction(rhs!, jac_prototype=float.(jac_prototype), colorvec=colorvec, jac = jac_sparse_func!)
         #
-        # which turned out to be significantly slower than just using the prototype and the coloring vector. 
+        # which turned out (for the considered problems) to be significantly slower than 
+        # just using the prototype and the coloring vector. 
 
         return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
     else
@@ -159,14 +159,13 @@ end
     semidiscretize(semi::AbstractSemidiscretization, tspan,
                    restart_file::AbstractString;
                    jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
-                   colorvec::Union{AbstractVector, Nothing} = nothing,
-                   reset_threads = true)
+                   colorvec::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 The initial condition etc. is taken from the `restart_file`.
 
-The optional keyword arguments:
+Optional keyword arguments:
 - `jac_prototype` and `colorvec`: Expected to come from [SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl)
   and specify the sparsity structure of the Jacobian to enable efficient implicit time stepping.
 """
@@ -182,9 +181,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
         Polyester.reset_threads!()
     end
 
-    # Load initial condition from restart file
-    u0_ode = load_restart_file(semi, restart_file)
-    
+    u0_ode = load_restart_file(semi, restart_file) # Load initial condition from restart file
+
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328

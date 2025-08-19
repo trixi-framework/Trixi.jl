@@ -115,8 +115,8 @@ Trixi.zero(x::Type{Real}) = Base.zero(x)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_float_jac_sparse = semidiscretize(semi_float, t_span,
-                                      sparse_cache.jac_prototype,
-                                      sparse_cache.coloring.colorvec)
+                                      jac_prototype = sparse_cache.jac_prototype,
+                                      colorvec = sparse_cache.coloring.colorvec)
 
 # Note: We experimented for linear problems with providing the constant, sparse Jacobian directly via
 #
