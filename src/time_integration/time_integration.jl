@@ -32,13 +32,66 @@ function Base.getproperty(integrator::AbstractTimeIntegrator, field::Symbol)
 end
 
 # used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::AbstractTimeIntegrator, dt)
+@inline function set_proposed_dt!(integrator::AbstractTimeIntegrator, dt)
     (integrator.dt = dt; integrator.dtcache = dt)
+
+    return nothing
 end
 
 # Required e.g. for `glm_speed_callback`
-function get_proposed_dt(integrator::AbstractTimeIntegrator)
+@inline function get_proposed_dt(integrator::AbstractTimeIntegrator)
     return integrator.dt
+end
+
+@inline function limit_dt!(integrator::AbstractTimeIntegrator, t_end)
+    # if the next iteration would push the simulation beyond the end time, set dt accordingly
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
+        integrator.dt = t_end - integrator.t
+        terminate!(integrator)
+    end
+
+    return nothing
+end
+
+function initialize_callbacks!(callbacks::Union{CallbackSet, Nothing},
+                               integrator::AbstractTimeIntegrator)
+    # initialize callbacks
+    if callbacks isa CallbackSet
+        foreach(callbacks.continuous_callbacks) do cb
+            throw(ArgumentError("Continuous callbacks are unsupported."))
+        end
+        foreach(callbacks.discrete_callbacks) do cb
+            cb.initialize(cb, integrator.u, integrator.t, integrator)
+        end
+    end
+
+    return nothing
+end
+
+function handle_callbacks!(callbacks::Union{CallbackSet, Nothing},
+                           integrator::AbstractTimeIntegrator)
+    # handle callbacks
+    if callbacks isa CallbackSet
+        foreach(callbacks.discrete_callbacks) do cb
+            if cb.condition(integrator.u, integrator.t, integrator)
+                cb.affect!(integrator)
+            end
+            return nothing
+        end
+    end
+
+    return nothing
+end
+
+@inline function check_max_iter!(integrator::AbstractTimeIntegrator)
+    # respect maximum number of iterations
+    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
+        @warn "Interrupted. Larger maxiters is needed."
+        terminate!(integrator)
+    end
+
+    return nothing
 end
 
 """
@@ -92,6 +145,8 @@ function finalize_callbacks(integrator::AbstractTimeIntegrator)
             cb.finalize(cb, integrator.u, integrator.t, integrator)
         end
     end
+
+    return nothing
 end
 
 include("methods_2N.jl")
