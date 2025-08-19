@@ -116,7 +116,7 @@ macro test_nowarn_mod(expr, additional_ignore_content = [])
             # We need to ignore steady state information reported by our callbacks
             r"┌ Info:   Steady state tolerance reached\n│   steady_state_callback .+\n└   t = .+\n",
             # NOTE: These warnings arose from Julia 1.10 onwards
-            r"WARNING: Method definition .* in module .* at .* overwritten at .*",
+            r"WARNING: Method definition .* in module .* at .* overwritten .*",
             # Warnings from third party packages
             r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
             r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
