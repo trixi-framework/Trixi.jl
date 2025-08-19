@@ -81,7 +81,6 @@ end
     semidiscretize(semi::AbstractSemidiscretization, tspan;
                    jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                    colorvec::Union{AbstractVector, Nothing} = nothing,
-                   reset_threads = true,
                    storage_type = nothing,
                    real_type = nothing)
 
