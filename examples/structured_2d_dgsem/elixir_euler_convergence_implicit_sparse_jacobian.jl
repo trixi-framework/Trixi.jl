@@ -131,11 +131,9 @@ sparse_adtype = AutoSparse(ad_type)
 
 # `sparse_cache` will reduce calculation time when Jacobian is calculated multiple times
 sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
-# The jacobian can eventually be computed in-place using
-# `sparse_jacobian!(J_prealloc, sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)`
-# where `J_prealloc` is constructed via
-# `J = sparse_jacobian(sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)`
-# `J_prealloc = similar(J)`
+# The jacobian can eventually be re-computed in-place using
+#J_prealloc = sparse_jacobian(sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)
+#sparse_jacobian!(J_prealloc, sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)
 
 ###############################################################################################
 ### Set up sparse-aware ODEProblem ###
