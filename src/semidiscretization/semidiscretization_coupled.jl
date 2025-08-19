@@ -644,6 +644,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
             j_node += j_node_step
         end
     end
+
+    return nothing
 end
 
 ################################################################################
@@ -686,6 +688,8 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
     end
+
+    return nothing
 end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
@@ -728,6 +732,8 @@ end
                                                                                0.5f0 *
                                                                                noncons_flux[v])
     end
+
+    return nothing
 end
 
 function get_boundary_indices(element, orientation,

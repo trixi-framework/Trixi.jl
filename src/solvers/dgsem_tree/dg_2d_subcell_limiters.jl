@@ -126,6 +126,8 @@ function calc_volume_integral!(du, u,
                                      dg, cache)
         end
     end
+
+    return nothing
 end
 
 @inline function subcell_limiting_kernel!(du, u, element,
