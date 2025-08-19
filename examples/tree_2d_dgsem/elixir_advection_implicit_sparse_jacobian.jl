@@ -141,4 +141,4 @@ sol = solve(ode_float_jac_sparse, # using `ode_float_jac_sparse` instead of `ode
             # Default `AutoForwardDiff()` is not yet working,
             # probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
             TRBDF2(; autodiff = ad_type);
-            adaptive = true, dt = 0.1, save_everystep = false, callback = callbacks);
+            dt = 0.1, save_everystep = false, callback = callbacks);
