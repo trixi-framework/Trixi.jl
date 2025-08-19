@@ -15,8 +15,8 @@ t_span = (load_time(restart_filename), 2.0)
 dt_restart = load_dt(restart_filename)
 
 ode_float_jac_sparse = semidiscretize(semi_float, t_span,
-                                      sparse_cache.jac_prototype,
-                                      sparse_cache.coloring.colorvec)
+                                     jac_prototype = sparse_cache.jac_prototype,
+                                     colorvec = sparse_cache.coloring.colorvec)
 
 ###############################################################################
 # run the simulation
