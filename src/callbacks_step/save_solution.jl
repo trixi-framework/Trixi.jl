@@ -49,6 +49,7 @@ mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
     output_directory::String
     solution_variables::SolutionVariablesType
     node_variables::Dict{Symbol, Any}
+    iter_offset::Int
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
@@ -119,7 +120,8 @@ function SaveSolutionCallback(; interval::Integer = 0,
                               save_final_solution = true,
                               output_directory = "out",
                               solution_variables = cons2prim,
-                              extra_node_variables = ())
+                              extra_node_variables = (),
+                              iter_offset = 0)
     if !isnothing(dt) && interval > 0
         throw(ArgumentError("You can either set the number of steps between output (using `interval`) or the time between outputs (using `dt`) but not both simultaneously"))
     end
@@ -135,7 +137,7 @@ function SaveSolutionCallback(; interval::Integer = 0,
     solution_callback = SaveSolutionCallback(interval_or_dt,
                                              save_initial_solution, save_final_solution,
                                              output_directory, solution_variables,
-                                             node_variables)
+                                             node_variables, iter_offset)
 
     # Expected most frequent behavior comes first
     if isnothing(dt)
@@ -164,7 +166,7 @@ function initialize_save_cb!(solution_callback::SaveSolutionCallback, u, t, inte
     mpi_isroot() && mkpath(solution_callback.output_directory)
 
     semi = integrator.p
-    @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory)
+    @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory, integrator.iter + solution_callback.iter_offset)
 
     if solution_callback.save_initial_solution
         solution_callback(integrator)
@@ -233,11 +235,12 @@ function (solution_callback::SaveSolutionCallback)(integrator)
     semi = integrator.p
     iter = integrator.stats.naccept
 
+    println("iter + solution_callback.iter_offset = ", iter + solution_callback.iter_offset)
     @trixi_timeit timer() "I/O" begin
         # Call high-level functions that dispatch on semidiscretization type
         @trixi_timeit timer() "save mesh" save_mesh(semi,
                                                     solution_callback.output_directory,
-                                                    iter)
+                                                    iter + solution_callback.iter_offset)
         save_solution_file(semi, u_ode, solution_callback, integrator)
     end
 
@@ -271,7 +274,7 @@ end
     @trixi_timeit timer() "get node variables" get_node_variables!(solution_callback.node_variables,
                                                                    u_ode, semi)
 
-    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi,
+    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter + solution_callback.iter_offset, semi,
                                                              solution_callback,
                                                              element_variables,
                                                              solution_callback.node_variables,
