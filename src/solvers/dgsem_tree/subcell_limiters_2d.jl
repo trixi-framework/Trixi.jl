@@ -103,6 +103,8 @@ end
 
     # Values at element boundary
     calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi, mesh)
+
+    return nothing
 end
 
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
@@ -317,6 +319,8 @@ end
 
     # Values at element boundary
     calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t, semi, mesh)
+
+    return nothing
 end
 
 @inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t,
