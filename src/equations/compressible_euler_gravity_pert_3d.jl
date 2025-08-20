@@ -42,7 +42,7 @@ varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbationGravity3D) 
 end
 
 # convert conservative to primitive variables
-# - will fail when rho / u[1] ~ 0
+# - will fail when rho (u[1]) ~ 0
 # - only works when geopotential is included in u[5]
 @inline function cons2prim_geopot(u, aux,
                                   equations::CompressibleEulerEquationsPerturbationGravity3D)
@@ -71,7 +71,8 @@ end
         (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
          -
          rho * phi)
-    return p
+    return 0
+    # return p  TODO
 end
 
 # convert primitve to conervative variables
@@ -607,8 +608,8 @@ function flux_nonconservative_waruszewski(u_ll, u_rr, aux_ll, aux_rr,
                                           normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquationsPerturbationGravity3D)
     # u[1] is perturbation in rho
-    rho_ll = u_ll[1]
-    rho_rr = u_rr[1]
+    rho_ll = u_ll[1] + aux_ll[1]
+    rho_rr = u_rr[1] + aux_rr[1] # TODO
     phi_ll = aux_ll[6]
     phi_rr = aux_rr[6]
 
