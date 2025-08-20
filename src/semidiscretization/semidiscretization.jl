@@ -137,17 +137,6 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         ode = SciMLBase.ODEFunction(rhs!, jac_prototype = float.(jac_prototype),
                                     colorvec = colorvec)
 
-        # Note: We experimented for linear problems with providing the constant, sparse Jacobian directly via
-        #
-        # const jac_sparse = sparse_jacobian(sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)
-        # function jac_sparse_func!(J, u, p, t)
-        #   J = jac_sparse
-        # end
-        # SciMLBase.ODEFunction(rhs!, jac_prototype=float.(jac_prototype), colorvec=colorvec, jac = jac_sparse_func!)
-        #
-        # which turned out (for the considered problems) to be significantly slower than 
-        # just using the prototype and the coloring vector. 
-
         return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
     else
         return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
