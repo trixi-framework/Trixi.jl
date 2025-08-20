@@ -76,12 +76,12 @@ end
 # Steady state
 function (setup::WarmBubbleSetup)(x, ::CompressibleEulerEquationsNCGravity3D)
     @unpack g, c_p, c_v = setup
-lambda, phi, r = cart_to_sphere(x)
-z = r - 1e5
+    _, _, r = cart_to_sphere(x)
+    z = r - 1e5
     # Geopotential
-    phi = g * z
+    geopot = g * z
 
-    return SVector(phi)
+    return SVector(geopot)
 end
 
 function cart_to_sphere(x)
@@ -196,14 +196,14 @@ save_solution = SaveSolutionCallback(dt = 10.0, #interval = 1, #dt = 10.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
-                                     output_directory="out_bubble_3d_nc_curved_amr")
+                                     output_directory="out_bubble_curved_nc")
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
-                        amr_callback,
+                        #amr_callback,
                         stepsize_callback)
 
 ###############################################################################
