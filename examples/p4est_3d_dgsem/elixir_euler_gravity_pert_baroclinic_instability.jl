@@ -41,21 +41,15 @@ function initial_condition_baroclinic_instability(x, t,
     u_perturbation, v_perturbation = perturbation_stream_function(lon, lat, z)
 
     # Convert spherical velocity to Cartesian
-    v1 = -sin(lon) * u_perturbation - sin(lat) * cos(lon) * v_perturbation
-    v2 = cos(lon) * u_perturbation - sin(lat) * sin(lon) * v_perturbation
-    v3 = cos(lat) * v_perturbation
+    v1 = v1_ref + -sin(lon) * u_perturbation - sin(lat) * cos(lon) * v_perturbation
+    v2 = v2_ref + cos(lon) * u_perturbation - sin(lat) * sin(lon) * v_perturbation
+    v3 = v3_ref + cos(lat) * v_perturbation
 
     # geopotential
-    #phi = gravitational_acceleration * (2 * radius_earth - radius_earth^2 / r)
+    phi = gravitational_acceleration * (2 * radius_earth - radius_earth^2 / r)
 
-    # explicitly calculate the perturbation
-    E_pert = 0.5 * rho * (2 * v1_ref * v1 + v1^2
-                        + 2 * v2_ref * v2 + v2^2
-                        + 2 * v3_ref * v3 + v3^2 )
-    return SVector(0, rho * v1, rho * v2, rho * v3, E_pert)
-    #return Trixi.prim2cons_geopot(SVector(rho, v1, v2, v3, p), phi, equations)
-    # -
-    #       Trixi.prim2cons_geopot(SVector(rho, v1_ref, v2_ref, v3_ref, p), phi, equations)
+    return Trixi.prim2cons_geopot(SVector(rho, v1, v2, v3, p), phi, equations) -
+           Trixi.prim2cons_geopot(SVector(rho, v1_ref, v2_ref, v3_ref, p), phi, equations)
 end
 
 # Steady state for RHS correction below
@@ -76,6 +70,7 @@ function steady_state_baroclinic_instability(x,equations::CompressibleEulerEquat
     v3 = 0.0
 
     # geopotential, steady as well
+    # TODO: 2 * ?
     phi = gravitational_acceleration * (2 * radius_earth - radius_earth^2 / r)
 
     return vcat(Trixi.prim2cons_geopot(SVector(rho, v1, v2, v3, p), phi, equations), phi)
@@ -256,27 +251,22 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 500
+analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-
-save_solution = SaveSolutionCallback(dt = 100, #interval = 5000,
+save_solution = SaveSolutionCallback(dt = 1000, #interval = 5000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim_total,
-                                     output_directory="out_baroclinic_gp_test_tot")
+                                     output_directory="out_baroclinic_gravity_perturbation")
 
-save_solution2 = SaveSolutionCallback(dt = 100, #interval = 5000,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim_pert,
-                                     output_directory="out_baroclinic_gp_test_pert")
-
-#save_restart = SaveRestartCallback(interval = 100000,
-#                                   save_final_restart = true,
-#                                   output_directory = output)
+#save_solution2 = SaveSolutionCallback(dt = 100, #interval = 5000,
+#                                     save_initial_solution = true,
+#                                     save_final_solution = true,
+#                                     solution_variables = cons2prim_pert,
+#                                     output_directory="out_baroclinic_gp_test_pert")
 
 amr_indicator = IndicatorMax(semi, variable = vel_mag)
 
@@ -293,7 +283,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 callbacks = CallbackSet(summary_callback,
                         #amr_callback,
                         analysis_callback, alive_callback,
-                        save_solution, save_solution2)
+                        save_solution)
 
 ###############################################################################
 # run the simulation
