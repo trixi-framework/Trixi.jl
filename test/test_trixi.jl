@@ -118,7 +118,7 @@ macro test_nowarn_mod(expr, additional_ignore_content = [])
             # NOTE: These warnings arose from Julia 1.10 onwards
             r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
             # Locally defined module gets replaced/overwritten
-            r"WARNING: replacing module .*.\n)",
+            r"WARNING: replacing module .*.\n",
             # Warnings from third party packages
             r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
             r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
