@@ -788,9 +788,9 @@ end
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
 
-@trixi_testset "elixir_euler_OMNERA_M6_wing.jl" begin
+@trixi_testset "elixir_euler_ONERA_M6_wing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_OMNERA_M6_wing.jl"),
+                                 "elixir_euler_ONERA_M6_wing.jl"),
                         l2=[
                             1.3302852203314697e-7,
                             7.016342225152883e-8,
