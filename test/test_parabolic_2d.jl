@@ -869,18 +869,18 @@ end
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
-                                 tspan=(0.0, 0.1),
+                        tspan=(0.0, 0.1),
                         l2=[
-                            0.0065651548865949556,
-                            0.005095321719983898,
-                            3.581942361738427e-5,
-                            0.0055182642123342
+                            3.42748644991602e-5,
+                            2.5929914323049254e-5,
+                            3.320624732423191e-10,
+                            2.853483829000886e-5
                         ],
                         linf=[
-                            0.032598680917245826,
-                            0.02246663207410171,
-                            0.0009383062266496081,
-                            0.024308186569039547
+                            0.0001869124748734574,
+                            0.00014018080282174328,
+                            6.605711572371913e-9,
+                            0.00014458925257399002
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
