@@ -192,11 +192,11 @@ end
     # Here, the diffusive flux is given by
     # [0,                       [0, 
     #  mu * τ,                =  mu * dv/dx,
-    #  mu * (v * τ + q1)]        mu * (v * dv/dx + kappa * dT/dx)]
+    #  mu * (v * τ - q)]        mu * (v * dv/dx + kappa * dT/dx)]
     # which can be rewritten as 
     # [0, 0, 0
     #  0, mu, 0,
-    #  0, mu * v, mu * q1] * grad(u) .
+    #  0, mu * v, mu * q] * grad(u) .
     # Thus, the eigenvalues of the diffusivity matrix are {0, mu, mu * kappa}.
     return dynamic_viscosity(u, equations_parabolic) * max(1, equations_parabolic.kappa)
 end
