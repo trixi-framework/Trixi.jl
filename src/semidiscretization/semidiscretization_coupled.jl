@@ -369,6 +369,8 @@ function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
         calculate_dt(u_ode_slice, t, cfl_convective_, cfl_diffusive_, semi.semis[i])
     end
+
+    return dt
 end
 
 function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
