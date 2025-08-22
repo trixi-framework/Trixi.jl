@@ -194,7 +194,7 @@ end
     #
     # [0,                       [0, 
     #  mu * τ,                =  mu * dv/dx,
-    #  mu * (v * τ - q)]         mu * (v * dv/dx + kappa * dT/dx)]
+    #  mu * (v * τ - q)]         mu * (v * dv/dx -(- kappa * dT/dx))]
     #
     # which can be rewritten as 
     #
