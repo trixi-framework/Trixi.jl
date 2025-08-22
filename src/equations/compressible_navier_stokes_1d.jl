@@ -201,7 +201,7 @@ end
     #  0, mu * v, -mu * q] * grad(u) .
     #
     # Thus, the eigenvalues of the diffusivity matrix are {0, mu, -mu * kappa}.
-    # Thus, the spectral radius/largest absolute eigenvalue can be comouted as
+    # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as
     return dynamic_viscosity(u, equations_parabolic) * max(1, equations_parabolic.kappa)
 end
 
