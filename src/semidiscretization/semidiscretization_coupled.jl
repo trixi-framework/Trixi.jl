@@ -360,14 +360,34 @@ function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive::Real,
 
     return dt
 end
+# Case for `cfl_convective` as a function of time `t`, `cfl_diffusive` as a constant.
+function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive::Real,
+                      semi::SemidiscretizationCoupled)
+    dt = minimum(eachsystem(semi)) do i
+        u_ode_slice = get_system_u_ode(u_ode, i, semi)
+        calculate_dt(u_ode_slice, t, cfl_convective(t), cfl_diffusive, semi.semis[i])
+    end
+
+    return dt
+end
+
+# Case for `cfl_convective` as a constant, `cfl_diffusive` as a function of time `t`.
+function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive,
+                      semi::SemidiscretizationCoupled)
+    dt = minimum(eachsystem(semi)) do i
+        u_ode_slice = get_system_u_ode(u_ode, i, semi)
+        calculate_dt(u_ode_slice, t, cfl_convective, cfl_diffusive(t), semi.semis[i])
+    end
+
+    return dt
+end
+
 # Case for `cfl_convective`, `cfl_diffusive` as a function of time `t`.
 function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
                       semi::SemidiscretizationCoupled)
-    cfl_convective_ = cfl_convective(t)
-    cfl_diffusive_ = cfl_diffusive(t)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_convective_, cfl_diffusive_, semi.semis[i])
+        calculate_dt(u_ode_slice, t, cfl_convective(t), cfl_diffusive(t), semi.semis[i])
     end
 
     return dt
