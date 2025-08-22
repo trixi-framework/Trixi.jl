@@ -184,15 +184,17 @@ end
 
 @inline function max_diffusivity(u,
                                  equations_parabolic::CompressibleNavierStokesDiffusion1D)
-    # For the diffusive estimate we use the eigenvalues of the diffusivity matrix, as suggested in
-
+    # For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
+    # as suggested in Section 3.5 of 
+    #
     # FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
     # https://doi.org/10.1016/j.camwa.2020.05.004
-
+    #
     # Here, the diffusive flux is given by
+    #
     # [0,                       [0, 
     #  mu * τ,                =  mu * dv/dx,
-    #  mu * (v * τ - q)]        mu * (v * dv/dx + kappa * dT/dx)]
+    #  mu * (v * τ - q)]         mu * (v * dv/dx + kappa * dT/dx)]
     #
     # which can be rewritten as 
     #
