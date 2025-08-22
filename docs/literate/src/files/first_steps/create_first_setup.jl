@@ -20,15 +20,15 @@
 # The first step is to create and open a file with the .jl extension. You can do this with your
 # favorite text editor (if you do not have one, we recommend [VS Code](https://code.visualstudio.com/)).
 # In this file, you will create your setup. The file can then be executed in Julia using, for example, `trixi_include()`.
-# Alternatively, you can execute each line of the following code one by one in the 
+# Alternatively, you can execute each line of the following code one by one in the
 # Julia REPL. This will generate useful output for nearly every
 # command and improve your comprehension of the process.
 
 # To be able to use functionalities of Trixi.jl, you always need to load Trixi.jl itself
-# and the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package.
+# and the [OrdinaryDiffEqSSPRK.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package.
 
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 
 # The next thing to do is to choose an equation that is suitable for your problem. To see all the
 # currently implemented equations, take a look at
@@ -60,7 +60,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # All minimum and all maximum coordinates must be combined into `Tuples`.
 
 coordinates_min = (-1.0, -1.0)
-coordinates_max = ( 1.0,  1.0)
+coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 30_000)
@@ -72,7 +72,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # in the weak formulation `DGSEM` initializes the surface flux as `flux_central` and uses the physical flux for
 # the volume integral.
 
-solver = DGSEM(polydeg=3)
+solver = DGSEM(polydeg = 3)
 
 # Now we need to define an initial condition for our problem. All the already implemented
 # initial conditions for [`LinearScalarAdvectionEquation2D`](@ref) can be found in
@@ -92,7 +92,7 @@ solver = DGSEM(polydeg=3)
 # condition, but might also be used to describe an analytical solution if known. If you use the
 # initial condition as analytical solution, you can analyze your numerical solution by computing
 # the error, see also the
-# [section about analyzing the solution](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/#Analyzing-the-numerical-solution).
+# [section about analyzing the solution](https://trixi-framework.github.io/TrixiDocumentation/stable/callbacks/#Analyzing-the-numerical-solution).
 
 function initial_condition_sinpi(x, t, equations::LinearScalarAdvectionEquation2D)
     u = sinpi(x[1]) * sinpi(x[2])
@@ -108,7 +108,7 @@ initial_condition = initial_condition_sinpi
 # equation itself as arguments and returns the source term as a static vector `SVector`.
 
 function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation2D)
-    u = - 2 * exp(-t) * sinpi(2*(x[1] - t)) * sinpi(2*(x[2] - t))
+    u = -2 * exp(-t) * sinpi(2 * (x[1] - t)) * sinpi(2 * (x[2] - t))
     return SVector(u)
 end
 
@@ -118,7 +118,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_term_exp_sinpi)
 
 # which leaves us with an ODE problem in time with a span from `0.0` to `1.0`.
-# This approach is commonly referred to as the method of lines. 
+# This approach is commonly referred to as the method of lines.
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
@@ -165,7 +165,7 @@ save_solution = SaveSolutionCallback(interval = 20,
                                      save_initial_solution = true,
                                      save_final_solution = true)
 
-# Alternatively, we have the option to print solution files at fixed time intervals. 
+# Alternatively, we have the option to print solution files at fixed time intervals.
 # ```julua
 # save_solution = SaveSolutionCallback(dt = 0.1,
 #                                      save_initial_solution = true,
@@ -182,7 +182,8 @@ save_restart = SaveRestartCallback(interval = 100, save_final_restart = true)
 # Create a `CallbackSet` to collect all callbacks so that they can be passed to the `solve`
 # function.
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback,
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        stepsize_callback,
                         save_solution, save_restart);
 
 # The last step is to choose the time integration method. OrdinaryDiffEq.jl defines a wide range of
@@ -191,25 +192,19 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, ste
 # the ODE problem, the ODE solver and the callbacks to the `solve` function. Also, to use
 # `StepsizeCallback`, we must explicitly specify the initial trial time step `dt`, the selected
 # value is not important, because it will be overwritten by the `StepsizeCallback`. And there is no
-# need to save every step of the solution, as we are only interested the output provided by 
+# need to save every step of the solution, as we are only interested the output provided by
 # our callback [`SaveSolutionCallback`](@ref).
 
-sol = solve(ode, SSPRK33(); dt = 1.0, save_everystep = false, callback = callbacks);
-
-# Finally, we print the timer summary.
-
-summary_callback()
+sol = solve(ode, SSPRK33(); dt = 1.0, ode_default_options()..., callback = callbacks);
 
 # Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or
 # efficiency of your setup.
-
 
 # ## Visualize the solution
 
 # In the previous part of the tutorial, we calculated the final solution of the given problem, now we want
 # to visualize it. A more detailed explanation of visualization methods can be found in the section
 # [Visualization](@ref visualization).
-
 
 # ### Using Plots.jl
 
@@ -243,7 +238,6 @@ plot(pd["scalar"])
 
 plot!(getmesh(pd))
 
-
 # ### Using Trixi2Vtk.jl
 
 # Another way to visualize a solution is to extract it from a saved HDF5 file. After we used the
@@ -265,7 +259,7 @@ plot!(getmesh(pd))
 # `out` folder.
 
 using Trixi2Vtk
-trixi2vtk(joinpath("out", "solution_000000032.h5"), output_directory="out")
+trixi2vtk(joinpath("out", "solution_000000032.h5"), output_directory = "out")
 
 # Now two files `solution_000000032.vtu` and `solution_000000032_celldata.vtu` have been generated in the
 # `out` folder. The first one contains all the information for visualizing the solution, the
@@ -293,4 +287,4 @@ trixi2vtk(joinpath("out", "solution_000000032.h5"), output_directory="out")
 # Trixi.jl. If you have an interest in contributing to Trixi.jl as a developer, refer to the third
 # part of the introduction titled [Changing Trixi.jl itself](@ref changing_trixi).
 
-Sys.rm("out"; recursive=true, force=true) #hide #md
+Sys.rm("out"; recursive = true, force = true) #hide #md

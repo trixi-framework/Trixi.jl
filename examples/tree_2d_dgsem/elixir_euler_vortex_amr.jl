@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # define new structs inside a module to allow re-evaluating the file
@@ -27,13 +26,12 @@ function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any, 4},
                                              t, kwargs...)
     mesh = indicator_vortex.cache.mesh
     alpha = indicator_vortex.cache.alpha
-    indicator_threaded = indicator_vortex.cache.indicator_threaded
     resize!(alpha, nelements(dg, cache))
 
-    # get analytical vortex center (based on assumption that center=[0.0,0.0]
+    # get analytical vortex center (based on assumption that center=[0.0, 0.0]
     # at t=0.0 and that we stop after one period)
     domain_length = mesh.tree.length_level_0
-    if t < 0.5 * domain_length
+    if t < 0.5f0 * domain_length
         center = (t, t)
     else
         center = (t - domain_length, t - domain_length)
@@ -55,6 +53,11 @@ function periodic_distance_2d(coordinates, center, domain_length)
     dx = @. abs(coordinates - center)
     dx_periodic = @. min(dx, domain_length - dx)
     return sqrt(sum(abs2, dx_periodic))
+end
+
+# Optional: Nicer display of the indicator
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorVortex)
+    Trixi.summary_box(io, "IndicatorVortex")
 end
 
 end # module TrixiExtension
@@ -80,17 +83,18 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     # for error convergence: make sure that the end time is such that the vortex is back at the initial state!!
     # for the current velocity and domain size: t_end should be a multiple of 20s
     # initial center of the vortex
-    inicenter = SVector(0.0, 0.0)
+    RealT = eltype(x)
+    inicenter = SVector(0, 0)
     # size and strength of the vortex
-    iniamplitude = 5.0
+    iniamplitude = 5
     # base flow
-    rho = 1.0
-    v1 = 1.0
-    v2 = 1.0
+    rho = 1
+    v1 = 1
+    v2 = 1
     vel = SVector(v1, v2)
-    p = 25.0
+    p = convert(RealT, 25)
     rt = p / rho                  # ideal gas equation
-    t_loc = 0.0
+    t_loc = 0
     cent = inicenter + vel * t_loc      # advection of center
     # ATTENTION: handle periodic BC, but only for v1 = v2 = 1.0 (!!!!)
 
@@ -100,7 +104,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     # cross product with iniaxis = [0, 0, 1]
     cent = SVector(-cent[2], cent[1])
     r2 = cent[1]^2 + cent[2]^2
-    du = iniamplitude / (2 * π) * exp(0.5 * (1 - r2)) # vel. perturbation
+    du = iniamplitude / (2 * convert(RealT, pi)) * exp(0.5f0 * (1 - r2)) # vel. perturbation
     dtemp = -(equations.gamma - 1) / (2 * equations.gamma * rt) * du^2 # isentropic
     rho = rho * (1 + dtemp)^(1 / (equations.gamma - 1))
     vel = vel + du * cent
@@ -110,7 +114,14 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 initial_condition = initial_condition_isentropic_vortex
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
@@ -139,10 +150,39 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+# Add `:temperature` to `extra_node_variables` tuple ...
+extra_node_variables = (:temperature,)
+
+# ... and specify the function `get_node_variable` for this symbol, 
+# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
+function Trixi.get_node_variable(::Val{:temperature}, u, mesh, equations, dg, cache)
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, the variable must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    temp_array = zeros(eltype(cache.elements),
+                       n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                       n_elements)
+
+    # We can accelerate the computation by thread-parallelizing the loop over elements
+    # by using the `@threaded` macro.
+    Trixi.@threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            rho, _, _, p = prim2cons(u_node, equations)
+            temp = p / rho # ideal gas equation with R = 1
+
+            temp_array[i, j, element] = temp
+        end
+    end
+
+    return temp_array
+end
 save_solution = SaveSolutionCallback(interval = 50,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = extra_node_variables) # Supply the additional `extra_node_variables` here
 
 amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorVortex(semi),
                                       base_level = 3,
@@ -163,7 +203,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

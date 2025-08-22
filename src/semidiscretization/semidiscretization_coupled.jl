@@ -16,7 +16,8 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-struct SemidiscretizationCoupled{S, Indices, EquationList} <: AbstractSemidiscretization
+mutable struct SemidiscretizationCoupled{S, Indices, EquationList} <:
+               AbstractSemidiscretization
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
@@ -350,7 +351,7 @@ end
 ################################################################################
 
 # In case of coupled system, use minimum timestep over all systems
-function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
+function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive::Real,
                       semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
@@ -359,9 +360,19 @@ function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
 
     return dt
 end
+# Case for `cfl_convective`, `cfl_diffusive` as a function of time `t`.
+function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
+                      semi::SemidiscretizationCoupled)
+    cfl_convective_ = cfl_convective(t)
+    cfl_diffusive_ = cfl_diffusive(t)
+    dt = minimum(eachsystem(semi)) do i
+        u_ode_slice = get_system_u_ode(u_ode, i, semi)
+        calculate_dt(u_ode_slice, t, cfl_convective_, cfl_diffusive_, semi.semis[i])
+    end
+end
 
 function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
-                                glm_speed_callback, dt)
+                                glm_speed_callback, dt, t)
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
     if length(semi_indices) == 0
@@ -376,15 +387,25 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
         end
     end
 
+    if cfl isa Real # Case for constant CFL
+        cfl_number = cfl
+    else # Variable CFL
+        cfl_number = cfl(t)
+    end
+
     for semi_index in semi_indices
         semi = semi_coupled.semis[semi_index]
         mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number,
+                                                mesh, equations, solver, cache)
 
         # c_h is proportional to its own time step divided by the complete MHD time step
-        equations.c_h = glm_scale * c_h_deltat / dt
+        # We use @reset here since the equations are immutable (to work on GPUs etc.).
+        # Thus, we need to modify the equations field of the semidiscretization.
+        @reset equations.c_h = glm_scale * c_h_deltat / dt
+        semi.equations = equations
     end
 
     return semi_coupled
@@ -486,14 +507,12 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
         # add the non-conservative one with a factor of 1/2.
         if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
             flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
-                                             equations) +
-                    0.5 *
+                                             equations),
                     surface_flux_function[2](u_inner, u_boundary, orientation,
                                              equations))
         else # u_boundary is "left" of boundary, u_inner is "right" of boundary
             flux = (surface_flux_function[1](u_boundary, u_inner, orientation,
-                                             equations) +
-                    0.5 *
+                                             equations),
                     surface_flux_function[2](u_boundary, u_inner, orientation,
                                              equations))
         end
@@ -627,6 +646,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
             j_node += j_node_step
         end
     end
+
+    return nothing
 end
 
 ################################################################################
@@ -638,6 +659,7 @@ end
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
+                                                  nonconservative_terms::False,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
@@ -668,6 +690,52 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
     end
+
+    return nothing
+end
+
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+                                                  orientation,
+                                                  boundary_condition::BoundaryConditionCoupled,
+                                                  mesh::Union{StructuredMesh,
+                                                              StructuredMeshView},
+                                                  nonconservative_terms::True,
+                                                  equations,
+                                                  surface_integral, dg::DG, cache,
+                                                  direction, node_indices,
+                                                  surface_node_indices, element)
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack surface_flux = surface_integral
+
+    cell_indices = get_boundary_indices(element, orientation, mesh)
+
+    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+
+    # If the mapping is orientation-reversing, the contravariant vectors' orientation
+    # is reversed as well. The normal vector must be oriented in the direction
+    # from `left_element` to `right_element`, or the numerical flux will be computed
+    # incorrectly (downwind direction).
+    sign_jacobian = sign(inverse_jacobian[node_indices..., element])
+
+    # Contravariant vector Ja^i is the normal vector
+    normal = sign_jacobian *
+             get_contravariant_vector(orientation, contravariant_vectors,
+                                      node_indices..., element)
+
+    # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
+    # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
+    flux, noncons_flux = boundary_condition(u_inner, normal, direction, cell_indices,
+                                            surface_node_indices, surface_flux,
+                                            equations)
+
+    for v in eachvariable(equations)
+        surface_flux_values[v, surface_node_indices..., direction, element] = sign_jacobian *
+                                                                              (flux[v] +
+                                                                               0.5f0 *
+                                                                               noncons_flux[v])
+    end
+
+    return nothing
 end
 
 function get_boundary_indices(element, orientation,

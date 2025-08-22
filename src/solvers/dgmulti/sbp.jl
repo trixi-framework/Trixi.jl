@@ -135,8 +135,8 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
                   periodicity)
 
     boundary_faces = []
-    return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(boundary_faces)}(md,
-                                                                                   boundary_faces)
+    return DGMultiMesh{NDIMS, rd.element_type, typeof(md),
+                       typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
@@ -154,9 +154,8 @@ function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
 end
 
 # do nothing for interface terms if using a periodic operator
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
-                             surface_integral, dg::DGMultiPeriodicFDSBP)
+function prolong2interfaces!(cache, u,
+                             mesh::DGMultiMesh, equations, dg::DGMultiPeriodicFDSBP)
     @assert nelements(mesh, dg, cache) == 1
     nothing
 end
@@ -221,7 +220,10 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                 for id in nzrange(A_base, i)
                     j = rows[id]
                     u_j = u[j]
-                    A_ij = vals[id]
+
+                    # we use the negative of A_ij since A is skew-symmetric, 
+                    # and we are accessing the transpose of A. 
+                    A_ij = -vals[id]
                     AF_ij = 2 * A_ij *
                             volume_flux(u_i, u_j, normal_direction, equations)
                     du_i = du_i + AF_ij

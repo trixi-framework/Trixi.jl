@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -20,9 +19,10 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # Excite the electric field which causes a standing wave.
 # The solution is an undamped exchange between electric and magnetic energy.
 function initial_condition_E_excitation(x, t, equations::MaxwellEquations1D)
+    RealT = eltype(x)
     c = equations.speed_of_light
-    E = -c * sin(2 * pi * x[1])
-    B = 0.0
+    E = -c * sinpi(2 * x[1])
+    B = 0
 
     return SVector(E, B)
 end
@@ -35,7 +35,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 # As the wave speed is equal to the speed of light which is on the order of 3 * 10^8
 # we consider only a small time horizon.
-ode = semidiscretize(semi, (0.0, 1e-7));
+ode = semidiscretize(semi, (0.0, 1e-7))
 
 summary_callback = SummaryCallback()
 
@@ -51,9 +51,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

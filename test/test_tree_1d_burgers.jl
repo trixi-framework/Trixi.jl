@@ -40,8 +40,8 @@ end
 
 @trixi_testset "elixir_burgers_shock.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_shock.jl"),
-                        l2=[0.4422505602587537],
-                        linf=[1.0000000000000009])
+                        l2=[0.4429871964104191],
+                        linf=[1.007778754747701])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

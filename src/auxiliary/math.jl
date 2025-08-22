@@ -8,18 +8,42 @@
 const TRIXI_UUID = UUID("a7f1ee26-1774-49b1-8366-f1abc58fbfcb")
 
 """
-    Trixi.set_polyester!(toggle::Bool; force = true)
+    Trixi.set_threading_backend!(backend::Symbol; force = true)
 
-Toggle the usage of [Polyester.jl](https://github.com/JuliaSIMD/Polyester.jl) for multithreading.
-By default, Polyester.jl is enabled, but it can
+Toggle and/or switch backend behavior used in multithreaded loops inside Trixi.jl.
+The selected backend affects the behavior of Trixi.jl's [`@threaded`](@ref) macro, which is used
+throughout the codebase for parallel loops. By default, Polyester.jl is enabled for
+optimal performance, but switching backends can be useful for comparisons or debugging.
+
+# Available backends
+- `:polyester`: Uses the default [Polyester.jl](https://github.com/JuliaSIMD/Polyester.jl)
+- `:static`: Uses Julia's built-in static thread scheduling via `Threads.@threads :static`
+- `:serial`: Disables threading, executing loops serially
+- `:kernelabstractions`: Preferentially use the [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl)
+  kernels written in Trixi.jl, falling back to `:static` execution.
+"""
+function set_threading_backend!(backend::Symbol = :polyester; force = true)
+    valid_backends = (:polyester, :static, :serial, :kernelabstractions)
+    if !(backend in valid_backends)
+        throw(ArgumentError("Invalid threading backend: $(backend). Current options are: $(join(valid_backends, ", "))"))
+    end
+    set_preferences!(TRIXI_UUID, "backend" => string(backend), force = force)
+    @info "Please restart Julia and reload Trixi.jl for the `backend` change to take effect"
+end
+
+"""
+    Trixi.set_loop_vectorization!(toggle::Bool; force = true)
+
+Toggle the usage of [LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl).
+By default, LoopVectorization.jl is enabled, but it can
 be useful for performance comparisons to switch to the Julia core backend.
 
-This does not fully disable Polyester.jl,
-buy only its use as part of Trixi.jl's `@threaded` macro.
+This does not fully disable LoopVectorization.jl,
+but only its internal use as part of Trixi.jl.
 """
-function set_polyester!(toggle::Bool; force = true)
-    set_preferences!(TRIXI_UUID, "polyester" => toggle, force = force)
-    @info "Please restart Julia and reload Trixi.jl for the `polyester` change to take effect"
+function set_loop_vectorization!(toggle::Bool; force = true)
+    set_preferences!(TRIXI_UUID, "loop_vectorization" => toggle, force = force)
+    @info "Please restart Julia and reload Trixi.jl for the `loop_vectorization` change to take effect"
 end
 
 """
@@ -36,9 +60,6 @@ function set_sqrt_type!(type; force = true)
     set_preferences!(TRIXI_UUID, "sqrt" => type, force = force)
     @info "Please restart Julia and reload Trixi.jl for the `sqrt` computation change to take effect"
 end
-
-# TODO: deprecation introduced in v0.8
-@deprecate set_sqrt_type(type; force = true) set_sqrt_type!(type; force = true) false
 
 @static if _PREFERENCE_SQRT == "sqrt_Trixi_NaN"
     """
@@ -91,9 +112,6 @@ function set_log_type!(type; force = true)
     @info "Please restart Julia and reload Trixi.jl for the `log` computation change to take effect"
 end
 
-# TODO: deprecation introduced in v0.8
-@deprecate set_log_type(type; force = true) set_log_type!(type; force = true) false
-
 @static if _PREFERENCE_LOG == "log_Trixi_NaN"
     """
         Trixi.log(x::Real)
@@ -124,7 +142,7 @@ end
 end
 
 """
-    ln_mean(x, y)
+    Trixi.ln_mean(x::Real, y::Real)
 
 Compute the logarithmic mean
 
@@ -171,18 +189,24 @@ Given ε = 1.0e-4, we use the following algorithm.
   for Intel, AMD, and VIA CPUs.
   [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
-@inline function ln_mean(x, y)
-    epsilon_f2 = 1.0e-4
+@inline ln_mean(x::Real, y::Real) = ln_mean(promote(x, y)...)
+
+@inline function ln_mean(x::RealT, y::RealT) where {RealT <: Real}
+    epsilon_f2 = convert(RealT, 1.0e-4)
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
-        return (x + y) / @evalpoly(f2, 2, 2/3, 2/5, 2/7)
+        return (x + y) / @evalpoly(f2,
+                         2,
+                         convert(RealT, 2 / 3),
+                         convert(RealT, 2 / 5),
+                         convert(RealT, 2 / 7))
     else
         return (y - x) / log(y / x)
     end
 end
 
 """
-    inv_ln_mean(x, y)
+    Trixi.inv_ln_mean(x::Real, y::Real)
 
 Compute the inverse `1 / ln_mean(x, y)` of the logarithmic mean
 [`ln_mean`](@ref).
@@ -191,11 +215,17 @@ This function may be used to increase performance where the inverse of the
 logarithmic mean is needed, by replacing a (slow) division by a (fast)
 multiplication.
 """
-@inline function inv_ln_mean(x, y)
-    epsilon_f2 = 1.0e-4
+@inline inv_ln_mean(x::Real, y::Real) = inv_ln_mean(promote(x, y)...)
+
+@inline function inv_ln_mean(x::RealT, y::RealT) where {RealT <: Real}
+    epsilon_f2 = convert(RealT, 1.0e-4)
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
-        return @evalpoly(f2, 2, 2/3, 2/5, 2/7) / (x + y)
+        return @evalpoly(f2,
+                         2,
+                         convert(RealT, 2 / 3),
+                         convert(RealT, 2 / 5),
+                         convert(RealT, 2 / 7)) / (x + y)
     else
         return log(y / x) / (y - x)
     end
@@ -272,8 +302,13 @@ end
 # when using `@fastmath`, which we also get from
 # [Fortran](https://godbolt.org/z/Yrsa1js7P)
 # or [C++](https://godbolt.org/z/674G7Pccv).
+#
+# Note however that such a custom reimplementation can cause incompatibilities with other
+# packages. Currently we are affected by an issue with MPI.jl on ARM, see
+# https://github.com/trixi-framework/Trixi.jl/issues/1922
+# The workaround is to resort to Base.min / Base.max when using MPI reductions.
 """
-    max(x, y, ...)
+    Trixi.max(x, y, ...)
 
 Return the maximum of the arguments. See also the `maximum` function to take
 the maximum element from a collection.
@@ -292,7 +327,7 @@ julia> max(2, 5, 1)
 @inline max(args...) = @fastmath max(args...)
 
 """
-    min(x, y, ...)
+    Trixi.min(x, y, ...)
 
 Return the minimum of the arguments. See also the `minimum` function to take
 the minimum element from a collection.
@@ -311,7 +346,7 @@ julia> min(2, 5, 1)
 @inline min(args...) = @fastmath min(args...)
 
 """
-    positive_part(x)
+    Trixi.positive_part(x)
 
 Return `x` if `x` is positive, else zero. In other words, return
 `(x + abs(x)) / 2` for real numbers `x`.
@@ -321,7 +356,7 @@ Return `x` if `x` is positive, else zero. In other words, return
 end
 
 """
-    negative_part(x)
+    Trixi.negative_part(x)
 
 Return `x` if `x` is negative, else zero. In other words, return
 `(x - abs(x)) / 2` for real numbers `x`.
@@ -331,7 +366,7 @@ Return `x` if `x` is negative, else zero. In other words, return
 end
 
 """
-    stolarsky_mean(x, y, gamma)
+    Trixi.stolarsky_mean(x::Real, y:Real, gamma::Real)
 
 Compute an instance of a weighted Stolarsky mean of the form
 
@@ -382,15 +417,18 @@ Given ε = 1.0e-4, we use the following algorithm.
   for Intel, AMD, and VIA CPUs.
   [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
-@inline function stolarsky_mean(x, y, gamma)
-    epsilon_f2 = 1.0e-4
+@inline stolarsky_mean(x::Real, y::Real, gamma::Real) = stolarsky_mean(promote(x, y,
+                                                                               gamma)...)
+
+@inline function stolarsky_mean(x::RealT, y::RealT, gamma::RealT) where {RealT <: Real}
+    epsilon_f2 = convert(RealT, 1.0e-4)
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
         # convenience coefficients
-        c1 = (1 / 3) * (gamma - 2)
-        c2 = -(1 / 15) * (gamma + 1) * (gamma - 3) * c1
-        c3 = -(1 / 21) * (2 * gamma * (gamma - 2) - 9) * c2
-        return 0.5 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
+        c1 = convert(RealT, 1 / 3) * (gamma - 2)
+        c2 = convert(RealT, -1 / 15) * (gamma + 1) * (gamma - 3) * c1
+        c3 = convert(RealT, -1 / 21) * (2 * gamma * (gamma - 2) - 9) * c2
+        return 0.5f0 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
     else
         return (gamma - 1) / gamma * (y^gamma - x^gamma) /
                (y^(gamma - 1) - x^(gamma - 1))

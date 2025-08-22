@@ -105,6 +105,8 @@ function calc_node_coordinates!(node_coordinates, element,
         node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx / 2 * nodes[i],
                                                       cell_y_offset + dy / 2 * nodes[j])
     end
+
+    return nothing
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes

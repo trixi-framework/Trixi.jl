@@ -103,6 +103,8 @@ end
 
     # Values at element boundary
     calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi, mesh)
+
+    return nothing
 end
 
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
@@ -155,8 +157,11 @@ end
                 index = reverse(index)
                 boundary_index += 2
             end
-            u_outer = get_boundary_outer_state(boundary_conditions[boundary_index],
-                                               cache, t, equations, dg,
+            u_inner = get_node_vars(u, equations, dg, index..., element)
+            u_outer = get_boundary_outer_state(u_inner, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               mesh, equations, dg, cache,
                                                index..., element)
             var_outer = u_outer[variable]
 
@@ -207,6 +212,8 @@ end
 
     # Values at element boundary
     calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t, semi, mesh)
+
+    return nothing
 end
 
 @inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t,
@@ -258,8 +265,11 @@ end
                 index = reverse(index)
                 boundary_index += 2
             end
-            u_outer = get_boundary_outer_state(boundary_conditions[boundary_index],
-                                               cache, t, equations, dg,
+            u_inner = get_node_vars(u, equations, dg, index..., element)
+            u_outer = get_boundary_outer_state(u_inner, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               mesh, equations, dg, cache,
                                                index..., element)
             var_outer = variable(u_outer, equations)
 
@@ -322,9 +332,6 @@ end
                  max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
-
-            Qp = max(0, (var_max[i, j, element] - var) / dt)
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
 
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm
@@ -588,7 +595,7 @@ end
         # Check bounds
         if (beta < beta_L) || (beta > beta_R) || (dgoal_dbeta == 0) || isnan(beta)
             # Out of bounds, do a bisection step
-            beta = 0.5 * (beta_L + beta_R)
+            beta = 0.5f0 * (beta_L + beta_R)
             # Get new u
             u_curr = u + beta * dt * antidiffusive_flux
 

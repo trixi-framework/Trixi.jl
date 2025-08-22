@@ -51,13 +51,13 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
                                 0.1522380497572071,
                                 0.43830846465313206,
                                 0.03907262116499431,
-                                0.07814524232998862,
+                                0.07814524232998862
                             ],
                             linf=[
                                 0.24939193075537294,
                                 0.7139395740052739,
                                 0.06324208768391237,
-                                0.12648417536782475,
+                                0.12648417536782475
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -75,13 +75,13 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
                                 8.575236038539227e-5,
                                 0.00016387804318585358,
                                 1.9412699303977585e-5,
-                                3.882539860795517e-5,
+                                3.882539860795517e-5
                             ],
                             linf=[
                                 0.00030593277277124464,
                                 0.0006244803933350696,
                                 7.253121435135679e-5,
-                                0.00014506242870271358,
+                                0.00014506242870271358
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

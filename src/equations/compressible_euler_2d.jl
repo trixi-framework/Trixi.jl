@@ -201,7 +201,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     RealT = eltype(x)
     c = 2
     A = convert(RealT, 0.1)
-    ini = c + A * sin(convert(RealT, pi) * (x[1] + x[2] - t))
+    ini = c + A * sinpi(x[1] + x[2] - t)
     G = 1 # gravitational constant
 
     rho = ini
@@ -231,7 +231,7 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
     C_grav = -2 * G / convert(RealT, pi) # 2 == 4 / ndims
 
     x1, x2 = x
-    si, co = sincos(convert(RealT, pi) * (x1 + x2 - t))
+    si, co = sincospi(x1 + x2 - t)
     rhox = A * convert(RealT, pi) * co
     rho = c + A * si
 
@@ -262,7 +262,7 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
     C_grav = -2 * G / convert(RealT, pi) # 2 == 4 / ndims
 
     x1, x2 = x
-    si, co = sincos(convert(RealT, pi) * (x1 + x2 - t))
+    si, co = sincospi(x1 + x2 - t)
     rhox = A * convert(RealT, pi) * co
     rho = c + A * si
 
@@ -294,7 +294,7 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
-Should be used together with [`UnstructuredMesh2D`](@ref).
+Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), or [`T8codeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t,
@@ -354,7 +354,7 @@ Should be used together with [`TreeMesh`](@ref).
         normal_direction = SVector(zero(RealT), one(RealT))
     end
 
-    # compute and return the flux using `boundary_condition_slip_wall` routine above
+    # compute and return the flux using `boundary_condition_slip_wall` routine below
     return boundary_condition_slip_wall(u_inner, normal_direction, direction,
                                         x, t, surface_flux_function, equations)
 end
@@ -384,7 +384,7 @@ Should be used together with [`StructuredMesh`](@ref).
     return boundary_flux
 end
 
-# Calculate 2D flux for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
     v1 = rho_v1 / rho
@@ -404,7 +404,7 @@ end
     return SVector(f1, f2, f3, f4)
 end
 
-# Calculate 2D flux for a single point in the normal direction
+# Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::CompressibleEulerEquations2D)
@@ -1410,7 +1410,7 @@ end
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
@@ -1431,6 +1431,50 @@ end
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::CompressibleEulerEquations2D)
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    # Get the velocity value in the appropriate direction
+    if orientation == 1
+        v_ll = v1_ll
+        v_rr = v1_rr
+    else # orientation == 2
+        v_ll = v2_ll
+        v_rr = v2_rr
+    end
+    # Calculate sound speeds
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::CompressibleEulerEquations2D)
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    # Calculate normal velocities and sound speeds
+    # left
+    v_ll = (v1_ll * normal_direction[1]
+            +
+            v2_ll * normal_direction[2])
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    # right
+    v_rr = (v1_rr * normal_direction[1]
+            +
+            v2_rr * normal_direction[2])
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    norm_ = norm(normal_direction)
+    return max(abs(v_ll) + c_ll * norm_,
+               abs(v_rr) + c_rr * norm_)
 end
 
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
@@ -1505,6 +1549,95 @@ end
     λ_max = max(v_normal_ll + c_ll, v_normal_rr + c_rr)
 
     return λ_min, λ_max
+end
+
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
+                                                             normal_direction::AbstractVector,
+                                                             equations::CompressibleEulerEquations2D)
+    (; gamma) = equations
+
+    norm_ = norm(normal_direction)
+    unit_normal_direction = normal_direction / norm_
+
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    b_ll = rho_ll / (2 * p_ll)
+    b_rr = rho_rr / (2 * p_rr)
+
+    rho_log = ln_mean(rho_ll, rho_rr)
+    b_log = ln_mean(b_ll, b_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    p_avg = 0.5f0 * (rho_ll + rho_rr) / (b_ll + b_rr) # 2 * b_avg = b_ll + b_rr
+    v_squared_bar = v1_ll * v1_rr + v2_ll * v2_rr
+    h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5f0 * v_squared_bar
+    c_bar = sqrt(gamma * p_avg / rho_log)
+
+    v_avg_normal = dot(SVector(v1_avg, v2_avg), unit_normal_direction)
+
+    lambda_1 = abs(v_avg_normal - c_bar) * rho_log / (2 * gamma)
+    lambda_2 = abs(v_avg_normal) * rho_log * (gamma - 1) / gamma
+    lambda_3 = abs(v_avg_normal + c_bar) * rho_log / (2 * gamma)
+    lambda_4 = abs(v_avg_normal) * p_avg
+
+    v1_minus_c = v1_avg - c_bar * unit_normal_direction[1]
+    v2_minus_c = v2_avg - c_bar * unit_normal_direction[2]
+    v1_plus_c = v1_avg + c_bar * unit_normal_direction[1]
+    v2_plus_c = v2_avg + c_bar * unit_normal_direction[2]
+    v1_tangential = v1_avg - v_avg_normal * unit_normal_direction[1]
+    v2_tangential = v2_avg - v_avg_normal * unit_normal_direction[2]
+
+    entropy_vars_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
+    entropy_var_rho_jump, entropy_var_rho_v1_jump,
+    entropy_var_rho_v2_jump, entropy_var_rho_e_jump = entropy_vars_jump
+
+    velocity_minus_c_dot_entropy_vars_jump = v1_minus_c * entropy_var_rho_v1_jump +
+                                             v2_minus_c * entropy_var_rho_v2_jump
+    velocity_plus_c_dot_entropy_vars_jump = v1_plus_c * entropy_var_rho_v1_jump +
+                                            v2_plus_c * entropy_var_rho_v2_jump
+    velocity_avg_dot_vjump = v1_avg * entropy_var_rho_v1_jump +
+                             v2_avg * entropy_var_rho_v2_jump
+    w1 = lambda_1 * (entropy_var_rho_jump + velocity_minus_c_dot_entropy_vars_jump +
+          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+    w2 = lambda_2 * (entropy_var_rho_jump + velocity_avg_dot_vjump +
+          v_squared_bar / 2 * entropy_var_rho_e_jump)
+    w3 = lambda_3 * (entropy_var_rho_jump + velocity_plus_c_dot_entropy_vars_jump +
+          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+
+    entropy_var_v_normal_jump = dot(SVector(entropy_var_rho_v1_jump,
+                                            entropy_var_rho_v2_jump),
+                                    unit_normal_direction)
+
+    dissipation_rho = w1 + w2 + w3
+
+    dissipation_rho_v1 = (w1 * v1_minus_c +
+                          w2 * v1_avg +
+                          w3 * v1_plus_c +
+                          lambda_4 * (entropy_var_rho_v1_jump -
+                           unit_normal_direction[1] * entropy_var_v_normal_jump +
+                           entropy_var_rho_e_jump * v1_tangential))
+
+    dissipation_rho_v2 = (w1 * v2_minus_c +
+                          w2 * v2_avg +
+                          w3 * v2_plus_c +
+                          lambda_4 * (entropy_var_rho_v2_jump -
+                           unit_normal_direction[2] * entropy_var_v_normal_jump +
+                           entropy_var_rho_e_jump * v2_tangential))
+
+    v_tangential_dot_entropy_vars_jump = v1_tangential * entropy_var_rho_v1_jump +
+                                         v2_tangential * entropy_var_rho_v2_jump
+
+    dissipation_rhoe = (w1 * (h_bar - c_bar * v_avg_normal) +
+                        w2 * 0.5f0 * v_squared_bar +
+                        w3 * (h_bar + c_bar * v_avg_normal) +
+                        lambda_4 * (v_tangential_dot_entropy_vars_jump +
+                         entropy_var_rho_e_jump *
+                         (v1_avg^2 + v2_avg^2 - v_avg_normal^2)))
+
+    return -0.5f0 *
+           SVector(dissipation_rho, dissipation_rho_v1, dissipation_rho_v2,
+                   dissipation_rhoe) * norm_
 end
 
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
@@ -1955,6 +2088,19 @@ end
 @inline function density(u, equations::CompressibleEulerEquations2D)
     rho = u[1]
     return rho
+end
+
+@inline function velocity(u, equations::CompressibleEulerEquations2D)
+    rho = u[1]
+    v1 = u[2] / rho
+    v2 = u[3] / rho
+    return SVector(v1, v2)
+end
+
+@inline function velocity(u, orientation::Int, equations::CompressibleEulerEquations2D)
+    rho = u[1]
+    v = u[orientation + 1] / rho
+    return v
 end
 
 @inline function pressure(u, equations::CompressibleEulerEquations2D)

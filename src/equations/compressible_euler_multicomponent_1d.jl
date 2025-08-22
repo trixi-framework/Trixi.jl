@@ -78,12 +78,11 @@ function CompressibleEulerMulticomponentEquations1D(; gammas, gas_constants)
     _gas_constants = promote(gas_constants...)
     RealT = promote_type(eltype(_gammas), eltype(_gas_constants),
                          typeof(gas_constants[1] / (gammas[1] - 1)))
+    __gammas = SVector(map(RealT, _gammas))
+    __gas_constants = SVector(map(RealT, _gas_constants))
 
     NVARS = length(_gammas) + 2
     NCOMP = length(_gammas)
-
-    __gammas = SVector(map(RealT, _gammas))
-    __gas_constants = SVector(map(RealT, _gas_constants))
 
     return CompressibleEulerMulticomponentEquations1D{NVARS, NCOMP, RealT}(__gammas,
                                                                            __gas_constants)
@@ -136,10 +135,9 @@ function initial_condition_convergence_test(x, t,
     rho = ini
 
     # Here we compute an arbitrary number of different rhos. (one rho is double the next rho while the sum of all rhos is 1)
-    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                rho
+    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
+                                                                rho / (1 -
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     prim1 = rho * v1
@@ -204,13 +202,12 @@ function initial_condition_weak_blast_wave(x, t,
 
     prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
                                                                 2^(i - 1) * (1 - 2) /
+                                                                (RealT(1) -
+                                                                 2^ncomponents(equations)) :
+                                                                2^(i - 1) * (1 - 2) *
+                                                                RealT(1.1691) /
                                                                 (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                one(RealT) :
-                                                                2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                convert(RealT, 1.1691)
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
@@ -408,7 +405,30 @@ end
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::CompressibleEulerMulticomponentEquations1D)
+    rho_v1_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_e_rr = u_rr
+
+    # Calculate primitive variables and speed of sound
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+    gamma_ll = totalgamma(u_ll, equations)
+    gamma_rr = totalgamma(u_rr, equations)
+
+    v_ll = rho_v1_ll / rho_ll
+    v_rr = rho_v1_rr / rho_rr
+
+    p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * rho_ll * v_ll^2)
+    p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_rr^2)
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
 end
 
 @inline function max_abs_speeds(u,
@@ -617,5 +637,11 @@ end
 @inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations1D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 2] * v
                                                             for i in eachcomponent(equations))
+end
+
+@inline function velocity(u, equations::CompressibleEulerMulticomponentEquations1D)
+    rho = density(u, equations)
+    v1 = u[1] / rho
+    return v1
 end
 end # @muladd

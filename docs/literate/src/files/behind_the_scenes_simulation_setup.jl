@@ -7,10 +7,11 @@
 # the more fundamental, *technical* concepts that are applicable to a variety of
 # (also more complex) configurations.
 
-# Trixi.jl follows the [method of lines](http://www.scholarpedia.org/article/Method_of_lines) concept for solving partial differential equations (PDEs).
+# Trixi.jl follows the [method of lines](http://www.scholarpedia.org/article/Method_of_lines)
+# concept for solving partial differential equations (PDEs).
 # Firstly, the PDEs are reduced to a (potentially huge) system of
 # ordinary differential equations (ODEs) by discretizing the spatial derivatives. Subsequently,
-# these generated ODEs may be solved with methods available in OrdinaryDiffEq.jl or those specifically
+# these generated ODEs may be solved with methods available in OrdinaryDiffEq.jl and its sub-packages or those specifically
 # implemented in Trixi.jl. The following steps elucidate the process of transitioning from PDEs to
 # ODEs within the framework of Trixi.jl.
 
@@ -18,7 +19,8 @@
 
 # Import essential libraries and specify an equation.
 
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 equations = LinearScalarAdvectionEquation2D((-0.2, 0.7))
 
 # Generate a spatial discretization using a [`TreeMesh`](@ref) with a pre-coarsened set of cells.
@@ -62,24 +64,21 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # perform the necessary initialization steps. A brief description of the key sub-functions is
 # provided below.
 
-
 # - `init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)`
 
 #   The fundamental elements for approximating the solution are the leaf
 #   cells. The solution is constructed as a polynomial of the degree specified in the `DGSEM`
-#   solver in each spatial direction on each leaf cell. This polynomial approximation is evaluated 
+#   solver in each spatial direction on each leaf cell. This polynomial approximation is evaluated
 #   at the Gauss-Lobatto nodes mentioned earlier. The `init_elements` function extracts
 #   these leaf cells from the `TreeMesh`, assigns them the label "elements", records their
 #   coordinates, and maps the Gauss-Lobatto nodes from the 1D interval ``[-1, 1]`` onto each coordinate axis
 #   of every element.
-
 
 #   ![elements_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/9f486670-b579-4e42-8697-439540c8bbb4)
 
 #   The visualization of elements with nodes shown here includes spaces between elements, which do
 #   not exist in reality. This spacing is included only for illustrative purposes to underscore the
 #   separation of elements and the independent projection of nodes onto each element.
-
 
 # - `init_interfaces(leaf_cell_ids, mesh, elements)`
 
@@ -95,13 +94,12 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   As demonstrated earlier, the elements can have varying sizes. Let us initially consider
 #   neighbors with equal size. For these elements, the `init_interfaces` function generates
 #   interfaces that store information about adjacent elements, their relative positions, and
-#   allocate containers for sharing solution data between neighbors during the solution process. 
+#   allocate containers for sharing solution data between neighbors during the solution process.
 
 #   In our visualization, these interfaces would conceptually resemble tubes connecting the
 #   corresponding elements.
 
 #   ![interfaces_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/bc3b6b02-afbc-4371-aaf7-c7bdc5a6c540)
-
 
 # - `init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)`
 
@@ -122,7 +120,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   In our visualization, mortars are represented as branched tubes.
 
 #   ![mortars_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/43a95a60-3a31-4b1f-8724-14049e7a0481)
-
 
 # - `init_boundaries(leaf_cell_ids, mesh, elements)`
 
@@ -159,7 +156,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 # The purpose of the [`semidiscretize`](@ref) function is to wrap the semidiscretization as an
 # `ODEProblem` within the specified time interval. During this procedure the approximate solution
-#  is created at the given initial time via the specified `initial_condition` function from the 
+#  is created at the given initial time via the specified `initial_condition` function from the
 #  `SemidiscretizationHyperbolic` object. This `ODEProblem` can be subsequently passed to the
 # `solve` function from the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package
 # or to [`Trixi.solve`](@ref).
@@ -168,7 +165,6 @@ ode = semidiscretize(semi, (0.0, 1.0));
 
 # The `semidiscretize` function involves a deep tree of subsequent calls, with the primary ones
 # explained below.
-
 
 # - `allocate_coefficients(mesh, equations, solver, cache)`
 
@@ -189,7 +185,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 #   This is why the `u_ode` vector is wrapped by the `wrap_array` function using `unsafe_wrap`
 #   to form a multidimensional array `u`. In this array, the first dimension corresponds to
 #   variables, followed by N dimensions corresponding to nodes for each of N space dimensions.
-#   The last dimension corresponds to the elements. 
+#   The last dimension corresponds to the elements.
 #   Consequently, navigation within this multidimensional array becomes noticeably easier.
 
 #   "Wrapping" in this context involves the creation of a reference to the same storage location
@@ -197,7 +193,6 @@ ode = semidiscretize(semi, (0.0, 1.0));
 #   instances `u` and `u_ode` as needed, so that changes are simultaneously reflected in both.
 #   This is possible because, from a storage perspective, they share the same stored data, while
 #   access to this data is provided in different ways.
-
 
 # - `compute_coefficients!(u, initial_conditions, t, mesh::DG, equations, solver, cache)`
 
@@ -221,8 +216,8 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # the OrdinaryDiffEq.jl package can be utilized to compute an approximated solution using the
 # instructions contained in the `ODEProblem` object.
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01,
-            save_everystep = false);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01;
+            ode_default_options()...);
 
 # Since the `solve` function and the ODE solver have no knowledge
 # of a particular spatial discretization, it is necessary to define a
