@@ -263,7 +263,7 @@ end
     return cons2prim(entropy2cons(u_transformed, equations), equations)
 end
 
-# Takes the solution values `u` and gradient of the entropy variables (w_2, w_3, w_4, w_5) and
+# Takes the solution values `u` and gradient of the entropy variables (w_1, w_2, w_3, w_4, w_5) and
 # reverse engineers the gradients to be terms of the primitive variables (rho, v1, v2, v3, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` w1 contains gradient(rho) which is unused.
