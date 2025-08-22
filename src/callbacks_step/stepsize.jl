@@ -61,7 +61,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-function StepsizeCallback(; cfl::Real = 1.0, cfl_diffusive::Real = 0.0,
+function StepsizeCallback(; cfl = 1.0, cfl_diffusive = 0.0,
                           interval = 1)
     stepsize_callback = StepsizeCallback{typeof(cfl), typeof(cfl_diffusive)}(cfl,
                                                                              cfl_diffusive,
