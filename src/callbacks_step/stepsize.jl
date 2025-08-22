@@ -72,13 +72,10 @@ function StepsizeCallback(; cfl = 1.0, cfl_diffusive = 0.0,
                      initialize = initialize!)
 end
 
-# Compatibility constructors, used e.g. in `EulerAcousticsCouplingCallback`
+# Compatibility constructor used in `EulerAcousticsCouplingCallback`
 function StepsizeCallback(cfl_convective)
-    StepsizeCallback(cfl = cfl_convective)
-end
-
-function StepsizeCallback(cfl_convective, cfl_diffusive)
-    StepsizeCallback(cfl = cfl_convective, cfl_diffusive = cfl_diffusive)
+    RealT = typeof(cfl_convective)
+    StepsizeCallback{RealT, RealT}(cfl_convective, zero(RealT), 1)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
