@@ -11,11 +11,20 @@
 
 Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself.
+The keyword argument `cfl` must be either a `Real` number, corresponding to a constant 
+CFL number, or a function of time `t` returning a `Real` number.
+The latter approach allows for variable CFL numbers that can be used to realize e.g.
+a ramp-up of the timestep.
+
 One can additionally supply a diffusive CFL number `cfl_diffusive` to
 limit the admissible timestep also respecting diffusive restrictions.
-In that case, a number larger than zero needs to be supplied. 
+This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
+In this scenario, a number larger than zero or a function of time needs to be supplied. 
 By default, `cfl_diffusive` is set to zero which means that only the convective
 CFL number is considered.
+
+By default, the timestep will be adjusted at every step.
+For different values of `interval`, the timestep will be adjusted every `interval` steps.
 """
 mutable struct StepsizeCallback{CflConvectiveType, CflDiffusiveType}
     cfl_convective::CflConvectiveType
@@ -209,15 +218,12 @@ function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive,
                            have_constant_speed(equations), equations,
                            solver, cache)
 
-    if cfl_diffusive > 0.0 # Check if diffusive CFL should be considered
-        dt_diffusive = cfl_diffusive(t) * max_dt(u, t, mesh,
-                              have_constant_diffusivity(equations_parabolic), equations,
-                              equations_parabolic, solver, cache)
+    # If `cfl_diffusive` is provided as a function of time `t`, we always evaluate
+    dt_diffusive = cfl_diffusive(t) * max_dt(u, t, mesh,
+                          have_constant_diffusivity(equations_parabolic), equations,
+                          equations_parabolic, solver, cache)
 
-        return min(dt_convective, dt_diffusive)
-    else
-        return dt_convective
-    end
+    return min(dt_convective, dt_diffusive)
 end
 
 # Case for variable `cfl_convective`, variable `cfl_diffusive`.
@@ -232,15 +238,12 @@ function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
                            have_constant_speed(equations), equations,
                            solver, cache)
 
-    if cfl_diffusive > 0.0 # Check if diffusive CFL should be considered
-        dt_diffusive = cfl_diffusive(t) * max_dt(u, t, mesh,
-                              have_constant_diffusivity(equations_parabolic), equations,
-                              equations_parabolic, solver, cache)
+    # If `cfl_diffusive` is provided as a function of time `t`, we always evaluate
+    dt_diffusive = cfl_diffusive(t) * max_dt(u, t, mesh,
+                          have_constant_diffusivity(equations_parabolic), equations,
+                          equations_parabolic, solver, cache)
 
-        return min(dt_convective, dt_diffusive)
-    else
-        return dt_convective
-    end
+    return min(dt_convective, dt_diffusive)
 end
 
 include("stepsize_dg1d.jl")
