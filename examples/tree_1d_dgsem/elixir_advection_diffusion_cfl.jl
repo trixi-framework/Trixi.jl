@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -76,7 +76,7 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 alive_callback = AliveCallback(analysis_interval = 100)
 
 # Stepsize callback which selects the timestep according to the most restrictive CFL condition.
-# For coarser grids, linear stability is governed by the convective CFL condition,
+# For coarser grids, linear stability is governed by the advective CFL condition,
 # while for high refinements the flow becomes diffusion-dominated.
 stepsize_callback = StepsizeCallback(cfl = 1.6,
                                      cfl_diffusive = 0.4)
