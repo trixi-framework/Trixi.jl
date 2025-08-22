@@ -200,7 +200,7 @@ end
     #
     # [0, 0, 0
     #  0, mu, 0,
-    #  0, mu * v, -mu * q] * grad(u) .
+    #  0, mu * v, -mu * q] * grad(u_prim) .
     #
     # Thus, the eigenvalues of the diffusivity matrix are {0, mu, -mu * kappa}.
     # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as
