@@ -72,7 +72,7 @@ function StepsizeCallback(; cfl::Real = 1.0, cfl_diffusive::Real = 0.0,
                      initialize = initialize!)
 end
 
-# Compatibility constructors
+# Compatibility constructors, used e.g. in `EulerAcousticsCouplingCallback`
 function StepsizeCallback(cfl_convective)
     StepsizeCallback(cfl = cfl_convective)
 end
