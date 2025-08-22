@@ -81,7 +81,7 @@ or the entropy variables
 ```
 where
 ```math
-w_2 = \frac{\rho v1}{p},\, w_3 = -\frac{\rho}{p}
+w_2 = \frac{\rho v}{p},\, w_3 = -\frac{\rho}{p}
 ```
 """
 struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real, Mu,
