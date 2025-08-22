@@ -51,7 +51,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[9.773852895157622e-6],
-                            linf=[0.0005853874124926162],)
+                            linf=[0.0005853874124926162])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -83,7 +83,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
     @trixi_testset "elixir_advection_restart.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                             l2=[0.002590388934758452],
-                            linf=[0.01840757696885409],)
+                            linf=[0.01840757696885409])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

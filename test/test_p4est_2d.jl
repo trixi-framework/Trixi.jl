@@ -27,6 +27,34 @@ isdir(outdir) && rm(outdir, recursive = true)
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+    semi32 = Trixi.trixi_adapt(Array, Float32, semi)
+    @test real(semi32.solver) == Float32
+    @test real(semi32.solver.basis) == Float32
+    @test real(semi32.solver.mortar) == Float32
+    # TODO: remake ignores the mesh itself as well
+    @test real(semi32.mesh) == Float64
+end
+
+@trixi_testset "elixir_advection_basic.jl (Float32)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
+                        # Expected errors are exactly the same as with TreeMesh!
+                        l2=[Float32(8.311947673061856e-6)],
+                        linf=[Float32(6.627000273229378e-5)],
+                        RealT=Float32,
+                        real_type=Float32)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+    @test real(ode.p.solver) == Float32
+    @test real(ode.p.solver.basis) == Float32
+    @test real(ode.p.solver.mortar) == Float32
+    # TODO: remake ignores the mesh itself as well
+    @test real(ode.p.mesh) == Float64
 end
 
 @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
@@ -63,7 +91,7 @@ end
                                  "elixir_advection_amr_solution_independent.jl"),
                         # Expected errors are exactly the same as with StructuredMesh!
                         l2=[4.949660644033807e-5],
-                        linf=[0.0004867846262313763],)
+                        linf=[0.0004867846262313763])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -78,7 +106,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
                         l2=[0.0012808538770535593],
-                        linf=[0.01752690016659812],)
+                        linf=[0.01752690016659812])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -92,7 +120,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.507575525876275e-6],
-                        linf=[6.21489667023134e-5],)
+                        linf=[6.21489667023134e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -106,7 +134,7 @@ end
 @trixi_testset "elixir_advection_restart_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
                         l2=[2.869137983727866e-6],
-                        linf=[3.8353423270964804e-5],)
+                        linf=[3.8353423270964804e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -361,6 +389,31 @@ end
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+
+    # Test `resize!`
+    ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks)
+    integrator = Trixi.init(ode, ode_alg, dt = 42.0, callback = callbacks)
+
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
+
+    # Test `resize!` for non `VolumeIntegralSubcellLimiting`
+    let
+        solver = DGSEM(basis, surface_flux)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+        ode = semidiscretize(semi, tspan)
+        ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = (;))
+        callbacks = CallbackSet(summary_callback)
+        integrator = Trixi.init(ode, ode_alg, dt = 11.0, callback = callbacks)
+
+        resize!(integrator, 4711)
+        @test length(integrator.u) == 4711
+        @test length(integrator.du) == 4711
+        @test length(integrator.u_tmp) == 4711
     end
 end
 
@@ -953,6 +1006,32 @@ end
                             0.00017877918656949987,
                             0.2247919517756231,
                             0.2779841048041337
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_cylinder_bowshock_mach3.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_euler_cylinder_bowshock_mach3.jl"),
+                        tspan=(0.0, 1e-3),
+                        l2=[
+                            0.03787745781612722,
+                            0.03339276348608649,
+                            0.05301001151898993,
+                            0.2868802674001281
+                        ],
+                        linf=[
+                            2.5347156069842978,
+                            2.6657123832452414,
+                            3.786891603220761,
+                            21.305497055838977
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

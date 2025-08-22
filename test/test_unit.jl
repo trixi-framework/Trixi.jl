@@ -702,6 +702,39 @@ end
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
 end
 
+@timed_testset "resize! RelaxationIntegrators" begin
+    equations = LinearScalarAdvectionEquation1D(42.0)
+    solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
+    mesh = TreeMesh((0.0,), (1.0,),
+                    initial_refinement_level = 2,
+                    n_cells_max = 30_000)
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_convergence_test,
+                                        solver)
+    u0 = zeros(4)
+    tspan = (0.0, 1.0)
+    ode = semidiscretize(semi, tspan)
+
+    ode_alg = Trixi.RelaxationRK44() # SubDiagonalAlgorithm
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # SubDiagonalRelaxationIntegrator
+
+    resize!(integrator, 1001)
+    @test length(integrator.u) == 1001
+    @test length(integrator.du) == 1001
+    @test length(integrator.u_tmp) == 1001
+    @test length(integrator.direction) == 1001
+
+    ode_alg = Trixi.RelaxationCKL54() # vanderHouwenAlgorithm
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # vanderHouwenRelaxationIntegrator
+
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
+    @test length(integrator.k_prev) == 42
+    @test length(integrator.direction) == 42
+end
+
 @timed_testset "Consistency check for single point flux: CEMCE" begin
     equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
                                                            gas_constants = (0.4, 0.4))
