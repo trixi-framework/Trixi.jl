@@ -237,8 +237,8 @@ end
     return cons2prim(entropy2cons(u_transformed, equations), equations)
 end
 
-# Takes the solution values `u` and gradient of the entropy variables (w_1, w_2, w_3, w_4) and
-# reverse engineers the gradients to be terms of the primitive variables (rho, v1, v2, T).
+# Takes the solution values `u` and gradient of the entropy variables w and
+# reverse engineers the gradients to be terms of the primitive variables u_prim = (rho, v1, v2, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` w1 contains gradient(rho) which is unused.
 # TODO: parabolic; entropy stable viscous terms
@@ -252,7 +252,7 @@ end
                                                  equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
 
     # TODO: parabolic. This is inefficient to pass in transformed variables but then transform them back.
-    # We can fix this if we directly compute rho, v1, v2, T from the entropy variables
+    # We can fix this if we directly compute v1, v2, T from the entropy variables
     u = entropy2cons(w, equations) # calls a "modified" entropy2cons defined for CompressibleNavierStokesDiffusion2D
     rho, rho_v1, rho_v2, _ = u
 
