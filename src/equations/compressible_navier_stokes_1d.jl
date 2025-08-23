@@ -30,28 +30,28 @@ The particular form of the compressible Navier-Stokes implemented is
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \\ \rho v \\ \rho e
+\rho \\ \rho v_1 \\ \rho e
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
- \rho v \\ \rho v^2 + p \\ (\rho e + p) v
+ \rho v_1 \\ \rho v_1^2 + p \\ (\rho e + p) v_1
 \end{pmatrix}
 =
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-0 \\ \tau \\ \tau v - q
+0 \\ \tau \\ \tau v_1 - q
 \end{pmatrix}
 ```
 where the system is closed with the ideal gas assumption giving
 ```math
-p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho v^2 \right)
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho v_1^2 \right)
 ```
 as the pressure. The value of the adiabatic constant `gamma` is taken from the [`CompressibleEulerEquations1D`](@ref).
 The terms on the right hand side of the system above
 are built from the viscous stress
 ```math
-\tau = \mu \frac{\partial}{\partial x} v
+\tau = \mu \frac{\partial}{\partial x} v_1
 ```
 where the heat flux is
 ```math
@@ -73,7 +73,7 @@ which is the form implemented below in the [`flux`](@ref) function.
 In one spatial dimensions we require gradients for two quantities, e.g.,
 primitive quantities
 ```math
-\frac{\partial}{\partial x} v,\, \frac{\partial}{\partial x} T
+\frac{\partial}{\partial x} v_1,\, \frac{\partial}{\partial x} T
 ```
 or the entropy variables
 ```math
@@ -81,7 +81,7 @@ or the entropy variables
 ```
 where
 ```math
-w_2 = \frac{\rho v1}{p},\, w_3 = -\frac{\rho}{p}
+w_2 = \frac{\rho v_1}{p},\, w_3 = -\frac{\rho}{p}
 ```
 """
 struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real, Mu,
@@ -150,7 +150,7 @@ function flux(u, gradients, orientation::Integer,
               equations::CompressibleNavierStokesDiffusion1D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
     _, v1, _ = convert_transformed_to_primitive(u, equations)
-    # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
+    # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, T)
     # either computed directly or reverse engineered from the gradient of the entropy variables
     # by way of the `convert_gradient_variables` function.
     _, dv1dx, dTdx = convert_derivative_to_primitive(u, gradients, equations)
