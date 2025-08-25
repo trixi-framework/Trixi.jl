@@ -24,6 +24,12 @@ function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDi
     return equations_parabolic.diffusivity * dudx
 end
 
+@inline have_constant_diffusivity(::LaplaceDiffusion1D) = True()
+
+@inline function max_diffusivity(equations_parabolic::LaplaceDiffusion1D)
+    return equations_parabolic.diffusivity
+end
+
 # Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
 # Note that these are general, so they apply to LaplaceDiffusion in any spatial dimension.
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
