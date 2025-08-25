@@ -181,8 +181,6 @@ function flux(u, gradients, orientation::Integer,
     return SVector(f1, f2, f3)
 end
 
-@inline have_constant_diffusivity(::CompressibleNavierStokesDiffusion1D) = False()
-
 @inline function max_diffusivity(u,
                                  equations_parabolic::CompressibleNavierStokesDiffusion1D)
     # For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
