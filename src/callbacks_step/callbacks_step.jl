@@ -9,7 +9,7 @@
 # that should be saved
 function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
                                 callback; kwargs...)
-    nothing
+    return nothing
 end
 
 @inline function get_element_variables!(element_variables, u_ode,
