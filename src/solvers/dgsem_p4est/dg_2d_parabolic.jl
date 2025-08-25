@@ -99,7 +99,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
+                            dg, cache)
     end
 
     # Calculate interface fluxes
@@ -221,7 +221,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # This reuses `prolong2interfaces` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache_parabolic, u_transformed, mesh,
-                            equations_parabolic, dg.surface_integral, dg)
+                            equations_parabolic, dg)
     end
 
     # Calculate interface fluxes for the gradient.
@@ -468,6 +468,8 @@ end
         surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
         surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
     end
+
+    return nothing
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
@@ -515,11 +517,10 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache)
+                             dg::DG, cache)
     (; interfaces) = cache_parabolic
     (; contravariant_vectors) = cache_parabolic.elements
     index_range = eachnode(dg)
@@ -827,6 +828,8 @@ end
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux_, equations, dg, node_index)
     set_node_vars!(fstar_secondary[position_index], flux_, equations, dg, node_index)
+
+    return nothing
 end
 
 # TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
@@ -928,7 +931,7 @@ end
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
                                      operator_type, mesh::P4estMesh, equations,
                                      surface_integral, dg::DG)
-    nothing
+    return nothing
 end
 
 function calc_boundary_flux!(cache, t,
@@ -990,6 +993,8 @@ function calc_boundary_flux!(cache, t,
             j_node += j_node_step
         end
     end
+
+    return nothing
 end
 
 function apply_jacobian_parabolic!(du, mesh::P4estMesh{2},

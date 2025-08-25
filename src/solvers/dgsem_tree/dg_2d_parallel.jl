@@ -483,8 +483,7 @@ function rhs!(du, u, t,
     # Prolong solution to interfaces
     # TODO: Taal decide order of arguments, consistent vs. modified cache first?
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes

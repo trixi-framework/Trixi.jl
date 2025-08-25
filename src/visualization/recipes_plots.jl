@@ -6,8 +6,6 @@
 #! format: noindent
 
 # Visualize a single variable in a 2D plot (default: heatmap)
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack plot_data, variable_id = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
@@ -32,8 +30,6 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
 end
 
 # Visualize the mesh in a 2D plot
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
     @unpack plot_data = pm
     @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
@@ -55,8 +51,6 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
 end
 
 # Visualize the mesh in a 2D plot
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any,
                                                                   <:AbstractVector{<:AbstractVector}}})
     @unpack plot_data = pm
@@ -79,8 +73,6 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any,
 end
 
 # Plot all available variables at once for convenience
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pd::AbstractPlotData)
     # Create layout that is as square as possible, when there are more than 3 subplots.
     # This is done with a preference for more columns than rows if not.
@@ -152,8 +144,6 @@ end
 
 # Create a plot directly from a TrixiODESolution for convenience
 # The plot is created by a PlotData1D or PlotData2D object.
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(sol::TrixiODESolution)
     # Redirect everything to the recipes below
     return sol.u[end], sol.prob.p

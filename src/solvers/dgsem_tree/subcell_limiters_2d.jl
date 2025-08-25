@@ -103,6 +103,8 @@ end
 
     # Values at element boundary
     calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi, mesh)
+
+    return nothing
 end
 
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
@@ -159,7 +161,7 @@ end
             u_outer = get_boundary_outer_state(u_inner, t,
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
-                                               equations, dg, cache,
+                                               mesh, equations, dg, cache,
                                                index..., element)
             var_outer = u_outer[variable]
 
@@ -210,6 +212,8 @@ end
 
     # Values at element boundary
     calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t, semi, mesh)
+
+    return nothing
 end
 
 @inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t,
@@ -265,7 +269,7 @@ end
             u_outer = get_boundary_outer_state(u_inner, t,
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
-                                               equations, dg, cache,
+                                               mesh, equations, dg, cache,
                                                index..., element)
             var_outer = variable(u_outer, equations)
 

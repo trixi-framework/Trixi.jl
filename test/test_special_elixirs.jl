@@ -3,6 +3,7 @@ module TestElixirs
 using LinearAlgebra
 using Test
 using Trixi
+using OrdinaryDiffEqSSPRK: SSPRK43
 
 import ForwardDiff
 
@@ -109,6 +110,37 @@ end
     @test A * x ≈ Ax
 end
 
+@testset "Test Jacobian of DG (1D)" begin
+    @timed_testset "Linear advection" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "tree_1d_fdsbp",
+                               "elixir_advection_upwind.jl"),
+                      tspan = (0.0, 0.0))
+
+        A, _ = linear_structure(semi)
+
+        J = jacobian_ad_forward(semi)
+        @test Matrix(A) ≈ J
+        λ = eigvals(J)
+        @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+        J = jacobian_fd(semi)
+        @test Matrix(A) ≈ J
+        λ = eigvals(J)
+        @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+        # See https://github.com/trixi-framework/Trixi.jl/pull/2514
+        @test count(real.(λ) .>= -10) > 5
+        # See https://github.com/trixi-framework/Trixi.jl/pull/2522
+        t0 = zero(real(semi))
+        u0_ode = 1e9 * compute_coefficients(t0, semi)
+        J = jacobian_fd(semi; t0, u0_ode)
+        λ = eigvals(J)
+        @test count((-200 .<= real.(λ) .<= -10) .&& (-100 .<= imag.(λ) .<= 100)) == 0
+        @test count(isapprox.(imag.(λ), 0.0, atol = 10 * sqrt(eps(real(semi))))) == 2
+    end
+end
+
 @testset "Test Jacobian of DG (2D)" begin
     @timed_testset "Linear advection" begin
         trixi_include(@__MODULE__,
@@ -137,6 +169,12 @@ end
         J = jacobian_ad_forward(semi)
         λ = eigvals(J)
         @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+        J_parabolic = jacobian_ad_forward_parabolic(semi)
+        λ_parabolic = eigvals(J_parabolic)
+        # Parabolic spectrum is real and negative
+        @test maximum(real, λ_parabolic) < 10^(-14)
+        @test maximum(imag, λ_parabolic) < 10^(-14)
     end
 
     @timed_testset "Compressible Euler equations" begin
@@ -218,6 +256,12 @@ end
         J = jacobian_ad_forward(semi)
         λ = eigvals(J)
         @test maximum(real, λ) < 0.2
+
+        J_parabolic = jacobian_ad_forward_parabolic(semi)
+        λ_parabolic = eigvals(J_parabolic)
+        # Parabolic spectrum is real and negative
+        @test maximum(real, λ_parabolic) < 10^(-16)
+        @test maximum(imag, λ_parabolic) < 10^(-15)
     end
 
     @timed_testset "MHD" begin
