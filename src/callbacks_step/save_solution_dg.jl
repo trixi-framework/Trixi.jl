@@ -137,14 +137,9 @@ function save_solution_file(u, time, dt, timestep,
         data = u
         n_vars = nvariables(equations)
     else
-        # Reinterpret the solution array as an array of conservative variables,
-        # compute the solution variables via broadcasting, and reinterpret the
-        # result as a plain array of floating point numbers
-        data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
-                                                                         eltype(u)}, u),
-                                                     Ref(equations))))
-
+        data = convert_to_solution_variables(u, solution_variables, cache,
+                                             have_aux_node_vars(equations),
+                                             equations)
         # Find out variable count by looking at output from `solution_variables` function
         n_vars = size(data, 1)
     end

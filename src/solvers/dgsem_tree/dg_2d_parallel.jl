@@ -516,7 +516,8 @@ function rhs!(du, u, t,
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
+                          have_nonconservative_terms(equations),
+                          have_aux_node_vars(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
@@ -772,7 +773,7 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                   surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
-    @unpack aux_surface_node_vars = cache.aux_vars
+    @unpack aux_mpiinterface_node_vars = cache.aux_vars
 
     @threaded for interface in eachmpiinterface(dg, cache)
         # Get local neighboring element
@@ -796,7 +797,7 @@ function calc_mpi_interface_flux!(surface_flux_values,
         for i in eachnode(dg)
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-            aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
+            aux_ll, aux_rr = get_aux_surface_node_vars(aux_mpiinterface_node_vars,
                                                        equations, dg, i,
                                                        interface)
             flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr,

@@ -40,7 +40,8 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
         resize!(aux_vars, length(leaf_cell_ids),
                 count_required_interfaces(mesh, leaf_cell_ids),
                 count_required_boundaries(mesh, leaf_cell_ids),
-                count_required_mortars(mesh, leaf_cell_ids))
+                count_required_mortars(mesh, leaf_cell_ids),
+                count_required_mpi_interfaces(mesh, leaf_cell_ids))
         init_aux_vars!(aux_vars, mesh, equations, dg, cache)
     end
 
@@ -64,16 +65,18 @@ end
 
 # Container for storing values of auxiliary variables at volume/surface quadrature nodes
 mutable struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP2, NDIMSP3, AuxField}
-    aux_node_vars::Array{uEltype, NDIMSP2}          # [var, i, j, element]
-    aux_surface_node_vars::Array{uEltype, NDIMSP2}  # [leftright, var, i, interface]
-    aux_boundary_node_vars::Array{uEltype, NDIMSP2} # [leftright, var, i, boundary]
-    aux_mortar_node_vars::Array{uEltype, NDIMSP3}   # [leftright, var, pos, i, mortar]
+    aux_node_vars::Array{uEltype, NDIMSP2}              # [var, i, j, element]
+    aux_surface_node_vars::Array{uEltype, NDIMSP2}      # [leftright, var, i, interface]
+    aux_boundary_node_vars::Array{uEltype, NDIMSP2}     # [leftright, var, i, boundary]
+    aux_mortar_node_vars::Array{uEltype, NDIMSP3}       # [leftright, var, pos, i, mortar]
+    aux_mpiinterface_node_vars::Array{uEltype, NDIMSP2} # [leftright, var, i, interface]
 
     # internal `resize!`able storage
     _aux_node_vars::Vector{uEltype}
     _aux_surface_node_vars::Vector{uEltype}
     _aux_boundary_node_vars::Vector{uEltype}
     _aux_mortar_node_vars::Vector{uEltype}
+    _aux_mpiinterface_node_vars::Vector{uEltype}
 
     # save initialization function
     aux_field::AuxField
@@ -90,6 +93,11 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
     n_interfaces = ninterfaces(interfaces)
     n_boundaries = nboundaries(boundaries)
     n_mortars = nmortars(mortars)
+    if mpi_isparallel()
+        n_mpiinterfaces = nmpiinterfaces(cache.mpi_interfaces)
+    else
+        n_mpiinterfaces = 0
+    end
     NDIMS = ndims(mesh)
     uEltype = eltype(elements)
     nan_uEltype = convert(uEltype, NaN)
@@ -132,16 +140,28 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
                                         ntuple(_ -> nnodes(solver),
                                                NDIMS - 1)...,
                                         n_mortars))
+    _aux_mpiinterface_node_vars = fill(nan_uEltype,
+                                       2 * n_aux_node_vars(equations) *
+                                       nnodes(solver)^(NDIMS - 1) *
+                                       n_mpiinterfaces)
+    aux_mpiinterface_node_vars = unsafe_wrap(Array,
+                                             pointer(_aux_mpiinterface_node_vars),
+                                             (2, n_aux_node_vars(equations),
+                                              ntuple(_ -> nnodes(solver),
+                                                     NDIMS - 1)...,
+                                              n_mpiinterfaces))
 
     aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, NDIMS + 2, NDIMS + 3,
                                     typeof(aux_field)}(aux_node_vars,
                                                        aux_surface_node_vars,
                                                        aux_boundary_node_vars,
                                                        aux_mortar_node_vars,
+                                                       aux_mpiinterface_node_vars,
                                                        _aux_node_vars,
                                                        _aux_surface_node_vars,
                                                        _aux_boundary_node_vars,
                                                        _aux_mortar_node_vars,
+                                                       _aux_mpiinterface_node_vars,
                                                        aux_field)
     init_aux_vars!(aux_vars, mesh, equations, solver, cache)
     return aux_vars
@@ -152,6 +172,9 @@ function init_aux_vars!(aux_vars, mesh, equations, solver, cache)
     init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     init_aux_boundary_node_vars!(aux_vars, mesh, equations, solver, cache)
     init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver, cache)
+    if mpi_isparallel()
+        init_aux_mpiinterface_node_vars!(aux_vars, mesh, equations, solver, cache)
+    end
 end
 
 # Initialize auxiliary node variables (generic implementation)
@@ -180,11 +203,12 @@ end
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
 function Base.resize!(aux_vars::AuxNodeVarsContainer{NDIMS},
-                      capacity_node_vars, capacity_node_surface_vars,
-                      capacity_node_boundary_vars,
-                      capacity_node_mortar_vars) where {NDIMS}
+                      capacity_node_vars, capacity_surface_node_vars,
+                      capacity_boundary_node_vars,
+                      capacity_mortar_node_vars,
+                      capacity_mpiinterface_node_vars) where {NDIMS}
     @unpack _aux_node_vars, _aux_surface_node_vars, _aux_boundary_node_vars,
-    _aux_mortar_node_vars = aux_vars
+    _aux_mortar_node_vars, _aux_mpiinterface_node_vars = aux_vars
     n_nodes = nnodes(aux_vars)
     n_variables = nvariables(aux_vars)
 
@@ -197,28 +221,37 @@ function Base.resize!(aux_vars::AuxNodeVarsContainer{NDIMS},
 
     resize!(_aux_surface_node_vars,
             2 * n_variables * n_nodes^(NDIMS - 1) *
-            capacity_node_surface_vars)
+            capacity_surface_node_vars)
     aux_vars.aux_surface_node_vars = unsafe_wrap(Array,
                                                  pointer(_aux_surface_node_vars),
                                                  (2, n_variables,
                                                   ntuple(_ -> n_nodes, NDIMS - 1)...,
-                                                  capacity_node_surface_vars))
+                                                  capacity_surface_node_vars))
     resize!(_aux_boundary_node_vars,
             2 * n_variables * n_nodes^(NDIMS - 1) *
-            capacity_node_boundary_vars)
+            capacity_boundary_node_vars)
     aux_vars.aux_boundary_node_vars = unsafe_wrap(Array,
                                                   pointer(_aux_boundary_node_vars),
                                                   (2, n_variables,
                                                    ntuple(_ -> n_nodes, NDIMS - 1)...,
-                                                   capacity_node_boundary_vars))
+                                                   capacity_boundary_node_vars))
     resize!(_aux_mortar_node_vars,
             2 * n_variables * 2^(NDIMS - 1) * n_nodes^(NDIMS - 1) *
-            capacity_node_mortar_vars)
+            capacity_mortar_node_vars)
     aux_vars.aux_mortar_node_vars = unsafe_wrap(Array,
                                                 pointer(_aux_mortar_node_vars),
                                                 (2, n_variables, 2^(NDIMS - 1),
                                                  ntuple(_ -> n_nodes, NDIMS - 1)...,
-                                                 capacity_node_mortar_vars))
+                                                 capacity_mortar_node_vars))
+    resize!(_aux_mpiinterface_node_vars,
+            2 * n_variables * n_nodes^(NDIMS - 1) *
+            capacity_mpiinterface_node_vars)
+    aux_vars.aux_mpiinterface_node_vars = unsafe_wrap(Array,
+                                                      pointer(_aux_mpiinterface_node_vars),
+                                                      (2, n_variables,
+                                                       ntuple(_ -> n_nodes,
+                                                              NDIMS - 1)...,
+                                                       capacity_mpiinterface_node_vars))
     return nothing
 end
 

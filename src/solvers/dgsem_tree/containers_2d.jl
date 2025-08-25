@@ -1587,4 +1587,53 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solve
     end
     return nothing
 end
+
+# Initialize auxiliary MPI interface node variables
+# 2D TreeMesh implementation, similar to prolong2mpiinterfaces
+# However we directly assign to both sides, assuming the aux field had no jumps. Therefore
+# we do not need any exchange.
+function init_aux_mpiinterface_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
+                                          cache)
+    @unpack aux_node_vars, aux_mpiinterface_node_vars = aux_vars
+    @unpack mpi_interfaces = cache
+
+    @threaded for interface in eachmpiinterface(solver, cache)
+        local_element = mpi_interfaces.local_neighbor_ids[interface]
+
+        if mpi_interfaces.orientations[interface] == 1 # interface in x-direction
+            if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+                for j in eachnode(solver), v in axes(aux_mpiinterface_node_vars, 2)
+                    aux_mpiinterface_node_vars[:, v, j, interface] .= aux_node_vars[v,
+                                                                                    1,
+                                                                                    j,
+                                                                                    local_element]
+                end
+            else # local element in negative direction
+                for j in eachnode(solver), v in axes(aux_mpiinterface_node_vars, 2)
+                    aux_mpiinterface_node_vars[:, v, j, interface] .= aux_node_vars[v,
+                                                                                    nnodes(solver),
+                                                                                    j,
+                                                                                    local_element]
+                end
+            end
+        else # interface in y-direction
+            if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+                for i in eachnode(solver), v in axes(aux_mpiinterface_node_vars, 2)
+                    aux_mpiinterface_node_vars[:, v, i, interface] .= aux_node_vars[v,
+                                                                                    i,
+                                                                                    1,
+                                                                                    local_element]
+                end
+            else # local element in negative direction
+                for i in eachnode(solver), v in axes(aux_mpiinterface_node_vars, 2)
+                    aux_mpiinterface_node_vars[:, v, i, interface] .= aux_node_vars[v,
+                                                                                    i,
+                                                                                    nnodes(solver),
+                                                                                    local_element]
+                end
+            end
+        end
+    end
+    return nothing
+end
 end # @muladd
