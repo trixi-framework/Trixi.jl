@@ -96,6 +96,7 @@ struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real, Mu,
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
+    max_1_kappa::RealT         # max(1, kappa) used for diffusive CFL => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations1D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -117,7 +118,8 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
     CompressibleNavierStokesDiffusion1D{typeof(gradient_variables), typeof(gamma),
                                         typeof(mu),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                           mu, Prandtl, kappa,
+                                                           mu, Prandtl,
+                                                           kappa, max(1, kappa),
                                                            equations,
                                                            gradient_variables)
 end
@@ -207,7 +209,7 @@ end
     #
     # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
     return dynamic_viscosity(u, equations_parabolic) / u[1] *
-           max(1, equations_parabolic.kappa)
+           equations_parabolic.max_1_kappa
 end
 
 # Convert conservative variables to primitive
