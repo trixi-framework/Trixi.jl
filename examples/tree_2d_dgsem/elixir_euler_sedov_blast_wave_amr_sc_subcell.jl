@@ -62,7 +62,7 @@ solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 6,
                 n_cells_max = 100_000,
                 periodicity = true)
 
@@ -88,17 +88,18 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-amr_indicator = IndicatorMax(semi, variable = density_pressure)
-
+amr_indicator = IndicatorHennemannGassner(semi,
+                                          alpha_max = 0.5,
+                                          alpha_min = 0.001,
+                                          alpha_smooth = true,
+                                          variable = density_pressure)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 4,
-                                      med_level = 6, med_threshold = 1.0,
-                                      max_level = 7, max_threshold = 1.05)
-
+                                      max_level = 6, max_threshold = 0.01)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 1,
+                           interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = false)
+                           adapt_initial_condition_only_refine = true)
 
 stepsize_callback = StepsizeCallback(cfl = 0.1)
 

@@ -6,7 +6,6 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
-# initial_condition = initial_condition_constant
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
@@ -79,7 +78,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = false)
 
-stepsize_callback = StepsizeCallback(cfl = 0.8)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -93,7 +92,6 @@ callbacks = CallbackSet(summary_callback,
 stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_errors = true))
 
 sol = Trixi.solve(ode,
-                  # Trixi.SimpleEuler(stage_callbacks = stage_callbacks);
                   Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()...,
