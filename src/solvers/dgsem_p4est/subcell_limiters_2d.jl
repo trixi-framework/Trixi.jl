@@ -6,8 +6,7 @@
 #! format: noindent
 
 function calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                         u, t, semi, equations,
-                                         mesh::P4estMesh{2})
+                                         u, t, semi, mesh::P4estMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
 
