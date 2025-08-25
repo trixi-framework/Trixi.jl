@@ -195,7 +195,7 @@ end
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl (Time-dep. diff. CFL)" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_periodic_cfl.jl"),
-                        cfl_diffusive=t -> 0.3,
+                        cfl_diffusive=t -> 0.5,
                         l2=[
                             0.00011338560756751962,
                             6.240158271610694e-5,
@@ -219,7 +219,7 @@ end
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl (Time-dep. CFL numbers)" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_periodic_cfl.jl"),
-                        cfl=t -> 1.8, cfl_diffusive=t -> 0.3,
+                        cfl=t -> 1.8, cfl_diffusive=t -> 0.5,
                         l2=[
                             0.00011338560756751962,
                             6.240158271610694e-5,

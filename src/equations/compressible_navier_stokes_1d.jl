@@ -190,21 +190,23 @@ end
     # FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
     # https://doi.org/10.1016/j.camwa.2020.05.004
     #
-    # Here, the diffusive flux is given by
+    # For details on the derivation of eigenvalues of the diffusivity matrix
+    # for the compressible Navier-Stokes equations see for instance
+    # 
+    # - Richard P. Dwight (2006)
+    #   Efficiency improvements of RANS-based analysis and optimization using implicit and adjoint methods on unstructured grids
+    #   PhD Thesis, University of Manchester
+    #   https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
+    #   See especially equations (2.79), (3.24), and (3.25) from Chapter 3.2.3
     #
-    # [0,                       [0, 
-    #  mu * τ,                =  mu * dv/dx,
-    #  mu * (v * τ - q)]         mu * (v * dv/dx -(- kappa * dT/dx))]
+    # The eigenvalues of the diffusivity matrix in 1D are
+    # mu/rho .* {0, 1, -kappa}
     #
-    # which can be rewritten as 
+    # See for instance also the computation in FLUXO:
+    # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
     #
-    # [0, 0, 0
-    #  0, mu, 0,
-    #  0, mu * v, -mu * q] * grad(u_prim) .
-    #
-    # Thus, the eigenvalues of the diffusivity matrix are {0, mu, -mu * kappa}.
-    # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as
-    return dynamic_viscosity(u, equations_parabolic) * max(1, equations_parabolic.kappa)
+    # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
+    return dynamic_viscosity(u, equations_parabolic)/u[1] * max(1, equations_parabolic.kappa)
 end
 
 # Convert conservative variables to primitive
