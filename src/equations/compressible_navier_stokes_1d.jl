@@ -206,7 +206,8 @@ end
     # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
     #
     # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
-    return dynamic_viscosity(u, equations_parabolic)/u[1] * max(1, equations_parabolic.kappa)
+    return dynamic_viscosity(u, equations_parabolic) / u[1] *
+           max(1, equations_parabolic.kappa)
 end
 
 # Convert conservative variables to primitive
