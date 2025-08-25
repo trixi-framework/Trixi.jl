@@ -105,14 +105,13 @@ end
 
     # Values at element boundary
     calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                    u, t, semi, equations,
-                                    mesh)
+                                    u, t, semi, mesh, equations)
     return nothing
 end
 
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                                 u, t, semi, equations,
-                                                 mesh::TreeMesh2D)
+                                                 u, t, semi, mesh::TreeMesh2D,
+                                                 equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
     # Calc bounds at interfaces and periodic boundaries
