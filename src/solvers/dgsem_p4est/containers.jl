@@ -5,8 +5,8 @@
 @muladd begin
 #! format: noindent
 
-mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIMSP1,
-                                     NDIMSP2, NDIMSP3,
+mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
+                                     NDIMSP1, NDIMSP2, NDIMSP3,
                                      ArrayRealTNDIMSP1 <: DenseArray{RealT, NDIMSP1},
                                      ArrayRealTNDIMSP2 <: DenseArray{RealT, NDIMSP2},
                                      ArrayRealTNDIMSP3 <: DenseArray{RealT, NDIMSP3},
@@ -156,7 +156,7 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
 end
 
 function Adapt.parent_type(::Type{<:P4estElementContainer{<:Any, <:Any, <:Any, <:Any,
-                                                          <:Any, <:Any, <:Any, ArrayT}}) where {ArrayT}
+                                                          <:Any, <:Any, ArrayT}}) where {ArrayT}
     ArrayT
 end
 
