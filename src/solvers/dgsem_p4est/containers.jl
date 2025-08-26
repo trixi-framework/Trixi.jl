@@ -16,14 +16,18 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                      VectoruEltype <: DenseVector{uEltype}} <:
                AbstractContainer
     # Physical coordinates at each node
-    node_coordinates::ArrayRealTNDIMSP2   # [orientation, node_i, node_j, node_k, element]
+    node_coordinates::ArrayRealTNDIMSP2      # [orientation, node_i, node_j, node_k, element]
+
     # Jacobian matrix of the transformation
     # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
     jacobian_matrix::ArrayRealTNDIMSP3
+
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
-    contravariant_vectors::ArrayRealTNDIMSP3   # [dimension, index, node_i, node_j, node_k, element]
+    contravariant_vectors::ArrayRealTNDIMSP3 # [dimension, index, node_i, node_j, node_k, element]
+
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
-    inverse_jacobian::ArrayRealTNDIMSP1   # [node_i, node_j, node_k, element]
+    inverse_jacobian::ArrayRealTNDIMSP1      # [node_i, node_j, node_k, element]
+
     # Buffer for calculated surface flux
     surface_flux_values::ArrayuEltypeNDIMSP2 # [variable, i, j, direction, element]
 
@@ -191,11 +195,11 @@ function Adapt.adapt_structure(to,
                        NDIMS + 1,
                        NDIMS + 2,
                        NDIMS + 3,
-                       typeof(inverse_jacobian), # ArrayRealTNDIMSP1
-                       typeof(node_coordinates), # ArrayRealTNDIMSP2
-                       typeof(jacobian_matrix), # ArrayRealTNDIMSP3
-                       typeof(_node_coordinates), # VectorRealT
-                       typeof(surface_flux_values), # ArrayuEltypeNDIMSP2
+                       typeof(inverse_jacobian),     # ArrayRealTNDIMSP1
+                       typeof(node_coordinates),     # ArrayRealTNDIMSP2
+                       typeof(jacobian_matrix),      # ArrayRealTNDIMSP3
+                       typeof(_node_coordinates),    # VectorRealT
+                       typeof(surface_flux_values),  # ArrayuEltypeNDIMSP2
                        typeof(_surface_flux_values)) # VectoruEltype
     return P4estElementContainer{new_type_params...}(node_coordinates,
                                                      jacobian_matrix,
