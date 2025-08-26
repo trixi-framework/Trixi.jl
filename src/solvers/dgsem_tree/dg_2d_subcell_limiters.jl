@@ -59,30 +59,6 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
             flux_temp_threaded, fhat_temp_threaded)
 end
 
-# The methods below are specialized on the mortar type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{2},
-                      equations,
-                      mortar_idp::Union{LobattoLegendreMortarIDP,
-                                        LobattoLegendreMortarIDPAlternative}, uEltype)
-    # TODO: Taal performance using different types
-
-    # TODO: What do I really need?
-    MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_idp)}, uEltype, 2,
-                  nvariables(equations) * nnodes(mortar_idp)}
-    fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-
-    # A2d = Array{uEltype, 2}
-    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_idp)) for _ in 1:Threads.nthreads()]
-    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_idp)) for _ in 1:Threads.nthreads()]
-
-    (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
-end
-
 function calc_mortar_weights(basis, RealT; basis_function = :piecewise_constant)
     n_nodes = nnodes(basis)
     # Saving the sum over row/column in entries with last index.
