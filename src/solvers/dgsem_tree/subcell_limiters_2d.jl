@@ -111,7 +111,6 @@ end
                                                  mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
-    (; local_factor) = dg.mortar
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
@@ -140,6 +139,10 @@ end
         end
     end
 
+    # TODO: How to include values at mortar interfaces?
+    # - For "alternative implementation" and "global factors" include all neighboring values
+    # - For "local factors" include only values with nonnegative local weights
+    # - For LobattoLegendreMortarL2: include all neighboring values (TODO?)
     for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
@@ -202,13 +205,11 @@ end
                     end
                 end
 
-                alternative_implementation = dg.mortar isa
-                                             LobattoLegendreMortarIDPAlternative
-                # Including neighbor values to computation of bounds if local mortar weights are non-zero
-                # TODO: Is there a better way to do this? Including all neighbor values? Or use a weighted mean?
-                # For the alternative implementation, we include all values.
-                if alternative_implementation || !local_factor ||
-                   dg.mortar.local_mortar_weights[i, j] > 0
+                l2_mortars = dg.mortar isa LobattoLegendreMortarL2
+                alternative = dg.mortar isa LobattoLegendreMortarIDPAlternative
+                include_all_values = l2_mortars || alternative ||
+                                     !(dg.mortar.local_factor)
+                if include_all_values || dg.mortar.local_mortar_weights[i, j] > 0
                     var_min[indices_small..., lower_element] = min(var_min[indices_small...,
                                                                            lower_element],
                                                                    var_large)
@@ -216,8 +217,7 @@ end
                                                                            lower_element],
                                                                    var_large)
                 end
-                if alternative_implementation || !local_factor ||
-                   dg.mortar.local_mortar_weights[j, i] > 0
+                if include_all_values || dg.mortar.local_mortar_weights[j, i] > 0
                     var_min[indices_large..., large_element] = min(var_min[indices_large...,
                                                                            large_element],
                                                                    var_lower)
@@ -225,7 +225,7 @@ end
                                                                            large_element],
                                                                    var_lower)
                 end
-                if alternative_implementation || !local_factor ||
+                if include_all_values ||
                    dg.mortar.local_mortar_weights[i, j + nnodes(dg)] > 0
                     var_min[indices_small..., upper_element] = min(var_min[indices_small...,
                                                                            upper_element],
@@ -234,7 +234,7 @@ end
                                                                            upper_element],
                                                                    var_large)
                 end
-                if alternative_implementation || !local_factor ||
+                if include_all_values ||
                    dg.mortar.local_mortar_weights[j, i + nnodes(dg)] > 0
                     var_min[indices_large..., large_element] = min(var_min[indices_large...,
                                                                            large_element],
