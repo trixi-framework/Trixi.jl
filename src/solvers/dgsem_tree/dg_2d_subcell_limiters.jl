@@ -1023,7 +1023,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
     (; weights) = dg.basis
     (; local_mortar_weights, local_factor) = mortar_idp
 
-    for mortar in eachmortar(dg, cache)    #=@threaded =#
+    @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
