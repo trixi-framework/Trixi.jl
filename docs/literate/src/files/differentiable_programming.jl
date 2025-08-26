@@ -401,7 +401,6 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 
 # This discrepancy is of the expected order of magnitude for central finite difference approximations.
 
-
 # ## Automatic Jacobian sparsity detection and coloring
 
 # When solving large sparse nonlinear ODE systems originating from spatial discretizations
@@ -442,8 +441,9 @@ mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4, n_cells_max = 10^
 
 # Now we can construct the semidiscretization for sparsity detection with `jac_eltype` as the 
 # datatype for the working arrays and helper datastructures.
-semi_jac_type = SemidiscretizationHyperbolic(mesh, equation, initial_condition_convergence_test, solver,
-                                            uEltype = jac_eltype) # Supply sparsity detection datatype here
+semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,
+                                             initial_condition_convergence_test, solver,
+                                             uEltype = jac_eltype) # Supply sparsity detection datatype here
 t0 = 0.0 # Re-used later in `rhs!` evaluation
 t_end = 1.0
 t_span = (t0, t_end)
@@ -471,17 +471,21 @@ coloring_vec = column_colors(coloring_result)
 
 # Now, set up the actual semidiscretization for the simulation.
 # The datatype is automatically retrieved from the solver (in this case `float_type = Float64`).
-semi_float_type = SemidiscretizationHyperbolic(mesh, equation, initial_condition_convergence_test, solver)
+semi_float_type = SemidiscretizationHyperbolic(mesh, equation,
+                                               initial_condition_convergence_test, solver)
 # Supply the sparse Jacobian prototype and the optional coloring vector.
 # Internally, an [`ODEFunction`](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEFunction)
 # with `jac_prototype = jac_prototype` and `colorvec = coloring_vec` is created.
-ode_jac_sparse = semidiscretize(semi_float_type, t_span, jac_prototype = jac_prototype, colorvec = coloring_vec)
+ode_jac_sparse = semidiscretize(semi_float_type, t_span,
+                                jac_prototype = jac_prototype,
+                                colorvec = coloring_vec)
 
 # You can now solve the ODE problem efficiently with an implicit solver.
 # Unless we remake the whole semidiscretization with [`Dual` number](https://juliadiff.org/ForwardDiff.jl/v0.7/dev/how_it_works.html#Dual-Number-Implementation-1)
 # floating point type, we are bound to finite differencing here.
 using OrdinaryDiffEqSDIRK, ADTypes
-sol = solve(ode_jac_sparse, TRBDF2(; autodiff = AutoFiniteDiff()), dt = 0.1, save_everystep = false)
+sol = solve(ode_jac_sparse, TRBDF2(; autodiff = AutoFiniteDiff()), dt = 0.1,
+            save_everystep = false)
 
 # ## Linear systems
 
