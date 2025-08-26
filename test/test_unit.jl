@@ -17,7 +17,7 @@ using ECOS: Optimizer
 using NLsolve: nlsolve
 
 using SparseConnectivityTracer, SparseMatrixColorings
-#using FiniteDiff
+using FiniteDiff
 
 include("test_trixi.jl")
 
