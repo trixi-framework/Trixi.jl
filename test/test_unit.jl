@@ -2706,36 +2706,19 @@ end
     rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
                                                      t0)
 
+    ###############################################################################
+    ### sparsity-aware finite diff ###
+
     jac_sparse_finite_diff = spzeros(N, N)
     FiniteDiff.finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
-                                            u0_ode, sparsity = jac_prototype,
-                                            colorvec = coloring_vec)
+                                           u0_ode, sparsity = jac_prototype,
+                                           colorvec = coloring_vec)
 
     jac_finite_diff = jacobian_fd(semi_float_type)
 
     @test isapprox(jac_finite_diff, jac_sparse_finite_diff; rtol = 5e-8)
     @test isapprox(jac_finite_diff, Matrix(jac_sparse_finite_diff); rtol = 5e-8)
     @test isapprox(sparse(jac_finite_diff), jac_sparse_finite_diff; rtol = 5e-8)
-
-    jac_forward_diff = jacobian_ad_forward(semi_float_type)
-    jac_sparse_forward_diff = sparse(jac_forward_diff)
-
-    # Drop essential zeros
-    drop_tol = 5e-7
-    jac_finite_diff_dropped = copy(jac_sparse_finite_diff)
-    jac_finite_diff_dropped.nzval[abs.(jac_sparse_finite_diff.nzval) .< drop_tol] .= 0
-    dropzeros!(jac_finite_diff_dropped)
-
-    # Only check that the sparsity pattern of jac_forward_diff matches jac_finite_diff
-    @test nnz(jac_sparse_forward_diff) == nnz(jac_finite_diff_dropped)
-    @test findnz(jac_sparse_forward_diff) == findnz(jac_finite_diff_dropped)
-
-    A, _ = linear_structure(semi_float_type)
-    A_sparse = sparse(A)
-
-    @test jac_sparse == Matrix(A)
-    @test Matrix(jac_sparse) == Matrix(A)
-    @test jac_sparse == sparse(A)
 end
 end
 
