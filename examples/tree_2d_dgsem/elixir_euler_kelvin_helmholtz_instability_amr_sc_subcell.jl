@@ -32,7 +32,7 @@ initial_condition = initial_condition_kelvin_helmholtz_instability
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-polydeg = 7
+polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
@@ -50,9 +50,8 @@ solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
-initial_refinement_level = 5
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = initial_refinement_level,
+                initial_refinement_level = 5,
                 n_cells_max = 100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -64,7 +63,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 1000
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      extra_analysis_errors = (:conservation_error,))
 
@@ -79,25 +78,19 @@ save_solution = SaveSolutionCallback(interval = 100,
 save_restart = SaveRestartCallback(interval = 1000,
                                    save_final_restart = true)
 
-positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
-                                                         variables = (Trixi.density,
-                                                                      pressure))
-
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max = 1.0,
                                           alpha_min = 0.0001,
                                           alpha_smooth = false,
                                           variable = Trixi.density)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = initial_refinement_level - 1,
-                                      med_level = 0, med_threshold = 0.0003, # med_level = current level
-                                      max_level = initial_refinement_level + 1,
-                                      max_threshold = 0.003)
+                                      base_level = 4,
+                                      med_level = 0, med_threshold = 0.0003,
+                                      max_level = 6, max_threshold = 0.003)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true,
-                           limiter! = positivity_limiter)
+                           adapt_initial_condition_only_refine = true)
 
 stepsize_callback = StepsizeCallback(cfl = 0.3)
 

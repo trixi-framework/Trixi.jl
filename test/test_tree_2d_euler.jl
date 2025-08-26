@@ -964,6 +964,36 @@ end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
+                        l2=[
+                            0.055724454952595134,
+                            0.03312233274919345,
+                            0.05223955492824185,
+                            0.080116031615237
+                        ],
+                        linf=[
+                            0.2529113255620048,
+                            0.17296154306769038,
+                            0.1232191089800711,
+                            0.2691634973257111
+                        ],
+                        tspan=(0.0, 0.2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
                         initial_refinement_level=3,
                         l2=[
