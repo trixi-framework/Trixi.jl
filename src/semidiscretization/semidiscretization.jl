@@ -88,8 +88,10 @@ Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 
 Optional keyword arguments:
-- `jac_prototype` and `colorvec`: Expected to come from [SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl)
-  and specify the sparsity structure of the Jacobian to enable efficient implicit time stepping.
+- `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
+  Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
+- `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
+  Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype` is given.
 - `storage_type` and `real_type`: Configure the underlying computational datastructures. 
   `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray` 
   or other GPU array types. `real_type` changes the computational data type being used.
@@ -152,8 +154,10 @@ that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai
 The initial condition etc. is taken from the `restart_file`.
 
 Optional keyword arguments:
-- `jac_prototype` and `colorvec`: Expected to come from [SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl)
-  and specify the sparsity structure of the Jacobian to enable efficient implicit time stepping.
+- `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
+  Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
+- `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
+  Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype` is given.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan,
                         restart_file::AbstractString;
