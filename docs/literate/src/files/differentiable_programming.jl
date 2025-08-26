@@ -401,6 +401,87 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 
 # This discrepancy is of the expected order of magnitude for central finite difference approximations.
 
+
+# ## Automatic Jacobian sparsity detection and coloring
+
+# When solving large sparse nonlinear ODE systems originating from spatial discretizations
+# with compact stencils such as the DG method with implicit time integrators,
+# exploiting the sparsity of the Jacobian can lead to significant speedups in the Newton-Raphson solver.
+
+# Trixi.jl supports efficient Jacobian computations by leveraging the
+# [SparseConnectivityTracer.jl](https://github.com/trixi-framework/SparseConnectivityTracer.jl)
+# and [SparseMatrixColorings.jl](https://github.com/trixi-framework/SparseMatrixColorings.jl) packages.
+# These tools allow to detect the sparsity pattern of the Jacobian and compute the 
+# optional coloring vector for efficient Jacobian evaluations.
+# These are then handed over to the ODE solver from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
+
+# Below is a minimal example in 1D, showing how to use these packages with Trixi.jl.
+# First, load the necessary packages.
+
+using Trixi
+using SparseConnectivityTracer # For Jacobian sparsity pattern
+using SparseMatrixColorings    # For coloring vector
+
+# Next, we set up the sparsity detection.
+# We use the [global `TracerSparsityDetector()`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/global_vs_local/) here.
+
+# We define the basic floating point type used for the actual simulation
+# and retrieve the corresponding element type for the Jacobian sparsity detection.
+# For more details, see the API documentation of
+# [`jacobian_eltype`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#SparseConnectivityTracer.jacobian_eltype).
+jac_detector = TracerSparsityDetector()
+float_type = Float64
+jac_eltype = jacobian_eltype(float_type, jac_detector)
+
+# Set up standard 1D linear advection problem:
+advection_velocity = 1.0
+equation = LinearScalarAdvectionEquation1D(advection_velocity)
+solver = DGSEM(polydeg = 3, surface_flux = flux_godunov, RealT = float_type)
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4, n_cells_max = 10^4)
+
+# Now we can construct the semidiscretization for sparsity detection with `jac_eltype` as the 
+# datatype for the working arrays and helper datastructures.
+semi_jac_type = SemidiscretizationHyperbolic(mesh, equation, initial_condition_convergence_test, solver,
+                                            uEltype = jac_eltype) # Supply sparsity detection datatype here
+t0 = 0.0 # Re-used later in `rhs!` evaluation
+t_end = 1.0
+t_span = (t0, t_end)
+ode_jac_type = semidiscretize(semi_jac_type, t_span)
+u0_ode = ode_jac_type.u0
+du_ode = similar(u0_ode)
+
+# Wrap the RHS for sparsity detection to match the expected signature f!(du, u) required by
+# [`jacobian_sparsity`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity).
+rhs_wrapped! = (du, u) -> Trixi.rhs!(du, u, semi_jac_type, t0)
+jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
+
+# Optionally, we can also compute the coloring vector to reduce Jacobian evaluations
+# to `1 + maximum(coloring_vec)` for finite differencing and `maximum(coloring_vec)` for algorithmic differentiation.
+
+# We partition by columns as we are using finite differencing here.
+# One would also partition by columns if forward-based algorithmic differentiation were used,
+# and only partition by rows if reverse-mode AD were used.
+# See also [the documentation of the now deprecated `SparseDiffTools`](https://github.com/JuliaDiff/SparseDiffTools.jl?tab=readme-ov-file#matrix-coloring) package,
+# the predecessor in spirit to `SparseConnectivityTracer.jl` and `SparseMatrixColorings.jl` for more information.
+coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
+coloring_alg = GreedyColoringAlgorithm(; decompression = :direct)
+coloring_result = coloring(jac_prototype, coloring_prob, coloring_alg)
+coloring_vec = column_colors(coloring_result)
+
+# Now, set up the actual semidiscretization for the simulation.
+# The datatype is automatically retrieved from the solver (in this case `float_type = Float64`).
+semi_float_type = SemidiscretizationHyperbolic(mesh, equation, initial_condition_convergence_test, solver)
+# Supply the sparse Jacobian prototype and the optional coloring vector.
+# Internally, an [`ODEFunction`](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEFunction)
+# with `jac_prototype = jac_prototype` and `colorvec = coloring_vec` is created.
+ode_jac_sparse = semidiscretize(semi_float_type, t_span, jac_prototype = jac_prototype, colorvec = coloring_vec)
+
+# You can now solve the ODE problem efficiently with an implicit solver.
+# Unless we remake the whole semidiscretization with [`Dual` number](https://juliadiff.org/ForwardDiff.jl/v0.7/dev/how_it_works.html#Dual-Number-Implementation-1)
+# floating point type, we are bound to finite differencing here.
+using OrdinaryDiffEqSDIRK, ADTypes
+sol = solve(ode_jac_sparse, TRBDF2(; autodiff = AutoFiniteDiff()), dt = 0.1, save_everystep = false)
+
 # ## Linear systems
 
 # When a linear PDE is discretized using a linear scheme such as a standard DG method,
