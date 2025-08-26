@@ -132,7 +132,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
 
     # Check if Jacobian prototype is provided for sparse Jacobian
     if jac_prototype !== nothing
-        # Convert the `jac_prototype` to real type, as seen here:
+        # Convert `jac_prototype` to real type, as seen here:
         # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
         ode = SciMLBase.ODEFunction(rhs!,
                                     jac_prototype = convert.(eltype(u0_ode),
@@ -183,7 +183,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
 
     # Check if Jacobian prototype is provided for sparse Jacobian
     if jac_prototype !== nothing
-        # Convert the `jac_prototype` to real type, as seen here:
+        # Convert `jac_prototype` to real type, as seen here:
         # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
         ode = SciMLBase.ODEFunction(rhs!,
                                     jac_prototype = convert.(eltype(u0_ode),

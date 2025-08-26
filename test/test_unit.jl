@@ -17,7 +17,7 @@ using ECOS: Optimizer
 using NLsolve: nlsolve
 
 using SparseConnectivityTracer, SparseMatrixColorings
-using FiniteDiff
+#using FiniteDiff
 
 include("test_trixi.jl")
 
@@ -2687,9 +2687,9 @@ end
     ### sparsity-aware finite diff ###
 
     jac_sparse_finite_diff = spzeros(N, N)
-    FiniteDiff.finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
-                                           u0_ode, sparsity = jac_prototype,
-                                           colorvec = coloring_vec)
+    finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
+                                u0_ode, sparsity = jac_prototype,
+                                colorvec = coloring_vec)
 
     jac_finite_diff = jacobian_fd(semi_float_type)
 
