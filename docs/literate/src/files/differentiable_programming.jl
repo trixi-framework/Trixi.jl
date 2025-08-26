@@ -407,6 +407,7 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 # When solving large sparse nonlinear ODE systems originating from spatial discretizations
 # with compact stencils such as the DG method with implicit time integrators,
 # exploiting the sparsity of the Jacobian can lead to significant speedups in the Newton-Raphson solver.
+# Similarly, steady-state problems can also be solved faster.
 
 # Trixi.jl supports efficient Jacobian computations by leveraging the
 # [SparseConnectivityTracer.jl](https://github.com/trixi-framework/SparseConnectivityTracer.jl)

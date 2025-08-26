@@ -55,8 +55,6 @@ mesh = StructuredMesh(cells_per_dimension, mapping)
 ###############################################################################
 ### semidiscretization ###
 
-initial_condition = initial_condition_convergence_test
-
 # Semidiscretization for sparsity pattern detection
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
                                              initial_condition_convergence_test,
