@@ -16,8 +16,8 @@ using ECOS: Optimizer
 # PERK Single p3 Constructors
 using NLsolve: nlsolve
 
-# For sparsity detection with Symbolics
-using SparseDiffTools, Symbolics
+using SparseConnectivityTracer, SparseMatrixColorings
+using FiniteDiff
 
 include("test_trixi.jl")
 
@@ -2632,36 +2632,24 @@ function Base.:*(A::Matrix{Real}, B::Matrix{Real})::Matrix{Real}
     return C
 end
 
-@testset "SparseDiff Jacobian = {ForwardDiff Jacobian, LinearStructure}" begin
-    ###############################################################################################
-    ### Overloads to construct the `LobattoLegendreBasis` with `Real` type (supertype of `Num`) ###
+@testset "SparseConnectivityTracer-Jacobian = {ForwardDiff-Jacobian, LinearStructure}" begin
+    ###############################################################################
+    ### set up sparsity detection ###
 
-    # Required for setting up the Lobatto-Legendre basis for abstract `Real` type.
-    # Constructing the Lobatto-Legendre basis with `Real` instead of `Num` is 
-    # significantly easier as we do not have to care about e.g. if-clauses.
-    # As a consequence, we need to provide some overloads hinting towards the intended behavior.
+    float_type = Float64 # Datatype for the actual simulation
 
-    float_type = Float64 # Actual floating point type for the simulation
+    jac_detector = TracerSparsityDetector()
+    # We need to construct the semidiscretization with the correct
+    # Sparsity-detection ready datatype, which is retrieved here
+    jac_eltype = jacobian_eltype(float_type, jac_detector)
 
-    # Newton tolerance for finding LGL nodes & weights
-    Trixi.eps(::Type{Real}) = Base.eps(float_type)
-    # There are some places where `one(RealT)` or `zero(uEltype)` is called where `RealT` or `uEltype` is `Real`.
-    # This returns an `Int64`, i.e., `1` or `0`, respectively which gives errors when a floating-point alike type is expected.
-    Trixi.one(::Type{Real}) = Base.one(float_type)
-    Trixi.zero(::Type{Real}) = Base.zero(float_type)
-
-    ###############################################################################################
+    ###############################################################################
+    ### equations, solver, mesh ###
 
     advection_velocities = (0.2, -0.7)
     equations = LinearScalarAdvectionEquation2D(advection_velocities)
 
-    # `RealT = Real` requires fewer overloads than the more explicit `RealT = Num` from Symbolics.
-    # `solver_real` is used for computing the Jacobian sparsity pattern
-    solver_real = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
-                        RealT = Real)
-    # `solver_float` is  used for the subsequent simulation
-    solver_float = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
-                         RealT = float_type)
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = float_type)
 
     coordinates_min = (-1.0, -1.0)
     coordinates_max = (1.0, 1.0)
@@ -2670,46 +2658,80 @@ end
                     initial_refinement_level = 4,
                     n_cells_max = 30_000)
 
-    # `semi_real` is used for computing the Jacobian sparsity pattern
-    semi_real = SemidiscretizationHyperbolic(mesh, equations,
-                                             initial_condition_convergence_test,
-                                             solver_real)
-    # `semi_float` is  used for the subsequent simulation
-    semi_float = SemidiscretizationHyperbolic(mesh, equations,
-                                              initial_condition_convergence_test,
-                                              solver_float)
+    ###############################################################################
+    ### semidiscretization ###
 
-    t0 = 0.0 # Re-used for the ODE function defined below
-    t_end = 5.0
+    # Semidiscretization for sparsity pattern detection
+    semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
+                                                 initial_condition_convergence_test,
+                                                 solver,
+                                                 uEltype = jac_eltype) # Need to supply Jacobian element type
+
+    t0 = 0.0 # Re-used for wrapping `rhs` below
+    t_end = 1.0
     t_span = (t0, t_end)
 
-    # Call `semidiscretize` on `semi_float` to create the ODE problem to have access to the initial condition.
-    ode_float = semidiscretize(semi_float, t_span)
-    u0_ode = ode_float.u0
+    # Call `semidiscretize` to create the ODE problem to have access to the
+    # initial condition based on which the sparsity pattern is computed
+    ode_jac_type = semidiscretize(semi_jac_type, t_span)
+    u0_ode = ode_jac_type.u0
     du_ode = similar(u0_ode)
 
-    ###############################################################################################
-    ### Compute the Jacobian with SparseDiffTools ###
+    ###############################################################################
+    ### Compute the Jacobian sparsity pattern ###
 
-    # Create a function with two parameters: `du_ode` and `u0_ode`
-    # to fulfill the requirements of an in_place function in SparseDiffTools
-    # (see example function `f` from https://docs.sciml.ai/SparseDiffTools/dev/#Example)
-    rhs = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_real, t0)
+    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type, t0)
 
-    # Taken from example linked above to detect the pattern and choose how to do the differentiation
-    ad_type = AutoForwardDiff()
-    sparse_adtype = AutoSparse(ad_type)
-    sd = SymbolicsSparsityDetection()
-    sparse_cache = sparse_jacobian_cache(sparse_adtype, sd, rhs, du_ode, u0_ode)
-    jac_sparse = sparse_jacobian(sparse_adtype, sparse_cache, rhs, du_ode, u0_ode)
+    jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
 
-    jac_forward_diff = jacobian_ad_forward(semi_float)
+    coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
+    coloring_alg = GreedyColoringAlgorithm(; decompression = :direct)
+    coloring_result = coloring(jac_prototype, coloring_prob, coloring_alg)
+    coloring_vec = column_colors(coloring_result)
 
-    @test jac_sparse == jac_forward_diff
-    @test Matrix(jac_sparse) == jac_forward_diff
-    @test jac_sparse == sparse(jac_forward_diff)
+    ###############################################################################
+    ### float-type semidiscretization ###
 
-    A, _ = linear_structure(semi_float)
+    semi_float_type = SemidiscretizationHyperbolic(mesh, equations,
+                                                   initial_condition_convergence_test,
+                                                   solver)
+
+    ode_float_type = semidiscretize(semi_float_type, t_span)
+    u0_ode = ode_float_type.u0
+    du_ode = similar(u0_ode)
+    N = length(u0_ode)
+
+    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
+                                                     t0)
+
+    jac_sparse_finite_diff = spzeros(N, N)
+    FiniteDiff.finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
+                                            u0_ode, sparsity = jac_prototype,
+                                            colorvec = coloring_vec)
+
+    jac_finite_diff = jacobian_fd(semi_float_type)
+
+    @test isapprox(jac_finite_diff, jac_sparse_finite_diff; rtol = 5e-8)
+    @test isapprox(jac_finite_diff, Matrix(jac_sparse_finite_diff); rtol = 5e-8)
+    @test isapprox(sparse(jac_finite_diff), jac_sparse_finite_diff; rtol = 5e-8)
+
+    jac_forward_diff = jacobian_ad_forward(semi_float_type)
+    jac_sparse_forward_diff = sparse(jac_forward_diff)
+
+    # Drop essential zeros
+    drop_tol = 5e-7
+    jac_finite_diff_dropped = copy(jac_sparse_finite_diff)
+    jac_finite_diff_dropped.nzval[abs.(jac_sparse_finite_diff.nzval) .< drop_tol] .= 0
+    dropzeros!(jac_finite_diff_dropped)
+
+    # Only check that the sparsity pattern of jac_forward_diff matches jac_finite_diff
+    @test nnz(jac_sparse_forward_diff) == nnz(jac_finite_diff_dropped)
+    @test findnz(jac_sparse_forward_diff) == findnz(jac_finite_diff_dropped)
+
+    A, _ = linear_structure(semi_float_type)
+    A_sparse = sparse(A)
 
     @test jac_sparse == Matrix(A)
     @test Matrix(jac_sparse) == Matrix(A)

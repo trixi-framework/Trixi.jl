@@ -14,15 +14,15 @@ restart_filename = joinpath("out", restart_file)
 t_span = (load_time(restart_filename), 2.0)
 dt_restart = load_dt(restart_filename)
 
-ode_float_jac_sparse = semidiscretize(semi_float, t_span,
-                                      jac_prototype = sparse_cache.jac_prototype,
-                                      colorvec = sparse_cache.coloring.colorvec)
+ode_jac_sparse = semidiscretize(semi_float_type, t_span,
+                                jac_prototype = jac_prototype,
+                                colorvec = coloring_vec)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode_float_jac_sparse, # using `ode_float_jac_sparse` instead of `ode_float` results in speedup of factors 10-15!
+sol = solve(ode_jac_sparse, # using `ode_float_jac_sparse` instead of `ode_float` results in speedup of factors 10-15!
             # Default `AutoForwardDiff()` is not yet working,
             # probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
-            TRBDF2(; autodiff = ad_type);
+            TRBDF2(; autodiff = AutoFiniteDiff());
             adaptive = true, dt = dt_restart, save_everystep = false, callback = callbacks);
