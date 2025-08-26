@@ -16,7 +16,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                      VectoruEltype <: DenseVector{uEltype}} <:
                AbstractContainer
     # Physical coordinates at each node
-    node_coordinates::ArrayRealTNDIMSP2      # [orientation, node_i, node_j, node_k, element]
+    node_coordinates::ArrayRealTNDIMSP2 # [orientation, node_i, node_j, node_k, element]
 
     # Jacobian matrix of the transformation
     # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
@@ -26,7 +26,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     contravariant_vectors::ArrayRealTNDIMSP3 # [dimension, index, node_i, node_j, node_k, element]
 
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
-    inverse_jacobian::ArrayRealTNDIMSP1      # [node_i, node_j, node_k, element]
+    inverse_jacobian::ArrayRealTNDIMSP1 # [node_i, node_j, node_k, element]
 
     # Buffer for calculated surface flux
     surface_flux_values::ArrayuEltypeNDIMSP2 # [variable, i, j, direction, element]
