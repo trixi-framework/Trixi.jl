@@ -111,7 +111,7 @@ end
                                                  mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
-    (local_factor) = dg.mortar
+    (; local_factor) = dg.mortar
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
