@@ -134,7 +134,9 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
     if jac_prototype !== nothing
         # Convert the `jac_prototype` to real type, as seen here:
         # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
-        ode = SciMLBase.ODEFunction(rhs!, jac_prototype = float.(jac_prototype),
+        ode = SciMLBase.ODEFunction(rhs!,
+                                    jac_prototype = convert.(eltype(u0_ode),
+                                                             jac_prototype),
                                     colorvec = colorvec) # coloring vector is optional
 
         return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
@@ -183,7 +185,9 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
     if jac_prototype !== nothing
         # Convert the `jac_prototype` to real type, as seen here:
         # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
-        ode = SciMLBase.ODEFunction(rhs!, jac_prototype = float.(jac_prototype),
+        ode = SciMLBase.ODEFunction(rhs!,
+                                    jac_prototype = convert.(eltype(u0_ode),
+                                                             jac_prototype),
                                     colorvec = colorvec) # coloring vector is optional
 
         return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
