@@ -41,7 +41,7 @@ mesh = StructuredMesh(cells_per_dimension, mapping)
 
 jac_detector = TracerSparsityDetector()
 # We need to construct the semidiscretization with the correct
-# Sparsity-detection ready datatype, which is retrieved here
+# sparsity-detection ready datatype, which is retrieved here
 jac_eltype = jacobian_eltype(float_type, jac_detector)
 
 # Semidiscretization for sparsity pattern detection

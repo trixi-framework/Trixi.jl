@@ -23,7 +23,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 jac_detector = TracerSparsityDetector()
 # We need to construct the semidiscretization with the correct
-# Sparsity-detection ready datatype, which is retrieved here
+# sparsity-detection ready datatype, which is retrieved here
 jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
 # Semidiscretization for sparsity pattern detection
