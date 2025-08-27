@@ -216,8 +216,7 @@ end
         end
 
         @timed_testset "DGMulti: Euler, weak form" begin
-            gamma = 1.4
-            equations = CompressibleEulerEquations2D(gamma)
+            equations = CompressibleEulerEquations2D(1.4)
             initial_condition = initial_condition_density_wave
 
             solver = DGMulti(polydeg = 5, element_type = Quad(),
@@ -239,8 +238,7 @@ end
         end
 
         @timed_testset "DGMulti: Euler, SBP & flux differencing" begin
-            gamma = 1.4
-            equations = CompressibleEulerEquations2D(gamma)
+            equations = CompressibleEulerEquations2D(1.4)
             initial_condition = initial_condition_density_wave
 
             solver = DGMulti(polydeg = 5, element_type = Quad(),
