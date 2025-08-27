@@ -141,6 +141,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
 
         return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
     else
+        # We could also construct an `ODEFunction` without the Jacobian here,
+        # but we stick to the more light-weight direct in-place function `rhs!` here.
         return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
     end
 end
@@ -192,6 +194,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
 
         return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
     else
+        # We could also construct an `ODEFunction` without the Jacobian here,
+        # but we stick to the more light-weight direct in-place function `rhs!` here.
         return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
     end
 end
