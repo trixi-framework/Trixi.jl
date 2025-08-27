@@ -19,9 +19,8 @@ a ramp-up of the timestep.
 One can additionally supply a diffusive CFL number `cfl_diffusive` to
 limit the admissible timestep also respecting diffusive restrictions.
 This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
-In this scenario, a number larger than zero needs to be supplied. 
-By default, `cfl_diffusive` is set to zero which means that only the convective
-CFL number is considered.
+To enable checking for diffusive timestep restrictions, provide a value greater than zero for `cfl_diffusive`.
+By default, `cfl_diffusive` is set to zero which means that only the convective CFL number is considered.
 Currently, only constant values for `cfl_diffusive` are supported, i.e., no functions of time are allowed.
 
 By default, the timestep will be adjusted at every step.
