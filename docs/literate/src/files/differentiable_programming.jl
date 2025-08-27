@@ -486,8 +486,7 @@ ode_jac_sparse = semidiscretize(semi_float_type, t_span,
                                 colorvec = coloring_vec)
 
 # You can now solve the ODE problem efficiently with an implicit solver.
-# Unless we remake the whole semidiscretization with [`Dual` number](https://juliadiff.org/ForwardDiff.jl/v0.7/dev/how_it_works.html#Dual-Number-Implementation-1)
-# floating point type, we are bound to finite differencing here.
+# Currently we are bound to finite differencing here.
 using OrdinaryDiffEqSDIRK, ADTypes
 sol = solve(ode_jac_sparse, TRBDF2(; autodiff = AutoFiniteDiff()), dt = 0.1,
             save_everystep = false)
