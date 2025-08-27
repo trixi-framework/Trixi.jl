@@ -119,7 +119,7 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
                                         typeof(mu),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
                                                            mu, Prandtl,
-                                                           kappa, max(1, kappa),
+                                                           kappa, max(one(kappa), kappa),
                                                            equations,
                                                            gradient_variables)
 end
