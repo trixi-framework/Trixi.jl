@@ -293,7 +293,6 @@ end
                                "elixir_advection_basic.jl"),
                       tspan = (0.0, 0.0))
 
-        J = jacobian_ad_forward(semi)
         @test_nowarn jacobian_ad_forward(semi)
     end
 
