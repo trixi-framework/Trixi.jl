@@ -118,8 +118,8 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
     CompressibleNavierStokesDiffusion1D{typeof(gradient_variables), typeof(gamma),
                                         typeof(mu),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                           mu, Prandtl,
-                                                           kappa, max(one(kappa), kappa),
+                                                           mu, Prandtl, kappa,
+                                                           max(one(kappa), kappa),
                                                            equations,
                                                            gradient_variables)
 end
