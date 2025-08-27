@@ -4,7 +4,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 # with two additional passive tracer variables
-flow_equations = CompressibleEulerEquations2D(1.4)
+gamma = 1.4
+flow_equations = CompressibleEulerEquations2D(gamma)
 equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
 
 initial_condition = initial_condition_density_wave
