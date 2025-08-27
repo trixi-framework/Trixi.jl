@@ -52,7 +52,6 @@ Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 TriplotBase = "981d1d27-644d-49a2-9326-4793e63143c3"
 TriplotRecipes = "808ab39a-a642-4abf-81ff-4cb34ebbffa3"
 TrixiBase = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
-TrixiTest = "0a316866-cbd0-4425-8bcb-08103b2c1f26"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [weakdeps]
