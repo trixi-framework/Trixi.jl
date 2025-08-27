@@ -56,6 +56,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
     max_scaled_speed = nextfloat(zero(t))
 
     max_lambda1, = max_abs_speeds(equations)
+
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         inv_jacobian = cache.elements.inverse_jacobian[element] # 2 / Δx
         max_scaled_speed = max(max_scaled_speed, inv_jacobian * max_lambda1)
@@ -73,6 +74,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
     max_scaled_speed = nextfloat(zero(t))
 
     max_lambda1, = max_diffusivity(equations_parabolic)
+
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         inv_jacobian = cache.elements.inverse_jacobian[element] # 2 / Δx
         max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * max_lambda1)
@@ -114,6 +116,7 @@ function max_dt(u, t, mesh::StructuredMesh{1},
     max_scaled_speed = nextfloat(zero(t))
 
     max_lambda1, = max_abs_speeds(equations)
+
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         for i in eachnode(dg)
             inv_jacobian = cache.elements.inverse_jacobian[i, element] # 2 / Δx
