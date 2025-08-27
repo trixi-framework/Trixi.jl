@@ -19,16 +19,17 @@ a ramp-up of the timestep.
 One can additionally supply a diffusive CFL number `cfl_diffusive` to
 limit the admissible timestep also respecting diffusive restrictions.
 This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
-In this scenario, a number larger than zero or a function of time needs to be supplied. 
+In this scenario, a number larger than zero needs to be supplied. 
 By default, `cfl_diffusive` is set to zero which means that only the convective
 CFL number is considered.
+Currently, only constant values for `cfl_diffusive` are supported, i.e., no functions of time are allowed.
 
 By default, the timestep will be adjusted at every step.
 For different values of `interval`, the timestep will be adjusted every `interval` steps.
 """
-mutable struct StepsizeCallback{CflConvectiveType, CflDiffusiveType}
+mutable struct StepsizeCallback{CflConvectiveType, RealT}
     cfl_convective::CflConvectiveType
-    cfl_diffusive::CflDiffusiveType
+    cfl_diffusive::RealT
     interval::Int
 end
 
@@ -169,7 +170,7 @@ function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive::Real,
                            have_constant_speed(equations), equations,
                            solver, cache)
 
-    if cfl_diffusive > 0.0 # Check if diffusive CFL should be considered
+    if cfl_diffusive > 0 # Check if diffusive CFL should be considered
         dt_diffusive = cfl_diffusive * max_dt(u, t, mesh,
                               have_constant_diffusivity(equations_parabolic), equations,
                               equations_parabolic, solver, cache)
@@ -192,7 +193,7 @@ function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive::Real,
                            have_constant_speed(equations), equations,
                            solver, cache)
 
-    if cfl_diffusive > 0.0 # Check if diffusive CFL should be considered
+    if cfl_diffusive > 0 # Check if diffusive CFL should be considered
         dt_diffusive = cfl_diffusive * max_dt(u, t, mesh,
                               have_constant_diffusivity(equations_parabolic), equations,
                               equations_parabolic, solver, cache)
@@ -201,46 +202,6 @@ function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive::Real,
     else
         return dt_convective
     end
-end
-
-# Case for constant `cfl_convective`, variable `cfl_diffusive`.
-function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive,
-                      semi::SemidiscretizationHyperbolicParabolic)
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    equations_parabolic = semi.equations_parabolic
-
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
-
-    dt_convective = cfl_convective * max_dt(u, t, mesh,
-                           have_constant_speed(equations), equations,
-                           solver, cache)
-
-    # If `cfl_diffusive` is provided as a function of time `t`, we always evaluate
-    dt_diffusive = cfl_diffusive(t) * max_dt(u, t, mesh,
-                          have_constant_diffusivity(equations_parabolic), equations,
-                          equations_parabolic, solver, cache)
-
-    return min(dt_convective, dt_diffusive)
-end
-
-# Case for variable `cfl_convective`, variable `cfl_diffusive`.
-function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
-                      semi::SemidiscretizationHyperbolicParabolic)
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    equations_parabolic = semi.equations_parabolic
-
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
-
-    dt_convective = cfl_convective(t) * max_dt(u, t, mesh,
-                           have_constant_speed(equations), equations,
-                           solver, cache)
-
-    # If `cfl_diffusive` is provided as a function of time `t`, we always evaluate
-    dt_diffusive = cfl_diffusive(t) * max_dt(u, t, mesh,
-                          have_constant_diffusivity(equations_parabolic), equations,
-                          equations_parabolic, solver, cache)
-
-    return min(dt_convective, dt_diffusive)
 end
 
 include("stepsize_dg1d.jl")
