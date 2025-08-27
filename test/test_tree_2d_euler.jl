@@ -682,6 +682,64 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (conservation)" begin
+    @trixi_testset "piecewise constant" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_blast_wave_amr_sc_subcell.jl"),
+                            basis_function=:piecewise_constant, pure_low_order=true,
+                            tspan=(0.0, 1.0))
+        state_integrals = Trixi.integrate(sol.u[2], semi)
+        initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
+        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+    end
+
+    # Note: Not conservative
+    @trixi_testset "piecewise linear" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_blast_wave_amr_sc_subcell.jl"),
+                            basis_function=:piecewise_linear, pure_low_order=true,
+                            tspan=(0.0, 1.0))
+        state_integrals = Trixi.integrate(sol.u[2], semi)
+        initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
+        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+    end
+
+    @trixi_testset "global factor" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_blast_wave_amr_sc_subcell.jl"),
+                            local_factor=false, pure_low_order=true, tspan=(0.0, 1.0))
+        state_integrals = Trixi.integrate(sol.u[2], semi)
+        initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
+        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+    end
+
+    # Note: Not conservative
+    @trixi_testset "alternative implementation" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_blast_wave_amr_sc_subcell.jl"),
+                            alternative=true, pure_low_order=true, tspan=(0.0, 1.0))
+        state_integrals = Trixi.integrate(sol.u[2], semi)
+        initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
+        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+    end
+end
+
 @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[
