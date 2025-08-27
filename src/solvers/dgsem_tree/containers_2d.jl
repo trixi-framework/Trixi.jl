@@ -10,12 +10,10 @@ mutable struct ElementContainer2D{RealT <: Real, uEltype <: Real} <: AbstractCon
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 4}      # [orientation, i, j, elements]
     surface_flux_values::Array{uEltype, 4} # [variables, i, direction, elements]
-    surface_flux_values_high_order::Array{uEltype, 4} # [variables, i, direction, elements]
     cell_ids::Vector{Int}                  # [elements]
     # internal `resize!`able storage
     _node_coordinates::Vector{RealT}
     _surface_flux_values::Vector{uEltype}
-    _surface_flux_values_high_order::Vector{uEltype}
 end
 
 nvariables(elements::ElementContainer2D) = size(elements.surface_flux_values, 1)
@@ -30,7 +28,7 @@ Base.eltype(elements::ElementContainer2D) = eltype(elements.surface_flux_values)
 function Base.resize!(elements::ElementContainer2D, capacity)
     n_nodes = nnodes(elements)
     n_variables = nvariables(elements)
-    @unpack _node_coordinates, _surface_flux_values, _surface_flux_values_high_order,
+    @unpack _node_coordinates, _surface_flux_values,
     inverse_jacobian, cell_ids = elements
 
     resize!(inverse_jacobian, capacity)
@@ -42,12 +40,6 @@ function Base.resize!(elements::ElementContainer2D, capacity)
     resize!(_surface_flux_values, n_variables * n_nodes * 2 * 2 * capacity)
     elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
                                                (n_variables, n_nodes, 2 * 2, capacity))
-
-    resize!(_surface_flux_values_high_order, n_variables * n_nodes * 2 * 2 * capacity)
-    elements.surface_flux_values_high_order = unsafe_wrap(Array,
-                                                          pointer(_surface_flux_values_high_order),
-                                                          (n_variables, n_nodes, 2 * 2,
-                                                           capacity))
 
     resize!(cell_ids, capacity)
 
@@ -71,21 +63,12 @@ function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
                                       (n_variables, n_nodes, 2 * 2, capacity))
 
-    _surface_flux_values_high_order = fill(nan_uEltype,
-                                           n_variables * n_nodes * 2 * 2 * capacity)
-    surface_flux_values_high_order = unsafe_wrap(Array,
-                                                 pointer(_surface_flux_values_high_order),
-                                                 (n_variables, n_nodes, 2 * 2,
-                                                  capacity))
-
     cell_ids = fill(typemin(Int), capacity)
 
     return ElementContainer2D{RealT, uEltype}(inverse_jacobian, node_coordinates,
                                               surface_flux_values,
-                                              surface_flux_values_high_order,
                                               cell_ids,
-                                              _node_coordinates, _surface_flux_values,
-                                              _surface_flux_values_high_order)
+                                              _node_coordinates, _surface_flux_values)
 end
 
 # Return number of elements
@@ -1442,11 +1425,13 @@ mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real}
     antidiffusive_flux1_R::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux2_L::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux2_R::Array{uEltype, 4} # [variables, i, j, elements]
+    surface_flux_values_high_order::Array{uEltype, 4} # [variables, i, direction, elements]
     # internal `resize!`able storage
     _antidiffusive_flux1_L::Vector{uEltype}
     _antidiffusive_flux1_R::Vector{uEltype}
     _antidiffusive_flux2_L::Vector{uEltype}
     _antidiffusive_flux2_R::Vector{uEltype}
+    _surface_flux_values_high_order::Vector{uEltype}
 end
 
 function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
@@ -1472,14 +1457,23 @@ function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
     antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
                                         (n_variables, n_nodes, n_nodes + 1, capacity))
 
+    _surface_flux_values_high_order = fill(nan_uEltype,
+                                           n_variables * n_nodes * 2 * 2 * capacity)
+    surface_flux_values_high_order = unsafe_wrap(Array,
+                                                 pointer(_surface_flux_values_high_order),
+                                                 (n_variables, n_nodes, 2 * 2,
+                                                  capacity))
+
     return ContainerAntidiffusiveFlux2D{uEltype}(antidiffusive_flux1_L,
                                                  antidiffusive_flux1_R,
                                                  antidiffusive_flux2_L,
                                                  antidiffusive_flux2_R,
+                                                 surface_flux_values_high_order,
                                                  _antidiffusive_flux1_L,
                                                  _antidiffusive_flux1_R,
                                                  _antidiffusive_flux2_L,
-                                                 _antidiffusive_flux2_R)
+                                                 _antidiffusive_flux2_R,
+                                                 _surface_flux_values_high_order)
 end
 
 nvariables(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1_L, 1)
@@ -1494,7 +1488,7 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
     n_nodes = nnodes(fluxes)
     n_variables = nvariables(fluxes)
 
-    @unpack _antidiffusive_flux1_L, _antidiffusive_flux2_L, _antidiffusive_flux1_R, _antidiffusive_flux2_R = fluxes
+    @unpack _antidiffusive_flux1_L, _antidiffusive_flux2_L, _antidiffusive_flux1_R, _antidiffusive_flux2_R, _surface_flux_values_high_order = fluxes
 
     resize!(_antidiffusive_flux1_L, n_variables * (n_nodes + 1) * n_nodes * capacity)
     fluxes.antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
@@ -1512,6 +1506,12 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
     fluxes.antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
                                                (n_variables, n_nodes, n_nodes + 1,
                                                 capacity))
+
+    resize!(_surface_flux_values_high_order, n_variables * n_nodes * 2 * 2 * capacity)
+    fluxes.surface_flux_values_high_order = unsafe_wrap(Array,
+                                                        pointer(_surface_flux_values_high_order),
+                                                        (n_variables, n_nodes, 2 * 2,
+                                                         capacity))
 
     return nothing
 end

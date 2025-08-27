@@ -975,7 +975,7 @@ function calc_mortar_flux!(surface_flux_values, mesh,
                                                                                     cache)
 
     # high order fluxes
-    (; surface_flux_values_high_order) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
     @trixi_timeit timer() "calc_mortar_flux!" calc_mortar_flux!(surface_flux_values_high_order,
                                                                 mesh,
                                                                 nonconservative_terms,

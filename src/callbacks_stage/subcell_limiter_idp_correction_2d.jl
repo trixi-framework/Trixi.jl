@@ -85,7 +85,8 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     (; orientations) = cache.mortars
-    (; surface_flux_values, surface_flux_values_high_order) = cache.elements
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
     (; boundary_interpolation) = dg.basis
 
     (; positivity_correction_factor) = dg.volume_integral.limiter
@@ -251,7 +252,8 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     (; orientations) = cache.mortars
-    (; surface_flux_values, surface_flux_values_high_order) = cache.elements
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
     (; boundary_interpolation) = dg.basis
 
     (; limiter) = dg.volume_integral
@@ -376,7 +378,8 @@ end
     (; mesh, cache) = semi
     (; orientations, limiting_factor) = cache.mortars
 
-    (; surface_flux_values, surface_flux_values_high_order) = cache.elements
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
     (; boundary_interpolation) = dg.basis
 
     for mortar in eachmortar(dg, cache)
