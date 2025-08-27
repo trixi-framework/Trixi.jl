@@ -15,6 +15,7 @@ t_span = (load_time(restart_filename), 2.0)
 dt_restart = load_dt(restart_filename)
 
 ode_jac_sparse = semidiscretize(semi_float_type, t_span,
+                                restart_filename,
                                 jac_prototype = jac_prototype,
                                 colorvec = coloring_vec)
 
