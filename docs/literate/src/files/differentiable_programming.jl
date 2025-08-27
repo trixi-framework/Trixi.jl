@@ -416,34 +416,37 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 # These are then handed over to the ODE solver from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 
 # Below is a minimal example in 1D, showing how to use these packages with Trixi.jl.
-# First, load the necessary packages.
+# First, we define the the `equation` and `mesh` as for an ordinary simulation:
 
 using Trixi
-using SparseConnectivityTracer # For Jacobian sparsity pattern
-using SparseMatrixColorings    # For coloring vector
 
-# Next, we set up the sparsity detection.
-# We use the [global `TracerSparsityDetector()`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/global_vs_local/) here.
-
-# We define the basic floating point type used for the actual simulation
-# and retrieve the corresponding element type for the Jacobian sparsity detection.
-# For more details, see the API documentation of
-# [`jacobian_eltype`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#SparseConnectivityTracer.jacobian_eltype).
-jac_detector = TracerSparsityDetector()
-float_type = Float64
-jac_eltype = jacobian_eltype(float_type, jac_detector)
-
-# Set up standard 1D linear advection problem:
 advection_velocity = 1.0
 equation = LinearScalarAdvectionEquation1D(advection_velocity)
-solver = DGSEM(polydeg = 3, surface_flux = flux_godunov, RealT = float_type)
+
 mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4, n_cells_max = 10^4)
+
+# We define the basic floating point type used for the actual simulation
+# and construct the solver:
+float_type = Float64
+solver = DGSEM(polydeg = 3, surface_flux = flux_godunov, RealT = float_type)
+
+# Next, we set up the sparsity detection. For this we need
+using SparseConnectivityTracer # For Jacobian sparsity pattern
+
+# We use the [global `TracerSparsityDetector()`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/global_vs_local/) here.
+jac_detector = TracerSparsityDetector()
+
+# Next, we retrieve the right element type corresponding to `float_type` for the Jacobian sparsity detection.
+# For more details, see the API documentation of
+# [`jacobian_eltype`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#SparseConnectivityTracer.jacobian_eltype).
+jac_eltype = jacobian_eltype(float_type, jac_detector)
 
 # Now we can construct the semidiscretization for sparsity detection with `jac_eltype` as the 
 # datatype for the working arrays and helper datastructures.
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,
                                              initial_condition_convergence_test, solver,
                                              uEltype = jac_eltype) # Supply sparsity detection datatype here
+
 t0 = 0.0 # Re-used later in `rhs!` evaluation
 t_end = 1.0
 t_span = (t0, t_end)
@@ -458,6 +461,8 @@ jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 
 # Optionally, we can also compute the coloring vector to reduce Jacobian evaluations
 # to `1 + maximum(coloring_vec)` for finite differencing and `maximum(coloring_vec)` for algorithmic differentiation.
+# For this, we need
+using SparseMatrixColorings
 
 # We partition by columns as we are using finite differencing here.
 # One would also partition by columns if forward-based algorithmic differentiation were used,

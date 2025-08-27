@@ -4,22 +4,12 @@ using SparseMatrixColorings # For obtaining the coloring vector
 using OrdinaryDiffEqSDIRK, ADTypes
 
 ###############################################################################
-### set up sparsity detection ###
-
-float_type = Float64 # Datatype for the actual simulation
-
-jac_detector = TracerSparsityDetector()
-# We need to construct the semidiscretization with the correct
-# Sparsity-detection ready datatype, which is retrieved here
-jac_eltype = jacobian_eltype(float_type, jac_detector)
-
-###############################################################################
 ### equation, solver, mesh ###
 
 advection_velocity = (0.2, -0.7)
 equation = LinearScalarAdvectionEquation2D(advection_velocity)
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_godunov, RealT = float_type)
+solver = DGSEM(polydeg = 3, surface_flux = flux_godunov)
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
@@ -29,7 +19,12 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000)
 
 ###############################################################################
-### semidiscretization ###
+### semidiscretization for sparsity detection ###
+
+jac_detector = TracerSparsityDetector()
+# We need to construct the semidiscretization with the correct
+# Sparsity-detection ready datatype, which is retrieved here
+jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
 # Semidiscretization for sparsity pattern detection
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,

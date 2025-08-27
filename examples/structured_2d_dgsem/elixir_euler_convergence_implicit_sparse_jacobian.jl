@@ -4,32 +4,16 @@ using SparseMatrixColorings # For obtaining the coloring vector
 using OrdinaryDiffEqSDIRK, ADTypes
 
 ###############################################################################
-### set up sparsity detection ###
-
-float_type = Float64 # Datatype for the actual simulation
-
-jac_detector = TracerSparsityDetector()
-# We need to construct the semidiscretization with the correct
-# Sparsity-detection ready datatype, which is retrieved here
-jac_eltype = jacobian_eltype(float_type, jac_detector)
-
-# In the Trixi implementation, we overload the sqrt function to first check if the argument 
-# is < 0 and then return NaN instead of an error.
-# To turn this behaviour off for the datatype used in sparsity detection,
-# we switch back to the Base implementation here which does not contain an if-clause.
-Trixi.sqrt(x::jac_eltype) = Base.sqrt(x)
-
-###############################################################################
-### equations and solver ###
-
-equations = CompressibleEulerEquations2D(1.4)
+### solver and equations ###
 
 # For sparsity detection we can only use `flux_lax_friedrichs` at the moment since this is 
-# `if`-clause free (although it contains `min` and `max` operations.
+# `if`-clause free (although it contains `min` and `max` operations).
 # The sparsity pattern, however, should be the same for other (two-point) fluxes as well.
 surface_flux = flux_lax_friedrichs
-
+float_type = Float64 # Datatype for the actual simulation
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux, RealT = float_type)
+
+equations = CompressibleEulerEquations2D(1.4)
 
 ###############################################################################
 ### mesh ###
@@ -53,7 +37,12 @@ cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
 ###############################################################################
-### semidiscretization ###
+### semidiscretization for sparsity detection ###
+
+jac_detector = TracerSparsityDetector()
+# We need to construct the semidiscretization with the correct
+# Sparsity-detection ready datatype, which is retrieved here
+jac_eltype = jacobian_eltype(float_type, jac_detector)
 
 # Semidiscretization for sparsity pattern detection
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,

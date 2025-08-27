@@ -2611,21 +2611,12 @@ end
 
 @testset "SparseConnectivityTracer FiniteDiff Jacobian" begin
     ###############################################################################
-    ### set up sparsity detection ###
-
-    float_type = Float64 # Datatype for the actual simulation
-
-    jac_detector = TracerSparsityDetector()
-    # We need to construct the semidiscretization with the correct
-    # Sparsity-detection ready datatype, which is retrieved here
-    jac_eltype = jacobian_eltype(float_type, jac_detector)
-
-    ###############################################################################
     ### equations, solver, mesh ###
 
     advection_velocities = (0.2, -0.7)
     equations = LinearScalarAdvectionEquation2D(advection_velocities)
 
+    float_type = Float64 # Datatype for the actual simulation
     solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = float_type)
 
     coordinates_min = (-1.0, -1.0)
@@ -2636,7 +2627,12 @@ end
                     n_cells_max = 30_000)
 
     ###############################################################################
-    ### semidiscretization ###
+    ### semidiscretization for sparsity detection ###
+
+    jac_detector = TracerSparsityDetector()
+    # We need to construct the semidiscretization with the correct
+    # Sparsity-detection ready datatype, which is retrieved here
+    jac_eltype = jacobian_eltype(float_type, jac_detector)
 
     # Semidiscretization for sparsity pattern detection
     semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
