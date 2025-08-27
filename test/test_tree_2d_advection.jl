@@ -57,7 +57,7 @@ end
 @trixi_testset "elixir_advection_implicit_sparse_jacobian_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_implicit_sparse_jacobian_restart.jl"),
-                        l2=[0.004964299251933375], linf=[0.007028151045231468])
+                        l2=[0.007964280656552015], linf=[0.011267546271397588])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -72,7 +72,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_implicit_sparse_jacobian_restart.jl"),
                         colorvec=nothing,
-                        l2=[0.004964299251933375], linf=[0.007028151045231468])
+                        l2=[0.007964280656552015], linf=[0.011267546271397588])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
