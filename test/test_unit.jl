@@ -2687,9 +2687,9 @@ end
     ### sparsity-aware finite diff ###
 
     jac_sparse_finite_diff = spzeros(N, N)
-    finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
-                                u0_ode, sparsity = jac_prototype,
-                                colorvec = coloring_vec)
+    FiniteDiff.finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
+                                           u0_ode, sparsity = jac_prototype,
+                                           colorvec = coloring_vec)
 
     jac_finite_diff = jacobian_fd(semi_float_type)
 
