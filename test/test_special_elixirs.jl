@@ -398,9 +398,7 @@ end
                       joinpath(EXAMPLES_DIR, "t8code_3d_dgsem",
                                "elixir_advection_cubed_sphere.jl"),
                       polydeg = 2,
-                      mesh = Trixi.T8codeMeshCubedSphere(3, 2, 0.5, 0.5;
-                                                         polydeg = 2,
-                                                         initial_refinement_level = 0),
+                      trees_per_face_dimension = 3, layers = 2,
                       tspan = (0.0, 0.0))
 
         @test_nowarn jacobian_ad_forward(semi)
