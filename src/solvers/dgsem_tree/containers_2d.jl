@@ -66,8 +66,7 @@ function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     cell_ids = fill(typemin(Int), capacity)
 
     return ElementContainer2D{RealT, uEltype}(inverse_jacobian, node_coordinates,
-                                              surface_flux_values,
-                                              cell_ids,
+                                              surface_flux_values, cell_ids,
                                               _node_coordinates, _surface_flux_values)
 end
 
