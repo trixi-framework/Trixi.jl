@@ -11,7 +11,9 @@ function create_cache(mesh, equations,
     return NamedTuple()
 end
 
-# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
+## The following `calc_volume_integral!` functions are                         ##
+## dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes. ##
+
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
@@ -25,9 +27,9 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
-# For curved meshes averaging of the mapping terms, stored in `cache.elements.contravariant_vectors`, 
-# is peeled apart from the evaluation of the physical fluxes in each Cartesian direction.
+# For curved meshes (all meshtypes except for the Cartesian `TreeMesh`) the averaging of the mapping terms
+# (which are stored in `cache.elements.contravariant_vectors`)
+# is "peeled apart" from the evaluation of the physical fluxes in each Cartesian direction.
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
@@ -41,7 +43,6 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
@@ -80,7 +81,6 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
