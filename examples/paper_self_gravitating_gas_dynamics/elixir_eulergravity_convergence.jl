@@ -5,8 +5,8 @@ initial_condition = initial_condition_eoc_test_coupled_euler_gravity
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
-gamma = 2.0
-equations_euler = CompressibleEulerEquations2D(gamma)
+gamma() = 2.0
+equations_euler = CompressibleEulerEquations2D(gamma())
 
 polydeg = 3
 solver_euler = DGSEM(polydeg, FluxHLL(min_max_speed_naive))
