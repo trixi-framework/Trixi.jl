@@ -34,6 +34,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
     max_scaled_speed = nextfloat(zero(t))
 
     max_lambda1, max_lambda2 = max_abs_speeds(equations)
+
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         inv_jacobian = cache.elements.inverse_jacobian[element]
         max_scaled_speed = max(max_scaled_speed,
