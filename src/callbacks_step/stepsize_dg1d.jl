@@ -34,6 +34,8 @@ function max_dt(u, t, mesh::TreeMesh{1},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
+    max_lambda1, = max_abs_speeds(equations)
+
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda1 = zero(max_scaled_speed)
         for i in eachnode(dg)
