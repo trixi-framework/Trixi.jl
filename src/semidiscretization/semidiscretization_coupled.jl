@@ -349,24 +349,27 @@ end
 ################################################################################
 ### StepsizeCallback
 ################################################################################
-
 # In case of coupled system, use minimum timestep over all systems
-# Case for constant `cfl_number`.
-function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCoupled)
+
+# Case for `cfl_convective` as a constant and `cfl_diffusive` as a constant.
+function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive::Real,
+                      semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
+        calculate_dt(u_ode_slice, t, cfl_convective, cfl_diffusive, semi.semis[i])
     end
 
     return dt
 end
-# Case for `cfl_number` as a function of time `t`.
-function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
-    cfl_number_ = cfl_number(t)
+# Case for `cfl_convective` as a function of time `t` and `cfl_diffusive` as a constant.
+function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive::Real,
+                      semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_number_, semi.semis[i])
+        calculate_dt(u_ode_slice, t, cfl_convective(t), cfl_diffusive, semi.semis[i])
     end
+
+    return dt
 end
 
 function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,

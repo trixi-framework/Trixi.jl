@@ -73,6 +73,22 @@ end
     end
 end
 
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_cfl.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_advection_diffusion_cfl.jl"),
+                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
+                        l2=[8.389469356681668e-6],
+                        linf=[2.8474476202633436e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion.jl"),
@@ -118,6 +134,78 @@ end
                             0.0006255102377159538,
                             0.00036195501456059986,
                             0.0016147729485886941
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic_cfl.jl"),
+                        l2=[
+                            0.00011338560756751962,
+                            6.240158271610694e-5,
+                            0.0002848510206540238
+                        ],
+                        linf=[
+                            0.0006233189520368221,
+                            0.0003592942992138859,
+                            0.0016105764529221744
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl (Time-dep. conv. CFL)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic_cfl.jl"),
+                        cfl=t -> 1.8,
+                        l2=[
+                            0.00011338560756751962,
+                            6.240158271610694e-5,
+                            0.0002848510206540238
+                        ],
+                        linf=[
+                            0.0006233189520368221,
+                            0.0003592942992138859,
+                            0.0016105764529221744
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl (Time-dep. conv. CFL, zero diff. CFL)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic_cfl.jl"),
+                        cfl=t -> 1.8,
+                        cfl_diffusive=0.0,
+                        l2=[
+                            0.00011338560756751962,
+                            6.240158271610694e-5,
+                            0.0002848510206540238
+                        ],
+                        linf=[
+                            0.0006233189520368221,
+                            0.0003592942992138859,
+                            0.0016105764529221744
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

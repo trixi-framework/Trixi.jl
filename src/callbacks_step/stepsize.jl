@@ -6,18 +6,29 @@
 #! format: noindent
 
 """
-    StepsizeCallback(; cfl=1.0, interval = 1)
+    StepsizeCallback(; cfl=1.0, cfl_diffusive = 0.0,
+                     interval = 1)
 
 Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself.
+The keyword argument `cfl` must be either a `Real` number, corresponding to a constant 
+CFL number, or a function of time `t` returning a `Real` number.
+The latter approach allows for variable CFL numbers that can be used to realize e.g.
+a ramp-up of the timestep.
 
-The supplied keyword argument `cfl` must be either a `Real` number or
-a function of time `t` returning a `Real` number.
+One can additionally supply a diffusive CFL number `cfl_diffusive` to
+limit the admissible timestep also respecting diffusive restrictions.
+This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
+To enable checking for diffusive timestep restrictions, provide a value greater than zero for `cfl_diffusive`.
+By default, `cfl_diffusive` is set to zero which means that only the convective CFL number is considered.
+Currently, only constant values for `cfl_diffusive` are supported, i.e., no functions of time are allowed.
+
 By default, the timestep will be adjusted at every step.
 For different values of `interval`, the timestep will be adjusted every `interval` steps.
 """
-mutable struct StepsizeCallback{CflType}
-    cfl_number::CflType
+mutable struct StepsizeCallback{CflConvectiveType, RealT}
+    cfl_convective::CflConvectiveType
+    cfl_diffusive::RealT
     interval::Int
 end
 
@@ -25,9 +36,10 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
     @nospecialize cb # reduce precompilation time
 
     stepsize_callback = cb.affect!
-    @unpack cfl_number, interval = stepsize_callback
+    @unpack cfl_convective, cfl_diffusive, interval = stepsize_callback
     print(io, "StepsizeCallback(",
-          "cfl_number=", cfl_number, ", ",
+          "cfl_convective=", cfl_convective, ", ",
+          "cfl_diffusive=", cfl_diffusive, ", ",
           "interval=", interval, ")")
 end
 
@@ -40,23 +52,30 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         stepsize_callback = cb.affect!
 
-        setup = ["CFL number" => stepsize_callback.cfl_number
-                 "Interval" => stepsize_callback.interval]
+        setup = [
+            "CFL Convective" => stepsize_callback.cfl_convective,
+            "CFL Diffusive" => stepsize_callback.cfl_diffusive,
+            "Interval" => stepsize_callback.interval
+        ]
         summary_box(io, "StepsizeCallback", setup)
     end
 end
 
-function StepsizeCallback(; cfl = 1.0, interval = 1)
-    stepsize_callback = StepsizeCallback{typeof(cfl)}(cfl, interval)
+function StepsizeCallback(; cfl = 1.0, cfl_diffusive = 0.0,
+                          interval = 1)
+    stepsize_callback = StepsizeCallback{typeof(cfl), typeof(cfl_diffusive)}(cfl,
+                                                                             cfl_diffusive,
+                                                                             interval)
 
     DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
                      save_positions = (false, false),
                      initialize = initialize!)
 end
 
-# Compatibility constructor
-function StepsizeCallback(cfl)
-    StepsizeCallback{typeof(cfl)}(cfl, 1)
+# Compatibility constructor used in `EulerAcousticsCouplingCallback`
+function StepsizeCallback(cfl_convective)
+    RealT = typeof(cfl_convective)
+    StepsizeCallback{RealT, RealT}(cfl_convective, zero(RealT), 1)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -82,10 +101,11 @@ end
     t = integrator.t
     u_ode = integrator.u
     semi = integrator.p
-    @unpack cfl_number = stepsize_callback
+    @unpack cfl_convective, cfl_diffusive = stepsize_callback
 
     # Dispatch based on semidiscretization
-    dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number, semi)
+    dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_convective,
+                                                           cfl_diffusive, semi)
 
     set_proposed_dt!(integrator, dt)
     integrator.opts.dtmax = dt
@@ -105,32 +125,82 @@ function (cb::DiscreteCallback{Condition, Affect!})(ode::ODEProblem) where {Cond
                                                                             StepsizeCallback
                                                                             }
     stepsize_callback = cb.affect!
-    @unpack cfl_number = stepsize_callback
+    @unpack cfl_convective, cfl_diffusive = stepsize_callback
     u_ode = ode.u0
     t = first(ode.tspan)
     semi = ode.p
 
-    dt = calculate_dt(u_ode, t, cfl_number, semi)
+    return calculate_dt(u_ode, t, cfl_convective, cfl_diffusive, semi)
 end
 
-# General case for a single (i.e., non-coupled) semidiscretization
+# General case for an abstract single (i.e., non-coupled) semidiscretization
 # Case for constant `cfl_number`.
-function calculate_dt(u_ode, t, cfl_number::Real, semi::AbstractSemidiscretization)
+function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive,
+                      semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    dt = cfl_number * max_dt(u, t, mesh,
-                have_constant_speed(equations), equations,
-                solver, cache)
+    # Use only convective cfl for non hyperbolic-parabolic semidiscretization
+    return cfl_convective * max_dt(u, t, mesh,
+                  have_constant_speed(equations), equations,
+                  solver, cache)
 end
 # Case for `cfl_number` as a function of time `t`.
-function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
+function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
+                      semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    dt = cfl_number(t) * max_dt(u, t, mesh,
-                have_constant_speed(equations), equations,
-                solver, cache)
+    return cfl_convective(t) * max_dt(u, t, mesh,
+                  have_constant_speed(equations), equations,
+                  solver, cache)
+end
+
+# Case for a hyperbolic-parabolic semidiscretization
+# Case for both constant `cfl_convective`, `cfl_diffusive`.
+function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive::Real,
+                      semi::SemidiscretizationHyperbolicParabolic)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    dt_convective = cfl_convective * max_dt(u, t, mesh,
+                           have_constant_speed(equations), equations,
+                           solver, cache)
+
+    if cfl_diffusive > 0 # Check if diffusive CFL should be considered
+        dt_diffusive = cfl_diffusive * max_dt(u, t, mesh,
+                              have_constant_diffusivity(equations_parabolic), equations,
+                              equations_parabolic, solver, cache)
+
+        return min(dt_convective, dt_diffusive)
+    else
+        return dt_convective
+    end
+end
+
+# Case for variable `cfl_convective`, constant `cfl_diffusive`.
+function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive::Real,
+                      semi::SemidiscretizationHyperbolicParabolic)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    dt_convective = cfl_convective(t) * max_dt(u, t, mesh,
+                           have_constant_speed(equations), equations,
+                           solver, cache)
+
+    if cfl_diffusive > 0 # Check if diffusive CFL should be considered
+        dt_diffusive = cfl_diffusive * max_dt(u, t, mesh,
+                              have_constant_diffusivity(equations_parabolic), equations,
+                              equations_parabolic, solver, cache)
+
+        return min(dt_convective, dt_diffusive)
+    else
+        return dt_convective
+    end
 end
 
 include("stepsize_dg1d.jl")
