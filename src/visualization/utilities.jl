@@ -456,8 +456,9 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes, reinterpolate
            vcat(original_nodes[1, 1, :], original_nodes[1, end, end])
 end
 
+# Apply the `solution_variables` function to all node values stored in `u`.
 @inline function apply_solution_variables(u, solution_variables,
-                                          have_auxiliary_node_vars::False, equations,
+                                          have_aux_node_vars::False, equations,
                                           solver, cache)
     n_vars_in = nvariables(equations)
     n_vars = length(solution_variables(get_node_vars(u, equations, solver),
@@ -472,23 +473,28 @@ end
     return raw_data
 end
 
+# Apply the `solution_variables` function to all node values stored in `u`.
+# Dispatch on `have_aux_node_vars` to take into account auxiliary variables.
+# Similar to `save_solution_file` in `callbacks_step/save_solution_dg.jl`.
+# However, we cannot use `reinterpret` here as `u` might have a non-bits type.
+# See https://github.com/trixi-framework/Trixi.jl/pull/2388
 @inline function apply_solution_variables(u, solution_variables,
-                                          have_auxiliary_node_vars::True, equations,
+                                          have_aux_node_vars::True, equations,
                                           solver, cache)
-    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    @unpack aux_node_vars = cache.aux_vars
     n_vars_in = nvariables(equations)
-    n_vars_aux = n_auxiliary_node_vars(equations)
+    n_vars_aux = n_aux_node_vars(equations)
     n_vars = length(solution_variables(get_node_vars(u, equations, solver),
-                                       get_auxiliary_node_vars(auxiliary_node_vars,
-                                                               equations, solver),
+                                       get_aux_node_vars(aux_node_vars,
+                                                         equations, solver),
                                        equations))
     raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
     reshaped_u = reshape(u, n_vars_in, :)
     reshaped_r = reshape(raw_data, n_vars, :)
-    reshaped_aux = reshape(auxiliary_node_vars, n_vars_aux, :)
+    reshaped_aux = reshape(aux_node_vars, n_vars_aux, :)
     for idx in axes(reshaped_u, 2)
         u_node = get_node_vars(reshaped_u, equations, solver, idx)
-        aux_node = get_auxiliary_node_vars(reshaped_aux, equations, solver, idx)
+        aux_node = get_aux_node_vars(reshaped_aux, equations, solver, idx)
         reshaped_r[:, idx] = solution_variables(u_node, aux_node, equations)
     end
     return raw_data
@@ -503,20 +509,11 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
         raw_data = u
         n_vars = size(raw_data, 1)
     else
-        # FIXME: Remove this comment once the implementation following it has been verified
-        # Reinterpret the solution array as an array of conservative variables,
-        # compute the solution variables via broadcasting, and reinterpret the
-        # result as a plain array of floating point numbers
-        # raw_data = Array(reinterpret(eltype(u),
-        #        solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
-        #                   Ref(equations))))
-        # n_vars = size(raw_data, 1)
         raw_data = apply_solution_variables(u, solution_variables,
-                                            have_auxiliary_node_vars(equations),
+                                            have_aux_node_vars(equations),
                                             equations, solver, cache)
         n_vars = size(raw_data, 1)
     end
-
     unstructured_data = Array{eltype(raw_data)}(undef,
                                                 ntuple((d) -> nnodes(solver),
                                                        ndims(equations))...,
@@ -541,7 +538,8 @@ function get_unstructured_data(func::Function, solution_variables,
 end
 
 # Convert cell-centered values to node-centered values by averaging over all
-# four neighbors and making use of the periodicity of the solution
+# four neighbors. Solution values at the edges are padded with ghost values
+# computed via linear extrapolation.
 #
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
@@ -560,18 +558,22 @@ function cell2node(cell_centered_data)
         # Fill center with original data
         tmp[2:(end - 1), 2:(end - 1)] .= cell_data
 
-        # Fill sides with opposite data (periodic domain)
-        # x-direction
-        tmp[1, 2:(end - 1)] .= cell_data[end, :]
-        tmp[end, 2:(end - 1)] .= cell_data[1, :]
-        # y-direction
-        tmp[2:(end - 1), 1] .= cell_data[:, end]
-        tmp[2:(end - 1), end] .= cell_data[:, 1]
-        # Corners
-        tmp[1, 1] = cell_data[end, end]
-        tmp[end, 1] = cell_data[1, end]
-        tmp[1, end] = cell_data[end, 1]
-        tmp[end, end] = cell_data[1, 1]
+        # Linear extrapolation of top and bottom rows
+        tmp[1, 2:(end - 1)] .= cell_data[1, :] .+ (cell_data[1, :] .- cell_data[2, :])
+        tmp[end, 2:(end - 1)] .= (cell_data[end, :] .+
+                                  (cell_data[end, :] .- cell_data[end - 1, :]))
+
+        # Linear extrapolatation of left and right columns
+        tmp[2:(end - 1), 1] .= cell_data[:, 1] .+ (cell_data[:, 1] .- cell_data[:, 2])
+        tmp[2:(end - 1), end] .= (cell_data[:, end] .+
+                                  (cell_data[:, end] .- cell_data[:, end - 1]))
+
+        # Corners perform the linear extrapolatation along diagonals
+        tmp[1, 1] = tmp[2, 2] + (tmp[2, 2] - tmp[3, 3])
+        tmp[1, end] = tmp[2, end - 1] + (tmp[2, end - 1] - tmp[3, end - 2])
+        tmp[end, 1] = tmp[end - 1, 2] + (tmp[end - 1, 2] - tmp[end - 2, 3])
+        tmp[end, end] = (tmp[end - 1, end - 1] +
+                         (tmp[end - 1, end - 1] - tmp[end - 2, end - 2]))
 
         # Obtain node-centered value by averaging over neighboring cell-centered values
         for j in 1:resolution_out

@@ -171,7 +171,8 @@ export AcousticPerturbationEquations2D, AcousticPerturbationEquations2DAuxVars,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D,
-       MaxwellEquations1D
+       MaxwellEquations1D,
+       PassiveTracerEquations
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
@@ -198,7 +199,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxHydrostaticReconstruction,
-       FluxUpwind
+       FluxUpwind,
+       FluxTracerEquationsCentral
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
@@ -239,7 +241,7 @@ export lake_at_rest_error
 export ncomponents, eachcomponent
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
-       T8codeMesh
+       P4estMeshView, T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
@@ -279,8 +281,14 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled,
-       AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure,
-       DragCoefficientShearStress, LiftCoefficientShearStress
+       AnalysisSurfaceIntegral, DragCoefficientPressure2D, LiftCoefficientPressure2D,
+       DragCoefficientShearStress2D, LiftCoefficientShearStress2D
+
+# TODO: deprecation introduced in v0.11
+@deprecate DragCoefficientPressure DragCoefficientPressure2D
+@deprecate LiftCoefficientPressure LiftCoefficientPressure2D
+@deprecate DragCoefficientShearStress DragCoefficientShearStress2D
+@deprecate LiftCoefficientShearStress LiftCoefficientShearStress2D
 
 export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!

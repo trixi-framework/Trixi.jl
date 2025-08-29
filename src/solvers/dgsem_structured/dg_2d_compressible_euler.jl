@@ -22,7 +22,7 @@
                                            mesh::Union{StructuredMesh{2},
                                                        UnstructuredMesh2D, P4estMesh{2}},
                                            nonconservative_terms::False,
-                                           have_auxiliary_node_vars::False,
+                                           have_aux_node_vars::False,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -230,7 +230,7 @@ end
                                            mesh::Union{StructuredMesh{2},
                                                        UnstructuredMesh2D, P4estMesh{2}},
                                            nonconservative_terms::False,
-                                           have_auxiliary_node_vars::False,
+                                           have_aux_node_vars::False,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)

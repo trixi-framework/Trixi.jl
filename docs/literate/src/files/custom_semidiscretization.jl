@@ -117,7 +117,7 @@ end
 plot!(sol.u[1], semi, label = "u0", linestyle = :dot, legend = :topleft)
 
 # You can of course also use some
-# [callbacks](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/)
+# [callbacks](https://trixi-framework.github.io/TrixiDocumentation/stable/callbacks/)
 # provided by Trixi.jl as usual.
 
 summary_callback = SummaryCallback()

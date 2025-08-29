@@ -447,7 +447,7 @@ end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
                           UnstructuredMesh2D,
-                          P4estMesh, T8codeMesh}
+                          P4estMesh, P4estMeshView, T8codeMesh}
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
     nelements(cache.elements) * nnodes(dg)^ndims(mesh)
@@ -560,10 +560,10 @@ end
 end
 
 # Return the auxiliary variables at a given volume node index
-@inline function get_auxiliary_node_vars(auxiliary_node_vars, equations, ::DG,
-                                         indices...)
-    return SVector(ntuple(@inline(v->auxiliary_node_vars[v, indices...]),
-                          Val(n_auxiliary_node_vars(equations))))
+@inline function get_aux_node_vars(aux_node_vars, equations, ::DG,
+                                   indices...)
+    return SVector(ntuple(@inline(v->aux_node_vars[v, indices...]),
+                          Val(n_aux_node_vars(equations))))
 end
 
 @inline function get_surface_node_vars(u, equations, solver::DG, indices...)
@@ -578,12 +578,12 @@ end
 end
 
 # Return the auxiliary variables at a given surface node index
-@inline function get_auxiliary_surface_node_vars(aux_surface_node_vars, equations, ::DG,
-                                                 indices...)
+@inline function get_aux_surface_node_vars(aux_surface_node_vars, equations, ::DG,
+                                           indices...)
     aux_vars_ll = SVector(ntuple(@inline(v->aux_surface_node_vars[1, v, indices...]),
-                                 Val(n_auxiliary_node_vars(equations))))
+                                 Val(n_aux_node_vars(equations))))
     aux_vars_rr = SVector(ntuple(@inline(v->aux_surface_node_vars[2, v, indices...]),
-                                 Val(n_auxiliary_node_vars(equations))))
+                                 Val(n_aux_node_vars(equations))))
     return aux_vars_ll, aux_vars_rr
 end
 
@@ -594,10 +594,10 @@ end
     return nothing
 end
 
-@inline function set_auxiliary_node_vars!(auxiliary_node_vars, aux_node, equations,
-                                          solver::DG, indices...)
-    for v in 1:n_auxiliary_node_vars(equations)
-        auxiliary_node_vars[v, indices...] = aux_node[v]
+@inline function set_aux_node_vars!(aux_node_vars, aux_node, equations,
+                                    solver::DG, indices...)
+    for v in 1:n_aux_node_vars(equations)
+        aux_node_vars[v, indices...] = aux_node[v]
     end
     return nothing
 end

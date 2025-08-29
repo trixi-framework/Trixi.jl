@@ -6,7 +6,7 @@
 #! format: noindent
 
 @inline function convert_to_solution_variables(u, solution_variables, cache,
-                                               have_auxiliary_node_vars::False,
+                                               have_aux_node_vars::False,
                                                equations)
     # Reinterpret the solution array as an array of conservative variables,
     # compute the solution variables via broadcasting, and reinterpret the
@@ -18,25 +18,26 @@
 end
 
 @inline function convert_to_solution_variables(u, solution_variables, cache,
-                                               have_auxiliary_node_vars::True,
+                                               have_aux_node_vars::True,
                                                equations)
-    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    @unpack aux_node_vars = cache.aux_vars
     # Reinterpret the solution array as an array of conservative variables,
     # compute the solution variables via broadcasting, and reinterpret the
     # result as a plain array of floating point numbers
     return Array(reinterpret(eltype(u),
                              solution_variables.(reinterpret(SVector{nvariables(equations),
                                                                      eltype(u)}, u),
-                                                 reinterpret(SVector{n_auxiliary_node_vars(equations),
-                                                                     eltype(auxiliary_node_vars)},
-                                                             auxiliary_node_vars),
+                                                 reinterpret(SVector{n_aux_node_vars(equations),
+                                                                     eltype(aux_node_vars)},
+                                                             aux_node_vars),
                                                  Ref(equations))))
 end
 
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{SerialTreeMesh, StructuredMesh,
                                         StructuredMeshView,
-                                        UnstructuredMesh2D, SerialP4estMesh,
+                                        UnstructuredMesh2D,
+                                        SerialP4estMesh, P4estMeshView,
                                         SerialT8codeMesh},
                             equations, dg::DG, cache,
                             solution_callback,
@@ -59,7 +60,7 @@ function save_solution_file(u, time, dt, timestep,
         n_vars = nvariables(equations)
     else
         data = convert_to_solution_variables(u, solution_variables, cache,
-                                             have_auxiliary_node_vars(equations),
+                                             have_aux_node_vars(equations),
                                              equations)
         # Find out variable count by looking at output from `solution_variables` function
         n_vars = size(data, 1)

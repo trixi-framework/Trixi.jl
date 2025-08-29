@@ -299,7 +299,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
     while !finalstep
         dtau = @trixi_timeit timer() "calculate dtau" begin
             cfl * max_dt(u_gravity, tau, semi_gravity.mesh,
-                   have_constant_speed(equations), have_auxiliary_node_vars(equations),
+                   have_constant_speed(equations), have_aux_node_vars(equations),
                    equations, semi_gravity.solver, semi_gravity.cache)
         end
 

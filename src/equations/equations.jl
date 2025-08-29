@@ -81,9 +81,9 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
                          "variable " * string(variable),
                          varnames(cons2cons, equations)[variable])
         end
-        if have_auxiliary_node_vars(equations) == Trixi.True()
-            summary_line(io, "#auxiliary variables", n_auxiliary_node_vars(equations))
-            for variable in eachauxiliaryvariable(equations)
+        if have_aux_node_vars(equations) == Trixi.True()
+            summary_line(io, "#auxiliary variables", n_aux_node_vars(equations))
+            for variable in eachauxvariable(equations)
                 summary_line(increment_indent(io),
                              "variable " * string(variable),
                              varnames(cons2aux, equations)[variable])
@@ -331,20 +331,20 @@ function n_nonconservative_terms end
 have_constant_speed(::AbstractEquations) = False()
 
 """
-    have_auxiliary_node_vars(equations)
+    have_aux_node_vars(equations)
 Trait function determining whether `equations` need to access additional auxiliary
 variables.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
-have_auxiliary_node_vars(::AbstractEquations) = False()
+have_aux_node_vars(::AbstractEquations) = False()
 """
-    n_auxiliary_node_vars(equations)
+    n_aux_node_vars(equations)
 
 Number of auxiliary variables used by `equations`. This function needs to be specialized
-only if equations has auxiliary variables.
+only if `equations` has auxiliary variables.
 """
-function n_auxiliary_node_vars end
-@inline eachauxiliaryvariable(equations::AbstractEquations) = Base.OneTo(n_auxiliary_node_vars(equations))
+function n_aux_node_vars end
+@inline eachauxvariable(equations::AbstractEquations) = Base.OneTo(n_aux_node_vars(equations))
 
 function cons2aux(u, aux, equations::AbstractEquations)
     return aux
@@ -607,6 +607,9 @@ abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("polytropic_euler_2d.jl")
 
+# Passive tracer equations
+include("passive_tracers.jl")
+
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,
                                                                                 NVARS,
@@ -706,7 +709,7 @@ include("lattice_boltzmann_3d.jl")
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
-include("acoustic_perturbation_2d_auxiliary_variables.jl")
+include("acoustic_perturbation_2d_aux_vars.jl")
 
 # Linearized Euler equations
 abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <:

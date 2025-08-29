@@ -51,7 +51,7 @@ end
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_condition_wall,
-                                    auxiliary_field = auxiliary_variables_mean_values)
+                                    aux_field = auxiliary_variables_mean_values)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

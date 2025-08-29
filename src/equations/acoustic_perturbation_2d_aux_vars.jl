@@ -32,8 +32,8 @@ function AcousticPerturbationEquations2DAuxVars(; v_mean_global::NTuple{2, <:Rea
                                                   rho_mean_global)
 end
 
-have_auxiliary_node_vars(::AcousticPerturbationEquations2DAuxVars) = True()
-n_auxiliary_node_vars(::AcousticPerturbationEquations2DAuxVars) = 4
+have_aux_node_vars(::AcousticPerturbationEquations2DAuxVars) = True()
+n_aux_node_vars(::AcousticPerturbationEquations2DAuxVars) = 4
 
 """
     global_mean_vars(equations::AcousticPerturbationEquations2DAuxVars)
@@ -363,5 +363,5 @@ end
 end
 
 # Convert conservative variables to entropy variables
-@inline cons2entropy(u, equations::AcousticPerturbationEquations2DAuxVars) = u
+@inline cons2entropy(u, aux, equations::AcousticPerturbationEquations2DAuxVars) = u
 end # @muladd

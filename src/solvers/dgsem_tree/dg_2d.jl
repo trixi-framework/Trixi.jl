@@ -90,7 +90,7 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}},
+                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                       equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
@@ -111,8 +111,8 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
-              boundary_conditions, source_terms::Source,
+              mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+              equations, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
@@ -133,7 +133,7 @@ function rhs!(du, u, t,
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
                              have_nonconservative_terms(equations),
-                             have_auxiliary_node_vars(equations), equations,
+                             have_aux_node_vars(equations), equations,
                              dg.surface_integral, dg, cache)
     end
 
@@ -173,7 +173,7 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, have_auxiliary_node_vars(equations),
+        calc_sources!(du, u, t, source_terms, have_aux_node_vars(equations),
                       equations, dg, cache)
     end
 
@@ -183,14 +183,15 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                            StructuredMeshView{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, T8codeMesh{2}},
+                                           P4estMesh{2}, P4estMeshView{2},
+                                           T8codeMesh{2}},
                                equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         weak_form_kernel!(du, u, element, mesh,
                           have_nonconservative_terms(equations),
-                          have_auxiliary_node_vars(equations), equations,
+                          have_aux_node_vars(equations), equations,
                           dg, cache)
     end
 
@@ -207,7 +208,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::TreeMesh{2},
                                    nonconservative_terms::False,
-                                   auxiliary_node_var::False, equations,
+                                   have_aux_node_vars::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -236,18 +237,18 @@ end
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::TreeMesh{2},
                                    nonconservative_terms::False,
-                                   auxiliary_node_var::True, equations,
+                                   have_aux_node_vars::True, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_dhat = dg.basis
-    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    @unpack aux_node_vars = cache.aux_vars
 
     # Calculate volume terms in one element
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
-        aux_node = get_auxiliary_node_vars(auxiliary_node_vars,
-                                           equations, dg, i, j, element)
+        aux_node = get_aux_node_vars(aux_node_vars,
+                                     equations, dg, i, j, element)
 
         flux1 = flux(u_node, aux_node, 1, equations)
         for ii in eachnode(dg)
@@ -279,7 +280,7 @@ function calc_volume_integral!(du, u,
     @threaded for element in eachelement(dg, cache)
         flux_differencing_kernel!(du, u, element, mesh,
                                   have_nonconservative_terms(equations),
-                                  have_auxiliary_node_vars(equations), equations,
+                                  have_aux_node_vars(equations), equations,
                                   volume_integral.volume_flux, dg, cache)
     end
 end
@@ -287,7 +288,7 @@ end
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{2},
                                            nonconservative_terms::False,
-                                           have_auxiliary_node_vars::False, equations,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -327,18 +328,18 @@ end
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{2},
                                            nonconservative_terms::False,
-                                           have_auxiliary_node_vars::True, equations,
+                                           have_aux_node_vars::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_split = dg.basis
-    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    @unpack aux_node_vars = cache.aux_vars
 
     # Calculate volume integral in one element
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
-        aux_node = get_auxiliary_node_vars(auxiliary_node_vars, equations, dg,
-                                           i, j, element)
+        aux_node = get_aux_node_vars(aux_node_vars, equations, dg,
+                                     i, j, element)
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
         # the computation of the diagonal terms. In addition, we use the symmetry
@@ -348,8 +349,8 @@ end
         # x direction
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
-            aux_node_ii = get_auxiliary_node_vars(auxiliary_node_vars, equations, dg,
-                                                  ii, j, element)
+            aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg,
+                                            ii, j, element)
             flux1 = volume_flux(u_node, u_node_ii, aux_node, aux_node_ii, 1, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1,
                                        equations, dg, i, j, element)
@@ -360,8 +361,8 @@ end
         # y direction
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
-            aux_node_jj = get_auxiliary_node_vars(auxiliary_node_vars, equations, dg,
-                                                  i, jj, element)
+            aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg,
+                                            i, jj, element)
             flux2 = volume_flux(u_node, u_node_jj, aux_node, aux_node_jj, 2, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2,
                                        equations, dg, i, j, element)
@@ -374,7 +375,7 @@ end
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{2},
                                            nonconservative_terms::True,
-                                           have_auxiliary_node_vars::False, equations,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -441,13 +442,13 @@ function calc_volume_integral!(du, u,
         if dg_only
             flux_differencing_kernel!(du, u, element, mesh,
                                       have_nonconservative_terms(equations),
-                                      have_auxiliary_node_vars(equations), equations,
+                                      have_aux_node_vars(equations), equations,
                                       volume_flux_dg, dg, cache)
         else
             # Calculate DG volume integral contribution
             flux_differencing_kernel!(du, u, element, mesh,
                                       have_nonconservative_terms(equations),
-                                      have_auxiliary_node_vars(equations), equations,
+                                      have_aux_node_vars(equations), equations,
                                       volume_flux_dg, dg, cache, 1 - alpha_element)
 
             # Calculate FV volume integral contribution
@@ -659,7 +660,7 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
                               nonconservative_terms::False,
-                              have_auxiliary_node_vars::False, equations,
+                              have_aux_node_vars::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -694,11 +695,11 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
                               nonconservative_terms::False,
-                              have_auxiliary_node_vars::True, equations,
+                              have_aux_node_vars::True, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
-    @unpack auxiliary_surface_node_vars = cache.auxiliary_variables
+    @unpack aux_surface_node_vars = cache.aux_vars
 
     @threaded for interface in eachinterface(dg, cache)
         # Get neighboring elements
@@ -714,9 +715,9 @@ function calc_interface_flux!(surface_flux_values,
         for i in eachnode(dg)
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-            aux_ll, aux_rr = get_auxiliary_surface_node_vars(auxiliary_surface_node_vars,
-                                                             equations, dg, i,
-                                                             interface)
+            aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
+                                                       equations, dg, i,
+                                                       interface)
             flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr,
                                 orientations[interface], equations)
             # Copy flux to left and right element storage
@@ -733,7 +734,7 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
                               nonconservative_terms::True,
-                              have_auxiliary_node_vars::False, equations,
+                              have_aux_node_vars::False, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -833,29 +834,29 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
     # Calc boundary fluxes in each direction
     calc_boundary_flux_by_direction!(t, boundary_conditions[1],
                                      have_nonconservative_terms(equations),
-                                     have_auxiliary_node_vars(equations),
+                                     have_aux_node_vars(equations),
                                      equations, surface_integral, dg, cache,
                                      1, firsts[1], lasts[1])
     calc_boundary_flux_by_direction!(t, boundary_conditions[2],
                                      have_nonconservative_terms(equations),
-                                     have_auxiliary_node_vars(equations),
+                                     have_aux_node_vars(equations),
                                      equations, surface_integral, dg, cache,
                                      2, firsts[2], lasts[2])
     calc_boundary_flux_by_direction!(t, boundary_conditions[3],
                                      have_nonconservative_terms(equations),
-                                     have_auxiliary_node_vars(equations),
+                                     have_aux_node_vars(equations),
                                      equations, surface_integral, dg, cache,
                                      3, firsts[3], lasts[3])
     calc_boundary_flux_by_direction!(t, boundary_conditions[4],
                                      have_nonconservative_terms(equations),
-                                     have_auxiliary_node_vars(equations),
+                                     have_aux_node_vars(equations),
                                      equations, surface_integral, dg, cache,
                                      4, firsts[4], lasts[4])
 end
 
 function calc_boundary_flux_by_direction!(t, boundary_condition,
                                           nonconservative_terms::False,
-                                          have_auxiliary_node_vars::False, equations,
+                                          have_aux_node_vars::False, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
     @unpack surface_flux_values = cache.elements
@@ -891,13 +892,13 @@ end
 
 function calc_boundary_flux_by_direction!(t, boundary_condition,
                                           nonconservative_terms::False,
-                                          have_auxiliary_node_vars::True, equations,
+                                          have_aux_node_vars::True, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
     @unpack surface_flux_values = cache.elements
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
-    @unpack auxiliary_surface_node_vars = cache.auxiliary_variables
+    @unpack aux_boundary_node_vars = cache.aux_vars
 
     @threaded for boundary in first_boundary:last_boundary
         # Get neighboring element
@@ -906,8 +907,8 @@ function calc_boundary_flux_by_direction!(t, boundary_condition,
         for i in eachnode(dg)
             # Get boundary flux
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, boundary)
-            aux_ll, aux_rr = get_auxiliary_surface_node_vars(auxiliary_surface_node_vars,
-                                                             equations, dg, i, boundary)
+            aux_ll, aux_rr = get_aux_surface_node_vars(aux_boundary_node_vars,
+                                                       equations, dg, i, boundary)
             if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
                 u_inner = u_ll
                 aux_inner = aux_ll
@@ -932,7 +933,7 @@ end
 
 function calc_boundary_flux_by_direction!(t, boundary_condition,
                                           nonconservative_terms::True,
-                                          have_auxiliary_node_vars::False, equations,
+                                          have_aux_node_vars::False, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
     @unpack surface_flux_values = cache.elements
@@ -1086,13 +1087,13 @@ function calc_mortar_flux!(surface_flux_values,
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, have_auxiliary_node_vars(equations), equations,
+        calc_fstar!(fstar_primary_upper, have_aux_node_vars(equations), equations,
                     surface_flux, dg, u_upper, mortar, orientation, cache)
-        calc_fstar!(fstar_primary_lower, have_auxiliary_node_vars(equations), equations,
+        calc_fstar!(fstar_primary_lower, have_aux_node_vars(equations), equations,
                     surface_flux, dg, u_lower, mortar, orientation, cache)
-        calc_fstar!(fstar_secondary_upper, have_auxiliary_node_vars(equations),
+        calc_fstar!(fstar_secondary_upper, have_aux_node_vars(equations),
                     equations, surface_flux, dg, u_upper, mortar, orientation, cache)
-        calc_fstar!(fstar_secondary_lower, have_auxiliary_node_vars(equations),
+        calc_fstar!(fstar_secondary_lower, have_aux_node_vars(equations),
                     equations, surface_flux, dg, u_lower, mortar, orientation, cache)
 
         mortar_fluxes_to_elements!(surface_flux_values,
@@ -1123,14 +1124,14 @@ function calc_mortar_flux!(surface_flux_values,
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, have_auxiliary_node_vars(equations), equations,
+        calc_fstar!(fstar_primary_upper, have_aux_node_vars(equations), equations,
                     surface_flux, dg, u_upper, mortar, orientation, cache)
-        calc_fstar!(fstar_primary_lower, have_auxiliary_node_vars(equations), equations,
+        calc_fstar!(fstar_primary_lower, have_aux_node_vars(equations), equations,
                     surface_flux, dg, u_lower, mortar, orientation, cache)
-        calc_fstar!(fstar_secondary_upper, have_auxiliary_node_vars(equations),
+        calc_fstar!(fstar_secondary_upper, have_aux_node_vars(equations),
                     equations,
                     surface_flux, dg, u_upper, mortar, orientation, cache)
-        calc_fstar!(fstar_secondary_lower, have_auxiliary_node_vars(equations),
+        calc_fstar!(fstar_secondary_lower, have_aux_node_vars(equations),
                     equations,
                     surface_flux, dg, u_lower, mortar, orientation, cache)
 
@@ -1213,7 +1214,7 @@ function calc_mortar_flux!(surface_flux_values,
 end
 
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
-                             have_auxiliary_node_vars::False, equations,
+                             have_aux_node_vars::False, equations,
                              surface_flux, dg::DGSEM,
                              u_interfaces, interface, orientation, cache)
     for i in eachnode(dg)
@@ -1229,15 +1230,15 @@ end
 end
 
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
-                             have_auxiliary_node_vars::True, equations,
+                             have_aux_node_vars::True, equations,
                              surface_flux, dg::DGSEM,
                              u_interfaces, interface, orientation, cache)
-    @unpack auxiliary_surface_node_vars = cache.auxiliary_variables
+    @unpack aux_surface_node_vars = cache.aux_vars
     for i in eachnode(dg)
         # Call pointwise two-point numerical flux function
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations, dg, i, interface)
-        aux_ll, aux_rr = get_auxiliary_surface_node_vars(auxiliary_surface_node_vars,
-                                                         equations, dg, i, interface)
+        aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
+                                                   equations, dg, i, interface)
         flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr, orientation, equations)
 
         # Copy flux to left and right element storage
@@ -1384,17 +1385,17 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
 end
 
 # TODO: Taal dimension agnostic
-function calc_sources!(du, u, t, source_terms::Nothing, have_auxiliary_node_vars::False,
+function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::False,
                        equations::AbstractEquations{2}, dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms::Nothing, have_auxiliary_node_vars::True,
+function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::True,
                        equations::AbstractEquations{2}, dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms, have_auxiliary_node_vars::False,
+function calc_sources!(du, u, t, source_terms, have_aux_node_vars::False,
                        equations::AbstractEquations{2}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
@@ -1411,16 +1412,16 @@ function calc_sources!(du, u, t, source_terms, have_auxiliary_node_vars::False,
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms, have_auxiliary_node_vars::True,
+function calc_sources!(du, u, t, source_terms, have_aux_node_vars::True,
                        equations::AbstractEquations{2}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
-    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    @unpack aux_node_vars = cache.aux_vars
 
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
-            aux_local = get_auxiliary_node_vars(auxiliary_node_vars, equations, dg,
-                                                i, j, element)
+            aux_local = get_aux_node_vars(aux_node_vars, equations, dg,
+                                          i, j, element)
             x_local = get_node_coords(node_coordinates, equations, dg,
                                       i, j, element)
             du_local = source_terms(u_local, aux_local, x_local, t, equations)

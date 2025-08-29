@@ -50,7 +50,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         fill!(gradients[dim], zero(eltype(gradients[dim])))
     end
 
-    # unpack VectorOfArray 
+    # unpack VectorOfArray
     u0 = Base.parent(ode.u0)
     t = 0.0
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
@@ -898,16 +898,16 @@ end
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         l2=[
-                            0.00525982921933851,
-                            0.012059890474305961,
-                            0.00958808867603675,
-                            0.027447629432184845
+                            0.012420217727434794,
+                            0.028935260981567217,
+                            0.023078384429351353,
+                            0.11317643179072025
                         ],
                         linf=[
-                            0.21303186936723756,
-                            0.5323378916431336,
-                            0.2929673561258163,
-                            0.9497315029535995
+                            0.4484833725983406,
+                            1.268913882714608,
+                            0.7071821629898418,
+                            3.643975012834931
                         ],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
