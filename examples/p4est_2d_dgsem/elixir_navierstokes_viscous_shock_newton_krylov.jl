@@ -1,4 +1,5 @@
 using Trixi
+
 using OrdinaryDiffEqSDIRK
 using LinearSolve # For Jacobian-free Newton-Krylov (GMRES) solver
 using ADTypes # For automatic differentiation via finite differences
@@ -152,7 +153,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -164,8 +165,16 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode,
-            # Use (diagonally) implicit Runge-Kutta method with Jacobian-free (!) Newton-Krylov (GMRES) solver
-            # See https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
-            KenCarp47(autodiff = AutoFiniteDiff(), linsolve = KrylovJL_GMRES());
-            ode_default_options()..., callback = callbacks)
+# Tolerances for GMRES residual, see https://jso.dev/Krylov.jl/stable/solvers/unsymmetric/#Krylov.gmres
+atol_lin_solve = 1e-3
+rtol_lin_solve = 1e-3
+
+# Jacobian-free Newton-Krylov (GMRES) solver
+linsolve = KrylovJL_GMRES(atol = atol_lin_solve, rtol = rtol_lin_solve)
+
+# Use (diagonally) implicit Runge-Kutta, see
+# https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
+ode_alg = Kvaerno4(autodiff = AutoFiniteDiff(), linsolve = linsolve)
+
+sol = solve(ode, ode_alg;
+            ode_default_options()..., callback = callbacks);
