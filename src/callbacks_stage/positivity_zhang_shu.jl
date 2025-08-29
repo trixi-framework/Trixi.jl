@@ -36,6 +36,8 @@ function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator,
         limiter_zhang_shu!(u, limiter!.thresholds, limiter!.variables,
                            mesh_equations_solver_cache(semi)...)
     end
+
+    return nothing
 end
 
 # Version used by the AMR callback

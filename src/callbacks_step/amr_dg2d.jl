@@ -74,6 +74,8 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
             MPI.Waitall(requests, MPI.Status)
         end
     end # GC.@preserve old_u_ode
+
+    return nothing
 end
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined.
