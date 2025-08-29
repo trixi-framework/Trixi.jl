@@ -149,9 +149,9 @@ end
 function max_dt(u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                             T8codeMesh{2}, StructuredMeshView{2}},
-                constant_speed::False, have_auxiliary_node_vars::True,
+                constant_speed::False, have_aux_node_vars::True,
                 equations, dg::DG, cache)
-    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    @unpack aux_node_vars = cache.aux_vars
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
@@ -162,7 +162,7 @@ function max_dt(u, t,
         max_lambda1 = max_lambda2 = zero(max_scaled_speed)
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
-            aux_node = get_auxiliary_node_vars(auxiliary_node_vars, equations,
+            aux_node = get_aux_node_vars(aux_node_vars, equations,
                                                dg, i, j, element)
             lambda1, lambda2 = max_abs_speeds(u_node, aux_node, equations)
 

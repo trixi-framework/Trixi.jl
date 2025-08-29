@@ -99,9 +99,10 @@ summary_callback = SummaryCallback()
 analysis_interval = 1000
 solution_variables = cons2prim
 
-analysis_callback = AnalysisCallback(semi,
-                                     interval = analysis_interval,
-                                     extra_analysis_errors = (:entropy_conservation_error,))
+#TODO
+#analysis_callback = AnalysisCallback(semi,
+#                                     interval = analysis_interval,
+#                                     extra_analysis_errors = (:entropy_conservation_error,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -116,7 +117,7 @@ stepsize_callback = StepsizeCallback(cfl = 0.1)
 visualization = VisualizationCallback(interval = 10)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
+                        #analysis_callback,
                         alive_callback,
                         save_solution,
                         #visualization,

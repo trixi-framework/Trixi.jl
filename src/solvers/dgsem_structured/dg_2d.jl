@@ -105,17 +105,17 @@ end
                                                UnstructuredMesh2D, P4estMesh{2},
                                                T8codeMesh{2}},
                                    nonconservative_terms::False,
-                                   have_auxiliary_node_vars::True, equations,
+                                   have_aux_node_vars::True, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_dhat = dg.basis
     @unpack contravariant_vectors = cache.elements
-    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    @unpack aux_node_vars = cache.aux_vars
 
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
-        aux_node = get_auxiliary_node_vars(auxiliary_node_vars,
+        aux_node = get_aux_node_vars(aux_node_vars,
                                            equations, dg, i, j, element)
 
         flux1 = flux(u_node, aux_node, 1, equations)
