@@ -104,6 +104,32 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
+        # Compute mean values for the elements to be refined
+        # Only if limiter was passed
+        if limiter! !== nothing
+            (; weights) = dg.basis
+            u_mean_refined_elements = Matrix{eltype(u_ode)}(undef,
+                                                            nvariables(equations),
+                                                            length(elements_to_refine))
+            for element in eachindex(elements_to_refine)
+                old_element_id = elements_to_refine[element]
+                # compute mean value
+                u_mean = zero(get_node_vars(old_u, equations, dg, 1, 1, old_element_id))
+                total_volume = zero(eltype(old_u))
+                for j in eachnode(dg), i in eachnode(dg)
+                    volume_jacobian = abs(inv(get_inverse_jacobian(old_inverse_jacobian,
+                                                                   mesh, i, j,
+                                                                   old_element_id)))
+                    u_node = get_node_vars(old_u, equations, dg, i, j, old_element_id)
+                    u_mean += u_node * weights[i] * weights[j] * volume_jacobian
+                    total_volume += weights[i] * weights[j] * volume_jacobian
+                end
+                # normalize with the total volume
+                u_mean = u_mean / total_volume
+                set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, element)
+            end
+        end
+
         if mesh isa P4estMesh
             # Loop over all elements in old container and scale the old solution by the Jacobian
             # prior to projection
@@ -176,7 +202,12 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
 
     # Apply the positivity limiter to the solution
     if limiter! !== nothing
-        limiter!(u, mesh, equations, dg, cache)
+        # Precompute list with new element ids after refinement
+        element_ids_new = compute_new_ids_refined_elements(elements_to_refine, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new,
+                                                  u_mean_refined_elements)
     end
 
     return nothing
@@ -382,7 +413,11 @@ function coarsen!(u_ode::AbstractVector, adaptor,
 
     # Apply the positivity limiter to the solution
     if limiter! !== nothing
-        limiter!(u, mesh, equations, dg, cache)
+        # Precompute list with new element ids after coarsening
+        element_ids_new = compute_new_ids_removed_elements(elements_to_remove, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new)
     end
 
     return nothing
