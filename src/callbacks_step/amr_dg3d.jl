@@ -10,7 +10,7 @@
 # from the parent element into the eight children elements. The solution on each child
 # element is then recovered by dividing by the new element Jacobians.
 function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                 equations, dg::DGSEM, cache, elements_to_refine)
+                 equations, dg::DGSEM, cache, elements_to_refine, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_refine)
         if mpi_isparallel()
@@ -32,6 +32,36 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
     # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        # Compute mean values for the elements to be refined
+        # Only if limiter was passed
+        if limiter! !== nothing
+            (; weights) = dg.basis
+            u_mean_refined_elements = Matrix{eltype(u_ode)}(undef,
+                                                            nvariables(equations),
+                                                            length(elements_to_refine))
+            for element in eachindex(elements_to_refine)
+                old_element_id = elements_to_refine[element]
+                # compute mean value
+                u_mean = zero(get_node_vars(old_u, equations, dg, 1, 1, 1,
+                                            old_element_id))
+                total_volume = zero(eltype(old_u))
+                for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                    volume_jacobian = abs(inv(get_inverse_jacobian(old_inverse_jacobian,
+                                                                   mesh, i, j, k,
+                                                                   old_element_id)))
+                    u_node = get_node_vars(old_u, equations, dg, i, j, k,
+                                           old_element_id)
+                    u_mean += u_node * weights[i] * weights[j] * weights[k] *
+                              volume_jacobian
+                    total_volume += weights[i] * weights[j] * weights[k] *
+                                    volume_jacobian
+                end
+                # normalize with the total volume
+                u_mean = u_mean / total_volume
+                set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, element)
+            end
+        end
 
         if mesh isa P4estMesh
             # Loop over all elements in old container and scale the old solution by the Jacobian
@@ -104,6 +134,16 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
         @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    end
+
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        # Precompute list with new element ids after refinement
+        element_ids_new = compute_new_ids_refined_elements(elements_to_refine, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new,
+                                                  u_mean_refined_elements)
     end
 
     return nothing
@@ -191,7 +231,7 @@ end
 # element is then recovered by dividing by the new element Jacobian.
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                  equations, dg::DGSEM, cache, elements_to_remove)
+                  equations, dg::DGSEM, cache, elements_to_remove, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
         if mpi_isparallel()
@@ -294,6 +334,15 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
     end
 
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        # Precompute list with new element ids after coarsening
+        element_ids_new = compute_new_ids_removed_elements(elements_to_remove, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new)
+    end
+
     return nothing
 end
 
@@ -383,7 +432,7 @@ end
 
 # Coarsen and refine elements in the DG solver based on a difference list.
 function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
-                dg::DGSEM, cache, difference)
+                dg::DGSEM, cache, difference, limiter!)
 
     # Return early if there is nothing to do.
     if !any(difference .!= 0)
@@ -495,6 +544,11 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
             end
         end # while
     end # GC.@preserve old_u_ode old_inverse_jacobian
+
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        limiter!(u, mesh, equations, dg, cache)
+    end
 
     return nothing
 end
