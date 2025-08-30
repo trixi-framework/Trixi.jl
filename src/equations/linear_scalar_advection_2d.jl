@@ -280,8 +280,6 @@ end
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation2D) = u
-# Convert primitive variables to conservative
-@inline prim2cons(u, equation::LinearScalarAdvectionEquation2D) = u
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation2D) = u

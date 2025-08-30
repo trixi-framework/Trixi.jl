@@ -2448,6 +2448,9 @@ end
     @test vanLeer(sl, sr) == 0.0
 
     @test central_slope(sl, sr) == 0.5
+
+    # Test van Leer zero case
+    @test vanLeer(0.0, 0.0) == 0.0
 end
 
 # Velocity functions are present in many equations and are tested here
