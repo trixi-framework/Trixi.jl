@@ -549,6 +549,28 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_convergence_pure_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fvO2.jl"),
+                        l2=[
+                            0.0022953978566961197,
+                            0.002401643124973449,
+                            0.001756638629716828
+                        ],
+                        linf=[
+                            0.004827368021300238,
+                            0.005132136721728742,
+                            0.0039037901005856135
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_laplace_diffusion.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
                         l2=[0.10954500481114468,
