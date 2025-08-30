@@ -51,6 +51,7 @@ installation and postprocessing procedures. Its features include:
   * Relaxation Runge-Kutta methods for entropy-conservative time integration
 * Native support for differentiable programming
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
+  * Automatic Jacobian sparsity detection via [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl)
 * Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
