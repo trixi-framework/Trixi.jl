@@ -437,6 +437,6 @@ end
 
 # Note: This is not a limiter, instead a helper for the `superbee` limiter.
 @inline function maxmod(sl, sr)
-    return 0.5 * (sign(sl) + sign(sr)) * max(abs(sl), abs(sr))
+    return 0.5f0 * (sign(sl) + sign(sr)) * max(abs(sl), abs(sr))
 end
 end # @muladd

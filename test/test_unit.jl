@@ -2413,39 +2413,39 @@ end
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
-    @test vanLeer_limiter(sl, sr) == 0.0
+    @test vanLeer(sl, sr) == 0.0
 
     sr = 0.5
     @test minmod(sl, sr) == 0.5
     @test monotonized_central(sl, sr) == 0.75
     @test superbee(sl, sr) == 1.0
-    @test isapprox(vanLeer_limiter(sl, sr), 2 / 3)
+    @test isapprox(vanLeer(sl, sr), 2 / 3)
 
     sl = -1.0
     sr = 0.0
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
-    @test vanLeer_limiter(sl, sr) == 0.0
+    @test vanLeer(sl, sr) == 0.0
 
     sr = -0.8
     @test minmod(sl, sr) == -0.8
     @test monotonized_central(sl, sr) == -0.9
     @test superbee(sl, sr) == -1.0
-    @test isapprox(vanLeer_limiter(sl, sr), -8 / 9)
+    @test isapprox(vanLeer(sl, sr), -8 / 9)
 
     # Test symmetry
     @test minmod(sr, sl) == -0.8
     @test monotonized_central(sr, sl) == -0.9
     @test superbee(sr, sl) == -1.0
-    @test isapprox(vanLeer_limiter(sr, sl), -8 / 9)
+    @test isapprox(vanLeer(sr, sl), -8 / 9)
 
     sl = 1.0
     sr = 0.0
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
-    @test vanLeer_limiter(sl, sr) == 0.0
+    @test vanLeer(sl, sr) == 0.0
 
     @test central_slope(sl, sr) == 0.5
 end

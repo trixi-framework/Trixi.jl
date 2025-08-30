@@ -267,7 +267,7 @@ export DG,
 
 export reconstruction_O2_inner, reconstruction_O2_full,
        reconstruction_constant,
-       minmod, monotonized_central, superbee, vanLeer_limiter,
+       minmod, monotonized_central, superbee, vanLeer,
        central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,

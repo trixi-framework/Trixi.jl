@@ -53,7 +53,7 @@ Total-Variation-Diminishing (TVD) choices for the limiter are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
-    4) [`van_leer`](@ref)
+    4) [`vanLeer`](@ref)
 
 The reconstructed slopes are for `reconstruction_O2_full` not limited at the cell boundaries,
 thus overshoots between true mesh elements are possible.
@@ -102,7 +102,7 @@ Total-Variation-Diminishing (TVD) choices for the limiter are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
-    4) [`van_leer`](@ref)
+    4) [`vanLeer`](@ref)
 
 For the outer, i.e., boundary subcells, constant values are used, i.e, no reconstruction.
 This reduces the order of the scheme below 2.
@@ -151,8 +151,7 @@ Gives formally full order of accuracy at the expense of sacrificed nonlinear sta
 Similar in spirit to [`flux_central`](@ref).
 """
 @inline function central_slope(sl, sr)
-    s = 0.5 * (sl + sr)
-    return s
+    return 0.5f0 * (sl + sr)
 end
 
 """
@@ -167,7 +166,7 @@ For reference, see for instance Eq. (6.27) in
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 @inline function minmod(sl, sr)
-    return 0.5 * (sign(sl) + sign(sr)) * min(abs(sl), abs(sr))
+    return 0.5f0 * (sign(sl) + sign(sr)) * min(abs(sl), abs(sr))
 end
 
 """
@@ -184,9 +183,7 @@ For reference, see for instance Eq. (6.29) in
 @inline function monotonized_central(sl, sr)
     # CARE: MC assumes equidistant grid in 0.5 * (sl + sr)!
     # Use recursive property of minmod function
-    s = minmod(0.5 * (sl + sr), minmod(2 * sl, 2 * sr))
-
-    return s
+    return minmod(0.5f0 * (sl + sr), minmod(2 * sl, 2 * sr))
 end
 
 """
@@ -201,12 +198,11 @@ For reference, see for instance Eq. (6.28) in
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 @inline function superbee(sl, sr)
-    s = maxmod(minmod(sl, 2 * sr), minmod(2 * sl, sr))
-    return s
+    return maxmod(minmod(sl, 2 * sr), minmod(2 * sl, sr))
 end
 
 """
-    vanLeer_limiter(sl, sr)
+    vanLeer(sl, sr)
 
 Symmetric limiter by van Leer.
 See for reference page 70 in 
@@ -215,12 +211,10 @@ See for reference page 70 in
   Numerical methods for conservation laws and related equations.
   [Link](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf)
 """
-@inline function vanLeer_limiter(sl, sr)
-    if abs(sl) + abs(sr) > 0.0
-        s = (abs(sr) * sl + abs(sl) * sr) / (abs(sl) + abs(sr))
+@inline function vanLeer(sl, sr)
+    if abs(sl) + abs(sr) > zero(sl)
+        return (abs(sr) * sl + abs(sl) * sr) / (abs(sl) + abs(sr))
     else
-        s = 0.0
+        return zero(sl)
     end
-
-    return s
 end
