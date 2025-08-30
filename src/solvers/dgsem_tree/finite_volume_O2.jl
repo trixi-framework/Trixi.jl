@@ -13,6 +13,7 @@ Formally O(1) accurate.
     return u_ll, u_rr
 end
 
+# Helper functions for reconstructions below
 @inline function linear_reconstruction(u_ll, u_rr, s_l, s_r,
                                        x_ll, x_rr, x_interfaces, node_index)
     # Linear reconstruction at the interface
@@ -23,32 +24,44 @@ end
 end
 
 #             Reference element:             
-#  -1 -----------------0----------------- 1 -> x
+#  -1 ------------------0------------------ 1 -> x
 # Gauss-Lobatto-Legendre nodes (schematic for k = 3):
-#   .         .                 .         .
-#   ^         ^                 ^         ^
-# i - 2,    i - 1,              i,      i + 1
-# mm        ll                  rr      pp
-# Cell boundaries (schematic for k = 3): 
-# (note that only the inner three boundaries are stored)
-#  -1 -----------------0----------------- 1 -> x
-#   |     |            |             |    |
+#   .          .                  .         .
+#   ^          ^                  ^         ^
+# i - 2,     i - 1,               i,      i + 1
+# mm         ll                   rr      pp
+# Cell boundaries (schematic for k = 3) are 
+# governed by the cumulative sum of the quadrature weights - 1
+# Note that only the inner three boundaries are stored.
+#  -1 ------------------0------------------ 1 -> x
+#        w1-1      (w1+w2)-1   (w1+w2+w3)-1
+#   |     |            |             |      |
 # Cell index:
-#      1         2              3       4
+#      1         2             3        4
 
 """
-    reconstruction_small_stencil_full(u_mm, u_ll, u_rr, u_pp,
-                                      x_interfaces, node_index, limiter, dg)
+    reconstruction_O2_full(u_mm, u_ll, u_rr, u_pp,
+                           x_interfaces, node_index,
+                           limiter, dg::DGSEM)
 
 Computes limited (linear) slopes on the subcells for a DGSEM element.
+Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
+
 The supplied `limiter` governs the choice of slopes given the nodal values
 `u_mm`, `u_ll`, `u_rr`, and `u_pp` at the (Gauss-Lobatto Legendre) nodes.
-Formally O(2) accurate when used without a limiter, i.e., the `central_slope`.
-For the subcell boundaries the reconstructed slopes are not limited.
+Total-Variation-Diminishing (TVD) choices for the limiter are
+    1) [`minmod`](@ref)
+    2) [`monotonized_central`](@ref)
+    3) [`superbee`](@ref)
+    4) [`van_leer`](@ref)
+
+The reconstructed slopes are for `reconstruction_O2_full` not limited at the cell boundaries,
+thus overshoots between true mesh elements are possible.
+Formally O(2) accurate when used without a limiter, i.e., `limiter = `[`central_slope`](@ref).
 """
-@inline function reconstruction_small_stencil_full(u_mm, u_ll, u_rr, u_pp,
-                                                   x_interfaces, node_index,
-                                                   limiter, dg)
+@inline function reconstruction_O2_full(u_mm, u_ll, u_rr, u_pp,
+                                        x_interfaces, node_index,
+                                        limiter, dg::DGSEM)
     @unpack nodes = dg.basis
     x_ll = nodes[node_index - 1]
     x_rr = nodes[node_index]
@@ -76,18 +89,32 @@ For the subcell boundaries the reconstructed slopes are not limited.
 end
 
 """
-    reconstruction_small_stencil_inner(u_mm, u_ll, u_rr, u_pp,
-                                       x_interfaces, node_index, limiter, dg)
+    reconstruction_O2_inner(u_mm, u_ll, u_rr, u_pp,
+                            x_interfaces, node_index,
+                            limiter, dg::DGSEM)
 
 Computes limited (linear) slopes on the *inner* subcells for a DGSEM element.
+Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
+
 The supplied `limiter` governs the choice of slopes given the nodal values
 `u_mm`, `u_ll`, `u_rr`, and `u_pp` at the (Gauss-Lobatto Legendre) nodes.
+Total-Variation-Diminishing (TVD) choices for the limiter are
+    1) [`minmod`](@ref)
+    2) [`monotonized_central`](@ref)
+    3) [`superbee`](@ref)
+    4) [`van_leer`](@ref)
+
 For the outer, i.e., boundary subcells, constant values are used, i.e, no reconstruction.
 This reduces the order of the scheme below 2.
+This approach corresponds to equation (78) described in
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. 
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
-@inline function reconstruction_small_stencil_inner(u_mm, u_ll, u_rr, u_pp,
-                                                    x_interfaces, node_index,
-                                                    limiter, dg)
+@inline function reconstruction_O2_inner(u_mm, u_ll, u_rr, u_pp,
+                                         x_interfaces, node_index,
+                                         limiter, dg::DGSEM)
     @unpack nodes = dg.basis
     x_ll = nodes[node_index - 1]
     x_rr = nodes[node_index]
@@ -159,11 +186,6 @@ For reference, see for instance Eq. (6.29) in
     s = minmod(0.5 * (sl + sr), minmod(2 * sl, 2 * sr))
 
     return s
-end
-
-# Note: This is NOT a limiter, just a helper for the `superbee` limiter below.
-@inline function maxmod(sl, sr)
-    return 0.5 * (sign(sl) + sign(sr)) * max(abs(sl), abs(sr))
 end
 
 """

@@ -2405,7 +2405,7 @@ end
     sl = 1.0
     sr = -1.0
 
-    # Test for coverage
+    # Test for code coverage
     dummy = 42
     @test reconstruction_constant(dummy, sl, sr, dummy, dummy, dummy, dummy, dummy) ==
           (sl, sr)
@@ -2449,6 +2449,7 @@ end
 
     @test central_slope(sl, sr) == 0.5
 end
+
 # Velocity functions are present in many equations and are tested here
 @testset "Velocity functions for different equations" begin
     gamma = 1.4

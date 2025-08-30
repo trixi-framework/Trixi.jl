@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -11,12 +11,13 @@ initial_condition = initial_condition_convergence_test
 
 polydeg = 3 # Governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)
-surf_flux = flux_hllc
-solver = DGSEM(polydeg = polydeg, surface_flux = surf_flux,
-               volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
-                                                                     volume_flux_fv = surf_flux,
-                                                                     reconstruction_mode = reconstruction_small_stencil_full,
-                                                                     slope_limiter = monotonized_central))
+surface_flux = flux_hllc
+volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
+                                                      volume_flux_fv = surface_flux,
+                                                      reconstruction_mode = reconstruction_O2_full,
+                                                      slope_limiter = superbee)
+solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
+               volume_integral = volume_integral)
 
 coordinates_min = 0.0
 coordinates_max = 2.0

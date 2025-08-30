@@ -434,4 +434,9 @@ Given ε = 1.0e-4, we use the following algorithm.
                (y^(gamma - 1) - x^(gamma - 1))
     end
 end
+
+# Note: This is not a limiter, instead a helper for the `superbee` limiter.
+@inline function maxmod(sl, sr)
+    return 0.5 * (sign(sl) + sign(sr)) * max(abs(sl), abs(sr))
+end
 end # @muladd

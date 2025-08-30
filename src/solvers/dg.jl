@@ -185,6 +185,11 @@ function get_element_variables!(element_variables, u, mesh, equations,
                            volume_integral)
 end
 
+# Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
+# second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
+# volume integrals.
+abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegral end
+
 """
     VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
 
@@ -203,7 +208,8 @@ mesh (LGL = Legendre-Gauss-Lobatto).
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
+struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <:
+       AbstractVolumeIntegralPureLGLFiniteVolume
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
 end
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
@@ -225,7 +231,7 @@ end
 """
     VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
                                         volume_flux_fv = flux_lax_friedrichs,
-                                        reconstruction_mode = reconstruction_small_stencil_inner,
+                                        reconstruction_mode = reconstruction_O2_inner,
                                         slope_limiter = minmod)
 
 This gives an up to  O(2)-accurate finite volume scheme on an LGL-type subcell
@@ -239,9 +245,9 @@ The non-boundary subcells are always reconstructed using the standard MUSCL-type
 For the subcells at the boundaries, two options are available:
 
 1) The unlimited slope is used on these cells. This gives full O(2) accuracy, but may lead to overshoots between cells.
-   The `reconstruction_mode` corresponding to this is `reconstruction_small_stencil_full`.
+   The `reconstruction_mode` corresponding to this is `reconstruction_O2_full`.
 2) On boundary subcells, the solution is represented using a constant value, thereby falling back to formally only O(1).
-   The `reconstruction_mode` corresponding to this is `reconstruction_small_stencil_inner`.
+   The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
    In the reference below, this is the recommended reconstruction mode and is thus used by default.
 
 !!! warning "Experimental implementation"
@@ -256,8 +262,9 @@ See especially Sections 3.2 and 4 and Appendix D of the paper
    Part II: Subcell finite volume shock capturing"
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
-struct VolumeIntegralPureLGLFiniteVolumeO2{RealT, Basis, VolumeFluxFV, Reconstruction,
-                                           Limiter} <: AbstractVolumeIntegral
+struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
+                                           Reconstruction, Limiter} <:
+       AbstractVolumeIntegralPureLGLFiniteVolume
     x_interfaces::Vector{RealT} # x-coordinates of the sub-cell element interfaces
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
     reconstruction_mode::Reconstruction # which type of FV reconstruction to use
