@@ -55,8 +55,7 @@ end
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::AbstractVolumeIntegralPureLGLFiniteVolume,
-                      dg::DG,
-                      uEltype)
+                      dg::DG, uEltype)
     A2dp1_x = Array{uEltype, 2}
     fstar1_L_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
                                 for _ in 1:Threads.nthreads()]

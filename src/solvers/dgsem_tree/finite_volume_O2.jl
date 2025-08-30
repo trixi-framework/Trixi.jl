@@ -148,6 +148,7 @@ end
 
 Central, non-TVD reconstruction given left and right slopes `sl` and `sr`.
 Gives formally full order of accuracy at the expense of sacrificed nonlinear stability.
+Similar in spirit to [`flux_central`](@ref).
 """
 @inline function central_slope(sl, sr)
     s = 0.5 * (sl + sr)
