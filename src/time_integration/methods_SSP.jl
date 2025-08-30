@@ -77,7 +77,8 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
-mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
+mutable struct SimpleIntegratorSSP{RealT <: Real, uType <: AbstractVector,
+                                   Params, Sol, F, Alg,
                                    SimpleIntegratorSSPOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
