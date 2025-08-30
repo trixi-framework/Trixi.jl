@@ -82,12 +82,11 @@ function CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
     _gas_constants = promote(gas_constants...)
     RealT = promote_type(eltype(_gammas), eltype(_gas_constants),
                          typeof(gas_constants[1] / (gammas[1] - 1)))
+    __gammas = SVector(map(RealT, _gammas))
+    __gas_constants = SVector(map(RealT, _gas_constants))
 
     NVARS = length(_gammas) + 3
     NCOMP = length(_gammas)
-
-    __gammas = SVector(map(RealT, _gammas))
-    __gas_constants = SVector(map(RealT, _gas_constants))
 
     return CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
                                                                            __gas_constants)
@@ -141,10 +140,9 @@ function initial_condition_convergence_test(x, t,
     rho = ini
 
     # Here we compute an arbitrary number of different rhos. (one rho is double the next rho while the sum of all rhos is 1)
-    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                rho
+    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
+                                                                rho / (1 -
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     prim1 = rho * v1
@@ -185,10 +183,9 @@ Source terms used for convergence tests in combination with
     tmp6 = tmp2 + c
 
     # Here we compute an arbitrary number of different rhos. (one rho is double the next rho while the sum of all rhos is 1
-    du_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
-                                                              (1 -
-                                                               2^ncomponents(equations)) *
-                                                              tmp1
+    du_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
+                                                              tmp1 / (1 -
+                                                               2^ncomponents(equations))
                                                               for i in eachcomponent(equations))
 
     du1 = tmp5
@@ -222,13 +219,12 @@ function initial_condition_weak_blast_wave(x, t,
 
     prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
                                                                 2^(i - 1) * (1 - 2) /
+                                                                (RealT(1) -
+                                                                 2^ncomponents(equations)) :
+                                                                2^(i - 1) * (1 - 2) *
+                                                                RealT(1.1691) /
                                                                 (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                one(RealT) :
-                                                                2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                convert(RealT, 1.1691)
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
@@ -568,7 +564,37 @@ end
     p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::CompressibleEulerMulticomponentEquations2D)
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+    # Get the density and gas gamma
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+    gamma_ll = totalgamma(u_ll, equations)
+    gamma_rr = totalgamma(u_rr, equations)
+
+    # Get the velocities based on direction
+    if orientation == 1
+        v_ll = rho_v1_ll / rho_ll
+        v_rr = rho_v1_rr / rho_rr
+    else # orientation == 2
+        v_ll = rho_v2_ll / rho_ll
+        v_rr = rho_v2_rr / rho_rr
+    end
+
+    # Compute the sound speeds on the left and right
+    p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
 end
 
 @inline function max_abs_speeds(u,
@@ -824,5 +850,19 @@ end
 @inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations2D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 3] * v
                                                             for i in eachcomponent(equations))
+end
+
+@inline function velocity(u, equations::CompressibleEulerMulticomponentEquations2D)
+    rho = density(u, equations)
+    v1 = u[1] / rho
+    v2 = u[2] / rho
+    return SVector(v1, v2)
+end
+
+@inline function velocity(u, orientation::Int,
+                          equations::CompressibleEulerMulticomponentEquations2D)
+    rho = density(u, equations)
+    v = u[orientation] / rho
+    return v
 end
 end # @muladd

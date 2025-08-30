@@ -24,6 +24,9 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
             Trixi.mpi_isroot() &&
                 println("elixir_advection_basic.jl with error-based step size control")
 
+            # Use callbacks without stepsize_callback to test error-based step size control
+            callbacks = CallbackSet(summary_callback, analysis_callback, save_restart,
+                                    save_solution)
             sol = solve(ode, RDPK3SpFSAL35(); abstol = 1.0e-4, reltol = 1.0e-4,
                         ode_default_options()..., callback = callbacks)
             summary_callback()
@@ -48,13 +51,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[9.773852895157622e-6],
-                            linf=[0.0005853874124926162],
-                            # override values are different from the serial tests to ensure each process holds at least
-                            # one element, otherwise OrdinaryDiffEq fails during initialization
-                            coverage_override=(maxiters = 6,
-                                               initial_refinement_level = 2,
-                                               base_level = 2, med_level = 3,
-                                               max_level = 4))
+                            linf=[0.0005853874124926162])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -71,11 +68,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
                                      "elixir_advection_amr_unstructured_curved.jl"),
                             l2=[1.6163120948209677e-5],
                             linf=[0.0010572201890564834],
-                            tspan=(0.0, 1.0),
-                            coverage_override=(maxiters = 6,
-                                               initial_refinement_level = 0,
-                                               base_level = 0, med_level = 1,
-                                               max_level = 2))
+                            tspan=(0.0, 1.0),)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -90,10 +83,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
     @trixi_testset "elixir_advection_restart.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                             l2=[0.002590388934758452],
-                            linf=[0.01840757696885409],
-                            # With the default `maxiters = 1` in coverage tests,
-                            # there would be no time steps after the restart.
-                            coverage_override=(maxiters = 100_000,))
+                            linf=[0.01840757696885409])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -195,8 +185,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
                                 0.45574161423218573,
                                 0.8099577682187109
                             ],
-                            tspan=(0.0, 0.2),
-                            coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                            tspan=(0.0, 0.2),)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -234,6 +223,78 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
             du_ode = similar(u_ode)
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
+    end
+
+    @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_mhd_alfven_wave_nonconforming.jl"),
+                            l2=[
+                                0.0001788543743594658,
+                                0.000624334205581902,
+                                0.00022892869974368887,
+                                0.0007223464581156573,
+                                0.0006651366626523314,
+                                0.0006287275014743352,
+                                0.000344484339916008,
+                                0.0007179788287557142,
+                                8.632896980651243e-7
+                            ],
+                            linf=[
+                                0.0010730565632763867,
+                                0.004596749809344033,
+                                0.0013235269262853733,
+                                0.00468874234888117,
+                                0.004719267084104306,
+                                0.004228339352211896,
+                                0.0037503625505571625,
+                                0.005104176909383168,
+                                9.738081186490818e-6
+                            ],
+                            tspan=(0.0, 0.25),)
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+
+    # Same test as above but with only one tree in the mesh
+    # We use it to test meshes with elements of different size in each partition
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
+                        l2=[
+                            0.0019054118500017054,
+                            0.006957977226608083,
+                            0.003429930594167365,
+                            0.009051598556176287,
+                            0.0077261662742688425,
+                            0.008210851821439208,
+                            0.003763030674412298,
+                            0.009175470744760567,
+                            2.881690753923244e-5
+                        ],
+                        linf=[
+                            0.010983704624623503,
+                            0.04584128974425262,
+                            0.02022630484954286,
+                            0.04851342295826149,
+                            0.040710154751363525,
+                            0.044722299260292586,
+                            0.036591209423654236,
+                            0.05701669133068068,
+                            0.00024182906501186622
+                        ],
+                        tspan=(0.0, 0.25), trees_per_dimension=(1, 1, 1),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 end # P4estMesh MPI

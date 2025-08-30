@@ -5,9 +5,9 @@
 @muladd begin
 #! format: noindent
 
-function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
-                                         mesh::StructuredMesh{2})
-    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+function calc_bounds_twosided_interface!(var_min, var_max, variable,
+                                         u, t, semi, mesh::StructuredMesh{2}, equations)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
     (; contravariant_vectors) = cache.elements
 
@@ -61,7 +61,7 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
                 u_inner = get_node_vars(u, equations, dg, 1, j, element)
                 u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[1], Ja1, 1,
-                                                   equations, dg, cache,
+                                                   mesh, equations, dg, cache,
                                                    1, j, element)
                 var_outer = u_outer[variable]
 
@@ -78,7 +78,7 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
                 u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
                 u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[2], Ja1, 2,
-                                                   equations, dg, cache,
+                                                   mesh, equations, dg, cache,
                                                    nnodes(dg), j, element)
                 var_outer = u_outer[variable]
 
@@ -98,7 +98,7 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
                 u_inner = get_node_vars(u, equations, dg, i, 1, element)
                 u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[3], Ja2, 3,
-                                                   equations, dg, cache,
+                                                   mesh, equations, dg, cache,
                                                    i, 1, element)
                 var_outer = u_outer[variable]
 
@@ -115,7 +115,7 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
                 u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
                 u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[4], Ja2, 4,
-                                                   equations, dg, cache,
+                                                   mesh, equations, dg, cache,
                                                    i, nnodes(dg), element)
                 var_outer = u_outer[variable]
 
@@ -183,7 +183,7 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
                 u_inner = get_node_vars(u, equations, dg, 1, j, element)
                 u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[1], Ja1, 1,
-                                                   equations, dg, cache,
+                                                   mesh, equations, dg, cache,
                                                    1, j, element)
                 var_outer = variable(u_outer, equations)
 
@@ -199,7 +199,7 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
                 u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
                 u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[2], Ja1, 2,
-                                                   equations, dg, cache,
+                                                   mesh, equations, dg, cache,
                                                    nnodes(dg), j, element)
                 var_outer = variable(u_outer, equations)
 
@@ -218,7 +218,7 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
                 u_inner = get_node_vars(u, equations, dg, i, 1, element)
                 u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[3], Ja2, 3,
-                                                   equations, dg, cache,
+                                                   mesh, equations, dg, cache,
                                                    i, 1, element)
                 var_outer = variable(u_outer, equations)
 
@@ -234,7 +234,7 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
                 u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
                 u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[4], Ja2, 4,
-                                                   equations, dg, cache,
+                                                   mesh, equations, dg, cache,
                                                    i, nnodes(dg), element)
                 var_outer = variable(u_outer, equations)
 

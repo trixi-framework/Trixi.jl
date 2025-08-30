@@ -76,10 +76,7 @@ end
         du_i = du[i]
         for j in col_ids
             u_j = u[j]
-            # The `normal_direction::AbstractVector` has to be passed in twice.
-            # This is because on curved meshes, nonconservative fluxes are
-            # evaluated using both the normal and its average at interfaces.
-            f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
+            f_ij = volume_flux(u_i, u_j, normal_direction, equations)
             du_i = du_i + 2 * A[i, j] * f_ij
         end
         du[i] = du_i
@@ -176,11 +173,8 @@ end
         for id in nzrange(A_base, i)
             A_ij = vals[id]
             j = rows[id]
-            # The `normal_direction::AbstractVector` has to be passed in twice.
-            # This is because on curved meshes, nonconservative fluxes are
-            # evaluated using both the normal and its average at interfaces.
             u_j = u[j]
-            f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
+            f_ij = volume_flux(u_i, u_j, normal_direction, equations)
             du_i = du_i + 2 * A_ij * f_ij
         end
         du[i] = du_i
@@ -437,7 +431,7 @@ end
 
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
-@inline function has_sparse_operators(::Union{Tri, Tet},
+@inline function has_sparse_operators(::Union{Line, Tri, Tet},
                                       approx_type::AT) where {AT <: SBP}
     False()
 end
@@ -677,9 +671,7 @@ function rhs!(du, u, t, mesh, equations,
                                                                   dg, cache)
 
     @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh,
-                                                                   equations,
-                                                                   dg.surface_integral,
-                                                                   dg)
+                                                                   equations, dg)
 
     @trixi_timeit timer() "interface flux" calc_interface_flux!(cache,
                                                                 dg.surface_integral,

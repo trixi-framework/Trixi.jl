@@ -130,7 +130,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equation::LinearScalarAdvectionEquation3D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equation::LinearScalarAdvectionEquation3D)
     a = equation.advection_velocity[orientation]
@@ -140,7 +140,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equation::LinearScalarAdvectionEquation3D)
-    λ_max = abs(equation.advection_velocity[orientation])
+    return abs(equation.advection_velocity[orientation])
 end
 
 # Calculate 1D flux for a single point in the normal direction
@@ -158,8 +158,13 @@ end
     return abs(a)
 end
 
-# Essentially first order upwind, see e.g.
-# https://math.stackexchange.com/a/4355076/805029
+"""
+    flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
+                 equations::LinearScalarAdvectionEquation3D)
+
+Godunov (upwind) flux for the 3D linear scalar advection equation.
+Essentially first order upwind, see e.g. https://math.stackexchange.com/a/4355076/805029 .
+"""
 function flux_godunov(u_ll, u_rr, orientation::Integer,
                       equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
@@ -173,8 +178,6 @@ function flux_godunov(u_ll, u_rr, orientation::Integer,
     end
 end
 
-# Essentially first order upwind, see e.g.
-# https://math.stackexchange.com/a/4355076/805029
 function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
                       equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]

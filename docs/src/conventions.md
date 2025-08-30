@@ -76,10 +76,28 @@ set via the keywords
   documented with a docstring (but maybe with comments using `#`).
 
 
+## Structure of the `solver` directory
+
+If some functionality is shared by multiple combinations of meshes/solvers,
+it is defined in the directory of the most basic mesh and solver type.
+An example for this is the `rhs!` function, which lays out the sequence of functions 
+that compose the overall right-hand-side function provided to the ODE integrator.
+Since this general "recipe" can be unified for different meshes of a certain dimension,
+a shared implementation is used to minimize code duplication.
+
+The most basic (in the sense that it is most tested and developed) solver type in Trixi.jl is
+[`DGSEM`](@ref) due to historic reasons and background of the main contributors.
+We consider the [`TreeMesh`](@ref) to be the most basic mesh type since it is Cartesian
+and was the first mesh in Trixi.jl.
+Thus, shared implementations for more advanced meshes such as the [`P4estMesh`](@ref) can be found in
+the `src/solvers/dgsem_tree/` directory, while only necessary specifics are actually placed in
+`src/solvers/dgsem_p4est/`.
+
+
 ## Array types and wrapping
 
 To allow adaptive mesh refinement efficiently when using time integrators from
-[OrdinaryDiffEq](https://github.com/SciML/OrdinaryDiffEq.jl),
+[OrdinaryDiffEq](https://github.com/SciML/OrdinaryDiffEq.jl) and its sub-packages,
 Trixi.jl allows to represent numerical solutions in two different ways. Some discussion
 can be found [online](https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275) and
 in form of comments describing `Trixi.wrap_array` and `Trixi.wrap_array_native`
@@ -129,7 +147,7 @@ will evaluate to `true`.
 
 ### Non-exact floating-point numbers
 
-For real numbers that cannot be exactly represented in machine precision (e.g., `0.1`, `1/3`, `pi`), use the `convert` function to make them consistent with the type of the function input. For example, 
+For real numbers that cannot be exactly represented in machine precision (e.g., `0.1`, `1/3`, `pi`), use the `convert` function to make them consistent with the type of the function input. For example,
 ```julia
 # Assume we are handling `pi` in function
 function foo(..., input, ...)
@@ -155,7 +173,7 @@ RealT = eltype(input) # see **notes** below
 # ...
 c1 = c2 > 0.5f0 ? one(RealT) : convert(RealT, 0.1) # make type-stable
 # ...
-end 
+end
 
 # The third example - some operations (e.g., `/`, `sqrt`, `inv`), convert them definitely
 c1 = convert(RealT, 4) # suppose we get RealT before
@@ -163,7 +181,7 @@ c2 = 1 / c1
 c3 = sqrt(c1)
 c4 = inv(c1)
 ```
-In general, in the case of integer numbers, our developers should apply a case-by-case strategy to maintain type stability. 
+In general, in the case of integer numbers, our developers should apply a case-by-case strategy to maintain type stability.
 
 ### Notes
 1. If the function gets a local pointwise vector of the solution variables `u` such as `flux(u, equations)`, use `u` to determine the real type `eltype(u)`.

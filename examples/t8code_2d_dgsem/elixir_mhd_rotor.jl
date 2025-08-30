@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -43,7 +43,14 @@ function initial_condition_rotor(x, t, equations::IdealGlmMhdEquations2D)
 end
 initial_condition = initial_condition_rotor
 
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
@@ -93,6 +100,11 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+save_solution = SaveSolutionCallback(interval = 100,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+
 amr_indicator = IndicatorLöhner(semi,
                                 variable = density_pressure)
 
@@ -103,7 +115,14 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           dynamic_load_balancing = false)
+# We disable `dynamic_load_balancing` for now, since t8code does not support
+# partitioning for coarsening yet. That is, a complete family of elements always
+# stays on rank and is not split up due to partitioning. Without this feature
+# dynamic AMR simulations are not perfectly deterministic regarding to
+# convergent tests. Once this feature is available in t8code load balancing is
+# enabled again.
 
 cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
@@ -113,6 +132,7 @@ glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
+                        save_solution,
                         amr_callback,
                         stepsize_callback,
                         glm_speed_callback)
@@ -120,11 +140,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
-
-# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
-# released before `MPI` finalizes.
-!isinteractive() && finalize(mesh)
+            ode_default_options()..., callback = callbacks);

@@ -58,6 +58,65 @@ end
     end
 end
 
+@trixi_testset "elixir_advection_float128.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_float128.jl"),
+                        l2=Float128[6.49879312655540217059228636803492411e-09],
+                        linf=Float128[5.35548407857266390181158920649552284e-08])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+# Testing the third-order paired explicit Runge-Kutta (PERK) method with its optimal CFL number
+@trixi_testset "elixir_burgers_perk3.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
+                        l2=[3.8156922097242205e-6],
+                        linf=[2.1962957979626552e-5],
+                        atol=1.0e-6)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
+    end
+
+    # Test `resize!`
+    integrator = Trixi.init(ode, ode_algorithm, dt = 42.0, callback = callbacks)
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
+    @test length(integrator.k1) == 42
+    @test length(integrator.kS1) == 42
+end
+
+# Testing the third-order paired explicit Runge-Kutta (PERK) method without stepsize callback
+@trixi_testset "elixir_burgers_perk3.jl(fixed time step)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
+                        dt=2.0e-3,
+                        tspan=(0.0, 2.0),
+                        save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8), # Adding a small epsilon to avoid floating-point precision issues
+                        callbacks=CallbackSet(summary_callback, save_solution,
+                                              analysis_callback, alive_callback),
+                        l2=[5.726144824784944e-7],
+                        linf=[3.43073006914274e-6])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
+    end
+end
+
 @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[3.67478226e-01, 3.49491179e-01, 8.08910759e-01],
@@ -160,6 +219,39 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
+
+@trixi_testset "elixir_euler_weak_blast_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_weak_blast_er.jl"),
+                        analysis_interval=100,
+                        l2=[0.1199630838410044,
+                            0.1562196058317499,
+                            0.44836353019483344],
+                        linf=[
+                            0.2255546997256792,
+                            0.29412938937652194,
+                            0.8558237244455227
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
+    end
+
+    # test both short and long printing formats
+    @test_nowarn show(relaxation_solver)
+    println()
+    @test_nowarn println(relaxation_solver)
+    println()
+    @test_nowarn display(relaxation_solver)
+    # Test `:compact` printing
+    show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), relaxation_solver)
 end
 
 @trixi_testset "elixir_linearizedeuler_characteristic_system.jl" begin

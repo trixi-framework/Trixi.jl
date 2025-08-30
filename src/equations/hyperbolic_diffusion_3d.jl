@@ -156,7 +156,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     return SVector(phi, q1, q2, q3)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::HyperbolicDiffusionEquations3D)
     phi, q1, q2, q3 = u
@@ -185,9 +185,15 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::HyperbolicDiffusionEquations3D)
-    λ_max = sqrt(equations.nu * equations.inv_Tr)
+    return sqrt(equations.nu * equations.inv_Tr)
 end
 
+"""
+    flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
+                 equations::HyperbolicDiffusionEquations3D)
+
+Godunov (upwind) flux for the 3D hyperbolic diffusion equations.
+"""
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer,
                               equations::HyperbolicDiffusionEquations3D)
     # Obtain left and right fluxes

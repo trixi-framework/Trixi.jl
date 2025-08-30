@@ -40,9 +40,6 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Compressible Euler with self-gravity
     include("test_tree_1d_eulergravity.jl")
 
-    # Shallow water
-    include("test_tree_1d_shallowwater.jl")
-
     # FDSBP methods on the TreeMesh
     include("test_tree_1d_fdsbp.jl")
 
@@ -54,6 +51,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Maxwell
     include("test_tree_1d_maxwell.jl")
+
+    # Passive tracers
+    include("test_tree_1d_passive_tracers.jl")
 end
 
 # Coverage test for all initial conditions
@@ -64,7 +64,8 @@ end
                             l2=[0.00017373554109980247],
                             linf=[0.0006021275678165239],
                             maxiters=1,
-                            initial_condition=Trixi.initial_condition_sin)
+                            initial_condition=Trixi.initial_condition_sin,
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_constant" begin
@@ -72,7 +73,8 @@ end
                             l2=[2.441369287653687e-16],
                             linf=[4.440892098500626e-16],
                             maxiters=1,
-                            initial_condition=initial_condition_constant)
+                            initial_condition=initial_condition_constant,
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
@@ -82,7 +84,8 @@ end
                             maxiters=1,
                             initial_condition=Trixi.initial_condition_linear_x,
                             boundary_conditions=Trixi.boundary_condition_linear_x,
-                            periodicity=false)
+                            periodicity=false,
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
@@ -92,7 +95,8 @@ end
                             maxiters=1,
                             initial_condition=initial_condition_convergence_test,
                             boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
-                            periodicity=false)
+                            periodicity=false,
+                            visualization=TrivialCallback())
     end
 end
 
@@ -181,6 +185,7 @@ end
                 redirect_stderr(f) do
                     trixi_include(joinpath(EXAMPLES_DIR,
                                            "elixir_advection_extended.jl"),
+                                  visualization = TrivialCallback(),
                                   summary_callback = TrivialCallback(),
                                   analysis_callback = TrivialCallback(),
                                   alive_callback = TrivialCallback())
@@ -254,7 +259,7 @@ end
 
     # Create a simulation setup
     using Trixi
-    using OrdinaryDiffEq
+    using OrdinaryDiffEqTsit5
 
     equation = NonconservativeLinearAdvectionEquation()
 
@@ -274,7 +279,7 @@ end
 
     # Create a DGSEM solver with polynomials of degree `polydeg`
     volume_flux = (flux_central, flux_nonconservative)
-    surface_flux = (flux_lax_friedrichs, flux_nonconservative)
+    surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative)
     solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                    volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
@@ -291,8 +296,8 @@ end
 
     # OrdinaryDiffEq's `solve` method evolves the solution in time and executes
     # the passed callbacks
-    sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
-                save_everystep = false, callback = callbacks)
+    sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+                ode_default_options()..., callback = callbacks)
 
     @test analysis_callback(sol).l2 ≈ [0.00029609575838969394, 5.5681704039507985e-6]
 end
