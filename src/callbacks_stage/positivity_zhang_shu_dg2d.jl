@@ -6,7 +6,7 @@
 #! format: noindent
 
 @inline function compute_u_mean(u::AbstractArray{<:Any, 4}, mesh::AbstractMesh{2},
-                                equations, dg::DGSEM, weights, inverse_jacobian,
+                                equations, dg::DGSEM, inverse_jacobian,
                                 element)
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
     total_volume = zero(eltype(u))
@@ -14,8 +14,9 @@
         volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
                                                        i, j, element)))
         u_node = get_node_vars(u, equations, dg, i, j, element)
-        u_mean += u_node * weights[i] * weights[j] * volume_jacobian
-        total_volume += weights[i] * weights[j] * volume_jacobian
+        u_mean += u_node *
+                  dg.weights[i] * dg.weights[j] * volume_jacobian
+        total_volume += dg.weights[i] * dg.weights[j] * volume_jacobian
     end
     return u_mean / total_volume # normalize with the total volume
 end
@@ -36,8 +37,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # detect if limiting is necessary
         value_min < threshold || continue
 
-        u_mean = compute_u_mean(u, mesh, equations, dg, weights, inverse_jacobian,
-                                element)
+        u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian, element)
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
