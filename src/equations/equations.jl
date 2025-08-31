@@ -575,6 +575,8 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 varnames(::typeof(cons2cons), ::AbstractLinearScalarAdvectionEquation) = ("scalar",)
 varnames(::typeof(cons2prim), ::AbstractLinearScalarAdvectionEquation) = ("scalar",)
 
+@inline have_constant_speed(::AbstractLinearScalarAdvectionEquation) = True()
+
 @inline function max_abs_speeds(equation::AbstractLinearScalarAdvectionEquation)
     return abs.(equation.advection_velocity)
 end
