@@ -5,6 +5,25 @@
 @muladd begin
 #! format: noindent
 
+@inline function compute_u_mean(u::AbstractArray{<:Any, 5}, # 3D case
+                                mesh, equations, dg::DGSEM, cache,
+                                element)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, 1, element))
+    total_volume = zero(eltype(u))
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                       i, j, k, element)))
+        u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        u_mean += u_node * weights[i] * weights[j] * weights[k] *
+                  volume_jacobian
+        total_volume += weights[i] * weights[j] * weights[k] * volume_jacobian
+    end
+    return u_mean / total_volume # normalize with the total volume
+end
+
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{3}, equations, dg::DGSEM, cache)
     @unpack weights = dg.basis
@@ -21,18 +40,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # detect if limiting is necessary
         value_min < threshold || continue
 
-        # compute mean value
-        u_mean = zero(get_node_vars(u, equations, dg, 1, 1, 1, element))
-        total_volume = zero(eltype(u))
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
-                                                           i, j, k, element)))
-            u_node = get_node_vars(u, equations, dg, i, j, k, element)
-            u_mean += u_node * weights[i] * weights[j] * weights[k] * volume_jacobian
-            total_volume += weights[i] * weights[j] * weights[k] * volume_jacobian
-        end
-        # normalize with the total volume
-        u_mean = u_mean / total_volume
+        u_mean = compute_u_mean(u, mesh, equations, dg, cache, element)
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
