@@ -214,7 +214,6 @@ end
 
 # Used in `IndicatorEntropyViolation` and the (stage-) limiters
 # `PositivityPreservingLimiterZhangShu` and `EntropyBoundedLimiter`.
-# Feed in `mesh` for similar function signature with 2D and 3D
 @inline function compute_u_mean(u::AbstractArray{<:Any, 3}, mesh::AbstractMesh{1},
                                 equations, dg::DGSEM,
                                 element)
