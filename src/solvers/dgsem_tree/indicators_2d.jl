@@ -234,8 +234,7 @@ end
 # Used in `IndicatorEntropyViolation` and the (stage-) limiters
 # `PositivityPreservingLimiterZhangShu` and `EntropyBoundedLimiter`.
 @inline function compute_u_mean(u::AbstractArray{<:Any, 4}, mesh::AbstractMesh{2},
-                                equations, dg::DGSEM, inverse_jacobian,
-                                element)
+                                equations, dg::DGSEM, inverse_jacobian, element)
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
     total_volume = zero(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
@@ -268,8 +267,7 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
 
         @threaded for element in eachelement(dg, cache)
             # Compute mean state
-            u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian,
-                                    element)
+            u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian, element)
 
             # Compute entropy of the mean state
             entropy_old[element] = entropy_function(u_mean, equations)
@@ -279,8 +277,7 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
     else
         @threaded for element in eachelement(dg, cache)
             # Compute mean state
-            u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian,
-                                    element)
+            u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian, element)
 
             # Compute entropy of the mean state
             entropy_element = entropy_function(u_mean, equations)

@@ -22,8 +22,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         value_min < threshold || continue
 
         # compute mean value
-        u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian,
-                                element)
+        u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian, element)
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
