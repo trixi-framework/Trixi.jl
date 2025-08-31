@@ -6,8 +6,7 @@
 #! format: noindent
 
 @inline function compute_u_mean(u::AbstractArray{<:Any, 5}, mesh::AbstractMesh{3},
-                                equations, dg::DGSEM, inverse_jacobian,
-                                element)
+                                equations, dg::DGSEM, inverse_jacobian, element)
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, 1, element))
     total_volume = zero(eltype(u))
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)

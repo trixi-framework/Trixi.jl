@@ -6,8 +6,7 @@
 #! format: noindent
 
 @inline function compute_u_mean(u::AbstractArray{<:Any, 3}, mesh::AbstractMesh{1},
-                                equations, dg::DGSEM,
-                                element)
+                                equations, dg::DGSEM, element)
     u_mean = zero(get_node_vars(u, equations, dg, 1, element))
     for i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, element)
