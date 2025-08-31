@@ -83,7 +83,7 @@ end
                                           nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of DG-subcell cell sizes
     @unpack volume_flux_dg, volume_flux_fv = volume_integral
 
     # high-order DG fluxes

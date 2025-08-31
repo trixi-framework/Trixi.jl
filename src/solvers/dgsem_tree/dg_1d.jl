@@ -323,7 +323,7 @@ end
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of DG-subcell cell sizes
 
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
