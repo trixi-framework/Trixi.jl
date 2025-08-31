@@ -587,7 +587,8 @@ end
 
 # Calculate entropy for a conservative state `cons`
 @inline entropy(u::Real, ::AbstractLinearScalarAdvectionEquation) = 0.5f0 * u^2
-@inline entropy(u, equation::AbstractLinearScalarAdvectionEquation) = entropy(u[1], equation)
+@inline entropy(u, equation::AbstractLinearScalarAdvectionEquation) = entropy(u[1],
+                                                                              equation)
 
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::AbstractLinearScalarAdvectionEquation) = 0.5f0 * u^2
@@ -751,10 +752,10 @@ include("acoustic_perturbation_2d.jl")
 # Linearized Euler equations
 abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
-@inline have_constant_speed(::LinearizedEulerEquations3D) = True()
+@inline have_constant_speed(::AbstractLinearizedEulerEquations) = True()
 
 # Convert conservative variables to primitive
-@inline cons2prim(u, equations::AbstractLinearizedEulerEquations) = u
+@inline cons2prim(u, ::AbstractLinearizedEulerEquations) = u
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, ::AbstractLinearizedEulerEquations) = u
 
