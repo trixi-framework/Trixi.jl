@@ -202,14 +202,14 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
                         l2=[
-                            0.00030063142991090466,
-                            0.0004392403930481505,
-                            0.0008691053235754749
+                            0.0005398687236320256,
+                            0.0006196932016800267,
+                            0.0008583357258964248
                         ],
                         linf=[
-                            0.0013995715110961537,
-                            0.0012981239039517867,
-                            0.004533373548508024
+                            0.0020478305316065093,
+                            0.0019171830710558169,
+                            0.001821092461920415
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

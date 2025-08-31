@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEqSSPRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -44,7 +44,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.6)
+stepsize_callback = StepsizeCallback(cfl = 1.1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -53,6 +53,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK22(),
+sol = solve(ode, ORK256(),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

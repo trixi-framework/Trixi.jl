@@ -22,8 +22,8 @@ basis = LobattoLegendreBasis(polydeg)
 surface_flux = flux_hll
 volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                       volume_flux_fv = surface_flux,
-                                                      reconstruction_mode = reconstruction_O2_inner,
-                                                      slope_limiter = monotonized_central)
+                                                      reconstruction_mode = reconstruction_O2_full,
+                                                      slope_limiter = vanLeer)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
@@ -46,12 +46,11 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_errors = (:conservation_error,))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.4)
+stepsize_callback = StepsizeCallback(cfl = 1.3)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -60,6 +59,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, ORK256(),
+sol = solve(ode, ParsaniKetchesonDeconinck3S82(),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
