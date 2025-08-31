@@ -108,8 +108,6 @@ end
     return SVector(f1, f2, f3)
 end
 
-@inline have_constant_speed(::LinearizedEulerEquations1D) = True()
-
 @inline function max_abs_speeds(equations::LinearizedEulerEquations1D)
     @unpack v_mean_global, c_mean_global = equations
     return abs(v_mean_global) + c_mean_global
@@ -137,8 +135,4 @@ end
 
     return λ_min, λ_max
 end
-
-# Convert conservative variables to primitive
-@inline cons2prim(u, equations::LinearizedEulerEquations1D) = u
-@inline cons2entropy(u, ::LinearizedEulerEquations1D) = u
 end # muladd

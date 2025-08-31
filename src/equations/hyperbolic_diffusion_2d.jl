@@ -224,15 +224,10 @@ end
     return SVector(f1, f2, f3)
 end
 
-@inline have_constant_speed(::HyperbolicDiffusionEquations2D) = True()
-
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations2D)
     λ = sqrt(eq.nu * eq.inv_Tr)
     return λ, λ
 end
-
-# Convert conservative variables to primitive
-@inline cons2prim(u, equations::HyperbolicDiffusionEquations2D) = u
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
 @inline function cons2entropy(u, equations::HyperbolicDiffusionEquations2D)
@@ -242,11 +237,6 @@ end
     w3 = equations.Lr^2 * q2
 
     return SVector(w1, w2, w3)
-end
-
-# Calculate entropy for a conservative state `u` (here: same as total energy)
-@inline function entropy(u, equations::HyperbolicDiffusionEquations2D)
-    energy_total(u, equations)
 end
 
 # Calculate total energy for a conservative state `u`

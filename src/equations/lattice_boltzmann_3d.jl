@@ -384,19 +384,11 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
     return -(u - equilibrium_distribution(u, equations)) / (tau + 0.5f0)
 end
 
-@inline have_constant_speed(::LatticeBoltzmannEquations3D) = True()
-
 @inline function max_abs_speeds(equations::LatticeBoltzmannEquations3D)
     @unpack c = equations
 
     return c, c, c
 end
-
-# Convert conservative variables to primitive
-@inline cons2prim(u, equations::LatticeBoltzmannEquations3D) = u
-
-# Convert conservative variables to entropy variables
-@inline cons2entropy(u, equations::LatticeBoltzmannEquations3D) = u
 
 # Calculate kinetic energy for a conservative state `u`
 @inline function energy_kinetic(u, equations::LatticeBoltzmannEquations3D)

@@ -172,8 +172,6 @@ end
     return sqrt(equations.nu * equations.inv_Tr)
 end
 
-@inline have_constant_speed(::HyperbolicDiffusionEquations1D) = True()
-
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations1D)
     return sqrt(eq.nu * eq.inv_Tr)
 end
@@ -189,11 +187,6 @@ end
     w2 = equations.Lr^2 * q1
 
     return SVector(w1, w2)
-end
-
-# Calculate entropy for a conservative state `u` (here: same as total energy)
-@inline function entropy(u, equations::HyperbolicDiffusionEquations1D)
-    energy_total(u, equations)
 end
 
 # Calculate total energy for a conservative state `u`

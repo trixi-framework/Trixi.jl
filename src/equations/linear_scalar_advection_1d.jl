@@ -23,9 +23,6 @@ function LinearScalarAdvectionEquation1D(a::Real)
     LinearScalarAdvectionEquation1D(SVector(a))
 end
 
-varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation1D) = ("scalar",)
-varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation1D) = ("scalar",)
-
 # Set initial conditions at physical location `x` for time `t`
 """
     initial_condition_constant(x, t, equations::LinearScalarAdvectionEquation1D)
@@ -173,12 +170,6 @@ function flux_engquist_osher(u_ll, u_rr, orientation::Int,
                     abs(equation.advection_velocity[orientation]) * (u_R - u_L)))
 end
 
-@inline have_constant_speed(::LinearScalarAdvectionEquation1D) = True()
-
-@inline function max_abs_speeds(equation::LinearScalarAdvectionEquation1D)
-    return abs.(equation.advection_velocity)
-end
-
 """
     splitting_lax_friedrichs(u, orientation::Integer,
                              equations::LinearScalarAdvectionEquation1D)
@@ -217,21 +208,5 @@ end
     RealT = eltype(u)
     a = equations.advection_velocity[1]
     return a < 0 ? flux(u, orientation, equations) : SVector(zero(RealT))
-end
-
-# Convert conservative variables to primitive
-@inline cons2prim(u, equation::LinearScalarAdvectionEquation1D) = u
-
-# Convert conservative variables to entropy variables
-@inline cons2entropy(u, equation::LinearScalarAdvectionEquation1D) = u
-
-# Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
-@inline entropy(u, equation::LinearScalarAdvectionEquation1D) = entropy(u[1], equation)
-
-# Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
-@inline function energy_total(u, equation::LinearScalarAdvectionEquation1D)
-    energy_total(u[1], equation)
 end
 end # @muladd

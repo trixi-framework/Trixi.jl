@@ -27,9 +27,6 @@ function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
     LinearScalarAdvectionEquation3D(SVector(a1, a2, a3))
 end
 
-varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = ("scalar",)
-varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar",)
-
 # Set initial conditions at physical location `x` for time `t`
 """
     initial_condition_constant(x, t, equations::LinearScalarAdvectionEquation1D)
@@ -189,27 +186,5 @@ function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
     else
         return SVector(a_normal * u_R)
     end
-end
-
-@inline have_constant_speed(::LinearScalarAdvectionEquation3D) = True()
-
-@inline function max_abs_speeds(equation::LinearScalarAdvectionEquation3D)
-    return abs.(equation.advection_velocity)
-end
-
-# Convert conservative variables to primitive
-@inline cons2prim(u, equation::LinearScalarAdvectionEquation3D) = u
-
-# Convert conservative variables to entropy variables
-@inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
-
-# Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
-@inline entropy(u, equation::LinearScalarAdvectionEquation3D) = entropy(u[1], equation)
-
-# Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
-@inline function energy_total(u, equation::LinearScalarAdvectionEquation3D)
-    energy_total(u[1], equation)
 end
 end # @muladd
