@@ -569,19 +569,11 @@ end
 include("numerical_fluxes.jl")
 
 # Linear scalar advection
-abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <:
-              AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
+              AbstractEquations{NDIMS, 1} end
 
-function varnames(::typeof(cons2cons),
-                  ::AbstractLinearScalarAdvectionEquation{NDIMS, 1}) where {NDIMS}
-    return ("scalar",)
-end
-function varnames(::typeof(cons2prim),
-                  ::AbstractLinearScalarAdvectionEquation{NDIMS, 1}) where {NDIMS}
-    return ("scalar",)
-end
-
-@inline have_constant_speed(::AbstractLinearScalarAdvectionEquation) = True()
+varnames(::typeof(cons2cons), ::AbstractLinearScalarAdvectionEquation) = ("scalar",)
+varnames(::typeof(cons2prim), ::AbstractLinearScalarAdvectionEquation) = ("scalar",)
 
 @inline function max_abs_speeds(equation::AbstractLinearScalarAdvectionEquation)
     return abs.(equation.advection_velocity)
@@ -595,10 +587,7 @@ end
 
 # Calculate entropy for a conservative state `cons`
 @inline entropy(u::Real, ::AbstractLinearScalarAdvectionEquation) = 0.5f0 * u^2
-@inline function entropy(u,
-                         equation::AbstractLinearScalarAdvectionEquation{NDIMS, 1}) where {NDIMS}
-    entropy(u[1], equation)
-end
+@inline entropy(u, equation::AbstractLinearScalarAdvectionEquation) = entropy(u[1], equation)
 
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::AbstractLinearScalarAdvectionEquation) = 0.5f0 * u^2

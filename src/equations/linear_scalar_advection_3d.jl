@@ -15,7 +15,7 @@ The linear scalar advection equation
 in three space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation3D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{3, 1}
+       AbstractLinearScalarAdvectionEquation{3}
     advection_velocity::SVector{3, RealT}
 end
 

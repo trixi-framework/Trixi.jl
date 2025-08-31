@@ -15,7 +15,7 @@ The linear scalar advection equation
 in two space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation2D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{2, 1}
+       AbstractLinearScalarAdvectionEquation{2}
     advection_velocity::SVector{2, RealT}
 end
 
