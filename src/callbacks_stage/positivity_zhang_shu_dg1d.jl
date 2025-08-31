@@ -20,7 +20,6 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # detect if limiting is necessary
         value_min < threshold || continue
 
-        # compute mean value
         u_mean = compute_u_mean(u, mesh, equations, dg, element)
 
         # We compute the value directly with the mean values, as we assume that

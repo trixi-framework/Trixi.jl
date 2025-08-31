@@ -242,7 +242,6 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
         resize!(entropy_old, nelements(dg, cache))
 
         @threaded for element in eachelement(dg, cache)
-            # Compute mean state
             u_mean = compute_u_mean(u, mesh, equations, dg, element)
 
             # Compute entropy of the mean state
@@ -252,7 +251,6 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
         end
     else
         @threaded for element in eachelement(dg, cache)
-            # Compute mean state
             u_mean = compute_u_mean(u, mesh, equations, dg, element)
 
             # Compute entropy of the mean state

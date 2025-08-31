@@ -35,7 +35,6 @@ function limiter_entropy_bounded!(u, u_prev, exp_entropy_decrease_max,
         # Detect if limiting is necessary. Avoid division by ("near") zero
         d_exp_s_min < exp_entropy_decrease_max || continue
 
-        # Compute mean value
         u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian, element)
 
         entropy_change_mean = exp_entropy_change(pressure(u_mean, equations),
