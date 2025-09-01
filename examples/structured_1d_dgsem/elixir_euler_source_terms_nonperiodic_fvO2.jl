@@ -22,7 +22,7 @@ basis = LobattoLegendreBasis(polydeg)
 surface_flux = flux_hll
 volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                       volume_flux_fv = surface_flux,
-                                                      reconstruction_mode = reconstruction_O2_full,
+                                                      reconstruction_mode = reconstruction_O2_inner,
                                                       slope_limiter = vanLeer)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
@@ -50,7 +50,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 1.3)
+stepsize_callback = StepsizeCallback(cfl = 1.1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
