@@ -343,12 +343,12 @@ function analyze(::Val{:l2_divb}, du, u, t,
                                                          dg, cache, derivative_matrix
         divb = zero(eltype(u))
         # Get the contravariant vectors Ja^1, Ja^2, and Ja^3
-        Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k,
-                                                    element)
-        Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k,
-                                                    element)
-        Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k,
-                                                    element)
+        Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                    i, j, k, element)
+        Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, j, k, element)
+        Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                    i, j, k, element)
         # Compute the transformed divergence
         for l in eachnode(dg)
             u_ljk = get_node_vars(u, equations, dg, l, j, k, element)
@@ -420,12 +420,12 @@ function analyze(::Val{:linf_divb}, du, u, t,
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             # Get the contravariant vectors Ja^1, Ja^2, and Ja^3
-            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,
-                                                        k, element)
-            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                        k, element)
-            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j,
-                                                        k, element)
+            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                        i, j, k, element)
+            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                        i, j, k, element)
+            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                        i, j, k, element)
             # Compute the transformed divergence
             for l in eachnode(dg)
                 u_ljk = get_node_vars(u, equations, dg, l, j, k, element)
