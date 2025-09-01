@@ -219,6 +219,9 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+
+    # Test/cover `:compact` printing
+    show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), volume_integral)
 end
 
 @trixi_testset "elixir_euler_weak_blast_er.jl" begin
