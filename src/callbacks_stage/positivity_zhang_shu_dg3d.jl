@@ -5,9 +5,9 @@
 @muladd begin
 #! format: noindent
 
-@inline function compute_u_mean(u::AbstractArray{<:Any, 5}, mesh::AbstractMesh{3},
-                                equations, dg::DGSEM, weights, inverse_jacobian,
-                                element)
+@inline function compute_u_mean(u::AbstractArray{<:Any, 5}, element,
+                                mesh::AbstractMesh{3}, equations, weights, dg::DGSEM,
+                                inverse_jacobian)
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, 1, element))
     total_volume = zero(eltype(u))
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -37,8 +37,8 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # detect if limiting is necessary
         value_min < threshold || continue
 
-        u_mean = compute_u_mean(u, mesh, equations, dg, weights, inverse_jacobian,
-                                element)
+        u_mean = compute_u_mean(u, element, mesh, equations, weights, dg,
+                                inverse_jacobian)
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
