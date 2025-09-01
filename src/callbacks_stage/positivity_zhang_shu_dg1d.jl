@@ -13,7 +13,7 @@
         u_mean += u_node * weights[i]
     end
     # note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
-    return u_mean / 2
+    return 0.5f0 * u_mean
 end
 
 function limiter_zhang_shu!(u, threshold::Real, variable,
