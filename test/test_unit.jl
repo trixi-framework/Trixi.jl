@@ -16,8 +16,10 @@ using ECOS: Optimizer
 # PERK Single p3 Constructors
 using NLsolve: nlsolve
 
-using SparseConnectivityTracer, SparseMatrixColorings
-using FiniteDiff
+import SparseConnectivityTracer: TracerSparsityDetector, jacobian_eltype, jacobian_sparsity
+import SparseMatrixColorings: ColoringProblem, GreedyColoringAlgorithm, coloring,
+                              column_colors
+import FiniteDiff: finite_difference_jacobian!
 
 include("test_trixi.jl")
 
@@ -2640,13 +2642,11 @@ end
                                                  solver,
                                                  uEltype = jac_eltype) # Need to supply Jacobian element type
 
-    t0 = 0.0 # Re-used for wrapping `rhs` below
-    t_end = 1.0
-    t_span = (t0, t_end)
+    tspan = (0.0, 1.0) # Re-used for wrapping `rhs` below
 
     # Call `semidiscretize` to create the ODE problem to have access to the
     # initial condition based on which the sparsity pattern is computed
-    ode_jac_type = semidiscretize(semi_jac_type, t_span)
+    ode_jac_type = semidiscretize(semi_jac_type, tspan)
     u0_ode = ode_jac_type.u0
     du_ode = similar(u0_ode)
 
@@ -2655,7 +2655,8 @@ end
 
     # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type, t0)
+    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+                                                   tspan[1])
 
     jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
 
@@ -2671,21 +2672,21 @@ end
                                                    initial_condition_convergence_test,
                                                    solver)
 
-    ode_float_type = semidiscretize(semi_float_type, t_span)
+    ode_float_type = semidiscretize(semi_float_type, tspan)
     u0_ode = ode_float_type.u0
     du_ode = similar(u0_ode)
     N = length(u0_ode)
 
     rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
-                                                     t0)
+                                                     tspan[1])
 
     ###############################################################################
     ### sparsity-aware finite diff ###
 
     jac_sparse_finite_diff = spzeros(N, N)
-    FiniteDiff.finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
-                                           u0_ode, sparsity = jac_prototype,
-                                           colorvec = coloring_vec)
+    finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
+                                u0_ode, sparsity = jac_prototype,
+                                colorvec = coloring_vec)
 
     jac_finite_diff = jacobian_fd(semi_float_type)
 
