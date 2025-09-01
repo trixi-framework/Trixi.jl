@@ -408,7 +408,7 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 # exploiting the sparsity of the Jacobian can lead to significant speedups in the Newton-Raphson solver.
 # Similarly, steady-state problems can also be solved faster.
 
-# Trixi.jl supports efficient Jacobian computations by leveraging the
+# [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) supports efficient Jacobian computations by leveraging the
 # [SparseConnectivityTracer.jl](https://github.com/trixi-framework/SparseConnectivityTracer.jl)
 # and [SparseMatrixColorings.jl](https://github.com/trixi-framework/SparseMatrixColorings.jl) packages.
 # These tools allow to detect the sparsity pattern of the Jacobian and compute the 
@@ -467,8 +467,8 @@ using SparseMatrixColorings
 # We partition by columns as we are using finite differencing here.
 # One would also partition by columns if forward-based algorithmic differentiation were used,
 # and only partition by rows if reverse-mode AD were used.
-# See also [the documentation of the now deprecated `SparseDiffTools`](https://github.com/JuliaDiff/SparseDiffTools.jl?tab=readme-ov-file#matrix-coloring) package,
-# the predecessor in spirit to `SparseConnectivityTracer.jl` and `SparseMatrixColorings.jl` for more information.
+# See also [the documentation of the now deprecated SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl?tab=readme-ov-file#matrix-coloring) package,
+# the predecessor in spirit to SparseConnectivityTracer.jl and SparseMatrixColorings.jl, for more information.
 coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
 coloring_alg = GreedyColoringAlgorithm(; decompression = :direct)
 coloring_result = coloring(jac_prototype, coloring_prob, coloring_alg)

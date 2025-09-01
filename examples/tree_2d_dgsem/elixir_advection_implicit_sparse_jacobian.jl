@@ -84,7 +84,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_restart)
 ###############################################################################
 ### solve the ODE problem ###
 
-sol = solve(ode_jac_sparse, # using `ode_float_jac_sparse` instead of `ode_float` results in speedup of factors 10-15!
+sol = solve(ode_jac_sparse, # using `ode_float_jac_sparse` instead of `ode_jac_type` results in speedup of factors 10-15!
             # Default `AutoForwardDiff()` is not yet working,
             # probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
             TRBDF2(; autodiff = AutoFiniteDiff());
