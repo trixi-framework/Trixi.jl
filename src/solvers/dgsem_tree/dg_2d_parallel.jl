@@ -536,7 +536,8 @@ function rhs!(du, u, t,
     # Calculate MPI mortar fluxes
     @trixi_timeit timer() "MPI mortar flux" begin
         calc_mpi_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                              have_nonconservative_terms(equations), equations,
+                              have_nonconservative_terms(equations),
+                              have_aux_node_vars(equations), equations,
                               dg.mortar, dg.surface_integral, dg, cache)
     end
 
@@ -814,7 +815,8 @@ end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
                                mesh::ParallelTreeMesh{2},
-                               nonconservative_terms::False, equations,
+                               nonconservative_terms::False,
+                               have_aux_node_vars::False, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -831,16 +833,53 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         # Because `nonconservative_terms` is `False` the primary and secondary fluxes
         # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, have_aux_node_vars(equations), equations,
+        calc_fstar!(fstar_primary_upper, equations,
                     surface_flux, dg, u_upper, mortar, orientation, cache)
-        calc_fstar!(fstar_primary_lower, have_aux_node_vars(equations), equations,
+        calc_fstar!(fstar_primary_lower, equations,
                     surface_flux, dg, u_lower, mortar, orientation, cache)
-        calc_fstar!(fstar_secondary_upper, have_aux_node_vars(equations),
-                    equations,
+        calc_fstar!(fstar_secondary_upper, equations,
                     surface_flux, dg, u_upper, mortar, orientation, cache)
-        calc_fstar!(fstar_secondary_lower, have_aux_node_vars(equations),
-                    equations,
+        calc_fstar!(fstar_secondary_lower, equations,
                     surface_flux, dg, u_lower, mortar, orientation, cache)
+
+        mpi_mortar_fluxes_to_elements!(surface_flux_values,
+                                       mesh, equations, mortar_l2, dg, cache,
+                                       mortar, fstar_primary_upper, fstar_primary_lower,
+                                       fstar_secondary_upper, fstar_secondary_lower)
+    end
+
+    return nothing
+end
+
+function calc_mpi_mortar_flux!(surface_flux_values,
+                               mesh::ParallelTreeMesh{2},
+                               nonconservative_terms::False,
+                               have_aux_node_vars::True, equations,
+                               mortar_l2::LobattoLegendreMortarL2,
+                               surface_integral, dg::DG, cache)
+    @unpack surface_flux = surface_integral
+    @unpack u_lower, u_upper, orientations = cache.mpi_mortars
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, fstar_secondary_upper_threaded, fstar_secondary_lower_threaded = cache
+    @unpack aux_mpimortar_node_vars = cache.aux_vars
+
+    @threaded for mortar in eachmpimortar(dg, cache)
+        # Choose thread-specific pre-allocated container
+        fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+        fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
+        fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
+
+        # Because `nonconservative_terms` is `False` the primary and secondary fluxes
+        # are identical. So, we could possibly save on computation and just pass two copies later.
+        orientation = orientations[mortar]
+        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper,
+                    aux_mpimortar_node_vars, 2, mortar, orientation, cache)
+        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower,
+                    aux_mpimortar_node_vars, 1, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper,
+                    aux_mpimortar_node_vars, 2, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower,
+                    aux_mpimortar_node_vars, 1, mortar, orientation, cache)
 
         mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations, mortar_l2, dg, cache,
@@ -907,7 +946,6 @@ end
                     direction = 3
                 end
             end
-
             multiply_dimensionwise!(view(surface_flux_values, :, :, direction, element),
                                     mortar_l2.reverse_upper, fstar_secondary_upper,
                                     mortar_l2.reverse_lower, fstar_secondary_lower)
