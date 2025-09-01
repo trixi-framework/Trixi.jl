@@ -409,8 +409,8 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 # Similarly, steady-state problems can also be solved faster.
 
 # [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) supports efficient Jacobian computations by leveraging the
-# [SparseConnectivityTracer.jl](https://github.com/trixi-framework/SparseConnectivityTracer.jl)
-# and [SparseMatrixColorings.jl](https://github.com/trixi-framework/SparseMatrixColorings.jl) packages.
+# [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl)
+# and [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl) packages.
 # These tools allow to detect the sparsity pattern of the Jacobian and compute the 
 # optional coloring vector for efficient Jacobian evaluations.
 # These are then handed over to the ODE solver from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
