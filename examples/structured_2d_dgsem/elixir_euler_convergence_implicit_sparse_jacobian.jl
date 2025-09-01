@@ -10,8 +10,7 @@ using OrdinaryDiffEqSDIRK, ADTypes
 # `if`-clause free (although it contains `min` and `max` operations).
 # The sparsity pattern, however, should be the same for other (two-point) fluxes as well.
 surface_flux = flux_lax_friedrichs
-float_type = Float64 # Datatype for the actual simulation
-solver = DGSEM(polydeg = 3, surface_flux = surface_flux, RealT = float_type)
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux)
 
 equations = CompressibleEulerEquations2D(1.4)
 
@@ -42,7 +41,7 @@ mesh = StructuredMesh(cells_per_dimension, mapping)
 jac_detector = TracerSparsityDetector()
 # We need to construct the semidiscretization with the correct
 # sparsity-detection ready datatype, which is retrieved here
-jac_eltype = jacobian_eltype(float_type, jac_detector)
+jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
 # Semidiscretization for sparsity pattern detection
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
@@ -82,8 +81,7 @@ coloring_vec = column_colors(coloring_result)
 semi_float_type = SemidiscretizationHyperbolic(mesh, equations,
                                                initial_condition_convergence_test,
                                                solver,
-                                               source_terms = source_terms_convergence_test,
-                                               uEltype = float_type) # Not necessary, also retrieved from `solver`
+                                               source_terms = source_terms_convergence_test)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_jac_sparse = semidiscretize(semi_float_type, tspan,
