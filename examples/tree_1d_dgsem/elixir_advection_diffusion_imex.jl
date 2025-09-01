@@ -52,7 +52,7 @@ tspan = (0.0, 0.5 * pi / advection_velocity)
 
 # For hyperbolic-parabolic problems, this results in a SciML SplitODEProblem, see e.g.
 # https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitODEProblem
-# These are well-suited for IMEX (implicit-explicit) integrators
+# These exactly fit IMEX (implicit-explicit) integrators
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -63,8 +63,15 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 ###############################################################################
 
-# Use implicit-explicit Runge-Kutta method with Jacobian-free (!) Newton-Krylov (GMRES) solver
-# See https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
-ode_alg = IMEXEuler(autodiff = AutoFiniteDiff(), linsolve = KrylovJL_GMRES())
-sol = solve(ode, ode_alg;
-            dt = 0.1, ode_default_options()..., callback = callbacks)
+# Tolerances for GMRES residual, see https://jso.dev/Krylov.jl/stable/solvers/unsymmetric/#Krylov.gmres
+atol_lin_solve = 1e-3
+rtol_lin_solve = 1e-3
+
+# Jacobian-free Newton-Krylov (GMRES) solver
+linsolve = KrylovJL_GMRES(atol = atol_lin_solve, rtol = rtol_lin_solve)
+
+# Use Runge-Kutta method with Jacobian-free (!) Newton-Krylov (GMRES) implicit solver, see
+# https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
+ode_alg = IMEXEuler(autodiff = AutoFiniteDiff(), linsolve = linsolve)
+sol = solve(ode, ode_alg; dt = 0.1, # Fixed timestep
+            ode_default_options()..., callback = callbacks)

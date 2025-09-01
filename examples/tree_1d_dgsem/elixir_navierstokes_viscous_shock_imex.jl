@@ -148,7 +148,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 tspan = (0.0, 0.75)
 # For hyperbolic-parabolic problems, this results in a SciML SplitODEProblem, see e.g.
 # https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitODEProblem
-# These are well-suited for IMEX (implicit-explicit) integrators
+# These exactly fit IMEX (implicit-explicit) integrators
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -162,11 +162,20 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 
+# Tolerances for GMRES residual, see https://jso.dev/Krylov.jl/stable/solvers/unsymmetric/#Krylov.gmres
+atol_lin_solve = 1e-4
+rtol_lin_solve = 1e-4
+
+# Jacobian-free Newton-Krylov (GMRES) solver
+linsolve = KrylovJL_GMRES(atol = atol_lin_solve, rtol = rtol_lin_solve)
+
 # Choice of method:
 # https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/#Solver-Selection-Guide
 # higher order methods (`SBDF3` and `SBDF4`) have trouble converging.
-# Use Runge-Kutta method with Jacobian-free (!) Newton-Krylov (GMRES) solver
-# See https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
-ode_alg = SBDF2(autodiff = AutoFiniteDiff(), linsolve = KrylovJL_GMRES())
-sol = solve(ode, ode_alg;
-            dt = 0.05, ode_default_options()..., callback = callbacks)
+#
+# Use IMEX Runge-Kutta method with Jacobian-free (!) Newton-Krylov (GMRES) implicit solver, see
+# https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
+ode_alg = SBDF2(autodiff = AutoFiniteDiff(), linsolve = linsolve)
+
+sol = solve(ode, ode_alg; dt = 0.05, # Fixed timestep
+            ode_default_options()..., callback = callbacks);

@@ -43,10 +43,10 @@ end
     end
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_ldg_imex.jl" begin
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_imex.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
-                                 "elixir_advection_diffusion_ldg_imex.jl"),
-                        l2=[0.021344687406984038], linf=[0.030184351260023057])
+                                 "elixir_advection_diffusion_imex.jl"),
+                        l2=[0.021344712948010304], linf=[0.0301843759447038])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -57,12 +57,12 @@ end
     end
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_ldg_imex.jl (IMEXEulerARK)" begin
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_imex.jl (IMEXEulerARK)" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
-                                 "elixir_advection_diffusion_ldg_imex.jl"),
+                                 "elixir_advection_diffusion_imex.jl"),
                         ode_alg=IMEXEulerARK(autodiff = AutoFiniteDiff(),
-                                             linsolve = KrylovJL_GMRES()),
-                        l2=[0.022729789842966634], linf=[0.03213948597427696])
+                                             linsolve = linsolve),
+                        l2=[0.02272864683164678], linf=[0.0321372890937901])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -320,14 +320,14 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_navierstokes_viscous_shock_imex.jl"),
                         l2=[
-                            0.0016637024930368021,
-                            0.0014571251244383352,
-                            0.0014843766362312388
+                            0.0016637375474994965,
+                            0.00145716100710925,
+                            0.0014844168374326739
                         ],
                         linf=[
-                            0.005456674075456913,
-                            0.003950426614897307,
-                            0.00409207271884382
+                            0.00545668606595906,
+                            0.003950561510099204,
+                            0.00409216888485453
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
