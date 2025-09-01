@@ -452,7 +452,7 @@ end
         # Cell index:
         #      1         2             3        4
 
-        ## Obtain unlimited values in primal variables ##
+        ## Obtain unlimited values in primitive variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out, 
@@ -472,7 +472,7 @@ end
                                          x_interfaces, i,
                                          slope_limiter, dg)
 
-        ## Convert primal variables back to conservative variables ##
+        ## Convert primitive variables back to conservative variables ##
         flux = volume_flux_fv(prim2cons(u_ll, equations), prim2cons(u_rr, equations),
                               1, equations) # orientation 1: x direction
 
