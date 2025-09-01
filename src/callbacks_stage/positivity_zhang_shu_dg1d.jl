@@ -12,7 +12,8 @@
         u_node = get_node_vars(u, equations, dg, i, element)
         u_mean += u_node * weights[i]
     end
-    # note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
+    # normalize with the total volume
+    # note that the reference element is [-1,1], thus the weights sum to 2
     return 0.5f0 * u_mean
 end
 
