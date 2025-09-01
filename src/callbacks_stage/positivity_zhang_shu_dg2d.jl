@@ -8,10 +8,10 @@
 @inline function compute_u_mean(u::AbstractArray{<:Any, 4}, element,
                                 mesh::AbstractMesh{2}, equations, weights, dg::DGSEM,
                                 inverse_jacobian)
-    total_volume = zero(eltype(u))
-    node_volume = zero(eltype(u))
+    node_volume = zero(real(mesh))
+    total_volume = copy(node_volume)
 
-    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
+    u_mean = zero(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
         volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
                                                        i, j, element)))
