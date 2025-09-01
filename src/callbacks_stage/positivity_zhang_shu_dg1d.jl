@@ -7,7 +7,7 @@
 
 @inline function compute_u_mean(u::AbstractArray{<:Any, 3}, element,
                                 mesh::AbstractMesh{1}, equations, weights, dg::DGSEM)
-    u_mean = zero(eltype(u))
+    u_mean = zero(get_node_vars(u, equations, dg, 1, element))
     for i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, element)
         u_mean += u_node * weights[i]

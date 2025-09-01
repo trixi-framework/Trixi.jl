@@ -11,7 +11,7 @@
     node_volume = zero(real(mesh))
     total_volume = copy(node_volume)
 
-    u_mean = zero(eltype(u))
+    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
     for j in eachnode(dg), i in eachnode(dg)
         volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
                                                        i, j, element)))
