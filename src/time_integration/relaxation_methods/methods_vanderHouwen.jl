@@ -30,7 +30,7 @@ Currently implemented methods are the Carpenter-Kennedy-Lewis 4-stage, 3rd-order
 and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`CKL54`](@ref) which are optimized for the 
 compressible Navier-Stokes equations.
 """
-abstract type vanderHouwenAlgorithm end
+abstract type vanderHouwenAlgorithm <: AbstractTimeIntegrationAlgorithm end
 
 """
     vanderHouwenRelaxationAlgorithm
@@ -53,7 +53,8 @@ Currently implemented methods are the Carpenter-Kennedy-Lewis 4-stage, 3rd-order
 and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`RelaxationCKL54`](@ref) which are optimized for the 
 compressible Navier-Stokes equations.
 """
-abstract type vanderHouwenRelaxationAlgorithm end
+abstract type vanderHouwenRelaxationAlgorithm <:
+              AbstractRelaxationTimeIntegrationAlgorithm end
 
 """
     CKL43()
@@ -220,27 +221,9 @@ function init(ode::ODEProblem, alg::vanderHouwenRelaxationAlgorithm;
                                                   k_prev, direction, gamma, S_old,
                                                   alg.relaxation_solver)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with van-der-Houwen time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
-end
-
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem,
-               alg::vanderHouwenRelaxationAlgorithm;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
 end
 
 function step!(integrator::vanderHouwenRelaxationIntegrator)
@@ -254,12 +237,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         error("time step size `dt` is NaN")
     end
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Relaxation vdH RK integration step" begin
         num_stages = length(alg.c)
@@ -301,7 +279,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
 
             bsminus1_minus_as = alg.b[stage - 1] - alg.a[stage]
             @threaded for i in eachindex(integrator.u)
-                # Try to enable optimizations due to `muladd` by avoidin `+=`
+                # Try to enable optimizations due to `muladd` by avoiding `+=`
                 # https://github.com/trixi-framework/Trixi.jl/pull/2480#discussion_r2224531702
                 integrator.direction[i] = integrator.direction[i] +
                                           bs_dt * integrator.du[i]
@@ -347,23 +325,11 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         end
     end
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 
 # used for AMR
@@ -374,5 +340,7 @@ function Base.resize!(integrator::vanderHouwenRelaxationIntegrator, new_size)
     resize!(integrator.k_prev, new_size)
     # Relaxation addition
     resize!(integrator.direction, new_size)
+
+    return nothing
 end
 end # @muladd

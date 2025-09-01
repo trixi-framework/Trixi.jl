@@ -51,7 +51,8 @@ For details on the relaxation procedure, see
 Currently implemented are the third-order, three-stage method by Ralston [`Ralston3`](@ref) 
 and the canonical fourth-order, four-stage method by Kutta [`RK44`](@ref).
 """
-abstract type SubDiagonalRelaxationAlgorithm <: AbstractTimeIntegrationAlgorithm end
+abstract type SubDiagonalRelaxationAlgorithm <:
+              AbstractRelaxationTimeIntegrationAlgorithm end
 
 """
     Ralston3()
@@ -183,27 +184,9 @@ function init(ode::ODEProblem, alg::SubDiagonalRelaxationAlgorithm;
                                                  direction, gamma, S_old,
                                                  alg.relaxation_solver)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with sub-diagonal time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
-end
-
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem,
-               alg::SubDiagonalRelaxationAlgorithm;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
 end
 
 function step!(integrator::SubDiagonalRelaxationIntegrator)
@@ -217,12 +200,7 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
         error("time step size `dt` is NaN")
     end
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Relaxation sub-diagonal RK integration step" begin
         mesh, equations, dg, cache = mesh_equations_solver_cache(prob.p)
@@ -281,23 +259,11 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
         end
     end
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 
 # used for AMR
@@ -307,5 +273,7 @@ function Base.resize!(integrator::SubDiagonalRelaxationIntegrator, new_size)
     resize!(integrator.u_tmp, new_size)
     # Relaxation addition
     resize!(integrator.direction, new_size)
+
+    return nothing
 end
 end # @muladd
