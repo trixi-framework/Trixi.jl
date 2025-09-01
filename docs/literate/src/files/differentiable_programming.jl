@@ -447,16 +447,14 @@ semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,
                                              initial_condition_convergence_test, solver,
                                              uEltype = jac_eltype) # Supply sparsity detection datatype here
 
-t0 = 0.0 # Re-used later in `rhs!` evaluation
-t_end = 1.0
-t_span = (t0, t_end)
-ode_jac_type = semidiscretize(semi_jac_type, t_span)
+tspan = (0.0, 1.0) # Re-used later in `rhs!` evaluation
+ode_jac_type = semidiscretize(semi_jac_type, tspan)
 u0_ode = ode_jac_type.u0
 du_ode = similar(u0_ode)
 
 # Wrap the RHS for sparsity detection to match the expected signature f!(du, u) required by
 # [`jacobian_sparsity`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity).
-rhs_wrapped! = (du, u) -> Trixi.rhs!(du, u, semi_jac_type, t0)
+rhs_wrapped! = (du, u) -> Trixi.rhs!(du, u, semi_jac_type, tspan[1])
 jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 
 # Optionally, we can also compute the coloring vector to reduce Jacobian evaluations
@@ -481,7 +479,7 @@ semi_float_type = SemidiscretizationHyperbolic(mesh, equation,
 # Supply the sparse Jacobian prototype and the optional coloring vector.
 # Internally, an [`ODEFunction`](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEFunction)
 # with `jac_prototype = jac_prototype` and `colorvec = coloring_vec` is created.
-ode_jac_sparse = semidiscretize(semi_float_type, t_span,
+ode_jac_sparse = semidiscretize(semi_float_type, tspan,
                                 jac_prototype = jac_prototype,
                                 colorvec = coloring_vec)
 

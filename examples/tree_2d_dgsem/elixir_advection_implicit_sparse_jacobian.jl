@@ -31,13 +31,11 @@ semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,
                                              initial_condition_convergence_test, solver,
                                              uEltype = jac_eltype) # Need to supply Jacobian element type
 
-t0 = 0.0 # Re-used for wrapping `rhs` below
-t_end = 1.0
-t_span = (t0, t_end)
+tspan = (0.0, 1.0) # Re-used for wrapping `rhs` below
 
 # Call `semidiscretize` to create the ODE problem to have access to the
 # initial condition based on which the sparsity pattern is computed
-ode_jac_type = semidiscretize(semi_jac_type, t_span)
+ode_jac_type = semidiscretize(semi_jac_type, tspan)
 u0_ode = ode_jac_type.u0
 du_ode = similar(u0_ode)
 
@@ -46,7 +44,7 @@ du_ode = similar(u0_ode)
 
 # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
 # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-rhs_wrapped! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type, t0)
+rhs_wrapped! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type, tspan[1])
 
 jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 
@@ -66,7 +64,7 @@ semi_float_type = SemidiscretizationHyperbolic(mesh, equation,
                                                solver)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
-ode_jac_sparse = semidiscretize(semi_float_type, t_span,
+ode_jac_sparse = semidiscretize(semi_float_type, tspan,
                                 jac_prototype = jac_prototype,
                                 colorvec = coloring_vec)
 
