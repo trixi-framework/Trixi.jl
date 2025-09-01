@@ -153,7 +153,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -166,8 +166,8 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 # Tolerances for GMRES residual, see https://jso.dev/Krylov.jl/stable/solvers/unsymmetric/#Krylov.gmres
-atol_lin_solve = 1e-3
-rtol_lin_solve = 1e-3
+atol_lin_solve = 1e-5
+rtol_lin_solve = 1e-5
 
 # Jacobian-free Newton-Krylov (GMRES) solver
 linsolve = KrylovJL_GMRES(atol = atol_lin_solve, rtol = rtol_lin_solve)
@@ -176,5 +176,8 @@ linsolve = KrylovJL_GMRES(atol = atol_lin_solve, rtol = rtol_lin_solve)
 # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
 ode_alg = Kvaerno4(autodiff = AutoFiniteDiff(), linsolve = linsolve)
 
+atol_ode_solve = 1e-4
+rtol_ode_solve = 1e-4
 sol = solve(ode, ode_alg;
+            abstol = atol_ode_solve, reltol = rtol_ode_solve,
             ode_default_options()..., callback = callbacks);

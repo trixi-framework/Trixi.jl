@@ -54,8 +54,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 # run the simulation
 
 # Tolerances for GMRES residual, see https://jso.dev/Krylov.jl/stable/solvers/unsymmetric/#Krylov.gmres
-atol_lin_solve = 1e-4
-rtol_lin_solve = 1e-3
+atol_lin_solve = 1e-6
+rtol_lin_solve = 1e-5
 
 # Jacobian-free Newton-Krylov (GMRES) solver
 linsolve = KrylovJL_GMRES(atol = atol_lin_solve, rtol = rtol_lin_solve)
@@ -64,5 +64,8 @@ linsolve = KrylovJL_GMRES(atol = atol_lin_solve, rtol = rtol_lin_solve)
 # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
 ode_alg = KenCarp47(autodiff = AutoFiniteDiff(), linsolve = linsolve)
 
+atol_ode_solve = 1e-5
+rtol_ode_solve = 1e-4
 sol = solve(ode, ode_alg;
+            abstol = atol_ode_solve, reltol = rtol_ode_solve,
             ode_default_options()..., callback = callbacks);

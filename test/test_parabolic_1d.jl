@@ -61,7 +61,7 @@ end
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg_newton_krylov.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_newton_krylov.jl"),
-                        l2=[6.535800308207845e-6], linf=[1.713067629272036e-5])
+                        l2=[4.2710445174631516e-6], linf=[2.28491835256861e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
