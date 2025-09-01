@@ -199,7 +199,7 @@ end
     #   See especially equations (2.79), (3.24), and (3.25) from Chapter 3.2.3
     #
     # The eigenvalues of the diffusivity matrix in 1D are
-    # mu/rho .* {0, 1, -kappa}
+    # -mu/rho .* {0, 1, kappa}
     #
     # See for instance also the computation in FLUXO:
     # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
