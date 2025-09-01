@@ -99,7 +99,7 @@ alive_callback = AliveCallback(alive_interval = 3)
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 sol = solve(ode_jac_sparse, # using `ode_jac_type` is essentially infeasible, even single step takes ages!
-            # Default `AutoForwardDiff()` is not yet working,
-            # probably related to https://docs.sciml.ai/DiffEqDocs/stable/basics/faq/#Autodifferentiation-and-Dual-Numbers
+            # Default `AutoForwardDiff()` is not yet working, see
+            # https://github.com/trixi-framework/Trixi.jl/issues/2369
             Kvaerno4(; autodiff = AutoFiniteDiff());
             dt = 0.05, save_everystep = false, callback = callbacks);
