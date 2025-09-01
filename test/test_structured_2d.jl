@@ -322,7 +322,7 @@ end
 @trixi_testset "elixir_euler_convergence_implicit_sparse_jacobian.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_implicit_sparse_jacobian.jl"),
-                        tspan = (0.0, 1.0),
+                        tspan=(0.0, 1.0),
                         l2=[
                             0.0025545032994393493,
                             0.0025848892135096136,
