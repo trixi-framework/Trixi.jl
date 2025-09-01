@@ -77,13 +77,13 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     derivative_split_transpose = Matrix(derivative_split')
     derivative_dhat = calc_dhat(nodes_, weights_)
 
-    # Type conversions to enable possible optimizations of runtime performance 
+    # Type conversions to enable possible optimizations of runtime performance
     # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
-    # We keep the matrices above stored using the standard `Matrix` type 
+    # We keep the matrices above stored using the standard `Matrix` type
     # since this is usually as fast as `SMatrix`
     # (when using `let` in the volume integral/`@threaded`)
     # and reduces latency
@@ -139,7 +139,7 @@ end
     eachnode(basis::LobattoLegendreBasis)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the nodes in `basis`. 
+for the nodes in `basis`.
 In particular, not the nodes themselves are returned.
 """
 @inline eachnode(basis::LobattoLegendreBasis) = Base.OneTo(nnodes(basis))
@@ -171,6 +171,50 @@ end
 left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
+       AbstractMortarL2{RealT}
+    positivity_variables_cons::Vector{Int}
+    mortar_l2::Mortar
+    local_mortar_weights::Matrix{RealT}
+end
+
+function MortarIDP(basis::LobattoLegendreBasis;
+                   positivity_variables_cons = Int[]) # TODO: String[], "rho" instead of 1
+    RealT = real(basis)
+    nnodes_ = nnodes(basis)
+
+    mortar_l2 = MortarL2(basis)
+
+    local_mortar_weights = calc_mortar_weights(basis, RealT)
+
+    LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(positivity_variables_cons,
+                                                                mortar_l2,
+                                                                local_mortar_weights)
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+    # TODO
+    print(io, "LobattoLegendreMortarIDP{", real(mortar), "}(polydeg=", polydeg(mortar),
+          ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+    # TODO
+    print(io, "LobattoLegendreMortarIDP{", real(mortar),
+          "} with polynomials of degree ",
+          polydeg(mortar))
+end
+
+@inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortarIDP{RealT, NNODES}) where {RealT,
+                                                                                NNODES}
+    NNODES
+end
+
+@inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
+
 struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
                                ForwardMatrix <: AbstractMatrix{RealT},
                                ReverseMatrix <: AbstractMatrix{RealT}} <:
@@ -201,7 +245,7 @@ function MortarL2(basis::LobattoLegendreBasis)
     reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
     reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
 
-    # We keep the matrices above stored using the standard `Matrix` type 
+    # We keep the matrices above stored using the standard `Matrix` type
     # since this is usually as fast as `SMatrix`
     # (when using `let` in the volume integral/`@threaded`)
     # and reduces latency
@@ -292,7 +336,7 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis;
     nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
     vandermonde = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
 
-    # Type conversions to enable possible optimizations of runtime performance 
+    # Type conversions to enable possible optimizations of runtime performance
     # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
@@ -325,7 +369,7 @@ end
     eachnode(analyzer::LobattoLegendreAnalyzer)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the nodes in `analyzer`. 
+for the nodes in `analyzer`.
 In particular, not the nodes themselves are returned.
 """
 @inline eachnode(analyzer::LobattoLegendreAnalyzer) = Base.OneTo(nnodes(analyzer))
@@ -531,19 +575,19 @@ function calc_lhat(x, nodes, weights)
     return lhat
 end
 
-""" 
+"""
     lagrange_interpolating_polynomials(x, nodes, wbary)
 
 Calculate Lagrange polynomials for a given node distribution with
-associated barycentric weights `wbary` at a given point `x` on the 
+associated barycentric weights `wbary` at a given point `x` on the
 reference interval ``[-1, 1]``.
 
 This returns all ``l_j(x)``, i.e., the Lagrange polynomials for each node ``x_j``.
-Thus, to obtain the interpolating polynomial ``p(x)`` at ``x``, one has to 
+Thus, to obtain the interpolating polynomial ``p(x)`` at ``x``, one has to
 multiply the Lagrange polynomials with the nodal values ``u_j`` and sum them up:
 ``p(x) = \\sum_{j=1}^{n} u_j l_j(x)``.
 
-For details, see e.g. Section 2 of 
+For details, see e.g. Section 2 of
 - Jean-Paul Berrut and Lloyd N. Trefethen (2004).
   Barycentric Lagrange Interpolation.
   [DOI:10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
@@ -553,7 +597,7 @@ function lagrange_interpolating_polynomials(x, nodes, wbary)
     polynomials = zeros(eltype(nodes), n_nodes)
 
     for i in 1:n_nodes
-        # Avoid division by zero when `x` is close to node by using 
+        # Avoid division by zero when `x` is close to node by using
         # the Kronecker-delta property at nodes
         # of the Lagrange interpolation polynomials.
         if isapprox(x, nodes[i], rtol = eps(x))
@@ -580,9 +624,9 @@ end
 Computes nodes ``x_j`` and weights ``w_j`` for the (Legendre-)Gauss-Lobatto quadrature.
 This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
 
-- David A. Kopriva, (2009). 
+- David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers. 
+  Algorithms for scientists and engineers.
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
@@ -686,9 +730,9 @@ end
 Computes nodes ``x_j`` and weights ``w_j`` for the Gauss-Legendre quadrature.
 This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
 
-- David A. Kopriva, (2009). 
+- David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers. 
+  Algorithms for scientists and engineers.
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
@@ -756,9 +800,9 @@ end
 Computes the Legendre polynomial of degree `N` and its derivative at `x`.
 This implements algorithm 22 "LegendrePolynomialAndDerivative" from the book
 
-- David A. Kopriva, (2009). 
+- David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers. 
+  Algorithms for scientists and engineers.
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function legendre_polynomial_and_derivative(N::Int, x::Real)
