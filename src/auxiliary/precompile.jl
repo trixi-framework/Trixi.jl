@@ -384,8 +384,6 @@ function _precompile_manual_()
     # end
     # end
     @assert Base.precompile(Tuple{typeof(SummaryCallback)})
-    @assert Base.precompile(Tuple{typeof(summary_box), Base.TTY, String,
-                                  Vector{Pair{String, Any}}})
     # TODO: AMRCallback, ControllerThreeLevel, indicators
 
     # init_elements, interfaces, etc.
