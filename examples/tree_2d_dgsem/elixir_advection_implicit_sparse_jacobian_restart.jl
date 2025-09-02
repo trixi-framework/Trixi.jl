@@ -11,10 +11,10 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
 ###############################################################################
 
 restart_filename = joinpath("out", restart_file)
-t_span = (load_time(restart_filename), 2.0)
+tspan = (load_time(restart_filename), 2.0)
 dt_restart = load_dt(restart_filename)
 
-ode_jac_sparse = semidiscretize(semi_float_type, t_span,
+ode_jac_sparse = semidiscretize(semi_float_type, tspan,
                                 restart_filename,
                                 jac_prototype = jac_prototype,
                                 colorvec = coloring_vec)
@@ -22,7 +22,7 @@ ode_jac_sparse = semidiscretize(semi_float_type, t_span,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode_jac_sparse, # using `ode_float_jac_sparse` instead of `ode_jac_type` results in speedup of factors 10-15!
+sol = solve(ode_jac_sparse,
             # Default `AutoForwardDiff()` is not yet working, see
             # https://github.com/trixi-framework/Trixi.jl/issues/2369
             TRBDF2(; autodiff = AutoFiniteDiff());
