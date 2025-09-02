@@ -96,7 +96,7 @@ end
     @unpack inverse_jacobian = cache.elements
 
     node_volume = zero(real(mesh))
-    total_volume = copy(node_volume)
+    total_volume = zero(node_volume)
 
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
     for j in eachnode(dg), i in eachnode(dg)
@@ -117,7 +117,7 @@ end
     @unpack inverse_jacobian = cache.elements
 
     node_volume = zero(real(mesh))
-    total_volume = copy(node_volume)
+    total_volume = zero(node_volume)
 
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, 1, element))
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
