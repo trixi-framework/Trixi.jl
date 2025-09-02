@@ -7,8 +7,6 @@
 
 function limiter_entropy_bounded!(u, u_prev, exp_entropy_decrease_max,
                                   mesh::AbstractMesh{1}, equations, dg::DGSEM, cache)
-    @unpack weights = dg.basis
-
     @threaded for element in eachelement(dg, cache)
         # Minimum exponentiated entropy within the current `element`
         # of the previous iterate `u_prev`
@@ -35,7 +33,7 @@ function limiter_entropy_bounded!(u, u_prev, exp_entropy_decrease_max,
         # Limiting only if entropy DECREASE below a user defined threshold is detected.
         d_exp_s_min < exp_entropy_decrease_max || continue
 
-        u_mean = compute_u_mean(u, element, mesh, equations, weights, dg)
+        u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
 
         entropy_change_mean = exp_entropy_change(pressure(u_mean, equations),
                                                  density(u_mean, equations),
