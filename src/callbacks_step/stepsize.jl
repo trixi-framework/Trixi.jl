@@ -148,6 +148,17 @@ function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
                   solver, cache)
 end
 
+# For Euler-Acoustic simulations with `EulerAcousticsCouplingCallback`
+function calculate_dt(u_ode, t, cfl_convective::Real, cfl_diffusive::Real,
+                      semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    return cfl_convective * max_dt(u, t, mesh,
+                  have_constant_speed(equations), equations,
+                  solver, cache)
+end
+
 # Case for a hyperbolic-parabolic semidiscretization
 function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
                       semi::SemidiscretizationHyperbolicParabolic)

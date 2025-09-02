@@ -354,7 +354,7 @@ function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
                       semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_convective(t), cfl_diffusive(t), semi.semis[i])
+        calculate_dt(u_ode_slice, t, cfl_convective, cfl_diffusive, semi.semis[i])
     end
 
     return dt
