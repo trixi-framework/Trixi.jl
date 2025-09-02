@@ -71,23 +71,25 @@ Formally O(2) accurate when used without a limiter, i.e., `limiter = `[`central_
     x_lr = nodes[node_index - 1]
     x_rl = nodes[node_index]
 
-    # Middle subcell slope
-    s_ll = (u_rl - u_lr) / (x_rl - x_lr)
+    # Slope between "middle" nodes
+    s_m = (u_rl - u_lr) / (x_rl - x_lr)
 
     if node_index == 2 # Catch case ll == lr
-        s_l = s_ll
+        s_l = s_m
     else
-        # Left subcell slope
-        s_lr = (u_lr - u_ll) / (x_lr - nodes[node_index - 2])
-        s_l = limiter.(s_lr, s_ll)
+        x_ll = nodes[node_index - 2]
+        # Slope between "left" nodes
+        s_lr = (u_lr - u_ll) / (x_lr - x_ll)
+        s_l = limiter.(s_lr, s_m)
     end
 
     if node_index == nnodes(dg) # Catch case rl == rr
-        s_r = s_ll
+        s_r = s_m
     else
-        # Right subcell slope
-        s_rl = (u_rr - u_rl) / (nodes[node_index + 1] - x_rl)
-        s_r = limiter.(s_ll, s_rl)
+        x_rr = nodes[node_index + 1]
+        # Slope between "right" nodes
+        s_rl = (u_rr - u_rl) / (x_rr - x_rl)
+        s_r = limiter.(s_m, s_rl)
     end
 
     reconstruction_linear(u_lr, u_rl, s_l, s_r, x_lr, x_rl, x_interfaces, node_index)
@@ -124,25 +126,27 @@ This approach corresponds to equation (78) described in
     x_lr = nodes[node_index - 1]
     x_rl = nodes[node_index]
 
-    # Middle subcell slope
-    s_ll = (u_rl - u_lr) / (x_rl - x_lr)
+    # Slope between "middle" nodes
+    s_m = (u_rl - u_lr) / (x_rl - x_lr)
 
     if node_index == 2 # Catch case ll == lr
         # Do not reconstruct at the boundary
-        s_l = zero(s_ll)
+        s_l = zero(s_m)
     else
-        # Left subcell slope
-        s_lr = (u_lr - u_ll) / (x_lr - nodes[node_index - 2])
-        s_l = limiter.(s_lr, s_ll)
+        x_ll = nodes[node_index - 2]
+        # Slope between "left" nodes
+        s_lr = (u_lr - u_ll) / (x_lr - x_ll)
+        s_l = limiter.(s_lr, s_m)
     end
 
     if node_index == nnodes(dg) # Catch case rl == rr
         # Do not reconstruct at the boundary
-        s_r = zero(s_ll)
+        s_r = zero(s_m)
     else
-        # Right subcell slope
-        s_rl = (u_rr - u_rl) / (nodes[node_index + 1] - x_rl)
-        s_r = limiter.(s_ll, s_rl)
+        x_rr = nodes[node_index + 1]
+        # Slope between "right" nodes
+        s_rl = (u_rr - u_rl) / (x_rr - x_rl)
+        s_r = limiter.(s_m, s_rl)
     end
 
     reconstruction_linear(u_lr, u_rl, s_l, s_r, x_lr, x_rl, x_interfaces, node_index)
