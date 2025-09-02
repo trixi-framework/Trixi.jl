@@ -435,45 +435,50 @@ end
     fstar1_R[:, 1] .= zero(eltype(fstar1_R))
     fstar1_R[:, nnodes(dg) + 1] .= zero(eltype(fstar1_R))
 
-    for i in 2:nnodes(dg)
+    for i in 2:nnodes(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         #             Reference element:             
         #  -1 ------------------0------------------ 1 -> x
         # Gauss-Lobatto-Legendre nodes (schematic for k = 3):
         #   .          .                  .         .
         #   ^          ^                  ^         ^
-        # i - 2,     i - 1,               i,      i + 1
-        # mm         ll                   rr      pp
-        # Cell boundaries (schematic for k = 3) are 
-        # governed by the cumulative sum of the quadrature weights - 1
-        # Note that only the inner three boundaries are stored.
+        # Node indices:
+        #   1          2                  3         4
+        # Cell boundaries are governed by the
+        # cumulative sum of the quadrature weights - 1 .
         #  -1 ------------------0------------------ 1 -> x
         #        w1-1      (w1+w2)-1   (w1+w2+w3)-1
-        #   |     |            |             |      |
-        # Cell index:
-        #      1         2             3        4
+        #   |     |             |             |     |
+        # Note that only the inner boundaries are stored.
+        # Subcell interface indices, loop only over 2 -> nnodes(dg) = 4
+        #   1     2             3             4     5
+        #
+        # We need a four-point stencil, since we reconstruct the linear solution
+        # in both subcells next to the subcell interface.
+        # The left cell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
+        # the right cell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
         ## Obtain unlimited values in primitive variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out, 
-        # unless `reconstruction_O2_inner` is used as the `reconstruction_mode`.
-        u_mm = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
+        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
                          equations)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i - 1, element), equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, element), equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, element),
+                         equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, element),
+                         equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out,
-        # unless `reconstruction_O2_inner` is used as the `reconstruction_mode`.
-        u_pp = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1),
+        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1),
                                        element), equations)
 
         ## Reconstruct values at interfaces with limiting ##
-        u_ll, u_rr = reconstruction_mode(u_mm, u_ll, u_rr, u_pp,
-                                         x_interfaces, i,
-                                         slope_limiter, dg)
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       x_interfaces, i,
+                                       slope_limiter, dg)
 
         ## Convert primitive variables back to conservative variables ##
-        flux = volume_flux_fv(prim2cons(u_ll, equations), prim2cons(u_rr, equations),
+        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
                               1, equations) # orientation 1: x direction
 
         set_node_vars!(fstar1_L, flux, equations, dg, i)

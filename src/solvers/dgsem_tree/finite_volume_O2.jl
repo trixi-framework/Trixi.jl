@@ -1,5 +1,5 @@
 """
-    reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
+    reconstruction_constant(u_ll, u_lr, u_rl, u_rr,
                             x_interfaces,
                             node_index, limiter, dg)
 
@@ -7,20 +7,20 @@ Returns the constant "reconstructed" values at the interface `x_interfaces[node_
 obtained from constant polynomials.
 Formally O(1) accurate.
 """
-@inline function reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
+@inline function reconstruction_constant(u_ll, u_lr, u_rl, u_rr,
                                          x_interfaces, node_index,
                                          limiter, dg)
-    return u_ll, u_rr
+    return u_lr, u_rl
 end
 
 # Helper functions for reconstructions below
-@inline function linear_reconstruction(u_ll, u_rr, s_l, s_r,
-                                       x_ll, x_rr, x_interfaces, node_index)
+@inline function reconstruction_linear(u_lr, u_rl, s_l, s_r,
+                                       x_lr, x_rl, x_interfaces, node_index)
     # Linear reconstruction at the interface
-    u_ll = u_ll + s_l * (x_interfaces[node_index - 1] - x_ll)
-    u_rr = u_rr + s_r * (x_interfaces[node_index - 1] - x_rr)
+    u_lr = u_lr + s_l * (x_interfaces[node_index - 1] - x_lr)
+    u_rl = u_rl + s_r * (x_interfaces[node_index - 1] - x_rl)
 
-    return u_ll, u_rr
+    return u_lr, u_rl
 end
 
 #             Reference element:             
@@ -28,19 +28,24 @@ end
 # Gauss-Lobatto-Legendre nodes (schematic for k = 3):
 #   .          .                  .         .
 #   ^          ^                  ^         ^
-# i - 2,     i - 1,               i,      i + 1
-# mm         ll                   rr      pp
-# Cell boundaries (schematic for k = 3) are 
-# governed by the cumulative sum of the quadrature weights - 1
-# Note that only the inner three boundaries are stored.
+# Node indices:
+#   1          2                  3         4
+# Cell boundaries are governed by the
+# cumulative sum of the quadrature weights - 1 .
 #  -1 ------------------0------------------ 1 -> x
 #        w1-1      (w1+w2)-1   (w1+w2+w3)-1
-#   |     |            |             |      |
-# Cell index:
-#      1         2             3        4
+#   |     |             |             |     |
+# Note that only the inner boundaries are stored.
+# Subcell interface indices, loop only over 2 -> nnodes(dg) = 4
+#   1     2             3             4     5
+#
+# We need a four-point stencil, since we reconstruct the linear solution
+# in both subcells next to the subcell interface.
+# The left cell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
+# the right cell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
 """
-    reconstruction_O2_full(u_mm, u_ll, u_rr, u_pp,
+    reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
                            x_interfaces, node_index,
                            limiter, dg::DGSEM)
 
@@ -48,7 +53,7 @@ Computes limited (linear) slopes on the subcells for a DGSEM element.
 Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
 
 The supplied `limiter` governs the choice of slopes given the nodal values
-`u_mm`, `u_ll`, `u_rr`, and `u_pp` at the (Gauss-Lobatto Legendre) nodes.
+`u_ll`, `u_lr`, `u_rl`, and `u_rr` at the (Gauss-Lobatto Legendre) nodes.
 Total-Variation-Diminishing (TVD) choices for the limiter are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
@@ -59,37 +64,37 @@ The reconstructed slopes are for `reconstruction_O2_full` not limited at the cel
 thus overshoots between true mesh elements are possible.
 Formally O(2) accurate when used without a limiter, i.e., `limiter = `[`central_slope`](@ref).
 """
-@inline function reconstruction_O2_full(u_mm, u_ll, u_rr, u_pp,
+@inline function reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
                                         x_interfaces, node_index,
                                         limiter, dg::DGSEM)
     @unpack nodes = dg.basis
-    x_ll = nodes[node_index - 1]
-    x_rr = nodes[node_index]
+    x_lr = nodes[node_index - 1]
+    x_rl = nodes[node_index]
 
-    # Middle element slope
-    s_mm = (u_rr - u_ll) / (x_rr - x_ll)
+    # Middle subcell slope
+    s_ll = (u_rl - u_lr) / (x_rl - x_lr)
 
-    if node_index == 2 # Catch case mm == ll
-        s_l = s_mm
+    if node_index == 2 # Catch case ll == lr
+        s_l = s_ll
     else
-        # Left element slope
-        s_ll = (u_ll - u_mm) / (x_ll - nodes[node_index - 2])
-        s_l = limiter.(s_ll, s_mm)
+        # Left subcell slope
+        s_lr = (u_lr - u_ll) / (x_lr - nodes[node_index - 2])
+        s_l = limiter.(s_lr, s_ll)
     end
 
-    if node_index == nnodes(dg) # Catch case rr == pp
-        s_r = s_mm
+    if node_index == nnodes(dg) # Catch case rl == rr
+        s_r = s_ll
     else
-        # Right element slope
-        s_rr = (u_pp - u_rr) / (nodes[node_index + 1] - x_rr)
-        s_r = limiter.(s_mm, s_rr)
+        # Right subcell slope
+        s_rl = (u_rr - u_rl) / (nodes[node_index + 1] - x_rl)
+        s_r = limiter.(s_ll, s_rl)
     end
 
-    linear_reconstruction(u_ll, u_rr, s_l, s_r, x_ll, x_rr, x_interfaces, node_index)
+    reconstruction_linear(u_lr, u_rl, s_l, s_r, x_lr, x_rl, x_interfaces, node_index)
 end
 
 """
-    reconstruction_O2_inner(u_mm, u_ll, u_rr, u_pp,
+    reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
                             x_interfaces, node_index,
                             limiter, dg::DGSEM)
 
@@ -97,7 +102,7 @@ Computes limited (linear) slopes on the *inner* subcells for a DGSEM element.
 Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
 
 The supplied `limiter` governs the choice of slopes given the nodal values
-`u_mm`, `u_ll`, `u_rr`, and `u_pp` at the (Gauss-Lobatto Legendre) nodes.
+`u_ll`, `u_lr`, `u_rl`, and `u_rr` at the (Gauss-Lobatto Legendre) nodes.
 Total-Variation-Diminishing (TVD) choices for the limiter are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
@@ -112,35 +117,35 @@ This approach corresponds to equation (78) described in
    Part II: Subcell finite volume shock capturing"
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
-@inline function reconstruction_O2_inner(u_mm, u_ll, u_rr, u_pp,
+@inline function reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
                                          x_interfaces, node_index,
                                          limiter, dg::DGSEM)
     @unpack nodes = dg.basis
-    x_ll = nodes[node_index - 1]
-    x_rr = nodes[node_index]
+    x_lr = nodes[node_index - 1]
+    x_rl = nodes[node_index]
 
-    # Middle element slope
-    s_mm = (u_rr - u_ll) / (x_rr - x_ll)
+    # Middle subcell slope
+    s_ll = (u_rl - u_lr) / (x_rl - x_lr)
 
-    if node_index == 2 # Catch case mm == ll
+    if node_index == 2 # Catch case ll == lr
         # Do not reconstruct at the boundary
-        s_l = zero(s_mm)
+        s_l = zero(s_ll)
     else
-        # Left element slope
-        s_ll = (u_ll - u_mm) / (x_ll - nodes[node_index - 2])
-        s_l = limiter.(s_ll, s_mm)
+        # Left subcell slope
+        s_lr = (u_lr - u_ll) / (x_lr - nodes[node_index - 2])
+        s_l = limiter.(s_lr, s_ll)
     end
 
-    if node_index == nnodes(dg) # Catch case rr == pp
+    if node_index == nnodes(dg) # Catch case rl == rr
         # Do not reconstruct at the boundary
-        s_r = zero(s_mm)
+        s_r = zero(s_ll)
     else
-        # Right element slope
-        s_rr = (u_pp - u_rr) / (nodes[node_index + 1] - x_rr)
-        s_r = limiter.(s_mm, s_rr)
+        # Right subcell slope
+        s_rl = (u_rr - u_rl) / (nodes[node_index + 1] - x_rl)
+        s_r = limiter.(s_ll, s_rl)
     end
 
-    linear_reconstruction(u_ll, u_rr, s_l, s_r, x_ll, x_rr, x_interfaces, node_index)
+    reconstruction_linear(u_lr, u_rl, s_l, s_r, x_lr, x_rl, x_interfaces, node_index)
 end
 
 """
