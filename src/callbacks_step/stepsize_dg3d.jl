@@ -59,14 +59,14 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
             lambda1, lambda2, lambda3 = max_abs_speeds(u_node, equations)
 
-            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,
-                                                        k, element)
+            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                        i, j, k, element)
             lambda1_transformed = abs(Ja11 * lambda1 + Ja12 * lambda2 + Ja13 * lambda3)
-            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                        k, element)
+            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                        i, j, k, element)
             lambda2_transformed = abs(Ja21 * lambda1 + Ja22 * lambda2 + Ja23 * lambda3)
-            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j,
-                                                        k, element)
+            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                        i, j, k, element)
             lambda3_transformed = abs(Ja31 * lambda1 + Ja32 * lambda2 + Ja33 * lambda3)
 
             inv_jacobian = abs(cache.elements.inverse_jacobian[i, j, k, element])
@@ -95,16 +95,16 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,
-                                                        k, element)
+            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                        i, j, k, element)
             lambda1_transformed = abs(Ja11 * max_lambda1 + Ja12 * max_lambda2 +
                                       Ja13 * max_lambda3)
-            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                        k, element)
+            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                        i, j, k, element)
             lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2 +
                                       Ja23 * max_lambda3)
-            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j,
-                                                        k, element)
+            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                        i, j, k, element)
             lambda3_transformed = abs(Ja31 * max_lambda1 + Ja32 * max_lambda2 +
                                       Ja33 * max_lambda3)
 
