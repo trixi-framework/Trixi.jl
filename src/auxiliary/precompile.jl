@@ -516,7 +516,7 @@ function _precompile_manual_()
                                       SemidiscretizationHyperbolic})
 
         # We do not precompile callbacks since they are based on
-        # SciML structures like `DiscreteCallback` that may change they
+        # SciML structures like `DiscreteCallback` that may change their
         # type signatures in non-breaking releases.
     end
 
