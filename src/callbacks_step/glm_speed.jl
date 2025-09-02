@@ -61,8 +61,9 @@ end
 function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Int[])
     @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
+    cfl_function = isa(cfl, Real) ? Returns(cfl) : cfl
     glm_speed_callback = GlmSpeedCallback{typeof(glm_scale), typeof(cfl)}(glm_scale,
-                                                                          cfl,
+                                                                          cfl_function,
                                                                           semi_indices)
 
     DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
