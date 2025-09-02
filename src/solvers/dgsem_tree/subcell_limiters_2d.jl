@@ -143,7 +143,7 @@ end
     end
 
     # TODO: How to include values at mortar interfaces?
-    # - For "local factors" include only values with nonnegative local weights
+    # - For LobattoLegendreMortarIDP: include only values of nodes with nonnegative local weights
     # - For LobattoLegendreMortarL2: include all neighboring values (TODO?)
     for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]

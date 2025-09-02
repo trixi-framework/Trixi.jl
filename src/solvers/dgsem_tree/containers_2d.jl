@@ -698,7 +698,7 @@ function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    limiting_factor = fill(typemin(Int), capacity)
+    limiting_factor = fill(nan, capacity)
 
     return IDPMortarContainer2D{uEltype}(u_upper, u_lower, u_large, neighbor_ids,
                                          large_sides, orientations, limiting_factor,
@@ -725,6 +725,7 @@ function Base.show(io::IO, ::MIME"text/plain", c::IDPMortarContainer2D)
     println(io, "transpose(c.neighbor_ids) = $(transpose(c.neighbor_ids))")
     println(io, "c.large_sides = $(c.large_sides)")
     println(io, "c.orientations = $(c.orientations)")
+    println(io, "c.limiting_factor = $(c.limiting_factor)")
     print(io, '*'^20)
 end
 

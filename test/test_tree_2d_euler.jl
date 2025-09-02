@@ -693,17 +693,18 @@ end
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
                         l2=[
-                            0.055724454952595134,
-                            0.03312233274919345,
-                            0.05223955492824185,
-                            0.080116031615237
+                            0.05564750007945291,
+                            0.033057569945024935,
+                            0.050522960177622006,
+                            0.07943876567089606
                         ],
                         linf=[
-                            0.2529113255620048,
-                            0.17296154306769038,
-                            0.1232191089800711,
-                            0.2691634973257111
+                            0.25319791631865485,
+                            0.1730628078465537,
+                            0.14219177093037955,
+                            0.2672173857115352
                         ],
                         tspan=(0.0, 0.2))
     # Ensure that we do not have excessive memory allocations
