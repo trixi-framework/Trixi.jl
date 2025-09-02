@@ -695,16 +695,16 @@ end
                                  "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
                         l2=[
-                            0.05564750007945291,
-                            0.033057569945024935,
-                            0.050522960177622006,
-                            0.07943876567089606
+                            0.05564752104857987,
+                            0.033057554616374794,
+                            0.0505245765658428,
+                            0.07943927352867723
                         ],
                         linf=[
-                            0.25319791631865485,
-                            0.1730628078465537,
-                            0.14219177093037955,
-                            0.2672173857115352
+                            0.2529113255620048,
+                            0.17296154306769038,
+                            0.14221629583696524,
+                            0.26721736720894773
                         ],
                         tspan=(0.0, 0.2))
     # Ensure that we do not have excessive memory allocations
@@ -719,6 +719,9 @@ end
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
+
+    # test long printing format
+    @test_nowarn display(solver.mortar)
 end
 
 @trixi_testset "elixir_euler_colliding_flow.jl" begin

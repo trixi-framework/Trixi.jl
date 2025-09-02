@@ -171,50 +171,6 @@ end
 left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
-struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
-       AbstractMortarL2{RealT}
-    positivity_variables_cons::Vector{Int}
-    mortar_l2::Mortar
-    local_mortar_weights::Matrix{RealT}
-end
-
-function MortarIDP(basis::LobattoLegendreBasis;
-                   positivity_variables_cons = Int[]) # TODO: String[], "rho" instead of 1
-    RealT = real(basis)
-    nnodes_ = nnodes(basis)
-
-    mortar_l2 = MortarL2(basis)
-
-    local_mortar_weights = calc_mortar_weights(basis, RealT)
-
-    LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(positivity_variables_cons,
-                                                                mortar_l2,
-                                                                local_mortar_weights)
-end
-
-function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
-    @nospecialize mortar # reduce precompilation time
-    # TODO
-    print(io, "LobattoLegendreMortarIDP{", real(mortar), "}(polydeg=", polydeg(mortar),
-          ")")
-end
-function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
-    @nospecialize mortar # reduce precompilation time
-    # TODO
-    print(io, "LobattoLegendreMortarIDP{", real(mortar),
-          "} with polynomials of degree ",
-          polydeg(mortar))
-end
-
-@inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
-
-@inline function nnodes(mortar::LobattoLegendreMortarIDP{RealT, NNODES}) where {RealT,
-                                                                                NNODES}
-    NNODES
-end
-
-@inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
-
 struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
                                ForwardMatrix <: AbstractMatrix{RealT},
                                ReverseMatrix <: AbstractMatrix{RealT}} <:
@@ -285,6 +241,52 @@ end
 end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
+
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
+       AbstractMortar{RealT}
+    positivity_variables_cons::Vector{Int}
+    mortar_l2::Mortar
+    local_mortar_weights::Matrix{RealT}
+end
+
+function MortarIDP(basis::LobattoLegendreBasis;
+                   positivity_variables_cons = Int[]) # TODO: String[], "rho" instead of 1
+    RealT = real(basis)
+    nnodes_ = nnodes(basis)
+
+    mortar_l2 = MortarL2(basis)
+
+    local_mortar_weights = calc_mortar_weights(basis, RealT)
+
+    LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(positivity_variables_cons,
+                                                                mortar_l2,
+                                                                local_mortar_weights)
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarIDP(polydeg=", polydeg(mortar), ", positivity for ",
+          mortar.positivity_variables_cons, ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarIDP{", real(mortar),
+          "} with polynomials of degree ",
+          polydeg(mortar),
+          " and positivity limiting for conservative variables ",
+          mortar.positivity_variables_cons)
+end
+
+@inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortarIDP{RealT, NNODES}) where {RealT,
+                                                                                NNODES}
+    NNODES
+end
+
+@inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
 
 # TODO: We can create EC mortars along the lines of the following implementation.
 # abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
