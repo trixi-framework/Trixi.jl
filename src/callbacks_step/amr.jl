@@ -152,6 +152,17 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
                 break
             end
         end
+
+        # Update initial state integrals of analysis callback if it exists
+        # See https://github.com/trixi-framework/Trixi.jl/issues/2536 for more information.
+        index = findfirst(cb -> cb.affect! isa AnalysisCallback,
+                          integrator.opts.callback.discrete_callbacks)
+        if !isnothing(index)
+            analysis_callback = integrator.opts.callback.discrete_callbacks[index].affect!
+
+            initial_state_integrals = integrate(integrator.u, semi)
+            analysis_callback.initial_state_integrals = initial_state_integrals
+        end
     end
 
     return nothing

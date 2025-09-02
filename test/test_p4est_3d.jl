@@ -755,18 +755,18 @@ end
 @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
-                            0.012046270976464931,
-                            0.01894521652831441,
-                            0.01951983946363743,
-                            0.019748755875702628,
-                            0.15017285006198244
+                            0.01374649869395016,
+                            0.01993458602992416,
+                            0.020403214655756098,
+                            0.020408263790073853,
+                            0.14975849029503904
                         ],
                         linf=[
-                            0.3156585581400839,
-                            0.6653806948576124,
-                            0.5451454769741236,
-                            0.558669830478818,
-                            3.6406796982784635
+                            0.4411601724293266,
+                            0.668308654218055,
+                            0.7351134068050753,
+                            0.5955002383710662,
+                            3.1811162616598985
                         ],
                         tspan=(0.0, 0.025),)
     # Ensure that we do not have excessive memory allocations
@@ -788,9 +788,9 @@ end
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
 
-@trixi_testset "elixir_euler_OMNERA_M6_wing.jl" begin
+@trixi_testset "elixir_euler_ONERA_M6_wing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_OMNERA_M6_wing.jl"),
+                                 "elixir_euler_ONERA_M6_wing.jl"),
                         l2=[
                             1.3302852203314697e-7,
                             7.016342225152883e-8,
