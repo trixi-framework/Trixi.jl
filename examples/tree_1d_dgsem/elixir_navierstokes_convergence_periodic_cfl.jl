@@ -125,8 +125,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # Stepsize callback which selects the timestep according to the most restrictive CFL condition.
 # For coarser grids, linear stability is governed by the convective CFL condition,
 # while for high refinements (e.g. initial_refinement_level = 8) the flow becomes diffusion-dominated.
-stepsize_callback = StepsizeCallback(cfl = 1.8,
-                                     cfl_diffusive = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 2.7,
+                                     cfl_diffusive = 0.2)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -136,6 +136,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode, CKLLSRK95_4S(), adaptive = false, dt = 1.0,
             save_everystep = false, callback = callbacks);

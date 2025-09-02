@@ -18,8 +18,7 @@ coordinates_max = convert(Float64, pi)
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
-                periodicity = true)
+                n_cells_max = 30_000) # set maximum capacity of tree data structure)
 
 function x_trans_periodic(x, domain_length = SVector(2 * pi), center = SVector(0.0))
     x_normalized = x .- center
@@ -64,7 +63,7 @@ alive_callback = AliveCallback(analysis_interval = 100)
 # For coarser grids, linear stability is governed by the advective CFL condition,
 # while for high refinements the flow becomes diffusion-dominated.
 stepsize_callback = StepsizeCallback(cfl = 1.6,
-                                     cfl_diffusive = 0.4)
+                                     cfl_diffusive = 0.3)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
