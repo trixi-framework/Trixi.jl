@@ -87,6 +87,8 @@ semi_float_type = SemidiscretizationHyperbolic(mesh, equations,
 ode_jac_sparse = semidiscretize(semi_float_type, tspan,
                                 jac_prototype = jac_prototype,
                                 colorvec = coloring_vec)
+# using "dense" `ode = semidiscretize(semi_float_type, tspan)`
+# is essentially infeasible, even single step takes ages!
 
 ###############################################################################
 ### callbacks & solve ###
@@ -98,7 +100,7 @@ alive_callback = AliveCallback(alive_interval = 3)
 # Note: No `stepsize_callback` due to implicit solver
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
-sol = solve(ode_jac_sparse, # using `ode_jac_type` is essentially infeasible, even single step takes ages!
+sol = solve(ode_jac_sparse,
             # Default `AutoForwardDiff()` is not yet working, see
             # https://github.com/trixi-framework/Trixi.jl/issues/2369
             Kvaerno4(; autodiff = AutoFiniteDiff());

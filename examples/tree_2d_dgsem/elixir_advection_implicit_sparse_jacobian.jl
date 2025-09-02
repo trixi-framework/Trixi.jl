@@ -67,6 +67,7 @@ semi_float_type = SemidiscretizationHyperbolic(mesh, equation,
 ode_jac_sparse = semidiscretize(semi_float_type, tspan,
                                 jac_prototype = jac_prototype,
                                 colorvec = coloring_vec)
+# using "dense" `ode = semidiscretize(semi_float_type, tspan)` is 10-15 times slower!
 
 ###############################################################################
 ### callbacks & solve ###
@@ -82,7 +83,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_restart)
 ###############################################################################
 ### solve the ODE problem ###
 
-sol = solve(ode_jac_sparse, # using `ode_float_jac_sparse` instead of `ode_jac_type` results in speedup of factors 10-15!
+sol = solve(ode_jac_sparse,
             # Default `AutoForwardDiff()` is not yet working, see
             # https://github.com/trixi-framework/Trixi.jl/issues/2369
             TRBDF2(; autodiff = AutoFiniteDiff());
