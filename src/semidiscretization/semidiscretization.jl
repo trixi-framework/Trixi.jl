@@ -91,7 +91,7 @@ Optional keyword arguments:
 - `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
-  Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype` is given.
+  Allows for even faster Jacobian computation if a sparse `jac_prototype` is given (optional).
 - `storage_type` and `real_type`: Configure the underlying computational datastructures. 
   `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray` 
   or other GPU array types. `real_type` changes the computational data type being used.
