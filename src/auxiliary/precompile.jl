@@ -383,6 +383,9 @@ function _precompile_manual_()
     #   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :extra_analysis_integrals),Tuple{Int,Tuple{typeof(entropy)}}},Type{AnalysisCallback},equations_type,DG{RealT,LobattoLegendreBasis{RealT,nnodes_,StaticArrays.SVector{nnodes_,RealT},Array{RealT,2},StaticArrays.SArray{Tuple{4,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Function,Trixi.AbstractVolumeIntegral}})
     # end
     # end
+    @assert Base.precompile(Tuple{typeof(SummaryCallback)})
+    @assert Base.precompile(Tuple{typeof(summary_box), Base.TTY, String,
+                                  Vector{Pair{String, Any}}})
     # TODO: AMRCallback, ControllerThreeLevel, indicators
 
     # init_elements, interfaces, etc.
