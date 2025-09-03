@@ -229,33 +229,37 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
-    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
-                                        volume_flux_fv = flux_lax_friedrichs,
-                                        reconstruction_mode = reconstruction_O2_inner,
+    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis, volume_flux_fv;
+                                        reconstruction_mode = reconstruction_O2_full,
                                         slope_limiter = minmod)
 
 This gives an up to  O(2)-accurate finite volume scheme on an LGL-type subcell
 mesh (LGL = Legendre-Gauss-Lobatto).
 Depending on the `reconstruction_mode` and `slope_limiter`, experimental orders of convergence
 between 1 and 2 can be expected in practice.
-Currently, all reconstructions are purely cell-local, i.e., no neighboring elements are 
-queried at reconstruction stage.
+Since this is a volume integral, all reconstructions are purely cell-local, i.e.,
+no neighboring elements are queried at reconstruction stage.
 
-The non-boundary subcells are always reconstructed using the standard MUSCL-type reconstruction.
-For the subcells at the boundaries, two options are available:
+The interface values of the inner DG-subcells are reconstructed using the standard MUSCL-type reconstruction.
+For the DG-subcells at the boundaries, two options are available:
 
-1) The unlimited slope is used on these cells. This gives full O(2) accuracy, but may lead to overshoots between cells.
+1) The unlimited slope is used on these cells.
+   This gives full O(2) accuracy, but also does not damp overshoots between cells.
    The `reconstruction_mode` corresponding to this is `reconstruction_O2_full`.
 2) On boundary subcells, the solution is represented using a constant value, thereby falling back to formally only O(1).
    The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
    In the reference below, this is the recommended reconstruction mode and is thus used by default.
+
+!!! note "Conservative Systems only"
+    Currently only implemented for systems in conservative form, i.e.,
+    `have_nonconservative_terms(equations) = False()`
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 
 ## References
 
-See especially Sections 3.2 and 4 and Appendix D of the paper
+See especially Sections 3.2, Section 4, and Appendix D of the paper
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. 
@@ -271,9 +275,8 @@ struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
     slope_limiter::Limiter # which type of slope limiter function
 end
 
-function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
-                                             volume_flux_fv = flux_lax_friedrichs,
-                                             reconstruction_mode = reconstruction_small_stencil,
+function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis, volume_flux_fv;
+                                             reconstruction_mode = reconstruction_O2_full,
                                              slope_limiter = minmod) where {Basis}
     # Suffices to store only the intermediate boundaries of the sub-cell elements                                             
     x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1

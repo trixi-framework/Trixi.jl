@@ -3,8 +3,8 @@
                             x_interfaces,
                             node_index, limiter, dg)
 
-Returns the constant "reconstructed" values at the interface `x_interfaces[node_index - 1]`
-obtained from constant polynomials.
+Returns the constant "reconstructed" values `u_lr, u_rl` at the interface `x_interfaces[node_index - 1]`.
+Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
 Formally O(1) accurate.
 If a first-order finite volume scheme is desired, [`VolumeIntegralPureLGLFiniteVolume`](@ref) is an
 equivalent, but more efficient choice.
@@ -51,6 +51,7 @@ end
                            x_interfaces, node_index,
                            limiter, dg::DGSEM)
 
+Returns the reconstructed values `u_lr, u_rl` at the interface `x_interfaces[node_index - 1]`.
 Computes limited (linear) slopes on the subcells for a DGSEM element.
 Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
 
@@ -109,6 +110,7 @@ end
                             x_interfaces, node_index,
                             limiter, dg::DGSEM)
 
+Returns the reconstructed values `u_lr, u_rl` at the interface `x_interfaces[node_index - 1]`.
 Computes limited (linear) slopes on the *inner* subcells for a DGSEM element.
 Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
 
