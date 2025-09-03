@@ -113,15 +113,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # detect if limiting is necessary
         value_min < threshold || continue
 
-        # compute mean value
-        u_mean = zero(get_node_vars(u, equations, dg, 1, element))
-        total_volume = zero(eltype(u))
-        for i in eachnode(dg)
-            u_node = get_node_vars(u, equations, dg, i, element)
-            u_mean += u_node * weights[i]
-        end
-        # note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
-        u_mean = u_mean / 2^ndims(mesh)
+        u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
