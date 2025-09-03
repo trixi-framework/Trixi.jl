@@ -92,7 +92,8 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
+mutable struct SimpleIntegrator2N{RealT <: Real, uType <: AbstractVector,
+                                  Params, Sol, F, Alg,
                                   SimpleIntegratorOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
@@ -121,15 +122,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
                                     SimpleIntegratorOptions(callback, ode.tspan;
                                                             kwargs...), false)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with the 2N storage time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
 end
@@ -145,12 +138,7 @@ function step!(integrator::SimpleIntegrator2N)
         error("time step size `dt` is NaN")
     end
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     # one time step
     integrator.u_tmp .= 0
@@ -171,23 +159,11 @@ function step!(integrator::SimpleIntegrator2N)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 
 # get a cache where the RHS can be stored
@@ -200,6 +176,8 @@ u_modified!(integrator::SimpleIntegrator2N, ::Bool) = false
 function terminate!(integrator::SimpleIntegrator2N)
     integrator.finalstep = true
     empty!(integrator.opts.tstops)
+
+    return nothing
 end
 
 # used for AMR
@@ -207,5 +185,7 @@ function Base.resize!(integrator::SimpleIntegrator2N, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
+
+    return nothing
 end
 end # @muladd

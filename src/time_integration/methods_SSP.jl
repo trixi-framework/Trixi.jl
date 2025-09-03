@@ -77,7 +77,8 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
-mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
+mutable struct SimpleIntegratorSSP{RealT <: Real, uType,
+                                   Params, Sol, F, Alg,
                                    SimpleIntegratorSSPOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
@@ -134,16 +135,10 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     resize!(integrator.p, integrator.p.solver.volume_integral,
             nelements(integrator.p.solver, integrator.p.cache))
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with the SSP time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    # Standard callbacks
+    initialize_callbacks!(callback, integrator)
 
+    # Addition for `SimpleAlgorithmSSP` which may have stage callbacks
     for stage_callback in alg.stage_callbacks
         init_callback(stage_callback, integrator.p)
     end
@@ -187,12 +182,7 @@ function step!(integrator::SimpleIntegratorSSP)
 
     modify_dt_for_tstops!(integrator)
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     @. integrator.u_tmp = integrator.u
     for stage in eachindex(alg.c)
@@ -215,23 +205,11 @@ function step!(integrator::SimpleIntegratorSSP)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 
 # get a cache where the RHS can be stored
@@ -243,6 +221,8 @@ u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
     integrator.finalstep = true
+
+    return nothing
 end
 
 """
@@ -267,6 +247,8 @@ function modify_dt_for_tstops!(integrator::SimpleIntegratorSSP)
                             min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
         end
     end
+
+    return nothing
 end
 
 # used for AMR
@@ -279,5 +261,7 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     # new_size = n_variables * n_nodes^n_dims * n_elements
     n_elements = nelements(integrator.p.solver, integrator.p.cache)
     resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
+
+    return nothing
 end
 end # @muladd

@@ -365,7 +365,7 @@ function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0
         # Transfer vectors of vectors to a matrix (2D array) and store into h5 file.
         for (idim, vectors) in enumerate(get_VXYZ(mesh.md))
             matrix = zeros(length(vectors[1]), length(vectors))
-            for ielem in 1:length(vectors)
+            for ielem in eachindex(vectors)
                 @views matrix[:, ielem] .= vectors[ielem]
             end
             # ASCII: Char(58) => 'X'
