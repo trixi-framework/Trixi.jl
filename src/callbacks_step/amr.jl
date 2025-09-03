@@ -881,9 +881,9 @@ function compute_new_ids_refined_elements(elements_to_refine, mesh)
     return element_ids_new
 end
 
-# Auxiliary function to compute the new element ids for removed elements
+# Auxiliary function to compute the new element ids for coarsened elements
 # Used when applying positivity limiter after coarsening step
-function compute_new_ids_removed_elements(elements_to_remove, mesh)
+function compute_new_ids_coarsened_elements(elements_to_remove, mesh)
     @assert length(elements_to_remove) % (2^ndims(mesh))==0 "The length of `elements_to_remove` must be a multiple of 2^ndims(mesh)."
 
     element_ids_new = zeros(Int, div(length(elements_to_remove), 2^ndims(mesh)))

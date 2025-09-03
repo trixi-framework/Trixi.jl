@@ -247,7 +247,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Apply the positivity limiter to the solution
     if limiter! !== nothing
         # Precompute list with new element ids after coarsening
-        element_ids_new = compute_new_ids_removed_elements(elements_to_remove, mesh)
+        element_ids_new = compute_new_ids_coarsened_elements(elements_to_remove, mesh)
 
         @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
                                                   element_ids_new)
