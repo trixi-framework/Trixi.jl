@@ -73,9 +73,9 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{2},
             theta = min(theta, (value_mean - threshold) / (value_mean - value_min))
         end
 
-        theta < 1 || continue
+        theta < 1 || continue # Check if limiting action is necessary
 
-        # Make sure to really reach the threshold and not only by machine precision
+        # Ensure minimum amount of limiting
         theta -= eps(typeof(theta))
 
         # Iterate again over the children to apply joint shifting

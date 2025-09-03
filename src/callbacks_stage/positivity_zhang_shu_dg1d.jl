@@ -73,9 +73,9 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{1},
             theta = min(theta, (value_mean - threshold) / (value_mean - value_min))
         end
 
-        theta < 1 || continue
+        theta < 1 || continue # Check if limiting action is necessary
 
-        # Make sure to really reach the threshold and not only by machine precision
+        # Ensure minimum amount of limiting
         theta -= eps(typeof(theta))
 
         # Iterate again over the children to apply joint shifting
@@ -110,10 +110,10 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
             value_min = min(value_min, variable(u_node, equations))
         end
 
-        # detect if limiting is necessary
-        value_min < threshold || continue
+        theta < 1 || continue # Check if limiting action is necessary
 
-        u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
+        # Ensure minimum amount of limiting
+        theta -= eps(typeof(theta))
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
