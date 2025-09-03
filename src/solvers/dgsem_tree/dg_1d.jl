@@ -323,14 +323,13 @@ end
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
-    @unpack inverse_weights = dg.basis # Plays role of DG-subcell cell sizes
+    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, u, mesh, nonconservative_terms, equations,
-                 volume_flux_fv,
-                 dg, element, cache)
+                 volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
     for i in eachnode(dg)
@@ -351,7 +350,7 @@ end
                               x_interfaces, reconstruction_mode, slope_limiter,
                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
