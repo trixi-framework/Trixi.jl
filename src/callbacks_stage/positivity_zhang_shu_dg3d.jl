@@ -82,8 +82,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
         for new_element_id in element_ids_new[i]:(element_ids_new[i] + 2^ndims(mesh) - 1)
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                 u_node = get_node_vars(u, equations, dg, i, j, k, new_element_id)
-                set_node_vars!(u,
-                               theta * u_node + (1 - theta) * u_mean,
+                set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,
                                equations, dg, i, j, k, new_element_id)
             end
         end

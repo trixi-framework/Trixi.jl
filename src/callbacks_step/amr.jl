@@ -867,8 +867,8 @@ end
 
 # Auxiliary function to compute the new element ids for refined elements
 # Used when applying positivity limiter after refinement step
-# Saves every first id of the 2^ndims child elements
-# All child elements can be addressed with element_ids_new[i]:(element_ids_new[i] + 2^ndims - 1)
+# Saves every first id of the `2^ndims` child elements
+# All child elements can be addressed with `element_ids_new[i]:(element_ids_new[i] + 2^ndims - 1)`
 function compute_new_ids_refined_elements(elements_to_refine, mesh)
     element_ids_new = copy(elements_to_refine)
     for i in eachindex(element_ids_new)
