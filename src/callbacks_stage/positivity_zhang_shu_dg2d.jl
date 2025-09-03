@@ -107,7 +107,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
             value_min = min(value_min, variable(u_node, equations))
         end
 
-         value_min < threshold || continue # Detect if limiting is necessary
+        value_min < threshold || continue # Detect if limiting is necessary
 
         u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
 
