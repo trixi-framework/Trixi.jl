@@ -26,20 +26,14 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         # Compute mean values for the elements to be refined
         # Only if limiter was passed
         if limiter! !== nothing
-            (; weights) = dg.basis
             u_mean_refined_elements = Matrix{eltype(u_ode)}(undef,
                                                             nvariables(equations),
                                                             length(elements_to_refine))
             for element in eachindex(elements_to_refine)
                 old_element_id = elements_to_refine[element]
                 # compute mean value
-                u_mean = zero(get_node_vars(old_u, equations, dg, 1, old_element_id))
-                for i in eachnode(dg)
-                    u_node = get_node_vars(old_u, equations, dg, i, element)
-                    u_mean += u_node * weights[i]
-                end
-                # note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
-                u_mean = u_mean / 2^ndims(mesh)
+                u_mean = compute_u_mean(old_u, old_element_id,
+                                        mesh, equations, dg, cache)
                 set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, element)
             end
         end

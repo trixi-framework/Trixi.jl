@@ -13,9 +13,11 @@
                 dynamic_load_balancing=true,
                 limiter! = nothing)
 
-Performs adaptive mesh refinement (AMR) every `interval` time steps for a given semidiscretization 
-`semi` using the chosen `controller`. If specified, a positivity-preserving limiter `limiter!` is
-applied to the solution after refinement and coarsening.
+Performs adaptive mesh refinement (AMR) every `interval` time steps for a given semidiscretization
+`semi` using the chosen `controller`.
+If specified, a `limiter!` (currently only available option is the
+[`PositivityPreservingLimiterZhangShu`](@ref)) is applied to the solution after refinement
+and coarsening.
 """
 struct AMRCallback{Controller, Adaptor, Cache, Limiter}
     controller::Controller

@@ -109,25 +109,14 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
         # Compute mean values for the elements to be refined
         # Only if limiter was passed
         if limiter! !== nothing
-            (; weights) = dg.basis
             u_mean_refined_elements = Matrix{eltype(u_ode)}(undef,
                                                             nvariables(equations),
                                                             length(elements_to_refine))
             for element in eachindex(elements_to_refine)
                 old_element_id = elements_to_refine[element]
                 # compute mean value
-                u_mean = zero(get_node_vars(old_u, equations, dg, 1, 1, old_element_id))
-                total_volume = zero(eltype(old_u))
-                for j in eachnode(dg), i in eachnode(dg)
-                    volume_jacobian = abs(inv(get_inverse_jacobian(old_inverse_jacobian,
-                                                                   mesh, i, j,
-                                                                   old_element_id)))
-                    u_node = get_node_vars(old_u, equations, dg, i, j, old_element_id)
-                    u_mean += u_node * weights[i] * weights[j] * volume_jacobian
-                    total_volume += weights[i] * weights[j] * volume_jacobian
-                end
-                # normalize with the total volume
-                u_mean = u_mean / total_volume
+                u_mean = compute_u_mean(old_u, old_element_id,
+                                        mesh, equations, dg, cache)
                 set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, element)
             end
         end
