@@ -55,8 +55,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{2},
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
         value_mean = variable(u_mean, equations)
-
-        theta = one(eltype(u))
+        theta = one(eltype(u)) # Limiting coefficient
 
         # Iterate over the children of the current element to determine a joint limiting coefficient `theta`
         for new_element_id in element_ids_new[i]:(element_ids_new[i] + 2^ndims(mesh) - 1)
@@ -108,7 +107,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
             value_min = min(value_min, variable(u_node, equations))
         end
 
-            value_min < threshold || continue # Detect if limiting is necessary
+         value_min < threshold || continue # Detect if limiting is necessary
 
         u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
 
