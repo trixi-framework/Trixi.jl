@@ -200,7 +200,6 @@ For reference, see for instance Eq. (6.29) in
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 @inline function monotonized_central(sl, sr)
-    # CARE: MC assumes equidistant grid in 0.5 * (sl + sr)!
     # Use recursive property of minmod function
     return minmod(0.5f0 * (sl + sr), minmod(2 * sl, 2 * sr))
 end
