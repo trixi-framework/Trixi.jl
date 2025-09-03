@@ -107,10 +107,8 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
             value_min = min(value_min, variable(u_node, equations))
         end
 
-        theta < 1 || continue # Check if limiting action is necessary
+        value_min < threshold || continue # Detect if limiting is necessary
 
-        # Ensure minimum amount of limiting
-        theta -= eps(typeof(theta))
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
