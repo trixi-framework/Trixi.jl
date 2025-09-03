@@ -6,6 +6,8 @@
 Returns the constant "reconstructed" values at the interface `x_interfaces[node_index - 1]`
 obtained from constant polynomials.
 Formally O(1) accurate.
+If a first-order finite volume scheme is desired, [`VolumeIntegralPureLGLFiniteVolume`](@ref) is an
+equivalent, but more efficient choice.
 """
 @inline function reconstruction_constant(u_ll, u_lr, u_rl, u_rr,
                                          x_interfaces, node_index,
