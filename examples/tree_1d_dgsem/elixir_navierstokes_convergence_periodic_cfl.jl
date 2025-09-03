@@ -136,5 +136,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+# Use time integrator tailored to compressible Navier-Stokes
 sol = solve(ode, CKLLSRK95_4S(), adaptive = false, dt = 1.0,
             save_everystep = false, callback = callbacks);
