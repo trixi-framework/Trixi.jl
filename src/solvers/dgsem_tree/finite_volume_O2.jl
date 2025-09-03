@@ -80,6 +80,7 @@ Formally O(2) accurate when used without a limiter, i.e., `limiter = `[`central_
         x_ll = nodes[node_index - 2]
         # Slope between "left" nodes
         s_lr = (u_lr - u_ll) / (x_lr - x_ll)
+        # Select slope between extrapolated (left) and crossing (middle) slope
         s_l = limiter.(s_lr, s_m)
     end
 
@@ -89,10 +90,12 @@ Formally O(2) accurate when used without a limiter, i.e., `limiter = `[`central_
         x_rr = nodes[node_index + 1]
         # Slope between "right" nodes
         s_rl = (u_rr - u_rl) / (x_rr - x_rl)
+        # Select slope between crossing (middle) and extrapolated (right) slope
         s_r = limiter.(s_m, s_rl)
     end
 
-    reconstruction_linear(u_lr, u_rl, s_l, s_r, x_lr, x_rl, x_interfaces, node_index)
+    return reconstruction_linear(u_lr, u_rl, s_l, s_r,
+                                 x_lr, x_rl, x_interfaces, node_index)
 end
 
 """
@@ -136,6 +139,7 @@ This approach corresponds to equation (78) described in
         x_ll = nodes[node_index - 2]
         # Slope between "left" nodes
         s_lr = (u_lr - u_ll) / (x_lr - x_ll)
+        # Select slope between extrapolated (left) and crossing (middle) slope
         s_l = limiter.(s_lr, s_m)
     end
 
@@ -146,10 +150,12 @@ This approach corresponds to equation (78) described in
         x_rr = nodes[node_index + 1]
         # Slope between "right" nodes
         s_rl = (u_rr - u_rl) / (x_rr - x_rl)
+        # Select slope between crossing (middle) and extrapolated (right) slope
         s_r = limiter.(s_m, s_rl)
     end
 
-    reconstruction_linear(u_lr, u_rl, s_l, s_r, x_lr, x_rl, x_interfaces, node_index)
+    return reconstruction_linear(u_lr, u_rl, s_l, s_r,
+                                 x_lr, x_rl, x_interfaces, node_index)
 end
 
 """
