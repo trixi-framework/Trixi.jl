@@ -67,8 +67,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
                 value_min = min(value_min, variable(u_node, equations))
             end
 
-            # detect if limiting is necessary
-            value_min < threshold || continue
+            value_min < threshold || continue # Detect if limiting is necessary
 
             theta = min(theta, (value_mean - threshold) / (value_mean - value_min))
         end
@@ -109,8 +108,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
             value_min = min(value_min, variable(u_node, equations))
         end
 
-        # detect if limiting is necessary
-        value_min < threshold || continue
+        value_min < threshold || continue # Detect if limiting is necessary
 
         u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
 
