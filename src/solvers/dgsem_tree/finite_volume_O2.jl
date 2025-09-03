@@ -60,9 +60,13 @@ Total-Variation-Diminishing (TVD) choices for the limiter are
     3) [`superbee`](@ref)
     4) [`vanLeer`](@ref)
 
-The reconstructed slopes are for `reconstruction_O2_full` not limited at the cell boundaries,
-thus overshoots between true mesh elements are possible.
+The reconstructed slopes are for `reconstruction_O2_full` not limited at the cell boundaries.
 Formally O(2) accurate when used without a limiter, i.e., `limiter = `[`central_slope`](@ref).
+This approach corresponds to equation (79) described in
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 @inline function reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
                                         x_interfaces, node_index,
@@ -75,7 +79,7 @@ Formally O(2) accurate when used without a limiter, i.e., `limiter = `[`central_
     s_m = (u_rl - u_lr) / (x_rl - x_lr)
 
     if node_index == 2 # Catch case ll == lr
-        s_l = s_m
+        s_l = s_m # Use unlimited "central" slope
     else
         x_ll = nodes[node_index - 2]
         # Slope between "left" nodes
@@ -85,7 +89,7 @@ Formally O(2) accurate when used without a limiter, i.e., `limiter = `[`central_
     end
 
     if node_index == nnodes(dg) # Catch case rl == rr
-        s_r = s_m
+        s_r = s_m # Use unlimited "central" slope
     else
         x_rr = nodes[node_index + 1]
         # Slope between "right" nodes
