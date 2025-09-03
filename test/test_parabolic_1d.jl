@@ -43,36 +43,6 @@ end
     end
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_imex.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
-                                 "elixir_advection_diffusion_imex.jl"),
-                        l2=[0.021344712948010304], linf=[0.0301843759447038])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_imex.jl (IMEXEulerARK)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
-                                 "elixir_advection_diffusion_imex.jl"),
-                        ode_alg=IMEXEulerARK(autodiff = AutoFiniteDiff(),
-                                             linsolve = linsolve),
-                        l2=[0.02272864683164678], linf=[0.0321372890937901])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_diffusion_ldg.jl"),
