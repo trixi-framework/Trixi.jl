@@ -23,6 +23,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
         max_scaled_speed = max(max_scaled_speed, inv_jacobian * max_lambda1)
     end
 
+    # Factor 2 cancels with 2 from `inv_jacobian`, resulting in Δx
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
@@ -45,7 +46,8 @@ function max_dt(u, t, mesh::TreeMesh{1},
         max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * max_lambda1)
     end
 
-    return 2 / (nnodes(dg) * max_scaled_speed)
+    # Factor 4 cancels with 2^2 from `inv_jacobian^2`, resulting in Δx^2
+    return 4 / (nnodes(dg) * max_scaled_speed)
 end
 
 function max_dt(u, t, mesh::TreeMesh{1},
@@ -62,6 +64,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
         max_scaled_speed = max(max_scaled_speed, inv_jacobian * max_lambda1)
     end
 
+    # Factor 2 cancels with 2 from `inv_jacobian`, resulting in Δx
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
@@ -80,7 +83,8 @@ function max_dt(u, t, mesh::TreeMesh{1},
         max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * max_lambda1)
     end
 
-    return 2 / (nnodes(dg) * max_scaled_speed)
+    # Factor 4 cancels with 2^2 from `inv_jacobian^2`, resulting in Δx^2
+    return 4 / (nnodes(dg) * max_scaled_speed)
 end
 
 function max_dt(u, t, mesh::StructuredMesh{1},
@@ -105,6 +109,7 @@ function max_dt(u, t, mesh::StructuredMesh{1},
         max_scaled_speed = max(max_scaled_speed, max_lambda1)
     end
 
+    # Factor 2 cancels with 2 from `inv_jacobian`, resulting in Δx
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
@@ -124,6 +129,7 @@ function max_dt(u, t, mesh::StructuredMesh{1},
         end
     end
 
+    # Factor 2 cancels with 2 from `inv_jacobian`, resulting in Δx
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 

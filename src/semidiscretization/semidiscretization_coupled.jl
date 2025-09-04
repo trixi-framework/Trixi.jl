@@ -350,23 +350,11 @@ end
 ### StepsizeCallback
 ################################################################################
 # In case of coupled system, use minimum timestep over all systems
-
-# Case for `cfl_advective` as a constant and `cfl_diffusive` as a constant.
-function calculate_dt(u_ode, t, cfl_advective::Real, cfl_diffusive::Real,
+function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
                       semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
         calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
-    end
-
-    return dt
-end
-# Case for `cfl_advective` as a function of time `t` and `cfl_diffusive` as a constant.
-function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive::Real,
-                      semi::SemidiscretizationCoupled)
-    dt = minimum(eachsystem(semi)) do i
-        u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_advective(t), cfl_diffusive, semi.semis[i])
     end
 
     return dt
@@ -388,18 +376,12 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
         end
     end
 
-    if cfl isa Real # Case for constant CFL
-        cfl_number = cfl
-    else # Variable CFL
-        cfl_number = cfl(t)
-    end
-
     for semi_index in semi_indices
         semi = semi_coupled.semis[semi_index]
         mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number,
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl(t),
                                                 mesh, equations, solver, cache)
 
         # c_h is proportional to its own time step divided by the complete MHD time step
