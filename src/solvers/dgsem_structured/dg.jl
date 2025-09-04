@@ -44,7 +44,9 @@ function rhs!(du, u, t,
 
     # Calculate interface and boundary fluxes
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache, u, mesh, equations, dg.surface_integral, dg)
+        calc_interface_flux!(cache, u, mesh,
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg)
     end
 
     # Calculate boundary fluxes
