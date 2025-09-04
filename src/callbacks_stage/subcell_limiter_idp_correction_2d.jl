@@ -45,4 +45,113 @@ function perform_idp_correction!(u, dt,
 
     return nothing
 end
+
+function perform_idp_mortar_correction(u, dt, mesh, equations, dg, cache)
+    (; orientations, limiting_factor) = cache.mortars
+
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
+    (; boundary_interpolation) = dg.basis
+
+    for mortar in eachmortar(dg, cache)
+        if isapprox(limiting_factor[mortar], one(eltype(limiting_factor)))
+            continue
+        end
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        for i in eachnode(dg)
+            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+                if orientations[mortar] == 1
+                    # L2 mortars in x-direction
+                    indices_small = (1, i)
+                    indices_large = (nnodes(dg), i)
+                    direction_small = 1
+                    direction_large = 2
+                else
+                    # L2 mortars in y-direction
+                    indices_small = (i, 1)
+                    indices_large = (i, nnodes(dg))
+                    direction_small = 3
+                    direction_large = 4
+                end
+                factor_small = boundary_interpolation[1, 1]
+                factor_large = -boundary_interpolation[nnodes(dg), 2]
+            else # large_sides[mortar] == 2 -> small elements on left side
+                if orientations[mortar] == 1
+                    # L2 mortars in x-direction
+                    indices_small = (nnodes(dg), i)
+                    indices_large = (1, i)
+                    direction_small = 2
+                    direction_large = 1
+                else
+                    # L2 mortars in y-direction
+                    indices_small = (i, nnodes(dg))
+                    indices_large = (i, 1)
+                    direction_small = 4
+                    direction_large = 3
+                end
+                factor_large = boundary_interpolation[1, 1]
+                factor_small = -boundary_interpolation[nnodes(dg), 2]
+            end
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, indices_small...,
+                                                          upper_element)
+            inverse_jacobian_lower = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, indices_small...,
+                                                          lower_element)
+            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, indices_large...,
+                                                          large_element)
+
+            # lower element
+            flux_lower_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg, i, direction_small,
+                                                  lower_element)
+            flux_lower_low_order = get_node_vars(surface_flux_values, equations, dg, i,
+                                                 direction_small, lower_element)
+            flux_difference_lower = factor_small *
+                                    (flux_lower_high_order .- flux_lower_low_order)
+
+            multiply_add_to_node_vars!(u,
+                                       dt * inverse_jacobian_lower *
+                                       (1 - limiting_factor[mortar]),
+                                       flux_difference_lower, equations, dg,
+                                       indices_small..., lower_element)
+
+            flux_upper_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg, i, direction_small,
+                                                  upper_element)
+            flux_upper_low_order = get_node_vars(surface_flux_values, equations, dg, i,
+                                                 direction_small, upper_element)
+            flux_difference_upper = factor_small *
+                                    (flux_upper_high_order .- flux_upper_low_order)
+
+            multiply_add_to_node_vars!(u,
+                                       dt * inverse_jacobian_upper *
+                                       (1 - limiting_factor[mortar]),
+                                       flux_difference_upper, equations, dg,
+                                       indices_small..., upper_element)
+
+            flux_large_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg, i, direction_large,
+                                                  large_element)
+            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg, i,
+                                                 direction_large, large_element)
+            flux_difference_large = factor_large *
+                                    (flux_large_high_order .- flux_large_low_order)
+
+            multiply_add_to_node_vars!(u,
+                                       dt * inverse_jacobian_large *
+                                       (1 - limiting_factor[mortar]),
+                                       flux_difference_large, equations, dg,
+                                       indices_large..., large_element)
+        end
+    end
+
+    return nothing
+end
 end # @muladd
