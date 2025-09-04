@@ -6,7 +6,7 @@
 #! format: noindent
 
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
-                              nonconservative_terms,
+                              nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
     @unpack surface_flux = surface_integral
 
