@@ -569,8 +569,34 @@ end
 include("numerical_fluxes.jl")
 
 # Linear scalar advection
-abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <:
-              AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
+              AbstractEquations{NDIMS, 1} end
+
+varnames(::typeof(cons2cons), ::AbstractLinearScalarAdvectionEquation) = ("scalar",)
+varnames(::typeof(cons2prim), ::AbstractLinearScalarAdvectionEquation) = ("scalar",)
+
+@inline have_constant_speed(::AbstractLinearScalarAdvectionEquation) = True()
+
+@inline function max_abs_speeds(equation::AbstractLinearScalarAdvectionEquation)
+    return abs.(equation.advection_velocity)
+end
+
+# Convert conservative variables to primitive
+@inline cons2prim(u, ::AbstractLinearScalarAdvectionEquation) = u
+
+# Convert conservative variables to entropy variables
+@inline cons2entropy(u, ::AbstractLinearScalarAdvectionEquation) = u
+
+# Calculate entropy for a conservative state `cons`
+@inline entropy(u::Real, ::AbstractLinearScalarAdvectionEquation) = 0.5f0 * u^2
+@inline entropy(u, equation::AbstractLinearScalarAdvectionEquation) = entropy(u[1],
+                                                                              equation)
+
+# Calculate total energy for a conservative state `cons`
+@inline energy_total(u::Real, ::AbstractLinearScalarAdvectionEquation) = 0.5f0 * u^2
+@inline function energy_total(u, equation::AbstractLinearScalarAdvectionEquation)
+    energy_total(u[1], equation)
+end
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
@@ -691,6 +717,17 @@ end
 # Diffusion equation: first order hyperbolic system
 abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
+
+@inline have_constant_speed(::AbstractHyperbolicDiffusionEquations) = True()
+
+# Convert conservative variables to primitive
+@inline cons2prim(u, equations::AbstractHyperbolicDiffusionEquations) = u
+
+# Calculate entropy for a conservative state `u` (here: same as total energy)
+@inline function entropy(u, equations::AbstractHyperbolicDiffusionEquations)
+    energy_total(u, equations)
+end
+
 include("hyperbolic_diffusion_1d.jl")
 include("hyperbolic_diffusion_2d.jl")
 include("hyperbolic_diffusion_3d.jl")
@@ -698,6 +735,14 @@ include("hyperbolic_diffusion_3d.jl")
 # Lattice-Boltzmann equation (advection part only)
 abstract type AbstractLatticeBoltzmannEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
+
+@inline have_constant_speed(::AbstractLatticeBoltzmannEquations) = True()
+
+# Convert conservative variables to primitive
+@inline cons2prim(u, equations::AbstractLatticeBoltzmannEquations) = u
+# Convert conservative variables to entropy variables
+@inline cons2entropy(u, equations::AbstractLatticeBoltzmannEquations) = u
+
 include("lattice_boltzmann_2d.jl")
 include("lattice_boltzmann_3d.jl")
 
@@ -709,6 +754,13 @@ include("acoustic_perturbation_2d.jl")
 # Linearized Euler equations
 abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
+@inline have_constant_speed(::AbstractLinearizedEulerEquations) = True()
+
+# Convert conservative variables to primitive
+@inline cons2prim(u, ::AbstractLinearizedEulerEquations) = u
+# Convert conservative variables to entropy variables
+@inline cons2entropy(u, ::AbstractLinearizedEulerEquations) = u
+
 include("linearized_euler_1d.jl")
 include("linearized_euler_2d.jl")
 include("linearized_euler_3d.jl")

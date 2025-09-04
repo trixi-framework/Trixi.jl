@@ -223,8 +223,6 @@ Godunov (upwind) flux for the 3D hyperbolic diffusion equations.
     return SVector(f1, f2, f3, f4)
 end
 
-@inline have_constant_speed(::HyperbolicDiffusionEquations3D) = True()
-
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations3D)
     λ = sqrt(eq.nu * eq.inv_Tr)
     return λ, λ, λ
@@ -242,11 +240,6 @@ end
     w4 = equations.Lr^2 * q3
 
     return SVector(w1, w2, w3, w4)
-end
-
-# Calculate entropy for a conservative state `u` (here: same as total energy)
-@inline function entropy(u, equations::HyperbolicDiffusionEquations3D)
-    energy_total(u, equations)
 end
 
 # Calculate total energy for a conservative state `u`
