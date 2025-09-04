@@ -20,15 +20,15 @@ One can additionally supply a diffusive CFL number `cfl_diffusive` to
 limit the admissible timestep also respecting diffusive restrictions.
 This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
 To enable checking for diffusive timestep restrictions, provide a value greater than zero for `cfl_diffusive`.
-By default, `cfl_diffusive` is set to zero which means that only the convective CFL number is considered.
+By default, `cfl_diffusive` is set to zero which means that only the advective/convective CFL number is considered.
 The keyword argument `cfl_diffusive` must be either a `Real` number, corresponding to a constant 
 diffusive CFL number, or a function of time `t` returning a `Real` number.
 
 By default, the timestep will be adjusted at every step.
 For different values of `interval`, the timestep will be adjusted every `interval` steps.
 """
-mutable struct StepsizeCallback{CflConvectiveType, CflDiffusiveType}
-    cfl_advective::CflConvectiveType
+mutable struct StepsizeCallback{CflAdvectiveType, CflDiffusiveType}
+    cfl_advective::CflAdvectiveType
     cfl_diffusive::CflDiffusiveType
     interval::Int
 end
@@ -54,7 +54,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         stepsize_callback = cb.affect!
 
         setup = [
-            "CFL Convective" => stepsize_callback.cfl_advective,
+            "CFL Advective" => stepsize_callback.cfl_advective,
             "CFL Diffusive" => stepsize_callback.cfl_diffusive,
             "Interval" => stepsize_callback.interval
         ]
@@ -167,7 +167,7 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    dt_convective = cfl_advective(t) * max_dt(u, t, mesh,
+    dt_advective = cfl_advective(t) * max_dt(u, t, mesh,
                            have_constant_speed(equations), equations,
                            solver, cache)
 
@@ -177,9 +177,9 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
                               have_constant_diffusivity(equations_parabolic), equations,
                               equations_parabolic, solver, cache)
 
-        return min(dt_convective, dt_diffusive)
+        return min(dt_advective, dt_diffusive)
     else
-        return dt_convective
+        return dt_advective
     end
 end
 
