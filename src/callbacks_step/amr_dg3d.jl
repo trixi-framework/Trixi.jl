@@ -39,12 +39,11 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
             u_mean_refined_elements = Matrix{eltype(u_ode)}(undef,
                                                             nvariables(equations),
                                                             length(elements_to_refine))
-            for element in eachindex(elements_to_refine)
-                old_element_id = elements_to_refine[element]
-                # compute mean value
+            for idx in eachindex(elements_to_refine)
+                old_element_id = elements_to_refine[idx]
                 u_mean = compute_u_mean(old_u, old_element_id,
                                         mesh, equations, dg, cache)
-                set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, element)
+                set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, idx)
             end
         end
 
