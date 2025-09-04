@@ -554,14 +554,6 @@ end
     return nothing
 end
 
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
-                             equations, surface_integral, dg::DG)
-    @assert isperiodic(mesh)
-    return nothing
-end
-
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                              equations, surface_integral,
