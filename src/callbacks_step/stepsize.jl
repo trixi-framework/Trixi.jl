@@ -168,8 +168,8 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt_advective = cfl_advective(t) * max_dt(u, t, mesh,
-                           have_constant_speed(equations), equations,
-                           solver, cache)
+                          have_constant_speed(equations), equations,
+                          solver, cache)
 
     cfl_diff = cfl_diffusive(t)
     if cfl_diff > 0 # Check if diffusive CFL should be considered
