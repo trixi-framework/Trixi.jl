@@ -72,9 +72,6 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{1},
 
         theta < 1 || continue # Check if limiting action is necessary
 
-        # Ensure minimum amount of limiting
-        theta -= eps(typeof(theta))
-
         # Iterate again over the children to apply joint shifting
         for new_element_id in element_ids_new[idx]:(element_ids_new[idx] + 2^ndims(mesh) - 1)
             for i in eachnode(dg)
