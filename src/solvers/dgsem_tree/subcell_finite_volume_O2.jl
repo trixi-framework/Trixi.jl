@@ -32,7 +32,7 @@ end
 #   ^          ^                  ^         ^
 # Node indices:
 #   1          2                  3         4
-# Cell boundaries are governed by the
+# The inner subcell boundaries are governed by the
 # cumulative sum of the quadrature weights - 1 .
 #  -1 ------------------0------------------ 1 -> x
 #        w1-1      (w1+w2)-1   (w1+w2+w3)-1
@@ -41,10 +41,15 @@ end
 # Subcell interface indices, loop only over 2 -> nnodes(dg) = 4
 #   1     2             3             4     5
 #
-# We need a four-point stencil, since we reconstruct the linear solution
-# in both subcells next to the subcell interface.
-# The left cell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
-# the right cell node values are labelled `_rl` (right-left) and `_rr` (right-right).
+# In general a four-point stencil is required, since we reconstruct the
+# piecewise linear solution in both subcells next to the subcell interface.
+# Since these subcell boundaries are not aligned with the DG nodes,
+# on each neighboring subcell two linear solutions are reconstructed => 4 point stencil.
+# For the outer interfaces the stencil shrinks since we do not consider values 
+# outside the element (volume integral).
+# 
+# The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
+# the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
 """
     reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
