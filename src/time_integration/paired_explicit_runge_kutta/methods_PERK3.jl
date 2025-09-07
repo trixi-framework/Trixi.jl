@@ -183,7 +183,8 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
+mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType <: AbstractVector,
+                                           Params, Sol, F,
                                            PairedExplicitRKOptions} <:
                AbstractPairedExplicitRKSingleIntegrator
     u::uType
@@ -230,15 +231,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
                                              false, true, false,
                                              k1, kS1)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        for cb in callback.continuous_callbacks
-            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-Kutta methods."))
-        end
-        for cb in callback.discrete_callbacks
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
 end
@@ -256,12 +249,7 @@ function step!(integrator::PairedExplicitRK3Integrator)
 
     modify_dt_for_tstops!(integrator)
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
         # First and second stage are identical across all single/standalone PERK methods
@@ -292,23 +280,11 @@ function step!(integrator::PairedExplicitRK3Integrator)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 
 function Base.resize!(integrator::PairedExplicitRK3Integrator, new_size)
@@ -318,5 +294,7 @@ function Base.resize!(integrator::PairedExplicitRK3Integrator, new_size)
 
     resize!(integrator.k1, new_size)
     resize!(integrator.kS1, new_size)
+
+    return nothing
 end
 end # @muladd

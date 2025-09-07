@@ -78,16 +78,27 @@ function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan)
+    semidiscretize(semi::AbstractSemidiscretization, tspan;
+                   jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
+                   colorvec::Union{AbstractVector, Nothing} = nothing,
+                   storage_type = nothing,
+                   real_type = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 
-The optional keyword arguments `storage_type` and `real_type` configure the underlying computational
-datastructures. `storage_type` changes the fundamental array type being used, allowing the
-experimental use of `CuArray` or other GPU array types. `real_type` changes the computational data type being used.
+Optional keyword arguments:
+- `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
+  Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
+- `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
+  Allows for even faster Jacobian computation if a sparse `jac_prototype` is given (optional).
+- `storage_type` and `real_type`: Configure the underlying computational datastructures. 
+  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray` 
+  or other GPU array types. `real_type` changes the computational data type being used.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
+                        jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
+                        colorvec::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true,
                         storage_type = nothing,
                         real_type = nothing)
@@ -111,25 +122,51 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         end
     end
 
-    u0_ode = compute_coefficients(first(tspan), semi)
+    u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
+
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
     iip = true # is-inplace, i.e., we modify a vector when calling rhs!
     specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
-    return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+
+    # Check if Jacobian prototype is provided for sparse Jacobian
+    if jac_prototype !== nothing
+        # Convert `jac_prototype` to real type, as seen here:
+        # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
+        ode = SciMLBase.ODEFunction(rhs!,
+                                    jac_prototype = convert.(eltype(u0_ode),
+                                                             jac_prototype),
+                                    colorvec = colorvec) # coloring vector is optional
+
+        return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
+    else
+        # We could also construct an `ODEFunction` without the Jacobian here,
+        # but we stick to the more light-weight direct in-place function `rhs!`.
+        return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+    end
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan, 
-                   restart_file::AbstractString)
+    semidiscretize(semi::AbstractSemidiscretization, tspan,
+                   restart_file::AbstractString;
+                   jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
+                   colorvec::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 The initial condition etc. is taken from the `restart_file`.
+
+Optional keyword arguments:
+- `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
+  Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
+- `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
+  Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype` is given.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan,
                         restart_file::AbstractString;
+                        jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
+                        colorvec::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
@@ -138,13 +175,29 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
         Polyester.reset_threads!()
     end
 
-    u0_ode = load_restart_file(semi, restart_file)
+    u0_ode = load_restart_file(semi, restart_file) # Load initial condition from restart file
+
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
     iip = true # is-inplace, i.e., we modify a vector when calling rhs!
     specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
-    return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+
+    # Check if Jacobian prototype is provided for sparse Jacobian
+    if jac_prototype !== nothing
+        # Convert `jac_prototype` to real type, as seen here:
+        # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
+        ode = SciMLBase.ODEFunction(rhs!,
+                                    jac_prototype = convert.(eltype(u0_ode),
+                                                             jac_prototype),
+                                    colorvec = colorvec) # coloring vector is optional
+
+        return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
+    else
+        # We could also construct an `ODEFunction` without the Jacobian here,
+        # but we stick to the more light-weight direct in-place function `rhs!`.
+        return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+    end
 end
 
 """
@@ -220,7 +273,7 @@ end
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and simple second order finite difference to compute the Jacobian `J`
-of the semidiscretization `semi` at state `u0_ode`.
+of the semidiscretization `semi` at time `t0` and state `u0_ode`.
 """
 function jacobian_fd(semi::AbstractSemidiscretization;
                      t0 = zero(real(semi)),
@@ -240,7 +293,13 @@ function jacobian_fd(semi::AbstractSemidiscretization;
     # use second order finite difference to estimate Jacobian matrix
     for idx in eachindex(u0_ode)
         # determine size of fluctuation
-        epsilon = sqrt(eps(u0_ode[idx]))
+        # This is the approach used by FiniteDiff.jl to compute the
+        # step size, which assures that the finite difference is accurate
+        # for very small and very large absolute values `u0_ode[idx]`.
+        # See https://github.com/trixi-framework/Trixi.jl/pull/2514#issuecomment-3190534904.
+        absstep = sqrt(eps(typeof(u0_ode[idx])))
+        relstep = absstep
+        epsilon = max(relstep * abs(u0_ode[idx]), absstep)
 
         # plus fluctuation
         u_ode[idx] = u0_ode[idx] + epsilon
@@ -250,7 +309,7 @@ function jacobian_fd(semi::AbstractSemidiscretization;
         u_ode[idx] = u0_ode[idx] - epsilon
         rhs!(dum_ode, u_ode, semi, t0)
 
-        # restore linearisation state
+        # restore linearization state
         u_ode[idx] = u0_ode[idx]
 
         # central second order finite difference
@@ -267,7 +326,7 @@ end
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and forward mode automatic differentiation to compute the Jacobian `J`
-of the semidiscretization `semi` at state `u0_ode`.
+of the semidiscretization `semi` at time `t0` and state `u0_ode`.
 """
 function jacobian_ad_forward(semi::AbstractSemidiscretization;
                              t0 = zero(real(semi)),
@@ -288,7 +347,7 @@ end
 function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
-    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
         Trixi.rhs!(du_ode, u_ode, new_semi, t0)
@@ -322,7 +381,7 @@ end
 function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
     new_semi = remake(semi, uEltype = eltype(config))
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
-    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain,
                              config) do du_ode_plain, u_ode_plain

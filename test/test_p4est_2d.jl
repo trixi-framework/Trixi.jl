@@ -1016,6 +1016,32 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_euler_cylinder_bowshock_mach3.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_euler_cylinder_bowshock_mach3.jl"),
+                        tspan=(0.0, 1e-3),
+                        l2=[
+                            0.03787745781612722,
+                            0.03339276348608649,
+                            0.05301001151898993,
+                            0.2868802674001281
+                        ],
+                        linf=[
+                            2.5347156069842978,
+                            2.6657123832452414,
+                            3.786891603220761,
+                            21.305497055838977
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
