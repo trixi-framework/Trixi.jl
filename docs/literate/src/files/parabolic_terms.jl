@@ -64,7 +64,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 initial_condition = (x, t, equations) -> SVector(0.0);
 
-# ## Semidiscretizing
+# ## Semidiscretizing and solving
 
 # To semidiscretize a hyperbolic-parabolic system, we create a [`SemidiscretizationHyperbolicParabolic`](@ref).
 # This differs from a [`SemidiscretizationHyperbolic`](@ref) in that we pass in a `Tuple` containing both the
@@ -83,13 +83,6 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 tspan = (0.0, 1.5)
 ode = semidiscretize(semi, tspan)
 callbacks = CallbackSet(SummaryCallback())
-
-# ## Time Integration
-
-# ### Adaptive time integration
-
-# We can run the simulation with an adaptive, i.e., automatic stepsize-selecting algorithm via
-
 time_int_tol = 1.0e-6
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks);
@@ -97,30 +90,6 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
 # We can now visualize the solution, which develops a boundary layer at the outflow boundaries.
 
 using Plots
-plot(sol)
-
-# ### CFL-based time integration
-
-# If CFL-based time stepping is desired, it may be required to check for diffusive timestep restrictions.
-# These become relevant if the mesh Péclet number ``\mathrm{Pe} = \frac{a \Delta x}{d (\Delta x)^2} = \frac{a}{d \Delta x}``
-# becomes small.
-# This is the case for overall diffusion dominated flows ``d \gg a`` or well-resolved boundary layers,
-# where ``\Delta x`` becomes small.
-#
-# The `StepsizeCallback` selects the timestep according to the most restrictive CFL condition.
-# In particular, if `cfl_diffusive` with a non-zero timestep is supplied,
-# both the advective ``\delta t_d \sim \frac{\Delta x}{a}`` and the diffusive ``\Delta t_d \sim \frac{(\Delta x)^2}{d}``
-# maximum timesteps are computed and the minimum is selected.
-stepsize_callback = StepsizeCallback(cfl = 1.5,
-                                     cfl_diffusive = 0.3)
-
-# Supply `StepsizeCallback` and solve again.
-callbacks = CallbackSet(SummaryCallback(), stepsize_callback)
-
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
 plot(sol)
 
 # ## Package versions
