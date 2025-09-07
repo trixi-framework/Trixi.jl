@@ -114,14 +114,13 @@ plot(sol)
 stepsize_callback = StepsizeCallback(cfl = 1.5,
                                      cfl_diffusive = 0.3)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
-                        stepsize_callback)
+# Supply `StepsizeCallback` and solve again.
+callbacks = CallbackSet(SummaryCallback(), stepsize_callback)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 
-using Plots
 plot(sol)
 
 # ## Package versions
