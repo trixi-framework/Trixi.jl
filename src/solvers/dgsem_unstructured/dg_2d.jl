@@ -400,7 +400,8 @@ end
 # terminate the type-stable iteration over tuples
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
                                      mesh::P4estMeshView,
-                                     equations, surface_integral, dg::DG, u_global, semi)
+                                     equations, surface_integral, dg::DG, u_global,
+                                     semi)
     nothing
 end
 
