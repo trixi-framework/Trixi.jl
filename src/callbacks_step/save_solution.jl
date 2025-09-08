@@ -274,7 +274,10 @@ end
     @trixi_timeit timer() "get node variables" get_node_variables!(solution_callback.node_variables,
                                                                    u_ode, semi)
 
-    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter + solution_callback.iter_offset, semi,
+    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt,
+                                                             iter +
+                                                             solution_callback.iter_offset,
+                                                             semi,
                                                              solution_callback,
                                                              element_variables,
                                                              solution_callback.node_variables,
