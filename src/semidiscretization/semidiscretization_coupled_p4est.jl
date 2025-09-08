@@ -192,7 +192,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     end
 
     # Create the global solution vector.
-    u_global = Vector{real(semi)}(undef, ndofs_nvars_global * n_nodes^2) .+ 123.456
+    u_global = Vector{real(semi)}(undef, ndofs_nvars_global * n_nodes^2)
 
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
@@ -374,10 +374,8 @@ end
 
 # Save mesh for a coupled semidiscretization, which contains multiple meshes internally
 function save_mesh(semi::SemidiscretizationCoupledP4est, output_directory, timestep = 0)
-    println("timestep = ", timestep)
     for i in eachsystem(semi)
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
-        println("mesh.unsaved_changes = ", mesh.unsaved_changes)
 
         if mesh.unsaved_changes
             mesh.current_filename = save_mesh_file(mesh, output_directory;
