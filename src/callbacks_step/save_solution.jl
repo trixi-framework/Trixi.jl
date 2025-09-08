@@ -235,7 +235,8 @@ function (solution_callback::SaveSolutionCallback)(integrator)
     semi = integrator.p
     iter = integrator.stats.naccept
 
-    println("iter + solution_callback.iter_offset = ", iter + solution_callback.iter_offset)
+    println("iter + solution_callback.iter_offset = ",
+            iter + solution_callback.iter_offset)
     @trixi_timeit timer() "I/O" begin
         # Call high-level functions that dispatch on semidiscretization type
         @trixi_timeit timer() "save mesh" save_mesh(semi,
