@@ -27,7 +27,7 @@ function set_threading_backend!(backend::Symbol = :polyester; force = true)
     if !(backend in valid_backends)
         throw(ArgumentError("Invalid threading backend: $(backend). Current options are: $(join(valid_backends, ", "))"))
     end
-    set_preferences!(TRIXI_UUID, "backend" => backend, force = force)
+    set_preferences!(TRIXI_UUID, "backend" => string(backend), force = force)
     @info "Please restart Julia and reload Trixi.jl for the `backend` change to take effect"
 end
 

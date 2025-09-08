@@ -4,6 +4,7 @@ using Test
 using Trixi
 
 using LinearAlgebra: norm, dot
+using SparseArrays
 using DelimitedFiles: readdlm
 
 # Use Convex and ECOS to load the extension that extends functions for testing
@@ -14,6 +15,11 @@ using ECOS: Optimizer
 # Use NLsolve to load the extension that extends functions for testing
 # PERK Single p3 Constructors
 using NLsolve: nlsolve
+
+import SparseConnectivityTracer: TracerSparsityDetector, jacobian_eltype, jacobian_sparsity
+import SparseMatrixColorings: ColoringProblem, GreedyColoringAlgorithm, coloring,
+                              column_colors
+import FiniteDiff: finite_difference_jacobian!
 
 include("test_trixi.jl")
 
@@ -715,14 +721,24 @@ end
     tspan = (0.0, 1.0)
     ode = semidiscretize(semi, tspan)
 
-    ode_alg = Trixi.RelaxationRK44()
-    integrator = Trixi.init(ode, ode_alg; dt = 1.0)
+    ode_alg = Trixi.RelaxationRK44() # SubDiagonalAlgorithm
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # SubDiagonalRelaxationIntegrator
 
     resize!(integrator, 1001)
     @test length(integrator.u) == 1001
     @test length(integrator.du) == 1001
     @test length(integrator.u_tmp) == 1001
     @test length(integrator.direction) == 1001
+
+    ode_alg = Trixi.RelaxationCKL54() # vanderHouwenAlgorithm
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # vanderHouwenRelaxationIntegrator
+
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
+    @test length(integrator.k_prev) == 42
+    @test length(integrator.direction) == 42
 end
 
 @timed_testset "Consistency check for single point flux: CEMCE" begin
@@ -2594,5 +2610,90 @@ end
                                                      equations)
     end
 end
+
+@testset "SparseConnectivityTracer FiniteDiff Jacobian" begin
+    ###############################################################################
+    ### equations, solver, mesh ###
+
+    advection_velocities = (0.2, -0.7)
+    equations = LinearScalarAdvectionEquation2D(advection_velocities)
+
+    float_type = Float64 # Datatype for the actual simulation
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = float_type)
+
+    coordinates_min = (-1.0, -1.0)
+    coordinates_max = (1.0, 1.0)
+
+    mesh = TreeMesh(coordinates_min, coordinates_max,
+                    initial_refinement_level = 4,
+                    n_cells_max = 30_000)
+
+    ###############################################################################
+    ### semidiscretization for sparsity detection ###
+
+    jac_detector = TracerSparsityDetector()
+    # We need to construct the semidiscretization with the correct
+    # sparsity-detection ready datatype, which is retrieved here
+    jac_eltype = jacobian_eltype(float_type, jac_detector)
+
+    # Semidiscretization for sparsity pattern detection
+    semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
+                                                 initial_condition_convergence_test,
+                                                 solver,
+                                                 uEltype = jac_eltype) # Need to supply Jacobian element type
+
+    tspan = (0.0, 1.0) # Re-used for wrapping `rhs` below
+
+    # Call `semidiscretize` to create the ODE problem to have access to the
+    # initial condition based on which the sparsity pattern is computed
+    ode_jac_type = semidiscretize(semi_jac_type, tspan)
+    u0_ode = ode_jac_type.u0
+    du_ode = similar(u0_ode)
+
+    ###############################################################################
+    ### Compute the Jacobian sparsity pattern ###
+
+    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+                                                   tspan[1])
+
+    jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
+
+    coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
+    coloring_alg = GreedyColoringAlgorithm(; decompression = :direct)
+    coloring_result = coloring(jac_prototype, coloring_prob, coloring_alg)
+    coloring_vec = column_colors(coloring_result)
+
+    ###############################################################################
+    ### float-type semidiscretization ###
+
+    semi_float_type = SemidiscretizationHyperbolic(mesh, equations,
+                                                   initial_condition_convergence_test,
+                                                   solver)
+
+    ode_float_type = semidiscretize(semi_float_type, tspan)
+    u0_ode = ode_float_type.u0
+    du_ode = similar(u0_ode)
+    N = length(u0_ode)
+
+    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
+                                                     tspan[1])
+
+    ###############################################################################
+    ### sparsity-aware finite diff ###
+
+    jac_sparse_finite_diff = spzeros(N, N)
+    finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
+                                u0_ode, sparsity = jac_prototype,
+                                colorvec = coloring_vec)
+
+    jac_finite_diff = jacobian_fd(semi_float_type)
+
+    @test isapprox(jac_finite_diff, jac_sparse_finite_diff; rtol = 5e-8)
+    @test isapprox(jac_finite_diff, Matrix(jac_sparse_finite_diff); rtol = 5e-8)
+    @test isapprox(sparse(jac_finite_diff), jac_sparse_finite_diff; rtol = 5e-8)
 end
+end
+
 end #module

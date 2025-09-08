@@ -282,5 +282,7 @@ function coarsen_elements!(u::AbstractArray{<:Any, 3}, element_id,
         # Update value
         set_node_vars!(u, acc, equations, dg, i, element_id)
     end
+
+    return nothing
 end
 end # @muladd

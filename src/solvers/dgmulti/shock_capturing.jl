@@ -152,6 +152,8 @@ function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cach
             alpha[element] = max(alpha[element], 0.5 * alpha_neighbor)
         end
     end
+
+    return nothing
 end
 
 function calc_volume_integral!(du, u,
