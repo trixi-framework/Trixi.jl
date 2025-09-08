@@ -180,6 +180,10 @@ Create a new `PlotData2D` object that can be used for visualizing 2D/3D DGSEM so
 from the solution are used for plotting. This can be changed by passing an appropriate conversion
 function to `solution_variables`.
 
+For coupled semidiscretizations, i.e., `semi isa` [`SemidiscretizationCoupled`](@ref) a vector of
+`PlotData2D` objects is returned, one for each semidiscretization which is part of the
+coupled semidiscretization.
+
 If `grid_lines` is `true`, also extract grid vertices for visualizing the mesh. The output
 resolution is indirectly set via `max_supported_level`: all data is interpolated to
 `2^max_supported_level` uniformly distributed points in each spatial direction, also setting the
@@ -213,6 +217,23 @@ function PlotData2D(u_ode, semi; kwargs...)
     PlotData2D(wrap_array_native(u_ode, semi),
                mesh_equations_solver_cache(semi)...;
                kwargs...)
+end
+
+function PlotData2D(u_ode, semi::SemidiscretizationCoupled; kwargs...)
+    plot_data_array = []
+    @unpack semis = semi
+
+    foreach_enumerate(semis) do (i, semi_)
+        u_loc = get_system_u_ode(u_ode, i, semi)
+        u_loc_wrapped = wrap_array_native(u_loc, semi_)
+
+        push!(plot_data_tuple_array,
+              PlotData2D(u_loc_wrapped,
+                         mesh_equations_solver_cache(semi_)...;
+                         kwargs...))
+    end
+
+    return plot_data_array
 end
 
 # Redirect `PlotDataTriangulated2D` constructor.
