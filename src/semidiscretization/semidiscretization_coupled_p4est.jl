@@ -192,7 +192,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     end
 
     # Create the global solution vector.
-    u_global = Vector{real(semi)}(undef, ndofs_nvars_global*n_nodes^2) .+ 123.456
+    u_global = Vector{real(semi)}(undef, ndofs_nvars_global * n_nodes^2) .+ 123.456
 
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
