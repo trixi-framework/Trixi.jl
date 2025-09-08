@@ -186,8 +186,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     # Determine the element indecx offset for the global solutions array.
     # @autoinfiltrate
     for i in 2:nsystems(semi)
-        semi.element_offset[i] = semi.element_offset[i-1] +
-                                  n_nodes^2*nvariables(semi.semis[i-1])*length(semi.semis[i-1].mesh.cell_ids)
+        semi.element_offset[i] = semi.element_offset[i - 1] +
+                                 n_nodes^2 * nvariables(semi.semis[i - 1]) *
+                                 length(semi.semis[i - 1].mesh.cell_ids)
     end
 
     # Create the global solution vector.
