@@ -180,7 +180,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     global ndofs_nvars_global = 0
     foreach_enumerate(semi.semis) do (i, semi_)
         global ndofs_nvars_global
-        ndofs_nvars_global += nvariables(semi_.equations)*length(semi_.mesh.cell_ids)
+        ndofs_nvars_global += nvariables(semi_.equations) * length(semi_.mesh.cell_ids)
     end
 
     # Determine the element indecx offset for the global solutions array.
