@@ -166,7 +166,9 @@ function initialize_save_cb!(solution_callback::SaveSolutionCallback, u, t, inte
     mpi_isroot() && mkpath(solution_callback.output_directory)
 
     semi = integrator.p
-    @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory, integrator.iter + solution_callback.iter_offset)
+    @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory,
+                                          integrator.iter +
+                                          solution_callback.iter_offset)
 
     if solution_callback.save_initial_solution
         solution_callback(integrator)
