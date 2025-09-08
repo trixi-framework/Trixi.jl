@@ -95,7 +95,7 @@ plot(sol)
 ## A new setup with dissipation
 semi = remake(semi, solver = DGSEM(3, flux_godunov))
 ode = semidiscretize(semi, tspan)
-sol = solve(ode, SSPRK43(); ode_default_options()...)
+sol = solve(ode, SSPRK43(); ode_default_options()...);
 plot!(sol)
 
 # You can see that there are fewer oscillations, in particular around steep edges.
@@ -105,7 +105,7 @@ plot!(sol)
 semi = remake(semi,
               mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5))
 ode = semidiscretize(semi, (0.0, 0.5)) # set tspan to (0.0, 0.5)
-sol = solve(ode, SSPRK43(); ode_default_options()...)
+sol = solve(ode, SSPRK43(); ode_default_options()...);
 plot(sol)
 
 # You can observe that nonclassical shocks develop and are stable under grid refinement,
@@ -195,27 +195,27 @@ tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, SSPRK43(); ode_default_options()...)
+sol = solve(ode, SSPRK43(); ode_default_options()...);
 plot(sol)
 
 ## A new setup with dissipation
 semi = remake(semi, solver = DGSEM(3, flux_godunov))
 ode = semidiscretize(semi, tspan)
-sol = solve(ode, SSPRK43(); ode_default_options()...)
+sol = solve(ode, SSPRK43(); ode_default_options()...);
 plot!(sol)
 
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi,
               mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5))
 ode = semidiscretize(semi, (0.0, 0.5))
-sol = solve(ode, SSPRK43(); ode_default_options()...)
+sol = solve(ode, SSPRK43(); ode_default_options()...);
 plot(sol)
 
 ## Let's use a provably entropy-dissipative semidiscretization
 semi = remake(semi,
               solver = DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
 ode = semidiscretize(semi, (0.0, 0.5))
-sol = solve(ode, SSPRK43(); ode_default_options()...)
+sol = solve(ode, SSPRK43(); ode_default_options()...);
 plot(sol)
 
 # ## Package versions

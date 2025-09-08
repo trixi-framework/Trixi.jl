@@ -344,7 +344,7 @@ tspan = (0.0, 2.0)
 ode = ODEProblem(rhs!, u0, tspan, x)
 
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
-            ode_default_options()...)
+            ode_default_options()...);
 @test maximum(abs.(u0 - sol.u[end])) < 5e-5 #src
 
 plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :topleft,
@@ -481,7 +481,7 @@ ode = ODEProblem(rhs!, u0, tspan, x)
 
 ## solve
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
-            ode_default_options()...)
+            ode_default_options()...);
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
 
 plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :topleft,

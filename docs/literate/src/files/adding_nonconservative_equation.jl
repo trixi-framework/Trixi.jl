@@ -132,7 +132,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback)
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes
 ## the passed callbacks
 sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
-            ode_default_options()..., callback = callbacks)
+            ode_default_options()..., callback = callbacks);
 
 ## Plot the numerical solution at the final time
 using Plots: plot
