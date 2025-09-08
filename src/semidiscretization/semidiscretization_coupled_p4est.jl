@@ -220,23 +220,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         rhs!(du_loc, u_loc, u_global, semi, semi_, t)
     end
 
-    # # Extract the global solution vector from the local solutions.
-    # foreach_enumerate(semi.semis) do (i, semi_)
-    #     u_loc = get_system_u_ode(u_ode, i, semi)
-    #     u_loc_reshape = reshape(u_loc,
-    #                             (nvariables(semi_.equations),
-    #                              n_nodes, n_nodes,
-    #                              Int(length(u_loc) / (n_nodes^2 * nvariables(semi_.equations)))))
-    #     u_ode_reformatted_reshape[:, :, :, semi.mesh_ids .== i] .= u_loc_reshape
-    # end
-
-    # # Call rhs! for each semidiscretization
-    # foreach_enumerate(semi.semis) do (i, semi_)
-    #     u_loc = get_system_u_ode(u_ode, i, semi)
-    #     du_loc = get_system_u_ode(du_ode, i, semi)
-    #     rhs!(du_loc, u_loc, u_ode_reformatted, semi, semi_, t)
-    # end
-
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 
