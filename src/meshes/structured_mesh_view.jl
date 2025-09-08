@@ -116,7 +116,6 @@ function save_mesh_file(mesh::StructuredMeshView, output_directory; system = "",
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
-    @autoinfiltrate
     filename = joinpath(output_directory, @sprintf("mesh_%s_%09d.h5", system, timestep))
 
     # Open file (clobber existing content)
