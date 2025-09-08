@@ -46,7 +46,7 @@ function perform_idp_correction!(u, dt,
     return nothing
 end
 
-function perform_idp_mortar_correction(u, dt, mesh, equations, dg, cache)
+function perform_idp_mortar_correction(u, dt, mesh::TreeMesh{2}, equations, dg, cache)
     (; orientations, limiting_factor) = cache.mortars
 
     (; surface_flux_values) = cache.elements

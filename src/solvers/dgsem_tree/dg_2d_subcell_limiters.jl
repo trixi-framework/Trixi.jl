@@ -994,8 +994,8 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                      surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, u_large, orientations = cache.mortars
-    @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
+    # @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+    # fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     (; weights) = dg.basis
     (; local_mortar_weights, local_factor) = mortar_idp
 

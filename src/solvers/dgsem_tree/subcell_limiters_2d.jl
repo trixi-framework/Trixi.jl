@@ -627,20 +627,21 @@ end
 ###############################################################################
 
 @inline function calc_mortar_limiting_factor!(u, semi, t, dt)
-    (; positivity_variables_cons, positivity_variables_nonlinear) = semi.solver.mortar
-    (; limiting_factor) = semi.cache.mortars
+    mesh, _, solver, cache = mesh_equations_solver_cache(semi)
+    (; positivity_variables_cons, positivity_variables_nonlinear) = solver.mortar
+    (; limiting_factor) = cache.mortars
     limiting_factor .= zeros(eltype(limiting_factor))
 
     for var_index in positivity_variables_cons
-        limiting_positivity_conservative!(limiting_factor, u, dt, semi, var_index)
+        limiting_positivity_conservative!(limiting_factor, u, dt, semi, mesh, var_index)
     end
 
     for variable in positivity_variables_nonlinear
-        limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, variable)
+        limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, mesh, variable)
     end
 
     # Provisional analysis of limiting factor (TODO)
-    (; output_directory) = semi.solver.mortar
+    (; output_directory) = solver.mortar
     if length(limiting_factor) > 0
         open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
             print(f, t)
@@ -662,8 +663,8 @@ end
 ###############################################################################
 # Local two-sided limiting of conservative variables
 @inline function limiting_positivity_conservative!(limiting_factor, u, dt, semi,
-                                                   var_index)
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+                                                   mesh::TreeMesh{2}, var_index)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; orientations) = cache.mortars
     (; surface_flux_values) = cache.elements
@@ -831,7 +832,8 @@ end
 
 ##############################################################################
 # Local one-sided limiting of nonlinear variables
-@inline function limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, variable)
+@inline function limiting_positivity_nonlinear!(limiting_factor, u, dt, semi,
+                                                mesh::TreeMesh{2}, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     (; orientations) = cache.mortars
