@@ -107,6 +107,8 @@ amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
                                               max_level = 8, max_threshold = 0.003,
                                               max_threshold_secondary = indicator_sc.alpha_max)
 
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after 
+# coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
                            adapt_initial_condition = true,
