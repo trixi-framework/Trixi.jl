@@ -240,7 +240,8 @@ function (solution_callback::SaveSolutionCallback)(integrator)
         # Call high-level functions that dispatch on semidiscretization type
         @trixi_timeit timer() "save mesh" save_mesh(semi,
                                                     solution_callback.output_directory,
-                                                    iter + solution_callback.iter_offset)
+                                                    iter +
+                                                    solution_callback.iter_offset)
         save_solution_file(semi, u_ode, solution_callback, integrator)
     end
 
