@@ -180,18 +180,19 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     global ndofs_nvars_global = 0
     foreach_enumerate(semi.semis) do (i, semi_)
         global ndofs_nvars_global
-        ndofs_nvars_global += nvariables(semi_.equations)*length(semi_.mesh.cell_ids)
+        ndofs_nvars_global += nvariables(semi_.equations) * length(semi_.mesh.cell_ids)
     end
 
     # Determine the element indecx offset for the global solutions array.
     # @autoinfiltrate
     for i in 2:nsystems(semi)
-        semi.element_offset[i] = semi.element_offset[i-1] +
-                                  n_nodes^2*nvariables(semi.semis[i-1])*length(semi.semis[i-1].mesh.cell_ids)
+        semi.element_offset[i] = semi.element_offset[i - 1] +
+                                 n_nodes^2 * nvariables(semi.semis[i - 1]) *
+                                 length(semi.semis[i - 1].mesh.cell_ids)
     end
 
     # Create the global solution vector.
-    u_global = Vector{real(semi)}(undef, ndofs_nvars_global*n_nodes^2) .+ 123.456
+    u_global = Vector{real(semi)}(undef, ndofs_nvars_global * n_nodes^2) .+ 123.456
 
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
@@ -199,15 +200,22 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         u_loc_reshape = reshape(u_loc,
                                 (nvariables(semi_.equations),
                                  n_nodes, n_nodes,
-                                 Int(length(u_loc) / (n_nodes^2 * nvariables(semi_.equations)))))
-        for i_node in 1:n_nodes, j_node in 1:n_nodes, element in 1:Int(ndofs(semi)/n_nodes^2)
+                                 Int(length(u_loc) /
+                                     (n_nodes^2 * nvariables(semi_.equations)))))
+        for i_node in 1:n_nodes, j_node in 1:n_nodes,
+            element in 1:Int(ndofs(semi) / n_nodes^2)
+
             if element in semi_.mesh.cell_ids
                 for var in 1:nvariables(semi_.equations)
                     u_global[semi.element_offset[i] +
-                          (var - 1) +
-                          nvariables(semi_.equations)*(i_node-1) +
-                          nvariables(semi_.equations)*n_nodes*(j_node-1) +
-                          nvariables(semi_.equations)*n_nodes^2*(global_element_id_to_local(element, semi_.mesh)-1)] = u_loc_reshape[var, i_node, j_node, global_element_id_to_local(element, semi_.mesh)]
+                    (var - 1) +
+                    nvariables(semi_.equations) * (i_node - 1) +
+                    nvariables(semi_.equations) * n_nodes * (j_node - 1) +
+                    nvariables(semi_.equations) * n_nodes^2 * (global_element_id_to_local(element, semi_.mesh) - 1)] = u_loc_reshape[var,
+                                                                                                                                     i_node,
+                                                                                                                                     j_node,
+                                                                                                                                     global_element_id_to_local(element,
+                                                                                                                                                                semi_.mesh)]
                 end
             end
         end
