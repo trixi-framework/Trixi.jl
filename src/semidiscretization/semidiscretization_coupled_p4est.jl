@@ -200,8 +200,11 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         u_loc_reshape = reshape(u_loc,
                                 (nvariables(semi_.equations),
                                  n_nodes, n_nodes,
-                                 Int(length(u_loc) / (n_nodes^2 * nvariables(semi_.equations)))))
-        for i_node in 1:n_nodes, j_node in 1:n_nodes, element in 1:Int(ndofs(semi)/n_nodes^2)
+                                 Int(length(u_loc) /
+                                     (n_nodes^2 * nvariables(semi_.equations)))))
+        for i_node in 1:n_nodes, j_node in 1:n_nodes,
+            element in 1:Int(ndofs(semi) / n_nodes^2)
+
             if element in semi_.mesh.cell_ids
                 for var in 1:nvariables(semi_.equations)
                     u_global[semi.element_offset[i] +
