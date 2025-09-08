@@ -227,7 +227,7 @@ function PlotData2D(u_ode, semi::SemidiscretizationCoupled; kwargs...)
         u_loc = get_system_u_ode(u_ode, i, semi)
         u_loc_wrapped = wrap_array_native(u_loc, semi_)
 
-        push!(plot_data_tuple_array,
+        push!(plot_data_array,
               PlotData2D(u_loc_wrapped,
                          mesh_equations_solver_cache(semi_)...;
                          kwargs...))
