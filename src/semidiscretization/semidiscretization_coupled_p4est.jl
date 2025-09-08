@@ -208,10 +208,14 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
             if element in semi_.mesh.cell_ids
                 for var in 1:nvariables(semi_.equations)
                     u_global[semi.element_offset[i] +
-                          (var - 1) +
-                          nvariables(semi_.equations)*(i_node-1) +
-                          nvariables(semi_.equations)*n_nodes*(j_node-1) +
-                          nvariables(semi_.equations)*n_nodes^2*(global_element_id_to_local(element, semi_.mesh)-1)] = u_loc_reshape[var, i_node, j_node, global_element_id_to_local(element, semi_.mesh)]
+                    (var - 1) +
+                    nvariables(semi_.equations) * (i_node - 1) +
+                    nvariables(semi_.equations) * n_nodes * (j_node - 1) +
+                    nvariables(semi_.equations) * n_nodes^2 * (global_element_id_to_local(element, semi_.mesh) - 1)] = u_loc_reshape[var,
+                                                                                                                                     i_node,
+                                                                                                                                     j_node,
+                                                                                                                                     global_element_id_to_local(element,
+                                                                                                                                                                semi_.mesh)]
                 end
             end
         end
