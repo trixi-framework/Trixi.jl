@@ -45,7 +45,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMesh
 end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
+                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                      equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
