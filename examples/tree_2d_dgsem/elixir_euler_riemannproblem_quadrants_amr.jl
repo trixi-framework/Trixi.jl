@@ -32,7 +32,8 @@ function initial_condition_rp(x_, t, equations::CompressibleEulerEquations2D)
 end
 initial_condition = initial_condition_rp
 
-function initial_condition_element_discontinuous(x_, t, equations::CompressibleEulerEquations2D,
+function initial_condition_element_discontinuous(x_, t,
+                                                 equations::CompressibleEulerEquations2D,
                                                  orientation, direction)
     x, y = x_[1], x_[2]
 
@@ -72,6 +73,17 @@ end
     return Trixi.flux(u_surface, orientation, equations)
 end
 
+# The flow is subsonic at all boundaries.
+# Due to the LGL nodes including the boundary points of the reference element ± 1
+# setting discontinuous initial conditions with the desired behaviour
+#           { u_1, if x <= x_jump
+# u(x, t) = {
+#           { u_2, if x > x_jump
+# is difficult.
+# Since the initial condition is queried in `boundary_condition_subsonic` above
+# these difficulties propagate to the boundary conditions.
+# The setup below is a workaround and works for this specific example, but 
+# generalization to other simulations cannot be expected.
 boundary_conditions = (x_neg = boundary_condition_subsonic,
                        x_pos = boundary_condition_do_nothing,
                        y_neg = boundary_condition_subsonic,
@@ -146,7 +158,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 ###############################################################################
 ## ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.0)
+tspan = (0.0, 0.25)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
