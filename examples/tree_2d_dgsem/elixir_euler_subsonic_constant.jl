@@ -41,7 +41,7 @@ initial_condition = initial_condition_subsonic
         p_local = pressure(initial_condition_subsonic(x, t, equations), equations)
     end
 
-    prim = SVector(rho_local, v_x, v_y, p_local)
+    prim = SVector(rho_local, vx_local, vy_local, p_local)
     u_surface = prim2cons(prim, equations)
 
     return Trixi.flux(u_surface, orientation, equations)
