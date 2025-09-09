@@ -45,11 +45,11 @@ end
 
 boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_shock)
 
-function boundary_condition_outflow(u_inner, orientation, normal_direction, x, t,
+function boundary_condition_outflow(u_inner, orientation, direction, x, t,
                                     surface_flux_function,
                                     equations::InviscidBurgersEquation1D)
     # Calculate the boundary flux entirely from the internal solution state
-    flux = Trixi.flux(u_inner, normal_direction, equations)
+    flux = Trixi.flux(u_inner, direction, equations)
 
     return flux
 end

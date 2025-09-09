@@ -29,7 +29,7 @@ initial_condition = initial_condition_subsonic
 #   Inflow/Outflow Boundary Conditions with Application to FUN3D.
 #   [NASA TM 20110022658](https://ntrs.nasa.gov/citations/20110022658)
 @inline function boundary_condition_outflow_general(u_inner, orientation::Integer,
-                                                    normal_direction, x, t,
+                                                    direction, x, t,
                                                     surface_flux_function,
                                                     equations::CompressibleEulerEquations2D)
     rho_local, vx_local, vy_local, p_local = cons2prim(u_inner, equations)
