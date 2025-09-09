@@ -32,25 +32,6 @@ function initial_condition_rp(x_, t, equations::CompressibleEulerEquations2D)
 end
 initial_condition = initial_condition_rp
 
-function initial_condition_element_discontinuous(x_, t,
-                                                 equations::CompressibleEulerEquations2D,
-                                                 orientation, direction)
-    x, y = x_[1], x_[2]
-
-    if x >= 0.5 && y >= 0.5 # 1st quadrant
-        rho, v1, v2, p = (0.5313, 0.0, 0.0, 0.4)
-    elseif x < 0.5 && y >= 0.5 # 2nd quadrant
-        rho, v1, v2, p = (1.0, 0.7276, 0.0, 1.0)
-    elseif x < 0.5 && y < 0.5 # 3rd quadrant
-        rho, v1, v2, p = (0.8, 0.0, 0.0, 1.0)
-    elseif x >= 0.5 && y < 0.5 # 4th quadrant
-        rho, v1, v2, p = (1.0, 0.0, 0.7276, 1.0)
-    end
-
-    prim = SVector(rho, v1, v2, p)
-    return prim2cons(prim, equations)
-end
-
 # See Section 2.3 of the reference below for a discussion of robust
 # subsonic inflow/outflow boundary conditions.
 #
