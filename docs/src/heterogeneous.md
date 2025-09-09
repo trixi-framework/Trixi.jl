@@ -129,35 +129,35 @@ end
     This will, e.g., work with `u_ode`. Internally, KernelAbstractions.jl's `get_backend`
     will be called, i.e., KernelAbstractions.jl has to know the type of `x`.
 
- ```julia
- backend = trixi_backend(u_ode)
- ```
+```julia
+backend = trixi_backend(u_ode)
+```
 
 3.  Add a new argument `backend` to `trixi_rhs_fct` used for dispatch.
     When `backend` is `nothing`, the legacy implementation should be used:
- ```julia
- function trixi_rhs_fct(backend::Nothing, mesh, equations, solver, cache, args)
-     @unpack unpacked_args = cache
-     @threaded for element in eachelement(solver, cache)
-         rhs_fct_per_element(element, unpacked_args, args)
-     end
- end
- ```
+```julia
+function trixi_rhs_fct(backend::Nothing, mesh, equations, solver, cache, args)
+    @unpack unpacked_args = cache
+    @threaded for element in eachelement(solver, cache)
+        rhs_fct_per_element(element, unpacked_args, args)
+    end
+end
+```
 
 4.  When `backend` is a `Backend` (a type defined by KernelAbstractions.jl), write a
     KernelAbstractions.jl kernel:
- ```julia
- function trixi_rhs_fct(backend::Backend, mesh, equations, solver, cache, args)
-     nelements(solver, cache) == 0 && return nothing  # return early when there are no elements
-     @unpack unpacked_args = cache
-     kernel! = rhs_fct_kernel!(backend)
-     kernel!(unpacked_args, args,
-             ndrange = nelements(solver, cache))
-     return nothing
- end
+```julia
+function trixi_rhs_fct(backend::Backend, mesh, equations, solver, cache, args)
+    nelements(solver, cache) == 0 && return nothing  # return early when there are no elements
+    @unpack unpacked_args = cache
+    kernel! = rhs_fct_kernel!(backend)
+    kernel!(unpacked_args, args,
+            ndrange = nelements(solver, cache))
+    return nothing
+end
 
- @kernel function rhs_fct_kernel!(unpacked_args, args)
-     element = @index(Global)
-     rhs_fct_per_element(element, unpacked_args, args)
- end
- ```
+@kernel function rhs_fct_kernel!(unpacked_args, args)
+    element = @index(Global)
+    rhs_fct_per_element(element, unpacked_args, args)
+end
+```
