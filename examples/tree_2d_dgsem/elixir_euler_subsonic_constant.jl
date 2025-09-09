@@ -33,15 +33,16 @@ initial_condition = initial_condition_subsonic
                                                     surface_flux_function,
                                                     equations::CompressibleEulerEquations2D)
     u_local = u_inner
-    rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
+    rho_local, v_x, v_y, p_local = cons2prim(u_local, equations)
     a_local = sqrt(equations.gamma * p_local / rho_local)
-    Mach_local = abs(v_normal / a_local)
+    v_mag = sqrt(v_x^2 + v_y^2)
+    Mach_local = abs(v_mag / a_local)
     if Mach_local <= 1.0 # The `if` is not needed here but kept for generality
         # In general, `p_local` need not be available from the initial condition
         p_local = pressure(initial_condition_subsonic(x, t, equations), equations)
     end
 
-    prim = SVector(rho_local, v_normal, v_tangent, p_local)
+    prim = SVector(rho_local, v_x, v_y, p_local)
     u_surface = prim2cons(prim, equations)
 
     flux = Trixi.flux(u_surface, orientation, equations)
