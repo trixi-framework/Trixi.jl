@@ -55,7 +55,7 @@ end #hide #md
 trixi_include(default_example_unstructured())
 
 # Test 4: no redirect_stdio and ; (Formatter hates it)
-trixi_include(default_example_unstructured())
+trixi_include(default_example_unstructured());
 
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
 # on the curved quadrilateral mesh described in the
