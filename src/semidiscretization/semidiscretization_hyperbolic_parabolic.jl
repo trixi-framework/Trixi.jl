@@ -338,6 +338,9 @@ The initial condition etc. is taken from the `restart_file`.
 Optional keyword arguments:
 - `jac_prototype_parabolic`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
   Specifies the sparsity structure of the parabolic function's Jacobian to enable e.g. efficient implicit time stepping.
+  The [SplitODEProblem](https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitODEProblem) only expects the Jacobian
+  to be defined on the first function it takes in, which is treated implicitly. This corresponds to the parabolic right-hand side in Trixi.
+  The hyperbolic right-hand side is treated explicitly, and therefore its Jacobian is irrelevant.
 - `colorvec_parabolic`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype_parabolic` is given.
 """

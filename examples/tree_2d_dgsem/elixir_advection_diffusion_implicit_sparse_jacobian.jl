@@ -11,19 +11,16 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 diffusivity() = 5.0e-2
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
-# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
+coordinates_min = (-1.0, -1.0)
+coordinates_max = (1.0, 1.0)
 
-# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 periodicity = true,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+                n_cells_max = 30_000)
 
-# Define initial condition
 function initial_condition_diffusive_convergence_test(x, t,
                                                       equation::LinearScalarAdvectionEquation2D)
     # Store translated coordinate for easy use of exact solution
@@ -41,7 +38,6 @@ function initial_condition_diffusive_convergence_test(x, t,
 end
 initial_condition = initial_condition_diffusive_convergence_test
 
-# define periodic boundary conditions everywhere
 boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
@@ -53,7 +49,6 @@ jac_detector = TracerSparsityDetector()
 # sparsity-detection ready datatype, which is retrieved here
 jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
-# A semidiscretization collects data structures and functions for the spatial discretization
 semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver,
@@ -90,7 +85,7 @@ coloring_result = coloring(jac_prototype_parabolic, coloring_prob, coloring_alg)
 coloring_vec_parabolic = column_colors(coloring_result)
 
 ###############################################################################
-### sparsity-aware semidiscretization and ode ###
+### sparsity-aware semidiscretization and ODE ###
 
 # Semidiscretization for actual simulation. `eEltype` is here retrieved from `solver`
 semi_float_type = SemidiscretizationHyperbolicParabolic(mesh,
@@ -109,15 +104,11 @@ ode_jac_sparse = semidiscretize(semi_float_type, tspan,
 ###############################################################################
 ### callbacks  ###
 
-# At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
-# and resets the timers
 summary_callback = SummaryCallback()
 
-# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi_float_type, interval = analysis_interval)
 
-# The AliveCallback prints short status information in regular intervals
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 save_restart = SaveRestartCallback(interval = 100,
