@@ -12,7 +12,7 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
 @testset "P4estMesh2D" begin
-#! format: noindent
+# ! format: noindent
 
 @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
@@ -167,7 +167,7 @@ end
 #     @test parent_mesh.tree_node_coordinates == result
 #
 #     # Load the mesh file for code coverage.
-#     loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
+#     loaded_mesh = Trixi.load_mesh_serial(joinpath(outdir, "mesh.h5"); n_cells_max = 0,
 #                                          RealT = typeof(parent_mesh).parameters[3])
 # end
 
@@ -190,7 +190,7 @@ end
                                                                         2)...,
                                                                  length(mesh1.cell_ids))
     # Load the mesh file for code coverage.
-    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh_1.h5"); n_cells_max = 0,
+    loaded_mesh = Trixi.load_mesh_serial(joinpath(EXAMPLES_DIR, "out", "mesh_1.h5"); n_cells_max = 0,
                                          RealT = typeof(parent_mesh).parameters[3])
 end
 
