@@ -37,7 +37,7 @@ initial_condition = initial_condition_subsonic
     a_local = sqrt(equations.gamma * p_local / rho_local)
     v_mag = sqrt(v_x^2 + v_y^2)
     Mach_local = abs(v_mag / a_local)
-    if Mach_local <= 1.0 # The `if` is not needed here but kept for generality
+    if Mach_local <= 1.0 # The `if` is not needed in this elixir but kept for generality
         # In general, `p_local` need not be available from the initial condition
         p_local = pressure(initial_condition_subsonic(x, t, equations), equations)
     end
@@ -45,9 +45,7 @@ initial_condition = initial_condition_subsonic
     prim = SVector(rho_local, v_x, v_y, p_local)
     u_surface = prim2cons(prim, equations)
 
-    flux = Trixi.flux(u_surface, orientation, equations)
-
-    return flux
+    return Trixi.flux(u_surface, orientation, equations)
 end
 
 boundary_conditions = (x_neg = boundary_condition_outflow_general,
@@ -55,10 +53,9 @@ boundary_conditions = (x_neg = boundary_condition_outflow_general,
                        y_neg = boundary_condition_outflow_general,
                        y_pos = boundary_condition_outflow_general)
 
-coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
+coordinates_min = (0.0, 0.0)
+coordinates_max = (1.0, 1.0)
 
-# Create the mesh
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
                 periodicity = false, n_cells_max = 512^2 * 16)
@@ -70,7 +67,6 @@ basis = LobattoLegendreBasis(polydeg)
 
 volume_integral = VolumeIntegralWeakForm()
 
-# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
@@ -107,4 +103,3 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, SSPRK54(),
             dt = 1,
             save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
