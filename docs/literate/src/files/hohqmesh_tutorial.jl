@@ -34,11 +34,28 @@
 # Trixi.jl supports solving hyperbolic problems on several mesh types.
 # There is a default example for this mesh type that can be executed by
 
+# Test 1: current state
 using Trixi
 rm("out", force = true, recursive = true) #hide #md
 redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+    trixi_include(default_example_unstructured())
+end #hide #md
+
+# Test 1: redirect_stdio and ; (Formatter hates it)
+redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi_include(default_example_unstructured());
 end #hide #md
+
+# Test 2: redirect_stdio and no ; (Formatter hates it)
+redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+trixi_include(default_example_unstructured())
+end #hide #md
+
+# Test 3: no redirect_stdio and no ;
+trixi_include(default_example_unstructured())
+
+# Test 4: no redirect_stdio and ; (Formatter hates it)
+trixi_include(default_example_unstructured())
 
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
 # on the curved quadrilateral mesh described in the
@@ -53,9 +70,7 @@ end #hide #md
 # To convert the HDF5-formatted `.h5` output file(s) from Trixi.jl into VTK format execute the following
 
 using Trixi2Vtk
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi2vtk("out/solution_000000180.h5", output_directory = "out")
-end #hide #md
 
 # Note this step takes about 15-30 seconds as the package `Trixi2Vtk` must be precompiled and executed for the first time
 # in your REPL session. The `trixi2vtk` command above will convert the solution file at the final time into a `.vtu` file
@@ -63,9 +78,7 @@ end #hide #md
 # where the new files will be saved; it defaults to the current directory. (2) Specifying a higher number of
 # visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
 
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-trixi2vtk("out/solution_000000180.h5", output_directory = "out", nvisnodes = 12)
-end #hide #md
+trixi2vtk("out/solution_000000180.h5", output_directory = "out", nvisnodes = 12);
 
 # By default `trixi2vtk` sets `nvisnodes` to be the same as the number of nodes specified in
 # the `elixir` file used to run the simulation.
