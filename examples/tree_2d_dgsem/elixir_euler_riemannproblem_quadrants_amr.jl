@@ -44,8 +44,7 @@ initial_condition = initial_condition_rp
                                              equations::CompressibleEulerEquations2D)
     rho_loc, v1_loc, v2_loc, p_loc = cons2prim(u_inner, equations)
 
-    println(typeof(direction))
-
+    # For subsonic boundary: Take pressure from initial condition
     p_loc = pressure(initial_condition_rp(x, t, equations), equations)
 
     prim = SVector(rho_loc, v1_loc, v2_loc, p_loc)
