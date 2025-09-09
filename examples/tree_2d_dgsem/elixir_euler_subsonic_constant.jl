@@ -32,10 +32,9 @@ initial_condition = initial_condition_subsonic
                                                     normal_direction, x, t,
                                                     surface_flux_function,
                                                     equations::CompressibleEulerEquations2D)
-    u_local = u_inner
-    rho_local, v_x, v_y, p_local = cons2prim(u_local, equations)
+    rho_local, vx_local, vy_local, p_local = cons2prim(u_inner, equations)
     a_local = sqrt(equations.gamma * p_local / rho_local)
-    v_mag = sqrt(v_x^2 + v_y^2)
+    v_mag = sqrt(vx_local^2 + vy_local^2)
     Mach_local = abs(v_mag / a_local)
     if Mach_local <= 1.0 # The `if` is not needed in this elixir but kept for generality
         # In general, `p_local` need not be available from the initial condition
