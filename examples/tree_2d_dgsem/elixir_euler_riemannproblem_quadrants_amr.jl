@@ -77,6 +77,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 100_000,
                 periodicity = false)
 
+# HLLC flux is strictly required for this problem
 surface_flux = flux_hllc
 volume_flux = flux_ranocha
 
@@ -148,7 +149,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 1.8)
+stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
