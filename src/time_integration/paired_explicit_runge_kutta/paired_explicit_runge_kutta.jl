@@ -8,16 +8,16 @@
 # Define all of the functions necessary for polynomial optimizations
 include("polynomial_optimizer.jl")
 
-# Abstract base type for both single/standalone and multi-level 
-# PERK (Paired-Explicit Runge-Kutta) time integration schemes
-abstract type AbstractPairedExplicitRK end
+# Abstract base type for both single/standalone and multi-level
+# PERK (Paired Explicit Runge-Kutta) time integration schemes
+abstract type AbstractPairedExplicitRK <: AbstractTimeIntegrationAlgorithm end
 # Abstract base type for single/standalone PERK time integration schemes
 abstract type AbstractPairedExplicitRKSingle <: AbstractPairedExplicitRK end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct PairedExplicitRKOptions{Callback, TStops}
     callback::Callback # callbacks; used in Trixi
-    adaptive::Bool # whether the algorithm is adaptive
+    adaptive::Bool # whether the algorithm is adaptive (false)
     dtmax::Float64 # ignored
     maxiters::Int # maximal number of time steps
     tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
@@ -36,7 +36,7 @@ function PairedExplicitRKOptions(callback, tspan; maxiters = typemax(Int), kwarg
                                                                        tstops_internal)
 end
 
-abstract type AbstractPairedExplicitRKIntegrator end
+abstract type AbstractPairedExplicitRKIntegrator <: AbstractTimeIntegrator end
 abstract type AbstractPairedExplicitRKSingleIntegrator <:
               AbstractPairedExplicitRKIntegrator end
 
@@ -64,15 +64,6 @@ function calculate_cfl(ode_algorithm::AbstractPairedExplicitRK, ode)
     return cfl_number
 end
 
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::AbstractPairedExplicitRKIntegrator, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
-end
-
 """
     add_tstop!(integrator::AbstractPairedExplicitRKIntegrator, t)
 Add a time stop during the time integration process.
@@ -87,32 +78,46 @@ function add_tstop!(integrator::AbstractPairedExplicitRKIntegrator, t)
         pop!(integrator.opts.tstops)
     end
     push!(integrator.opts.tstops, integrator.tdir * t)
+
+    return nothing
 end
 
 has_tstop(integrator::AbstractPairedExplicitRKIntegrator) = !isempty(integrator.opts.tstops)
 first_tstop(integrator::AbstractPairedExplicitRKIntegrator) = first(integrator.opts.tstops)
 
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::AbstractPairedExplicitRK;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+# Function that computes the first stage of a general PERK method
+@inline function PERK_k1!(integrator::AbstractPairedExplicitRKIntegrator, p)
+    integrator.f(integrator.k1, integrator.u, p, integrator.t)
 
-    # Start actual solve
-    solve!(integrator)
+    return nothing
 end
 
-function solve!(integrator::AbstractPairedExplicitRKIntegrator)
-    @unpack prob = integrator.sol
+@inline function PERK_k2!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg)
+    @threaded for i in eachindex(integrator.du)
+        integrator.u_tmp[i] = integrator.u[i] +
+                              alg.c[2] * integrator.dt * integrator.k1[i]
+    end
 
-    integrator.finalstep = false
+    integrator.f(integrator.du, integrator.u_tmp, p,
+                 integrator.t + alg.c[2] * integrator.dt)
 
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        step!(integrator)
-    end # "main loop" timer
+    return nothing
+end
 
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
+@inline function PERK_ki!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg,
+                          stage)
+    # Construct current state
+    @threaded for i in eachindex(integrator.u)
+        integrator.u_tmp[i] = integrator.u[i] +
+                              integrator.dt *
+                              (alg.a_matrix[1, stage - 2] * integrator.k1[i] +
+                               alg.a_matrix[2, stage - 2] * integrator.du[i])
+    end
+
+    integrator.f(integrator.du, integrator.u_tmp, p,
+                 integrator.t + alg.c[stage] * integrator.dt)
+
+    return nothing
 end
 
 # used for AMR (Adaptive Mesh Refinement)
@@ -122,33 +127,26 @@ function Base.resize!(integrator::AbstractPairedExplicitRKIntegrator, new_size)
     resize!(integrator.u_tmp, new_size)
 
     resize!(integrator.k1, new_size)
-    resize!(integrator.k_higher, new_size)
+
+    return nothing
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::AbstractPairedExplicitRKIntegrator) = integrator.du
 get_tmp_cache(integrator::AbstractPairedExplicitRKIntegrator) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::AbstractPairedExplicitRKIntegrator, ::Bool) = false
 
-# used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::AbstractPairedExplicitRKIntegrator, dt)
-    (integrator.dt = dt; integrator.dtcache = dt)
-end
-
-function get_proposed_dt(integrator::AbstractPairedExplicitRKIntegrator)
-    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
-end
-
 # stop the time integration
 function terminate!(integrator::AbstractPairedExplicitRKIntegrator)
     integrator.finalstep = true
+
+    return nothing
 end
 
 """
     modify_dt_for_tstops!(integrator::PairedExplicitRK)
- 
+
 Modify the time-step size to match the time stops specified in integrator.opts.tstops.
 To avoid adding OrdinaryDiffEq to Trixi's dependencies, this routine is a copy of
 https://github.com/SciML/OrdinaryDiffEq.jl/blob/d76335281c540ee5a6d1bd8bb634713e004f62ee/src/integrators/integrator_utils.jl#L38-L54
@@ -169,6 +167,8 @@ function modify_dt_for_tstops!(integrator::AbstractPairedExplicitRKIntegrator)
                             min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
         end
     end
+
+    return nothing
 end
 
 # Add definitions of functions related to polynomial optimization by NLsolve here
@@ -178,5 +178,8 @@ function solve_a_butcher_coeffs_unknown! end
 
 # Basic implementation of the second-order paired explicit Runge-Kutta (PERK) method
 include("methods_PERK2.jl")
+# Slightly customized implementation of the third-order PERK method
 include("methods_PERK3.jl")
+# Basic implementation of the fourth-order PERK method
+include("methods_PERK4.jl")
 end # @muladd

@@ -117,8 +117,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
                         l2=[0.002019623611753929],
-                        linf=[0.03542375961299987],
-                        coverage_override=(maxiters = 6,))
+                        linf=[0.03542375961299987])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -135,8 +134,7 @@ end
                                  "elixir_advection_amr_solution_independent.jl"),
                         # Expected errors are exactly the same as with StructuredMesh!
                         l2=[4.949660644033807e-5],
-                        linf=[0.0004867846262313763],
-                        coverage_override=(maxiters = 6,))
+                        linf=[0.0004867846262313763])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -150,10 +148,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.507575525876275e-6],
-                        linf=[6.21489667023134e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        linf=[6.21489667023134e-5])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -169,10 +164,7 @@ end
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
                         l2=[2.869137983727866e-6],
-                        linf=[3.8353423270964804e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 25,))
+                        linf=[3.8353423270964804e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -283,32 +275,6 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl" begin
-    # This test is identical to the one in `test_p4est_2d.jl`.
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
-                        l2=[
-                            9.168126407325352e-5,
-                            0.0009795410115453788,
-                            0.002546408320320785,
-                            3.941189812642317e-6
-                        ],
-                        linf=[
-                            0.0009903782521019089,
-                            0.0059752684687262025,
-                            0.010941106525454103,
-                            1.2129488214718265e-5
-                        ],
-                        tspan=(0.0, 0.1))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
@@ -336,17 +302,16 @@ end
     # This test is identical to the one in `test_p4est_2d.jl` besides minor
     # deviations in the expected error norms.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
-                        l2=[0.4420732463420727, 0.8804644301158163, 0.8262542320734158,
+                        l2=[0.4419337424073218, 0.8804938551016932, 0.8258185723720365,
                             0.0,
-                            0.9615023124248694, 0.10386709616933161,
-                            0.15403081916109138,
+                            0.961220188718187, 0.10397273631386837, 0.15408979488125943,
                             0.0,
-                            2.835066224683485e-5],
-                        linf=[10.045486750338348, 17.998696851793447, 9.57580213608948,
+                            2.66769410449947e-5],
+                        linf=[10.053140536236942, 18.17070117006211, 9.549208389448738,
                             0.0,
-                            19.431290734386764, 1.3821685025605288, 1.8186235976086789,
+                            19.676151923191583, 1.3896544044814965, 1.8153256887969416,
                             0.0,
-                            0.0023118793481168537],
+                            0.0022030404596184786],
                         tspan=(0.0, 0.02))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -372,8 +337,7 @@ end
                             0.834485181423738,
                             3.923553028014343
                         ],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

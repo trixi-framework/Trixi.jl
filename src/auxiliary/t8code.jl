@@ -32,10 +32,12 @@ function init_t8code()
             T8code.Libt8.p4est_init(C_NULL, LOG_LEVEL)
         end
 
+        # Clean up t8code before MPI shuts down.
         MPI.add_finalize_hook!() do
+            T8code.clean_up()
             status = T8code.Libt8.sc_finalize_noabort()
             if status != 0
-                @warn("Inconsistent state detected after finalizing t8code. Have you finalized all `T8codeMesh` objects and/or properly freed/un-referenced all t8code related objects?")
+                @warn("Inconsistent state detected after finalizing t8code.")
             end
         end
 
@@ -43,7 +45,7 @@ function init_t8code()
         t8_init(LOG_LEVEL)
     else
         @warn "Preferences for T8code.jl are not set correctly. Until fixed, using `T8codeMesh` will result in a crash. " *
-              "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
+              "See also https://trixi-framework.github.io/TrixiDocumentation/stable/parallelization/#parallel_system_MPI"
     end
 
     return nothing
@@ -96,8 +98,8 @@ end
 # \return greater zero if the first entry in `elements` should be refined,
 #         smaller zero if the family `elements` shall be coarsened,
 #         zero else.
-function adapt_callback(forest,
-                        forest_from,
+function adapt_callback(forest::Ptr{t8_forest},
+                        forest_from::Ptr{t8_forest},
                         which_tree,
                         lelement_id,
                         ts,
@@ -189,7 +191,7 @@ function trixi_t8_adapt!(mesh, indicators)
 
     differences = trixi_t8_get_difference(old_levels, new_levels, 2^ndims(mesh))
 
-    mesh.forest = forest_cached
+    update_forest!(mesh, forest_cached)
 
     return differences
 end

@@ -117,6 +117,8 @@ open(joinpath(@__DIR__, "src", "changelog.md"), "w") do io
         println(io, line)
     end
 end
+# Remove temporary file
+rm(joinpath(@__DIR__, "src", "changelog_tmp.md"))
 
 # Make documentation
 makedocs(
@@ -131,7 +133,7 @@ makedocs(
                                   # Explicitly add favicon as asset
                                   assets = ["assets/favicon.ico"],
                                   # Set canonical URL to GitHub pages URL
-                                  canonical = "https://trixi-framework.github.io/Trixi.jl/stable",
+                                  canonical = "https://trixi-framework.github.io/TrixiDocumentation/stable",
                                   size_threshold_ignore = ["reference-trixi.md"]),
          # Explicitly specify documentation structure
          pages = [
@@ -161,7 +163,8 @@ makedocs(
                  "Style guide" => "styleguide.md",
                  "Testing" => "testing.md",
                  "Performance" => "performance.md",
-                 "Parallelization" => "parallelization.md"
+                 "Parallelization" => "parallelization.md",
+                 "Heterogeneous" => "heterogeneous.md"
              ],
              "Troubleshooting and FAQ" => "troubleshooting.md",
              "Reference" => [
@@ -177,5 +180,6 @@ makedocs(
          ])
 
 deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
+           deploy_repo = "github.com/trixi-framework/TrixiDocumentation",
            devbranch = "main",
            push_preview = true)

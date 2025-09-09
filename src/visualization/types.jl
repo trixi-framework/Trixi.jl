@@ -3,10 +3,9 @@
 # This is a union of a Trixi.jl-specific SciMLBase.ODESolution and of Trixi.jl's own
 # TimeIntegratorSolution.
 #
-# Note: This is an experimental feature and may be changed in future releases without notice.
 #! format: off
-const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
-    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
+const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, discType, P} where
+    {T, N, uType, uType2, DType, tType, rateType, discType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
      {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_}}, TimeIntegratorSolution}
 #! format: on
 
@@ -42,9 +41,6 @@ end
     Base.getindex(pd::AbstractPlotData, variable_name)
 
 Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function Base.getindex(pd::AbstractPlotData, variable_name)
     variable_id = findfirst(isequal(variable_name), pd.variable_names)
@@ -63,9 +59,6 @@ Base.eltype(pd::AbstractPlotData) = Pair{String, PlotDataSeries{typeof(pd)}}
 
 Holds all relevant data for creating 2D plots of multiple solution variables and to visualize the
 mesh.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <:
        AbstractPlotData{2}
@@ -123,9 +116,6 @@ end
 
 Holds all relevant data for creating 1D plots of multiple solution variables and to visualize the
 mesh.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{1}
     x::Coordinates
@@ -146,8 +136,6 @@ function Base.show(io::IO, pd::PlotData1D)
 end
 
 # Auxiliary data structure for visualizing a single variable
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 struct PlotDataSeries{PD <: AbstractPlotData}
     plot_data::PD
     variable_id::Int
@@ -177,9 +165,6 @@ end
     getmesh(pd::AbstractPlotData)
 
 Extract grid lines from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 getmesh(pd::AbstractPlotData) = PlotMesh(pd)
 
@@ -206,9 +191,6 @@ When visualizing data from a three-dimensional simulation, a 2D slice is extract
 `slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 
 # Examples
 ```julia
@@ -294,9 +276,6 @@ end
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
 returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData2D(sol::TrixiODESolution; kwargs...)
     PlotData2D(sol.u[end], sol.prob.p; kwargs...)
@@ -516,17 +495,28 @@ end
 
 """
     PlotData1D(u, semi [or mesh, equations, solver, cache];
-               solution_variables=nothing, nvisnodes=nothing)
+               solution_variables=nothing, nvisnodes=nothing,
+               reinterpolate=Trixi.default_reinterpolate(solver),
+               slice=:x, point=(0.0, 0.0, 0.0), curve=nothing)
 
 Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
-`u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
-`semi`. By default, the primitive variables (if existent) or the conservative variables (otherwise)
-from the solution are used for plotting. This can be changed by passing an appropriate conversion
-function to `solution_variables`.
+`u` with `Plots.jl`. All relevant geometrical information is extracted from the
+semidiscretization `semi`. By default, the primitive variables (if existent)
+or the conservative variables (otherwise) from the solution are used for
+plotting. This can be changed by passing an appropriate conversion function to
+`solution_variables`, e.g., [`cons2cons`](@ref) or [`cons2prim`](@ref).
+
+Alternatively, you can also pass a function `u` with signature `u(x, equations)`
+returning a vector. In this case, the `solution_variables` are ignored. This is useful,
+e.g., to visualize an analytical solution. The spatial variable `x` is a vector with one
+element.
 
 `nvisnodes` specifies the number of visualization nodes to be used. If it is `nothing`,
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
-exactly the number of nodes in the DG elements are used.
+exactly the number of nodes as in the DG elements are used. The solution is interpolated to these
+nodes for plotting. If `reinterpolate` is `false`, the solution is not interpolated to the `visnodes`,
+i.e., the solution is plotted at the solution nodes. In this case `nvisnodes` is ignored. By default,
+`reinterpolate` is set to `false` for `FDSBP` approximations and to `true` otherwise.
 
 When visualizing data from a two-dimensional simulation, a 1D slice is extracted for plotting.
 `slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
@@ -537,9 +527,6 @@ This applies analogously to three-dimensional simulations, where `slice` may be 
 Another way to visualize 2D/3D data is by creating a plot along a given curve.
 This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
 which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData1D(u_ode, semi; kwargs...)
     PlotData1D(wrap_array_native(u_ode, semi),
@@ -547,11 +534,20 @@ function PlotData1D(u_ode, semi; kwargs...)
                kwargs...)
 end
 
+function PlotData1D(func::Function, semi; kwargs...)
+    PlotData1D(func,
+               mesh_equations_solver_cache(semi)...;
+               kwargs...)
+end
+
 function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,
-                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing)
+                    reinterpolate = default_reinterpolate(solver),
+                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
+                    variable_names = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
-    variable_names = SVector(varnames(solution_variables_, equations))
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
 
     original_nodes = cache.elements.node_coordinates
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
@@ -561,7 +557,7 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
 
     if ndims(mesh) == 1
         x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data,
-                                               nvisnodes)
+                                               nvisnodes, reinterpolate)
         orientation_x = 1
 
         # Special care is required for first-order FV approximations since the nodes are the
@@ -595,7 +591,8 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
         else
             x, data, mesh_vertices_x = unstructured_2d_to_1d(original_nodes,
                                                              unstructured_data,
-                                                             nvisnodes, slice, point)
+                                                             nvisnodes, reinterpolate,
+                                                             slice, point)
         end
     else # ndims(mesh) == 3
         if curve !== nothing
@@ -606,51 +603,94 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
         else
             x, data, mesh_vertices_x = unstructured_3d_to_1d(original_nodes,
                                                              unstructured_data,
-                                                             nvisnodes, slice, point)
+                                                             nvisnodes, reinterpolate,
+                                                             slice, point)
         end
     end
 
-    return PlotData1D(x, data, variable_names, mesh_vertices_x,
+    return PlotData1D(x, data, variable_names_, mesh_vertices_x,
                       orientation_x)
 end
 
+# unwrap u if it is VectorOfArray
+PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = PlotData1D(parent(u),
+                                                                                             mesh,
+                                                                                             equations,
+                                                                                             dg,
+                                                                                             cache;
+                                                                                             kwargs...)
+PlotData2D(u::VectorOfArray, mesh, equations, dg::DGMulti{2}, cache; kwargs...) = PlotData2D(parent(u),
+                                                                                             mesh,
+                                                                                             equations,
+                                                                                             dg,
+                                                                                             cache;
+                                                                                             kwargs...)
+
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,
-                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing)
+                    reinterpolate = default_reinterpolate(solver),
+                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
+                    variable_names = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
-    variable_names = SVector(varnames(solution_variables_, equations))
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
 
     original_nodes = cache.elements.node_coordinates
-    unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
-                                              solver, cache)
 
     orientation_x = 0 # Set 'orientation' to zero on default.
 
     if ndims(mesh) == 1
+        unstructured_data = get_unstructured_data(u, solution_variables_,
+                                                  mesh, equations, solver, cache)
         x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data,
-                                               nvisnodes)
+                                               nvisnodes, reinterpolate)
         orientation_x = 1
     elseif ndims(mesh) == 2
-        # Create a 'PlotData2DTriangulated' object so a triangulation can be used when extracting relevant data.
-        pd = PlotData2DTriangulated(u, mesh, equations, solver, cache;
-                                    solution_variables, nvisnodes)
-        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point,
-                                                               nvisnodes)
+        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(u, mesh, equations,
+                                                               solver, cache,
+                                                               curve, slice,
+                                                               point, nvisnodes,
+                                                               solution_variables_)
     else # ndims(mesh) == 3
         # Extract the information required to create a PlotData1D object.
-        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve,
-                                                               slice, point, nvisnodes)
+        # If no curve is defined, create an axis curve.
+        if curve === nothing
+            curve = axis_curve(view(original_nodes, 1, :, :, :, :),
+                               view(original_nodes, 2, :, :, :, :),
+                               view(original_nodes, 3, :, :, :, :),
+                               slice, point, nvisnodes)
+        end
+
+        # We need to loop through all the points and check in which element they are
+        # located. A general implementation working for all mesh types has to perform
+        # a naive loop through all nodes. However, the P4estMesh and the T8codeMesh
+        # can make use of the efficient search functionality of p4est/t8code
+        # to speed up the process. Thus, we pass the mesh, too.
+        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(u, mesh, equations,
+                                                               solver, cache,
+                                                               curve,
+                                                               solution_variables_)
     end
 
-    return PlotData1D(x, data, variable_names, mesh_vertices_x,
+    return PlotData1D(x, data, variable_names_, mesh_vertices_x,
                       orientation_x)
+end
+
+function PlotData1D(func::Function, mesh, equations, dg::DGMulti{1}, cache;
+                    solution_variables = nothing, variable_names = nothing)
+    x = mesh.md.x
+    u = func.(x, equations)
+
+    return PlotData1D(u, mesh, equations, dg, cache;
+                      solution_variables, variable_names)
 end
 
 # Specializes the `PlotData1D` constructor for one-dimensional `DGMulti` solvers.
 function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
-                    solution_variables = nothing)
+                    solution_variables = nothing, variable_names = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
-    variable_names = SVector(varnames(solution_variables_, equations))
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
 
     orientation_x = 0 # Set 'orientation' to zero on default.
 
@@ -679,11 +719,16 @@ function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
         # Same as above - we create `data_plot` as array of size `num_plotting_points`
         # by "number of plotting variables".
         x_plot = vec(x)
-        data_plot = permutedims(reinterpret(reshape, eltype(eltype(data)), vec(data)),
-                                (2, 1))
+        data_ = reinterpret(reshape, eltype(eltype(data)), vec(data))
+        # If there is only one solution variable, we need to add a singleton dimension
+        if ndims(data_) == 1
+            data_plot = reshape(data_, :, 1)
+        else
+            data_plot = permutedims(data_, (2, 1))
+        end
     end
 
-    return PlotData1D(x_plot, data_plot, variable_names, mesh.md.VX, orientation_x)
+    return PlotData1D(x_plot, data_plot, variable_names_, mesh.md.VX, orientation_x)
 end
 
 """
@@ -692,9 +737,6 @@ end
 Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!`
 (which returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData1D(sol::TrixiODESolution; kwargs...)
     PlotData1D(sol.u[end], sol.prob.p; kwargs...)

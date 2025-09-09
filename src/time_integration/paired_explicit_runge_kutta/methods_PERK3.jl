@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Initialize Butcher array abscissae c for PairedExplicitRK3 based on SSPRK33 base method
-function compute_c_coeffs(num_stages, cS2)
+function PERK3_compute_c_coeffs(num_stages, cS2)
     c = zeros(eltype(cS2), num_stages)
 
     # Last timesteps as for SSPRK33, see motivation in Section 3.3 of
@@ -28,41 +28,38 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
                                                    eig_vals::Vector{ComplexF64};
                                                    verbose = false, cS2)
     # Initialize array of c
-    c = compute_c_coeffs(num_stages, cS2)
+    c = PERK3_compute_c_coeffs(num_stages, cS2)
 
     # Initialize the array of our solution
     a_unknown = zeros(num_stages - 2)
 
+    dtmax = tspan[2] - tspan[1]
+    dteps = 1.0f-9
+
+    num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
+
+    consistency_order = 3
+    monomial_coeffs, dt_opt = bisect_stability_polynomial(consistency_order,
+                                                          num_eig_vals, num_stages,
+                                                          dtmax, dteps,
+                                                          eig_vals; verbose)
+
     # Special case of e = 3
-    if num_stages == 3
+    if num_stages == consistency_order
         a_unknown = [0.25] # Use classic SSPRK33 (Shu-Osher) Butcher Tableau
     else
-        # Calculate coefficients of the stability polynomial in monomial form
-        consistency_order = 3
-        dtmax = tspan[2] - tspan[1]
-        dteps = 1.0f-9
-
-        num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
-
-        monomial_coeffs, dt_opt = bisect_stability_polynomial(consistency_order,
-                                                              num_eig_vals, num_stages,
-                                                              dtmax, dteps,
-                                                              eig_vals; verbose)
-        monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
-                                              num_stages)
-
         # Solve the nonlinear system of equations from monomial coefficient and
         # Butcher array abscissae c to find Butcher matrix A
         # This function is extended in TrixiNLsolveExt.jl
         a_unknown = solve_a_butcher_coeffs_unknown!(a_unknown, num_stages,
-                                                    monomial_coeffs, cS2, c;
+                                                    monomial_coeffs, c;
                                                     verbose)
     end
-    # Fill A-matrix in P-ERK style
-    a_matrix = zeros(num_stages - 2, 2)
-    a_matrix[:, 1] = c[3:end]
-    a_matrix[:, 1] -= a_unknown
-    a_matrix[:, 2] = a_unknown
+    # Fill A-matrix in PERK style
+    a_matrix = zeros(2, num_stages - 2)
+    a_matrix[1, :] = c[3:end]
+    a_matrix[1, :] -= a_unknown
+    a_matrix[2, :] = a_unknown
 
     return a_matrix, c, dt_opt
 end
@@ -74,13 +71,13 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                    cS2)
 
     # Initialize array of c
-    c = compute_c_coeffs(num_stages, cS2)
+    c = PERK3_compute_c_coeffs(num_stages, cS2)
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
-    a_coeffs_max = num_stages - 2
+    num_a_coeffs_max = num_stages - 2
 
-    a_matrix = zeros(a_coeffs_max, 2)
-    a_matrix[:, 1] = c[3:end]
+    a_matrix = zeros(2, num_a_coeffs_max)
+    a_matrix[1, :] = c[3:end]
 
     path_a_coeffs = joinpath(base_path_a_coeffs,
                              "a_" * string(num_stages) * ".txt")
@@ -89,10 +86,10 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     a_coeffs = readdlm(path_a_coeffs, Float64)
     num_a_coeffs = size(a_coeffs, 1)
 
-    @assert num_a_coeffs == a_coeffs_max
-    # Fill A-matrix in P-ERK style
-    a_matrix[:, 1] -= a_coeffs
-    a_matrix[:, 2] = a_coeffs
+    @assert num_a_coeffs == num_a_coeffs_max
+    # Fill A-matrix in PERK style
+    a_matrix[1, :] -= a_coeffs
+    a_matrix[2, :] = a_coeffs
 
     return a_matrix, c
 end
@@ -105,47 +102,56 @@ end
     PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
                       verbose = false, cS2 = 1.0f0)
 
-    Parameters:
-    - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.
-    - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
-      the Butcher tableau of the Runge Kutta method.
-      The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
-    - `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
-       In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
-    - `tspan`: Time span of the simulation.
-    - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
-    -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
-      equation has been semidiscretized.
-    - `verbose` (`Bool`, optional): Verbosity flag, default is false.
-    - `cS2` (`Float64`, optional): Value of c in the Butcher tableau at c_{s-2}, when
-      s is the number of stages, default is 1.0f0.
-
 The following structures and methods provide an implementation of
-the third-order paired explicit Runge-Kutta (P-ERK) method
-optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solver).
+the third-order paired explicit Runge-Kutta (PERK) method
+optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
 The original paper is
-- Nasab, Vermeire (2022)
-Third-order Paired Explicit Runge-Kutta schemes for stiff systems of equations
-[DOI: 10.1016/j.jcp.2022.111470](https://doi.org/10.1016/j.jcp.2022.111470)
-While the changes to SSPRK33 base-scheme are described in 
-- Doehring, Schlottke-Lakemper, Gassner, Torrilhon (2024)
-Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
-[DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)
 
-Note: To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages.
+- Nasab, Vermeire (2022)
+  Third-order Paired Explicit Runge-Kutta schemes for stiff systems of equations
+  [DOI: 10.1016/j.jcp.2022.111470](https://doi.org/10.1016/j.jcp.2022.111470)
+
+  While the changes to SSPRK33 base-scheme are described in 
+- Doehring, Schlottke-Lakemper, Gassner, Torrilhon (2024)
+  Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
+  [DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)                      
+
+# Arguments
+- `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (PERK) method.
+- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
+    the Butcher tableau of the Runge Kutta method.
+    The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+    In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
+- `tspan`: Time span of the simulation.
+- `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
+- `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
+    equation has been semidiscretized.
+- `verbose` (`Bool`, optional): Verbosity flag, default is false.
+- `cS2` (`Float64`, optional): Value of $c_{S-2}$ in the Butcher tableau, where
+    $S$ is the number of stages. Default is `1.0f0`.
+
+!!! note
+    To use this integrator, the user must import the 
+    [Convex.jl](https://github.com/jump-dev/Convex.jl), 
+    [ECOS.jl](https://github.com/jump-dev/ECOS.jl), and
+    [NLSolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) packages
+    unless the A-matrix coefficients are provided in a `a_<num_stages>.txt` file.
 """
-mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
-    const num_stages::Int # S
+struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
+    num_stages::Int # S
 
     a_matrix::Matrix{Float64}
     c::Vector{Float64}
+
     dt_opt::Union{Float64, Nothing}
-end # struct PairedExplicitRK3
+end
 
 # Constructor for previously computed A Coeffs
 function PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
                            dt_opt = nothing;
                            cS2 = 1.0f0)
+    @assert num_stages>=3 "PERK3 requires at least three stages"
     a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                             base_path_a_coeffs;
                                                             cS2)
@@ -156,6 +162,7 @@ end
 # Constructor that computes Butcher matrix A coefficients from a semidiscretization
 function PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
                            verbose = false, cS2 = 1.0f0)
+    @assert num_stages>=3 "PERK3 requires at least three stages"
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     return PairedExplicitRK3(num_stages, tspan, eig_vals; verbose, cS2)
@@ -164,6 +171,7 @@ end
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
 function PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false, cS2 = 1.0f0)
+    @assert num_stages>=3 "PERK3 requires at least three stages"
     a_matrix, c, dt_opt = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                                     tspan,
                                                                     eig_vals;
@@ -175,28 +183,29 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
+mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType <: AbstractVector,
+                                           Params, Sol, F,
                                            PairedExplicitRKOptions} <:
                AbstractPairedExplicitRKSingleIntegrator
     u::uType
     du::uType
     u_tmp::uType
     t::RealT
-    tdir::RealT
+    tdir::RealT # DIRection of time integration, i.e., if one marches forward or backward in time
     dt::RealT # current time step
     dtcache::RealT # manually set time step
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F
-    alg::Alg # This is our own class written above; Abbreviation for ALGorithm
+    f::F # `rhs!` of the semidiscretization
+    alg::PairedExplicitRK3
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
     dtchangeable::Bool
     force_stepfail::Bool
-    # PairedExplicitRK stages:
+    # Additional PERK3 registers
     k1::uType
-    k_higher::uType
+    kS1::uType
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK3;
@@ -205,9 +214,9 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
     du = zero(u0)
     u_tmp = zero(u0)
 
-    # PairedExplicitRK stages
+    # Additional PERK3 registers
     k1 = zero(u0)
-    k_higher = zero(u0)
+    kS1 = zero(u0)
 
     t0 = first(ode.tspan)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
@@ -220,18 +229,9 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
                                                                      ode.tspan;
                                                                      kwargs...),
                                              false, true, false,
-                                             k1, k_higher)
+                                             k1, kS1)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        for cb in callback.continuous_callbacks
-            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-
-            Kutta methods."))
-        end
-        for cb in callback.discrete_callbacks
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
 end
@@ -249,88 +249,52 @@ function step!(integrator::PairedExplicitRK3Integrator)
 
     modify_dt_for_tstops!(integrator)
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
-        # k1
-        integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
-        @threaded for i in eachindex(integrator.du)
-            integrator.k1[i] = integrator.du[i] * integrator.dt
-        end
+        # First and second stage are identical across all single/standalone PERK methods
+        PERK_k1!(integrator, prob.p)
+        PERK_k2!(integrator, prob.p, alg)
 
-        # Construct current state
-        @threaded for i in eachindex(integrator.du)
-            integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
-        end
-        # k2
-        integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                     integrator.t + alg.c[2] * integrator.dt)
-
-        @threaded for i in eachindex(integrator.du)
-            integrator.k_higher[i] = integrator.du[i] * integrator.dt
-        end
-
-        # Higher stages
         for stage in 3:(alg.num_stages - 1)
-            # Construct current state
-            @threaded for i in eachindex(integrator.du)
-                integrator.u_tmp[i] = integrator.u[i] +
-                                      alg.a_matrix[stage - 2, 1] *
-                                      integrator.k1[i] +
-                                      alg.a_matrix[stage - 2, 2] *
-                                      integrator.k_higher[i]
-            end
-
-            integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                         integrator.t + alg.c[stage] * integrator.dt)
-
-            @threaded for i in eachindex(integrator.du)
-                integrator.k_higher[i] = integrator.du[i] * integrator.dt
-            end
+            PERK_ki!(integrator, prob.p, alg, stage)
         end
 
-        # Last stage
-        @threaded for i in eachindex(integrator.du)
-            integrator.u_tmp[i] = integrator.u[i] +
-                                  alg.a_matrix[alg.num_stages - 2, 1] *
-                                  integrator.k1[i] +
-                                  alg.a_matrix[alg.num_stages - 2, 2] *
-                                  integrator.k_higher[i]
+        # We need to store `du` of the S-1 stage in `kS1` for the final update:
+        @threaded for i in eachindex(integrator.u)
+            integrator.kS1[i] = integrator.du[i]
         end
 
-        integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                     integrator.t + alg.c[alg.num_stages] * integrator.dt)
+        PERK_ki!(integrator, prob.p, alg, alg.num_stages)
 
         @threaded for i in eachindex(integrator.u)
             # "Own" PairedExplicitRK based on SSPRK33.
-            # Note that 'k_higher' carries the values of K_{S-1}
+            # Note that 'kS1' carries the values of K_{S-1}
             # and that we construct 'K_S' "in-place" from 'integrator.du'
-            integrator.u[i] += (integrator.k1[i] + integrator.k_higher[i] +
-                                4.0 * integrator.du[i] * integrator.dt) / 6.0
+            integrator.u[i] += integrator.dt *
+                               (integrator.k1[i] + integrator.kS1[i] +
+                                4.0 * integrator.du[i]) / 6.0
         end
-    end # PairedExplicitRK step timer
+    end
 
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    # handle callbacks
-    if callbacks isa CallbackSet
-        for cb in callbacks.discrete_callbacks
-            if cb.condition(integrator.u, integrator.t, integrator)
-                cb.affect!(integrator)
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
+end
+
+function Base.resize!(integrator::PairedExplicitRK3Integrator, new_size)
+    resize!(integrator.u, new_size)
+    resize!(integrator.du, new_size)
+    resize!(integrator.u_tmp, new_size)
+
+    resize!(integrator.k1, new_size)
+    resize!(integrator.kS1, new_size)
+
+    return nothing
 end
 end # @muladd

@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -21,14 +21,14 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 tspan = (load_time(restart_filename), 2.0)
 dt = load_dt(restart_filename)
-ode = semidiscretize(semi, tspan, restart_filename);
+ode = semidiscretize(semi, tspan, restart_filename)
 
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
 save_solution.condition.save_initial_solution = false
 
-integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
+integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false);
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks, maxiters = 100_000);
+                  ode_default_options()..., callback = callbacks, maxiters = 100_000);
 
 # Get the last time index and work with that.
 load_timestep!(integrator, restart_filename)
@@ -37,8 +37,3 @@ load_timestep!(integrator, restart_filename)
 # run the simulation
 
 sol = solve!(integrator)
-summary_callback() # print the timer summary
-
-# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
-# released before `MPI` finalizes.
-!isinteractive() && finalize(mesh)

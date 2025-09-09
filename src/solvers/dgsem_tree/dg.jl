@@ -12,7 +12,7 @@ function reset_du!(du, dg, cache, element_indices = eachelement(dg, cache))
         du[.., element] .= zero(eltype(du))
     end
 
-    return du
+    return nothing
 end
 
 function volume_jacobian(element, mesh::TreeMesh, cache)

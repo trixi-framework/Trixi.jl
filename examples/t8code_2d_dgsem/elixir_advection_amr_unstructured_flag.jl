@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -88,12 +88,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # Run the simulation.
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-summary_callback() # print the timer summary
-
-# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
-# released before `MPI` finalizes.
-!isinteractive() && finalize(mesh)
+            ode_default_options()..., callback = callbacks);
