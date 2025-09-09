@@ -22,7 +22,8 @@ initial_condition = initial_condition_subsonic
 # increase of refinement level, see https://github.com/trixi-framework/Trixi.jl/issues/2530
 # These errors arise from the corner points in this test.
 
-# See the reference below for a discussion on inflow/outflow boundary conditions.
+# See the reference below for a discussion on inflow/outflow boundary conditions. The subsonic
+# outflow boundary conditions are discussed in Section 2.3.
 #
 # - Jan-Reneé Carlson (2011)
 #   Inflow/Outflow Boundary Conditions with Application to FUN3D.
