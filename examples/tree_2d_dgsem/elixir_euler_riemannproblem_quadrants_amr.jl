@@ -62,7 +62,8 @@ end
 # is difficult.
 # Since the initial condition is queried in `boundary_condition_subsonic` above
 # these difficulties propagate to the boundary conditions.
-# The setup below is a workaround and works for this specific example, but 
+#
+# The setup below is a working configuration for this specific example, but 
 # generalization to other simulations cannot be expected.
 boundary_conditions = (x_neg = boundary_condition_subsonic,
                        x_pos = boundary_condition_do_nothing,
