@@ -37,7 +37,7 @@
 using Trixi
 rm("out", force = true, recursive = true) #hide #md
 redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi_include(default_example_unstructured())
+trixi_include(default_example_unstructured());
 end #hide #md
 
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
@@ -54,7 +54,7 @@ end #hide #md
 
 using Trixi2Vtk
 redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi2vtk("out/solution_000000180.h5", output_directory = "out")
+trixi2vtk("out/solution_000000180.h5", output_directory = "out")
 end #hide #md
 
 # Note this step takes about 15-30 seconds as the package `Trixi2Vtk` must be precompiled and executed for the first time
@@ -64,7 +64,7 @@ end #hide #md
 # visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
 
 redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi2vtk("out/solution_000000180.h5", output_directory = "out", nvisnodes = 12)
+trixi2vtk("out/solution_000000180.h5", output_directory = "out", nvisnodes = 12)
 end #hide #md
 
 # By default `trixi2vtk` sets `nvisnodes` to be the same as the number of nodes specified in
@@ -73,7 +73,7 @@ end #hide #md
 # Finally, if you want to convert all the solution files to VTK execute
 
 redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi2vtk("out/solution_000*.h5", output_directory = "out", nvisnodes = 12)
+trixi2vtk("out/solution_000*.h5", output_directory = "out", nvisnodes = 12)
 end #hide #md
 
 # then it is possible to open the `.pvd` file with ParaView and create a video of the simulation.
@@ -366,10 +366,10 @@ stepsize_callback = StepsizeCallback(cfl = 1.0)
 callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
 
 redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    ## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
-    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-                dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                ode_default_options()..., callback = callbacks)
+## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);
 end #hide #md
 
 # Visualization of the solution is carried out in a similar way as above. That is, one converts the `.h5`
