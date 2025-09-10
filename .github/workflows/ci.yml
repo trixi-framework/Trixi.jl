@@ -52,7 +52,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'
+          - '1.11'
           # - '~1.10.0-0' # including development versions
           # - 'nightly'
         os:
@@ -109,12 +109,10 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      - name: TrixiTest.jl dev version
-        shell: julia --project="./test" --color=yes {0}
-        run: |
-          using Pkg
-          Pkg.add(PackageSpec(url="https://github.com/trixi-framework/TrixiTest.jl", rev="bg/provide-more-test-macros"))
-          Pkg.instantiate()
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ''
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         with:
