@@ -144,7 +144,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 1.8)
+stepsize_callback = StepsizeCallback(cfl = 2.4)
 
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
