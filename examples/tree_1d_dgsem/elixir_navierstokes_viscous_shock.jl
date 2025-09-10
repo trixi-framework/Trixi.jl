@@ -102,7 +102,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 ### Inviscid boundary conditions ###
 
 # Prescribe pure influx based on initial conditions
-function boundary_condition_inflow(u_inner, orientation::Integer, normal_direction, x, t,
+function boundary_condition_inflow(u_inner, orientation::Integer, direction, x, t,
                                    surface_flux_function,
                                    equations::CompressibleEulerEquations1D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
@@ -112,7 +112,7 @@ function boundary_condition_inflow(u_inner, orientation::Integer, normal_directi
 end
 
 # Completely free outflow
-function boundary_condition_outflow(u_inner, orientation::Integer, normal_direction, x, t,
+function boundary_condition_outflow(u_inner, orientation::Integer, direction, x, t,
                                     surface_flux_function,
                                     equations::CompressibleEulerEquations1D)
     # Calculate the boundary flux entirely from the internal solution state
