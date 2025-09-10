@@ -71,4 +71,4 @@ Test = "1"
 TrixiTest = "0.1"
 
 [sources]
-Example = {url = "https://github.com/trixi-framework/TrixiTest.jl", rev = "bg/provide-more-test-macros"}
+TrixiTest = {url = "https://github.com/trixi-framework/TrixiTest.jl", rev = "bg/provide-more-test-macros"}
