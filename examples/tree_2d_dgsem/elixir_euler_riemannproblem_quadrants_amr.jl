@@ -105,7 +105,8 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 #           { u_1, if x <= x_jump
 # u(x, t) = {
 #           { u_2, if x > x_jump
-function Trixi.compute_coefficients!(u, func::typeof(initial_condition_rp), t,
+function Trixi.compute_coefficients!(backend::Nothing, u,
+                                     func::typeof(initial_condition_rp), t,
                                      mesh::TreeMesh{2}, equations, dg::DG, cache)
     Trixi.@threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
@@ -123,7 +124,7 @@ function Trixi.compute_coefficients!(u, func::typeof(initial_condition_rp), t,
             end
 
             u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, element)
+            Trixi.set_node_vars!(u, u_node, equations, dg, i, j, element)
         end
     end
 end
@@ -149,10 +150,10 @@ stepsize_callback = StepsizeCallback(cfl = 2.4)
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 3,
-                                      med_level = 5, med_threshold = 0.02,
-                                      max_level = 8, max_threshold = 0.04)
+                                      med_level = 5, med_threshold = 0.01,
+                                      max_level = 8, max_threshold = 0.02)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 10,
+                           interval = 5,
                            adapt_initial_condition = true)
 
 callbacks = CallbackSet(summary_callback,
