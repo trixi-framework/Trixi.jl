@@ -1081,6 +1081,29 @@ end
         end
     end
 end
+
+# Constant subsonic flow test
+@trixi_testset "elixir_euler_subsonic_constant.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_subsonic_constant.jl"),
+                        l2=[
+                            9.135564506684991e-14, 1.9441147665983966e-14,
+                            1.94425866451226e-14, 1.7503189225604875e-13
+                        ],
+                        linf=[
+                            1.0769163338864018e-13, 8.487407677783974e-14,
+                            8.515583343047957e-14, 2.0472512574087887e-13
+                        ],
+                        initial_refinement_level=7,
+                        tspan=(0.0, 0.1)) # this test is sensitive to the CFL factor
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 end # module
