@@ -15,6 +15,12 @@ macro test_trixi_include(expr, args...)
         r"┌ Warning: #= /home/runner/work/Trixi.jl/Trixi.jl/src/solvers/dgsem/interpolation.jl:118 =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi ~/.julia/packages/LoopVectorization/.*\n",
         r"┌ Warning: #= /home/runner/work/Trixi.jl/Trixi.jl/src/solvers/dgsem/interpolation.jl:136 =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi ~/.julia/packages/LoopVectorization/.*\n"
     ]
+    # if `maxiters` is set in tests, it is usually set to a small number to
+    # run only a few steps - ignore possible warnings coming from that
+    if any(expr.args[1] == (:maxiters) for expr in args)
+        push!(add_to_additional_ignore_content,
+              r"┌ Warning: Interrupted\. Larger maxiters is needed\..*\n└ @ Trixi .+\n")
+    end
     args = append_to_kwargs(args, :additional_ignore_content,
                             add_to_additional_ignore_content)
     ex = quote
