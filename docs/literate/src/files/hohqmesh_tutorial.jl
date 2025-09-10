@@ -34,9 +34,10 @@
 # Trixi.jl supports solving hyperbolic problems on several mesh types.
 # There is a default example for this mesh type that can be executed by
 
-# Test 1: current state
 using Trixi
 rm("out", force = true, recursive = true) #hide #md
+# Test 1: current state
+
 redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
     trixi_include(default_example_unstructured())
 end #hide #md
@@ -57,6 +58,22 @@ trixi_include(default_example_unstructured())
 # Test 4: no redirect_stdio and ; (Formatter hates it)
 trixi_include(default_example_unstructured());
 
+# Test 5: no redirect_stdio and ; (Formatter hates it)
+trixi_include(default_example_unstructured());
+nothing; #hide
+
+# Test 6: no redirect_stdio and ; (Formatter hates it)
+trixi_include(default_example_unstructured())
+nothing; #hide
+
+# Test 7: no redirect_stdio and ; (Formatter hates it)
+trixi_include(default_example_unstructured());
+nothing #hide
+
+# Test 8: no redirect_stdio and ; (Formatter hates it)
+trixi_include(default_example_unstructured())
+nothing #hide
+
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
 # on the curved quadrilateral mesh described in the
 # [Trixi.jl documentation](https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/unstructured_quad_mesh/).
@@ -70,7 +87,22 @@ trixi_include(default_example_unstructured());
 # To convert the HDF5-formatted `.h5` output file(s) from Trixi.jl into VTK format execute the following
 
 using Trixi2Vtk
+# 1
 trixi2vtk("out/solution_000000180.h5", output_directory = "out")
+# 2
+trixi2vtk("out/solution_000000180.h5", output_directory = "out");
+# 3
+trixi2vtk("out/solution_000000180.h5", output_directory = "out")
+nothing; #hide
+# 4
+trixi2vtk("out/solution_000000180.h5", output_directory = "out");
+nothing; #hide
+# 5
+trixi2vtk("out/solution_000000180.h5", output_directory = "out")
+nothing #hide
+# 6
+trixi2vtk("out/solution_000000180.h5", output_directory = "out");
+nothing #hide
 
 # Note this step takes about 15-30 seconds as the package `Trixi2Vtk` must be precompiled and executed for the first time
 # in your REPL session. The `trixi2vtk` command above will convert the solution file at the final time into a `.vtu` file
@@ -382,8 +414,21 @@ redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoyin
 ## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            ode_default_options()..., callback = callbacks);
+            ode_default_options()..., callback = callbacks)
 end #hide #md
+
+# Test
+## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);
+
+# Test
+## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);
+nothing #hide
 
 # Visualization of the solution is carried out in a similar way as above. That is, one converts the `.h5`
 # output files with `trixi2vtk` and then plot the solution in ParaView. An example plot of the pressure
