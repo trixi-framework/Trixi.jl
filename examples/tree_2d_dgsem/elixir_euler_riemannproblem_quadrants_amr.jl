@@ -105,7 +105,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 #           { u_1, if x <= x_jump
 # u(x, t) = {
 #           { u_2, if x > x_jump
-function Trixi.compute_coefficients!(u, func, t,
+function Trixi.compute_coefficients!(u, func::typeof(initial_condition_rp), t,
                                      mesh::TreeMesh{2}, equations, dg::DG, cache)
     Trixi.@threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
