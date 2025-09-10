@@ -1104,6 +1104,32 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_euler_riemannproblem_quadrants_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_riemannproblem_quadrants_amr.jl"),
+                        tspan=(0.0, 0.05),
+                        l2=[
+                            0.12802172216950314,
+                            0.1333199240875145,
+                            0.13331992408751456,
+                            0.48888051192644405
+                        ],
+                        linf=[
+                            0.853710403180942,
+                            0.9151148367639803,
+                            0.9151148367639808,
+                            3.4300525777582864
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 end # module
