@@ -52,25 +52,25 @@ redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoyin
 trixi_include(default_example_unstructured())
 end #hide #md
 
-# Test 3: no redirect_stdio and no ;
+# Test 3: no ;
 trixi_include(default_example_unstructured())
 
-# Test 4: no redirect_stdio and ; (Formatter hates it)
+# Test 4: ;
 trixi_include(default_example_unstructured());
 
-# Test 5: no redirect_stdio and ; (Formatter hates it)
+# Test 5: ; and nothing
 trixi_include(default_example_unstructured());
 nothing; #hide
 
-# Test 6: no redirect_stdio and ; (Formatter hates it)
+# Test 6: no ; and nothing;
 trixi_include(default_example_unstructured())
 nothing; #hide
 
-# Test 7: no redirect_stdio and ; (Formatter hates it)
+# Test 7: ; and nothing
 trixi_include(default_example_unstructured());
 nothing #hide
 
-# Test 8: no redirect_stdio and ; (Formatter hates it)
+# Test 8: no ; and nothing
 trixi_include(default_example_unstructured())
 nothing #hide
 
