@@ -3,8 +3,7 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
-gamma = 5 / 3
-equations = IdealGlmMhdEquations2D(gamma)
+equations = IdealGlmMhdEquations2D(5 / 3)
 
 initial_condition = initial_condition_convergence_test
 

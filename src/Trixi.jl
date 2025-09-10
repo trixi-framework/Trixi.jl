@@ -18,7 +18,7 @@ module Trixi
 using Preferences: @load_preference, set_preferences!
 const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
 const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
-const _PREFERENCE_THREADING = @load_preference("backend", :polyester)
+const _PREFERENCE_THREADING = Symbol(@load_preference("backend", "polyester"))
 const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
 
 # Include other packages that are used in Trixi.jl
@@ -310,7 +310,9 @@ export trixi_include, examples_dir, get_examples, default_example,
 
 export ode_norm, ode_unstable_check
 
-export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
+export convergence_test,
+       jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
+       linear_structure
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 

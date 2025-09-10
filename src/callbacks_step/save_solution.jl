@@ -166,7 +166,9 @@ function initialize_save_cb!(solution_callback::SaveSolutionCallback, u, t, inte
     mpi_isroot() && mkpath(solution_callback.output_directory)
 
     semi = integrator.p
-    @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory, integrator.iter + solution_callback.iter_offset)
+    @trixi_timeit timer() "I/O" save_mesh(semi, solution_callback.output_directory,
+                                          integrator.iter +
+                                          solution_callback.iter_offset)
 
     if solution_callback.save_initial_solution
         solution_callback(integrator)
@@ -235,12 +237,14 @@ function (solution_callback::SaveSolutionCallback)(integrator)
     semi = integrator.p
     iter = integrator.stats.naccept
 
-    println("iter + solution_callback.iter_offset = ", iter + solution_callback.iter_offset)
+    println("iter + solution_callback.iter_offset = ",
+            iter + solution_callback.iter_offset)
     @trixi_timeit timer() "I/O" begin
         # Call high-level functions that dispatch on semidiscretization type
         @trixi_timeit timer() "save mesh" save_mesh(semi,
                                                     solution_callback.output_directory,
-                                                    iter + solution_callback.iter_offset)
+                                                    iter +
+                                                    solution_callback.iter_offset)
         save_solution_file(semi, u_ode, solution_callback, integrator)
     end
 
@@ -274,11 +278,16 @@ end
     @trixi_timeit timer() "get node variables" get_node_variables!(solution_callback.node_variables,
                                                                    u_ode, semi)
 
-    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter + solution_callback.iter_offset, semi,
+    @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt,
+                                                             iter +
+                                                             solution_callback.iter_offset,
+                                                             semi,
                                                              solution_callback,
                                                              element_variables,
                                                              solution_callback.node_variables,
                                                              system = system)
+
+    return nothing
 end
 
 @inline function save_solution_file(u_ode, t, dt, iter,
@@ -292,6 +301,8 @@ end
                        solution_callback,
                        element_variables,
                        node_variables; system = system)
+
+    return nothing
 end
 
 # TODO: Taal refactor, move save_mesh_file?

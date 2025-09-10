@@ -96,7 +96,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                                   T8codeMesh{2}},
                       equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
-    MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
+    MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
+                  uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
     fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
     fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
@@ -107,8 +108,10 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
     # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
     # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
 
-    (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
+    cache = (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+             fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
+
+    return cache
 end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
@@ -802,6 +805,8 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                                      have_nonconservative_terms(equations),
                                      equations, surface_integral, dg, cache,
                                      4, firsts[4], lasts[4])
+
+    return nothing
 end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 4},
