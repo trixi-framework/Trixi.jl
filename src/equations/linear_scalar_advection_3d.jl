@@ -15,7 +15,7 @@ The linear scalar advection equation
 in three space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation3D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{3, 1}
+       AbstractLinearScalarAdvectionEquation{3}
     advection_velocity::SVector{3, RealT}
 end
 
@@ -37,10 +37,6 @@ varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar",)
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation3D)
-    # Store translated coordinate for easy use of exact solution
-    RealT = eltype(x)
-    x_trans = x - equation.advection_velocity * t
-
     return SVector(RealT(2))
 end
 

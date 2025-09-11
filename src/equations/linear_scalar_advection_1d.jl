@@ -15,7 +15,7 @@ The linear scalar advection equation
 in one space dimension with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation1D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{1, 1}
+       AbstractLinearScalarAdvectionEquation{1}
     advection_velocity::SVector{1, RealT}
 end
 
@@ -33,10 +33,6 @@ varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation1D) = ("scalar",)
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation1D)
-    # Store translated coordinate for easy use of exact solution
-    RealT = eltype(x)
-    x_trans = x - equation.advection_velocity * t
-
     return SVector(RealT(2))
 end
 
