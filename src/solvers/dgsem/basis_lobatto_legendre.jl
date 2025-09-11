@@ -246,7 +246,7 @@ struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
        AbstractMortar{RealT}
     positivity_variables_cons::Vector{Int}
     mortar_l2::Mortar
-    mortar_weights::Matrix{RealT}      # [large element, small element]
+    mortar_weights::Matrix{RealT}      # [node (large element), node (small element)]
     mortar_weights_sums::Matrix{RealT} # [node, left/right/large element]
 end
 

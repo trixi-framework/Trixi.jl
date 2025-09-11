@@ -61,7 +61,7 @@ end
 
 function calc_mortar_weights(basis, RealT)
     n_nodes = nnodes(basis)
-    weights = zeros(RealT, n_nodes, 2 * n_nodes) # [large element, small element]
+    weights = zeros(RealT, n_nodes, 2 * n_nodes) # [node (large element), node (small element)]
     weights_sum = zeros(RealT, n_nodes, 3)       # [node, left/right/large element]
 
     calc_mortar_weights!(weights, n_nodes, RealT)
