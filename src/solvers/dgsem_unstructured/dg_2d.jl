@@ -343,8 +343,8 @@ function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
     remaining_boundary_condition_indices = Base.tail(BC_indices)
 
     # process the first boundary condition type
-    calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices,
-                        mesh, equations, surface_integral, dg)
+    calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices, mesh,
+                        equations, surface_integral, dg)
 
     # recursively call this method with the unprocessed boundary types
     calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,

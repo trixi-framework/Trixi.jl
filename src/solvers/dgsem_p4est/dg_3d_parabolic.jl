@@ -122,8 +122,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # specialization for AbstractEquationsParabolic.
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
-                             mesh, False(), # False() = no nonconservative terms
-                             equations_parabolic, dg.surface_integral, dg,
+                             mesh, equations_parabolic, dg.surface_integral, dg,
                              cache_parabolic)
     end
 
@@ -354,6 +353,7 @@ end
 # This version is used for parabolic gradient computations
 @inline function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
                                       nonconservative_terms::False,
+                                      have_aux_node_vars::False,
                                       equations::AbstractEquationsParabolic,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
