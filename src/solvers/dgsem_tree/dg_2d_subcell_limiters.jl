@@ -1030,15 +1030,15 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     if local_factor
                         factor = mortar_weights[j, i]
                         if !isapprox(factor, zero(typeof(factor)))
-                            factor = factor / mortar_weights_sums[i]
                             # Lower element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor,
+                                                       factor / mortar_weights_sums[i],
                                                        flux, equations, dg, i,
                                                        direction_small, lower_element)
                             # Large element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       0.5f0 * factor,
+                                                       0.5f0 * factor /
+                                                       mortar_weights_sums[j],
                                                        flux, equations, dg, j,
                                                        direction_large, large_element)
                         end
@@ -1069,15 +1069,15 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     if local_factor
                         factor = mortar_weights[j, i + nnodes(dg)]
                         if !isapprox(factor, zero(typeof(factor)))
-                            factor = factor / mortar_weights_sums[i]
                             # Upper element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor,
+                                                       factor / mortar_weights_sums[i],
                                                        flux, equations, dg, i,
                                                        direction_small, upper_element)
                             # Large element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       0.5f0 * factor,
+                                                       0.5f0 * factor /
+                                                       mortar_weights_sums[j],
                                                        flux, equations, dg, j,
                                                        direction_large, large_element)
                         end
@@ -1122,15 +1122,15 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     if local_factor
                         factor = mortar_weights[j, i]
                         if !isapprox(factor, zero(typeof(factor)))
-                            factor = factor / mortar_weights_sums[i]
                             # Lower element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor,
+                                                       factor / mortar_weights_sums[i],
                                                        flux, equations, dg, i,
                                                        direction_small, lower_element)
                             # Large element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       0.5f0 * factor,
+                                                       0.5f0 * factor /
+                                                       mortar_weights_sums[j],
                                                        flux, equations, dg, j,
                                                        direction_large, large_element)
                         end
@@ -1161,15 +1161,15 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     if local_factor
                         factor = mortar_weights[j, i + nnodes(dg)]
                         if !isapprox(factor, zero(typeof(factor)))
-                            factor = factor / mortar_weights_sums[i]
                             # Upper element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor,
+                                                       factor / mortar_weights_sums[i],
                                                        flux, equations, dg, i,
                                                        direction_small, upper_element)
                             # Large element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       0.5f0 * factor,
+                                                       0.5f0 * factor /
+                                                       mortar_weights_sums[j],
                                                        flux, equations, dg, j,
                                                        direction_large, large_element)
                         end
