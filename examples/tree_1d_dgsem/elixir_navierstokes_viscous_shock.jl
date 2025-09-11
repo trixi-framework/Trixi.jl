@@ -107,8 +107,6 @@ function boundary_condition_inflow(u_inner, orientation::Integer, direction, x, 
                                    equations::CompressibleEulerEquations1D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
     return flux(u_cons, orientation, equations)
-
-    return flux
 end
 
 # Completely free outflow
@@ -117,8 +115,6 @@ function boundary_condition_outflow(u_inner, orientation::Integer, direction, x,
                                     equations::CompressibleEulerEquations1D)
     # Calculate the boundary flux entirely from the internal solution state
     return flux(u_inner, orientation, equations)
-
-    return flux
 end
 
 boundary_conditions = (; x_neg = boundary_condition_inflow,
