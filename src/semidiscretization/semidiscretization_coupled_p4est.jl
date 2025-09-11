@@ -602,10 +602,4 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     return flux
 end
 
-# Don't do anything for other BCs than BoundaryConditionCoupled
-function allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
-                                             equations,
-                                             solver)
-    return nothing
-end
 end # @muladd
