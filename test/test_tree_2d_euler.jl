@@ -1048,6 +1048,9 @@ end
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
+
+    # test long printing format
+    @test_nowarn display(solver.mortar)
 end
 
 @trixi_testset "elixir_euler_colliding_flow.jl" begin

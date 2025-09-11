@@ -698,7 +698,7 @@ function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    limiting_factor = fill(typemin(Int), capacity)
+    limiting_factor = fill(nan, capacity)
 
     return IDPMortarContainer2D{uEltype}(u_upper, u_lower, u_large, neighbor_ids,
                                          large_sides, orientations, limiting_factor,

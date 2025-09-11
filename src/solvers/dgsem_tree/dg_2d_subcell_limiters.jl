@@ -1024,8 +1024,8 @@ function calc_mortar_flux_low_order!(surface_flux_values,
             surface_flux_values[:, :, direction_large, large_element] .= zero(eltype(surface_flux_values))
             # Lower element
             for i in eachnode(dg)
-                _, u_lower_local = get_surface_node_vars(u_lower, equations, dg, i,
-                                                         mortar) # u_rr
+                _, u_lower_local = get_surface_node_vars(u_lower, equations, dg,
+                                                         i, mortar) # u_rr
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
 
@@ -1064,8 +1064,8 @@ function calc_mortar_flux_low_order!(surface_flux_values,
             end
             # Upper element
             for i in eachnode(dg)
-                _, u_upper_local = get_surface_node_vars(u_upper, equations, dg, i,
-                                                         mortar) # u_rr
+                _, u_upper_local = get_surface_node_vars(u_upper, equations, dg,
+                                                         i, mortar) # u_rr
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
 
@@ -1118,8 +1118,8 @@ function calc_mortar_flux_low_order!(surface_flux_values,
             surface_flux_values[:, :, direction_large, large_element] .= zero(eltype(surface_flux_values))
             # Lower element
             for i in eachnode(dg)
-                u_lower_local, _ = get_surface_node_vars(u_lower, equations, dg, i,
-                                                         mortar) # u_ll
+                u_lower_local, _ = get_surface_node_vars(u_lower, equations, dg,
+                                                         i, mortar) # u_ll
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
 
@@ -1158,8 +1158,8 @@ function calc_mortar_flux_low_order!(surface_flux_values,
             end
             # Upper element
             for i in eachnode(dg)
-                u_upper_local, _ = get_surface_node_vars(u_upper, equations, dg, i,
-                                                         mortar) # u_ll
+                u_upper_local, _ = get_surface_node_vars(u_upper, equations, dg,
+                                                         i, mortar) # u_ll
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
 

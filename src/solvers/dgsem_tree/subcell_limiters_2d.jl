@@ -630,13 +630,13 @@ end
     mesh, _, solver, cache = mesh_equations_solver_cache(semi)
     (; positivity_variables_cons, positivity_variables_nonlinear) = solver.mortar
     (; limiting_factor) = cache.mortars
-    limiting_factor .= zeros(eltype(limiting_factor))
+    @trixi_timeit timer() "reset alpha" limiting_factor.=zeros(eltype(limiting_factor))
 
-    for var_index in positivity_variables_cons
+    @trixi_timeit timer() "conservative variables" for var_index in positivity_variables_cons
         limiting_positivity_conservative!(limiting_factor, u, dt, semi, mesh, var_index)
     end
 
-    for variable in positivity_variables_nonlinear
+    @trixi_timeit timer() "nonlinear variables" for variable in positivity_variables_nonlinear
         limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, mesh, variable)
     end
 
