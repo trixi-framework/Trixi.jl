@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
@@ -33,8 +33,10 @@ alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
 stepsize_callback = StepsizeCallback(cfl = 1.5)
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
 callbacks = CallbackSet(summary_callback, alive_callback, stepsize_callback,
-                        analysis_callback)
+                        analysis_callback, save_solution)
 
 ###############################################################################
 # run the simulation

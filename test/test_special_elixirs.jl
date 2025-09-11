@@ -3,6 +3,7 @@ module TestElixirs
 using LinearAlgebra
 using Test
 using Trixi
+using OrdinaryDiffEqSSPRK: SSPRK43
 
 import ForwardDiff
 
@@ -109,8 +110,54 @@ end
     @test A * x ≈ Ax
 end
 
+@testset "Test Jacobian of DG (1D)" begin
+    @timed_testset "TreeMesh: Linear advection" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "tree_1d_fdsbp",
+                               "elixir_advection_upwind.jl"),
+                      tspan = (0.0, 0.0))
+
+        A, _ = linear_structure(semi)
+
+        J = jacobian_ad_forward(semi)
+        @test Matrix(A) ≈ J
+        λ = eigvals(J)
+        @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+        J = jacobian_fd(semi)
+        @test Matrix(A) ≈ J
+        λ = eigvals(J)
+        @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+        # See https://github.com/trixi-framework/Trixi.jl/pull/2514
+        @test count(real.(λ) .>= -10) > 5
+        # See https://github.com/trixi-framework/Trixi.jl/pull/2522
+        t0 = zero(real(semi))
+        u0_ode = 1e9 * compute_coefficients(t0, semi)
+        J = jacobian_fd(semi; t0, u0_ode)
+        λ = eigvals(J)
+        @test count((-200 .<= real.(λ) .<= -10) .&& (-100 .<= imag.(λ) .<= 100)) == 0
+        @test count(isapprox.(imag.(λ), 0.0, atol = 10 * sqrt(eps(real(semi))))) == 2
+    end
+
+    @timed_testset "StructuredMesh: Compressible Euler equations" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "structured_1d_dgsem",
+                               "elixir_euler_source_terms.jl"),
+                      tspan = (0.0, 0.0))
+
+        J = jacobian_ad_forward(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 1e-13
+
+        J = jacobian_fd(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 5e-8
+    end
+end
+
 @testset "Test Jacobian of DG (2D)" begin
-    @timed_testset "Linear advection" begin
+    @timed_testset "TreeMesh: Linear advection" begin
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                "elixir_advection_extended.jl"),
@@ -128,7 +175,7 @@ end
         @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
     end
 
-    @timed_testset "Linear advection-diffusion" begin
+    @timed_testset "TreeMesh: Linear advection-diffusion" begin
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                "elixir_advection_diffusion.jl"),
@@ -137,9 +184,15 @@ end
         J = jacobian_ad_forward(semi)
         λ = eigvals(J)
         @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+        J_parabolic = jacobian_ad_forward_parabolic(semi)
+        λ_parabolic = eigvals(J_parabolic)
+        # Parabolic spectrum is real and negative
+        @test maximum(real, λ_parabolic) < 10^(-14)
+        @test maximum(imag, λ_parabolic) < 10^(-14)
     end
 
-    @timed_testset "Compressible Euler equations" begin
+    @timed_testset "TreeMesh: Compressible Euler equations" begin
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                "elixir_euler_density_wave.jl"),
@@ -162,9 +215,8 @@ end
             jacobian_ad_forward(semi)
         end
 
-        @timed_testset "DGMulti (weak form)" begin
-            gamma = 1.4
-            equations = CompressibleEulerEquations2D(gamma)
+        @timed_testset "DGMulti: Euler, weak form" begin
+            equations = CompressibleEulerEquations2D(1.4)
             initial_condition = initial_condition_density_wave
 
             solver = DGMulti(polydeg = 5, element_type = Quad(),
@@ -185,9 +237,8 @@ end
             @test maximum(real, λ) < 7.0e-7
         end
 
-        @timed_testset "DGMulti (SBP, flux differencing)" begin
-            gamma = 1.4
-            equations = CompressibleEulerEquations2D(gamma)
+        @timed_testset "DGMulti: Euler, SBP & flux differencing" begin
+            equations = CompressibleEulerEquations2D(1.4)
             initial_condition = initial_condition_density_wave
 
             solver = DGMulti(polydeg = 5, element_type = Quad(),
@@ -209,7 +260,7 @@ end
         end
     end
 
-    @timed_testset "Navier-Stokes" begin
+    @timed_testset "TreeMesh: Navier-Stokes" begin
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                "elixir_navierstokes_taylor_green_vortex.jl"),
@@ -218,9 +269,15 @@ end
         J = jacobian_ad_forward(semi)
         λ = eigvals(J)
         @test maximum(real, λ) < 0.2
+
+        J_parabolic = jacobian_ad_forward_parabolic(semi)
+        λ_parabolic = eigvals(J_parabolic)
+        # Parabolic spectrum is real and negative
+        @test maximum(real, λ_parabolic) < 10^(-16)
+        @test maximum(imag, λ_parabolic) < 10^(-15)
     end
 
-    @timed_testset "MHD" begin
+    @timed_testset "TreeMesh: MHD" begin
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                "elixir_mhd_alfven_wave.jl"),
@@ -228,7 +285,16 @@ end
         @test_nowarn jacobian_ad_forward(semi)
     end
 
-    @timed_testset "EulerGravity" begin
+    @timed_testset "UnstructuredMesh2D: Advection" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "unstructured_2d_dgsem",
+                               "elixir_advection_basic.jl"),
+                      tspan = (0.0, 0.0))
+
+        @test_nowarn jacobian_ad_forward(semi)
+    end
+
+    @timed_testset "TreeMesh: EulerGravity" begin
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR,
                                "paper_self_gravitating_gas_dynamics",
@@ -237,6 +303,44 @@ end
         J = jacobian_ad_forward(semi)
         λ = eigvals(J)
         @test maximum(real, λ) < 1.5
+    end
+
+    @timed_testset "StructuredMesh: Polytropic Euler equations" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
+                               "elixir_eulerpolytropic_wave.jl"),
+                      cells_per_dimension = (6, 6),
+                      tspan = (0.0, 0.0))
+
+        J = jacobian_ad_forward(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 0.05
+    end
+
+    @timed_testset "P4estMesh: Navier-Stokes" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                               "elixir_navierstokes_viscous_shock.jl"),
+                      tspan = (0.0, 0.0))
+
+        J = jacobian_ad_forward(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 0.05
+
+        J_parabolic = jacobian_ad_forward_parabolic(semi)
+        λ_parabolic = eigvals(J_parabolic)
+        # Parabolic spectrum is real and negative
+        @test maximum(real, λ_parabolic) < 8e-14
+        @test maximum(imag, λ_parabolic) < 8e-14
+    end
+
+    @timed_testset "T8codeMesh: Advection" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "t8code_2d_dgsem",
+                               "elixir_advection_unstructured_flag.jl"),
+                      tspan = (0.0, 0.0), initial_refinement_level = 0,
+                      polydeg = 2)
+        @test_nowarn jacobian_ad_forward(semi)
     end
 end
 
@@ -251,17 +355,52 @@ end
 end
 
 @timed_testset "Test Jacobian of DG (3D)" begin
-    trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
-                           "elixir_advection_extended.jl"),
-                  tspan = (0.0, 0.0), initial_refinement_level = 1)
-    A, _ = linear_structure(semi)
+    @timed_testset "TreeMesh: Advection" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                               "elixir_advection_extended.jl"),
+                      tspan = (0.0, 0.0), initial_refinement_level = 1)
+        A, _ = linear_structure(semi)
 
-    J = jacobian_ad_forward(semi)
-    @test Matrix(A) ≈ J
+        J = jacobian_ad_forward(semi)
+        @test Matrix(A) ≈ J
 
-    J = jacobian_fd(semi)
-    @test Matrix(A) ≈ J
+        J = jacobian_fd(semi)
+        @test Matrix(A) ≈ J
+    end
+
+    @timed_testset "StructuredMesh: MHD" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "structured_3d_dgsem",
+                               "elixir_mhd_alfven_wave.jl"),
+                      cells_per_dimension = (2, 2, 2),
+                      polydeg = 2,
+                      tspan = (0.0, 0.0))
+
+        @test_nowarn jacobian_ad_forward(semi)
+    end
+
+    @timed_testset "P4estMesh: Navier-Stokes" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                               "elixir_navierstokes_convergence.jl"),
+                      initial_refinement_level = 0,
+                      tspan = (0.0, 0.0))
+
+        @test_nowarn jacobian_ad_forward(semi)
+        @test_nowarn jacobian_ad_forward_parabolic(semi)
+    end
+
+    @timed_testset "T8CodeMesh: Advection" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "t8code_3d_dgsem",
+                               "elixir_advection_cubed_sphere.jl"),
+                      polydeg = 2,
+                      trees_per_face_dimension = 3, layers = 2,
+                      tspan = (0.0, 0.0))
+
+        @test_nowarn jacobian_ad_forward(semi)
+    end
 end
 
 @testset "AD using ForwardDiff" begin

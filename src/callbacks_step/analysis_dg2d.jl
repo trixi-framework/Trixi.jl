@@ -392,10 +392,10 @@ function analyze(::Val{:linf_divb}, du, u, t,
         for j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             # Get the contravariant vectors Ja^1 and Ja^2
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j,
-                                                  element)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                  element)
+            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                  i, j, element)
+            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                  i, j, element)
             # Compute the transformed divergence
             for k in eachnode(dg)
                 u_kj = get_node_vars(u, equations, dg, k, j, element)
@@ -412,6 +412,10 @@ function analyze(::Val{:linf_divb}, du, u, t,
             divb *= cache.elements.inverse_jacobian[i, j, element]
             linf_divb = max(linf_divb, abs(divb))
         end
+    end
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
     end
 
     return linf_divb

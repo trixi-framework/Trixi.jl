@@ -190,8 +190,8 @@ end
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
             # pull the contravariant vectors and compute the average
-            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj,
-                                                   element)
+            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
+                                                   i, jj, element)
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -202,6 +202,8 @@ end
                                        equations, dg, i, jj, element)
         end
     end
+
+    return nothing
 end
 
 @inline function flux_differencing_kernel!(du, u,
@@ -269,6 +271,8 @@ end
         multiply_add_to_node_vars!(du, alpha * 0.5f0, integral_contribution, equations,
                                    dg, i, j, element)
     end
+
+    return nothing
 end
 
 # Computing the normal vector for the FV method on curvilinear subcells.
@@ -294,8 +298,8 @@ end
     fstar1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_R))
 
     for j in eachnode(dg)
-        normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j,
-                                                    element)
+        normal_direction = get_contravariant_vector(1, contravariant_vectors,
+                                                    1, j, element)
 
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
@@ -321,8 +325,8 @@ end
     fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
 
     for i in eachnode(dg)
-        normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1,
-                                                    element)
+        normal_direction = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, 1, element)
 
         for j in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
@@ -606,6 +610,7 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                              equations, surface_integral, dg::DG)
     @assert isperiodic(mesh)
+    return nothing
 end
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
@@ -674,6 +679,8 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                                              direction, (i, nnodes(dg)), (i,), element)
         end
     end
+
+    return nothing
 end
 
 function apply_jacobian!(du,

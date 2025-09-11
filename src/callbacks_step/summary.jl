@@ -209,8 +209,9 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
 
     # technical details
     setup = Pair{String, Any}["#threads" => Threads.nthreads()]
-    if !_PREFERENCE_POLYESTER
-        push!(setup, "Polyester" => "disabled")
+    push!(setup, "threading backend" => string(_PREFERENCE_THREADING))
+    if !_PREFERENCE_LOOPVECTORIZATION
+        push!(setup, "LoopVectorization" => "disabled")
     end
     if mpi_isparallel()
         push!(setup,

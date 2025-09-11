@@ -20,9 +20,11 @@ function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}
     fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
     u_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
-    (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded,
-     u_threaded)
+    cache = (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+             fstar_secondary_upper_threaded, fstar_secondary_lower_threaded,
+             u_threaded)
+
+    return cache
 end
 
 #     index_to_start_step_2d(index::Symbol, index_range)
@@ -61,10 +63,9 @@ end
     end
 end
 
-# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack interfaces = cache
     index_range = eachnode(dg)
 
@@ -210,6 +211,8 @@ end
         surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
         surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -flux_[v]
     end
+
+    return nothing
 end
 
 # Inlined version of the interface flux computation for conservation laws
@@ -274,6 +277,8 @@ end
                                                                                                              0.5f0 *
                                                                                                              noncons_secondary[v])
     end
+
+    return nothing
 end
 
 function prolong2boundaries!(cache, u,
@@ -339,6 +344,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
             j_node += j_node_step
         end
     end
+
+    return nothing
 end
 
 # inlined version of the boundary flux calculation along a physical interface
@@ -371,6 +378,8 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
     end
+
+    return nothing
 end
 
 # inlined version of the boundary flux calculation along a physical interface
@@ -454,6 +463,8 @@ end
                                                                              0.5f0 *
                                                                              noncons_flux[v]
     end
+
+    return nothing
 end
 
 function prolong2mortars!(cache, u,
@@ -645,6 +656,8 @@ end
                    dg, node_index)
     set_node_vars!(fstar_secondary[position_index], flux_plus_noncons_secondary,
                    equations, dg, node_index)
+
+    return nothing
 end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
