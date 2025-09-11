@@ -30,7 +30,7 @@ are the following. Further documentation can be found in the
   from Trixi.jl.
 - If you start Julia with multiple threads and want to use them also in the time
   integration method from OrdinaryDiffEq.jl, you need to pass the keyword argument
-  `thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`)` to the algorithm, e.g.,
+  `thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`) to the algorithm, e.g.,
   `RDPK3SpFSAL49(thread = Trixi.True())` or
   `CarpenterKennedy2N54(thread = Trixi.True(), williamson_condition = false)`.
   For more information on using thread-based parallelism in Trixi.jl, please refer to
@@ -57,12 +57,12 @@ Formally, this boils down to an optimization problem of the form
 ```math
 \underset{P_{p;S} \, \in \, \mathcal{P}_{p;S}}{\max} \Delta t \text{ such that } \big \vert P_{p;S}(\Delta t \lambda_m) \big \vert \leq 1, \quad  m = 1 , \dots , M \tag{1}
 ```
-where $p$ denotes the order of consistency of the scheme, $S$ is the number of stage evaluations and $M$ denotes the number of eigenvalues $\lambda_m$ of the Jacobian matrix $J \coloneqq \frac{\partial \boldsymbol F}{\partial \boldsymbol U}$ of the right-hand side of the [semidiscretized PDE](https://trixi-framework.github.io/Trixi.jl/stable/overview/#overview-semidiscretizations):
+where $p$ denotes the order of consistency of the scheme, $S$ is the number of stage evaluations and $M$ denotes the number of eigenvalues $\lambda_m$ of the Jacobian matrix $J \coloneqq \frac{\partial \boldsymbol F}{\partial \boldsymbol U}$ of the right-hand side of the [semidiscretized PDE](https://trixi-framework.github.io/TrixiDocumentation/stable/overview/#overview-semidiscretizations):
 ```math
 \dot{\boldsymbol U} = \boldsymbol F(\boldsymbol U) \tag{2} \: .
 ```
 In particular, for $S > p$ the Runge-Kutta method includes some free coefficients which may be used to adapt the domain of absolute stability to the problem at hand.
-Since Trixi.jl [supports exact computation of the Jacobian $J$ by means of automatic differentiation](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/differentiable_programming/), we have access to the Jacobian of a given simulation setup.
+Since Trixi.jl [supports exact computation of the Jacobian $J$ by means of automatic differentiation](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/differentiable_programming/), we have access to the Jacobian of a given simulation setup.
 For small (say, up to roughly $10^4$ DoF) systems, the spectrum $\boldsymbol \sigma = \left \{ \lambda_m \right \}_{m=1, \dots, M}$ can be computed directly using [`LinearAlgebra.eigvals(J)`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.eigvals).
 For larger systems, we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://doi.org/10.1016/j.jcp.2024.113223). This approach computes a reduced set of (estimated) eigenvalues $\widetilde{\boldsymbol \sigma}$ around the convex hull of the spectrum by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
 
@@ -153,7 +153,7 @@ Next, we will construct the time integrator. In order to do this, you need the f
   This defines the bounds for the bisection routine for the optimal timestep $\Delta t$ used in calculating the polynomial coefficients at optimization stage.
   This variable is already defined in step 5.
   - Semidiscretization (`semi`): The semidiscretization setup that includes the mesh, equations, initial condition, and solver. In this example, this variable is already defined in step 3.
-  In the background, we compute from `semi` the Jacobian $J$ evaluated at the initial condition using [`jacobian_ad_forward`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
+  In the background, we compute from `semi` the Jacobian $J$ evaluated at the initial condition using [`jacobian_ad_forward`](https://trixi-framework.github.io/TrixiDocumentation/stable/reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
   This is then followed by the computation of the spectrum $\boldsymbol \sigma(J)$ using `LinearAlgebra.eigvals`.
   Equipped with the spectrum, the optimal stability polynomial is computed, from which the corresponding Runge-Kutta method is derived. Other constructors (if the coefficients $\boldsymbol{\alpha}$ of the stability polynomial are already available, or if a reduced spectrum $\widetilde{\boldsymbol{\sigma}}$ should be used) are discussed below.
 
@@ -216,3 +216,92 @@ Then, the stable CFL number can be computed as described above.
 - [`Trixi.PairedExplicitRK2`](@ref): Second-order PERK method with at least two stages.
 - [`Trixi.PairedExplicitRK3`](@ref): Third-order PERK method with at least three stages.
 - [`Trixi.PairedExplicitRK4`](@ref): Fourth-order PERK method with at least five stages.
+
+## Relaxation Runge-Kutta Methods for Entropy-Conservative Time Integration
+
+While standard Runge-Kutta methods (or in fact the whole broad class of general linear methods such as multistep, additive, and partitioned Runge-Kutta methods) preserve linear solution invariants such as mass, momentum and energy, (assuming evolution in conserved variables $\boldsymbol u = (\rho, \rho v_i, \rho e)$) they do in general not preserve nonlinear solution invariants such as entropy.
+
+### The Notion of Entropy
+
+For an ideal gas with isentropic exponent $\gamma$, the thermodynamic entropy is given by
+```math
+s_\text{therm}(\boldsymbol u) = \ln \left( \frac{p}{\rho^\gamma} \right)
+```
+where $p$ is the pressure, $\rho$ the density, and $\gamma$ the ratio of specific heats.
+The mathematical entropy is then given by
+```math
+s(\boldsymbol u) \coloneqq - \underbrace{\rho}_{\equiv u_1} \cdot s_\text{therm}(\boldsymbol u) = - \rho \cdot \log \left( \frac{p(\boldsymbol u)}{\rho^\gamma} \right) \: .
+```
+The total entropy $\eta$ is then obtained by integrating the mathematical entropy $s$ over the domain $\Omega$:
+```math
+\eta(t) \coloneqq \eta \big(\boldsymbol u(t, \boldsymbol x) \big) = \int_{\Omega} s \big (\boldsymbol u(t, \boldsymbol x) \big ) \, \text{d} \boldsymbol x \tag{1}
+```
+
+For a semidiscretized partial differential equation (PDE) of the form
+```math
+\begin{align*}
+\boldsymbol U(t_0) &= \boldsymbol U_0, \\
+\boldsymbol U'(t) &= \boldsymbol F\big(t, \boldsymbol U(t) \big) \tag{2}
+\end{align*}
+```
+one can construct a discrete equivalent $H$ to (1) which is obtained by computing the mathematical entropy $s$ at every node of the mesh and then integrating it over the domain $\Omega$ by applying a quadrature rule:
+```math
+H(t) \coloneqq H\big(\boldsymbol U(t)\big) = \int_{\Omega} s \big(\boldsymbol U(t) \big) \, \text{d} \Omega
+```
+
+For a suitable spatial discretization (2) entropy-conservative systems such as the Euler equations preserve the total entropy $H(t)$ over time, i.e., 
+```math
+\frac{\text{d}}{\text{d} t} H \big(\boldsymbol U(t) \big ) 
+= 
+\left \langle \frac{\partial H(\boldsymbol U)}{\partial \boldsymbol U}, \frac{\text{d}}{\text{d} t} \boldsymbol U(t) \right \rangle 
+\overset{(2)}{=}
+\left \langle \frac{\partial H(\boldsymbol U)}{\partial \boldsymbol U}, \boldsymbol F\big(t, \boldsymbol U(t) \big) \right \rangle = 0 \tag{3}
+```
+while entropy-stable discretiations of entropy-diffusive systems such as the Navier-Stokes equations ensure that the total entropy decays over time, i.e., 
+```math
+\left \langle \frac{\partial H(\boldsymbol U)}{\partial \boldsymbol U}, \boldsymbol F(t, \boldsymbol U) \right \rangle \leq 0 \tag{4}
+```
+
+### Ensuring Entropy-Conservation/Stability with Relaxation Runge-Kutta Methods
+
+Evolving the ordinary differential equation (ODE) for the entropy (2) with a Runge-Kutta scheme gives
+```math
+H_{n+1} = H_n + \Delta t \sum_{i=1}^S b_i \, \left\langle \frac{\partial 
+H(\boldsymbol U_{n, i})
+}{\partial \boldsymbol U}, \boldsymbol F(\boldsymbol U_{n, i}) \right\rangle \tag{5}
+```
+which preserves (3) and (4).
+In practice, however, we evolve the conserved variables $\boldsymbol U$ which results in 
+```math
+\boldsymbol U_{n+1} = \boldsymbol U_n + \Delta t \sum_{i=1}^S b_i \boldsymbol F(\boldsymbol U_{n, i})
+```
+and in particular for the entropy $H$
+```math
+H(\boldsymbol U_{n+1}) = H\left( \boldsymbol U_n + \Delta t \sum_{i=1}^S b_i \boldsymbol F(\boldsymbol U_{n, i}) \right) \neq H_{n+1} \text{ computed from (5)}
+```
+
+To resolve the difference $H(\boldsymbol U_{n+1}) - H_{n+1}$ Ketcheson, Ranocha and collaborators have introduced *relaxation* Runge-Kutta methods in a series of publications, see for instance
+- [Ketcheson (2019)](https://doi.org/10.1137/19M1263662): Relaxation Runge-Kutta Methods: Conservation and Stability for Inner-Product Norms
+- [Ranocha et al. (2020)](https://doi.org/10.1137/19M1263480): Relaxation Runge-Kutta methods: Fully discrete explicit entropy-stable schemes for the compressible Euler and Navier-Stokes equations
+- [Ranocha, Lóczi, and Ketcheson (2020)](https://doi.org/10.1007/s00211-020-01158-4): General relaxation methods for initial-value problems with application to multistep schemes
+
+Almost miraculously, it suffices to introduce a single parameter $\gamma$ in the final update step of the Runge-Kutta method to ensure that the properties of the spatial discretization are preserved, i.e., 
+```math
+H \big(\boldsymbol U_{n+1}( \gamma  ) \big) 
+\overset{!}{=} 
+H(\boldsymbol U_n) + 
+\gamma  \Delta t \sum_{i=1}^S b_i 
+\left \langle 
+\frac{\partial H(\boldsymbol U_{n, i})}{\partial \boldsymbol U_{n, i}}, \boldsymbol  F(\boldsymbol U_{n, i}) 
+\right  \rangle
+\tag{6}
+```
+This comes only at the price that one needs to solve the scalar nonlinear equation (6) for $\gamma$ at every time step.
+To do so, [`Trixi.RelaxationSolverNewton`](@ref) is implemented in Trixi.jl.
+These can then be supplied to the relaxation time algorithms such as [`Trixi.RelaxationRalston3`](@ref) and [`Trixi.RelaxationRK44`](@ref) via specifying the `relaxation_solver` keyword argument:
+```julia
+ode_algorithm = Trixi.RelaxationRK44(solver = Trixi.RelaxationSolverNewton())
+ode_algorithm = Trixi.RelaxationRalston3(solver = Trixi.RelaxationSolverNewton())
+ode_algorithm = Trixi.RelaxationCKL43(solver = Trixi.RelaxationSolverNewton())
+ode_algorithm = Trixi.RelaxationCKL54(solver = Trixi.RelaxationSolverNewton())
+```

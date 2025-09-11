@@ -75,8 +75,6 @@ Source terms used for convergence tests in combination with
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::PolytropicEulerEquations2D)
-    rho, v1, v2 = cons2prim(u, equations)
-
     # Residual from Winters (2019) [0.1007/s10543-019-00789-w] eq. (5.2).
     RealT = eltype(u)
     h = 8 + cospi(2 * x[1]) * sinpi(2 * x[2]) * cospi(2 * t)
@@ -122,7 +120,7 @@ function initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquat
     return prim2cons(SVector(rho, v1, v2), equations)
 end
 
-# Calculate 2D flux for a single point in the normal direction
+# Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::PolytropicEulerEquations2D)
@@ -137,7 +135,7 @@ end
     return SVector(f1, f2, f3)
 end
 
-# Calculate 2D flux for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
     _, v1, v2 = cons2prim(u, equations)
     p = pressure(u, equations)
@@ -444,7 +442,7 @@ end
 end
 
 @inline function pressure(u, equations::PolytropicEulerEquations2D)
-    rho, rho_v1, rho_v2 = u
+    rho, _, _ = u
     p = equations.kappa * rho^equations.gamma
     return p
 end

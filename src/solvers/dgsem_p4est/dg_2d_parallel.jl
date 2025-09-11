@@ -131,6 +131,43 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_index, local_direction_index, local_element_index] = flux_[v]
     end
+
+    return nothing
+end
+
+# Inlined version of the interface flux computation for non-conservative equations
+@inline function calc_mpi_interface_flux!(surface_flux_values,
+                                          mesh::Union{ParallelP4estMesh{2},
+                                                      ParallelT8codeMesh{2}},
+                                          nonconservative_terms::True, equations,
+                                          surface_integral, dg::DG, cache,
+                                          interface_index, normal_direction,
+                                          interface_node_index, local_side,
+                                          surface_node_index, local_direction_index,
+                                          local_element_index)
+    @unpack u = cache.mpi_interfaces
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg,
+                                       interface_node_index,
+                                       interface_index)
+
+    # Compute flux and non-conservative term for this side of the interface
+    if local_side == 1
+        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+        noncons_flux_ = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+    else # local_side == 2
+        flux_ = -surface_flux(u_ll, u_rr, -normal_direction, equations)
+        noncons_flux_ = -nonconservative_flux(u_rr, u_ll, -normal_direction, equations)
+    end
+
+    for v in eachvariable(equations)
+        surface_flux_values[v, surface_node_index,
+        local_direction_index, local_element_index] = flux_[v] +
+                                                      0.5f0 * noncons_flux_[v]
+    end
+
+    return nothing
 end
 
 function prolong2mpimortars!(cache, u,
@@ -177,11 +214,9 @@ function prolong2mpimortars!(cache, u,
 
                 # Interpolate large element face data from buffer to small face locations
                 multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 1, :, mortar),
-                                        mortar_l2.forward_lower,
-                                        u_buffer)
+                                        mortar_l2.forward_lower, u_buffer)
                 multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 2, :, mortar),
-                                        mortar_l2.forward_upper,
-                                        u_buffer)
+                                        mortar_l2.forward_upper, u_buffer)
             else # position in (1, 2) -> small element
                 # Copy solution data from the small elements
                 i_small = i_small_start
@@ -210,12 +245,15 @@ function calc_mpi_mortar_flux!(surface_flux_values,
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
     @unpack contravariant_vectors = cache.elements
     @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
+    @unpack fstar_secondary_upper_threaded, fstar_secondary_lower_threaded = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmpimortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar = (fstar_primary_lower_threaded[Threads.threadid()],
-                 fstar_primary_upper_threaded[Threads.threadid()])
+        fstar_primary = (fstar_primary_lower_threaded[Threads.threadid()],
+                         fstar_primary_upper_threaded[Threads.threadid()])
+        fstar_secondary = (fstar_secondary_lower_threaded[Threads.threadid()],
+                           fstar_secondary_upper_threaded[Threads.threadid()])
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -233,10 +271,10 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                 normal_direction = get_normal_direction(cache.mpi_mortars, node,
                                                         position, mortar)
 
-                calc_mpi_mortar_flux!(fstar, mesh, nonconservative_terms, equations,
+                calc_mpi_mortar_flux!(fstar_primary, fstar_secondary, mesh,
+                                      nonconservative_terms, equations,
                                       surface_integral, dg, cache,
-                                      mortar, position, normal_direction,
-                                      node)
+                                      mortar, position, normal_direction, node)
 
                 i_small += i_small_step
                 j_small += j_small_step
@@ -249,14 +287,14 @@ function calc_mpi_mortar_flux!(surface_flux_values,
 
         mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations, mortar_l2, dg, cache,
-                                       mortar, fstar, u_buffer)
+                                       mortar, fstar_primary, fstar_secondary, u_buffer)
     end
 
     return nothing
 end
 
 # Inlined version of the mortar flux computation on small elements for conservation laws
-@inline function calc_mpi_mortar_flux!(fstar,
+@inline function calc_mpi_mortar_flux!(fstar_primary, fstar_secondary,
                                        mesh::Union{ParallelP4estMesh{2},
                                                    ParallelT8codeMesh{2}},
                                        nonconservative_terms::False, equations,
@@ -272,7 +310,40 @@ end
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
     # Copy flux to buffer
-    set_node_vars!(fstar[position_index], flux, equations, dg, node_index)
+    set_node_vars!(fstar_primary[position_index], flux, equations, dg, node_index)
+    set_node_vars!(fstar_secondary[position_index], flux, equations, dg, node_index)
+
+    return nothing
+end
+
+# Inlined version of the mortar flux computation on small elements for non-conservative equations
+@inline function calc_mpi_mortar_flux!(fstar_primary, fstar_secondary,
+                                       mesh::Union{ParallelP4estMesh{2},
+                                                   ParallelT8codeMesh{2}},
+                                       nonconservative_terms::True, equations,
+                                       surface_integral, dg::DG, cache,
+                                       mortar_index, position_index, normal_direction,
+                                       node_index)
+    @unpack u = cache.mpi_mortars
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index,
+                                       mortar_index)
+
+    flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+    noncons_flux_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+    noncons_flux_secondary = nonconservative_flux(u_rr, u_ll, normal_direction,
+                                                  equations)
+
+    for v in eachvariable(equations)
+        fstar_primary[position_index][v, node_index] = flux[v] +
+                                                       0.5f0 * noncons_flux_primary[v]
+        fstar_secondary[position_index][v, node_index] = flux[v] +
+                                                         0.5f0 *
+                                                         noncons_flux_secondary[v]
+    end
+
+    return nothing
 end
 
 @inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,
@@ -280,7 +351,8 @@ end
                                                             ParallelT8codeMesh{2}},
                                                 equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
-                                                dg::DGSEM, cache, mortar, fstar,
+                                                dg::DGSEM, cache, mortar, fstar_primary,
+                                                fstar_secondary,
                                                 u_buffer)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
 
@@ -294,8 +366,8 @@ end
         if position == 3 # -> large element
             # Project small fluxes to large element.
             multiply_dimensionwise!(u_buffer,
-                                    mortar_l2.reverse_upper, fstar[2],
-                                    mortar_l2.reverse_lower, fstar[1])
+                                    mortar_l2.reverse_upper, fstar_secondary[2],
+                                    mortar_l2.reverse_lower, fstar_secondary[1])
             # The flux is calculated in the outward direction of the small elements,
             # so the sign must be switched to get the flux in outward direction
             # of the large element.
@@ -327,8 +399,8 @@ end
             # Copy solution small to small
             for i in eachnode(dg)
                 for v in eachvariable(equations)
-                    surface_flux_values[v, i, small_direction, element] = fstar[position][v,
-                                                                                          i]
+                    surface_flux_values[v, i, small_direction, element] = fstar_primary[position][v,
+                                                                                                  i]
                 end
             end
         end

@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -94,19 +94,20 @@ f_rho_inf() = rho_inf
 f_U_inf() = U_inf
 f_linf() = airfoil_cord_length
 
-drag_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
-                                           DragCoefficientPressure(f_aoa(), f_rho_inf(),
-                                                                   f_U_inf(), f_linf()))
+force_boundary_symbol = (:Airfoil,)
+drag_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
+                                           DragCoefficientPressure2D(f_aoa(), f_rho_inf(),
+                                                                     f_U_inf(), f_linf()))
 
-drag_coefficient_shear_force = AnalysisSurfaceIntegral((:Airfoil,),
-                                                       DragCoefficientShearStress(f_aoa(),
-                                                                                  f_rho_inf(),
-                                                                                  f_U_inf(),
-                                                                                  f_linf()))
+drag_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_symbol,
+                                                       DragCoefficientShearStress2D(f_aoa(),
+                                                                                    f_rho_inf(),
+                                                                                    f_U_inf(),
+                                                                                    f_linf()))
 
-lift_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
-                                           LiftCoefficientPressure(f_aoa(), f_rho_inf(),
-                                                                   f_U_inf(), f_linf()))
+lift_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
+                                           LiftCoefficientPressure2D(f_aoa(), f_rho_inf(),
+                                                                     f_U_inf(), f_linf()))
 
 # For long simulation run, use a large interval.
 # For measurements once the simulation has settled in, one should use a

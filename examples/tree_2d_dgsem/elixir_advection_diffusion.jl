@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -47,6 +47,7 @@ boundary_conditions_parabolic = boundary_condition_periodic
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ViscousFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 

@@ -884,7 +884,7 @@ function parse_elements(meshfile, n_trees, n_dims,
 end
 
 function parse_node_sets(meshfile, boundary_symbols)
-    nodes_dict = Dict{Symbol, Vector{Int64}}()
+    nodes_dict = Dict{Symbol, Set{Int64}}()
     current_symbol = nothing
     current_nodes = Int64[]
 
@@ -900,14 +900,14 @@ function parse_node_sets(meshfile, boundary_symbols)
                 current_symbol = Symbol(split(line, "=")[2])
                 if current_symbol in boundary_symbols
                     # New nodeset
-                    current_nodes = Int64[]
+                    current_nodes = Set{Int64}()
                 else # Read only boundary node sets
                     current_symbol = nothing
                 end
             elseif current_symbol !== nothing # Read only if there was already a nodeset specified
                 try # Check if line contains nodes
                     # There is always a trailing comma, remove the corresponding empty string
-                    append!(current_nodes, parse.(Int64, split(line, ",")[1:(end - 1)]))
+                    union!(current_nodes, parse.(Int64, split(line, ",")[1:(end - 1)]))
                 catch # Something different, stop reading in nodes
                     # If parsing fails, set current_symbol to nothing
                     nodes_dict[current_symbol] = current_nodes
@@ -935,7 +935,7 @@ end
 function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             element_node_matrix, node_set_dict,
                                             ::Val{2}) # 2D version
-    for tree in 1:n_trees
+    @threaded for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
         # For node labeling, see
         # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
@@ -976,7 +976,7 @@ end
 function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             element_node_matrix, node_set_dict,
                                             ::Val{3}) # 3D version
-    for tree in 1:n_trees
+    @threaded for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
         # For node labeling, see
         # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html

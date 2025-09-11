@@ -4,6 +4,7 @@ using Test
 using Trixi
 
 using LinearAlgebra: norm, dot
+using SparseArrays
 using DelimitedFiles: readdlm
 
 # Use Convex and ECOS to load the extension that extends functions for testing
@@ -14,6 +15,11 @@ using ECOS: Optimizer
 # Use NLsolve to load the extension that extends functions for testing
 # PERK Single p3 Constructors
 using NLsolve: nlsolve
+
+import SparseConnectivityTracer: TracerSparsityDetector, jacobian_eltype, jacobian_sparsity
+import SparseMatrixColorings: ColoringProblem, GreedyColoringAlgorithm, coloring,
+                              column_colors
+import FiniteDiff: finite_difference_jacobian!
 
 include("test_trixi.jl")
 
@@ -562,6 +568,38 @@ end
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 
+    # Test PassiveTracerEquations
+    let flow_equations = CompressibleEulerEquations1D(1.4)
+        equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
+        xi1, xi2 = 0.4, 0.5
+        cons_ref = SVector(rho, rho * v1, p / 0.4 + 0.5 * (rho * v1 * v1), rho * xi1,
+                           rho * xi2)
+        cons_test = prim2cons(SVector(rho, v1, p, xi1, xi2), equations)
+        @test cons_test ≈ cons_ref
+        prim_test = cons2prim(cons_test, equations)
+        @test prim_test ≈ SVector(rho, v1, p, xi1, xi2)
+        flow_entropy = cons2entropy(cons_ref, flow_equations)
+
+        entropy_ref = SVector(flow_entropy[1] - (xi1^2 + xi2^2),
+                              (flow_entropy[i] for i in 2:nvariables(flow_equations))...,
+                              2 * xi1, 2 * xi2)
+        entropy_test = cons2entropy(cons_test, equations)
+        @test entropy_test ≈ entropy_ref
+
+        # Also test density, pressure, density_pressure and entropy here because there is currently
+        # no specific space for testing them (e.g., in the other equations)
+        @test density(cons_test, equations) ≈ rho
+        @test pressure(cons_test, equations) ≈ p
+        @test density_pressure(cons_test, equations) ≈ rho * p
+        @test entropy(cons_test, equations) ≈
+              entropy(cons_ref, flow_equations) + rho * (xi1^2 + xi2^2)
+
+        tracers_ = Trixi.tracers(cons_test, equations)
+        @test tracers_ ≈ SVector(xi1, xi2)
+        rho_tracers_ = Trixi.rho_tracers(cons_test, equations)
+        @test rho_tracers_ ≈ SVector(rho * xi1, rho * xi2)
+    end
+
     let equations = CompressibleEulerEquations2D(1.4)
         cons_vars = prim2cons(SVector(rho, v1, v2, p), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
@@ -582,46 +620,6 @@ end
         cons_vars = prim2cons((rho, v1, v2, v3, p), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
-    end
-end
-
-@timed_testset "Shallow water conversion between conservative/entropy variables" begin
-    H, v1, v2, b, a = 3.5, 0.25, 0.1, 0.4, 0.3
-
-    let equations = ShallowWaterEquations1D(gravity_constant = 9.8)
-        cons_vars = prim2cons(SVector(H, v1, b), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
-        @test cons_vars ≈ entropy2cons(entropy_vars, equations)
-
-        total_energy = energy_total(cons_vars, equations)
-        @test total_energy ≈ entropy(cons_vars, equations)
-
-        # test tuple args
-        cons_vars = prim2cons((H, v1, b), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
-        @test cons_vars ≈ entropy2cons(entropy_vars, equations)
-    end
-
-    let equations = ShallowWaterEquations2D(gravity_constant = 9.8)
-        cons_vars = prim2cons(SVector(H, v1, v2, b), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
-        @test cons_vars ≈ entropy2cons(entropy_vars, equations)
-
-        total_energy = energy_total(cons_vars, equations)
-        @test total_energy ≈ entropy(cons_vars, equations)
-
-        # test tuple args
-        cons_vars = prim2cons((H, v1, v2, b), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
-        @test cons_vars ≈ entropy2cons(entropy_vars, equations)
-    end
-
-    let equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.8)
-        cons_vars = prim2cons(SVector(H, v1, b, a), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
-
-        total_energy = energy_total(cons_vars, equations)
-        @test entropy(cons_vars, equations) ≈ a * total_energy
     end
 end
 
@@ -680,6 +678,17 @@ end
     end
 end
 
+@timed_testset "StepsizeCallback" begin
+    # Ensure a proper error is thrown if used with adaptive time integration schemes
+    @test_nowarn_mod trixi_include(@__MODULE__,
+                                   joinpath(examples_dir(), "tree_2d_dgsem",
+                                            "elixir_advection_diffusion.jl"),
+                                   tspan = (0, 0.05))
+
+    @test_throws ArgumentError solve(ode, alg; ode_default_options()...,
+                                     callback = StepsizeCallback(cfl = 1.0))
+end
+
 @timed_testset "TimeSeriesCallback" begin
     # Test the 2D TreeMesh version of the callback and some warnings
     @test_nowarn_mod trixi_include(@__MODULE__,
@@ -697,6 +706,39 @@ end
     @test_nowarn show(stdout, time_series)
     @test_throws ArgumentError TimeSeriesCallback(semi, [(1.0, 1.0)]; interval = -1)
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
+end
+
+@timed_testset "resize! RelaxationIntegrators" begin
+    equations = LinearScalarAdvectionEquation1D(42.0)
+    solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
+    mesh = TreeMesh((0.0,), (1.0,),
+                    initial_refinement_level = 2,
+                    n_cells_max = 30_000)
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_convergence_test,
+                                        solver)
+    u0 = zeros(4)
+    tspan = (0.0, 1.0)
+    ode = semidiscretize(semi, tspan)
+
+    ode_alg = Trixi.RelaxationRK44() # SubDiagonalAlgorithm
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # SubDiagonalRelaxationIntegrator
+
+    resize!(integrator, 1001)
+    @test length(integrator.u) == 1001
+    @test length(integrator.du) == 1001
+    @test length(integrator.u_tmp) == 1001
+    @test length(integrator.direction) == 1001
+
+    ode_alg = Trixi.RelaxationCKL54() # vanderHouwenAlgorithm
+    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # vanderHouwenRelaxationIntegrator
+
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
+    @test length(integrator.k_prev) == 42
+    @test length(integrator.direction) == 42
 end
 
 @timed_testset "Consistency check for single point flux: CEMCE" begin
@@ -773,44 +815,6 @@ end
         @test flux_hll(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
-end
-
-@timed_testset "Consistency check for HLL flux (naive): SWE" begin
-    flux_hll = FluxHLL(min_max_speed_naive)
-
-    equations = ShallowWaterEquations1D(gravity_constant = 9.81)
-    u = SVector(1, 0.5, 0.0)
-    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
-
-    u_ll = SVector(0.1, 1.0, 0.0)
-    u_rr = SVector(0.1, 1.0, 0.0)
-    @test flux_hll(u_ll, u_rr, 1, equations) ≈ flux(u_ll, 1, equations)
-
-    u_ll = SVector(0.1, -1.0, 0.0)
-    u_rr = SVector(0.1, -1.0, 0.0)
-    @test flux_hll(u_ll, u_rr, 1, equations) ≈ flux(u_rr, 1, equations)
-
-    equations = ShallowWaterEquations2D(gravity_constant = 9.81)
-    normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
-    u = SVector(1, 0.5, 0.5, 0.0)
-    for normal_direction in normal_directions
-        @test flux_hll(u, u, normal_direction, equations) ≈
-              flux(u, normal_direction, equations)
-    end
-
-    normal_direction = SVector(1.0, 0.0, 0.0)
-    u_ll = SVector(0.1, 1.0, 1.0, 0.0)
-    u_rr = SVector(0.1, 1.0, 1.0, 0.0)
-    @test flux_hll(u_ll, u_rr, normal_direction, equations) ≈
-          flux(u_ll, normal_direction, equations)
-
-    u_ll = SVector(0.1, -1.0, -1.0, 0.0)
-    u_rr = SVector(0.1, -1.0, -1.0, 0.0)
-    @test flux_hll(u_ll, u_rr, normal_direction, equations) ≈
-          flux(u_rr, normal_direction, equations)
 end
 
 @timed_testset "Consistency check for HLL flux (naive): MHD" begin
@@ -1008,30 +1012,6 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLL flux with Davis wave speed estimates: SWE" begin
-    flux_hll = FluxHLL(min_max_speed_davis)
-
-    equations = ShallowWaterEquations1D(gravity_constant = 9.81)
-    u = SVector(1, 0.5, 0.0)
-    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
-
-    equations = ShallowWaterEquations2D(gravity_constant = 9.81)
-    normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
-    u = SVector(1, 0.5, 0.5, 0.0)
-    for normal_direction in normal_directions
-        @test flux_hll(u, u, normal_direction, equations) ≈
-              flux(u, normal_direction, equations)
-    end
-
-    orientations = [1, 2]
-    for orientation in orientations
-        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
-    end
-end
-
 @timed_testset "Consistency check for HLL flux with Davis wave speed estimates: MHD" begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
@@ -1124,30 +1104,6 @@ end
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
         SVector(-1.2, 0.3, 1.4)]
-
-    for normal_direction in normal_directions
-        @test flux_hlle(u, u, normal_direction, equations) ≈
-              flux(u, normal_direction, equations)
-    end
-end
-
-@timed_testset "Consistency check for HLLE flux: SWE" begin
-    equations = ShallowWaterEquations1D(gravity_constant = 9.81)
-    u = SVector(1, 0.5, 0.0)
-    @test flux_hlle(u, u, 1, equations) ≈ flux(u, 1, equations)
-
-    equations = ShallowWaterEquations2D(gravity_constant = 9.81)
-    normal_directions = [SVector(1.0, 0.0),
-        SVector(0.0, 1.0),
-        SVector(0.5, -0.5),
-        SVector(-1.2, 0.3)]
-    orientations = [1, 2]
-
-    u = SVector(1, 0.5, 0.5, 0.0)
-
-    for orientation in orientations
-        @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
-    end
 
     for normal_direction in normal_directions
         @test flux_hlle(u, u, normal_direction, equations) ≈
@@ -1571,19 +1527,6 @@ end
         end
     end
 
-    @timed_testset "ShallowWaterEquations2D" begin
-        equations = ShallowWaterEquations2D(gravity_constant = 9.81)
-        normal_directions = [SVector(1.0, 0.0),
-            SVector(0.0, 1.0),
-            SVector(0.5, -0.5),
-            SVector(-1.2, 0.3)]
-
-        u = SVector(1, 0.5, 0.5, 0.0)
-
-        fluxes = [flux_central, flux_fjordholm_etal, flux_wintermeyer_etal,
-            flux_hll, FluxHLL(min_max_speed_davis), flux_hlle]
-    end
-
     @timed_testset "IdealGlmMhdEquations2D" begin
         equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
         normal_directions = [SVector(1.0, 0.0),
@@ -1865,6 +1808,29 @@ end
         end
     end
 
+    @timed_testset "Passive tracer equations" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            flow_equations = CompressibleEulerEquations1D(gamma)
+            equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
+
+            p_rho_ratio = 42.0
+            xi1_ll, xi1_rr = 0.1, 0.2
+            xi2_ll, xi2_rr = 0.3, 0.4
+
+            rho_ll_rr = SVector(2.0, 1.0)
+            v_ll_rr = SVector(0.1, 0.2)
+            p_ll_rr = SVector(p_rho_ratio * rho_ll_rr[1], p_rho_ratio * rho_ll_rr[2])
+
+            u_ll = prim2cons(SVector(rho_ll_rr[1], v_ll_rr[1], p_ll_rr[1], xi1_ll,
+                                     xi2_ll), equations)
+            u_rr = prim2cons(SVector(rho_ll_rr[2], v_ll_rr[2], p_ll_rr[2], xi1_rr,
+                                     xi2_rr), equations)
+
+            @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed_naive(u_ll, u_rr, 1, flow_equations)
+        end
+    end
+
     @timed_testset "CompressibleEulerEquations2D" begin
         for gamma in [1.4, 5 / 3, 7 / 5]
             equations = CompressibleEulerEquations2D(gamma)
@@ -2004,6 +1970,8 @@ end
 
             @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
                   max_abs_speed(u_ll, u_rr, 1, equations)
+
+            @test u_ll ≈ entropy2cons(cons2entropy(u_ll, equations), equations)
         end
     end
 
@@ -2267,62 +2235,6 @@ end
             end
         end
     end
-
-    @timed_testset "ShallowWaterEquations1D" begin
-        equations = ShallowWaterEquations1D(gravity_constant = 9.81)
-
-        h_ll_rr = SVector(12.0, 12.0)
-        hv_ll_rr = SVector(42.0, 24.0)
-        b_ll_rr = SVector(pi, pi)
-
-        u_ll = SVector(h_ll_rr[1], hv_ll_rr[1], b_ll_rr[1])
-        u_rr = SVector(h_ll_rr[2], hv_ll_rr[2], b_ll_rr[2])
-
-        @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
-              max_abs_speed(u_ll, u_rr, 1, equations)
-    end
-
-    @timed_testset "ShallowWaterEquations2D" begin
-        equations = ShallowWaterEquations2D(gravity_constant = 9.81)
-
-        h_ll_rr = SVector(12.0, 12.0)
-        hv1_ll_rr = SVector(42.0, 24.0)
-        hv2_ll_rr = SVector(24.0, 42.0)
-        b_ll_rr = SVector(pi, pi)
-
-        u_ll = SVector(h_ll_rr[1], hv1_ll_rr[1], hv2_ll_rr[1], b_ll_rr[1])
-        u_rr = SVector(h_ll_rr[2], hv1_ll_rr[2], hv2_ll_rr[2], b_ll_rr[2])
-
-        for orientation in [1, 2]
-            @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
-                  max_abs_speed(u_ll, u_rr, orientation, equations)
-        end
-
-        normal_directions = [SVector(1.0, 0.0),
-            SVector(0.0, 1.0),
-            SVector(0.5, -0.5),
-            SVector(-1.2, 0.3)]
-
-        for normal_direction in normal_directions
-            @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
-                  max_abs_speed(u_ll, u_rr, normal_direction, equations)
-        end
-    end
-
-    @timed_testset "ShallowWaterEquationsQuasi1D" begin
-        equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81)
-
-        ah_ll_rr = SVector(12.0, 12.0)
-        ahv_ll_rr = SVector(42.0, 24.0)
-        b_ll_rr = SVector(pi, pi)
-        a_ll_rr = SVector(0.1, 0.1)
-
-        u_ll = SVector(ah_ll_rr[1], ahv_ll_rr[1], b_ll_rr[1], a_ll_rr[1])
-        u_rr = SVector(ah_ll_rr[2], ahv_ll_rr[2], b_ll_rr[2], a_ll_rr[2])
-
-        @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
-              max_abs_speed(u_ll, u_rr, 1, equations)
-    end
 end
 
 @testset "SimpleKronecker" begin
@@ -2511,6 +2423,8 @@ end
     equations_euler_1d = CompressibleEulerEquations1D(gamma)
     u = prim2cons(SVector(rho, v1, pres), equations_euler_1d)
     @test isapprox(velocity(u, equations_euler_1d), v1)
+    orientation = 1 # 1D only has one orientation
+    @test isapprox(velocity(u, orientation, equations_euler_1d), v1)
 
     equations_euler_2d = CompressibleEulerEquations2D(gamma)
     u = prim2cons(SVector(rho, v1, v2, pres), equations_euler_2d)
@@ -2595,21 +2509,190 @@ end
         @test isapprox(velocity(u, orientation, equations_ideal_mhd_3d),
                        v_vector[orientation])
     end
+end
 
-    H, b = exp(pi), exp(pi^2)
-    gravity_constant, H0 = 9.91, 0.1 # Standard numbers + 0.1
-    shallow_water_1d = ShallowWaterEquations1D(; gravity_constant, H0)
-    u = prim2cons(SVector(H, v1, b), shallow_water_1d)
-    @test isapprox(velocity(u, shallow_water_1d), v1)
+@testset "Pretty_form output for lake_at_rest_error" begin
+    @test Trixi.pretty_form_utf(lake_at_rest_error) == "∑|H₀-(h+b)|"
+    @test Trixi.pretty_form_ascii(lake_at_rest_error) == "|H0-(h+b)|"
+end
 
-    shallow_water_2d = ShallowWaterEquations2D(; gravity_constant, H0)
-    u = prim2cons(SVector(H, v1, v2, b), shallow_water_2d)
-    @test isapprox(velocity(u, shallow_water_2d), SVector(v1, v2))
-    @test isapprox(velocity(u, normal_direction_2d, shallow_water_2d), v_normal_2d)
+# Ensure consistency for nonconservative fluxes used in the subcell-limiting. Specifically, test
+# that flux_noncons_local_structured = flux_noncons_local * flux_noncons_structured.
+@testset "Nonconservative fluxes for subcell-limiting" begin
+    equations = IdealGlmMhdEquations2D(1.4)
+    u_ll = SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0)
+    u_rr = SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)
+
+    ## Tests for flux_nonconservative_powell_local_symmetric
+    # Implementation for meshes with orientation
     for orientation in 1:2
-        @test isapprox(velocity(u, orientation, shallow_water_2d),
-                       v_vector[orientation])
+        flux_noncons = zero(u_ll)
+        for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_symmetric)
+            flux_noncons += flux_nonconservative_powell_local_symmetric(u_ll, 1,
+                                                                        equations,
+                                                                        Trixi.NonConservativeLocal(),
+                                                                        noncons) .*
+                            flux_nonconservative_powell_local_symmetric(u_ll, u_rr, 1,
+                                                                        equations,
+                                                                        Trixi.NonConservativeSymmetric(),
+                                                                        noncons)
+        end
+
+        @test flux_noncons ≈
+              flux_nonconservative_powell_local_symmetric(u_ll, u_rr, 1, equations)
     end
+
+    # Implementation for meshes with normal_direction
+    for (orientation, normal_direction) in enumerate((SVector(1.0, 0.0),
+                                                      SVector(0.0, 1.0)))
+        flux_noncons = zero(u_ll)
+        for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_symmetric)
+            flux_noncons += flux_nonconservative_powell_local_symmetric(u_ll,
+                                                                        normal_direction,
+                                                                        equations,
+                                                                        Trixi.NonConservativeLocal(),
+                                                                        noncons) .*
+                            flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
+                                                                        normal_direction,
+                                                                        equations,
+                                                                        Trixi.NonConservativeSymmetric(),
+                                                                        noncons)
+        end
+
+        @test flux_noncons ≈
+              flux_nonconservative_powell_local_symmetric(u_ll, u_rr, normal_direction,
+                                                          equations)
+        @test flux_noncons ≈
+              flux_nonconservative_powell_local_symmetric(u_ll, u_rr, orientation,
+                                                          equations)
+    end
+
+    ## Tests for flux_nonconservative_powell_local_jump
+    # Implementation for meshes with orientation
+    for orientation in 1:2
+        flux_noncons = zero(u_ll)
+        for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_jump)
+            flux_noncons += flux_nonconservative_powell_local_jump(u_ll, 1, equations,
+                                                                   Trixi.NonConservativeLocal(),
+                                                                   noncons) .*
+                            flux_nonconservative_powell_local_jump(u_ll, u_rr, 1,
+                                                                   equations,
+                                                                   Trixi.NonConservativeJump(),
+                                                                   noncons)
+        end
+
+        @test flux_noncons ≈
+              flux_nonconservative_powell_local_jump(u_ll, u_rr, 1, equations)
+    end
+
+    # Implementation for meshes with normal_direction
+    for (orientation, normal_direction) in enumerate((SVector(1.0, 0.0),
+                                                      SVector(0.0, 1.0)))
+        flux_noncons = zero(u_ll)
+        for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_jump)
+            flux_noncons += flux_nonconservative_powell_local_jump(u_ll,
+                                                                   normal_direction,
+                                                                   equations,
+                                                                   Trixi.NonConservativeLocal(),
+                                                                   noncons) .*
+                            flux_nonconservative_powell_local_jump(u_ll, u_rr,
+                                                                   normal_direction,
+                                                                   equations,
+                                                                   Trixi.NonConservativeJump(),
+                                                                   noncons)
+        end
+
+        @test flux_noncons ≈
+              flux_nonconservative_powell_local_jump(u_ll, u_rr, normal_direction,
+                                                     equations)
+        @test flux_noncons ≈
+              flux_nonconservative_powell_local_jump(u_ll, u_rr, orientation,
+                                                     equations)
+    end
+end
+
+@testset "SparseConnectivityTracer FiniteDiff Jacobian" begin
+    ###############################################################################
+    ### equations, solver, mesh ###
+
+    advection_velocities = (0.2, -0.7)
+    equations = LinearScalarAdvectionEquation2D(advection_velocities)
+
+    float_type = Float64 # Datatype for the actual simulation
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = float_type)
+
+    coordinates_min = (-1.0, -1.0)
+    coordinates_max = (1.0, 1.0)
+
+    mesh = TreeMesh(coordinates_min, coordinates_max,
+                    initial_refinement_level = 4,
+                    n_cells_max = 30_000)
+
+    ###############################################################################
+    ### semidiscretization for sparsity detection ###
+
+    jac_detector = TracerSparsityDetector()
+    # We need to construct the semidiscretization with the correct
+    # sparsity-detection ready datatype, which is retrieved here
+    jac_eltype = jacobian_eltype(float_type, jac_detector)
+
+    # Semidiscretization for sparsity pattern detection
+    semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
+                                                 initial_condition_convergence_test,
+                                                 solver,
+                                                 uEltype = jac_eltype) # Need to supply Jacobian element type
+
+    tspan = (0.0, 1.0) # Re-used for wrapping `rhs` below
+
+    # Call `semidiscretize` to create the ODE problem to have access to the
+    # initial condition based on which the sparsity pattern is computed
+    ode_jac_type = semidiscretize(semi_jac_type, tspan)
+    u0_ode = ode_jac_type.u0
+    du_ode = similar(u0_ode)
+
+    ###############################################################################
+    ### Compute the Jacobian sparsity pattern ###
+
+    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+                                                   tspan[1])
+
+    jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
+
+    coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
+    coloring_alg = GreedyColoringAlgorithm(; decompression = :direct)
+    coloring_result = coloring(jac_prototype, coloring_prob, coloring_alg)
+    coloring_vec = column_colors(coloring_result)
+
+    ###############################################################################
+    ### float-type semidiscretization ###
+
+    semi_float_type = SemidiscretizationHyperbolic(mesh, equations,
+                                                   initial_condition_convergence_test,
+                                                   solver)
+
+    ode_float_type = semidiscretize(semi_float_type, tspan)
+    u0_ode = ode_float_type.u0
+    du_ode = similar(u0_ode)
+    N = length(u0_ode)
+
+    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
+                                                     tspan[1])
+
+    ###############################################################################
+    ### sparsity-aware finite diff ###
+
+    jac_sparse_finite_diff = spzeros(N, N)
+    finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
+                                u0_ode, sparsity = jac_prototype,
+                                colorvec = coloring_vec)
+
+    jac_finite_diff = jacobian_fd(semi_float_type)
+
+    @test isapprox(jac_finite_diff, jac_sparse_finite_diff; rtol = 5e-8)
+    @test isapprox(jac_finite_diff, Matrix(jac_sparse_finite_diff); rtol = 5e-8)
+    @test isapprox(sparse(jac_finite_diff), jac_sparse_finite_diff; rtol = 5e-8)
 end
 end
 

@@ -28,6 +28,50 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_ldg.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_advection_diffusion_ldg.jl"),
+                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
+                        l2=[9.234438322146518e-6], linf=[5.425491770139068e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh1D: elixir_diffusion_ldg.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_diffusion_ldg.jl"),
+                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
+                        l2=[9.235894939144276e-6], linf=[5.402550135213957e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh1D: elixir_diffusion_ldg_newton_krylov.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_diffusion_ldg_newton_krylov.jl"),
+                        l2=[4.2710445174631516e-6], linf=[2.28491835256861e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_restart.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_restart.jl"),

@@ -24,6 +24,9 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
             Trixi.mpi_isroot() &&
                 println("elixir_advection_basic.jl with error-based step size control")
 
+            # Use callbacks without stepsize_callback to test error-based step size control
+            callbacks = CallbackSet(summary_callback, analysis_callback, save_restart,
+                                    save_solution)
             sol = solve(ode, RDPK3SpFSAL35(); abstol = 1.0e-4, reltol = 1.0e-4,
                         ode_default_options()..., callback = callbacks)
             summary_callback()
@@ -48,7 +51,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[1.1302812803902801e-5],
-                            linf=[0.0007889950196294793],)
+                            linf=[0.0007889950196294793])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -80,7 +83,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
     @trixi_testset "elixir_advection_restart.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                             l2=[0.002590388934758452],
-                            linf=[0.01840757696885409],)
+                            linf=[0.01840757696885409])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

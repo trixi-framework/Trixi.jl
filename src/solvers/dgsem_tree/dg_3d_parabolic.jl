@@ -22,6 +22,8 @@ function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{3}, P4estMe
                            i, j, k, element)
         end
     end
+
+    return nothing
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
@@ -35,12 +37,12 @@ function calc_volume_integral!(du, flux_viscous,
     @threaded for element in eachelement(dg, cache)
         # Calculate volume terms in one element
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            flux_1_node = get_node_vars(flux_viscous_x, equations_parabolic, dg, i, j,
-                                        k, element)
-            flux_2_node = get_node_vars(flux_viscous_y, equations_parabolic, dg, i, j,
-                                        k, element)
-            flux_3_node = get_node_vars(flux_viscous_z, equations_parabolic, dg, i, j,
-                                        k, element)
+            flux_1_node = get_node_vars(flux_viscous_x, equations_parabolic, dg,
+                                        i, j, k, element)
+            flux_2_node = get_node_vars(flux_viscous_y, equations_parabolic, dg,
+                                        i, j, k, element)
+            flux_3_node = get_node_vars(flux_viscous_z, equations_parabolic, dg,
+                                        i, j, k, element)
 
             for ii in eachnode(dg)
                 multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node,
@@ -63,11 +65,10 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache)
+                             dg::DG, cache)
     @unpack interfaces = cache_parabolic
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -83,9 +84,11 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
             for k in eachnode(dg), j in eachnode(dg),
                 v in eachvariable(equations_parabolic)
                 # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-                interfaces_u[1, v, j, k, interface] = flux_viscous_x[v, nnodes(dg), j,
-                                                                     k, left_element]
-                interfaces_u[2, v, j, k, interface] = flux_viscous_x[v, 1, j, k,
+                interfaces_u[1, v, j, k, interface] = flux_viscous_x[v,
+                                                                     nnodes(dg), j, k,
+                                                                     left_element]
+                interfaces_u[2, v, j, k, interface] = flux_viscous_x[v,
+                                                                     1, j, k,
                                                                      right_element]
             end
         elseif orientations[interface] == 2
@@ -93,9 +96,11 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
             for k in eachnode(dg), i in eachnode(dg),
                 v in eachvariable(equations_parabolic)
                 # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-                interfaces_u[1, v, i, k, interface] = flux_viscous_y[v, i, nnodes(dg),
-                                                                     k, left_element]
-                interfaces_u[2, v, i, k, interface] = flux_viscous_y[v, i, 1, k,
+                interfaces_u[1, v, i, k, interface] = flux_viscous_y[v,
+                                                                     i, nnodes(dg), k,
+                                                                     left_element]
+                interfaces_u[2, v, i, k, interface] = flux_viscous_y[v,
+                                                                     i, 1, k,
                                                                      right_element]
             end
         else # if orientations[interface] == 3
@@ -103,10 +108,11 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
             for j in eachnode(dg), i in eachnode(dg),
                 v in eachvariable(equations_parabolic)
                 # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-                interfaces_u[1, v, i, j, interface] = flux_viscous_z[v, i, j,
-                                                                     nnodes(dg),
+                interfaces_u[1, v, i, j, interface] = flux_viscous_z[v,
+                                                                     i, j, nnodes(dg),
                                                                      left_element]
-                interfaces_u[2, v, i, j, interface] = flux_viscous_z[v, i, j, 1,
+                interfaces_u[2, v, i, j, interface] = flux_viscous_z[v,
+                                                                     i, j, 1,
                                                                      right_element]
             end
         end
@@ -118,7 +124,7 @@ end
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
                               equations_parabolic,
-                              dg::DG, parabolic_scheme::ViscousFormulationBassiRebay1,
+                              dg::DG, parabolic_scheme,
                               cache_parabolic)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
@@ -137,12 +143,11 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
         for j in eachnode(dg), i in eachnode(dg)
             # Get precomputed fluxes at interfaces
             flux_ll, flux_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                                     equations_parabolic,
-                                                     dg, i, j, interface)
+                                                     equations_parabolic, dg,
+                                                     i, j, interface)
 
-            # Compute interface flux as mean of left and right viscous fluxes
-            # TODO: parabolic; only BR1 at the moment
-            flux = 0.5f0 * (flux_ll + flux_rr)
+            flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
+                                  mesh, equations_parabolic, parabolic_scheme)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)
@@ -245,12 +250,12 @@ function calc_viscous_fluxes!(flux_viscous,
             # Get solution and gradients
             u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j, k,
                                    element)
-            gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg, i, j,
-                                             k, element)
-            gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg, i, j,
-                                             k, element)
-            gradients_3_node = get_node_vars(gradients_z, equations_parabolic, dg, i, j,
-                                             k, element)
+            gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
+                                             i, j, k, element)
+            gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
+                                             i, j, k, element)
+            gradients_3_node = get_node_vars(gradients_z, equations_parabolic, dg,
+                                             i, j, k, element)
 
             # Calculate viscous flux and store each component for later use
             flux_viscous_node_x = flux(u_node,
@@ -270,6 +275,8 @@ function calc_viscous_fluxes!(flux_viscous,
                            i, j, k, element)
         end
     end
+
+    return nothing
 end
 
 # TODO: parabolic; decide if we should keep this.
@@ -345,6 +352,8 @@ function calc_boundary_flux_gradients!(cache, t,
                                               equations_parabolic, surface_integral, dg,
                                               cache,
                                               6, firsts[6], lasts[6])
+
+    return nothing
 end
 
 function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{<:Any,
@@ -364,8 +373,8 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
 
         for j in eachnode(dg), i in eachnode(dg)
             # Get boundary flux
-            u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, i, j,
-                                               boundary)
+            u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
+                                               i, j, boundary)
             if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
                 u_inner = u_ll
             else # Element is on the right, boundary on the left
@@ -377,8 +386,8 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
             # which is consistent with BR1, LDG.
             flux_inner = u_inner
 
-            x = get_node_coords(node_coordinates, equations_parabolic, dg, i, j,
-                                boundary)
+            x = get_node_coords(node_coordinates, equations_parabolic, dg,
+                                i, j, boundary)
             flux = boundary_condition(flux_inner, u_inner,
                                       get_unsigned_normal_vector_3d(direction),
                                       x, t, Gradient(), equations_parabolic)
@@ -436,7 +445,10 @@ function calc_boundary_flux_divergence!(cache, t,
                                                 equations_parabolic, surface_integral,
                                                 dg, cache,
                                                 6, firsts[6], lasts[6])
+
+    return nothing
 end
+
 function calc_boundary_flux_by_direction_divergence!(surface_flux_values::AbstractArray{<:Any,
                                                                                         5},
                                                      t,
@@ -457,22 +469,23 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 
         for j in eachnode(dg), i in eachnode(dg)
             # Get viscous boundary fluxes
-            flux_ll, flux_rr = get_surface_node_vars(u, equations_parabolic, dg, i, j,
-                                                     boundary)
+            flux_ll, flux_rr = get_surface_node_vars(u, equations_parabolic, dg,
+                                                     i, j, boundary)
             if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
                 flux_inner = flux_ll
             else # Element is on the right, boundary on the left
                 flux_inner = flux_rr
             end
 
-            x = get_node_coords(node_coordinates, equations_parabolic, dg, i, j,
-                                boundary)
+            x = get_node_coords(node_coordinates, equations_parabolic, dg,
+                                i, j, boundary)
 
             # TODO: add a field in `cache.boundaries` for gradient information. UPDATE THIS COMMENT
             # Here, we pass in `u_inner = nothing` since we overwrite cache.boundaries.u with gradient information.
             # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion3D and
             # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion3D as of 2022-6-27.
-            # It will not work with implementations which utilize `u_inner` to impose boundary conditions.
+            # It will not work with implementations which utilize `u_inner` to impose boundary conditions, such as
+            # the `Slip` boundary condition, which can be imposed to realize reflective or symmetric boundaries.
             flux = boundary_condition(flux_inner, nothing,
                                       get_unsigned_normal_vector_3d(direction),
                                       x, t, Divergence(), equations_parabolic)
@@ -723,7 +736,7 @@ end
 function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{3},
                            equations_parabolic::AbstractEquationsParabolic,
                            mortar_l2::LobattoLegendreMortarL2, surface_integral,
-                           dg::DG, parabolic_scheme, cache)
+                           dg::DG, parabolic_scheme, gradient_or_divergence, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations = cache.mortars
     @unpack (fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
@@ -740,17 +753,21 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{3},
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_upper_left, equations_parabolic,
-                    surface_flux, dg, parabolic_scheme,
+        calc_fstar!(fstar_upper_left, mesh, equations_parabolic,
+                    surface_flux, dg,
+                    parabolic_scheme, gradient_or_divergence,
                     u_upper_left, mortar, orientation)
-        calc_fstar!(fstar_upper_right, equations_parabolic,
-                    surface_flux, dg, parabolic_scheme,
+        calc_fstar!(fstar_upper_right, mesh, equations_parabolic,
+                    surface_flux, dg,
+                    parabolic_scheme, gradient_or_divergence,
                     u_upper_right, mortar, orientation)
-        calc_fstar!(fstar_lower_left, equations_parabolic,
-                    surface_flux, dg, parabolic_scheme,
+        calc_fstar!(fstar_lower_left, mesh, equations_parabolic,
+                    surface_flux, dg,
+                    parabolic_scheme, gradient_or_divergence,
                     u_lower_left, mortar, orientation)
-        calc_fstar!(fstar_lower_right, equations_parabolic,
-                    surface_flux, dg, parabolic_scheme,
+        calc_fstar!(fstar_lower_right, mesh, equations_parabolic,
+                    surface_flux, dg,
+                    parabolic_scheme, gradient_or_divergence,
                     u_lower_right, mortar, orientation)
 
         mortar_fluxes_to_elements!(surface_flux_values,
@@ -764,15 +781,17 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{3},
 end
 
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 3},
-                             equations_parabolic::AbstractEquationsParabolic,
+                             mesh, equations_parabolic::AbstractEquationsParabolic,
                              surface_flux, dg::DGSEM,
-                             parabolic_scheme::ViscousFormulationBassiRebay1,
+                             parabolic_scheme, gradient_or_divergence,
                              u_interfaces, interface, orientation)
     for j in eachnode(dg), i in eachnode(dg)
         # Call pointwise two-point numerical flux function
-        u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i, j,
-                                           interface)
-        flux = 0.5f0 * (u_ll + u_rr)
+        u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg,
+                                           i, j, interface)
+
+        flux = flux_parabolic(u_ll, u_rr, gradient_or_divergence,
+                              mesh, equations_parabolic, parabolic_scheme)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations_parabolic, dg, i, j)
@@ -872,7 +891,7 @@ end
 
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::TreeMesh{3}, equations, dg::DG,
-                                       parabolic_scheme::ViscousFormulationBassiRebay1,
+                                       parabolic_scheme,
                                        cache, cache_parabolic)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
@@ -891,9 +910,11 @@ function calc_gradient_interface_flux!(surface_flux_values,
         for j in eachnode(dg), i in eachnode(dg)
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                               equations, dg, i, j,
-                                               interface)
-            flux = 0.5f0 * (u_ll + u_rr) # Bassi-Rebay 1 (BR1)
+                                               equations, dg,
+                                               i, j, interface)
+
+            flux = flux_parabolic(u_ll, u_rr, Gradient(),
+                                  mesh, equations, parabolic_scheme)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
@@ -902,6 +923,8 @@ function calc_gradient_interface_flux!(surface_flux_values,
             end
         end
     end
+
+    return nothing
 end
 
 # Calculate the gradient of the transformed variables
@@ -925,25 +948,25 @@ function calc_gradient!(gradients, u_transformed, t,
 
             # Calculate volume terms in one element
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j, k,
-                                       element)
+                u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                       i, j, k, element)
 
                 for ii in eachnode(dg)
                     multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
-                                               u_node, equations_parabolic, dg, ii, j,
-                                               k, element)
+                                               u_node, equations_parabolic, dg,
+                                               ii, j, k, element)
                 end
 
                 for jj in eachnode(dg)
                     multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
-                                               u_node, equations_parabolic, dg, i, jj,
-                                               k, element)
+                                               u_node, equations_parabolic, dg,
+                                               i, jj, k, element)
                 end
 
                 for kk in eachnode(dg)
                     multiply_add_to_node_vars!(gradients_z, derivative_dhat[kk, k],
-                                               u_node, equations_parabolic, dg, i, j,
-                                               kk, element)
+                                               u_node, equations_parabolic, dg,
+                                               i, j, kk, element)
                 end
             end
         end
@@ -951,8 +974,8 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, u_transformed, mesh, equations_parabolic,
-                            dg.surface_integral, dg)
+        prolong2interfaces!(cache_parabolic, u_transformed, mesh,
+                            equations_parabolic, dg)
     end
 
     # Calculate interface fluxes
@@ -987,8 +1010,9 @@ function calc_gradient!(gradients, u_transformed, t,
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(surface_flux_values,
                           mesh, equations_parabolic,
-                          dg.mortar, dg.surface_integral,
-                          dg, parabolic_scheme, cache)
+                          dg.mortar, dg.surface_integral, dg,
+                          parabolic_scheme, Gradient(),
+                          cache)
     end
 
     # Calculate surface integrals

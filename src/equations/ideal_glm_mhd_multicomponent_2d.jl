@@ -178,7 +178,7 @@ function initial_condition_weak_blast_wave(x, t,
     return prim2cons(vcat(prim_other, prim_rho), equations)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::IdealGlmMhdMulticomponentEquations2D)
     rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u

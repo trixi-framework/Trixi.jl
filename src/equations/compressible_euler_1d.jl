@@ -894,10 +894,10 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
 end
 
 # While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that
-# the normal component is incorporated into the numerical flux. 
+# the normal component is incorporated into the numerical flux.
 #
-# The HLLC flux along a 1D "normal" can be evaluated by scaling the velocity/momentum by 
-# the normal for the 1D HLLC flux, then scaling the resulting momentum flux again. 
+# The HLLC flux along a 1D "normal" can be evaluated by scaling the velocity/momentum by
+# the normal for the 1D HLLC flux, then scaling the resulting momentum flux again.
 # Moreover, the 2D HLLC flux reduces to this if the normal vector is [n, 0].
 function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
                    equations::CompressibleEulerEquations1D)
@@ -1038,6 +1038,11 @@ end
 @inline function density(u, equations::CompressibleEulerEquations1D)
     rho = u[1]
     return rho
+end
+
+@inline function velocity(u, orientation_or_normal,
+                          equations::CompressibleEulerEquations1D)
+    return velocity(u, equations)
 end
 
 @inline function velocity(u, equations::CompressibleEulerEquations1D)

@@ -89,11 +89,11 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}},
-                      equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::TreeMesh{2}, equations,
+                      mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
-    MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
+    MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
+                  uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
     fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
     fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
@@ -104,14 +104,17 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
     # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
     # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
 
-    (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
+    cache = (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+             fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
+
+    return cache
 end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
+              mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+              equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
@@ -126,8 +129,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
@@ -182,7 +184,8 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                            StructuredMeshView{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, T8codeMesh{2}},
+                                           P4estMesh{2}, P4estMeshView{2},
+                                           T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -539,8 +542,7 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
+function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations, dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -718,6 +720,8 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                                      have_nonconservative_terms(equations),
                                      equations, surface_integral, dg, cache,
                                      4, firsts[4], lasts[4])
+
+    return nothing
 end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 4},
