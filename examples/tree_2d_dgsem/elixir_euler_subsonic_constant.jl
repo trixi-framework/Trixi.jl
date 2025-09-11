@@ -29,14 +29,14 @@ initial_condition = initial_condition_subsonic
 #   Inflow/Outflow Boundary Conditions with Application to FUN3D.
 #   [NASA TM 20110022658](https://ntrs.nasa.gov/citations/20110022658)
 @inline function boundary_condition_outflow_general(u_inner, orientation::Integer,
-                                                    normal_direction, x, t,
+                                                    direction, x, t,
                                                     surface_flux_function,
                                                     equations::CompressibleEulerEquations2D)
     rho_local, vx_local, vy_local, p_local = cons2prim(u_inner, equations)
     a_local = sqrt(equations.gamma * p_local / rho_local)
     v_mag = sqrt(vx_local^2 + vy_local^2)
     Mach_local = abs(v_mag / a_local)
-    if Mach_local <= 1.0 # The `if` is not needed in this elixir but kept for generality
+    if Mach_local <= 1 # The `if` is not needed in this elixir but kept for generality
         # In general, `p_local` need not be available from the initial condition
         p_local = pressure(initial_condition_subsonic(x, t, equations), equations)
     end
@@ -44,7 +44,7 @@ initial_condition = initial_condition_subsonic
     prim = SVector(rho_local, vx_local, vy_local, p_local)
     u_surface = prim2cons(prim, equations)
 
-    return Trixi.flux(u_surface, orientation, equations)
+    return flux(u_surface, orientation, equations)
 end
 
 boundary_conditions = (x_neg = boundary_condition_outflow_general,
@@ -99,6 +99,6 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 ## Run the simulation
-sol = solve(ode, SSPRK54(),
-            dt = 1,
+sol = solve(ode, SSPRK54();
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
