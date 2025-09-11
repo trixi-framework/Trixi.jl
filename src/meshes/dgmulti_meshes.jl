@@ -12,20 +12,62 @@
 dispatchable type. This is intended to store geometric data and connectivities for any type of
 mesh (Cartesian, affine, curved, structured/unstructured).
 """
-struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
+mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
     md::MeshDataT
+
     boundary_faces::BoundaryFaceT
+
+    current_filename :: String
+    unsaved_changes  :: Bool
+
+    function DGMultiMesh{NDIMS, MeshType, MeshDataT, BoundaryFaceT}(md,
+                                                                    bd) where {NDIMS,
+                                                                               MeshType,
+                                                                               MeshDataT,
+                                                                               BoundaryFaceT
+                                                                               }
+        return new{NDIMS, MeshType, MeshDataT, BoundaryFaceT}(md, bd, "", true)
+    end
 end
+
+@inline Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
+@inline ncells(mesh::DGMultiMesh) = Int(mesh.md.num_elements)
+
+get_name(mesh::DGMultiMesh) = mesh |> typeof |> nameof |> string
+
+function get_element_type_from_string(input::String)
+    str = lowercase(input)
+    if startswith(str, "line")
+        return Line
+    elseif startswith(str, "tri")
+        return Tri
+    elseif startswith(str, "tet")
+        return Tet
+    elseif startswith(str, "quad")
+        return Quad
+    elseif startswith(str, "hex")
+        return Hex
+    elseif startswith(str, "wedge")
+        return Wedge
+    elseif startswith(str, "pyr")
+        return Pyr
+    else
+        @error "Unknown element type: $input"
+    end
+end
+
+const SerialDGMultiMesh{NDIMS} = DGMultiMesh{NDIMS}
+@inline mpi_parallel(mesh::SerialDGMultiMesh) = False()
 
 # enable use of @set and setproperties(...) for DGMultiMesh
-function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) where {T1,
+function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) where {
+                                                                                    T1,
                                                                                     T2,
                                                                                     T3,
-                                                                                    T4}
+                                                                                    T4
+                                                                                    }
     DGMultiMesh{T1, T2, T3, T4}
 end
-
-Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
 
 function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
     @nospecialize mesh # reduce precompilation time
@@ -47,5 +89,12 @@ function Base.show(io::IO, ::MIME"text/plain",
         end
         summary_footer(io)
     end
+end
+
+# This constructor is called by load_mesh_serial. Note that constructing the mesh this way 
+# doesn't specify whether the mesh is affine. We assume the more general case (non-affine).
+function DGMultiMesh(md::MeshData{NDIMS}, boundary_names = []) where {NDIMS}
+    return DGMultiMesh{NDIMS, NonAffine, typeof(md), typeof(boundary_names)}(md,
+                                                                             boundary_names)
 end
 end # @muladd

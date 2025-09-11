@@ -39,7 +39,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
@@ -264,6 +264,8 @@ end
         surface_flux_values[v, surface_i_node_index, surface_j_node_index,
         local_direction_index, local_element_index] = flux_[v]
     end
+
+    return nothing
 end
 
 # Inlined version of the interface flux computation for non-conservative equations
@@ -298,6 +300,8 @@ end
         local_direction_index, local_element_index] = flux_[v] +
                                                       0.5f0 * noncons_flux_[v]
     end
+
+    return nothing
 end
 
 function prolong2mpimortars!(cache, u,
@@ -496,6 +500,8 @@ end
                    i_node_index, j_node_index, position_index)
     set_node_vars!(fstar_secondary, flux, equations, dg,
                    i_node_index, j_node_index, position_index)
+
+    return nothing
 end
 
 # Inlined version of the mortar flux computation on small elements for non-conservative equations
@@ -525,6 +531,8 @@ end
                                                                          0.5f0 *
                                                                          noncons_flux_secondary[v]
     end
+
+    return nothing
 end
 
 @inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,

@@ -42,8 +42,12 @@ installation and postprocessing procedures. Its features include:
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
+* Custom explicit time integration schemes
+  * Maximized linear stability via paired explicit Runge-Kutta methods
+  * Relaxation Runge-Kutta methods for entropy-conservative time integration
 * Native support for differentiable programming
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
+  * Automatic Jacobian sparsity detection via [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl)
 * Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
@@ -53,7 +57,7 @@ installation and postprocessing procedures. Its features include:
   * Linearized Euler and acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
-  * Shallow water equations
+  * Shallow water equations via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl)
   * Several scalar conservation laws (e.g., linear advection, Burgers' equation, LWR traffic flow)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
@@ -337,7 +341,8 @@ Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
-(Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+(Linköping University, Sweden), [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+and [Andrés Rueda-Ramírez](https://andres.rueda-ramirez.com) (Polytechnic University of Madrid (UPM), Spain),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found under [Authors](@ref).
 
@@ -359,6 +364,8 @@ Participating research groups in alphabetical order:
 [Applied and Computational Mathematics, RWTH Aachen University 🇩🇪](https://www.acom.rwth-aachen.de)
 
 [Applied Mathematics, Department of Mathematics, University of Hamburg 🇩🇪](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
+
+[Department of Applied Mathematics in Aerospace Engineering, Polytechnic University of Madrid (UPM) 🇪🇸](https://numath.dmae.upm.es/)
 
 [Division of Applied Mathematics, Department of Mathematics, Linköping University 🇸🇪](https://liu.se/en/employee/andwi94)
 

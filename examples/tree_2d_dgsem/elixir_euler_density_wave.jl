@@ -1,10 +1,9 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
-gamma = 1.4
-equations = CompressibleEulerEquations2D(gamma)
+equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_density_wave
 

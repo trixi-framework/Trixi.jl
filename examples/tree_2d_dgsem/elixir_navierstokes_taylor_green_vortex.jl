@@ -1,14 +1,14 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-mu = 6.25e-4 # equivalent to Re = 1600
+mu() = 6.25e-4 # equivalent to Re = 1600
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
 """

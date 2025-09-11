@@ -49,8 +49,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
@@ -92,11 +91,8 @@ function rhs!(du, u, t,
 end
 
 # prolong the solution into the convenience array in the interior interface container
-# We pass the `surface_integral` argument solely for dispatch
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
-function prolong2interfaces!(cache, u,
-                             mesh::UnstructuredMesh2D,
-                             equations, surface_integral, dg::DG)
+function prolong2interfaces!(cache, u, mesh::UnstructuredMesh2D, equations, dg::DG)
     @unpack interfaces = cache
     @unpack element_ids, element_side_ids = interfaces
     interfaces_u = interfaces.u
@@ -388,6 +384,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
                                 node, side, element, boundary)
         end
     end
+
+    return nothing
 end
 
 # inlined version of the boundary flux calculation along a physical interface where the
@@ -418,6 +416,8 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, node_index, side_index, element_index] = flux[v]
     end
+
+    return nothing
 end
 
 # inlined version of the boundary flux and nonconseravtive terms calculation along a
@@ -458,6 +458,8 @@ end
                                                                         0.5f0 *
                                                                         noncons_flux[v]
     end
+
+    return nothing
 end
 
 # Note! The local side numbering for the unstructured quadrilateral element implementation differs

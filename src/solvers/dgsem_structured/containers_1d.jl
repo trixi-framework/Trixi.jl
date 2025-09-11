@@ -44,6 +44,8 @@ function calc_node_coordinates!(node_coordinates, cell_x, mapping,
         # node_coordinates are the mapped reference node_coordinates
         node_coordinates[1, i, cell_x] = mapping(cell_x_offset + dx / 2 * nodes[i])[1]
     end
+
+    return nothing
 end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain

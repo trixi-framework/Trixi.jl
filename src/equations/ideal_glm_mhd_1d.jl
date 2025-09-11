@@ -69,7 +69,7 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
     RealT = eltype(x)
     rho = 1
     v1 = 0
-    si, co = sincospi(2 * x[1])
+    si, co = sincospi(2 * (x[1] + t)) # Adding `t` makes non-integer time valid
     v2 = convert(RealT, 0.1) * si
     v3 = convert(RealT, 0.1) * co
     p = convert(RealT, 0.1)
@@ -105,7 +105,7 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
     return prim2cons(SVector(rho, v1, 0, 0, p, 1, 1, 1, 0), equations)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations1D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
     v1 = rho_v1 / rho
