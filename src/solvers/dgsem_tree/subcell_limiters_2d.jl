@@ -623,12 +623,13 @@ end
 ###############################################################################
 
 @inline function calc_mortar_limiting_factor!(u, semi, t, dt)
-    (; positivity_variables_cons) = semi.solver.mortar
-    (; limiting_factor) = semi.cache.mortars
+    mesh, _, solver, cache = mesh_equations_solver_cache(semi)
+    (; positivity_variables_cons) = solver.mortar
+    (; limiting_factor) = cache.mortars
     @trixi_timeit timer() "reset alpha" limiting_factor.=zeros(eltype(limiting_factor))
 
     @trixi_timeit timer() "conservative variables" for var_index in positivity_variables_cons
-        limiting_positivity_conservative!(limiting_factor, u, dt, semi, var_index)
+        limiting_positivity_conservative!(limiting_factor, u, dt, semi, mesh, var_index)
     end
 
     return nothing
@@ -637,8 +638,8 @@ end
 ###############################################################################
 # Local two-sided limiting of conservative variables
 @inline function limiting_positivity_conservative!(limiting_factor, u, dt, semi,
-                                                   var_index)
-    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+                                                   mesh::TreeMesh{2}, var_index)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; orientations) = cache.mortars
     (; surface_flux_values) = cache.elements
