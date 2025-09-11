@@ -1480,14 +1480,14 @@ function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, sol
             # boundary in x-direction
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
-                for l in eachnode(solver), v in 1:n_aux_node_vars(equations)
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
                     aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v,
                                                                               nnodes(solver),
                                                                               l,
                                                                               element]
                 end
             else # Element in +x direction of boundary
-                for l in eachnode(solver), v in 1:n_aux_node_vars(equations)
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
                     aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, 1, l,
                                                                               element]
                 end
@@ -1496,16 +1496,91 @@ function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, sol
             # boundary in y-direction
             if neighbor_sides[boundary] == 1
                 # element in -y direction of boundary
-                for l in eachnode(solver), v in 1:n_aux_node_vars(equations)
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
                     aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v, l,
                                                                               nnodes(solver),
                                                                               element]
                 end
             else
                 # element in +y direction of boundary
-                for l in eachnode(solver), v in 1:n_aux_node_vars(equations)
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
                     aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, l, 1,
                                                                               element]
+                end
+            end
+        end
+    end
+    return nothing
+end
+
+# Initialize auxiliary mortar node variables
+# 2D TreeMesh implementation, similar to prolong2mortars
+# Each mortar has two sides (indentified by first variable of u_upper / u_lower)
+# On the side with two small elements, values can be copied from the aux vars field
+# On the side with one large element, values are usually interpolated to small elements
+# We do this differently here and use the same small element values on both side. This
+# assumes that the aux_field computes a smooth variable field with no jumps
+function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
+                                    cache)
+    @unpack aux_node_vars, aux_mortar_node_vars = aux_vars
+
+    @threaded for mortar in eachmortar(solver, cache)
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        # Copy solution small to small
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if cache.mortars.orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in eachnode(solver)
+                    for v in axes(aux_mortar_node_vars, 2)
+                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v, 1,
+                                                                                  l,
+                                                                                  upper_element]
+                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v, 1,
+                                                                                  l,
+                                                                                  lower_element]
+                    end
+                end
+            else
+                # L2 mortars in y-direction
+                for l in eachnode(solver)
+                    for v in axes(aux_mortar_node_vars, 2)
+                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v, l,
+                                                                                  1,
+                                                                                  upper_element]
+                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v, l,
+                                                                                  1,
+                                                                                  lower_element]
+                    end
+                end
+            end
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if cache.mortars.orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in eachnode(solver)
+                    for v in axes(aux_mortar_node_vars, 2)
+                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v,
+                                                                                  nnodes(solver),
+                                                                                  l,
+                                                                                  upper_element]
+                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v,
+                                                                                  nnodes(solver),
+                                                                                  l,
+                                                                                  lower_element]
+                    end
+                end
+            else
+                # L2 mortars in y-direction
+                for l in eachnode(solver)
+                    for v in axes(aux_mortar_node_vars, 2)
+                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v, l,
+                                                                                  nnodes(solver),
+                                                                                  upper_element]
+                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v, l,
+                                                                                  nnodes(solver),
+                                                                                  lower_element]
+                    end
                 end
             end
         end
