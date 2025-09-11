@@ -46,6 +46,7 @@ end
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation2D)
+    RealT = eltype(x)
     return SVector(RealT(2))
 end
 
