@@ -87,8 +87,7 @@ end
                                           source_terms=nothing,
                                           both_boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
                                           RealT=real(solver),
-                                          uEltype=RealT,
-                                          both_initial_caches=(NamedTuple(), NamedTuple()))
+                                          uEltype=RealT)
 
 Construct a semidiscretization of a hyperbolic-parabolic PDE.
 """
@@ -100,12 +99,9 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                                       boundary_condition_periodic),
                                                # `RealT` is used as real type for node locations etc.
                                                # while `uEltype` is used as element type of solutions etc.
-                                               RealT = real(solver), uEltype = RealT,
-                                               initial_caches = (NamedTuple(),
-                                                                 NamedTuple()))
+                                               RealT = real(solver), uEltype = RealT)
     equations_hyperbolic, equations_parabolic = equations
     boundary_conditions_hyperbolic, boundary_conditions_parabolic = boundary_conditions
-    initial_hyperbolic_cache, initial_cache_parabolic = initial_caches
 
     return SemidiscretizationHyperbolicParabolic(mesh, equations_hyperbolic,
                                                  equations_parabolic,
@@ -113,9 +109,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                  solver_parabolic, source_terms,
                                                  boundary_conditions = boundary_conditions_hyperbolic,
                                                  boundary_conditions_parabolic = boundary_conditions_parabolic,
-                                                 RealT, uEltype,
-                                                 initial_cache = initial_hyperbolic_cache,
-                                                 initial_cache_parabolic = initial_cache_parabolic)
+                                                 RealT, uEltype)
 end
 
 function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
@@ -126,11 +120,8 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabo
                                                boundary_conditions_parabolic = boundary_condition_periodic,
                                                # `RealT` is used as real type for node locations etc.
                                                # while `uEltype` is used as element type of solutions etc.
-                                               RealT = real(solver), uEltype = RealT,
-                                               initial_cache = NamedTuple(),
-                                               initial_cache_parabolic = NamedTuple())
-    cache = (; create_cache(mesh, equations, solver, RealT, uEltype)...,
-             initial_cache...)
+                                               RealT = real(solver), uEltype = RealT)
+    cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
     _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
@@ -138,11 +129,9 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabo
 
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
-    cache_parabolic = (;
-                       create_cache_parabolic(mesh, equations, equations_parabolic,
-                                              solver, solver_parabolic, RealT,
-                                              uEltype)...,
-                       initial_cache_parabolic...)
+    cache_parabolic = create_cache_parabolic(mesh, equations, equations_parabolic,
+                                             solver, solver_parabolic, RealT,
+                                             uEltype)
 
     SemidiscretizationHyperbolicParabolic{typeof(mesh), typeof(equations),
                                           typeof(equations_parabolic),
@@ -266,6 +255,14 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolicParab
     compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
+# Required for storing `extra_node_variables` in the `SaveSolutionCallback`.
+# Not to be confused with `get_node_vars` which returns the variables of the simulated equation.
+function get_node_variables!(node_variables, u_ode,
+                             semi::SemidiscretizationHyperbolicParabolic)
+    get_node_variables!(node_variables, u_ode, mesh_equations_solver_cache(semi)...,
+                        semi.equations_parabolic, semi.cache_parabolic)
+end
+
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
 
@@ -374,6 +371,47 @@ function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u
         rhs!(du_ode_hyp, u_ode, new_semi, t0)
         rhs_parabolic!(du_ode, u_ode, new_semi, t0)
         du_ode .+= du_ode_hyp
+    end
+
+    return J
+end
+
+"""
+    jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic;
+                                  t0=zero(real(semi)),
+                                  u0_ode=compute_coefficients(t0, semi))
+
+Uses the *parabolic part* of the right-hand side operator of the [`SemidiscretizationHyperbolicParabolic`](@ref) `semi`
+and forward mode automatic differentiation to compute the Jacobian `J` of the 
+parabolic/diffusive contribution only at time `t0` and state `u0_ode`.
+
+This might be useful for operator-splitting methods, e.g., the construction of optimized 
+time integrators which optimize different methods for the hyperbolic and parabolic part separately.
+"""
+function jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic;
+                                       t0 = zero(real(semi)),
+                                       u0_ode = compute_coefficients(t0, semi))
+    jacobian_ad_forward_parabolic(semi, t0, u0_ode)
+end
+
+# The following version is for plain arrays
+function jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic,
+                                       t0, u0_ode)
+    du_ode = similar(u0_ode)
+    config = ForwardDiff.JacobianConfig(nothing, du_ode, u0_ode)
+
+    # Use a function barrier since the generation of the `config` we use above
+    # is not type-stable
+    _jacobian_ad_forward_parabolic(semi, t0, u0_ode, du_ode, config)
+end
+
+function _jacobian_ad_forward_parabolic(semi, t0, u0_ode, du_ode, config)
+    new_semi = remake(semi, uEltype = eltype(config))
+    # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
+    J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
+        Trixi.rhs_parabolic!(du_ode, u_ode, new_semi, t0)
     end
 
     return J

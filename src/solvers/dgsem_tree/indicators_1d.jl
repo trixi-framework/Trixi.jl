@@ -107,6 +107,8 @@ function apply_smoothing!(mesh::TreeMesh{1}, alpha, alpha_tmp, dg, cache)
         alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
         alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
     end
+
+    return nothing
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals

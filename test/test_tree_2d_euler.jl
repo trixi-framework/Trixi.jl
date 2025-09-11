@@ -928,7 +928,7 @@ end
                             0.03857193149447702,
                             0.031090457959835893,
                             0.12125130332971423
-                        ],)
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -937,6 +937,41 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
+
+@trixi_testset "elixir_euler_vortex_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
+                        l2=[
+                            0.02611497083247329,
+                            0.1381802635983644,
+                            0.11459980510262816,
+                            0.43782810743830725
+                        ],
+                        linf=[
+                            0.2918576464635866,
+                            1.1190399715083816,
+                            0.7978297797951908,
+                            3.8946074718596115
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
+    end
+
+    # test both short and long printing formats
+    @test_nowarn show(relaxation_solver)
+    println()
+    @test_nowarn println(relaxation_solver)
+    println()
+    @test_nowarn display(relaxation_solver)
+    # Test `:compact` printing
+    show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), relaxation_solver)
 end
 
 @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
@@ -1044,6 +1079,55 @@ end
             du_ode = similar(u_ode)
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
+    end
+end
+
+# Constant subsonic flow test
+@trixi_testset "elixir_euler_subsonic_constant.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_subsonic_constant.jl"),
+                        l2=[
+                            9.135564506684991e-14, 1.9441147665983966e-14,
+                            1.94425866451226e-14, 1.7503189225604875e-13
+                        ],
+                        linf=[
+                            1.0769163338864018e-13, 8.487407677783974e-14,
+                            8.515583343047957e-14, 2.0472512574087887e-13
+                        ],
+                        initial_refinement_level=7,
+                        tspan=(0.0, 0.1)) # this test is sensitive to the CFL factor
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_riemannproblem_quadrants_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_riemannproblem_quadrants_amr.jl"),
+                        tspan=(0.0, 0.05),
+                        l2=[
+                            0.12802172216950314,
+                            0.1333199240875145,
+                            0.13331992408751456,
+                            0.48888051192644405
+                        ],
+                        linf=[
+                            0.853710403180942,
+                            0.9151148367639803,
+                            0.9151148367639808,
+                            3.4300525777582864
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 end

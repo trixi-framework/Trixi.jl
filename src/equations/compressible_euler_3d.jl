@@ -358,7 +358,7 @@ Should be used together with [`TreeMesh`](@ref).
         normal_direction = SVector(zero(RealT), zero(RealT), one(RealT))
     end
 
-    # compute and return the flux using `boundary_condition_slip_wall` routine above
+    # compute and return the flux using `boundary_condition_slip_wall` routine below
     return boundary_condition_slip_wall(u_inner, normal_direction, direction,
                                         x, t, surface_flux_function, equations)
 end
@@ -577,27 +577,20 @@ end
     # Unpack left and right state
     rho_e_ll = last(u_ll)
     rho_e_rr = last(u_rr)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
-
-    v1_ll = rho_v1_ll / rho_ll
-    v2_ll = rho_v2_ll / rho_ll
-    v3_ll = rho_v3_ll / rho_ll
-    v1_rr = rho_v1_rr / rho_rr
-    v2_rr = rho_v2_rr / rho_rr
-    v3_rr = rho_v3_rr / rho_rr
+    rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
     # Average each factor of products in flux
     rho_avg = 0.5f0 * (rho_ll + rho_rr)
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_avg = 0.5f0 * (v2_ll + v2_rr)
     v3_avg = 0.5f0 * (v3_ll + v3_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
+
     v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2] +
                   v3_avg * normal_direction[3]
-    p_avg = 0.5f0 * ((equations.gamma - 1) *
-             (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2)) +
-             (equations.gamma - 1) *
-             (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2)))
+    p_avg = 0.5f0 * (p_ll + p_rr)
     e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
 
     # Calculate fluxes depending on normal_direction

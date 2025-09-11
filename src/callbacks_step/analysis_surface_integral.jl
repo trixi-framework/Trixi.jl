@@ -127,4 +127,5 @@ function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{
 end
 
 include("analysis_surface_integral_2d.jl")
+include("analysis_surface_integral_3d.jl")
 end # muladd

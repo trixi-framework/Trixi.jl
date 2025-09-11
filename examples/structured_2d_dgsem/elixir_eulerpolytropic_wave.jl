@@ -1,12 +1,12 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
 # semidiscretization of the polytropic Euler equations
 
-gamma = 2.0   # Adiabatic monatomic gas in 2d.
-kappa = 0.5   # Scaling factor for the pressure.
-equations = PolytropicEulerEquations2D(gamma, kappa)
+gamma() = 2.0   # Adiabatic monatomic gas in 2d.
+kappa() = 0.5   # Scaling factor for the pressure.
+equations = PolytropicEulerEquations2D(gamma(), kappa())
 
 # Linear pressure wave in the negative x-direction.
 function initial_condition_wave(x, t, equations::PolytropicEulerEquations2D)

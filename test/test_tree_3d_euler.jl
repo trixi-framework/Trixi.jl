@@ -25,7 +25,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
                             0.032179231640894645,
                             0.032179231640895534,
                             0.0655408023333299
-                        ],)
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -430,6 +430,32 @@ end
                             1.506534270303663
                         ],
                         surface_flux=flux_shima_etal, volume_flux=flux_shima_etal)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_laplace_diffusion.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
+                        l2=[
+                            0.013299230512542162,
+                            0.0073025819009651,
+                            0.007302581900965106,
+                            0.007300042097573285,
+                            0.04888085245959731
+                        ],
+                        linf=[
+                            0.31714843611640464,
+                            0.23586839231625517,
+                            0.23586839231625506,
+                            0.23698123351744782,
+                            1.1174271158464726
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

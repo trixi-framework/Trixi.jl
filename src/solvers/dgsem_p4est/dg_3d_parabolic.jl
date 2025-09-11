@@ -115,7 +115,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache_parabolic, u_transformed, mesh,
-                            equations_parabolic, dg.surface_integral, dg)
+                            equations_parabolic, dg)
     end
 
     # Calculate interface fluxes for the gradient. This reuses P4est `calc_interface_flux!` along with a
@@ -377,6 +377,8 @@ end
         surface_flux_values[v, primary_i_node_index, primary_j_node_index, primary_direction_index, primary_element_index] = flux_[v]
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
     end
+
+    return nothing
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
@@ -400,9 +402,8 @@ function calc_volume_integral!(du, flux_viscous,
 
             # Compute the contravariant flux by taking the scalar product of the
             # first contravariant vector Ja^1 and the flux vector
-            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,
-                                                        k,
-                                                        element)
+            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                        i, j, k, element)
             contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
             for ii in eachnode(dg)
                 multiply_add_to_node_vars!(du, derivative_dhat[ii, i],
@@ -412,9 +413,8 @@ function calc_volume_integral!(du, flux_viscous,
 
             # Compute the contravariant flux by taking the scalar product of the
             # second contravariant vector Ja^2 and the flux vector
-            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                        k,
-                                                        element)
+            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                        i, j, k, element)
             contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
             for jj in eachnode(dg)
                 multiply_add_to_node_vars!(du, derivative_dhat[jj, j],
@@ -424,9 +424,8 @@ function calc_volume_integral!(du, flux_viscous,
 
             # Compute the contravariant flux by taking the scalar product of the
             # second contravariant vector Ja^2 and the flux vector
-            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j,
-                                                        k,
-                                                        element)
+            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                        i, j, k, element)
             contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
             for kk in eachnode(dg)
                 multiply_add_to_node_vars!(du, derivative_dhat[kk, k],
@@ -440,11 +439,10 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::P4estMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache)
+                             dg::DG, cache)
     (; interfaces) = cache_parabolic
     (; contravariant_vectors) = cache_parabolic.elements
     index_range = eachnode(dg)
@@ -476,7 +474,8 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
                 # this is the outward normal direction on the primary element
                 normal_direction = get_normal_direction(primary_direction,
                                                         contravariant_vectors,
-                                                        i_primary, j_primary, k_primary,
+                                                        i_primary, j_primary,
+                                                        k_primary,
                                                         primary_element)
 
                 for v in eachvariable(equations_parabolic)
@@ -865,6 +864,8 @@ end
                    position_index)
     set_node_vars!(fstar_secondary, flux_, equations, dg, i_node_index, j_node_index,
                    position_index)
+
+    return nothing
 end
 
 # TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
@@ -997,6 +998,8 @@ function calc_boundary_flux!(cache, t,
             k_node += k_node_step_j
         end
     end
+
+    return nothing
 end
 
 function apply_jacobian_parabolic!(du, mesh::P4estMesh{3},
