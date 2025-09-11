@@ -10,12 +10,12 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 polydeg = 2
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
 
-initial_condition = initial_condition_convergence_test
+initial_condition = initial_condition_constant
 
 case_path = "/home/daniel/Sciebo/Job/Doktorand/Content/Meshes/HighOrderCFDWorkshop/CS1/"
 mesh_file = case_path * "Pointwise/TandemSpheresHexMesh1P1.inp"
 #mesh_file = case_path * "Pointwise/TandemSpheresHexMesh1P2_fixed.inp"
-mesh_file = case_path * "Pointwise/single_cell_Q27.inp"
+mesh_file = case_path * "Pointwise/single_cell_Q27_test.inp"
 
 # Boundary symbols follow from nodesets in the mesh file
 mesh = P4estMesh{3}(mesh_file)

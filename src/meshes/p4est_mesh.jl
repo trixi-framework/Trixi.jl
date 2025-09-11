@@ -1974,8 +1974,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                     #        |           |
                     #        |           |
                     #        *           *
-                    #        |           |
-                    #  ^ η   |           |
+                    #  η     |           |
+                    #  ↑     |           |
                     #  |     *-----*-----*
                     #  |----> ξ
                     # thus we need to flip the node order for the second xi and eta edges met.
@@ -2143,8 +2143,8 @@ function face_curves_quadratic_3d!(face_curves, face_nodes, face,
     #        |           |
     #        |           |
     #        *     *     *
-    #        |           |
-    #  ^ η   |           |
+    #  η     |           |
+    #  ↑     |           |
     #  |     *-----*-----*
     #  |----> ξ
     # thus we need to flip the node order for the second xi and eta edges met.
@@ -2152,8 +2152,6 @@ function face_curves_quadratic_3d!(face_curves, face_nodes, face,
     nnodes = length(nodes)
     curve_values = Array{RealT}(undef, (3, nnodes, nnodes))
 
-    # TODO: Need probably to do some flips for the different faces, as for the 2D case.
-    # Maybe flip such that local coordinate system is always right handed, i.e., counter-clock-wise turning & numbered?
     # Proceed along bottom edge
     curve_values[:, 1, 1] = node1_coords
     curve_values[:, 2, 1] = node2_coords
@@ -2231,36 +2229,34 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 #    NW    N     NE
                 #    *-----*-----*
                 #    |           |
-                #    |           |  
-                #  W *    *C     * E
+                #    |     C     |  
+                #  W *     *     * E
                 #    |           |  
                 #    |           |
-                #    *-----*-----*
+                #    *-----*-----* 
                 #    SW    S     SE
+                #
+                # where SW gets placed at the origin of the local face coordinate system:
+                #
+                #    η
+                #    ↑
+                #    |
+                #    |  
+                #    |----> ξ
 
-                # We proceed now face by face. The handling of the first face defines the local node ordering
-                # and the other faces have to comply with this.
-                # The "names" of the faces follow from the sketch for the 27-node element presented in the doc
+                # We proceed now face by face, with face numbering as sketched out in
+                # https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/p4est_mesh/#HOHQMesh-Extended-Abaqus-format
+                # The node selection follows from the sketch for the 27-node element presented in the doc
                 # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael03.html
 
-                # Face 1: "Bottom"
+                # Face 1: -y, "Front"
+                # Local coordinate system:
+                # η
+                # ↑
+                # │
+                # └───> ξ
+
                 face = 1
-                face_nodes[1] = element_nodes[1]  # "SW" node
-                face_nodes[2] = element_nodes[9]  # "S"  node
-                face_nodes[3] = element_nodes[2]  # "SE" node
-                face_nodes[4] = element_nodes[10] # "E"  node
-                face_nodes[5] = element_nodes[3]  # "NE" node
-                face_nodes[6] = element_nodes[11] # "N"  node
-                face_nodes[7] = element_nodes[4]  # "NW" node
-                face_nodes[8] = element_nodes[12] # "W"  node
-                face_nodes[9] = element_nodes[22] # "C"  node
-
-                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                                          mesh_nodes, nodes, bary_weights, 
-                                          RealT, CurvedFaceT)
-
-                # Face 2: "Front"
-                face = 2
                 face_nodes[1] = element_nodes[1]  # "SW" node
                 face_nodes[2] = element_nodes[9]  # "S"  node
                 face_nodes[3] = element_nodes[2]  # "SE" node
@@ -2275,23 +2271,57 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                           mesh_nodes, nodes, bary_weights, 
                                           RealT, CurvedFaceT)
 
-                # Face 3: "Left"
-                face = 3
-                face_nodes[1] = element_nodes[1]  # "SW" node
-                face_nodes[2] = element_nodes[12] # "S"  node
+                # Face 2: +y, "Back"
+                # Local coordinate system:
+                #       η
+                #       ↑
+                #       │
+                # ξ <───┘
+
+                face = 2
+                face_nodes[1] = element_nodes[3]  # "SW" node
+                face_nodes[2] = element_nodes[11] # "S"  node
                 face_nodes[3] = element_nodes[4]  # "SE" node
                 face_nodes[4] = element_nodes[20] # "E"  node
                 face_nodes[5] = element_nodes[8]  # "NE" node
-                face_nodes[6] = element_nodes[16] # "N"  node
-                face_nodes[7] = element_nodes[5]  # "NW" node
-                face_nodes[8] = element_nodes[17] # "W"  node
-                face_nodes[9] = element_nodes[27] # "C"  node
+                face_nodes[6] = element_nodes[15] # "N"  node
+                face_nodes[7] = element_nodes[7]  # "NW" node
+                face_nodes[8] = element_nodes[19] # "W"  node
+                face_nodes[9] = element_nodes[26] # "C"  node
 
                 face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                mesh_nodes, nodes, bary_weights, 
-                RealT, CurvedFaceT)
+                                          mesh_nodes, nodes, bary_weights, 
+                                          RealT, CurvedFaceT)
 
-                # Face 4: "Right"
+                # Face 3: -z, "Bottom"
+                # Local coordinate system:
+                #       η
+                #       ↑
+                #       │
+                # ξ <───┘
+
+                face = 3
+                face_nodes[1] = element_nodes[2]  # "SW" node
+                face_nodes[2] = element_nodes[9]  # "S"  node
+                face_nodes[3] = element_nodes[1]  # "SE" node
+                face_nodes[4] = element_nodes[12] # "E"  node
+                face_nodes[5] = element_nodes[4]  # "NE" node
+                face_nodes[6] = element_nodes[11] # "N"  node
+                face_nodes[7] = element_nodes[3]  # "NW" node
+                face_nodes[8] = element_nodes[10] # "W"  node
+                face_nodes[9] = element_nodes[22] # "C"  node
+
+                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
+                                          mesh_nodes, nodes, bary_weights, 
+                                          RealT, CurvedFaceT)
+
+                # Face 4: +x, "Right"
+                # Local coordinate system:
+                # η
+                # ↑
+                # │
+                # └───> ξ
+
                 face = 4
                 face_nodes[1] = element_nodes[2]  # "SW" node
                 face_nodes[2] = element_nodes[10] # "S"  node
@@ -2304,10 +2334,16 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 face_nodes[9] = element_nodes[25] # "C"  node
 
                 face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                mesh_nodes, nodes, bary_weights, 
-                RealT, CurvedFaceT)
+                                          mesh_nodes, nodes, bary_weights, 
+                                          RealT, CurvedFaceT)
+                          
+                # Face 5: +z, "Top"
+                # Local coordinate system:
+                # η
+                # ↑
+                # │
+                # └───> ξ
 
-                # Face 5: "Top"
                 face = 5
                 face_nodes[1] = element_nodes[5]  # "SW" node
                 face_nodes[2] = element_nodes[13] # "S"  node
@@ -2320,24 +2356,31 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 face_nodes[9] = element_nodes[23] # "C"  node
 
                 face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                mesh_nodes, nodes, bary_weights, 
-                RealT, CurvedFaceT)
+                                          mesh_nodes, nodes, bary_weights, 
+                                          RealT, CurvedFaceT)
 
-                # Face 6: "Back"
+                # Face 6: -x, "Left"
+                #       η
+                #       ↑
+                #       │
+                # ξ <───┘
+
                 face = 6
                 face_nodes[1] = element_nodes[4]  # "SW" node
-                face_nodes[2] = element_nodes[11] # "S"  node
-                face_nodes[3] = element_nodes[3]  # "SE" node
-                face_nodes[4] = element_nodes[19] # "E"  node
-                face_nodes[5] = element_nodes[7]  # "NE" node
-                face_nodes[6] = element_nodes[15] # "N"  node
+                face_nodes[2] = element_nodes[12] # "S"  node
+                face_nodes[3] = element_nodes[1]  # "SE" node
+                face_nodes[4] = element_nodes[17] # "E"  node
+                face_nodes[5] = element_nodes[5]  # "NE" node
+                face_nodes[6] = element_nodes[16] # "N"  node
                 face_nodes[7] = element_nodes[8]  # "NW" node
                 face_nodes[8] = element_nodes[20] # "W"  node
-                face_nodes[9] = element_nodes[26] # "C"  node
+                face_nodes[9] = element_nodes[27] # "C"  node
 
                 face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                mesh_nodes, nodes, bary_weights, 
-                RealT, CurvedFaceT)
+                                          mesh_nodes, nodes, bary_weights, 
+                                          RealT, CurvedFaceT)
+
+                # Note: Node 21 remains unused, since it is not part of any face (sits in the center of the element)
 
                 # Create the node coordinates on this particular element
                 calc_node_coordinates!(node_coordinates, tree, nodes, face_curves)
