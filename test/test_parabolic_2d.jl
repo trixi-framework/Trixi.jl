@@ -871,7 +871,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
                         tspan=(0.0, 0.1),
                         l2=[
