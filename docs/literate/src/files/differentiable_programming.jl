@@ -452,7 +452,7 @@ ode_jac_type = semidiscretize(semi_jac_type, tspan)
 u0_ode = ode_jac_type.u0
 du_ode = similar(u0_ode)
 
-# Wrap the RHS for sparsity detection to match the expected signature f!(du, u) required by
+# Wrap the RHS for sparsity detection to match the expected signature `f!(du, u)` required by
 # [`jacobian_sparsity`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity).
 rhs_wrapped! = (du, u) -> Trixi.rhs!(du, u, semi_jac_type, tspan[1])
 jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
