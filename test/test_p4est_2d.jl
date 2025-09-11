@@ -12,7 +12,7 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
 @testset "P4estMesh2D" begin
-# ! format: noindent
+    # ! format: noindent
 
 @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
