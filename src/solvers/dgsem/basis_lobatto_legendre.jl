@@ -179,7 +179,8 @@ struct LobattoLegendreMortarIDP{RealT <: Real, NNODES,
     pure_low_order::Bool
     local_factor::Bool
     mortar_l2::Mortar
-    local_mortar_weights::Matrix{RealT}
+    mortar_weights::Matrix{RealT}
+    mortar_weights_sums::Vector{RealT}
     output_directory::String
 end
 
@@ -233,8 +234,8 @@ function MortarIDP(basis::LobattoLegendreBasis;
                                                                              reverse_lower_low_order,
                                                                              output_directory)
     else
-        local_mortar_weights = calc_mortar_weights(basis, RealT;
-                                                   basis_function = basis_function)
+        mortar_weights, mortar_weights_sums = calc_mortar_weights(basis, RealT;
+                                                                  basis_function = basis_function)
 
         LobattoLegendreMortarIDP{RealT, nnodes_, typeof(positivity_variables_nonlinear),
                                  typeof(mortar_l2)}(positivity_variables_cons,
@@ -242,7 +243,8 @@ function MortarIDP(basis::LobattoLegendreBasis;
                                                     pure_low_order,
                                                     local_factor,
                                                     mortar_l2,
-                                                    local_mortar_weights,
+                                                    mortar_weights,
+                                                    mortar_weights_sums,
                                                     output_directory)
     end
 end

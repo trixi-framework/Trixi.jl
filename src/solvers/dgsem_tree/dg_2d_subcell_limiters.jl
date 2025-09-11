@@ -61,8 +61,7 @@ end
 
 function calc_mortar_weights(basis, RealT; basis_function = :piecewise_constant)
     n_nodes = nnodes(basis)
-    # Saving the sum over row/column in entries with last index.
-    weights = zeros(RealT, n_nodes + 1, 2 * n_nodes + 1)
+    weights = zeros(RealT, n_nodes, 2 * n_nodes) # [large element, small element]
 
     if basis_function == :piecewise_constant
         calc_mortar_weights_piecewise_constant!(weights, n_nodes, RealT)
@@ -72,35 +71,32 @@ function calc_mortar_weights(basis, RealT; basis_function = :piecewise_constant)
         error("Unsupported basis function type: $basis_function")
     end
 
-    for i in eachnode(basis), j in eachnode(basis)
-        # Row
-        weights[i, end] += weights[i, j]
-        weights[i, end] += weights[i, j + n_nodes]
-        # Columns
-        weights[end, i] += weights[j, i]
-        weights[end, i + n_nodes] += weights[j, i + n_nodes]
-    end
+    # Sums of mortar weights for normalization
+    # Only save for one small element
+    # The sums of the other small element are identical
+    # The sums of the large element are twice as large
+    weights_sum = vec(sum(weights[1:n_nodes, 1:n_nodes], dims = 1))
 
-    return weights
+    return weights, weights_sum
 end
 
 function calc_mortar_weights_piecewise_constant!(mortar_weights, n_nodes, RealT)
     _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
-    cum_weights = [zero(RealT); cumsum(weights)] .- 1.0
+    cum_LGL_weights = [zero(RealT); cumsum(weights)] .- 1.0
 
-    cum_weights_lower = 0.5f0 * cum_weights .- 0.5f0
-    cum_weights_upper = cum_weights_lower .+ 1.0
+    cum_LGL_weights_lower = 0.5f0 * cum_LGL_weights .- 0.5f0
+    cum_LGL_weights_upper = cum_LGL_weights_lower .+ 1.0
 
     for i in 1:n_nodes
         for j in 1:n_nodes
             # basis function of left element
-            interval_left = max(cum_weights[i], cum_weights_lower[j])
-            interval_right = min(cum_weights[i + 1], cum_weights_lower[j + 1])
+            interval_left = max(cum_LGL_weights[i], cum_LGL_weights_lower[j])
+            interval_right = min(cum_LGL_weights[i + 1], cum_LGL_weights_lower[j + 1])
             mortar_weights[i, j] = max(zero(RealT), interval_right - interval_left)
 
             # basis function of right element
-            interval_left = max(cum_weights[i], cum_weights_upper[j])
-            interval_right = min(cum_weights[i + 1], cum_weights_upper[j + 1])
+            interval_left = max(cum_LGL_weights[i], cum_LGL_weights_upper[j])
+            interval_right = min(cum_LGL_weights[i + 1], cum_LGL_weights_upper[j + 1])
             mortar_weights[i, n_nodes + j] = max(zero(RealT),
                                                  interval_right - interval_left)
         end
@@ -997,7 +993,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
     # @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
     # fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     (; weights) = dg.basis
-    (; local_mortar_weights, local_factor) = mortar_idp
+    (; mortar_weights, mortar_weights_sums, local_factor) = mortar_idp
 
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -1032,18 +1028,17 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
 
                     if local_factor
-                        factor = local_mortar_weights[j, i]
+                        factor = mortar_weights[j, i]
                         if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / mortar_weights_sums[i]
                             # Lower element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor /
-                                                       local_mortar_weights[end, i],
+                                                       factor,
                                                        flux, equations, dg, i,
                                                        direction_small, lower_element)
                             # Large element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor /
-                                                       local_mortar_weights[j, end],
+                                                       0.5f0 * factor,
                                                        flux, equations, dg, j,
                                                        direction_large, large_element)
                         end
@@ -1072,19 +1067,17 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
 
                     if local_factor
-                        factor = local_mortar_weights[j, i + nnodes(dg)]
+                        factor = mortar_weights[j, i + nnodes(dg)]
                         if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / mortar_weights_sums[i]
                             # Upper element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor /
-                                                       local_mortar_weights[end,
-                                                                            i + nnodes(dg)],
+                                                       factor,
                                                        flux, equations, dg, i,
                                                        direction_small, upper_element)
                             # Large element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor /
-                                                       local_mortar_weights[j, end],
+                                                       0.5f0 * factor,
                                                        flux, equations, dg, j,
                                                        direction_large, large_element)
                         end
@@ -1127,18 +1120,17 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
 
                     if local_factor
-                        factor = local_mortar_weights[j, i]
+                        factor = mortar_weights[j, i]
                         if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / mortar_weights_sums[i]
                             # Lower element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor /
-                                                       local_mortar_weights[end, i],
+                                                       factor,
                                                        flux, equations, dg, i,
                                                        direction_small, lower_element)
                             # Large element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor /
-                                                       local_mortar_weights[j, end],
+                                                       0.5f0 * factor,
                                                        flux, equations, dg, j,
                                                        direction_large, large_element)
                         end
@@ -1167,19 +1159,17 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
 
                     if local_factor
-                        factor = local_mortar_weights[j, i + nnodes(dg)]
+                        factor = mortar_weights[j, i + nnodes(dg)]
                         if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / mortar_weights_sums[i]
                             # Upper element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor /
-                                                       local_mortar_weights[end,
-                                                                            i + nnodes(dg)],
+                                                       factor,
                                                        flux, equations, dg, i,
                                                        direction_small, upper_element)
                             # Large element
                             multiply_add_to_node_vars!(surface_flux_values,
-                                                       factor /
-                                                       local_mortar_weights[j, end],
+                                                       0.5f0 * factor,
                                                        flux, equations, dg, j,
                                                        direction_large, large_element)
                         end
