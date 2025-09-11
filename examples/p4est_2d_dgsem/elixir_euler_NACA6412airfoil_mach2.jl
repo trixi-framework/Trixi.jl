@@ -27,9 +27,8 @@ initial_condition = initial_condition_mach2_flow
                                                       x, t, surface_flux_function,
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach2_flow(x, t, equations)
-    flux = Trixi.flux(u_boundary, normal_direction, equations)
 
-    return flux
+    return flux(u_boundary, normal_direction, equations)
 end
 
 # Supersonic outflow boundary condition.
@@ -40,9 +39,7 @@ end
                                                        t,
                                                        surface_flux_function,
                                                        equations::CompressibleEulerEquations2D)
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, normal_direction, equations)
 end
 
 polydeg = 3

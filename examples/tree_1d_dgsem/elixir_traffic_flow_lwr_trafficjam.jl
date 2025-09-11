@@ -38,7 +38,7 @@ function boundary_condition_inflow(u_inner, orientation, direction, x, t,
                                    surface_flux_function,
                                    equations::TrafficFlowLWREquations1D)
     # Calculate the boundary flux entirely from the internal solution state
-    flux = Trixi.flux(u_inner, orientation, equations)
+    return flux(u_inner, orientation, equations)
 
     return flux
 end

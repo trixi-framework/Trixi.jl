@@ -64,7 +64,7 @@ mesh = P4estMesh{2}(mesh_file)
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach085_flow(x, t, equations)
 
-    return Trixi.flux_hll(u_inner, u_boundary, normal_direction, equations)
+    return flux_hll(u_inner, u_boundary, normal_direction, equations)
 end
 
 boundary_conditions = Dict(:Left => boundary_condition_subsonic_constant,

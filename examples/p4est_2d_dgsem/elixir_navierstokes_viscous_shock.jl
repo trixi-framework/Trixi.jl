@@ -113,9 +113,7 @@ function boundary_condition_inflow(u_inner, normal_direction::AbstractVector, x,
                                    surface_flux_function,
                                    equations::CompressibleEulerEquations2D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
-    flux = Trixi.flux(u_cons, normal_direction, equations)
-
-    return flux
+    return flux(u_cons, normal_direction, equations)
 end
 
 # Completely free outflow
@@ -123,7 +121,7 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x
                                     surface_flux_function,
                                     equations::CompressibleEulerEquations2D)
     # Calculate the boundary flux entirely from the internal solution state
-    flux = Trixi.flux(u_inner, normal_direction, equations)
+    return flux(u_inner, normal_direction, equations)
 
     return flux
 end
