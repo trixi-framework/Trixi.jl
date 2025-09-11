@@ -48,8 +48,7 @@ end
 end
 
 @trixi_testset "Displaying components 3D" begin
-    @test_nowarn include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
-                                  "elixir_advection_amr.jl"))
+    @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
 
     # test both short and long printing formats
     @test_nowarn show(mesh)

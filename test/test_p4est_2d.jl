@@ -1019,8 +1019,7 @@ end
 end
 
 @trixi_testset "elixir_euler_cylinder_bowshock_mach3.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_euler_cylinder_bowshock_mach3.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cylinder_bowshock_mach3.jl"),
                         tspan=(0.0, 1e-3),
                         l2=[
                             0.03787745781612722,

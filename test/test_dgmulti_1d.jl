@@ -168,8 +168,7 @@ end
 end
 
 @trixi_testset "elixir_euler_modified_sod.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_1d",
-                                 "elixir_euler_modified_sod.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_modified_sod.jl"),
                         cells_per_dimension=(16,),
                         l2=[0.26352391505659767, 0.4528974787813885, 0.9310255091126164],
                         linf=[
@@ -210,7 +209,7 @@ end
 end
 
 @trixi_testset "DGMulti with periodic SBP unit test" begin
-    using Trixi: periodic_derivative_operator, DGMulti, DGMultiMesh
+    using Trixi: periodic_derivative_operator, DGMulti, Line, DGMultiMesh
     # see https://github.com/trixi-framework/Trixi.jl/pull/1013
     global D = periodic_derivative_operator(derivative_order = 1,
                                             accuracy_order = 4,
