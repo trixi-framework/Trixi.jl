@@ -68,7 +68,4 @@ SparseConnectivityTracer = "1.0.1"
 SparseMatrixColorings = "0.4.21"
 StableRNGs = "1.0.2"
 Test = "1"
-TrixiTest = "0.1"
-
-[sources]
-TrixiTest = {url = "https://github.com/trixi-framework/TrixiTest.jl", rev = "bg/provide-more-test-macros"}
+TrixiTest = "0.1.4"
