@@ -116,9 +116,7 @@ function boundary_condition_inflow(u_inner, normal_direction::AbstractVector, x,
                                    surface_flux_function,
                                    equations::CompressibleEulerEquations2D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
-    flux = Trixi.flux(u_cons, normal_direction, equations)
-
-    return flux
+    return flux(u_cons, normal_direction, equations)
 end
 
 boundary_conditions = Dict(:x_neg => boundary_condition_inflow,
