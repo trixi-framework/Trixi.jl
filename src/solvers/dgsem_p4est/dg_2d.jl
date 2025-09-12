@@ -351,8 +351,6 @@ end
     return nothing
 end
 
-<<<<<<< Updated upstream
-=======
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
@@ -389,7 +387,6 @@ end
     end
 end
 
->>>>>>> Stashed changes
 # inlined version of the boundary flux with nonconservative terms calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
@@ -583,6 +580,30 @@ end
                                        node_index, mortar_index)
 
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+    # Copy flux to buffer
+    set_node_vars!(fstar_primary[position_index], flux, equations, dg, node_index)
+    set_node_vars!(fstar_secondary[position_index], flux, equations, dg, node_index)
+end
+
+# Inlined version of the mortar flux computation on small elements for conservation laws
+@inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
+                                   mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                   nonconservative_terms::False,
+                                   have_aux_node_vars::True, equations,
+                                   surface_integral, dg::DG, cache,
+                                   mortar_index, position_index, normal_direction,
+                                   node_index)
+    @unpack u = cache.mortars
+    @unpack surface_flux = surface_integral
+    @unpack aux_mortar_node_vars = cache.aux_vars
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
+                                       node_index, mortar_index)
+    aux_ll, aux_rr = get_aux_surface_node_vars(aux_mortar_node_vars, equations, dg, position_index,
+                                       node_index, mortar_index)
+
+    flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, dg, node_index)
