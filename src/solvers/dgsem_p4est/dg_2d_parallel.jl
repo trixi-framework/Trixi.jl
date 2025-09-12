@@ -154,7 +154,7 @@ end
 
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, interface_node_index,
                                        interface_index)
-    aux_ll, aux_rr = get_surface_node_vars(aux_mpiinterface_node_vars, equations, dg, interface_node_index,
+    aux_ll, aux_rr = get_aux_surface_node_vars(aux_mpiinterface_node_vars, equations, dg, interface_node_index,
                                        interface_index)
     
     if local_side == 1
@@ -368,10 +368,11 @@ end
 
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index,
                                        mortar_index)
-    aux_ll, aux_rr = get_surface_node_vars(aux_mpimortar_node_vars, equations, dg, position_index, node_index,
+    # TODO: currently only leftright = 1 is used
+    aux_ll, _ = get_aux_surface_node_vars(aux_mpimortar_node_vars, equations, dg, position_index, node_index,
                                        mortar_index)
 
-    flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    flux = surface_flux(u_ll, u_rr, aux_ll, aux_ll, normal_direction, equations)
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, dg, node_index)

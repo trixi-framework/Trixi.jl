@@ -314,6 +314,18 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
     # the MPI cache must be re-initialized before
     init_normal_directions!(mpi_mortars, dg.basis, elements)
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
+
+    # re-initialize auxiliary variables container
+    if hasproperty(cache, :aux_vars)
+        @unpack aux_vars = cache
+        resize!(aux_vars, ncells(mesh),
+                required.interfaces,
+                required.boundaries,
+                required.mortars,
+                required.mpi_interfaces,
+                required.mpi_mortars)
+        init_aux_vars!(aux_vars, mesh, equations, dg, cache)
+    end
 end
 
 # A helper struct used in initialization methods below
