@@ -299,6 +299,29 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock_imex.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_navierstokes_viscous_shock_imex.jl"),
+                        l2=[
+                            0.0016637374421260447,
+                            0.0014571616754917322,
+                            0.0014844170557610763
+                        ],
+                        linf=[
+                            0.0054568179823693,
+                            0.003950567209489719,
+                            0.004092222605649232
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi output directory
