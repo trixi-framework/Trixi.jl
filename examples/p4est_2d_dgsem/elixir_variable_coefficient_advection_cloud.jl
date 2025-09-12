@@ -10,7 +10,7 @@ equations = LinearVariableScalarAdvectionEquation2D()
 # initial condition, round density cloud is defined
 @inline function initial_condition_schaer_mountain_cloud(x, t, equations)
     RealT = eltype(x)
-    x_0, z_0 = -50000.0f0, 9000.0f0
+    x_0, z_0 = -20000.0f0, 9000.0f0
     rho_0 = 1.0f0
     A_x, A_z = 25000.0f0, 3000.0f0
 
@@ -47,7 +47,7 @@ end
 polydeg = 3
 
 # P4est HOHQ mesh 
-mesh_file = joinpath(@__DIR__, "schaer_mountain_advection.inp")
+mesh_file = joinpath(@__DIR__, "schaer_mountain_test.inp")
 mesh = P4estMesh{2}(mesh_file, polydeg = polydeg)
 
 initial_condition = initial_condition_schaer_mountain_cloud
@@ -64,9 +64,9 @@ solver = DGSEM(polydeg = polydeg,
 boundary_conditions_dirichlet = Dict(:left => BoundaryConditionDirichlet(initial_condition),
                                      :right => BoundaryConditionDirichlet(initial_condition),
                                      :top => BoundaryConditionDirichlet(initial_condition),
-                                     :bottom => BoundaryConditionDirichlet(initial_condition),
-                                     :bottom_left => BoundaryConditionDirichlet(initial_condition),
-                                     :bottom_right => BoundaryConditionDirichlet(initial_condition))
+                                     :bottom => BoundaryConditionDirichlet(initial_condition))
+                                     #:bottom_left => BoundaryConditionDirichlet(initial_condition),
+                                     #:bottom_right => BoundaryConditionDirichlet(initial_condition))
 
 #=
 boundary_conditions_dirichlet = Dict(:left => BoundaryConditionDirichletAux(initial_condition_schaer_mountain_cloud, velocity_schaer_mountain),
@@ -106,21 +106,21 @@ solution_variables = cons2prim
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 1,
+save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     output_directory = "out",
+                                     output_directory = "out_variable_coefficient",
                                      solution_variables = solution_variables)
 
 stepsize_callback = StepsizeCallback(cfl = 0.1)
 
-visualization = VisualizationCallback(interval = 10)
+visualization = VisualizationCallback(semi; interval = 10)
 
 callbacks = CallbackSet(summary_callback,
                         #analysis_callback,
                         alive_callback,
                         save_solution,
-                        #visualization,
+                        visualization,
                         stepsize_callback)
 
 ###############################################################################
@@ -131,5 +131,3 @@ sol = solve(ode,
             dt = 0.01, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false,
             callback = callbacks);
-
-summary_callback()
