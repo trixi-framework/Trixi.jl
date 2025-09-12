@@ -40,7 +40,7 @@ are the following. Further documentation can be found in the
   pass `internalnorm = ode_norm` and you should pass `unstable_check = ode_unstable_check` to
   OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/), which are both
   included in [`ode_default_options`](@ref).
-- Hyperbolic-Parabolic problems can be solved using IMEX (implicit-explicit) integrators.
+- Hyperbolic-parabolic problems can be solved using IMEX (implicit-explicit) integrators.
   Available options from OrdinaryDiffEq.jl are [IMEX SDIRK](https://docs.sciml.ai/OrdinaryDiffEq/stable/implicit/SDIRK/#IMEX-SDIRK) (Single-Diagonal Implicit Runge-Kutta) methods and [IMEX BDF](https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/#IMEX-Multistep) (Backwards Differentiation Formula) methods.
 
 !!! note "Number of `rhs!` calls"

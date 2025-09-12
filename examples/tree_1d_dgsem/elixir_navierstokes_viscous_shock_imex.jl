@@ -1,7 +1,7 @@
 using Trixi
 using OrdinaryDiffEqBDF # BDF subpackage exports IMEX methods
 using LinearSolve # For Jacobian-free Newton-Krylov (GMRES) solver
-using ADTypes # For automatic differentiation via finite differences
+using ADTypes # To access the types choosing how to evaluate Jacobian-vector products
 
 # This is the classic 1D viscous shock wave problem with analytical solution
 # for a special value of the Prandtl number.
@@ -108,9 +108,7 @@ function boundary_condition_inflow(u_inner, orientation::Integer, normal_directi
                                    surface_flux_function,
                                    equations::CompressibleEulerEquations1D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
-    flux = Trixi.flux(u_cons, orientation, equations)
-
-    return flux
+    return flux(u_cons, orientation, equations)
 end
 
 boundary_conditions = (; x_neg = boundary_condition_inflow,
