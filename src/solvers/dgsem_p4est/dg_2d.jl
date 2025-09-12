@@ -351,6 +351,45 @@ end
     return nothing
 end
 
+<<<<<<< Updated upstream
+=======
+# inlined version of the boundary flux calculation along a physical interface
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     nonconservative_terms::False,
+                                     have_aux_node_vars::True, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
+    @unpack boundaries = cache
+    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+    @unpack aux_boundary_node_vars = cache.aux_vars
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+    # P4est stores only one index for boudaries
+    aux_inner, _ = get_aux_surface_node_vars(aux_boundary_node_vars, equations, dg, node_index, boundary_index)
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    # Coordinates at boundary node
+    x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
+                        element_index)
+
+    flux_ = boundary_condition(u_inner, aux_inner, normal_direction, x, t, surface_flux, equations)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+end
+
+>>>>>>> Stashed changes
 # inlined version of the boundary flux with nonconservative terms calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
@@ -461,7 +500,8 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                           nonconservative_terms, equations,
+                           nonconservative_terms,
+                           have_aux_node_vars, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -500,7 +540,7 @@ function calc_mortar_flux!(surface_flux_values,
                                                         i_small, j_small, element)
 
                 calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                  mesh, nonconservative_terms, equations,
+                                  mesh, nonconservative_terms, have_aux_node_vars, equations,
                                   surface_integral, dg, cache,
                                   mortar, position, normal_direction,
                                   node)
@@ -531,7 +571,8 @@ end
 # Inlined version of the mortar flux computation on small elements for conservation laws
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                   nonconservative_terms::False, equations,
+                                   nonconservative_terms::False,
+                                   have_aux_node_vars::False, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
                                    node_index)
@@ -552,7 +593,8 @@ end
 # nonconservative terms
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                   nonconservative_terms::True, equations,
+                                   nonconservative_terms::True,
+                                   have_aux_node_vars::False, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
                                    node_index)
