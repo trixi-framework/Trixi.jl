@@ -1587,4 +1587,175 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solve
     end
     return nothing
 end
+
+# Initialize auxiliary MPI interface node variables
+# 2D TreeMesh implementation, similar to prolong2mpiinterfaces
+# However we directly assign to both sides, assuming the aux field had no jumps. Therefore
+# we do not need any exchange.
+function init_aux_mpiinterface_node_vars!(aux_vars, mesh::ParallelTreeMesh{2},
+                                          equations,
+                                          solver, cache)
+    @unpack aux_node_vars, aux_mpiinterface_node_vars = aux_vars
+    @unpack mpi_interfaces = cache
+
+    @threaded for interface in eachmpiinterface(solver, cache)
+        local_element = mpi_interfaces.local_neighbor_ids[interface]
+
+        if mpi_interfaces.orientations[interface] == 1 # interface in x-direction
+            if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+                for j in eachnode(solver), v in axes(aux_mpiinterface_node_vars, 2)
+                    aux_mpiinterface_node_vars[:, v, j, interface] .= aux_node_vars[v,
+                                                                                    1,
+                                                                                    j,
+                                                                                    local_element]
+                end
+            else # local element in negative direction
+                for j in eachnode(solver), v in axes(aux_mpiinterface_node_vars, 2)
+                    aux_mpiinterface_node_vars[:, v, j, interface] .= aux_node_vars[v,
+                                                                                    nnodes(solver),
+                                                                                    j,
+                                                                                    local_element]
+                end
+            end
+        else # interface in y-direction
+            if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+                for i in eachnode(solver), v in axes(aux_mpiinterface_node_vars, 2)
+                    aux_mpiinterface_node_vars[:, v, i, interface] .= aux_node_vars[v,
+                                                                                    i,
+                                                                                    1,
+                                                                                    local_element]
+                end
+            else # local element in negative direction
+                for i in eachnode(solver), v in axes(aux_mpiinterface_node_vars, 2)
+                    aux_mpiinterface_node_vars[:, v, i, interface] .= aux_node_vars[v,
+                                                                                    i,
+                                                                                    nnodes(solver),
+                                                                                    local_element]
+                end
+            end
+        end
+    end
+    return nothing
+end
+
+# Initialize auxiliary MPI mortar node variables
+# 2D TreeMesh implementation, similar to prolong2mpimortars
+# However: - We only assign the small element values (only leftright = 1 is used)
+#          - These have to be communicated
+function init_aux_mpimortar_node_vars!(aux_vars, mesh::ParallelTreeMesh{2}, equations,
+                                       solver, cache)
+    @unpack aux_node_vars, aux_mpimortar_node_vars = aux_vars
+    @unpack mpi_mortars = cache
+
+    @threaded for mortar in eachmpimortar(solver, cache)
+        local_neighbor_ids = mpi_mortars.local_neighbor_ids[mortar]
+        local_neighbor_positions = mpi_mortars.local_neighbor_positions[mortar]
+        for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
+            if position in (1, 2) # small element
+                if mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
+                    if mpi_mortars.orientations[mortar] == 1
+                        # L2 mortars in x-direction
+                        for l in eachnode(solver)
+                            for v in axes(aux_mpimortar_node_vars, 2)
+                                aux_mpimortar_node_vars[1, v, position, l, mortar] = aux_node_vars[v,
+                                                                                                   1,
+                                                                                                   l,
+                                                                                                   element]
+                            end
+                        end
+                    else
+                        # L2 mortars in y-direction
+                        for l in eachnode(solver)
+                            for v in axes(aux_mpimortar_node_vars, 2)
+                                aux_mpimortar_node_vars[1, v, position, l, mortar] = aux_node_vars[v,
+                                                                                                   l,
+                                                                                                   1,
+                                                                                                   element]
+                            end
+                        end
+                    end
+                else # large_sides[mortar] == 2 -> small elements on left side
+                    if mpi_mortars.orientations[mortar] == 1
+                        # L2 mortars in x-direction
+                        for l in eachnode(solver)
+                            for v in axes(aux_mpimortar_node_vars, 2)
+                                aux_mpimortar_node_vars[1, v, position, l, mortar] = aux_node_vars[v,
+                                                                                                   nnodes(solver),
+                                                                                                   l,
+                                                                                                   element]
+                            end
+                        end
+                    else
+                        # L2 mortars in y-direction
+                        for l in eachnode(solver)
+                            for v in axes(aux_mpimortar_node_vars, 2)
+                                aux_mpimortar_node_vars[1, v, position, l, mortar] = aux_node_vars[v,
+                                                                                                   l,
+                                                                                                   nnodes(solver),
+                                                                                                   element]
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    data_size = nnodes(solver) * n_aux_node_vars(equations)
+    exchange_aux_mpimortars!(aux_mpimortar_node_vars, cache, data_size)
+    return nothing
+end
+
+function exchange_aux_mpimortars!(aux_mpimortar_node_vars, cache, data_size)
+    @unpack mpi_cache = cache
+
+    for rank in 1:length(mpi_cache.mpi_neighbor_ranks)
+        send_buffer = mpi_cache.mpi_send_buffers[rank]
+        mortars_data_size = length(mpi_cache.mpi_neighbor_mortars[rank]) * data_size * 2
+        send_buffer[1:mortars_data_size] .= NaN
+        for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[rank])
+            base_index = (index - 1) * 2 * data_size + 1
+            for position in cache.mpi_mortars.local_neighbor_positions[mortar]
+                # Determine whether the data belongs to the left or right side
+                if position in (1, 2) # small element
+                    first = base_index + (position - 1) * data_size
+                    last = first - 1 + data_size
+                    @views send_buffer[first:last] .= vec(aux_mpimortar_node_vars[1, :,
+                                                                                  position,
+                                                                                  :,
+                                                                                  mortar])
+                end
+            end
+        end
+    end
+
+    # Start data exchange
+    for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
+        mpi_cache.mpi_send_requests[index] = MPI.Isend(mpi_cache.mpi_send_buffers[index],
+                                                       rank, mpi_rank(), mpi_comm())
+        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers[index],
+                                                        rank, rank, mpi_comm())
+    end
+
+    data = MPI.Waitany(mpi_cache.mpi_recv_requests)
+    while data !== nothing
+        recv_buffer = mpi_cache.mpi_recv_buffers[data]
+        for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[data])
+            base_index = (index - 1) * 2 * data_size + 1
+            for position in 1:2
+                first = base_index + (position - 1) * data_size
+                last = first - 1 + data_size
+                # Skip if received data for `position` is NaN as no real data has been sent for the
+                # corresponding element
+                if !isnan(recv_buffer[first])
+                    @views vec(aux_mpimortar_node_vars[1, :, position, :, mortar]) .= recv_buffer[first:last]
+                end
+            end
+        end
+        data = MPI.Waitany(mpi_cache.mpi_recv_requests)
+    end
+
+    # Finish sending
+    MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
+end
 end # @muladd
