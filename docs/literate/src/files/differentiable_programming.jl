@@ -330,7 +330,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # does. This is basically the only part where you need to modify your standard Trixi.jl
 # code to enable automatic differentiation. From there on, the remaining steps
 ode = semidiscretize(semi, (0.0, 1.0))
-sol = solve(ode, BS3(); ode_default_options()...);
+sol = solve(ode, BS3(); ode_default_options()...)
 round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5)
 @test round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5) == 0.24986 #src
 

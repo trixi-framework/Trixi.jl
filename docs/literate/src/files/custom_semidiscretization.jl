@@ -98,7 +98,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
 tspan = (0.0, 3.0)
 ode = semidiscretize(semi, tspan)
 
-sol = solve(ode, RDPK3SpFSAL49(); ode_default_options()...);
+sol = solve(ode, RDPK3SpFSAL49(); ode_default_options()...)
 
 plot(sol; label = "numerical sol.", legend = :topright)
 
@@ -129,7 +129,7 @@ callbacks = CallbackSet(summary_callback,
                         alive_callback)
 
 sol = solve(ode, RDPK3SpFSAL49();
-            ode_default_options()..., callback = callbacks);
+            ode_default_options()..., callback = callbacks)
 
 # ## Using a custom ODE right-hand side function
 
@@ -160,7 +160,7 @@ ode_source_custom = ODEProblem(rhs_source_custom!,
                                ode.tspan,
                                ode.p) # semi
 sol_source_custom = solve(ode_source_custom, RDPK3SpFSAL49();
-                          ode_default_options()...);
+                          ode_default_options()...)
 
 plot(sol_source_custom; label = "numerical sol.")
 let
@@ -181,7 +181,7 @@ callbacks = CallbackSet(summary_callback,
                         alive_callback)
 
 sol = solve(ode_source_custom, RDPK3SpFSAL49();
-            ode_default_options()..., callback = callbacks);
+            ode_default_options()..., callback = callbacks)
 
 # ## Setting up a custom semidiscretization
 
@@ -232,7 +232,7 @@ ode_semi_custom = ODEProblem(rhs_semi_custom!,
                              ode.tspan,
                              semi_custom)
 sol_semi_custom = solve(ode_semi_custom, RDPK3SpFSAL49();
-                        ode_default_options()...);
+                        ode_default_options()...)
 
 # If we want to make use of additional functionality provided by
 # Trixi.jl, e.g., for plotting, we need to implement a few additional
@@ -296,7 +296,7 @@ callbacks = CallbackSet(summary_callback,
                         alive_callback)
 
 sol = solve(ode_semi_custom, RDPK3SpFSAL49();
-            ode_default_options()..., callback = callbacks);
+            ode_default_options()..., callback = callbacks)
 
 # For even more advanced usage of custom semidiscretizations, you
 # may look at the source code of the ones contained in Trixi.jl, e.g.,
