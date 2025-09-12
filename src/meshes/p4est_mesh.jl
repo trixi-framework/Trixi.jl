@@ -2154,20 +2154,20 @@ function face_curves_quadratic_3d!(face_curves, face_nodes, face,
 
     # Proceed along bottom edge
     curve_values[:, 1, 1] = node1_coords
-    curve_values[:, 2, 1] = node2_coords
-    #curve_values[:, 2, 1] = 0.5 .* (node1_coords .+ node3_coords)
+    #curve_values[:, 2, 1] = node2_coords
+    curve_values[:, 2, 1] = 0.5 .* (node1_coords .+ node3_coords)
     curve_values[:, 3, 1] = node3_coords
 
     # Proceed along middle line
     curve_values[:, 1, 2] = node8_coords
-    curve_values[:, 2, 2] = node9_coords
-    #curve_values[:, 2, 2] = 0.5 .* (node8_coords .+ node4_coords)
+    #curve_values[:, 2, 2] = node9_coords
+    curve_values[:, 2, 2] = 0.5 .* (node8_coords .+ node4_coords)
     curve_values[:, 3, 2] = node4_coords
 
     # Proceed along top edge
     curve_values[:, 1, 3] = node7_coords
-    curve_values[:, 2, 3] = node6_coords
-    #curve_values[:, 2, 3] = 0.5 .* (node7_coords .+ node5_coords)
+    #curve_values[:, 2, 3] = node6_coords
+    curve_values[:, 2, 3] = 0.5 .* (node7_coords .+ node5_coords)
     curve_values[:, 3, 3] = node5_coords
 
     # Construct the curve interpolant for the current side
@@ -2304,11 +2304,18 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 face_nodes[1] = element_nodes[2]  # "SW" node
                 face_nodes[2] = element_nodes[9]  # "S"  node
                 face_nodes[3] = element_nodes[1]  # "SE" node
+                #=
                 face_nodes[4] = element_nodes[12] # "E"  node
                 face_nodes[5] = element_nodes[4]  # "NE" node
                 face_nodes[6] = element_nodes[11] # "N"  node
                 face_nodes[7] = element_nodes[3]  # "NW" node
                 face_nodes[8] = element_nodes[10] # "W"  node
+                =#
+                face_nodes[4] = element_nodes[10] # "E"  node
+                face_nodes[5] = element_nodes[3]  # "NE" node
+                face_nodes[6] = element_nodes[11] # "N"  node
+                face_nodes[7] = element_nodes[4]  # "NW" node
+                face_nodes[8] = element_nodes[12] # "W"  node
                 face_nodes[9] = element_nodes[22] # "C"  node
 
                 face_curves_quadratic_3d!(face_curves, face_nodes, face, 
@@ -2348,11 +2355,19 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 face_nodes[1] = element_nodes[5]  # "SW" node
                 face_nodes[2] = element_nodes[13] # "S"  node
                 face_nodes[3] = element_nodes[6]  # "SE" node
+                
                 face_nodes[4] = element_nodes[14] # "E"  node
                 face_nodes[5] = element_nodes[7]  # "NE" node
                 face_nodes[6] = element_nodes[15] # "N"  node
                 face_nodes[7] = element_nodes[8]  # "NW" node
                 face_nodes[8] = element_nodes[16] # "W"  node
+                #=
+                face_nodes[4] = element_nodes[16] # "E"  node
+                face_nodes[5] = element_nodes[8]  # "NE" node
+                face_nodes[6] = element_nodes[15] # "N"  node
+                face_nodes[7] = element_nodes[7]  # "NW" node
+                face_nodes[8] = element_nodes[14] # "W"  node
+                =#
                 face_nodes[9] = element_nodes[23] # "C"  node
 
                 face_curves_quadratic_3d!(face_curves, face_nodes, face, 

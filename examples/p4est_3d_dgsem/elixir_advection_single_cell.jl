@@ -15,7 +15,7 @@ initial_condition = initial_condition_constant
 case_path = "/home/daniel/Sciebo/Job/Doktorand/Content/Meshes/HighOrderCFDWorkshop/CS1/"
 mesh_file = case_path * "Pointwise/TandemSpheresHexMesh1P1.inp"
 #mesh_file = case_path * "Pointwise/TandemSpheresHexMesh1P2_fixed.inp"
-mesh_file = case_path * "Pointwise/single_cell_Q27_test.inp"
+mesh_file = case_path * "Pointwise/single_cell_Q27_test_straight.inp"
 
 # Boundary symbols follow from nodesets in the mesh file
 mesh = P4estMesh{3}(mesh_file)
