@@ -141,7 +141,8 @@ end
 @inline function calc_mpi_interface_flux!(surface_flux_values,
                                           mesh::Union{ParallelP4estMesh{2},
                                                       ParallelT8codeMesh{2}},
-                                          nonconservative_terms::True, equations,
+                                          nonconservative_terms::True,
+                                          have_aux_node_vars::False, equations,
                                           surface_integral, dg::DG, cache,
                                           interface_index, normal_direction,
                                           interface_node_index, local_side,
@@ -170,39 +171,6 @@ end
     end
 
     return nothing
-end
-
-# Inlined version of the interface flux computation for non-conservative equations
-@inline function calc_mpi_interface_flux!(surface_flux_values,
-                                          mesh::Union{ParallelP4estMesh{2},
-                                                      ParallelT8codeMesh{2}},
-                                          nonconservative_terms::True, equations,
-                                          surface_integral, dg::DG, cache,
-                                          interface_index, normal_direction,
-                                          interface_node_index, local_side,
-                                          surface_node_index, local_direction_index,
-                                          local_element_index)
-    @unpack u = cache.mpi_interfaces
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
-
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg,
-                                       interface_node_index,
-                                       interface_index)
-
-    # Compute flux and non-conservative term for this side of the interface
-    if local_side == 1
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-        noncons_flux_ = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-    else # local_side == 2
-        flux_ = -surface_flux(u_ll, u_rr, -normal_direction, equations)
-        noncons_flux_ = -nonconservative_flux(u_rr, u_ll, -normal_direction, equations)
-    end
-
-    for v in eachvariable(equations)
-        surface_flux_values[v, surface_node_index,
-        local_direction_index, local_element_index] = flux_[v] +
-                                                      0.5f0 * noncons_flux_[v]
-    end
 end
 
 function prolong2mpimortars!(cache, u,

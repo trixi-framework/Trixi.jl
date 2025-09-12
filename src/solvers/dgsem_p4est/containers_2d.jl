@@ -235,13 +235,39 @@ function init_aux_surface_node_vars!(aux_vars, mesh::P4estMesh{2},
     return nothing
 end
 
-# Initialize auxiliary surface node variables (2D implementation)
-# follows prolong2interfaces
+# Initialize auxiliary boundary node variables
+# 2D P4est implementation, similar to prolong2boundaries
 function init_aux_boundary_node_vars!(aux_vars, mesh::P4estMesh{2},
                                      equations, solver, cache)
     @unpack aux_node_vars, aux_boundary_node_vars = aux_vars
-    
-    # TODO missing
+    @unpack neighbor_ids, node_indices = cache.boundaries
+    index_range = eachnode(solver)
+
+    @threaded for boundary in eachboundary(solver, cache)
+        # Copy solution data from the element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        element = neighbor_ids[boundary]
+        node_index = node_indices[boundary]
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_index[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_index[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        for i in eachnode(solver)
+            for v in axes(aux_boundary_node_vars, 2)
+                aux_boundary_node_vars[1, v, i, boundary] = aux_node_vars[v, i_node, j_node, element]
+            end
+            i_node += i_node_step
+            j_node += j_node_step
+        end
+    end
+    return nothing
+end
+
+function init_aux_mortar_node_vars!(aux_vars, mesh::P4estMesh{2}, equations, solver,
+                                    cache)
+    # TODO
     return nothing
 end
 end # @muladd
