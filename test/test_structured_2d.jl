@@ -84,6 +84,9 @@ end
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
+
+    # Test plotdata construction for coupled semidiscretization
+    @test_nowarn pd = PlotData2D(sol)
 end
 
 @trixi_testset "elixir_advection_meshview.jl" begin
