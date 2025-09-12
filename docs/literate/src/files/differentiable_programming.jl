@@ -230,7 +230,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
-    sol = solve(ode, BS3(); ode_default_options()...);
+    sol = solve(ode, BS3(); ode_default_options()...)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
@@ -280,7 +280,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
-    sol = solve(ode, BS3(); ode_default_options()...);
+    sol = solve(ode, BS3(); ode_default_options()...)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
