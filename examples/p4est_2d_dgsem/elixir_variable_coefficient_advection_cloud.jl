@@ -10,9 +10,9 @@ equations = LinearVariableScalarAdvectionEquation2D()
 # initial condition, round density cloud is defined
 @inline function initial_condition_schaer_mountain_cloud(x, t, equations)
     RealT = eltype(x)
-    x_0, z_0 = -20000.0f0, 9000.0f0
+    x_0, z_0 = -15000.0f0, 9000.0f0
     rho_0 = 1.0f0
-    A_x, A_z = 25000.0f0, 3000.0f0
+    A_x, A_z = 10000.0f0, 4500.0f0
 
     r = sqrt(((x[1] - x_0) / A_x)^2 + ((x[2] - z_0) / A_z)^2)
 
@@ -100,8 +100,8 @@ analysis_interval = 1000
 solution_variables = cons2prim
 
 #TODO
-#analysis_callback = AnalysisCallback(semi,
-#                                     interval = analysis_interval,
+analysis_callback = AnalysisCallback(semi,
+                                     interval = analysis_interval)
 #                                     extra_analysis_errors = (:entropy_conservation_error,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
@@ -112,22 +112,31 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      output_directory = "out_variable_coefficient",
                                      solution_variables = solution_variables)
 
-stepsize_callback = StepsizeCallback(cfl = 0.1)
+stepsize_callback = StepsizeCallback(cfl = 0.8)
 
-visualization = VisualizationCallback(semi; interval = 10)
+
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+                                      base_level = 0,
+                                      med_level = 1, med_threshold = 0.7,
+                                      max_level = 2, max_threshold = 0.9)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 50,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true)
+
+
+visualization = VisualizationCallback(semi; interval = 100, show_mesh = true)
 
 callbacks = CallbackSet(summary_callback,
-                        #analysis_callback,
+                        analysis_callback,
                         alive_callback,
+                        amr_callback,
                         save_solution,
                         visualization,
                         stepsize_callback)
 
 ###############################################################################
 # run the simulation
-sol = solve(ode,
-            CarpenterKennedy2N54(williamson_condition = false),
-            maxiters = 1.0e7,
-            dt = 0.01, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false,
-            callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);
