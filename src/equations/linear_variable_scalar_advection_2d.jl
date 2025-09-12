@@ -22,7 +22,7 @@ end
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, aux_ll, aux_rr,
+@inline function max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
                                         normal_direction::AbstractVector,
                                         equation::LinearVariableScalarAdvectionEquation2D)
     # velocity in normal direction
