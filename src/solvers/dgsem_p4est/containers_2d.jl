@@ -275,7 +275,6 @@ end
 function init_aux_mortar_node_vars!(aux_vars, mesh::P4estMesh{2}, equations, solver,
                                     cache)
     @unpack aux_node_vars, aux_mortar_node_vars = aux_vars
-    @unpack fstar_tmp_threaded = cache
     @unpack neighbor_ids, node_indices = cache.mortars
     index_range = eachnode(solver)
 
@@ -297,10 +296,6 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::P4estMesh{2}, equations, sol
                     aux_mortar_node_vars[:, v, position, i, mortar] .=
                             aux_node_vars[v, i_small, j_small, element]
                 end
-                for v in eachvariable(equations)
-                    cache.mortars.u[1, v, position, i, mortar] = u[v, i_small, j_small,
-                                                                   element]
-                end
                 i_small += i_small_step
                 j_small += j_small_step
             end
@@ -320,7 +315,7 @@ function init_aux_mpiinterface_node_vars!(aux_vars, mesh::ParallelP4estMesh{2},
     @unpack mpi_interfaces = cache
     index_range = eachnode(solver)
 
-    @threaded for interface in eachmpiinterface(dsolverg, cache)
+    @threaded for interface in eachmpiinterface(solver, cache)
         # Copy solution data from the local element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.
         # Note that in the current implementation, the interface will be

@@ -219,6 +219,25 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
 end
 
 function max_dt(u, t, mesh::ParallelP4estMesh{2},
+                constant_speed::False, have_aux_node_vars::True,
+                equations, dg::DG, cache)
+    # call the method accepting a general `mesh::P4estMesh{2}`
+    # TODO: MPI, we should improve this; maybe we should dispatch on `u`
+    #       and create some MPI array type, overloading broadcasting and mapreduce etc.
+    #       Then, this specific array type should also work well with DiffEq etc.
+    dt = invoke(max_dt,
+                Tuple{typeof(u), typeof(t), P4estMesh{2},
+                      typeof(constant_speed), typeof(have_aux_node_vars),
+                      typeof(equations), typeof(dg), typeof(cache)},
+                u, t, mesh, constant_speed, have_aux_node_vars, equations, dg,
+                cache)
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
+
+    return dt
+end
+
+function max_dt(u, t, mesh::ParallelP4estMesh{2},
                 constant_speed::True, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{2}`

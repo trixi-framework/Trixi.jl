@@ -660,7 +660,8 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
         resize!(aux_vars, ncells(mesh),
                 required.interfaces,
                 required.boundaries,
-                required.mortars)
+                required.mortars,
+                0, 0)
         init_aux_vars!(aux_vars, mesh, equations, dg, cache)
     end
 end
