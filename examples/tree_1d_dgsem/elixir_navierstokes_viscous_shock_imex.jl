@@ -1,5 +1,7 @@
-using OrdinaryDiffEqLowStorageRK
 using Trixi
+using OrdinaryDiffEqBDF # BDF subpackage exports IMEX methods
+using LinearSolve # For Jacobian-free Newton-Krylov (GMRES) solver
+using ADTypes # To access the types choosing how to evaluate Jacobian-vector products
 
 # This is the classic 1D viscous shock wave problem with analytical solution
 # for a special value of the Prandtl number.
@@ -32,15 +34,13 @@ using Trixi
 # Corresponds essentially to fixing the Mach number
 alpha = 0.5
 # We want kappa = cp * mu = mu_bar to ensure constant enthalpy
-prandtl_number() = 3 / 4
+prandtl_number() = 1
 
 ### Free choices: ###
 gamma() = 5 / 3
 
-# In Margolin et al., the Navier-Stokes equations are given for an
-# isotropic stress tensor τ, i.e., ∇ ⋅ τ = μ Δu
-mu_isotropic() = 0.15
-mu_bar() = mu_isotropic() / (gamma() - 1) # Re-scaled viscosity
+mu() = 0.15
+mu_bar() = mu() / (gamma() - 1) # Re-scaled viscosity
 
 rho_0() = 1
 v() = 1 # Shock speed
@@ -79,53 +79,40 @@ function initial_condition_viscous_shock(x, t, equations)
     u = v() * (1 - w)
     p = p_0() * 1 / w * (1 + (gamma() - 1) / 2 * Ma()^2 * (1 - w^2))
 
-    return prim2cons(SVector(rho, u, 0, 0, p), equations)
+    return prim2cons(SVector(rho, u, p), equations)
 end
 initial_condition = initial_condition_viscous_shock
 
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
-equations = CompressibleEulerEquations3D(gamma())
-
-# Trixi implements the stress tensor in deviatoric form, thus we need to
-# convert the "isotropic viscosity" to the "deviatoric viscosity"
-mu_deviatoric() = mu_bar() * 3 / 4
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu_deviatoric(),
+equations = CompressibleEulerEquations1D(gamma())
+equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu_bar(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hlle)
 
-coordinates_min = (-domain_length / 2, -domain_length / 2, -domain_length / 2)
-coordinates_max = (domain_length / 2, domain_length / 2, domain_length / 2)
+coordinates_min = -domain_length / 2
+coordinates_max = domain_length / 2
 
-trees_per_dimension = (8, 2, 2)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 0,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 periodicity = (false, true, true))
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 3,
+                periodicity = false,
+                n_cells_max = 30_000)
 
 ### Inviscid boundary conditions ###
 
 # Prescribe pure influx based on initial conditions
-function boundary_condition_inflow(u_inner, normal_direction::AbstractVector, x, t,
+function boundary_condition_inflow(u_inner, orientation::Integer, normal_direction, x, t,
                                    surface_flux_function,
-                                   equations::CompressibleEulerEquations3D)
+                                   equations::CompressibleEulerEquations1D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
-    return flux(u_cons, normal_direction, equations)
+    return flux(u_cons, orientation, equations)
 end
 
-# Completely free outflow
-function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
-                                    surface_flux_function,
-                                    equations::CompressibleEulerEquations3D)
-    # Calculate the boundary flux entirely from the internal solution state
-    return flux(u_inner, normal_direction, equations)
-end
-
-boundary_conditions = Dict(:x_neg => boundary_condition_inflow,
-                           :x_pos => boundary_condition_outflow)
+boundary_conditions = (; x_neg = boundary_condition_inflow,
+                       x_pos = boundary_condition_do_nothing)
 
 ### Viscous boundary conditions ###
 # For the viscous BCs, we use the known analytical solution
@@ -145,33 +132,48 @@ end
 
 boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, heat_bc)
 
-boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_parabolic,
-                                     :x_pos => boundary_condition_parabolic)
+boundary_conditions_parabolic = (; x_neg = boundary_condition_parabolic,
+                                 x_pos = boundary_condition_parabolic)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ViscousFormulationLocalDG(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
 ###############################################################################
-# ODE solvers, callbacks etc.
 
-# Create ODE problem with time span `tspan`
-tspan = (0.0, 0.5)
+tspan = (0.0, 0.75)
+# For hyperbolic-parabolic problems, this results in a SciML SplitODEProblem, see e.g.
+# https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitODEProblem
+# These exactly fit IMEX (implicit-explicit) integrators
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-alive_callback = AliveCallback(alive_interval = 10)
+alive_callback = AliveCallback(alive_interval = 100)
 
-analysis_interval = 100
+analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
-# run the simulation
 
-time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            dt = 1e-3, ode_default_options()..., callback = callbacks)
+# Tolerances for GMRES residual, see https://jso.dev/Krylov.jl/stable/solvers/unsymmetric/#Krylov.gmres
+atol_lin_solve = 1e-4
+rtol_lin_solve = 1e-4
+
+# Jacobian-free Newton-Krylov (GMRES) solver
+linsolve = KrylovJL_GMRES(atol = atol_lin_solve, rtol = rtol_lin_solve)
+
+# Choice of method:
+# https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/#Solver-Selection-Guide
+# higher order methods (`SBDF3` and `SBDF4`) have trouble converging.
+#
+# Use IMEX Runge-Kutta method with Jacobian-free (!) Newton-Krylov (GMRES) implicit solver, see
+# https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
+ode_alg = SBDF2(autodiff = AutoFiniteDiff(), linsolve = linsolve)
+
+sol = solve(ode, ode_alg; dt = 0.05, # Fixed timestep
+            ode_default_options()..., callback = callbacks);

@@ -50,7 +50,7 @@ initial_condition = initial_condition_rp
     prim = SVector(rho_loc, v1_loc, v2_loc, p_loc)
     u_surface = prim2cons(prim, equations)
 
-    return Trixi.flux(u_surface, orientation, equations)
+    return flux(u_surface, orientation, equations)
 end
 
 # The flow is subsonic at all boundaries.
@@ -165,4 +165,5 @@ callbacks = CallbackSet(summary_callback,
 ## Run the simulation
 
 sol = solve(ode, SSPRK54();
-            dt = 1.0, save_everystep = false, callback = callbacks);
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
