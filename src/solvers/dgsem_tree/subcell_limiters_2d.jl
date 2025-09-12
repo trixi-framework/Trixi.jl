@@ -362,94 +362,94 @@ end
     l2_mortars = dg.mortar isa LobattoLegendreMortarL2
     alternative = dg.mortar isa LobattoLegendreMortarIDPAlternative
     include_all_values = l2_mortars || alternative || !(dg.mortar.local_factor)
-    for mortar in eachmortar(dg, cache)
-        large_element = cache.mortars.neighbor_ids[3, mortar]
-        upper_element = cache.mortars.neighbor_ids[2, mortar]
-        lower_element = cache.mortars.neighbor_ids[1, mortar]
+    # for mortar in eachmortar(dg, cache)
+    #     large_element = cache.mortars.neighbor_ids[3, mortar]
+    #     upper_element = cache.mortars.neighbor_ids[2, mortar]
+    #     lower_element = cache.mortars.neighbor_ids[1, mortar]
 
-        orientation = cache.mortars.orientations[mortar]
+    #     orientation = cache.mortars.orientations[mortar]
 
-        for i in eachnode(dg)
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-                if orientation == 1
-                    # L2 mortars in x-direction
-                    indices_small = (1, i)
-                    indices_large = (nnodes(dg), i)
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, 1)
-                    indices_large = (i, nnodes(dg))
-                end
-            else # large_sides[mortar] == 2 -> small elements on left side
-                if orientation == 1
-                    # L2 mortars in x-direction
-                    indices_small = (nnodes(dg), i)
-                    indices_large = (1, i)
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, nnodes(dg))
-                    indices_large = (i, 1)
-                end
-            end
-            u_lower = get_node_vars(u, equations, dg, indices_small..., lower_element)
-            u_upper = get_node_vars(u, equations, dg, indices_small..., upper_element)
-            u_large = get_node_vars(u, equations, dg, indices_large..., large_element)
-            var_lower = variable(u_lower, equations)
-            var_upper = variable(u_upper, equations)
-            var_large = variable(u_large, equations)
+    #     for i in eachnode(dg)
+    #         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+    #             if orientation == 1
+    #                 # L2 mortars in x-direction
+    #                 indices_small = (1, i)
+    #                 indices_large = (nnodes(dg), i)
+    #             else
+    #                 # L2 mortars in y-direction
+    #                 indices_small = (i, 1)
+    #                 indices_large = (i, nnodes(dg))
+    #             end
+    #         else # large_sides[mortar] == 2 -> small elements on left side
+    #             if orientation == 1
+    #                 # L2 mortars in x-direction
+    #                 indices_small = (nnodes(dg), i)
+    #                 indices_large = (1, i)
+    #             else
+    #                 # L2 mortars in y-direction
+    #                 indices_small = (i, nnodes(dg))
+    #                 indices_large = (i, 1)
+    #             end
+    #         end
+    #         u_lower = get_node_vars(u, equations, dg, indices_small..., lower_element)
+    #         u_upper = get_node_vars(u, equations, dg, indices_small..., upper_element)
+    #         u_large = get_node_vars(u, equations, dg, indices_large..., large_element)
+    #         var_lower = variable(u_lower, equations)
+    #         var_upper = variable(u_upper, equations)
+    #         var_large = variable(u_large, equations)
 
-            for j in eachnode(dg)
-                if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-                    if orientation == 1
-                        # L2 mortars in x-direction
-                        indices_small_inner = (1, j)
-                        indices_large_inner = (nnodes(dg), j)
-                    else
-                        # L2 mortars in y-direction
-                        indices_small_inner = (j, 1)
-                        indices_large_inner = (j, nnodes(dg))
-                    end
-                else # large_sides[mortar] == 2 -> small elements on left side
-                    if orientation == 1
-                        # L2 mortars in x-direction
-                        indices_small_inner = (nnodes(dg), j)
-                        indices_large_inner = (1, j)
-                    else
-                        # L2 mortars in y-direction
-                        indices_small_inner = (j, nnodes(dg))
-                        indices_large_inner = (j, 1)
-                    end
-                end
+    #         for j in eachnode(dg)
+    #             if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+    #                 if orientation == 1
+    #                     # L2 mortars in x-direction
+    #                     indices_small_inner = (1, j)
+    #                     indices_large_inner = (nnodes(dg), j)
+    #                 else
+    #                     # L2 mortars in y-direction
+    #                     indices_small_inner = (j, 1)
+    #                     indices_large_inner = (j, nnodes(dg))
+    #                 end
+    #             else # large_sides[mortar] == 2 -> small elements on left side
+    #                 if orientation == 1
+    #                     # L2 mortars in x-direction
+    #                     indices_small_inner = (nnodes(dg), j)
+    #                     indices_large_inner = (1, j)
+    #                 else
+    #                     # L2 mortars in y-direction
+    #                     indices_small_inner = (j, nnodes(dg))
+    #                     indices_large_inner = (j, 1)
+    #                 end
+    #             end
 
-                # values of large element to lower element
-                if include_all_values || dg.mortar.mortar_weights[i, j] > 0
-                    var_minmax[indices_small_inner..., lower_element] = min_or_max(var_minmax[indices_small_inner...,
-                                                                                              lower_element],
-                                                                                   var_large)
-                end
-                # values of lower element to large element
-                if include_all_values || dg.mortar.mortar_weights[j, i] > 0
-                    var_minmax[indices_large_inner..., large_element] = min_or_max(var_minmax[indices_large_inner...,
-                                                                                              large_element],
-                                                                                   var_lower)
-                end
-                # values of large element to upper element
-                if include_all_values ||
-                   dg.mortar.mortar_weights[i, j + nnodes(dg)] > 0
-                    var_minmax[indices_small_inner..., upper_element] = min_or_max(var_minmax[indices_small_inner...,
-                                                                                              upper_element],
-                                                                                   var_large)
-                end
-                # values of upper element to large element
-                if include_all_values ||
-                   dg.mortar.mortar_weights[j, i + nnodes(dg)] > 0
-                    var_minmax[indices_large_inner..., large_element] = min_or_max(var_minmax[indices_large_inner...,
-                                                                                              large_element],
-                                                                                   var_upper)
-                end
-            end
-        end
-    end
+    #             # values of large element to lower element
+    #             if include_all_values || dg.mortar.mortar_weights[i, j] > 0
+    #                 var_minmax[indices_small_inner..., lower_element] = min_or_max(var_minmax[indices_small_inner...,
+    #                                                                                           lower_element],
+    #                                                                                var_large)
+    #             end
+    #             # values of lower element to large element
+    #             if include_all_values || dg.mortar.mortar_weights[j, i] > 0
+    #                 var_minmax[indices_large_inner..., large_element] = min_or_max(var_minmax[indices_large_inner...,
+    #                                                                                           large_element],
+    #                                                                                var_lower)
+    #             end
+    #             # values of large element to upper element
+    #             if include_all_values ||
+    #                dg.mortar.mortar_weights[i, j + nnodes(dg)] > 0
+    #                 var_minmax[indices_small_inner..., upper_element] = min_or_max(var_minmax[indices_small_inner...,
+    #                                                                                           upper_element],
+    #                                                                                var_large)
+    #             end
+    #             # values of upper element to large element
+    #             if include_all_values ||
+    #                dg.mortar.mortar_weights[j, i + nnodes(dg)] > 0
+    #                 var_minmax[indices_large_inner..., large_element] = min_or_max(var_minmax[indices_large_inner...,
+    #                                                                                           large_element],
+    #                                                                                var_upper)
+    #             end
+    #         end
+    #     end
+    # end
 
     # Calc bounds at physical boundaries
     for boundary in eachboundary(dg, cache)
