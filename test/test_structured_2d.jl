@@ -84,6 +84,9 @@ end
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
+
+    # Test plotdata construction for coupled semidiscretization
+    @test_nowarn pd = PlotData2D(sol)
 end
 
 @trixi_testset "elixir_advection_meshview.jl" begin
@@ -316,6 +319,32 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_convergence_implicit_sparse_jacobian.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_implicit_sparse_jacobian.jl"),
+                        tspan=(0.0, 1.0),
+                        l2=[
+                            0.0025545032994393493,
+                            0.0025848892135096136,
+                            0.002585815262287367,
+                            0.0031668773337869584
+                        ],
+                        linf=[
+                            0.010367159504626189,
+                            0.009326212633131492,
+                            0.008372785091578683,
+                            0.011242647117379434
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi_float_type, t)) < 1000
     end
 end
 

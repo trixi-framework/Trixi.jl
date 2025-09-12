@@ -121,7 +121,7 @@ force_boundary_names = (:BottomWing, :TopWing)
 aoa() = deg2rad(3.06)
 
 rho_inf() = 1.4
-u_inf(equations) = 0.84
+u_inf() = 0.84
 
 ### Wing projected area calculated from geometry information provided at ###
 ### https://www.grc.nasa.gov/www/wind/valid/m6wing/m6wing.html ###
@@ -138,10 +138,10 @@ A = height * (0.5 * (g_I + g_III) + g_II)
 
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            LiftCoefficientPressure3D(aoa(), rho_inf(),
-                                                                     u_inf(equations), A))
+                                                                     u_inf(), A))
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            DragCoefficientPressure3D(aoa(), rho_inf(),
-                                                                     u_inf(equations), A))
+                                                                     u_inf(), A))
 
 analysis_interval = 100_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,

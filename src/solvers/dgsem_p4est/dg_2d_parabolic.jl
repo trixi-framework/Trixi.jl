@@ -190,10 +190,10 @@ function calc_gradient!(gradients, u_transformed, t,
             # now that the reference coordinate gradients are computed, transform them node-by-node to physical gradients
             # using the contravariant vectors
             for j in eachnode(dg), i in eachnode(dg)
-                Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j,
-                                                      element)
-                Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                      element)
+                Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                      i, j, element)
+                Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                      i, j, element)
 
                 gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic,
                                                       dg, i, j, element)

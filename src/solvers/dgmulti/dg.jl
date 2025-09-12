@@ -271,13 +271,12 @@ function max_dt(u, t, mesh::DGMultiMesh,
     @unpack md = mesh
     rd = dg.basis
 
+    # Compute max_speeds only once, since it's constant for all nodes/elements
+    max_speeds = max_abs_speeds(equations)
+
     dt_min = Inf
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
-        max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
-        for i in Base.OneTo(rd.Np) # loop over nodes
-            max_speeds = max.(max_abs_speeds(equations), max_speeds)
-        end
         dt_min = min(dt_min, h_e / sum(max_speeds))
     end
     # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by

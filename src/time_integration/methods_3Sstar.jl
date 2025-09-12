@@ -130,7 +130,8 @@ struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
     end
 end
 
-mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
+mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType <: AbstractVector,
+                                      Params, Sol, F, Alg,
                                       SimpleIntegratorOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
