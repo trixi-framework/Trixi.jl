@@ -20,11 +20,12 @@ trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                        "elixir_euler_NACA6412airfoil_mach2.jl"), tspan = (0.0, 0.5))
 
 # Conveniently, we use the Plots package to have a first look at the results:
-using Plots
-## TODO: Test test. Before it is in julia brackets and wasn't run.
-pd = PlotData2D(sol)
-plot(pd["rho"])
-plot!(getmesh(pd))
+# ```julia
+# using Plots
+# pd = PlotData2D(sol)
+# plot(pd["rho"])
+# plot!(getmesh(pd))
+# ```
 
 # ## Creating a mesh using `gmsh`
 
