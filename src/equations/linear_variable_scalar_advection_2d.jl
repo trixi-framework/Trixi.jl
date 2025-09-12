@@ -37,7 +37,7 @@ end
     return abs.(aux_vars)
 end
 
-@inline cons2entropy(u, equations::LinearVariableScalarAdvectionEquation2D) = u
+@inline cons2entropy(u, aux, equations::LinearVariableScalarAdvectionEquation2D) = u
 @inline cons2prim(u, aux, equations::LinearVariableScalarAdvectionEquation2D) = u
 @inline cons2prim(u, equations::LinearVariableScalarAdvectionEquation2D) = u
 end
