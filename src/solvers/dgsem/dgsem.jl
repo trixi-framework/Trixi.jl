@@ -72,16 +72,6 @@ end
 
 Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
 
-# du .= zero(eltype(du)) doesn't scale when using multiple threads.
-# See https://github.com/trixi-framework/Trixi.jl/pull/924 for a performance comparison.
-function reset_du!(du, dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        du[.., element] .= zero(eltype(du))
-    end
-
-    return nothing
-end
-
 # `compute_u_mean` used in:
 # (Stage-) Callbacks `EntropyBoundedLimiter` and `PositivityPreservingLimiterZhangShu`
 
