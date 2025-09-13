@@ -527,6 +527,22 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
     GC.@preserve old_u_ode begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
+        # Compute mean values for the elements to be refined
+        # Only if limiter was passed
+        if limiter! !== nothing
+            elements_to_refine = findall(difference .> 0)
+            u_mean_refined_elements = Matrix{eltype(u_ode)}(undef,
+                                                            nvariables(equations),
+                                                            length(elements_to_refine))
+            for element in eachindex(elements_to_refine)
+                old_element_id = elements_to_refine[element]
+                # compute mean value
+                u_mean = compute_u_mean(old_u, old_element_id,
+                                        mesh, equations, dg, cache)
+                set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, element)
+            end
+        end
+
         # Loop over all elements in old container and scale the old solution by the Jacobian
         # prior to interpolation or projection
         for old_element_id in 1:old_nelems
@@ -605,7 +621,17 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
 
     # Apply the positivity limiter to the solution
     if limiter! !== nothing
-        limiter!(u, mesh, equations, dg, cache)
+        # Precompute list with new element ids after refinement and coarsening
+        refined_element_ids_new, coarsened_element_ids_new = compute_new_ids_refined_coarsened_elements(difference,
+                                                                                                        mesh,
+                                                                                                        old_nelems,
+                                                                                                        new_nelems)
+        # Refined elements
+        limiter!(u, mesh, equations, dg, cache, refined_element_ids_new,
+                 u_mean_refined_elements)
+
+        # Coarsened elements
+        limiter!(u, mesh, equations, dg, cache, coarsened_element_ids_new)
     end
 
     return nothing
