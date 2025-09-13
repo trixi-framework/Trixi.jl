@@ -68,7 +68,7 @@ end
 function (stepsize_callback::StepsizeCallback)(u, t, integrator)
     @unpack interval = stepsize_callback
 
-    # Although the CFL-based timestep is usually not used with 
+    # Although the CFL-based timestep is usually not used with
     # adaptive time integration methods, we still check the accepted steps `naccept` here.
     return interval > 0 && integrator.stats.naccept % interval == 0
 end
@@ -120,8 +120,8 @@ function calculate_dt(u_ode, t, cfl_number::Real, semi::AbstractSemidiscretizati
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt = cfl_number * max_dt(u, t, mesh,
-                have_constant_speed(equations), equations,
-                solver, cache)
+                have_constant_speed(equations), semi, equations, solver, cache,
+                solver.volume_integral)
 end
 # Case for `cfl_number` as a function of time `t`.
 function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
@@ -129,8 +129,25 @@ function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt = cfl_number(t) * max_dt(u, t, mesh,
-                have_constant_speed(equations), equations,
-                solver, cache)
+                have_constant_speed(equations), semi, equations, solver, cache,
+                solver.volume_integral)
+end
+
+function max_dt(u, t, mesh, constant_speed, semi, equations, solver, cache,
+                volume_integral::AbstractVolumeIntegral)
+    max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+end
+
+@inline function max_dt(u, t, mesh,
+                        constant_speed, semi, equations, solver, cache,
+                        volume_integral::VolumeIntegralSubcellLimiting)
+    @unpack limiter = volume_integral
+    if limiter isa SubcellLimiterIDP && !limiter.bar_states
+        return max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+    else
+        return max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
+                      limiter)
+    end
 end
 
 include("stepsize_dg1d.jl")
