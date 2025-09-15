@@ -78,7 +78,7 @@ mkdir(outdir)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[1.1302812803902801e-5],
-                            linf=[0.0007889950196294793],)
+                            linf=[0.0007889950196294793])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -127,7 +127,7 @@ mkdir(outdir)
     @trixi_testset "elixir_advection_restart.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                             l2=[0.002590388934758452],
-                            linf=[0.01840757696885409],)
+                            linf=[0.01840757696885409])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let

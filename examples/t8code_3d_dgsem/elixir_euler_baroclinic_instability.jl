@@ -229,7 +229,9 @@ solver = DGSEM(polydeg = 5, surface_flux = surface_flux,
 
 # For optimal results, use (16, 8) here
 trees_per_cube_face = (8, 4)
-mesh = Trixi.T8codeMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
+inner_radius = 6.371229e6 # Radius of the inner side of the shell
+thickness = 30000.0 # Thickness of the shell
+mesh = Trixi.T8codeMeshCubedSphere(trees_per_cube_face..., inner_radius, thickness,
                                    polydeg = 5, initial_refinement_level = 0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
