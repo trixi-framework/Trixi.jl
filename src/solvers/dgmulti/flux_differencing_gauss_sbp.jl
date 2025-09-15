@@ -28,9 +28,9 @@ end
 # type parameters for `TensorProductFaceOperator`.
 abstract type AbstractGaussOperator end
 struct Interpolation <: AbstractGaussOperator end
-# - `Projection{ScaleByFaceWeights=Static.False()}` corresponds to the operator `projection_matrix_gauss_to_face = M \ Vf'`,
+# - `Projection{ScaleByFaceWeights = False()}` corresponds to the operator `projection_matrix_gauss_to_face = M \ Vf'`,
 #   which is used in `VolumeIntegralFluxDifferencing`.
-# - `Projection{ScaleByFaceWeights=Static.True()}` corresponds to the quadrature-based lifting
+# - `Projection{ScaleByFaceWeights = True()}` corresponds to the quadrature-based lifting
 #   operator `LIFT = M \ (Vf' * diagm(rd.wf))`, which is used in `SurfaceIntegralWeakForm`
 struct Projection{ScaleByFaceWeights} <: AbstractGaussOperator end
 
@@ -176,7 +176,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{2, Interpolation},
                                                      x_in::AbstractVector)
-#! format: on                                                     
+#! format: on
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; nnodes_1d) = A
 
@@ -215,7 +215,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{3, Interpolation},
                                                      x::AbstractVector)
-#! format: on                                                     
+#! format: on
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; nnodes_1d) = A
 
@@ -268,7 +268,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
-#! format: on                                                     
+#! format: on
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; inv_volume_weights_1d, nnodes_1d) = A
 
@@ -322,7 +322,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{3, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
-#! format: on                                                                               
+#! format: on
     @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
     @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
 
@@ -418,12 +418,12 @@ function create_cache(mesh::DGMultiMesh, equations,
 
     # specialized operators to perform tensor product interpolation to faces for Gauss nodes
     interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-    projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{Static.False()}(),
+    projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{False()}(),
                                                                      dg)
 
     # `LIFT` matrix for Gauss nodes - this is equivalent to `projection_matrix_gauss_to_face` scaled by `diagm(rd.wf)`,
     # where `rd.wf` are Gauss node face quadrature weights.
-    gauss_LIFT = TensorProductGaussFaceOperator(Projection{Static.True()}(), dg)
+    gauss_LIFT = TensorProductGaussFaceOperator(Projection{True()}(), dg)
 
     nvars = nvariables(equations)
     rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)

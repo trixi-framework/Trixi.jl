@@ -90,7 +90,7 @@ The corresponding opposite directions are:
 
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
-   nearly incompressible flows**, J Comput Phys 230(1), 2011
+   nearly incompressible flows**, Journal of Computational Physics 230(1), 2011
    [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
 2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
    (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
@@ -194,7 +194,12 @@ function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D)
     varnames(cons2cons, equations)
 end
 
-# Convert conservative variables to macroscopic
+"""
+    cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
+
+Convert the conservative variables `u` (the particle distribution functions)
+to the macroscopic variables (density, velocity_1, velocity_2, velocity_3, pressure).
+"""
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
     rho = density(u, equations)
     v1, v2, v3 = velocity(u, equations)
@@ -223,10 +228,7 @@ function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D
     return equilibrium_distribution(rho, v1, v2, v3, equations)
 end
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::LatticeBoltzmannEquations3D)
-
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations3D)
     if orientation == 1 # x-direction
         v_alpha = equations.v_alpha1
@@ -237,11 +239,6 @@ end
     end
     return v_alpha .* u
 end
-
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-# @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::LatticeBoltzmannEquations3D)
-#   λ_max =
-# end
 
 """
     flux_godunov(u_ll, u_rr, orientation, 
@@ -311,7 +308,7 @@ Calculate the macroscopic pressure from the density `rho` or the  particle distr
 `u`.
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations3D)
-    rho * equations.c_s^2
+    return rho * equations.c_s^2
 end
 @inline function pressure(u, equations::LatticeBoltzmannEquations3D)
     pressure(density(u, equations), equations)

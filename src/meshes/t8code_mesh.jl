@@ -111,12 +111,12 @@ end
                boundary_names, treeIDs, neighIDs, faces, duals,
                orientations, levels, num_elements_per_tree)
 
-Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine. 
+Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine.
 
 # Arguments
-- `ndims`: Dimension of the mesh. 
-- `ntrees`: Global number of trees. 
-- `nelements`: Global number of elements. 
+- `ndims`: Dimension of the mesh.
+- `ntrees`: Global number of trees.
+- `nelements`: Global number of elements.
 - `tree_node_coordinates`: Node coordinates for each tree: [dimension, i, j, k, tree]
 - `nodes`: Array of interpolation nodes.
 - `boundary_names`: List of boundary names.
@@ -426,6 +426,8 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                     RealT = Float64, initial_refinement_level = 0,
                     periodicity = true)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
+
+    coordinates_min_max_check(coordinates_min, coordinates_max)
 
     @assert count(i -> i !== nothing,
                   (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
@@ -790,9 +792,8 @@ Construct a cubed spherical shell of given inner radius and thickness as `T8code
 `:inside` and `:outside`.
 
 # Arguments
-- `lat_lon_levels_per_face_dimension::Integer`: number of trees per patch in longitudinal
-                                                and latitudinal direction given as level of
-                                                refinement.
+- `trees_per_face_dimension::Integer`: number of trees per patch in longitudinal
+                                       and latitudinal direction.
 - `layers::Integer`: the number of trees in the third local dimension of each face, i.e.,
                      the number of layers of the shell.
 - `inner_radius::Float64`: Radius of the inner side of the shell.
@@ -805,12 +806,12 @@ Construct a cubed spherical shell of given inner radius and thickness as `T8code
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the
                                        simulation starts.
 """
-function T8codeMeshCubedSphere(lat_lon_levels_per_face_dimension, layers, inner_radius,
+function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius,
                                thickness;
                                polydeg, RealT = Float64, initial_refinement_level = 0)
     NDIMS = 3
     cmesh = t8_cmesh_new_cubed_spherical_shell(inner_radius, thickness,
-                                               lat_lon_levels_per_face_dimension,
+                                               trees_per_face_dimension,
                                                layers, mpi_comm())
     do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()
@@ -1577,10 +1578,3 @@ function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
 
     return treeIDs, neighIDs, faces, duals, orientations
 end
-
-#! format: off
-@deprecate T8codeMesh{2}(conn::Ptr{p4est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
-@deprecate T8codeMesh{3}(conn::Ptr{p8est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
-@deprecate T8codeMesh{2}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 2; kwargs...)
-@deprecate T8codeMesh{3}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 3; kwargs...)
-#! format: on

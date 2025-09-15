@@ -134,6 +134,8 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         end
     end
 
+    coordinates_min_max_check(coordinates_min, coordinates_max)
+
     # TreeMesh requires equal domain lengths in all dimensions
     domain_center = @. convert(RealT, (coordinates_min + coordinates_max) / 2)
     domain_length = convert(RealT, coordinates_max[1] - coordinates_min[1])
@@ -249,6 +251,8 @@ end
 
 isperiodic(mesh::TreeMesh) = isperiodic(mesh.tree)
 isperiodic(mesh::TreeMesh, dimension) = isperiodic(mesh.tree, dimension)
+
+Base.real(::TreeMesh{NDIMS, TreeType, RealT}) where {NDIMS, TreeType, RealT} = RealT
 
 include("parallel_tree_mesh.jl")
 end # @muladd

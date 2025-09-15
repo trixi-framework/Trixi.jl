@@ -15,7 +15,7 @@ The linear scalar advection equation
 in two space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation2D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{2, 1}
+       AbstractLinearScalarAdvectionEquation{2}
     advection_velocity::SVector{2, RealT}
 end
 
@@ -46,10 +46,7 @@ end
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation2D)
-    # Store translated coordinate for easy use of exact solution
     RealT = eltype(x)
-    x_trans = x_trans_periodic_2d(x - equation.advection_velocity * t)
-
     return SVector(RealT(2))
 end
 
@@ -221,7 +218,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equation::LinearScalarAdvectionEquation2D)
-    λ_max = abs(equation.advection_velocity[orientation])
+    return abs(equation.advection_velocity[orientation])
 end
 
 # Calculate 1D flux for a single point in the normal direction

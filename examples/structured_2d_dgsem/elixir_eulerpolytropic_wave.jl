@@ -1,12 +1,12 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
 # semidiscretization of the polytropic Euler equations
 
-gamma = 2.0   # Adiabatic monatomic gas in 2d.
-kappa = 0.5   # Scaling factor for the pressure.
-equations = PolytropicEulerEquations2D(gamma, kappa)
+gamma() = 2.0   # Adiabatic monatomic gas in 2d.
+kappa() = 0.5   # Scaling factor for the pressure.
+equations = PolytropicEulerEquations2D(gamma(), kappa())
 
 # Linear pressure wave in the negative x-direction.
 function initial_condition_wave(x, t, equations::PolytropicEulerEquations2D)
@@ -71,9 +71,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

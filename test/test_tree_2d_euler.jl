@@ -290,6 +290,35 @@ end
                             1.831228461662809
                         ],
                         maxiters=30)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_blast_wave.jl with DissipationMatrixWintersEtal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
+                        surface_flux=FluxPlusDissipation(flux_ranocha,
+                                                         DissipationMatrixWintersEtal()),
+                        cfl=0.5, tspan=(0.0, 0.01),
+                        l2=[
+                            0.0240344741630761,
+                            0.026530873906038414,
+                            0.026530644332116007,
+                            0.08614440613707544
+                        ],
+                        linf=[
+                            1.9656605818508415,
+                            1.217300641837901,
+                            1.217300641837901,
+                            2.9173277369453516
+                        ])
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -314,9 +343,7 @@ end
                             1.5486788679247812,
                             2.4656795949035857
                         ],
-                        tspan=(0.0, 0.5),
-                        # Let this test run longer to cover some lines in flux_hllc
-                        coverage_override=(maxiters = 10^5, tspan = (0.0, 0.1)))
+                        tspan=(0.0, 0.5),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -341,8 +368,7 @@ end
                             1.7967508302506658,
                             3.040149575567518
                         ],
-                        tspan=(0.0, 1.0),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 1.0),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -369,8 +395,7 @@ end
                             2.4216027326405487
                         ],
                         tspan=(0.0, 0.5),
-                        initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
+                        initial_refinement_level=4,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -399,8 +424,7 @@ end
                             1.2916089289001427,
                             6.474699399394252
                         ],
-                        tspan=(0.0, 1.0),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 1.0),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -429,21 +453,11 @@ end
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] ==
           "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min, pressure_min"
-    cmd = string(Base.julia_cmd())
-    coverage = occursin("--code-coverage", cmd) &&
-               !occursin("--code-coverage=none", cmd)
-    if coverage
-        # Run with coverage takes 6 time steps.
-        @test startswith(lines[end], "6")
-    else
-        # Run without coverage takes 138 time steps.
-        @test startswith(lines[end], "138")
-    end
+    @test startswith(lines[end], "138")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -501,8 +515,7 @@ end
                             1.2910938760258899,
                             6.473385481404865
                         ],
-                        tspan=(0.0, 1.0),
-                        coverage_override=(maxiters = 3,))
+                        tspan=(0.0, 1.0),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -552,9 +565,7 @@ end
                             6.863554388300223,
                             303.58813147491134
                         ],
-                        tspan=(0.0, 0.12),
-                        # Let this test run longer to cover the ControllerThreeLevelCombined lines
-                        coverage_override=(maxiters = 10^5,))
+                        tspan=(0.0, 0.12),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -632,8 +643,7 @@ end
                             0.12321616095649354,
                             0.269046666668995
                         ],
-                        tspan=(0.0, 0.2),
-                        coverage_override=(maxiters = 2,))
+                        tspan=(0.0, 0.2),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -661,12 +671,11 @@ end
                             0.7300051017382696
                         ],
                         tspan=(0.0, 2.0),
-                        coverage_override=(maxiters = 7,),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
-    # Run without (with) coverage takes 745 (7) time steps
-    @test startswith(lines[end], "7")
+    # Run takes 745 time steps
+    @test startswith(lines[end], "745")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -720,8 +729,7 @@ end
                             0.0003528986458217968,
                             22.435474993016918
                         ],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(maxiters = 2,))
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -748,8 +756,7 @@ end
                             47.284459667934684
                         ],
                         tspan=(0.0, 1.0),
-                        dt=2.5e-2, adaptive=false,
-                        coverage_override=(maxiters = 10^3,))
+                        dt=2.5e-2, adaptive=false,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -774,8 +781,7 @@ end
                             8.031723414357423,
                             1.1918867260293828e6
                         ],
-                        tspan=(0.0, 1.0e-7),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 1.0e-7),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -922,9 +928,7 @@ end
                             0.03857193149447702,
                             0.031090457959835893,
                             0.12125130332971423
-                        ],
-                        # Let this test run longer to cover some lines in the AMR indicator
-                        coverage_override=(maxiters = 10^5, tspan = (0.0, 10.5)))
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -933,6 +937,41 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
+
+@trixi_testset "elixir_euler_vortex_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
+                        l2=[
+                            0.02611497083247329,
+                            0.1381802635983644,
+                            0.11459980510262816,
+                            0.43782810743830725
+                        ],
+                        linf=[
+                            0.2918576464635866,
+                            1.1190399715083816,
+                            0.7978297797951908,
+                            3.8946074718596115
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
+    end
+
+    # test both short and long printing formats
+    @test_nowarn show(relaxation_solver)
+    println()
+    @test_nowarn println(relaxation_solver)
+    println()
+    @test_nowarn display(relaxation_solver)
+    # Test `:compact` printing
+    show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), relaxation_solver)
 end
 
 @trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
@@ -1040,6 +1079,55 @@ end
             du_ode = similar(u_ode)
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
+    end
+end
+
+# Constant subsonic flow test
+@trixi_testset "elixir_euler_subsonic_constant.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_subsonic_constant.jl"),
+                        l2=[
+                            9.135564506684991e-14, 1.9441147665983966e-14,
+                            1.94425866451226e-14, 1.7503189225604875e-13
+                        ],
+                        linf=[
+                            1.0769163338864018e-13, 8.487407677783974e-14,
+                            8.515583343047957e-14, 2.0472512574087887e-13
+                        ],
+                        initial_refinement_level=7,
+                        tspan=(0.0, 0.1)) # this test is sensitive to the CFL factor
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_riemannproblem_quadrants_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_riemannproblem_quadrants_amr.jl"),
+                        tspan=(0.0, 0.05),
+                        l2=[
+                            0.12802172216950314,
+                            0.1333199240875145,
+                            0.13331992408751456,
+                            0.48888051192644405
+                        ],
+                        linf=[
+                            0.853710403180942,
+                            0.9151148367639803,
+                            0.9151148367639808,
+                            3.4300525777582864
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 end

@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -27,7 +27,7 @@ end
 ###############################################################################
 # Specify non-periodic boundary conditions
 
-# Assume that there are always cars waiting at the left 
+# Assume that there are always cars waiting at the left
 function inflow(x, t, equations::TrafficFlowLWREquations1D)
     # -1.0 = coordinates_min
     return initial_condition_greenlight(-1.0, t, equations)
@@ -39,9 +39,7 @@ function boundary_condition_outflow(u_inner, orientation, normal_direction, x, t
                                     surface_flux_function,
                                     equations::TrafficFlowLWREquations1D)
     # Calculate the boundary flux entirely from the internal solution state
-    flux = Trixi.flux(u_inner, orientation, equations)
-
-    return flux
+    flux(u_inner, orientation, equations)
 end
 
 boundary_conditions = (x_neg = boundary_condition_inflow,
@@ -74,8 +72,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 42, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

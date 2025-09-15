@@ -384,10 +384,6 @@ function _precompile_manual_()
     # end
     # end
     @assert Base.precompile(Tuple{typeof(SummaryCallback)})
-    @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback),
-                                                   typeof(Trixi.summary_callback),
-                                                   typeof(Trixi.initialize_summary_callback),
-                                                   typeof(SciMLBase.FINALIZE_DEFAULT)}})
     @assert Base.precompile(Tuple{typeof(summary_box), Base.TTY, String,
                                   Vector{Pair{String, Any}}})
     # TODO: AMRCallback, ControllerThreeLevel, indicators
@@ -519,68 +515,9 @@ function _precompile_manual_()
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       SemidiscretizationHyperbolic})
 
-        # callbacks
-        summary_callback_type = DiscreteCallback{typeof(Trixi.summary_callback),
-                                                 typeof(Trixi.summary_callback),
-                                                 typeof(Trixi.initialize_summary_callback),
-                                                 typeof(SciMLBase.FINALIZE_DEFAULT)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, summary_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      summary_callback_type})
-        @assert Base.precompile(Tuple{summary_callback_type, Base.TTY})
-
-        # TODO: SteadyStateCallback, AnalysisCallback
-
-        alive_callback_type = DiscreteCallback{AliveCallback, AliveCallback,
-                                               typeof(Trixi.initialize!),
-                                               typeof(SciMLBase.FINALIZE_DEFAULT)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, alive_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      alive_callback_type})
-
-        restart_callback_type = DiscreteCallback{SaveRestartCallback, SaveRestartCallback,
-                                                 typeof(Trixi.initialize!),
-                                                 typeof(SciMLBase.FINALIZE_DEFAULT)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, restart_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      restart_callback_type})
-
-        for solution_variables in (cons2cons, cons2prim)
-            save_solution_callback_type = DiscreteCallback{SaveSolutionCallback{typeof(solution_variables)},
-                                                           SaveSolutionCallback{typeof(solution_variables)},
-                                                           typeof(Trixi.initialize!),
-                                                           typeof(SciMLBase.FINALIZE_DEFAULT)}
-            @assert Base.precompile(Tuple{typeof(show), Base.TTY,
-                                          save_solution_callback_type})
-            @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY},
-                                          MIME"text/plain", save_solution_callback_type})
-        end
-
-        # TODO: AMRCallback
-
-        stepsize_callback_type = DiscreteCallback{StepsizeCallback{RealT},
-                                                  StepsizeCallback{RealT},
-                                                  typeof(Trixi.initialize!),
-                                                  typeof(SciMLBase.FINALIZE_DEFAULT)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, stepsize_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      stepsize_callback_type})
-
-        glm_speed_callback_type = DiscreteCallback{GlmSpeedCallback{RealT},
-                                                   GlmSpeedCallback{RealT},
-                                                   typeof(Trixi.initialize!),
-                                                   typeof(SciMLBase.FINALIZE_DEFAULT)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, glm_speed_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      glm_speed_callback_type})
-
-        lbm_collision_callback_type = DiscreteCallback{typeof(Trixi.lbm_collision_callback),
-                                                       typeof(Trixi.lbm_collision_callback),
-                                                       typeof(Trixi.initialize!),
-                                                       typeof(SciMLBase.FINALIZE_DEFAULT)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, lbm_collision_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      lbm_collision_callback_type})
+        # We do not precompile callbacks since they are based on
+        # SciML structures like `DiscreteCallback` that may change their
+        # type signatures in non-breaking releases.
     end
 
     @assert Base.precompile(Tuple{typeof(init_mpi)})

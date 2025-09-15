@@ -34,37 +34,59 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     # negative adjoint wrt the SBP dot product
 end
 
+function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
+    inverse_vandermonde_legendre = adapt(to, basis.inverse_vandermonde_legendre)
+    RealT = eltype(inverse_vandermonde_legendre)
+
+    nodes = SVector{<:Any, RealT}(basis.nodes)
+    weights = SVector{<:Any, RealT}(basis.weights)
+    inverse_weights = SVector{<:Any, RealT}(basis.inverse_weights)
+    boundary_interpolation = adapt(to, basis.boundary_interpolation)
+    derivative_matrix = adapt(to, basis.derivative_matrix)
+    derivative_split = adapt(to, basis.derivative_split)
+    derivative_split_transpose = adapt(to, basis.derivative_split_transpose)
+    derivative_dhat = adapt(to, basis.derivative_dhat)
+    return LobattoLegendreBasis{RealT, nnodes(basis), typeof(nodes),
+                                typeof(inverse_vandermonde_legendre),
+                                typeof(boundary_interpolation),
+                                typeof(derivative_matrix)}(nodes,
+                                                           weights,
+                                                           inverse_weights,
+                                                           inverse_vandermonde_legendre,
+                                                           boundary_interpolation,
+                                                           derivative_matrix,
+                                                           derivative_split,
+                                                           derivative_split_transpose,
+                                                           derivative_dhat)
+end
+
 function LobattoLegendreBasis(RealT, polydeg::Integer)
     nnodes_ = polydeg + 1
 
     nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
     inverse_weights_ = inv.(weights_)
 
-    _, inverse_vandermonde_legendre_ = vandermonde_legendre(nodes_, RealT)
+    _, inverse_vandermonde_legendre = vandermonde_legendre(nodes_, RealT)
 
-    boundary_interpolation_ = zeros(RealT, nnodes_, 2)
-    boundary_interpolation_[:, 1] = calc_lhat(-one(RealT), nodes_, weights_)
-    boundary_interpolation_[:, 2] = calc_lhat(one(RealT), nodes_, weights_)
+    boundary_interpolation = zeros(RealT, nnodes_, 2)
+    boundary_interpolation[:, 1] = calc_lhat(-one(RealT), nodes_, weights_)
+    boundary_interpolation[:, 2] = calc_lhat(one(RealT), nodes_, weights_)
 
-    derivative_matrix_ = polynomial_derivative_matrix(nodes_)
-    derivative_split_ = calc_dsplit(nodes_, weights_)
-    derivative_split_transpose_ = Matrix(derivative_split_')
-    derivative_dhat_ = calc_dhat(nodes_, weights_)
+    derivative_matrix = polynomial_derivative_matrix(nodes_)
+    derivative_split = calc_dsplit(nodes_, weights_)
+    derivative_split_transpose = Matrix(derivative_split')
+    derivative_dhat = calc_dhat(nodes_, weights_)
 
-    # type conversions to get the requested real type and enable possible
-    # optimizations of runtime performance and latency
+    # Type conversions to enable possible optimizations of runtime performance 
+    # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
-    inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre_)
-    boundary_interpolation = convert.(RealT, boundary_interpolation_)
-
-    # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
-    derivative_matrix = Matrix{RealT}(derivative_matrix_)
-    derivative_split = Matrix{RealT}(derivative_split_)
-    derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
-    derivative_dhat = Matrix{RealT}(derivative_dhat_)
+    # We keep the matrices above stored using the standard `Matrix` type 
+    # since this is usually as fast as `SMatrix`
+    # (when using `let` in the volume integral/`@threaded`)
+    # and reduces latency
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
@@ -159,21 +181,30 @@ struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
     reverse_lower::ReverseMatrix
 end
 
+function Adapt.adapt_structure(to, mortar::LobattoLegendreMortarL2)
+    forward_upper = adapt(to, mortar.forward_upper)
+    forward_lower = adapt(to, mortar.forward_lower)
+    reverse_upper = adapt(to, mortar.reverse_upper)
+    reverse_lower = adapt(to, mortar.reverse_lower)
+    return LobattoLegendreMortarL2{eltype(forward_upper), nnodes(mortar),
+                                   typeof(forward_upper),
+                                   typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                          reverse_upper, reverse_lower)
+end
+
 function MortarL2(basis::LobattoLegendreBasis)
     RealT = real(basis)
     nnodes_ = nnodes(basis)
 
-    forward_upper_ = calc_forward_upper(nnodes_, RealT)
-    forward_lower_ = calc_forward_lower(nnodes_, RealT)
-    reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
-    reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
+    forward_upper = calc_forward_upper(nnodes_, RealT)
+    forward_lower = calc_forward_lower(nnodes_, RealT)
+    reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
+    reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
 
-    # type conversions to get the requested real type and enable possible
-    # optimizations of runtime performance and latency
-
-    # Usually as fast as `SMatrix` but better for latency
-    forward_upper = Matrix{RealT}(forward_upper_)
-    forward_lower = Matrix{RealT}(forward_lower_)
+    # We keep the matrices above stored using the standard `Matrix` type 
+    # since this is usually as fast as `SMatrix`
+    # (when using `let` in the volume integral/`@threaded`)
+    # and reduces latency
 
     # TODO: Taal performance
     #       Check the performance of different implementations of `mortar_fluxes_to_elements!`
@@ -183,8 +214,6 @@ function MortarL2(basis::LobattoLegendreBasis)
     #       `@tullio` when the matrix sizes are not necessarily static.
     # reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
     # reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
-    reverse_upper = Matrix{RealT}(reverse_upper_)
-    reverse_lower = Matrix{RealT}(reverse_lower_)
 
     LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper),
                             typeof(reverse_upper)}(forward_upper, forward_lower,
@@ -261,14 +290,12 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis;
     nnodes_ = analysis_polydeg + 1
 
     nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
-    vandermonde_ = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
+    vandermonde = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
 
-    # type conversions to get the requested real type and enable possible
-    # optimizations of runtime performance and latency
+    # Type conversions to enable possible optimizations of runtime performance 
+    # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
-
-    vandermonde = Matrix{RealT}(vandermonde_)
 
     return LobattoLegendreAnalyzer{RealT, nnodes_, typeof(nodes), typeof(vandermonde)}(nodes,
                                                                                        weights,
@@ -687,7 +714,7 @@ function gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
         # Use symmetry property of the roots of the Legendre polynomials
         for i in 0:(div(N + 1, 2) - 1)
             # Starting guess for Newton method
-            nodes[i + 1] = -cos(convert(RealT, pi) / (2 * N + 2) * (2 * i + 1))
+            nodes[i + 1] = -cospi(one(RealT) / (2 * N + 2) * (2 * i + 1))
 
             # Newton iteration to find root of Legendre polynomial (= integration node)
             for k in 0:n_iterations
