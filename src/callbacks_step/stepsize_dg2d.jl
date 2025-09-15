@@ -16,12 +16,14 @@ function max_dt(u, t, mesh::TreeMesh{2},
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
             lambda1, lambda2 = max_abs_speeds(u_node, equations)
-            max_lambda1 = max(max_lambda1, lambda1)
-            max_lambda2 = max(max_lambda2, lambda2)
+            max_lambda1 = Base.max(max_lambda1, lambda1)
+            max_lambda2 = Base.max(max_lambda2, lambda2)
         end
         inv_jacobian = cache.elements.inverse_jacobian[element]
-        max_scaled_speed = max(max_scaled_speed,
-                               inv_jacobian * (max_lambda1 + max_lambda2))
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath`
+        # doesn't propagate `NaN`s properly.
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian * (max_lambda1 + max_lambda2))
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
@@ -37,8 +39,10 @@ function max_dt(u, t, mesh::TreeMesh{2},
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         inv_jacobian = cache.elements.inverse_jacobian[element]
-        max_scaled_speed = max(max_scaled_speed,
-                               inv_jacobian * (max_lambda1 + max_lambda2))
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath`
+        # doesn't propagate `NaN`s properly.
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian * (max_lambda1 + max_lambda2))
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
@@ -104,11 +108,13 @@ function max_dt(u, t,
 
             inv_jacobian = abs(inverse_jacobian[i, j, element])
 
-            max_lambda1 = max(max_lambda1, lambda1_transformed * inv_jacobian)
-            max_lambda2 = max(max_lambda2, lambda2_transformed * inv_jacobian)
+            max_lambda1 = Base.max(max_lambda1, lambda1_transformed * inv_jacobian)
+            max_lambda2 = Base.max(max_lambda2, lambda2_transformed * inv_jacobian)
         end
 
-        max_scaled_speed = max(max_scaled_speed, max_lambda1 + max_lambda2)
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath`
+        # doesn't propagate `NaN`s properly.
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda1 + max_lambda2)
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
@@ -137,9 +143,11 @@ function max_dt(u, t,
             lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2)
 
             inv_jacobian = abs(inverse_jacobian[i, j, element])
-            max_scaled_speed = max(max_scaled_speed,
-                                   inv_jacobian *
-                                   (lambda1_transformed + lambda2_transformed))
+            # Use `Base.max` to prevent silent failures, as `max` from `@fastmath`
+            # doesn't propagate `NaN`s properly.
+            max_scaled_speed = Base.max(max_scaled_speed,
+                                        inv_jacobian *
+                                        (lambda1_transformed + lambda2_transformed))
         end
     end
 
