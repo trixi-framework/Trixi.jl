@@ -42,6 +42,8 @@ end
     end
 end
 
+@inline nelements(dg::DGMulti, cache) = size(cache.u_values)[end]
+
 """
     eachdim(mesh)
 
@@ -128,6 +130,14 @@ end
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
 wrap_array_native(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
+
+# used to initialize `u_ode` in `semidiscretize`
+function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
+    return VectorOfArray(allocate_nested_array(real(dg), nvariables(equations),
+                                               size(mesh.md.x), dg))
+end
+wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
+
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
                                     mesh::DGMultiMesh,
                                     dg::DGMulti,
@@ -149,7 +159,7 @@ function reset_du!(du, dg::DGMulti, other_args...)
         du[i] = zero(eltype(du))
     end
 
-    return du
+    return nothing
 end
 
 # Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
@@ -199,11 +209,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
             local_values_threaded, flux_threaded, rotated_flux_threaded)
 end
 
-function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
-    return allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x), dg)
-end
-
-function compute_coefficients!(u, initial_condition, t,
+function compute_coefficients!(::Nothing, u, initial_condition, t,
                                mesh::DGMultiMesh, equations, dg::DGMulti, cache)
     md = mesh.md
     rd = dg.basis
@@ -217,6 +223,8 @@ function compute_coefficients!(u, initial_condition, t,
 
     # multiplying by Pq computes the L2 projection
     apply_to_each_field(mul_by!(rd.Pq), u, u_values)
+
+    return nothing
 end
 
 # estimates the timestep based on polynomial degree and mesh. Does not account for physics (e.g.,
@@ -261,13 +269,12 @@ function max_dt(u, t, mesh::DGMultiMesh,
     @unpack md = mesh
     rd = dg.basis
 
+    # Compute max_speeds only once, since it's constant for all nodes/elements
+    max_speeds = max_abs_speeds(equations)
+
     dt_min = Inf
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
-        max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
-        for i in Base.OneTo(rd.Np) # loop over nodes
-            max_speeds = max.(max_abs_speeds(equations), max_speeds)
-        end
         dt_min = min(dt_min, h_e / sum(max_speeds))
     end
     # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
@@ -278,12 +285,13 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 # interpolates from solution coefficients to face quadrature points
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
-                             surface_integral, dg::DGMulti)
+function prolong2interfaces!(cache, u,
+                             mesh::DGMultiMesh, equations, dg::DGMulti)
     rd = dg.basis
     @unpack u_face_values = cache
     apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
+
+    return nothing
 end
 
 # version for affine meshes
@@ -315,6 +323,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             end
         end
     end
+
+    return nothing
 end
 
 # version for curved meshes
@@ -361,6 +371,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                 view(du, :, e), rotated_flux_values)
         end
     end
+
+    return nothing
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
@@ -381,6 +393,8 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
         normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
         flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * Jf[idM]
     end
+
+    return nothing
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
@@ -407,32 +421,31 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
             # Two notes on the use of `flux_nonconservative`:
             # 1. In contrast to other mesh types, only one nonconservative part needs to be
             #    computed since we loop over the elements, not the unique interfaces.
-            # 2. In general, nonconservative fluxes can depend on both the contravariant
-            #    vectors (normal direction) at the current node and the averaged ones. However,
-            #    both are the same at watertight interfaces, so we pass `normal` twice.
-            nonconservative_part = flux_nonconservative(uM, uP, normal, normal,
-                                                        equations)
+            nonconservative_part = flux_nonconservative(uM, uP, normal, equations)
             # The factor 0.5 is necessary for the nonconservative fluxes based on the
             # interpretation of global SBP operators.
             flux_face_values[idM] = (conservative_part + 0.5 * nonconservative_part) *
                                     Jf[idM]
         end
     end
+
+    return nothing
 end
 
 # assumes cache.flux_face_values is computed and filled with
-# for polyomial discretizations, use dense LIFT matrix for surface contributions.
+# for polynomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMulti, cache)
     rd = dg.basis
     apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
+
+    return nothing
 end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations, surface_integral,
-                             dg::DGMultiSBP)
+function prolong2interfaces!(cache, u,
+                             mesh::DGMultiMesh, equations, dg::DGMultiSBP)
     rd = dg.basis
     @unpack Fmask = rd
     @unpack u_face_values = cache
@@ -441,6 +454,8 @@ function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations, surface_int
             u_face_values[i, e] = u[fid, e]
         end
     end
+
+    return nothing
 end
 
 # Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to
@@ -457,6 +472,8 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
             du[fid, e] = du[fid, e] + flux_face_values[i, e] * lift_scalings[i]
         end
     end
+
+    return nothing
 end
 
 # do nothing for periodic (default) boundary conditions
@@ -472,6 +489,8 @@ function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
                                    key,
                                    mesh, have_nonconservative_terms, equations, dg)
     end
+
+    return nothing
 end
 
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
@@ -516,6 +535,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
 
     # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
     # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+
+    return nothing
 end
 
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
@@ -523,7 +544,6 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
                                     dg::DGMulti{NDIMS}) where {NDIMS}
     rd = dg.basis
     md = mesh.md
-    surface_flux, nonconservative_flux = dg.surface_integral.surface_flux
 
     # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
     # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
@@ -550,28 +570,23 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
 
             # Compute conservative and non-conservative fluxes separately.
             # This imposes boundary conditions on the conservative part of the flux.
-            cons_flux_at_face_node = boundary_condition(u_face_values[i, f],
-                                                        face_normal, face_coordinates,
-                                                        t,
-                                                        surface_flux, equations)
-
-            # Compute pointwise nonconservative numerical flux at the boundary.
-            # In general, nonconservative fluxes can depend on both the contravariant
-            # vectors (normal direction) at the current node and the averaged ones.
-            # However, there is only one `face_normal` at boundaries, which we pass in twice.
-            # Note: This does not set any type of boundary condition for the nonconservative term
-            noncons_flux_at_face_node = nonconservative_flux(u_face_values[i, f],
-                                                             u_face_values[i, f],
-                                                             face_normal, face_normal,
-                                                             equations)
+            cons_flux_at_face_node, noncons_flux_at_face_node = boundary_condition(u_face_values[i,
+                                                                                                 f],
+                                                                                   face_normal,
+                                                                                   face_coordinates,
+                                                                                   t,
+                                                                                   dg.surface_integral.surface_flux,
+                                                                                   equations)
 
             flux_face_values[i, f] = (cons_flux_at_face_node +
-                                      0.5 * noncons_flux_at_face_node) * Jf[i, f]
+                                      0.5f0 * noncons_flux_at_face_node) * Jf[i, f]
         end
     end
 
     # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
     # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+
+    return nothing
 end
 
 # inverts Jacobian and scales by -1.0
@@ -583,6 +598,8 @@ function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache;
             du[i, e] *= scaling * invJ
         end
     end
+
+    return nothing
 end
 
 # inverts Jacobian using weight-adjusted DG, and scales by -1.0.
@@ -609,6 +626,8 @@ function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
         # project back to polynomials
         apply_to_each_field(mul_by!(Pq), view(du, :, e), du_at_quad_points)
     end
+
+    return nothing
 end
 
 # Multiple calc_sources! to resolve method ambiguities
@@ -639,10 +658,12 @@ function calc_sources!(du, u, t, source_terms,
         end
         apply_to_each_field(mul_by_accum!(Pq), view(du, :, e), source_values)
     end
+
+    return nothing
 end
 
 function rhs!(du, u, t, mesh, equations,
-              initial_condition, boundary_conditions::BC, source_terms::Source,
+              boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
@@ -653,7 +674,7 @@ function rhs!(du, u, t, mesh, equations,
     end
 
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     @trixi_timeit timer() "interface flux" begin

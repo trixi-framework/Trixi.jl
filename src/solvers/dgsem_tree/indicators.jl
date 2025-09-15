@@ -96,7 +96,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
         "indicator variable" => indicator.variable,
         "max. α" => indicator.alpha_max,
         "min. α" => indicator.alpha_min,
-        "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+        "smooth α" => (indicator.alpha_smooth ? "yes" : "no")
     ]
     summary_box(io, "IndicatorHennemannGassner", setup)
 end
@@ -196,12 +196,17 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
     else
         setup = [
             "indicator variable" => indicator.variable,
-            "f_wave" => indicator.f_wave,
+            "f_wave" => indicator.f_wave
         ]
         summary_box(io, "IndicatorLöhner", setup)
     end
 end
 
+"""
+    IndicatorLoehner
+
+Same as [`IndicatorLöhner`](@ref).
+"""
 const IndicatorLoehner = IndicatorLöhner
 
 # dirty Löhner estimate, direction by direction, assuming constant nodes
@@ -254,7 +259,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
         show(io, indicator)
     else
         setup = [
-            "indicator variable" => indicator.variable,
+            "indicator variable" => indicator.variable
         ]
         summary_box(io, "IndicatorMax", setup)
     end

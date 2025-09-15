@@ -30,8 +30,9 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
             idp_bounds_delta_global)
 end
 
-function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
-                                      dt;
+function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4},
+                                      semi, equations, dg::DGSEM,
+                                      t, dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
     # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
@@ -70,8 +71,9 @@ end
 ###############################################################################
 # Calculation of local bounds using low-order FV solution
 
-@inline function calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+@inline function calc_bounds_twosided!(var_min, var_max, variable,
+                                       u, t, semi, equations)
+    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
         var_min[:, :, element] .= typemax(eltype(var_min))
@@ -102,12 +104,15 @@ end
     end
 
     # Values at element boundary
-    calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi, mesh)
+    calc_bounds_twosided_interface!(var_min, var_max, variable,
+                                    u, t, semi, mesh, equations)
+    return nothing
 end
 
-@inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u, t, semi,
-                                                 mesh::TreeMesh2D)
-    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+@inline function calc_bounds_twosided_interface!(var_min, var_max, variable,
+                                                 u, t, semi, mesh::TreeMesh2D,
+                                                 equations)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
@@ -159,7 +164,7 @@ end
             u_outer = get_boundary_outer_state(u_inner, t,
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
-                                               equations, dg, cache,
+                                               mesh, equations, dg, cache,
                                                index..., element)
             var_outer = u_outer[variable]
 
@@ -210,6 +215,8 @@ end
 
     # Values at element boundary
     calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t, semi, mesh)
+
+    return nothing
 end
 
 @inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t,
@@ -265,7 +272,7 @@ end
             u_outer = get_boundary_outer_state(u_inner, t,
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
-                                               equations, dg, cache,
+                                               mesh, equations, dg, cache,
                                                index..., element)
             var_outer = variable(u_outer, equations)
 
@@ -289,7 +296,7 @@ end
 end
 
 @inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi, variable)
-    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
 
@@ -297,7 +304,7 @@ end
     variable_string = string(variable)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
-    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
+    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
 
     @threaded for element in eachelement(dg, semi.cache)
         for j in eachnode(dg), i in eachnode(dg)
@@ -328,9 +335,6 @@ end
                  max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
-
-            Qp = max(0, (var_max[i, j, element] - var) / dt)
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
 
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm

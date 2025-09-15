@@ -412,10 +412,10 @@ See also
     return SVector(f1, f2, f3)
 end
 
-# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
-# the normal component is incorporated into the numerical flux. 
-# 
-# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that
+# the normal component is incorporated into the numerical flux.
+#
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a
 # similar implementation.
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
                               equations::CompressibleEulerEquations1D)
@@ -705,7 +705,65 @@ end
     p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-    λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+    return max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+end
+
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
+                                                             normal_direction::AbstractVector,
+                                                             equations::CompressibleEulerEquations1D)
+    gamma = equations.gamma
+
+    norm_ = norm(normal_direction)
+    unit_normal_direction = normal_direction / norm_
+
+    rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
+
+    b_ll = rho_ll / (2 * p_ll)
+    b_rr = rho_rr / (2 * p_rr)
+
+    rho_log = ln_mean(rho_ll, rho_rr)
+    b_log = ln_mean(b_ll, b_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    p_avg = 0.5f0 * (rho_ll + rho_rr) / (b_ll + b_rr) # 2 * b_avg = b_ll + b_rr
+    v1_squared_bar = v1_ll * v1_rr
+    h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5f0 * v1_squared_bar
+    c_bar = sqrt(gamma * p_avg / rho_log)
+
+    v1_minus_c = v1_avg - c_bar * unit_normal_direction[1]
+    v1_plus_c = v1_avg + c_bar * unit_normal_direction[1]
+    v_avg_normal = v1_avg * unit_normal_direction[1]
+
+    entropy_vars_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
+
+    lambda_1 = abs(v_avg_normal - c_bar) * rho_log / (2 * gamma)
+    lambda_2 = abs(v_avg_normal) * rho_log * (gamma - 1) / gamma
+    lambda_3 = abs(v_avg_normal + c_bar) * rho_log / (2 * gamma)
+    lambda_4 = abs(v_avg_normal) * p_avg
+
+    entropy_var_rho_jump, entropy_var_rho_v1_jump, entropy_var_rho_e_jump = entropy_vars_jump
+
+    w1 = lambda_1 * (entropy_var_rho_jump + v1_minus_c * entropy_var_rho_v1_jump +
+          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+    w2 = lambda_2 * (entropy_var_rho_jump + v1_avg * entropy_var_rho_v1_jump +
+          v1_squared_bar / 2 * entropy_var_rho_e_jump)
+    w3 = lambda_3 * (entropy_var_rho_jump + v1_plus_c * entropy_var_rho_v1_jump +
+          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+
+    dissipation_rho = w1 + w2 + w3
+
+    dissipation_rho_v1 = (w1 * v1_minus_c +
+                          w2 * v1_avg +
+                          w3 * v1_plus_c)
+
+    dissipation_rhoe = (w1 * (h_bar - c_bar * v_avg_normal) +
+                        w2 * 0.5f0 * v1_squared_bar +
+                        w3 * (h_bar + c_bar * v_avg_normal) +
+                        lambda_4 *
+                        (entropy_var_rho_e_jump * (v1_avg * v1_avg - v_avg_normal^2)))
+
+    return -0.5f0 * SVector(dissipation_rho, dissipation_rho_v1, dissipation_rhoe) *
+           norm_
 end
 
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
@@ -718,6 +776,25 @@ end
     λ_max = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
 
     return λ_min, λ_max
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::CompressibleEulerEquations1D)
+    rho_ll, rho_v1_ll, rho_e_ll = u_ll
+    rho_rr, rho_v1_rr, rho_e_rr = u_rr
+
+    # Calculate primitive variables and speed of sound
+    v1_ll = rho_v1_ll / rho_ll
+    v_mag_ll = abs(v1_ll)
+    p_ll = (equations.gamma - 1) * (rho_e_ll - 0.5f0 * rho_ll * v_mag_ll^2)
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    v1_rr = rho_v1_rr / rho_rr
+    v_mag_rr = abs(v1_rr)
+    p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    return max(v_mag_ll + c_ll, v_mag_rr + c_rr)
 end
 
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
@@ -814,6 +891,26 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
         end
     end
     return SVector(f1, f2, f3)
+end
+
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that
+# the normal component is incorporated into the numerical flux.
+#
+# The HLLC flux along a 1D "normal" can be evaluated by scaling the velocity/momentum by
+# the normal for the 1D HLLC flux, then scaling the resulting momentum flux again.
+# Moreover, the 2D HLLC flux reduces to this if the normal vector is [n, 0].
+function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
+                   equations::CompressibleEulerEquations1D)
+    norm_ = abs(normal_direction[1])
+    normal_direction_unit = normal_direction[1] * inv(norm_)
+
+    # scale the momentum by the normal direction
+    f = flux_hllc(SVector(u_ll[1], normal_direction_unit * u_ll[2], u_ll[3]),
+                  SVector(u_rr[1], normal_direction_unit * u_rr[2], u_rr[3]), 1,
+                  equations)
+
+    # rescale the momentum flux by the normal direction and normalize
+    return SVector(f[1], normal_direction_unit * f[2], f[3]) * norm_
 end
 
 """
@@ -941,6 +1038,17 @@ end
 @inline function density(u, equations::CompressibleEulerEquations1D)
     rho = u[1]
     return rho
+end
+
+@inline function velocity(u, orientation_or_normal,
+                          equations::CompressibleEulerEquations1D)
+    return velocity(u, equations)
+end
+
+@inline function velocity(u, equations::CompressibleEulerEquations1D)
+    rho = u[1]
+    v1 = u[2] / rho
+    return v1
 end
 
 @inline function pressure(u, equations::CompressibleEulerEquations1D)

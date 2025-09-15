@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 """
@@ -81,7 +80,14 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 # semidiscretization of the hyperbolic diffusion equations
 equations_gravity = HyperbolicDiffusionEquations2D()
 
-solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver_gravity = DGSEM(polydeg, FluxLaxFriedrichs(max_abs_speed_naive))
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition,
                                             solver_gravity,
@@ -91,7 +97,7 @@ semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_con
 # combining both semidiscretizations for Euler + self-gravity
 parameters = ParametersEulerGravity(background_density = 1.5e7, # aka rho0
                                     gravitational_constant = 6.674e-8, # aka G
-                                    cfl = 1.6,
+                                    cfl = 0.8, # value as used in the paper
                                     resid_tol = 1.0e-4,
                                     n_iterations_max = 1000,
                                     timestep_gravity = timestep_gravity_carpenter_kennedy_erk54_2N!)
@@ -101,11 +107,11 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 ###############################################################################
 # ODE solvers, callbacks etc.
 tspan = (0.0, 5.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl = 1.0)
+stepsize_callback = StepsizeCallback(cfl = 0.5) # value as used in the paper
 
 save_solution = SaveSolutionCallback(interval = 10,
                                      save_initial_solution = true,
@@ -133,11 +139,12 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t,
                                               u_gravity) do u, i, j, element,
                                                             equations_euler, dg,
                                                             equations_gravity, u_gravity
-        u_euler_local = Trixi.get_node_vars(u_euler, equations_euler, dg, i, j, element)
-        u_gravity_local = Trixi.get_node_vars(u_gravity, equations_gravity, dg, i, j,
-                                              element)
+        u_euler_local = get_node_vars(u_euler, equations_euler, dg, i, j, element)
+        u_gravity_local = get_node_vars(u_gravity, equations_gravity, dg, i, j, element)
         # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
-        return (u_euler_local[1] - 1.5e7) * u_gravity_local[1]
+        # For formula of potential energy see
+        # "Galactic Dynamics" by Binney and Tremaine, 2nd ed., equation (2.18)
+        return 0.5f0 * (u_euler_local[1] - 1.5f7) * u_gravity_local[1]
     end
     return e_potential
 end
@@ -155,8 +162,8 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);
+
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)
