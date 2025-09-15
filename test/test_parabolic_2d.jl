@@ -47,8 +47,8 @@ isdir(outdir) && rm(outdir, recursive = true)
     # test "do nothing" BC just returns first argument
     @test boundary_condition_do_nothing(u0, nothing) == u0
 
-    Main.TestExamplesParabolic2D.@unpack cache, cache_parabolic, equations_parabolic = semi
-    Main.TestExamplesParabolic2D.@unpack gradients = cache_parabolic
+    (; cache, cache_parabolic, equations_parabolic) = semi
+    (; gradients) = cache_parabolic
     for dim in eachindex(gradients)
         fill!(gradients[dim], zero(eltype(gradients[dim])))
     end
@@ -61,7 +61,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     Trixi.calc_gradient!(gradients, u0, t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, parabolic_scheme,
                          cache, cache_parabolic)
-    Main.TestExamplesParabolic2D.@unpack x, y, xq, yq = mesh.md
+    (; x, y, xq, yq) = mesh.md
     @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
     @test getindex.(gradients[2], 1) ≈ xq .^ 2
 
