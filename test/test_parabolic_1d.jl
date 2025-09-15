@@ -296,7 +296,7 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock_imex.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_navierstokes_viscous_shock_imex.jl"),
                         l2=[
                             0.0016637374421260447,
