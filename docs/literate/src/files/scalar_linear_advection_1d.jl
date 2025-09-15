@@ -14,7 +14,7 @@ coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0  # maximum coordinate
 
 # We assume periodic boundaries and the following initial condition.
-initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)
+initial_condition_sine_wave(x) = 1.0 + 0.5 * sinpi(x)
 
 # ## The discontinuous Galerkin collocation spectral element method (DGSEM)
 # ### i. Discretization of the physical domain
@@ -426,7 +426,7 @@ for element in 1:n_elements
 end
 
 ## initial condition
-initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)
+initial_condition_sine_wave(x) = 1.0 + 0.5 * sinpi(x)
 u0 = initial_condition_sine_wave.(x)
 
 plot(vec(x), vec(u0), label = "initial condition", legend = :topleft, markershape = :circle)
