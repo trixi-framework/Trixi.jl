@@ -136,4 +136,4 @@ ode_unstable_check(dt, u, semi, t) = isnan(dt)
 function reduce_vector_plus(x, y)
     x .+ y
 end
-MPI.@Op(reduce_vector_plus, Any)
+MPI.@RegisterOp(reduce_vector_plus, Any)
