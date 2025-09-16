@@ -62,7 +62,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[9.773852895157622e-6],
-                        linf=[0.0005853874124926162],)
+                        linf=[0.0005853874124926162])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -106,7 +106,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.002590388934758452],
-                        linf=[0.01840757696885409],)
+                        linf=[0.01840757696885409])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -551,6 +551,43 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_alfven_wave_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_er.jl"),
+                        l2=[
+                            0.0052864046546744065,
+                            0.009963357787771665,
+                            0.006635699953141596,
+                            0.01295540589311982,
+                            0.013939326496053958,
+                            0.010192741315114568,
+                            0.004631666336074305,
+                            0.012267586777052244,
+                            0.0018063823439272181
+                        ],
+                        linf=[
+                            0.021741826900806394,
+                            0.0470226920658848,
+                            0.025036937229995254,
+                            0.05043002191230382,
+                            0.06018360063552164,
+                            0.04338351710391075,
+                            0.023607975939848536,
+                            0.050740527490335,
+                            0.006909064342577296
+                        ])
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
+    end
+end
+
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_nonconforming.jl"),
@@ -718,18 +755,18 @@ end
 @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
-                            0.012046270976464931,
-                            0.01894521652831441,
-                            0.01951983946363743,
-                            0.019748755875702628,
-                            0.15017285006198244
+                            0.01374649869395016,
+                            0.01993458602992416,
+                            0.020403214655756098,
+                            0.020408263790073853,
+                            0.14975849029503904
                         ],
                         linf=[
-                            0.3156585581400839,
-                            0.6653806948576124,
-                            0.5451454769741236,
-                            0.558669830478818,
-                            3.6406796982784635
+                            0.4411601724293266,
+                            0.668308654218055,
+                            0.7351134068050753,
+                            0.5955002383710662,
+                            3.1811162616598985
                         ],
                         tspan=(0.0, 0.025),)
     # Ensure that we do not have excessive memory allocations
@@ -751,9 +788,9 @@ end
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
 
-@trixi_testset "elixir_euler_OMNERA_M6_wing.jl" begin
+@trixi_testset "elixir_euler_ONERA_M6_wing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_OMNERA_M6_wing.jl"),
+                                 "elixir_euler_ONERA_M6_wing.jl"),
                         l2=[
                             1.3302852203314697e-7,
                             7.016342225152883e-8,

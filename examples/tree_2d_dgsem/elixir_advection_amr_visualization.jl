@@ -49,7 +49,7 @@ save_solution = SaveSolutionCallback(interval = 100,
 
 # Enable in-situ visualization with a new plot generated every 20 time steps
 # and additional plotting options passed as keyword arguments
-visualization = VisualizationCallback(interval = 20, clims = (0, 1))
+visualization = VisualizationCallback(semi; interval = 20, clims = (0, 1))
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
                                       base_level = 3,

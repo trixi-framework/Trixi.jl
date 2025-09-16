@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Abstract base type for time integration schemes of storage class `2N`
-abstract type SimpleAlgorithm2N end
+abstract type SimpleAlgorithm2N <: AbstractTimeIntegrationAlgorithm end
 
 """
     CarpenterKennedy2N54()
@@ -75,7 +75,7 @@ struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
-mutable struct SimpleIntegrator2NOptions{Callback}
+mutable struct SimpleIntegratorOptions{Callback}
     callback::Callback # callbacks; used in Trixi.jl
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
@@ -83,17 +83,18 @@ mutable struct SimpleIntegrator2NOptions{Callback}
     tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
-function SimpleIntegrator2NOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    SimpleIntegrator2NOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                                [last(tspan)])
+function SimpleIntegratorOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
+    SimpleIntegratorOptions{typeof(callback)}(callback, false, Inf, maxiters,
+                                              [last(tspan)])
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
-                                  SimpleIntegrator2NOptions} <: AbstractTimeIntegrator
+mutable struct SimpleIntegrator2N{RealT <: Real, uType <: AbstractVector,
+                                  Params, Sol, F, Alg,
+                                  SimpleIntegratorOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
     u_tmp::uType
@@ -105,17 +106,8 @@ mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
     sol::Sol # faked
     f::F # `rhs!` of the semidiscretization
     alg::Alg # SimpleAlgorithm2N
-    opts::SimpleIntegrator2NOptions
+    opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
-end
-
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
 end
 
 function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
@@ -127,45 +119,12 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
     iter = 0
     integrator = SimpleIntegrator2N(u, du, u_tmp, t, dt, zero(dt), iter, ode.p,
                                     (prob = ode,), ode.f, alg,
-                                    SimpleIntegrator2NOptions(callback, ode.tspan;
-                                                              kwargs...), false)
+                                    SimpleIntegratorOptions(callback, ode.tspan;
+                                                            kwargs...), false)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with the 2N storage time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
-end
-
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::SimpleAlgorithm2N;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
-end
-
-function solve!(integrator::SimpleIntegrator2N)
-    @unpack prob = integrator.sol
-
-    integrator.finalstep = false
-
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        step!(integrator)
-    end # "main loop" timer
-
-    finalize_callbacks(integrator)
-
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
 end
 
 function step!(integrator::SimpleIntegrator2N)
@@ -179,12 +138,7 @@ function step!(integrator::SimpleIntegrator2N)
         error("time step size `dt` is NaN")
     end
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     # one time step
     integrator.u_tmp .= 0
@@ -205,46 +159,25 @@ function step!(integrator::SimpleIntegrator2N)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::SimpleIntegrator2N) = integrator.du
 get_tmp_cache(integrator::SimpleIntegrator2N) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegrator2N, ::Bool) = false
 
-# used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::SimpleIntegrator2N, dt)
-    integrator.dt = dt
-end
-
-# Required e.g. for `glm_speed_callback`
-function get_proposed_dt(integrator::SimpleIntegrator2N)
-    return integrator.dt
-end
-
 # stop the time integration
 function terminate!(integrator::SimpleIntegrator2N)
     integrator.finalstep = true
     empty!(integrator.opts.tstops)
+
+    return nothing
 end
 
 # used for AMR
@@ -252,5 +185,7 @@ function Base.resize!(integrator::SimpleIntegrator2N, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
+
+    return nothing
 end
 end # @muladd

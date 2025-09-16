@@ -329,6 +329,11 @@ function Adapt.unwrap_type(C::Type{<:AbstractContainer})
 end
 
 # TODO: Upstream to Adapt
+"""
+    storage_type(x)
+
+Return the storage type of `x`, which is a concrete array type, such as `Array`, `CuArray`, or `ROCArray`.
+"""
 function storage_type(x)
     return storage_type(typeof(x))
 end
@@ -343,6 +348,40 @@ end
 
 function storage_type(C::Type{<:AbstractContainer})
     return storage_type(Adapt.unwrap_type(C))
+end
+
+# backend handling
+"""
+    trixi_backend(x)
+
+Return the computational backend for `x`, which is either a KernelAbstractions backend or `nothing`.
+If the backend is `nothing`, the default multi-threaded CPU backend is used.
+"""
+function trixi_backend(x)
+    if (_PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(x)) ||
+       (_PREFERENCE_THREADING !== :kernelabstractions &&
+        get_backend(x) isa KernelAbstractions.CPU)
+        return nothing
+    end
+    return get_backend(x)
+end
+
+# TODO: After https://github.com/SciML/RecursiveArrayTools.jl/pull/455 we need to investigate the right way to handle StaticArray as uEltype for MultiDG.
+function trixi_backend(x::VectorOfArray)
+    u = parent(x)
+    # FIXME(vchuravy): This is a workaround because KA.get_backend is ambivalent of where a SArray is residing.
+    if eltype(u) <: StaticArrays.StaticArray
+        return nothing
+    end
+    if length(u) == 0
+        error("VectorOfArray is empty, cannot determine backend.")
+    end
+    # Use the backend of the first element in the parent array
+    return get_backend(u[1])
+end
+
+function KernelAbstractions.get_backend(semi::AbstractSemidiscretization)
+    KernelAbstractions.get_backend(semi.cache.elements.node_coordinates)
 end
 
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
@@ -362,41 +401,46 @@ function unsafe_wrap_or_alloc(to, vector, size)
     end
 end
 
-struct TrixiAdaptor{Storage, Real} end
+struct TrixiAdaptor{Storage, RealT} end
 
-function trixi_adapt(storage, real, x)
-    adapt(TrixiAdaptor{storage, real}(), x)
+"""
+    trixi_adapt(Storage, RealT, x)
+
+Adapt `x` to the storage type `Storage` and real type `RealT`.
+"""
+function trixi_adapt(Storage, RealT, x)
+    adapt(TrixiAdaptor{Storage, RealT}(), x)
 end
 
 # Custom rules
 # 1. handling of StaticArrays
-function Adapt.adapt_storage(::TrixiAdaptor{<:Any, Real},
-                             x::StaticArrays.StaticArray{S, T, N}) where {Real, S, T, N}
-    StaticArrays.similar_type(x, Real)(x)
+function Adapt.adapt_storage(::TrixiAdaptor{<:Any, RealT},
+                             x::StaticArrays.StaticArray) where {RealT}
+    StaticArrays.similar_type(x, RealT)(x)
 end
 
 # 2. Handling of Arrays
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
-                             x::AbstractArray{T}) where {Storage, Real,
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
+                             x::AbstractArray{T}) where {Storage, RealT,
                                                          T <: AbstractFloat}
-    adapt(Storage{Real}, x)
+    adapt(Storage{RealT}, x)
 end
 
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
-                             x::AbstractArray{T}) where {Storage, Real,
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
+                             x::AbstractArray{T}) where {Storage, RealT,
                                                          T <: StaticArrays.StaticArray}
-    adapt(Storage{StaticArrays.similar_type(T, Real)}, x)
+    adapt(Storage{StaticArrays.similar_type(T, RealT)}, x)
 end
 
 # Our threaded cache contains MArray, it is unlikely that we would want to adapt those
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
-                             x::Array{T}) where {Storage, Real,
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
+                             x::Array{T}) where {Storage, RealT,
                                                  T <: StaticArrays.MArray}
-    adapt(Array{StaticArrays.similar_type(T, Real)}, x)
+    adapt(Array{StaticArrays.similar_type(T, RealT)}, x)
 end
 
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
-                             x::AbstractArray) where {Storage, Real}
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
+                             x::AbstractArray) where {Storage, RealT}
     adapt(Storage, x)
 end
 
@@ -404,17 +448,5 @@ end
 
 function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage}
     return unsafe_wrap_or_alloc(Storage, vec, size)
-end
-
-function trixi_backend(x)
-    backend = get_backend(x)
-    if _PREFERENCE_USE_NATIVE_THREADING && backend isa KernelAbstractions.CPU
-        backend = nothing
-    end
-    return backend
-end
-
-function KernelAbstractions.get_backend(semi::AbstractSemidiscretization)
-    KernelAbstractions.get_backend(semi.cache.elements.node_coordinates)
 end
 end # @muladd

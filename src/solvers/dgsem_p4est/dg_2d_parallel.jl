@@ -131,6 +131,8 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_index, local_direction_index, local_element_index] = flux_[v]
     end
+
+    return nothing
 end
 
 # Inlined version of the interface flux computation for non-conservative equations
@@ -164,6 +166,8 @@ end
         local_direction_index, local_element_index] = flux_[v] +
                                                       0.5f0 * noncons_flux_[v]
     end
+
+    return nothing
 end
 
 function prolong2mpimortars!(cache, u,
@@ -308,6 +312,8 @@ end
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, dg, node_index)
     set_node_vars!(fstar_secondary[position_index], flux, equations, dg, node_index)
+
+    return nothing
 end
 
 # Inlined version of the mortar flux computation on small elements for non-conservative equations
@@ -336,6 +342,8 @@ end
                                                          0.5f0 *
                                                          noncons_flux_secondary[v]
     end
+
+    return nothing
 end
 
 @inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,

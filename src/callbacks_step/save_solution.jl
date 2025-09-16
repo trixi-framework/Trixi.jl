@@ -276,6 +276,8 @@ end
                                                              element_variables,
                                                              solution_callback.node_variables,
                                                              system = system)
+
+    return nothing
 end
 
 @inline function save_solution_file(u_ode, t, dt, iter,
@@ -289,6 +291,8 @@ end
                        solution_callback,
                        element_variables,
                        node_variables; system = system)
+
+    return nothing
 end
 
 # TODO: Taal refactor, move save_mesh_file?

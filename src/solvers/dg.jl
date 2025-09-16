@@ -265,6 +265,18 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+# Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
+Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
+
+function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
+    # Resize container antidiffusive_fluxes
+    resize!(semi.cache.antidiffusive_fluxes, new_size)
+
+    # Resize container subcell_limiter_coefficients
+    @unpack limiter = volume_integral
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+end
+
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
 """
@@ -642,7 +654,7 @@ include("fdsbp_unstructured/fdsbp.jl")
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
-    u_ode = similar(cache.elements.node_coordinates,
+    u_ode = similar(cache.elements.node_coordinates, eltype(cache.elements),
                     nvariables(equations) * nnodes(dg)^ndims(mesh) *
                     nelements(dg, cache))
     fill!(u_ode, zero(eltype(u_ode)))
@@ -669,7 +681,7 @@ end
     # since LoopVectorization does not support `ForwardDiff.Dual`s. Hence, we use
     # optimized `PtrArray`s whenever possible and fall back to plain `Array`s
     # otherwise.
-    if _PREFERENCE_POLYESTER && LoopVectorization.check_args(u_ode)
+    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(u_ode)
         # This version using `PtrArray`s from StrideArrays.jl is very fast and
         # does not result in allocations.
         #
@@ -704,7 +716,7 @@ end
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
     # See comments on the DGSEM version above
-    if _PREFERENCE_POLYESTER && LoopVectorization.check_args(u_ode)
+    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(u_ode)
         # Here, we do not specialize on the number of nodes using `StaticInt` since
         # - it will not be type stable (SBP operators just store it as a runtime value)
         # - FD methods tend to use high node counts
@@ -758,6 +770,8 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
             set_node_vars!(u, u_node, equations, dg, i, element)
         end
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
@@ -767,6 +781,8 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
         compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
                                       element)
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
@@ -793,6 +809,8 @@ function compute_coefficients_element!(u, func, t, equations, dg::DG,
         u_node = func(x_node, t, equations)
         set_node_vars!(u, u_node, equations, dg, i, j, element)
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
@@ -805,16 +823,19 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
             set_node_vars!(u, u_node, equations, dg, i, j, k, element)
         end
     end
+
+    return nothing
 end
 
 # Discretizations specific to each mesh type of Trixi.jl
+
 # If some functionality is shared by multiple combinations of meshes/solvers,
 # it is defined in the directory of the most basic mesh and solver type.
 # The most basic solver type in Trixi.jl is DGSEM (historic reasons and background
 # of the main contributors).
 # We consider the `TreeMesh` to be the most basic mesh type since it is Cartesian
-# and was the first mesh in Trixi.jl. The order of the other mesh types is the same
-# as the include order below.
+# and was the first mesh in Trixi.jl.
+# The order of the other mesh types is the same as the include order below.
 include("dgsem_tree/dg.jl")
 include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
