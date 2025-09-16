@@ -230,7 +230,6 @@ function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
     backend = trixi_backend(u_ode)
     u = wrap_array(u_ode, semi)
     # Call `compute_coefficients` defined by the solver
-    backend = trixi_backend(semi)
     compute_coefficients!(backend, u, func, t, mesh_equations_solver_cache(semi)...)
 end
 
