@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 
 @testset "P4estMesh MPI 3D" begin
 #! format: noindent
@@ -20,8 +20,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
                             linf=[0.0014537194925779984])
 
         @testset "error-based step size control" begin
-            Trixi.mpi_isroot() && println("-"^100)
-            Trixi.mpi_isroot() &&
+            mpi_isroot() && println("-"^100)
+            mpi_isroot() &&
                 println("elixir_advection_basic.jl with error-based step size control")
 
             # Use callbacks without stepsize_callback to test error-based step size control
@@ -31,7 +31,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
                         ode_default_options()..., callback = callbacks)
             summary_callback()
             errors = analysis_callback(sol)
-            if Trixi.mpi_isroot()
+            if mpi_isroot()
                 @test errors.l2≈[0.00016800412839949264] rtol=1.0e-4
                 @test errors.linf≈[0.0014548839020096516] rtol=1.0e-4
             end
