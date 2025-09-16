@@ -223,13 +223,8 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
                AbstractContainer
-<<<<<<< HEAD
-    u::uArray       # [primary/secondary, variable, i, j, interface]
-    neighbor_ids::IdsMatrix                   # [primary/secondary, interface]
-=======
     u::uArray                   # [primary/secondary, variable, i, j, interface]
     neighbor_ids::IdsMatrix     # [primary/secondary, interface]
->>>>>>> main
     node_indices::IndicesMatrix # [primary/secondary, interface]
 
     # internal `resize!`able storage
