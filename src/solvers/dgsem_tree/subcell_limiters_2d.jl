@@ -989,10 +989,10 @@ end
                                                           large_element)
 
             u_lower = get_node_vars(u, equations, dg, indices_small..., lower_element)
-            var_lower = variable(u_lower, equations)
             u_upper = get_node_vars(u, equations, dg, indices_small..., upper_element)
-            var_upper = variable(u_upper, equations)
             u_large = get_node_vars(u, equations, dg, indices_large..., large_element)
+            var_lower = variable(u_lower, equations)
+            var_upper = variable(u_upper, equations)
             var_large = variable(u_large, equations)
             if var_lower < 0 || var_upper < 0 || var_large < 0
                 error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
@@ -1004,10 +1004,10 @@ end
 
             # lower element
             flux_lower_high_order = get_node_vars(surface_flux_values_high_order,
-                                                  equations, dg, i, direction_small,
-                                                  lower_element)
-            flux_lower_low_order = get_node_vars(surface_flux_values, equations, dg, i,
-                                                 direction_small, lower_element)
+                                                  equations, dg,
+                                                  i, direction_small, lower_element)
+            flux_lower_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, direction_small, lower_element)
             flux_difference_lower = factor_small *
                                     (flux_lower_high_order .- flux_lower_low_order)
             antidiffusive_flux_lower = inverse_jacobian_lower * flux_difference_lower
@@ -1019,10 +1019,10 @@ end
 
             # upper element
             flux_upper_high_order = get_node_vars(surface_flux_values_high_order,
-                                                  equations, dg, i, direction_small,
-                                                  upper_element)
-            flux_upper_low_order = get_node_vars(surface_flux_values, equations, dg, i,
-                                                 direction_small, upper_element)
+                                                  equations, dg,
+                                                  i, direction_small, upper_element)
+            flux_upper_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, direction_small, upper_element)
             flux_difference_upper = factor_small *
                                     (flux_upper_high_order .- flux_upper_low_order)
             antidiffusive_flux_upper = inverse_jacobian_upper * flux_difference_upper
@@ -1034,10 +1034,10 @@ end
 
             # large element
             flux_large_high_order = get_node_vars(surface_flux_values_high_order,
-                                                  equations, dg, i, direction_large,
-                                                  large_element)
-            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg, i,
-                                                 direction_large, large_element)
+                                                  equations, dg,
+                                                  i, direction_large, large_element)
+            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, direction_large, large_element)
             flux_difference_large = factor_large *
                                     (flux_large_high_order .- flux_large_low_order)
             antidiffusive_flux_large = inverse_jacobian_large * flux_difference_large
