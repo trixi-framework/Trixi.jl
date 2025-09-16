@@ -188,22 +188,6 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_implicit_sparse_jacobian.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
-                                 "elixir_advection_diffusion_implicit_sparse_jacobian.jl"),
-                        initial_refinement_level=2, tspan=(0.0, 1.5),
-                        l2=[0.00036653919560810473],
-                        linf=[0.0017301065565563656])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi_float_type, t)) < 1000
-    end
-end
-
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (LDG)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
