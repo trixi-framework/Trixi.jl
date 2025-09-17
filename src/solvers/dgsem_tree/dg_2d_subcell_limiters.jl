@@ -61,7 +61,7 @@ end
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           P4estMesh{2}},
+                                           P4estMesh{2}, P4estMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
@@ -735,6 +735,7 @@ end
     return nothing
 end
 
+# TODO: dimension independent implementation
 """
     get_boundary_outer_state(u_inner, t,
                              boundary_condition::BoundaryConditionDirichlet,

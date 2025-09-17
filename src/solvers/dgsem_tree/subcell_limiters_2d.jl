@@ -72,7 +72,7 @@ end
 # Calculation of local bounds using low-order FV solution
 
 @inline function calc_bounds_twosided!(var_min, var_max, variable,
-                                       u, t, semi, equations)
+                                       u::AbstractArray{<:Any, 4}, t, semi, equations)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
@@ -176,7 +176,8 @@ end
     return nothing
 end
 
-@inline function calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+@inline function calc_bounds_onesided!(var_minmax, min_or_max, variable,
+                                       u::AbstractArray{<:Any, 4}, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
@@ -287,6 +288,7 @@ end
 ###############################################################################
 # Local two-sided limiting of conservative variables
 
+# TODO: dimension independent implementation
 @inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi)
     for variable in limiter.local_twosided_variables_cons
         idp_local_twosided!(alpha, limiter, u, t, dt, semi, variable)
@@ -295,7 +297,8 @@ end
     return nothing
 end
 
-@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi, variable)
+@inline function idp_local_twosided!(alpha, limiter, u::AbstractArray{<:Any, 4}, t, dt,
+                                     semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
@@ -357,6 +360,7 @@ end
 ##############################################################################
 # Local one-sided limiting of nonlinear variables
 
+# TODO: dimension independent implementation
 @inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi)
     for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
         idp_local_onesided!(alpha, limiter, u, t, dt, semi, variable, min_or_max)
@@ -365,8 +369,8 @@ end
     return nothing
 end
 
-@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi,
-                                     variable, min_or_max)
+@inline function idp_local_onesided!(alpha, limiter, u::AbstractArray{<:Real, 4}, t, dt,
+                                     semi, variable, min_or_max)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
@@ -392,6 +396,7 @@ end
 ###############################################################################
 # Global positivity limiting
 
+# TODO: dimension independent implementation
 @inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
     for variable in limiter.positivity_variables_cons
@@ -418,7 +423,9 @@ end
 ###############################################################################
 # Global positivity limiting of conservative variables
 
-@inline function idp_positivity_conservative!(alpha, limiter, u, dt, semi, variable)
+@inline function idp_positivity_conservative!(alpha, limiter,
+                                              u::AbstractArray{<:Real, 4}, dt, semi,
+                                              variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
@@ -483,7 +490,8 @@ end
 ###############################################################################
 # Global positivity limiting of nonlinear variables
 
-@inline function idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, variable)
+@inline function idp_positivity_nonlinear!(alpha, limiter, u::AbstractArray{<:Real, 4},
+                                           dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; positivity_correction_factor) = limiter
 
@@ -530,7 +538,7 @@ end
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1_R, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+    newton_loop!(alpha, bound, u, (i, j, element), variable, min_or_max, initial_check,
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     # positive xi direction
@@ -538,14 +546,14 @@ end
                          inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1_L, equations, dg, i + 1, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+    newton_loop!(alpha, bound, u, (i, j, element), variable, min_or_max, initial_check,
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     # negative eta direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2_R, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+    newton_loop!(alpha, bound, u, (i, j, element), variable, min_or_max, initial_check,
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     # positive eta direction
@@ -553,18 +561,19 @@ end
                          inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2_L, equations, dg, i, j + 1,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+    newton_loop!(alpha, bound, u, (i, j, element), variable, min_or_max, initial_check,
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     return nothing
 end
 
-@inline function newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max,
+# TODO: dimension independent implementation
+@inline function newton_loop!(alpha, bound, u, indices, variable, min_or_max,
                               initial_check, final_check, equations, dt, limiter,
                               antidiffusive_flux)
     newton_reltol, newton_abstol = limiter.newton_tolerances
 
-    beta = 1 - alpha[i, j, element]
+    beta = 1 - alpha[indices...]
 
     beta_L = 0 # alpha = 1
     beta_R = beta # No higher beta (lower alpha) than the current one
@@ -643,13 +652,14 @@ end
     end
 
     new_alpha = 1 - beta
-    alpha[i, j, element] = new_alpha
+    alpha[indices...] = new_alpha
 
     return nothing
 end
 
 ### Auxiliary routines for Newton's bisection method ###
 # Initial checks
+# TODO: This is all dimensioon independent. So, move to a subcell_limiter.jl.
 @inline function initial_check_local_onesided_newton_idp(::typeof(min), bound,
                                                          goal, newton_abstol)
     goal <= max(newton_abstol, abs(bound) * newton_abstol)
