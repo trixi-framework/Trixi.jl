@@ -43,7 +43,8 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
                                         elements_parent)
     boundaries_parent = init_boundaries(mesh.parent, equations, dg.basis,
                                         elements_parent)
-    mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements_parent)
+    mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements_parent,
+                                  dg.mortar)
 
     # Extract data for views.
     elements, interfaces, boundaries, mortars = extract_p4est_mesh_view(elements_parent,
