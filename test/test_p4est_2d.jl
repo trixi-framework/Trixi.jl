@@ -386,6 +386,7 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    using Trixi: Trixi, DGSEM, SemidiscretizationHyperbolic, semidiscretize, CallbackSet
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
@@ -917,6 +918,7 @@ end
 end
 
 @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
+    using Trixi: Trixi
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_2d_dgsem"),
                                  "elixir_euler_blast_wave_pure_fv.jl"),
                         l2=[
@@ -979,8 +981,8 @@ end
 end
 
 @trixi_testset "elixir_euler_SD7003airfoil.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_navierstokes_SD7003airfoil.jl"),
+    using Trixi: SemidiscretizationHyperbolic, AnalysisCallback
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_SD7003airfoil.jl"),
                         semi=SemidiscretizationHyperbolic(mesh, equations,
                                                           initial_condition, solver;
                                                           boundary_conditions = boundary_conditions_hyp),
@@ -1012,8 +1014,7 @@ end
 end
 
 @trixi_testset "elixir_euler_density_wave_tracers.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_euler_density_wave_tracers.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_tracers.jl"),
                         l2=[
                             0.0012704690524147188,
                             0.00012704690527390463,
@@ -1041,7 +1042,7 @@ end
 end
 
 @trixi_testset "elixir_euler_cylinder_bowshock_mach3.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_cylinder_bowshock_mach3.jl"),
                         tspan=(0.0, 1e-3),
                         l2=[
