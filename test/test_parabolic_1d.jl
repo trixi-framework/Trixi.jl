@@ -85,7 +85,7 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_cfl.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR",
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_diffusion_cfl.jl"),
                         l2=[6.763177530985864e-5], linf=[0.0002344578097126515])
     # Ensure that we do not have excessive memory allocations
