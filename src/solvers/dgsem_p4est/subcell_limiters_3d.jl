@@ -104,6 +104,13 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
 end
 
 @inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
+                                                boundary_conditions::BoundaryConditionPeriodic,
+                                                mesh::P4estMesh{3},
+                                                equations, dg, cache)
+    return nothing
+end
+
+@inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
                                                 boundary_conditions,
                                                 mesh::P4estMesh{3},
                                                 equations, dg, cache)
@@ -257,6 +264,13 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
                                    boundary_conditions,
                                    mesh, equations, dg, cache)
 
+    return nothing
+end
+
+@inline function calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
+                                                boundary_conditions::BoundaryConditionPeriodic,
+                                                mesh::P4estMesh{3},
+                                                equations, dg, cache)
     return nothing
 end
 
