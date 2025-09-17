@@ -78,7 +78,7 @@ end
 
 @inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
                                                 boundary_conditions::BoundaryConditionPeriodic,
-                                                mesh::P4estMesh{2},
+                                                mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                                 equations, dg, cache)
     return nothing
 end
@@ -201,7 +201,7 @@ end
 
 @inline function calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
                                                 boundary_conditions::BoundaryConditionPeriodic,
-                                                mesh::P4estMesh{2},
+                                                mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                                 equations, dg, cache)
     return nothing
 end
