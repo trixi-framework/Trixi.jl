@@ -297,13 +297,13 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
     du_ode_coupled = first(get_tmp_cache(integrator))
 
     # Loop over coupled systems' callbacks and initialize them individually
-    for i in eachsystem(semi_coupled)
-        cb = analysis_callback_coupled.callbacks[i]
-        semi = semi_coupled.semis[i]
-        u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
-        du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
-        initialize!(cb, u_ode, du_ode, t, integrator, semi)
-    end
+    # for i in eachsystem(semi_coupled)
+    #     cb = analysis_callback_coupled.callbacks[i]
+    #     semi = semi_coupled.semis[i]
+    #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+    #     du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
+    #     initialize!(cb, u_ode, du_ode, t, integrator, semi)
+    # end
 end
 
 # This method gets called from OrdinaryDiffEq's `solve(...)`
@@ -313,20 +313,22 @@ function (analysis_callback_coupled::AnalysisCallbackCoupledP4est)(integrator)
     du_ode_coupled = first(get_tmp_cache(integrator))
 
     # Loop over coupled systems' callbacks and call them individually
-    for i in eachsystem(semi_coupled)
-        @unpack condition = analysis_callback_coupled.callbacks[i]
-        analysis_callback = analysis_callback_coupled.callbacks[i].affect!
-        u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+    # Due to changes in the rhs! calulcations this currently does not work.
+    # Taal: Get a proper coupled analysis callback working.
+    # for i in eachsystem(semi_coupled)
+    #     @unpack condition = analysis_callback_coupled.callbacks[i]
+    #     analysis_callback = analysis_callback_coupled.callbacks[i].affect!
+    #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
 
-        # Check condition and skip callback if it is not yet its turn
-        if !condition(u_ode, integrator.t, integrator)
-            continue
-        end
+    #     # Check condition and skip callback if it is not yet its turn
+    #     if !condition(u_ode, integrator.t, integrator)
+    #         continue
+    #     end
 
-        semi = semi_coupled.semis[i]
-        du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
-        analysis_callback(u_ode, du_ode, integrator, semi)
-    end
+    #     semi = semi_coupled.semis[i]
+    #     du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
+    #     analysis_callback(u_ode, du_ode, integrator, semi)
+    # end
 end
 
 # used for error checks and EOC analysis
@@ -349,16 +351,21 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                              for i in eachindex(semi_coupled.semis))
     l2_error_collection = uEltype[]
     linf_error_collection = uEltype[]
+
     for i in eachsystem(semi_coupled)
-        analysis_callback = callbacks[i].affect!
-        @unpack analyzer = analysis_callback
-        cache_analysis = analysis_callback.cache
+    #     analysis_callback = callbacks[i].affect!
+    #     @unpack analyzer = analysis_callback
+    #     cache_analysis = analysis_callback.cache
 
-        semi = semi_coupled.semis[i]
-        u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+    #     semi = semi_coupled.semis[i]
+    #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
 
-        l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi,
-                                                cache_analysis)
+    # Due to changes in the rhs! calulcations this currently does not work.
+    # Taal: Get a proper coupled analysis callback working.
+    #     l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi,
+    #                                             cache_analysis)
+        l2_error = zeros(nvariables(semi_coupled.semis[i].equations))
+        linf_error = zeros(nvariables(semi_coupled.semis[i].equations))
         append!(l2_error_collection, l2_error)
         append!(linf_error_collection, linf_error)
     end

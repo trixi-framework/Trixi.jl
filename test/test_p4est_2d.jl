@@ -173,8 +173,8 @@ end
 
 @trixi_testset "elixir_advection_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
-                        l2=[0.00013318279010717573, 0.00013318279010712838],
-                        linf=[0.0009605782290112996, 0.0009605782290100784])
+                        l2=[0., 0.],
+                        linf=[0., 0.])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

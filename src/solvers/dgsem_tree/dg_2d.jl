@@ -121,6 +121,7 @@ function rhs!(du, u, t,
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+    prolong2mortars!()
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
