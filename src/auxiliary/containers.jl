@@ -380,10 +380,6 @@ function trixi_backend(x::VectorOfArray)
     return get_backend(u[1])
 end
 
-function KernelAbstractions.get_backend(semi::AbstractSemidiscretization)
-    KernelAbstractions.get_backend(semi.cache.elements.node_coordinates)
-end
-
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
 # Adapt.adapt (ArgumentError, see
