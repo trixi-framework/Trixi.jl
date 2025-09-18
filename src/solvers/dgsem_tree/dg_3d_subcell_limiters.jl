@@ -16,6 +16,7 @@ function create_cache(mesh::P4estMesh{3},
     A4dp1_y = Array{uEltype, 4}
     A4dp1_z = Array{uEltype, 4}
     A4d = Array{uEltype, 4}
+    A5d = Array{uEltype, 5}
 
     fhat1_L_threaded = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
                                        nnodes(dg), nnodes(dg))
@@ -44,26 +45,27 @@ function create_cache(mesh::P4estMesh{3},
                                                                  nvariables(equations),
                                                                  nnodes(dg))
 
-    # TODO: nonconservative terms
-    # if have_nonconservative_terms(equations) == true
-    #     # Extract the nonconservative flux as a dispatch argument for `n_nonconservative_terms`
-    #     _, volume_flux_noncons = volume_integral.volume_flux_dg
+    if have_nonconservative_terms(equations) == true
+        # Extract the nonconservative flux as a dispatch argument for `n_nonconservative_terms`
+        _, volume_flux_noncons = volume_integral.volume_flux_dg
 
-    #     flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
-    #                                                  n_nonconservative_terms(volume_flux_noncons),
-    #                                                  nnodes(dg), nnodes(dg))
-    #                                              for _ in 1:Threads.nthreads()]
-    #     fhat_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
-    #                                                  n_nonconservative_terms(volume_flux_noncons),
-    #                                                  nnodes(dg), nnodes(dg))
-    #                                              for _ in 1:Threads.nthreads()]
-    #     phi_threaded = A4d[A4d(undef, nvariables(equations),
-    #                            n_nonconservative_terms(volume_flux_noncons),
-    #                            nnodes(dg), nnodes(dg))
-    #                        for _ in 1:Threads.nthreads()]
-    #     cache = (; cache..., flux_nonconservative_temp_threaded,
-    #              fhat_nonconservative_temp_threaded, phi_threaded)
-    # end
+        flux_nonconservative_temp_threaded = A5d[A5d(undef, nvariables(equations),
+                                                     n_nonconservative_terms(volume_flux_noncons),
+                                                     nnodes(dg), nnodes(dg),
+                                                     nnodes(dg))
+                                                 for _ in 1:Threads.nthreads()]
+        fhat_nonconservative_temp_threaded = A5d[A5d(undef, nvariables(equations),
+                                                     n_nonconservative_terms(volume_flux_noncons),
+                                                     nnodes(dg), nnodes(dg),
+                                                     nnodes(dg))
+                                                 for _ in 1:Threads.nthreads()]
+        phi_threaded = A5d[A5d(undef, nvariables(equations),
+                               n_nonconservative_terms(volume_flux_noncons),
+                               nnodes(dg), nnodes(dg), nnodes(dg))
+                           for _ in 1:Threads.nthreads()]
+        cache = (; cache..., flux_nonconservative_temp_threaded,
+                 fhat_nonconservative_temp_threaded, phi_threaded)
+    end
 
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded,
