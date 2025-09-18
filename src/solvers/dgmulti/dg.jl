@@ -240,7 +240,7 @@ function dt_polydeg_scaling(dg::DGMulti{3, <:Wedge, <:TensorProductWedge})
 end
 
 # for the stepsize callback
-function max_dt(u, t, mesh::DGMultiMesh,
+function max_dt(backend, u, t, mesh::DGMultiMesh,
                 constant_speed::False, equations, dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
     @unpack md = mesh
@@ -263,7 +263,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     return 2 * dt_min * dt_polydeg_scaling(dg)
 end
 
-function max_dt(u, t, mesh::DGMultiMesh,
+function max_dt(backend, u, t, mesh::DGMultiMesh,
                 constant_speed::True, equations, dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
     @unpack md = mesh

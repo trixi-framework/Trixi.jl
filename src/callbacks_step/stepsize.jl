@@ -118,8 +118,9 @@ end
 function calculate_dt(u_ode, t, cfl_number::Real, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u_ode)
 
-    dt = cfl_number * max_dt(u, t, mesh,
+    dt = cfl_number * max_dt(backend, u, t, mesh,
                 have_constant_speed(equations), equations,
                 solver, cache)
 end
@@ -127,8 +128,9 @@ end
 function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u_ode)
 
-    dt = cfl_number(t) * max_dt(u, t, mesh,
+    dt = cfl_number(t) * max_dt(backend, u, t, mesh,
                 have_constant_speed(equations), equations,
                 solver, cache)
 end

@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function max_dt(u, t, mesh::TreeMesh{2},
+function max_dt(backend, u, t, mesh::TreeMesh{2},
                 constant_speed::False, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -27,7 +27,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::TreeMesh{2},
+function max_dt(backend, u, t, mesh::TreeMesh{2},
                 constant_speed::True, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -44,7 +44,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::ParallelTreeMesh{2},
+function max_dt(backend, u, t, mesh::ParallelTreeMesh{2},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::TreeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -61,7 +61,7 @@ function max_dt(u, t, mesh::ParallelTreeMesh{2},
     return dt
 end
 
-function max_dt(u, t, mesh::ParallelTreeMesh{2},
+function max_dt(backend, u, t, mesh::ParallelTreeMesh{2},
                 constant_speed::True, equations, dg::DG, cache)
     # call the method accepting a general `mesh::TreeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -78,7 +78,7 @@ function max_dt(u, t, mesh::ParallelTreeMesh{2},
     return dt
 end
 
-function max_dt(u, t,
+function max_dt(backend, u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                             T8codeMesh{2}, StructuredMeshView{2}},
                 constant_speed::False, equations, dg::DG, cache)
@@ -114,7 +114,7 @@ function max_dt(u, t,
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t,
+function max_dt(backend, u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                             P4estMeshView{2}, T8codeMesh{2}, StructuredMeshView{2}},
                 constant_speed::True, equations, dg::DG, cache)
@@ -146,7 +146,7 @@ function max_dt(u, t,
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::ParallelP4estMesh{2},
+function max_dt(backend, u, t, mesh::ParallelP4estMesh{2},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -163,7 +163,7 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
     return dt
 end
 
-function max_dt(u, t, mesh::ParallelP4estMesh{2},
+function max_dt(backend, u, t, mesh::ParallelP4estMesh{2},
                 constant_speed::True, equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -180,7 +180,7 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
     return dt
 end
 
-function max_dt(u, t, mesh::ParallelT8codeMesh{2},
+function max_dt(backend, u, t, mesh::ParallelT8codeMesh{2},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -197,7 +197,7 @@ function max_dt(u, t, mesh::ParallelT8codeMesh{2},
     return dt
 end
 
-function max_dt(u, t, mesh::ParallelT8codeMesh{2},
+function max_dt(backend, u, t, mesh::ParallelT8codeMesh{2},
                 constant_speed::True, equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
