@@ -159,7 +159,7 @@ end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
@@ -168,19 +168,19 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg)
+        prolong2interfaces!(backend, cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+        calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
                              have_nonconservative_terms(equations), equations,
                              dg.surface_integral, dg, cache)
     end
@@ -212,12 +212,13 @@ function rhs!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
@@ -227,19 +228,43 @@ function rhs!(du, u, t,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
+    @unpack contravariant_vectors = cache.elements
     @threaded for element in eachelement(dg, cache)
-        weak_form_kernel!(du, u, element, mesh,
-                          nonconservative_terms, equations,
-                          dg, cache)
+        weak_form_kernel_element!(du, u, element, typeof(mesh),
+                                  nonconservative_terms, equations,
+                                  dg, contravariant_vectors)
     end
-
     return nothing
+end
+
+function calc_volume_integral!(backend::Backend, du, u,
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+    nelements(dg, cache) == 0 && return nothing
+    @unpack contravariant_vectors = cache.elements
+
+    kernel! = weak_form_KAkernel!(backend)
+    kernel!(du, u, typeof(mesh), nonconservative_terms, equations, dg,
+            contravariant_vectors,
+            ndrange = nelements(dg, cache))
+    return nothing
+end
+
+@kernel function weak_form_KAkernel!(du, u, meshT, nonconservative_terms, equations,
+                                     dg::DGSEM, contravariant_vectors)
+    element = @index(Global)
+    weak_form_kernel_element!(du, u, element, meshT,
+                              nonconservative_terms, equations,
+                              dg, contravariant_vectors)
 end
 
 #=

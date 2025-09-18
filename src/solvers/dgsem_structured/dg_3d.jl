@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::StructuredMesh{3}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
@@ -56,16 +56,17 @@ see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
-@inline function weak_form_kernel!(du, u,
-                                   element,
-                                   mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                               T8codeMesh{3}},
-                                   nonconservative_terms::False, equations,
-                                   dg::DGSEM, cache, alpha = true)
+@inline function weak_form_kernel_element!(du, u,
+                                           element,
+                                           ::Type{<:Union{StructuredMesh{3},
+                                                          P4estMesh{3},
+                                                          T8codeMesh{3}}},
+                                           nonconservative_terms::False, equations,
+                                           dg::DGSEM, contravariant_vectors,
+                                           alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_dhat = dg.basis
-    @unpack contravariant_vectors = cache.elements
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -800,19 +801,45 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
     return nothing
 end
 
-function apply_jacobian!(du,
+function apply_jacobian!(backend::Nothing, du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
     @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            factor = -cache.elements.inverse_jacobian[i, j, k, element]
+        apply_jacobian_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
+                                element)
+    end
+    return nothing
+end
 
-            for v in eachvariable(equations)
-                du[v, i, j, k, element] *= factor
-            end
+function apply_jacobian!(backend::Backend, du,
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                         equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
+    kernel! = apply_jacobian_KAkernel!(backend)
+    kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
+            ndrange = nelements(cache.elements))
+    return nothing
+end
+
+@kernel function apply_jacobian_KAkernel!(du, meshT, equations, dg::DG,
+                                          inverse_jacobian)
+    element = @index(Global)
+    apply_jacobian_element!(du, meshT, equations, dg, inverse_jacobian, element)
+end
+
+function apply_jacobian_element!(du,
+                                 ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                                T8codeMesh{3}}},
+                                 equations, dg, inverse_jacobian, element)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        factor = -inverse_jacobian[i, j, k, element]
+
+        for v in eachvariable(equations)
+            du[v, i, j, k, element] *= factor
         end
     end
-
     return nothing
 end
 end # @muladd

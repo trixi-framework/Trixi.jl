@@ -67,7 +67,7 @@ end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::TreeMesh{1}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}

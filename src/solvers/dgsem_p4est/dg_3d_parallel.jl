@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::Union{ParallelP4estMesh{3}, ParallelT8codeMesh{3}}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}

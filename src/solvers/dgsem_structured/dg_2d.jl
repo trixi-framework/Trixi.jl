@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::Union{StructuredMesh{2}, StructuredMeshView{2}}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
