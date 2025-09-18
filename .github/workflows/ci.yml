@@ -110,6 +110,8 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v2
+        with:
+          include-matrix: false
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
