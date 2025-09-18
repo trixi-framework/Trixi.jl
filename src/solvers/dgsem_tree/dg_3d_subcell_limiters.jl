@@ -183,44 +183,57 @@ end
     return nothing
 end
 
-# TODO: 2d version for now.
-# # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
-# @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
-#                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-#                                          u,
-#                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
-#                                                      P4estMesh{2}},
-#                                          nonconservative_terms::True, equations,
-#                                          limiter::SubcellLimiterIDP, dg, element, cache)
-#     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+# Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
+@inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
+                                         fhat3_L, fhat3_R,
+                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                         fstar3_L, fstar3_R,
+                                         u,
+                                         mesh::P4estMesh{3},
+                                         nonconservative_terms::True, equations,
+                                         limiter::SubcellLimiterIDP, dg, element, cache)
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
 
-#     for j in eachnode(dg), i in 2:nnodes(dg)
-#         for v in eachvariable(equations)
-#             antidiffusive_flux1_L[v, i, j, element] = fhat1_L[v, i, j] -
-#                                                       fstar1_L[v, i, j]
-#             antidiffusive_flux1_R[v, i, j, element] = fhat1_R[v, i, j] -
-#                                                       fstar1_R[v, i, j]
-#         end
-#     end
-#     for j in 2:nnodes(dg), i in eachnode(dg)
-#         for v in eachvariable(equations)
-#             antidiffusive_flux2_L[v, i, j, element] = fhat2_L[v, i, j] -
-#                                                       fstar2_L[v, i, j]
-#             antidiffusive_flux2_R[v, i, j, element] = fhat2_R[v, i, j] -
-#                                                       fstar2_R[v, i, j]
-#         end
-#     end
+    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+        for v in eachvariable(equations)
+            antidiffusive_flux1_L[v, i, j, k, element] = fhat1_L[v, i, j, k] -
+                                                         fstar1_L[v, i, j, k]
+            antidiffusive_flux1_R[v, i, j, k, element] = fhat1_R[v, i, j, k] -
+                                                         fstar1_R[v, i, j, k]
+        end
+    end
+    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+        for v in eachvariable(equations)
+            antidiffusive_flux2_L[v, i, j, k, element] = fhat2_L[v, i, j, k] -
+                                                         fstar2_L[v, i, j, k]
+            antidiffusive_flux2_R[v, i, j, k, element] = fhat2_R[v, i, j, k] -
+                                                         fstar2_R[v, i, j, k]
+        end
+    end
+    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+        for v in eachvariable(equations)
+            antidiffusive_flux3_L[v, i, j, k, element] = fhat3_L[v, i, j, k] -
+                                                         fstar3_L[v, i, j, k]
+            antidiffusive_flux3_R[v, i, j, k, element] = fhat3_R[v, i, j, k] -
+                                                         fstar3_R[v, i, j, k]
+        end
+    end
 
-#     antidiffusive_flux1_L[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
-#     antidiffusive_flux1_L[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
-#     antidiffusive_flux1_R[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
-#     antidiffusive_flux1_R[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
+    antidiffusive_flux1_L[:, 1, :, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_L[:, nnodes(dg) + 1, :, :, element] .= zero(eltype(antidiffusive_flux1_L))
+    antidiffusive_flux1_R[:, 1, :, :, element] .= zero(eltype(antidiffusive_flux1_R))
+    antidiffusive_flux1_R[:, nnodes(dg) + 1, :, :, element] .= zero(eltype(antidiffusive_flux1_R))
 
-#     antidiffusive_flux2_L[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_L))
-#     antidiffusive_flux2_L[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_L))
-#     antidiffusive_flux2_R[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_R))
-#     antidiffusive_flux2_R[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_R))
+    antidiffusive_flux2_L[:, :, 1, :, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_L[:, :, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux2_L))
+    antidiffusive_flux2_R[:, :, 1, :, element] .= zero(eltype(antidiffusive_flux2_R))
+    antidiffusive_flux2_R[:, :, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux2_R))
 
-#     return nothing
-# end
+    antidiffusive_flux3_L[:, :, :, 1, element] .= zero(eltype(antidiffusive_flux3_L))
+    antidiffusive_flux3_L[:, :, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux3_L))
+    antidiffusive_flux3_R[:, :, :, 1, element] .= zero(eltype(antidiffusive_flux3_R))
+    antidiffusive_flux3_R[:, :, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux3_R))
+
+    return nothing
+end
 end # @muladd

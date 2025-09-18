@@ -34,45 +34,51 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations3D)
 end
 initial_condition = initial_condition_blast_wave
 
-# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
-# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
-surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive),
-                flux_nonconservative_powell_local_symmetric)
-# volume_flux = (flux_derigs_etal, flux_nonconservative_powell_local_symmetric)
-volume_flux = (flux_central, flux_nonconservative_powell_local_symmetric)
-
-# surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
-# volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-
-surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
-volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-
-# TODO: Test with working fluxes
-
-basis = LobattoLegendreBasis(3)
-
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell_local_symmetric)
+volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell_local_symmetric)
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
-                                positivity_variables_nonlinear = [pressure],
-                                positivity_correction_factor = 0.1)
+                                positivity_variables_nonlinear = [pressure])
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-0.5, -0.5, -0.5)
-coordinates_max = (0.5, 0.5, 0.5)
+# Mapping as described in https://arxiv.org/abs/2012.12040 but with slightly less warping.
+# The mapping will be interpolated at tree level, and then refined without changing
+# the geometry interpolant.
+function mapping(xi_, eta_, zeta_)
+    # Transform input variables between -1 and 1 onto [0,3]
+    xi = 1.5 * xi_ + 1.5
+    eta = 1.5 * eta_ + 1.5
+    zeta = 1.5 * zeta_ + 1.5
+
+    y = eta +
+        3 / 11 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
+         cos(0.5 * pi * (2 * eta - 3) / 3) *
+         cos(0.5 * pi * (2 * zeta - 3) / 3))
+
+    x = xi +
+        3 / 11 * (cos(0.5 * pi * (2 * xi - 3) / 3) *
+         cos(2 * pi * (2 * y - 3) / 3) *
+         cos(0.5 * pi * (2 * zeta - 3) / 3))
+
+    z = zeta +
+        3 / 11 * (cos(0.5 * pi * (2 * x - 3) / 3) *
+         cos(pi * (2 * y - 3) / 3) *
+         cos(0.5 * pi * (2 * zeta - 3) / 3))
+
+    return SVector(x, y, z)
+end
+
 trees_per_dimension = (2, 2, 2)
 mesh = P4estMesh(trees_per_dimension,
                  polydeg = 3,
-                 #  mapping = mapping,
-                 coordinates_min = coordinates_min,
-                 coordinates_max = coordinates_max,
+                 mapping = mapping,
+                 # coordinates_min = (0.0, 0.0, 0.0),
+                 # coordinates_max = (3.0, 3.0, 3.0),
                  initial_refinement_level = 2,
                  periodicity = true)
 
@@ -81,7 +87,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 0.5)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -97,7 +103,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-cfl = 0.4
+cfl = 0.9
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
