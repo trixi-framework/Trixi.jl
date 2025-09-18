@@ -326,7 +326,7 @@ end
     return f
 end
 
-# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
+# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to
 # enable dispatch on the type of the nonconservative term (symmetric / jump).
 """
     flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
@@ -1720,6 +1720,15 @@ end
             energy_magnetic(cons, equations)
             -
             cons[9]^2 / 2)
+end
+
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::IdealGlmMhdEquations2D)
+    p = pressure(u, equations)
+    if u[1] <= 0 || p <= 0
+        return false
+    end
+    return true
 end
 
 # Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
