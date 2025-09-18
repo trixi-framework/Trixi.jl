@@ -21,8 +21,8 @@ function max_dt(u, t, mesh::TreeMesh{3},
             max_lambda3 = Base.max(max_lambda3, lambda3)
         end
         inv_jacobian = cache.elements.inverse_jacobian[element]
-        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath`
-        # doesn't propagate `NaN`s properly.
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
         max_scaled_speed = Base.max(max_scaled_speed,
                                     inv_jacobian *
                                     (max_lambda1 + max_lambda2 + max_lambda3))
@@ -41,8 +41,8 @@ function max_dt(u, t, mesh::TreeMesh{3},
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         inv_jacobian = cache.elements.inverse_jacobian[element]
-        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath`
-        # doesn't propagate `NaN`s properly.
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
         max_scaled_speed = Base.max(max_scaled_speed,
                                     inv_jacobian *
                                     (max_lambda1 + max_lambda2 + max_lambda3))
@@ -82,8 +82,8 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
             max_lambda3 = Base.max(max_lambda3, inv_jacobian * lambda3_transformed)
         end
 
-        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath`
-        # doesn't propagate `NaN`s properly.
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
         max_scaled_speed = Base.max(max_scaled_speed,
                                     max_lambda1 + max_lambda2 + max_lambda3)
     end
@@ -118,8 +118,8 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
 
             inv_jacobian = abs(cache.elements.inverse_jacobian[i, j, k, element])
 
-            # Use `Base.max` to prevent silent failures, as `max` from `@fastmath`
-            # doesn't propagate `NaN`s properly.
+            # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+            # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
             max_scaled_speed = Base.max(max_scaled_speed,
                                         inv_jacobian *
                                         (lambda1_transformed + lambda2_transformed +
