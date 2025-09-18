@@ -187,6 +187,33 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_subsonic_constant.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_subsonic_constant.jl"),
+                        l2=[
+                            9.268884363640194e-14,
+                            1.0689589615395477e-13,
+                            1.0408994850535984e-13,
+                            1.7032684855598177e-13
+                        ],
+                        linf=[
+                            1.6986412276764895e-13,
+                            2.2503592098759465e-12,
+                            1.7696906239744284e-12,
+                            3.623767952376511e-13
+                        ],
+                        initial_refinement_level=7,
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
