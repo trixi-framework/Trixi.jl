@@ -109,5 +109,49 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_mhdmultiion_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_convergence.jl"),
+                        l2=[
+                            2.7007694451840977e-5,
+                            2.252632596997783e-5,
+                            1.830892822103072e-5,
+                            1.7457386132678724e-5,
+                            3.965825276181703e-5,
+                            6.886878771068099e-5,
+                            3.216774733720572e-5,
+                            0.00013796601797391608,
+                            2.762642533644496e-5,
+                            7.877500410069398e-5,
+                            0.00012184040930856932,
+                            8.918795955887214e-5,
+                            0.0002122739932637704,
+                            1.0532691581216071e-6
+                        ],
+                        linf=[
+                            0.0005846835977684206,
+                            0.00031591380039502903,
+                            0.0002529555339790268,
+                            0.0003873459403432866,
+                            0.0007355557980894822,
+                            0.0012929706727252688,
+                            0.0002558003707378437,
+                            0.0028085112041740246,
+                            0.0006114366794293113,
+                            0.001257825301983151,
+                            0.0018924211424776738,
+                            0.0007347447431757664,
+                            0.004148291057411768,
+                            1.8948511576480304e-5
+                        ], tspan=(0.0, 0.05))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 end # module
