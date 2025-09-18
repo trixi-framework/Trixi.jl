@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
 
 @testset "MHD" begin
 #! format: noindent
@@ -185,6 +185,8 @@ end
 end
 
 @trixi_testset "elixir_mhd_alfven_wave.jl with Orszag-Tang setup + flux_hlle" begin
+    using Trixi: prim2cons, flux_hlle, flux_nonconservative_powell, flux_central,
+                 SVector
     # OBS! This setup does not make much sense and is only used to exercise all components of the
     # flux_hlle implementation
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
