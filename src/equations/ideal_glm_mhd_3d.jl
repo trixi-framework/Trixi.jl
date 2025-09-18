@@ -1723,7 +1723,7 @@ end
 end
 
 # State validation for Newton-bisection method of subcell IDP limiting
-@inline function Base.isvalid(u, equations::IdealGlmMhdEquations2D)
+@inline function Base.isvalid(u, equations::IdealGlmMhdEquations3D)
     p = pressure(u, equations)
     if u[1] <= 0 || p <= 0
         return false
