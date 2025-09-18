@@ -113,7 +113,8 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "CUDA"
         import CUDA
         if CUDA.functional()
-            include("test_cuda.jl")
+            include("test_cuda_2d.jl")
+            include("test_cuda_3d.jl")
         else
             @warn "Unable to run CUDA tests on this machine"
         end

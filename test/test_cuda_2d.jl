@@ -5,11 +5,14 @@ using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
+
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
-EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
+@testset "CUDA 2D" begin
+#! format: noindent
 
 @trixi_testset "elixir_advection_basic_gpu.jl native" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
@@ -75,5 +78,5 @@ end
 
 # Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive = true)
-
+end
 end # module
