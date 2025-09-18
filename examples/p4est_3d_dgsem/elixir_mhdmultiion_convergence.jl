@@ -100,25 +100,23 @@ function source_terms_manufactured_solution_pe(u, x, t,
     s12 = -((11 * hx) / 40)
     s13 = -((11 * hx) / 40)
 
-    s = SVector{nvariables(equations), real(equations)}([
-                                                            s11,
-                                                            s12,
-                                                            s13,
-                                                            s1,
-                                                            s2,
-                                                            s3,
-                                                            s4,
-                                                            s5,
-                                                            s6,
-                                                            s7,
-                                                            s8,
-                                                            s9,
-                                                            s10,
-                                                            zero(eltype(u))
-                                                        ])
+    s = SVector{nvariables(equations), real(equations)}(s11,
+                                                        s12,
+                                                        s13,
+                                                        s1,
+                                                        s2,
+                                                        s3,
+                                                        s4,
+                                                        s5,
+                                                        s6,
+                                                        s7,
+                                                        s8,
+                                                        s9,
+                                                        s10,
+                                                        zero(eltype(u)))
     S_std = source_terms_lorentz(u, x, t, equations::IdealGlmMhdMultiIonEquations3D)
 
-    return SVector{nvariables(equations), real(equations)}(S_std .+ s)
+    return S_std + s
 end
 
 initial_condition = initial_condition_manufactured_solution
