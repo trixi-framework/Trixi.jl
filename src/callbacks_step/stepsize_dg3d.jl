@@ -86,17 +86,17 @@ end
 @kernel function max_scaled_speed_KAkernel!(max_scaled_speeds, u, meshT, equations,
                                             dg, contravariant_vectors, inverse_jacobian)
     element = @index(Global)
-    max_scaled_speeds[element] = max_scaled_speed_element(du, meshT,
-                                                          equations,
-                                                          surface_integral, dg,
-                                                          surface_flux_values, element)
+    max_scaled_speeds[element] = max_scaled_speed_element(u, meshT, equations, dg,
+                                                          contravariant_vectors,
+                                                          inverse_jacobian,
+                                                          element)
 end
 
 function max_scaled_speed_element(u,
                                   ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                                  T8codeMesh{3}}}, equations, dg,
                                   contravariant_vectors, inverse_jacobian, element)
-    max_lambda1 = max_lambda2 = max_lambda3 = zero(max_scaled_speed)
+    max_lambda1 = max_lambda2 = max_lambda3 = zero(eltype(u))
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         lambda1, lambda2, lambda3 = max_abs_speeds(u_node, equations)
