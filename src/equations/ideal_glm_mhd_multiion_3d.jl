@@ -630,7 +630,7 @@ end
 
 """
     flux_nonconservative_ruedaramirez_etal(u_ll, normal_direction_ll::AbstractVector,
-                                           equations::IdealGlmMhdEquations2D,
+                                           equations::IdealGlmMhdMultiIonEquations3D,
                                            nonconservative_type::NonConservativeLocal,
                                            nonconservative_term::Integer)
 
@@ -647,7 +647,7 @@ number of operations to obtain the subcell limiting fluxes. However, this decisi
 """
 @inline function (noncons_flux::FluxNonConservativeRuedaRamirezEtAl)(u_ll,
                                                                      normal_direction::AbstractVector,
-                                                                     equations::IdealGlmMhdEquations2D,
+                                                                     equations::IdealGlmMhdMultiIonEquations3D,
                                                                      nonconservative_type::NonConservativeLocal,
                                                                      nonconservative_term::Integer)
     @unpack charge_to_mass = equations
@@ -734,9 +734,9 @@ end
 
 """
     flux_nonconservative_ruedaramirez_etal(u_ll, normal_direction_avg::AbstractVector,
-                                                equations::IdealGlmMhdEquations2D,
-                                                nonconservative_type::NonConservativeSymmetric,
-                                                nonconservative_term::Integer)
+                                           equations::IdealGlmMhdMultiIonEquations3D,
+                                           nonconservative_type::NonConservativeSymmetric,
+                                           nonconservative_term::Integer)
 
 Symmetric part of the multi-ion non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
@@ -746,7 +746,7 @@ This function is used to compute the subcell fluxes in dg_3d_subcell_limiters.jl
 """
 @inline function (noncons_flux::FluxNonConservativeRuedaRamirezEtAl)(u_ll, u_rr,
                                                                      normal_direction::AbstractVector,
-                                                                     equations::IdealGlmMhdEquations2D,
+                                                                     equations::IdealGlmMhdMultiIonEquations3D,
                                                                      nonconservative_type::NonConservativeSymmetric,
                                                                      nonconservative_term::Integer)
     @unpack charge_to_mass = equations
