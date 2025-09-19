@@ -58,6 +58,18 @@ n_nonconservative_terms(::FluxNonConservativeRuedaRamirezEtAl) = 6
 
 const flux_nonconservative_ruedaramirez_etal = FluxNonConservativeRuedaRamirezEtAl()
 
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::AbstractIdealGlmMhdMultiIonEquations)
+    p = pressure(u, equations)
+    for k in eachcomponent(equations)
+        u_k = get_component(k, u, equations)
+        if u_k[1] <= 0 || p[k] <= 0
+            return false
+        end
+    end
+    return true
+end
+
 """
     source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
 
