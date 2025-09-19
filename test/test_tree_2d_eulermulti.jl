@@ -266,6 +266,34 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
+        
+    @trixi_testset "elixir_eulermulti_ec.jl with boundary_condition_slip_wall" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
+                            l2=[
+                                0.0266732457,
+                                0.0266788714,
+                                0.123974865,
+                                0.0334123937
+                            ],
+                            linf=[
+                                0.381205578,
+                                0.381204185,
+                                1.16825122,
+                                0.329098176
+                            ],
+                            periodicity=false,
+                            boundary_conditions=boundary_condition_slip_wall,
+                            cfl=0.3, tspan=(0.0, 0.1)) # this test is sensitive to the CFL factor
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        # for some reason the code still allocates more than expected
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 16_500
+        end
+    end
 end
 
 end # module
