@@ -304,16 +304,6 @@ end
     return SVector(f)
 end
 
-# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
-# enable dispatch on the type of the nonconservative term (symmetric / jump).
-struct FluxNonConservativeRuedaRamirezEtAl <:
-       FluxNonConservative{NonConservativeSymmetric()}
-end
-
-n_nonconservative_terms(::FluxNonConservativeRuedaRamirezEtAl) = 6
-
-const flux_nonconservative_ruedaramirez_etal = FluxNonConservativeRuedaRamirezEtAl()
-
 """
     flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
                                            orientation_or_normal_direction,

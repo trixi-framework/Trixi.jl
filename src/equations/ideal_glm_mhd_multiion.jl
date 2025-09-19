@@ -45,6 +45,19 @@ function default_analysis_integrals(::AbstractIdealGlmMhdMultiIonEquations)
     (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
+# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
+# enable dispatch on the type of the nonconservative term (symmetric / jump).
+struct FluxNonConservativeRuedaRamirezEtAl <:
+       FluxNonConservative{NonConservativeSymmetric()}
+end
+
+# We specify 6 non-conservative terms for FluxNonConservativeRuedaRamirezEtAl. This is the number of
+# non-conservative terms in 3D. In 2D, only 5 terms are needed. TODO: Should we create a different struct
+# for the 2D non-conservative term?
+n_nonconservative_terms(::FluxNonConservativeRuedaRamirezEtAl) = 6
+
+const flux_nonconservative_ruedaramirez_etal = FluxNonConservativeRuedaRamirezEtAl()
+
 """
     source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
 
