@@ -46,8 +46,12 @@ equations2 = CompressibleEulerEquations2D(5 / 3)
 # Define the coupling function between every possible pair of systems.
 coupling_functions = Array{Function}(undef, 2, 2)
 coupling_functions[1, 1] = (x, u, equations_other, equations_own) -> u
-coupling_functions[1, 2] = (x, u, equations_other, equations_own) -> SVector(u[1], u[2], u[3], 0.0, u[4], 0.0, 0.0, 0.0, 0.0)
-coupling_functions[2, 1] = (x, u, equations_other, equations_own) -> SVector(u[1], u[2], u[3], u[5])
+coupling_functions[1, 2] = (x, u, equations_other, equations_own) -> SVector(u[1], u[2],
+                                                                             u[3], 0.0,
+                                                                             u[4], 0.0, 0.0,
+                                                                             0.0, 0.0)
+coupling_functions[2, 1] = (x, u, equations_other, equations_own) -> SVector(u[1], u[2],
+                                                                             u[3], u[5])
 coupling_functions[2, 2] = (x, u, equations_other, equations_own) -> u
 
 # semi 1 MHD.
