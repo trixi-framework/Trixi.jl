@@ -6,17 +6,17 @@ using Trixi
 
 # Pressure wave, same for the Euler system.
 function initial_condition_mhd(x, t, equations::IdealGlmMhdEquations2D)
-  rho = ((1.0 + 0.01*sin(x[1]*2*pi)))
-  v1 = ((0.01*sin((x[1]-1/2)*2*pi)))
-  v2 = 0.0
-  v3 = 0.0
-  p = rho^equations.gamma
-  B1 = 0.0
-  B2 = 0.0
-  B3 = 0.0
-  psi = 0.0
+    rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)))
+    v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)))
+    v2 = 0.0
+    v3 = 0.0
+    p = rho^equations.gamma
+    B1 = 0.0
+    B2 = 0.0
+    B3 = 0.0
+    psi = 0.0
 
-  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+    return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
 # Pressure wave, same as for the MHD system.
