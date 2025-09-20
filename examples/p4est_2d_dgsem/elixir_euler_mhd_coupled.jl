@@ -102,7 +102,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=0.8)
+stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = 0.8,
                                       semi_indices = Vector([1]))
