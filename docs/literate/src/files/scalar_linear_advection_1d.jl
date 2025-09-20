@@ -366,7 +366,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # We will now create a mesh with 16 elements for the physical domain `[-1, 1]` with periodic boundaries.
 # We use Trixi.jl's standard mesh [`TreeMesh`](@ref). Since it's limited to hypercube domains, we
-# choose `2^4=16` elements. The mesh type supports Adaptive Mesh Refinement (AMR), that's why `n_cells_max` has to be set, even
+# choose `2^4=16` elements. The mesh type supports Adaptive Mesh Refinement (AMR), that is why `n_cells_max` has to be set, even
 # if we don't need AMR here.
 coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0  # maximum coordinate
