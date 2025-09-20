@@ -93,8 +93,8 @@ ode = semidiscretize(semi, (0.0, 1.0));
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback1 = AnalysisCallback(semi1, interval=100)
-analysis_callback2 = AnalysisCallback(semi2, interval=100)
+analysis_callback1 = AnalysisCallback(semi1, interval = 100)
+analysis_callback2 = AnalysisCallback(semi2, interval = 100)
 analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
