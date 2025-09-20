@@ -341,7 +341,8 @@ end
 # in a type-stable way using "lispy tuple programming".
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
-                                     mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
+                                     mesh::Union{UnstructuredMesh2D, P4estMesh,
+                                                 P4estMeshView,
                                                  T8codeMesh},
                                      equations, surface_integral, dg::DG) where {N}
     # Extract the boundary condition type and index vector
