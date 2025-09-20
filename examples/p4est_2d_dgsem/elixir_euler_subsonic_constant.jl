@@ -8,6 +8,7 @@ using LinearAlgebra: norm
 equations = CompressibleEulerEquations2D(1.4)
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
+
 @inline function initial_condition_subsonic(x_, t, equations::CompressibleEulerEquations2D)
     rho, v1, v2, p = (0.5313, 0.0, 0.0, 0.4)
 
