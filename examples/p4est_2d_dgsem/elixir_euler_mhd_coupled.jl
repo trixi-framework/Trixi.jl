@@ -77,7 +77,8 @@ boundary_conditions2 = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_fun
                             :y_neg => BoundaryConditionCoupledP4est(coupling_functions),
                             :y_pos => BoundaryConditionCoupledP4est(coupling_functions),
                             :x_pos => BoundaryConditionCoupledP4est(coupling_functions))
-semi2 = SemidiscretizationHyperbolic(mesh2, equations2, initial_condition_euler, solver2, boundary_conditions=boundary_conditions2)
+semi2 = SemidiscretizationHyperbolic(mesh2, equations2, initial_condition_euler, solver2,
+                                     boundary_conditions = boundary_conditions2)
 
 # Create a semidiscretization that bundles semi1 and semi2
 semi = SemidiscretizationCoupledP4est(semi1, semi2)
