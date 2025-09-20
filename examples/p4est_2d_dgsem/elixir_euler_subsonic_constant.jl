@@ -72,9 +72,6 @@ coordinates_max = (1.0, 1.0)
 
 trees_per_dimension = (1, 1)
 
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 6,
-                periodicity = false, n_cells_max = 512^2 * 16)
 
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
@@ -86,10 +83,7 @@ surface_flux = flux_lax_friedrichs
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
-volume_integral = VolumeIntegralWeakForm()
-
-solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
-               volume_integral = volume_integral)
+solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
