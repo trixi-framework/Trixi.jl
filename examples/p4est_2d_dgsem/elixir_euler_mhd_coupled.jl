@@ -109,7 +109,7 @@ glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = 0.8,
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
-#                         analysis_callback,
+                        #                         analysis_callback,
                         save_solution,
                         stepsize_callback,
                         glm_speed_callback)
