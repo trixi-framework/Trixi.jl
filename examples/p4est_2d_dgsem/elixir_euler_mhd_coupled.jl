@@ -31,7 +31,7 @@ end
 
 # Define the parent mesh.
 coordinates_min = (-2.0, -2.0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 2.0,  2.0) # maximum coordinates (max(x), max(y))
+coordinates_max = (2.0, 2.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (8, 8)
 # Here we set the priodicity to false for the coupling.
 # Since we couple through the physical boundaries the system is effectively periodic.
