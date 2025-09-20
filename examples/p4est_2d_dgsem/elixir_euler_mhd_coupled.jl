@@ -65,7 +65,8 @@ boundary_conditions1 = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_fun
                             :y_neg => BoundaryConditionCoupledP4est(coupling_functions),
                             :y_pos => BoundaryConditionCoupledP4est(coupling_functions),
                             :x_pos => BoundaryConditionCoupledP4est(coupling_functions))
-semi1 = SemidiscretizationHyperbolic(mesh1, equations1, initial_condition_mhd, solver1, boundary_conditions=boundary_conditions1)
+semi1 = SemidiscretizationHyperbolic(mesh1, equations1, initial_condition_mhd, solver1,
+                                     boundary_conditions = boundary_conditions1)
 
 # semi 2 Euler
 cell_ids2 = Vector(9:31)
