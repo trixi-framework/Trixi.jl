@@ -26,7 +26,7 @@ function initial_condition_euler(x, t, equations::CompressibleEulerEquations2D)
     v2 = 0.0
     p = rho .^ equations.gamma
 
-  return prim2cons(SVector(rho, v1, v2, p), equations)
+    return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
 # Define the parent mesh.
