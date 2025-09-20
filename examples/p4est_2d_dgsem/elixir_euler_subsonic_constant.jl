@@ -72,7 +72,6 @@ coordinates_max = (1.0, 1.0)
 
 trees_per_dimension = (1, 1)
 
-
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  initial_refinement_level = 3,
