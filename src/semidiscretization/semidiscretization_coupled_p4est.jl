@@ -608,5 +608,4 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
 
     return flux
 end
-
 end # @muladd
