@@ -443,7 +443,7 @@ end
     x = get_node_coords(node_coordinates, equations, dg,
                         i_index, j_index, element_index)
 
-    # TODO: We need a proper flux calcuation here.
+    # TODO: We need a proper flux calculation here.
     flux_ = zeros(nvariables(equations))
 
     # Copy flux to element storage in the correct orientation
