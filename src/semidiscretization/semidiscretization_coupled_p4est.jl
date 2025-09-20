@@ -357,8 +357,8 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
         #     @unpack analyzer = analysis_callback
         #     cache_analysis = analysis_callback.cache
 
-    #     semi = semi_coupled.semis[i]
-    #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+        #     semi = semi_coupled.semis[i]
+        #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
 
     # Due to changes in the rhs! calulcations this currently does not work.
     # Taal: Get a proper coupled analysis callback working.
