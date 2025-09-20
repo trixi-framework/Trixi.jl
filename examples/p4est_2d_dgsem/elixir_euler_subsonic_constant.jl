@@ -1,6 +1,6 @@
 using OrdinaryDiffEqSSPRK
 using Trixi
-using Trixi: norm
+using LinearAlgebra: norm
 
 ###############################################################################
 ## Semidiscretization of the compressible Euler equations
