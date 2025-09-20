@@ -98,7 +98,8 @@ save_solution = SaveSolutionCallback(interval=100,
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=0.8)
 
-glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = 0.8, semi_indices=Vector([1,]))
+glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = 0.8,
+                                      semi_indices = Vector([1]))
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
