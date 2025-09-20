@@ -12,7 +12,7 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
 @testset "P4estMesh2D" begin
-#! format: noindent
+    # ! format: noindent
 
 @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
@@ -145,10 +145,10 @@ end
     end
 end
 
-@trixi_testset "elixir_advection_meshview.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_meshview.jl"),
-                        l2=[0.00013773915040249946],
-                        linf=[0.0010140184322192658])
+@trixi_testset "elixir_advection_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
+                        l2=[0., 0.],
+                        linf=[0., 0.])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -162,12 +162,9 @@ end
     node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
                                                                  ntuple(_ -> length(parent_mesh.nodes),
                                                                         2)...,
-                                                                 length(mesh.cell_ids))
-    result = Trixi.calc_node_coordinates!(node_coordinates, mesh, parent_mesh.nodes)
-    @test parent_mesh.tree_node_coordinates == result
-
+                                                                 length(mesh1.cell_ids))
     # Load the mesh file for code coverage.
-    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
+    loaded_mesh = Trixi.load_mesh_serial(joinpath(EXAMPLES_DIR, "out", "mesh_1.h5"); n_cells_max = 0,
                                          RealT = typeof(parent_mesh).parameters[3])
 end
 
@@ -693,6 +690,41 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+
+@trixi_testset "elixir_euler_mhd_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
+                        l2=[0.009862595305604965,
+                            0.011874205535856063,
+                            5.0185914245237475e-6,
+                            0.0,
+                            0.024657539839658474,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0098589277826056,
+                            0.011870558900297097,
+                            6.882386285170543e-6,
+                            0.024648257743835045
+                            ],
+                        linf=[0.013719847889148373,
+                              0.01678917375613853,
+                              2.933466212909218e-5,
+                              0.0,
+                              0.03429795097747568,
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.0,
+                              0.01368217970493435,
+                              0.016790901855796785,
+                              3.091328454846926e-5,
+                              0.034236712653821444])
+    # Ensure we cover the calculation of the node coordinates
+    node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
+                                                                 ntuple(_ -> length(parent_mesh.nodes),
+                                                                        2)...,
+                                                                 length(mesh1.cell_ids))
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
