@@ -40,8 +40,8 @@ parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_max = coordinates_max,
                         initial_refinement_level = 0, periodicity = (false, false))
 
-equations1 = IdealGlmMhdEquations2D(5/3)
-equations2 = CompressibleEulerEquations2D(5/3)
+equations1 = IdealGlmMhdEquations2D(5 / 3)
+equations2 = CompressibleEulerEquations2D(5 / 3)
 
 # Define the coupling function between every possible pair of systems.
 coupling_functions = Array{Function}(undef, 2, 2)
