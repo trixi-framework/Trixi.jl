@@ -35,9 +35,10 @@ coordinates_max = (2.0, 2.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (8, 8)
 # Here we set the priodicity to false for the coupling.
 # Since we couple through the physical boundaries the system is effectively periodic.
-parent_mesh = P4estMesh(trees_per_dimension, polydeg=3,
-                        coordinates_min=coordinates_min, coordinates_max=coordinates_max,
-                        initial_refinement_level=0, periodicity=(false, false))
+parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
+                        coordinates_min = coordinates_min,
+                        coordinates_max = coordinates_max,
+                        initial_refinement_level = 0, periodicity = (false, false))
 
 equations1 = IdealGlmMhdEquations2D(5/3)
 equations2 = CompressibleEulerEquations2D(5/3)
