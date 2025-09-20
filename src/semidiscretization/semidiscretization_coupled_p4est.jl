@@ -360,10 +360,10 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
         #     semi = semi_coupled.semis[i]
         #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
 
-    # Due to changes in the rhs! calulcations this currently does not work.
-    # Taal: Get a proper coupled analysis callback working.
-    #     l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi,
-    #                                             cache_analysis)
+        # Due to changes in the rhs! calulcations this currently does not work.
+        # Taal: Get a proper coupled analysis callback working.
+        #     l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi,
+        #                                             cache_analysis)
         l2_error = zeros(nvariables(semi_coupled.semis[i].equations))
         linf_error = zeros(nvariables(semi_coupled.semis[i].equations))
         append!(l2_error_collection, l2_error)
