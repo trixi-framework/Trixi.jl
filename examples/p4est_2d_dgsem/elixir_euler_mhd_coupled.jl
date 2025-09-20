@@ -21,10 +21,10 @@ end
 
 # Pressure wave, same as for the MHD system.
 function initial_condition_euler(x, t, equations::CompressibleEulerEquations2D)
-  rho = ((1.0 + 0.01*sin(x[1]*2*pi)))
-  v1 = ((0.01*sin((x[1]-1/2)*2*pi)))
-  v2 = 0.0
-  p = rho.^equations.gamma
+    rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)))
+    v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)))
+    v2 = 0.0
+    p = rho .^ equations.gamma
 
   return prim2cons(SVector(rho, v1, v2, p), equations)
 end
