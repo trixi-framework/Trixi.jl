@@ -353,9 +353,9 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
     linf_error_collection = uEltype[]
 
     for i in eachsystem(semi_coupled)
-    #     analysis_callback = callbacks[i].affect!
-    #     @unpack analyzer = analysis_callback
-    #     cache_analysis = analysis_callback.cache
+        #     analysis_callback = callbacks[i].affect!
+        #     @unpack analyzer = analysis_callback
+        #     cache_analysis = analysis_callback.cache
 
     #     semi = semi_coupled.semis[i]
     #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
