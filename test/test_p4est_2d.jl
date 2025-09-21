@@ -187,6 +187,33 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_subsonic_constant.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_subsonic_constant.jl"),
+                        l2=[
+                            9.268884363640194e-14,
+                            1.0689589615395477e-13,
+                            1.0408994850535984e-13,
+                            1.7032684855598177e-13
+                        ],
+                        linf=[
+                            1.6986412276764895e-13,
+                            2.2503592098759465e-12,
+                            1.7696906239744284e-12,
+                            3.623767952376511e-13
+                        ],
+                        initial_refinement_level=7,
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
@@ -363,6 +390,7 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    using Trixi: Trixi, DGSEM, SemidiscretizationHyperbolic, semidiscretize, CallbackSet
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
@@ -894,6 +922,7 @@ end
 end
 
 @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
+    using Trixi: Trixi
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_2d_dgsem"),
                                  "elixir_euler_blast_wave_pure_fv.jl"),
                         l2=[
@@ -956,8 +985,8 @@ end
 end
 
 @trixi_testset "elixir_euler_SD7003airfoil.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_navierstokes_SD7003airfoil.jl"),
+    using Trixi: SemidiscretizationHyperbolic, AnalysisCallback
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_SD7003airfoil.jl"),
                         semi=SemidiscretizationHyperbolic(mesh, equations,
                                                           initial_condition, solver;
                                                           boundary_conditions = boundary_conditions_hyp),
@@ -989,8 +1018,7 @@ end
 end
 
 @trixi_testset "elixir_euler_density_wave_tracers.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_euler_density_wave_tracers.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_tracers.jl"),
                         l2=[
                             0.0012704690524147188,
                             0.00012704690527390463,
@@ -1018,7 +1046,7 @@ end
 end
 
 @trixi_testset "elixir_euler_cylinder_bowshock_mach3.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_cylinder_bowshock_mach3.jl"),
                         tspan=(0.0, 1e-3),
                         l2=[
