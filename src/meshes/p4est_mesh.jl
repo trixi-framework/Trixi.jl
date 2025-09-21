@@ -1897,7 +1897,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     return file_idx
 end
 
-# Version for quadratic 2D elements, i.e., second-order quads.
+# Version for quadratic 2D elements, i.e., second-order quads in
+# standard Abaqus .inp format as exported from e.g. Gmsh.
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                                      element_lines, nodes, vertices, RealT,
                                      linear_quads, mesh_nodes)
@@ -1936,6 +1937,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
 
             # Pull the vertex node IDs
             line_split = split(line, r",\s+")
+            # Store the indices of the element-defining nodes
             element_nodes = parse.(Int, line_split)[2:end] # First entry is the element number, can be ignored
 
             if element_set_order == 1
@@ -2176,6 +2178,8 @@ function face_curves_quadratic_3d!(face_curves, face_nodes, face,
     return nothing
 end
 
+# Version for quadratic 3D elements, i.e., second-order hexes in
+# standard Abaqus .inp format as exported from e.g. Gmsh.
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                      element_lines, nodes, vertices, RealT,
                                      linear_hexes, mesh_nodes)
@@ -2214,6 +2218,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
 
             # Pull the vertex node IDs
             line_split = split(line, r",\s+")
+            # Store the indices of the element-defining nodes
             element_nodes = parse.(Int, line_split)[2:end] # First entry is the element number, can be ignored
 
             if element_set_order == 1
