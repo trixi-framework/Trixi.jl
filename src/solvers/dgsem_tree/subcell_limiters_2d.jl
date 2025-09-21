@@ -446,7 +446,7 @@ end
 # Global positivity limiting of nonlinear variables
 
 @inline function idp_positivity_nonlinear!(alpha, limiter,
-                                                                           u::AbstractArray{<:Real, 4},
+                                           u::AbstractArray{<:Real, 4},
                                            dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; positivity_correction_factor) = limiter
