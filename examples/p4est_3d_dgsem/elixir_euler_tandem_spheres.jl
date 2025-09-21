@@ -5,19 +5,11 @@ using OrdinaryDiffEqLowStorageRK
 # semidiscretization of the compressible Euler equations
 
 gamma = 1.4
-prandtl_number = 0.72
-
-D = 1 # Follows from mesh
-
-Re_D = 3900
-U() = 0.1
-
-rho_ref() = 1.4
-mu() = rho_ref() * D * U()/Re_D
-
 equations = CompressibleEulerEquations3D(gamma)
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
-                                                          Prandtl = prandtl_number)
+
+D = 1 # Sphere diameter, follows from mesh
+U() = 0.1
+rho_ref() = 1.4
 
 @inline function initial_condition(x, t, equations)
     # set the freestream flow parameters
@@ -47,9 +39,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
 case_path = "/home/daniel/Sciebo/Job/Doktorand/Content/Meshes/HighOrderCFDWorkshop/CS1/"
-mesh_file = case_path * "Pointwise/TandemSpheresHexMesh1P1.inp"
-#mesh_file = case_path * "Pointwise/TandemSpheresHexMesh1P2_fixed.inp"
-mesh_file = case_path * "Pointwise/TandemSpheresHexMesh1P2_fixed_p4est_ready.inp"
+mesh_file = case_path * "Pointwise/TandemSpheresHexMesh1P2_fixed.inp"
 
 # Boundary symbols follow from nodesets in the mesh file
 boundary_symbols = [:FrontSphere, :BackSphere, :FarField]
@@ -63,8 +53,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations,
                                     initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
-t_star_end = 1.0 # 100
-t_end = t_star_end * D/U()
+t_star_end = 1.0 # 100 recommended in testcase description
+t_end = t_star_end * D / U() # convert `t_star` to unit-equipped time 
 tspan = (0.0, t_end)
 ode = semidiscretize(semi, tspan)
 
@@ -81,14 +71,10 @@ save_sol_interval = 500
 save_solution = SaveSolutionCallback(interval = save_sol_interval,
                                      save_initial_solution = false)
 
-save_restart = SaveRestartCallback(interval = save_sol_interval)
-
 callbacks = CallbackSet(summary_callback,
-                        alive_callback, 
+                        alive_callback,
                         analysis_callback,
-                        save_solution,
-                        #save_restart
-                        )
+                        save_solution)
 
 ###############################################################################
 
