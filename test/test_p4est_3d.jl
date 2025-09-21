@@ -551,6 +551,35 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_tandem_spheres.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_tandem_spheres.jl"),
+                        # Strict tols to avoid issues with different systems (CI vs local machines)
+                        tspan=(0.0, 1e-3), tols=1e-8,
+                        l2=[
+                            1.4563595831943405e-6,
+                            1.1433846164578946e-6,
+                            6.45964041497078e-7,
+                            6.446228703680879e-7,
+                            3.648646693902689e-6
+                        ],
+                        linf=[
+                            0.08928818652777637,
+                            0.09007801634411498,
+                            0.04241320785718675,
+                            0.04253018852293939,
+                            0.22552627764127076
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_alfven_wave_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_er.jl"),
