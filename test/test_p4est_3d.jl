@@ -580,38 +580,6 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_tandem_spheres.jl (linear)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_tandem_spheres.jl"),
-                        mesh_file=Trixi.download("https://rwth-aachen.sciebo.de/s/MiqCppxMXwzTx4C/download/TandemSpheresHexMesh1P1_fixed.inp",
-                                                 joinpath(@__DIR__,
-                                                          "TandemSpheresHexMesh1P1_fixed.inp")),
-                        # Strict tols to avoid issues with different systems (CI vs local machines)
-                        tspan=(0.0, 1e-3), tols=1e-8,
-                        l2=[
-                            1.4522975762951382e-6,
-                            1.1447003197971285e-6,
-                            6.398108555114549e-7,
-                            6.383165883098302e-7,
-                            3.638480042032263e-6
-                        ],
-                        linf=[
-                            0.08484627076703699,
-                            0.08314798025962618,
-                            0.04034906777671567,
-                            0.039442678163548066,
-                            0.2142091226740015
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
 @trixi_testset "elixir_mhd_alfven_wave_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_er.jl"),

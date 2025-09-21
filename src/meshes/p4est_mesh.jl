@@ -2232,7 +2232,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 for i in 1:8
                     hex_vertices[:, i] .= vertices[:, element_nodes[i]] # 3D => 1:3 = :
                 end
-                calc_node_coordinates!(node_coordinates, tree, nodes, quad_vertices)
+                calc_node_coordinates!(node_coordinates, tree, nodes, hex_vertices)
             else # element_set_order == 2
                 # The second-order face has the following node distribution:
                 #    NW    N     NE
