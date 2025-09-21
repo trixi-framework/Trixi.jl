@@ -1585,6 +1585,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                                                           dy / 2 * nodes[j])
         end
     end
+
+    return nothing
 end
 
 # 3D version
@@ -1618,6 +1620,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                                              dz / 2 * nodes[k])
         end
     end
+
+    return nothing
 end
 
 # Calculate physical coordinates of each node of an unstructured mesh.
@@ -1756,6 +1760,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
             end
         end
     end
+
+    return nothing
 end
 
 # Map the computational coordinates xi, eta, zeta to the specified side of a cubed sphere
@@ -2012,6 +2018,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
             end
         end
     end
+
+    return nothing
 end
 
 # Calculate physical coordinates of each element of an unstructured mesh read
@@ -2353,6 +2361,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
             end
         end
     end
+
+    return nothing
 end
 
 # Given the eight `hex_vertices` for a hexahedral element extract
@@ -2389,6 +2399,8 @@ function get_vertices_for_bilinear_interpolant!(face_vertices, face_index, hex_v
         @views face_vertices[:, 3] .= hex_vertices[:, 8]
         @views face_vertices[:, 4] .= hex_vertices[:, 5]
     end
+
+    return nothing
 end
 
 # Evaluate a bilinear interpolant at a point (u,v) given the four vertices where the face is right-handed
