@@ -2109,8 +2109,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     return file_idx
 end
 
-function face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                                   mesh_nodes, nodes, bary_weights, 
+function face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                   mesh_nodes, nodes, bary_weights,
                                    RealT, CurvedFaceT)
     node1_coords = mesh_nodes[face_nodes[1]]
     node2_coords = mesh_nodes[face_nodes[2]]
@@ -2154,20 +2154,20 @@ function face_curves_quadratic_3d!(face_curves, face_nodes, face,
 
     # Proceed along bottom edge
     curve_values[:, 1, 1] = node1_coords
-    #curve_values[:, 2, 1] = node2_coords
-    curve_values[:, 2, 1] = 0.5 .* (node1_coords .+ node3_coords)
+    curve_values[:, 2, 1] = node2_coords
+    #curve_values[:, 2, 1] = 0.5 .* (node1_coords .+ node3_coords)
     curve_values[:, 3, 1] = node3_coords
 
     # Proceed along middle line
     curve_values[:, 1, 2] = node8_coords
-    #curve_values[:, 2, 2] = node9_coords
-    curve_values[:, 2, 2] = 0.5 .* (node8_coords .+ node4_coords)
+    curve_values[:, 2, 2] = node9_coords
+    #curve_values[:, 2, 2] = 0.5 .* (node8_coords .+ node4_coords)
     curve_values[:, 3, 2] = node4_coords
 
     # Proceed along top edge
     curve_values[:, 1, 3] = node7_coords
-    #curve_values[:, 2, 3] = node6_coords
-    curve_values[:, 2, 3] = 0.5 .* (node7_coords .+ node5_coords)
+    curve_values[:, 2, 3] = node6_coords
+    #curve_values[:, 2, 3] = 0.5 .* (node7_coords .+ node5_coords)
     curve_values[:, 3, 3] = node5_coords
 
     # Construct the curve interpolant for the current side
@@ -2176,7 +2176,6 @@ function face_curves_quadratic_3d!(face_curves, face_nodes, face,
     return nothing
 end
 
-# TODO: 3D version
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                      element_lines, nodes, vertices, RealT,
                                      linear_hexes, mesh_nodes)
@@ -2246,18 +2245,12 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
 
                 # We proceed now face by face, with face numbering as sketched out in
                 # https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/p4est_mesh/#HOHQMesh-Extended-Abaqus-format
+                # and in `get_vertices_for_bilinear_interpolant!`
+                #
                 # The node selection follows from the sketch for the 27-node element presented in the doc
                 # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael03.html
 
-                # Face 1: -y, "Front"
-                # Local coordinate system:
-                # η
-                # ↑
-                # │
-                # └───> ξ
-
-                # TODO: Check if we can infer something from `get_vertices_for_bilinear_interpolant!`
-                face = 1
+                face = 1 # -y, "Front"
                 face_nodes[1] = element_nodes[1]  # "SW" node
                 face_nodes[2] = element_nodes[9]  # "S"  node
                 face_nodes[3] = element_nodes[2]  # "SE" node
@@ -2268,50 +2261,29 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 face_nodes[8] = element_nodes[17] # "W"  node
                 face_nodes[9] = element_nodes[24] # "C"  node
 
-                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                                          mesh_nodes, nodes, bary_weights, 
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
                                           RealT, CurvedFaceT)
 
-                # Face 2: +y, "Back"
-                # Local coordinate system:
-                #       η
-                #       ↑
-                #       │
-                # ξ <───┘
-
-                face = 2
-                face_nodes[1] = element_nodes[3]  # "SW" node
+                face = 2 # +y, "Back"
+                face_nodes[1] = element_nodes[4]  # "SW" node
                 face_nodes[2] = element_nodes[11] # "S"  node
-                face_nodes[3] = element_nodes[4]  # "SE" node
-                face_nodes[4] = element_nodes[20] # "E"  node
-                face_nodes[5] = element_nodes[8]  # "NE" node
+                face_nodes[3] = element_nodes[3]  # "SE" node
+                face_nodes[4] = element_nodes[19] # "E"  node
+                face_nodes[5] = element_nodes[7]  # "NE" node
                 face_nodes[6] = element_nodes[15] # "N"  node
-                face_nodes[7] = element_nodes[7]  # "NW" node
-                face_nodes[8] = element_nodes[19] # "W"  node
+                face_nodes[7] = element_nodes[8]  # "NW" node
+                face_nodes[8] = element_nodes[20] # "W"  node
                 face_nodes[9] = element_nodes[26] # "C"  node
 
-                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                                          mesh_nodes, nodes, bary_weights, 
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
                                           RealT, CurvedFaceT)
 
-                # Face 3: -z, "Bottom"
-                # Local coordinate system:
-                #       η
-                #       ↑
-                #       │
-                # ξ <───┘
-
-                face = 3
-                face_nodes[1] = element_nodes[2]  # "SW" node
+                face = 3 # -z, "Bottom"
+                face_nodes[1] = element_nodes[1]  # "SW" node
                 face_nodes[2] = element_nodes[9]  # "S"  node
-                face_nodes[3] = element_nodes[1]  # "SE" node
-                #=
-                face_nodes[4] = element_nodes[12] # "E"  node
-                face_nodes[5] = element_nodes[4]  # "NE" node
-                face_nodes[6] = element_nodes[11] # "N"  node
-                face_nodes[7] = element_nodes[3]  # "NW" node
-                face_nodes[8] = element_nodes[10] # "W"  node
-                =#
+                face_nodes[3] = element_nodes[2]  # "SE" node
                 face_nodes[4] = element_nodes[10] # "E"  node
                 face_nodes[5] = element_nodes[3]  # "NE" node
                 face_nodes[6] = element_nodes[11] # "N"  node
@@ -2319,18 +2291,13 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 face_nodes[8] = element_nodes[12] # "W"  node
                 face_nodes[9] = element_nodes[22] # "C"  node
 
-                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                                          mesh_nodes, nodes, bary_weights, 
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
                                           RealT, CurvedFaceT)
 
-                # Face 4: +x, "Right"
-                # Local coordinate system:
-                # η
-                # ↑
-                # │
-                # └───> ξ
-
-                face = 4
+                # TODO: This uses a different node ordering compared to from `get_vertices_for_bilinear_interpolant!`
+                # If something goes wrong, it is probably here.
+                face = 4 # +x, "Right"
                 face_nodes[1] = element_nodes[2]  # "SW" node
                 face_nodes[2] = element_nodes[10] # "S"  node
                 face_nodes[3] = element_nodes[3]  # "SE" node
@@ -2341,62 +2308,42 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 face_nodes[8] = element_nodes[18] # "W"  node
                 face_nodes[9] = element_nodes[25] # "C"  node
 
-                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                                          mesh_nodes, nodes, bary_weights, 
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
                                           RealT, CurvedFaceT)
-                          
-                # Face 5: +z, "Top"
-                # Local coordinate system:
-                # η
-                # ↑
-                # │
-                # └───> ξ
 
-                face = 5
+                face = 5 # +z, "Top"
                 face_nodes[1] = element_nodes[5]  # "SW" node
                 face_nodes[2] = element_nodes[13] # "S"  node
                 face_nodes[3] = element_nodes[6]  # "SE" node
-                
                 face_nodes[4] = element_nodes[14] # "E"  node
                 face_nodes[5] = element_nodes[7]  # "NE" node
                 face_nodes[6] = element_nodes[15] # "N"  node
                 face_nodes[7] = element_nodes[8]  # "NW" node
                 face_nodes[8] = element_nodes[16] # "W"  node
-                #=
-                face_nodes[4] = element_nodes[16] # "E"  node
-                face_nodes[5] = element_nodes[8]  # "NE" node
-                face_nodes[6] = element_nodes[15] # "N"  node
-                face_nodes[7] = element_nodes[7]  # "NW" node
-                face_nodes[8] = element_nodes[14] # "W"  node
-                =#
                 face_nodes[9] = element_nodes[23] # "C"  node
 
-                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                                          mesh_nodes, nodes, bary_weights, 
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
                                           RealT, CurvedFaceT)
 
-                # Face 6: -x, "Left"
-                #       η
-                #       ↑
-                #       │
-                # ξ <───┘
-
-                face = 6
-                face_nodes[1] = element_nodes[4]  # "SW" node
+                face = 6 # -x, "Left"
+                face_nodes[1] = element_nodes[1]  # "SW" node
                 face_nodes[2] = element_nodes[12] # "S"  node
-                face_nodes[3] = element_nodes[1]  # "SE" node
-                face_nodes[4] = element_nodes[17] # "E"  node
-                face_nodes[5] = element_nodes[5]  # "NE" node
+                face_nodes[3] = element_nodes[4]  # "SE" node
+                face_nodes[4] = element_nodes[20] # "E"  node
+                face_nodes[5] = element_nodes[8]  # "NE" node
                 face_nodes[6] = element_nodes[16] # "N"  node
-                face_nodes[7] = element_nodes[8]  # "NW" node
-                face_nodes[8] = element_nodes[20] # "W"  node
+                face_nodes[7] = element_nodes[5]  # "NW" node
+                face_nodes[8] = element_nodes[17] # "W"  node
                 face_nodes[9] = element_nodes[27] # "C"  node
 
-                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
-                                          mesh_nodes, nodes, bary_weights, 
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
                                           RealT, CurvedFaceT)
 
-                # Note: Node 21 remains unused, since it is not part of any face (sits in the center of the element)
+                # Note: `element_nodes[21]` remains unused, since it is not part of any face
+                # (sits in the center of the element)
 
                 # Create the node coordinates on this particular element
                 calc_node_coordinates!(node_coordinates, tree, nodes, face_curves)
