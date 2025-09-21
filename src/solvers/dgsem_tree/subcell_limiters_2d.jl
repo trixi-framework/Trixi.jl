@@ -379,8 +379,8 @@ end
 # Global positivity limiting of conservative variables
 
 @inline function idp_positivity_conservative!(alpha, limiter,
-                                              u::AbstractArray{<:Real, 4}, dt, semi,
-                                              variable)
+                                              u::AbstractArray{<:Real, 4},
+                                              dt, semi, variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis

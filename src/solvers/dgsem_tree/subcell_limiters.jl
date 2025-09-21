@@ -270,7 +270,8 @@ end
     for variable in limiter.positivity_variables_nonlinear
         @trixi_timeit timer() "nonlinear variables" idp_positivity_nonlinear!(alpha,
                                                                               limiter,
-                                                                              u, dt,
+                                                                              u,
+                                                                              dt,
                                                                               semi,
                                                                               variable)
     end
@@ -364,8 +365,7 @@ end
         end
     end
 
-    new_alpha = 1 - beta
-    alpha[indices...] = new_alpha
+    alpha[indices...] = 1 - beta # new alpha
 
     return nothing
 end
@@ -374,33 +374,33 @@ end
 # Initial checks
 @inline function initial_check_local_onesided_newton_idp(::typeof(min), bound,
                                                          goal, newton_abstol)
-    goal <= max(newton_abstol, abs(bound) * newton_abstol)
+    return goal <= max(newton_abstol, abs(bound) * newton_abstol)
 end
 
 @inline function initial_check_local_onesided_newton_idp(::typeof(max), bound,
                                                          goal, newton_abstol)
-    goal >= -max(newton_abstol, abs(bound) * newton_abstol)
+    return goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 end
 
 @inline initial_check_nonnegative_newton_idp(min_or_max, bound, goal, newton_abstol) = goal <=
                                                                                        0
 
-# Goal and d(Goal)d(u) function
+# Goal and d(Goal)/d(u) function
 @inline goal_function_newton_idp(variable, bound, u, equations) = bound -
                                                                   variable(u, equations)
 @inline function dgoal_function_newton_idp(variable, u, dt, antidiffusive_flux,
                                            equations)
-    -dot(gradient_conservative(variable, u, equations), dt * antidiffusive_flux)
+    return -dot(gradient_conservative(variable, u, equations), dt * antidiffusive_flux)
 end
 
 # Final checks
 # final check for one-sided local limiting
 @inline function final_check_local_onesided_newton_idp(bound, goal, newton_abstol)
-    abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
+    return abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 end
 
 # final check for nonnegativity limiting
 @inline function final_check_nonnegative_newton_idp(bound, goal, newton_abstol)
-    (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
+    return (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
 end # @muladd
