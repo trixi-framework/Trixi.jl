@@ -2256,6 +2256,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 # │
                 # └───> ξ
 
+                # TODO: Check if we can infer something from `get_vertices_for_bilinear_interpolant!`
                 face = 1
                 face_nodes[1] = element_nodes[1]  # "SW" node
                 face_nodes[2] = element_nodes[9]  # "S"  node
