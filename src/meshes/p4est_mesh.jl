@@ -2305,9 +2305,9 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                           mesh_nodes, nodes, bary_weights,
                                           RealT, CurvedFaceT)
 
-                # Care: Note the different node ordering compared to 
-                # `get_vertices_for_bilinear_interpolant!`
-                # Seems to work, though.
+                # Care: Note the different node ordering compared to `get_vertices_for_bilinear_interpolant!`
+                # Here, we obtain the node indices in the usual order, the "direction" is defined by the 
+                # corner nodes 2 and 3, which are the same as face 4.
                 face = 4 # +x, "Right"
                 face_nodes[1] = element_nodes[2]  # "SW" node
                 face_nodes[2] = element_nodes[10] # "S"  node
