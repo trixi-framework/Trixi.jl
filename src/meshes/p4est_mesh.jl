@@ -2157,19 +2157,16 @@ function face_curves_quadratic_3d!(face_curves, face_nodes, face,
     # Proceed along bottom edge
     curve_values[:, 1, 1] = node1_coords
     curve_values[:, 2, 1] = node2_coords
-    #curve_values[:, 2, 1] = 0.5 .* (node1_coords .+ node3_coords)
     curve_values[:, 3, 1] = node3_coords
 
     # Proceed along middle line
     curve_values[:, 1, 2] = node8_coords
     curve_values[:, 2, 2] = node9_coords
-    #curve_values[:, 2, 2] = 0.5 .* (node8_coords .+ node4_coords)
     curve_values[:, 3, 2] = node4_coords
 
     # Proceed along top edge
     curve_values[:, 1, 3] = node7_coords
     curve_values[:, 2, 3] = node6_coords
-    #curve_values[:, 2, 3] = 0.5 .* (node7_coords .+ node5_coords)
     curve_values[:, 3, 3] = node5_coords
 
     # Construct the curve interpolant for the current side
@@ -2300,8 +2297,9 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                           mesh_nodes, nodes, bary_weights,
                                           RealT, CurvedFaceT)
 
-                # TODO: This uses a different node ordering compared to from `get_vertices_for_bilinear_interpolant!`
-                # If something goes wrong, it is probably here.
+                # Care: Note the different node ordering compared to 
+                # `get_vertices_for_bilinear_interpolant!`
+                # Seems to work, though.
                 face = 4 # +x, "Right"
                 face_nodes[1] = element_nodes[2]  # "SW" node
                 face_nodes[2] = element_nodes[10] # "S"  node
