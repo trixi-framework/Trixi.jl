@@ -41,9 +41,7 @@ initial_condition = initial_condition_mach3_flow
                                                       x, t, surface_flux_function,
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach3_flow(x, t, equations)
-    flux = Trixi.flux(u_boundary, normal_direction, equations)
-
-    return flux
+    return flux(u_boundary, normal_direction, equations)
 end
 
 # For subcell limiting, the calculation of local bounds for non-periodic domains requires the
@@ -65,9 +63,7 @@ end
 @inline function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
                                             surface_flux_function,
                                             equations::CompressibleEulerEquations2D)
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, normal_direction, equations)
 end
 
 @inline function Trixi.get_boundary_outer_state(u_inner, t,

@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 
 @testset "Linear scalar advection" begin
 #! format: noindent
@@ -157,6 +157,7 @@ end
 end
 
 @trixi_testset "elixir_advection_doublefloat.jl" begin
+    using DoubleFloats: Double64
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_doublefloat.jl"),
                         l2=Double64[6.80895929885700039832943251427357703e-11],
                         linf=Double64[5.82834770064525291688100323411704252e-10])

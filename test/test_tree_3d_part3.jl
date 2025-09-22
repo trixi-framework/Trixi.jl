@@ -28,6 +28,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 end
 
 @trixi_testset "Additional tests in 3D" begin
+    using Trixi: Trixi, IdealGlmMhdEquations3D, density, pressure, density_pressure,
+                 energy_total, energy_kinetic, energy_magnetic, energy_internal,
+                 cross_helicity
     @testset "ideal GLM MHD" begin
         eqn = IdealGlmMhdEquations3D(1.4)
         u = [1.0, 2.0, 3.0, 4.0, 20.0, 0.1, 0.2, 0.3, 1.5]

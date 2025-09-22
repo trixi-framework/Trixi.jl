@@ -5,6 +5,8 @@ using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = examples_dir()
+
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
@@ -13,6 +15,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 #! format: noindent
 
 @trixi_testset "DGMulti 2D rhs_parabolic!" begin
+    using Trixi
     dg = DGMulti(polydeg = 2, element_type = Quad(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
                  volume_integral = VolumeIntegralWeakForm())
@@ -28,9 +31,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
                                                  initial_condition, dg)
-    @test_nowarn_mod show(stdout, semi)
-    @test_nowarn_mod show(stdout, MIME"text/plain"(), semi)
-    @test_nowarn_mod show(stdout, boundary_condition_do_nothing)
+    @trixi_test_nowarn show(stdout, semi)
+    @trixi_test_nowarn show(stdout, MIME"text/plain"(), semi)
+    @trixi_test_nowarn show(stdout, boundary_condition_do_nothing)
 
     @test nvariables(semi) == nvariables(equations)
     @test Base.ndims(semi) == Base.ndims(mesh)
@@ -44,8 +47,8 @@ isdir(outdir) && rm(outdir, recursive = true)
     # test "do nothing" BC just returns first argument
     @test boundary_condition_do_nothing(u0, nothing) == u0
 
-    @unpack cache, cache_parabolic, equations_parabolic = semi
-    @unpack gradients = cache_parabolic
+    (; cache, cache_parabolic, equations_parabolic) = semi
+    (; gradients) = cache_parabolic
     for dim in eachindex(gradients)
         fill!(gradients[dim], zero(eltype(gradients[dim])))
     end
@@ -58,7 +61,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     Trixi.calc_gradient!(gradients, u0, t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, parabolic_scheme,
                          cache, cache_parabolic)
-    @unpack x, y, xq, yq = mesh.md
+    (; x, y, xq, yq) = mesh.md
     @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
     @test getindex.(gradients[2], 1) ≈ xq .^ 2
 
@@ -79,7 +82,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 end
 
 @trixi_testset "DGMulti: elixir_advection_diffusion.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[0.2485803335154642],
@@ -95,7 +98,7 @@ end
 end
 
 @trixi_testset "DGMulti: elixir_advection_diffusion_periodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion_periodic.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[0.03180371984888462],
@@ -111,7 +114,7 @@ end
 end
 
 @trixi_testset "DGMulti: elixir_advection_diffusion_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[0.002123168335604323],
@@ -127,7 +130,7 @@ end
 end
 
 @trixi_testset "DGMulti: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_navierstokes_convergence.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[
@@ -153,7 +156,7 @@ end
 end
 
 @trixi_testset "DGMulti: elixir_navierstokes_convergence_curved.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_navierstokes_convergence_curved.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[
@@ -179,7 +182,7 @@ end
 end
 
 @trixi_testset "DGMulti: elixir_navierstokes_lid_driven_cavity.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.5),
                         l2=[
@@ -205,7 +208,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
                         l2=[4.0915532997994255e-6],
@@ -221,7 +224,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (LDG)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         solver_parabolic=ViscousFormulationLocalDG(),
                         initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
@@ -237,7 +240,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (Refined mesh)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
@@ -271,7 +274,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_amr.jl"),
                         initial_refinement_level=2,
                         base_level=2,
@@ -290,7 +293,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         l2=[0.007646800618485118],
@@ -306,7 +309,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         solver_parabolic=ViscousFormulationLocalDG(),
@@ -322,7 +325,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         analysis_callback=AnalysisCallback(semi,
@@ -353,7 +356,8 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (isothermal walls)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    using Trixi: Trixi
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
@@ -383,7 +387,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         gradient_variables=GradientVariablesEntropy(),
@@ -410,7 +414,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables, isothermal walls)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         gradient_variables=GradientVariablesEntropy(),
@@ -441,7 +445,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (flux differencing)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_central),
@@ -468,7 +472,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Refined mesh)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         tspan=(0.0, 0.0), initial_refinement_level=3)
     LLID = Trixi.local_leaf_cells(mesh.tree)
@@ -509,7 +513,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.5),
                         l2=[
@@ -535,7 +539,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_shearlayer_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_amr.jl"),
                         l2=[
                             0.005155557460409018,
@@ -553,7 +557,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_taylor_green_vortex_sutherland.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_sutherland.jl"),
                         l2=[
                             0.001452856280034929,
@@ -571,7 +575,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
                         tspan=(0.0, 0.5),
@@ -588,7 +592,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
                         tspan=(0.0, 0.5),
@@ -605,7 +609,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic_curved.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
                         tspan=(0.0, 0.5),
@@ -622,7 +626,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic_amr.jl"),
                         tspan=(0.0, 0.01),
                         l2=[0.014715887539773128],
@@ -638,7 +642,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         tspan=(0.0, 0.01),
                         l2=[0.007934195641974433],
@@ -654,7 +658,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_curved.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
                         tspan=(0.0, 0.5),
@@ -671,7 +675,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=1, tspan=(0.0, 0.2),
                         l2=[
@@ -697,7 +701,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_convergence_nonperiodic.jl"),
                         initial_refinement_level=1, tspan=(0.0, 0.2),
                         l2=[
@@ -723,7 +727,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.5),
                         l2=[
@@ -749,7 +753,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity_amr.jl"),
                         tspan=(0.0, 1.0),
                         l2=[
@@ -771,7 +775,7 @@ end
 end
 
 @trixi_testset "elixir_navierstokes_NACA0012airfoil_mach08.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_NACA0012airfoil_mach08.jl"),
                         l2=[0.000186486564226516,
                             0.0005076712323400374,
@@ -817,7 +821,7 @@ end
 end
 
 @trixi_testset "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl"),
                         l2=[
                             6.191672324705442e-6,
@@ -842,7 +846,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         l2=[
                             0.0002576236264053728,
@@ -866,8 +870,34 @@ end
     end
 end
 
+@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            3.468233560427797e-5,
+                            2.64864594855224e-5,
+                            7.879490760481979e-10,
+                            2.8748482665365446e-5
+                        ],
+                        linf=[
+                            0.00018754529350140103,
+                            0.00014045634087878067,
+                            9.043610782328732e-9,
+                            0.00014499382160382268
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_navierstokes_SD7003airfoil.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_SD7003airfoil.jl"),
                         l2=[
                             9.292899618740586e-5,
@@ -893,7 +923,7 @@ end
 end
 
 @trixi_testset "elixir_navierstokes_SD7003airfoil.jl (CFL-Interval)" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_SD7003airfoil.jl"),
                         l2=[
                             9.292895651912815e-5,
@@ -920,7 +950,7 @@ end
 end
 
 @trixi_testset "elixir_navierstokes_vortex_street.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         l2=[
                             0.012420217727434794,
@@ -946,7 +976,7 @@ end
 end
 
 @trixi_testset "elixir_navierstokes_poiseuille_flow.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_poiseuille_flow.jl"),
                         l2=[
                             0.028671228188785286,
@@ -971,7 +1001,7 @@ end
 end
 
 @trixi_testset "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl"),
                         l2=[
                             0.1987691550257618,
@@ -1001,7 +1031,7 @@ end
 end
 
 @trixi_testset "elixir_navierstokes_freestream_symmetry.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_symmetry.jl"),
                         l2=[
                             4.37868326434923e-15,
@@ -1026,7 +1056,7 @@ end
 end
 
 @trixi_testset "elixir_navierstokes_couette_flow.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_couette_flow.jl"),
                         l2=[
                             0.009585252225488753,
@@ -1051,7 +1081,7 @@ end
 end
 
 @trixi_testset "elixir_navierstokes_blast_reflective.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_blast_reflective.jl"),
                         l2=[
                             0.08271777454941344,
