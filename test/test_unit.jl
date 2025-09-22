@@ -685,10 +685,9 @@ end
 
 @timed_testset "StepsizeCallback" begin
     # Ensure a proper error is thrown if used with adaptive time integration schemes
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_2d_dgsem",
-                                            "elixir_advection_diffusion.jl"),
-                                   tspan = (0, 0.05))
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_diffusion.jl"),
+                        tspan=(0, 0.05))
 
     @test_throws ArgumentError solve(ode, alg; ode_default_options()...,
                                      callback = StepsizeCallback(cfl = 1.0))
@@ -696,10 +695,9 @@ end
 
 @timed_testset "TimeSeriesCallback" begin
     # Test the 2D TreeMesh version of the callback and some warnings
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_2d_dgsem",
-                                            "elixir_acoustics_gaussian_source.jl"),
-                                   tspan = (0, 0.05))
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_acoustics_gaussian_source.jl"),
+                        tspan=(0, 0.05))
 
     point_data_1 = time_series.affect!.point_data[1]
     @test all(isapprox.(point_data_1[1:7],

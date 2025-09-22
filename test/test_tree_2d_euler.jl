@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 
 @testset "Compressible Euler" begin
 #! format: noindent
@@ -1128,7 +1128,7 @@ end
                             8.515583343047957e-14, 2.0472512574087887e-13
                         ],
                         initial_refinement_level=7,
-                        tspan=(0.0, 0.1)) # this test is sensitive to the CFL factor
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
