@@ -298,8 +298,8 @@ Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), 
     # For the slip wall we directly set the flux as the normal velocity is zero
     return vcat(SVector(p_star * normal_direction[1],
                         p_star * normal_direction[2],
-                        0),
-                 SVector{ncomponents(equations), eltype(u_inner)}(zeros(eltype(u_inner), ncomponents(equations))))
+                        0.0f0),
+                 zero(SVector{ncomponents(equations), eltype(u_inner)}))
 end
 
 """
