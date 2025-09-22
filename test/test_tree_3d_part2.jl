@@ -5,6 +5,8 @@ using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = examples_dir()
+
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
@@ -29,6 +31,8 @@ end
 
 @trixi_testset "Additional tests in 3D" begin
     @trixi_testset "compressible Euler" begin
+        using Trixi: CompressibleEulerEquations3D, energy_total, energy_kinetic,
+                     energy_internal
         eqn = CompressibleEulerEquations3D(1.4)
 
         @test isapprox(energy_total([1.0, 2.0, 3.0, 4.0, 20.0], eqn), 20.0)
@@ -37,14 +41,14 @@ end
     end
 
     @trixi_testset "hyperbolic diffusion" begin
+        using Trixi: HyperbolicDiffusionEquations3D
         @test_nowarn HyperbolicDiffusionEquations3D(nu = 1.0)
         eqn = HyperbolicDiffusionEquations3D(nu = 1.0)
     end
 end
 
 @trixi_testset "Displaying components 3D" begin
-    @test_nowarn include(joinpath(examples_dir(), "tree_3d_dgsem",
-                                  "elixir_advection_amr.jl"))
+    @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
 
     # test both short and long printing formats
     @test_nowarn show(mesh)

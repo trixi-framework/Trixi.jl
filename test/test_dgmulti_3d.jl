@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "dgmulti_3d")
+EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_3d")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
@@ -282,6 +282,7 @@ end
 end
 
 @trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP)" begin
+    using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 2,
@@ -316,6 +317,7 @@ end
 end
 
 @trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP, EC)" begin
+    using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 2,
