@@ -16,6 +16,7 @@ mkdir(outdir)
 #! format: noindent
 
 @trixi_testset "test load mesh from path" begin
+    using Trixi: T8codeMesh
     mktempdir() do path
         @test_throws "Unknown file extension: .unknown_ext" begin
             mesh = T8codeMesh(touch(joinpath(path, "dummy.unknown_ext")), 2)
@@ -33,6 +34,7 @@ end
 
     # @test_throws "Discovered negative volumes" begin
     @test begin
+        using Trixi: Trixi, T8codeMesh
         # Unstructured mesh with six cells which have left-handed node ordering.
         mesh_file = Trixi.download("https://gist.githubusercontent.com/jmark/bfe0d45f8e369298d6cc637733819013/raw/cecf86edecc736e8b3e06e354c494b2052d41f7a/rectangle_with_negative_volumes.msh",
                                    joinpath(EXAMPLES_DIR,
@@ -46,6 +48,7 @@ end
 
 @trixi_testset "test t8code mesh from p4est connectivity" begin
     @test begin
+        using Trixi: Trixi, T8codeMesh
         # Here we use the connectivity constructor from `P4est.jl` since the
         # method dispatch works only on `Ptr{p4est_connectivity}` which
         # actually is `Ptr{P4est.LibP4est.p4est_connectivity}`.
@@ -58,6 +61,7 @@ end
 
 @trixi_testset "test t8code mesh from ABAQUS HOHQMesh file" begin
     @test begin
+        using Trixi: Trixi, T8codeMesh
         # Unstructured ABAQUS mesh file created with HOHQMesh..
         file_path = Trixi.download("https://gist.githubusercontent.com/jmark/9e0da4306e266617eeb19bc56b0e7feb/raw/e6856e1deb648a807f6bb6d6dcacff9e55d94e2a/round_2d_tank.inp",
                                    joinpath(EXAMPLES_DIR, "round_2d_tank.inp"))

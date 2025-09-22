@@ -15,7 +15,7 @@ The linear scalar advection equation
 in two space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation2D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{2, 1}
+       AbstractLinearScalarAdvectionEquation{2}
     advection_velocity::SVector{2, RealT}
 end
 
@@ -46,10 +46,7 @@ end
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation2D)
-    # Store translated coordinate for easy use of exact solution
     RealT = eltype(x)
-    x_trans = x_trans_periodic_2d(x - equation.advection_velocity * t)
-
     return SVector(RealT(2))
 end
 

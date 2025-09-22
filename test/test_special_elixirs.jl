@@ -13,7 +13,7 @@ include("test_trixi.jl")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples")
+EXAMPLES_DIR = examples_dir()
 
 @testset "Special elixirs" begin
 #! format: noindent
@@ -466,8 +466,8 @@ end
     end
 
     @timed_testset "elixir_euler_ad.jl" begin
-        @test_nowarn_mod trixi_include(joinpath(examples_dir(), "special_elixirs",
-                                                "elixir_euler_ad.jl"))
+        @test_trixi_include(joinpath(examples_dir(), "special_elixirs",
+                                     "elixir_euler_ad.jl"))
     end
 end
 end
