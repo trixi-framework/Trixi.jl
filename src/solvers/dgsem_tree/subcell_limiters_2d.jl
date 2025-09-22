@@ -208,7 +208,7 @@ end
                 end
 
                 l2_mortars = dg.mortar isa LobattoLegendreMortarL2
-                if l2_mortars || dg.mortar.local_mortar_weights[i, j] > 0
+                if l2_mortars || dg.mortar.mortar_weights[i, j] > 0
                     var_min[indices_small..., lower_element] = min(var_min[indices_small...,
                                                                            lower_element],
                                                                    var_large)
@@ -216,7 +216,7 @@ end
                                                                            lower_element],
                                                                    var_large)
                 end
-                if l2_mortars || dg.mortar.local_mortar_weights[j, i] > 0
+                if l2_mortars || dg.mortar.mortar_weights[j, i] > 0
                     var_min[indices_large..., large_element] = min(var_min[indices_large...,
                                                                            large_element],
                                                                    var_lower)
@@ -224,8 +224,7 @@ end
                                                                            large_element],
                                                                    var_lower)
                 end
-                if l2_mortars ||
-                   dg.mortar.local_mortar_weights[i, j + nnodes(dg)] > 0
+                if l2_mortars || dg.mortar.mortar_weights[i, j + nnodes(dg)] > 0
                     var_min[indices_small..., upper_element] = min(var_min[indices_small...,
                                                                            upper_element],
                                                                    var_large)
@@ -233,8 +232,7 @@ end
                                                                            upper_element],
                                                                    var_large)
                 end
-                if l2_mortars ||
-                   dg.mortar.local_mortar_weights[j, i + nnodes(dg)] > 0
+                if l2_mortars || dg.mortar.mortar_weights[j, i + nnodes(dg)] > 0
                     var_min[indices_large..., large_element] = min(var_min[indices_large...,
                                                                            large_element],
                                                                    var_upper)
