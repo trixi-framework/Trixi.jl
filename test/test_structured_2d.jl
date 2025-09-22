@@ -377,16 +377,16 @@ end
 @trixi_testset "elixir_eulermulti_blastwave_ec.jl with boundary_condition_slip_wall" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_blastwave_ec.jl"),
                         l2=[
-                            0.00590577460356355,
-                            0.0058356110669994885,
-                            0.023476513968766127,
-                            0.006257192755546406
+                            0.005884923780993405,
+                            0.005815148890903912,
+                            0.023438850211096113,
+                            0.006254106697017372
                         ],
                         linf=[
-                            0.24551185682148474,
-                            0.13366891476222145,
-                            0.38463507643419703,
-                            0.1024571160655714
+                            0.24483047700349253,
+                            0.13364458078315503,
+                            0.38469398740194993,
+                            0.1024647566986494
                         ],
                         periodicity=false,
                         boundary_conditions=boundary_condition_slip_wall,
