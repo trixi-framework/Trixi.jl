@@ -65,7 +65,7 @@ function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Int[])
                                                                           cfl,
                                                                           semi_indices)
 
-    DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
+    DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the effect!
                      save_positions = (false, false),
                      initialize = initialize!)
 end
