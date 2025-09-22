@@ -1645,7 +1645,9 @@ end
     return v
 end
 
-@inline function pressure(u, equations::IdealGlmMhdEquations2D)
+@inline function pressure(u,
+                          equations::Union{IdealGlmMhdEquations2D,
+                                           IdealGlmMhdEquations3D})
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
          -
@@ -1657,7 +1659,9 @@ end
 
 # Transformation from conservative variables u to d(p)/d(u)
 @inline function gradient_conservative(::typeof(pressure),
-                                       u, equations::IdealGlmMhdEquations2D)
+                                       u,
+                                       equations::Union{IdealGlmMhdEquations2D,
+                                                        IdealGlmMhdEquations3D})
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
 
     v1 = rho_v1 / rho
