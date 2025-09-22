@@ -944,25 +944,25 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
             # Check bottom edge
             if tree_nodes[1] in node_set_dict[boundary] &&
                tree_nodes[2] in node_set_dict[boundary]
-                # Bottom boundary is position 3 in p4est indexing
+                # Bottom boundary is position 3 in unstructured indexing
                 boundary_names[3, tree] = boundary
             end
             # Check right edge
             if tree_nodes[2] in node_set_dict[boundary] &&
                tree_nodes[3] in node_set_dict[boundary]
-                # Right boundary is position 2 in p4est indexing
+                # Right boundary is position 2 in unstructured indexing
                 boundary_names[2, tree] = boundary
             end
             # Check top edge
             if tree_nodes[3] in node_set_dict[boundary] &&
                tree_nodes[4] in node_set_dict[boundary]
-                # Top boundary is position 4 in p4est indexing
+                # Top boundary is position 4 in unstructured indexing
                 boundary_names[4, tree] = boundary
             end
             # Check left edge
             if tree_nodes[4] in node_set_dict[boundary] &&
                tree_nodes[1] in node_set_dict[boundary]
-                # Left boundary is position 1 in p4est indexing
+                # Left boundary is position 1 in unstructured indexing
                 boundary_names[1, tree] = boundary
             end
         end
@@ -986,48 +986,48 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                tree_nodes[2] in node_set_dict[boundary] &&
                tree_nodes[5] in node_set_dict[boundary] &&
                tree_nodes[6] in node_set_dict[boundary]
-                # Front face is position 3 in p4est indexing
-                boundary_names[3, tree] = boundary
+                # Front face is position 1 in unstructured indexing
+                boundary_names[1, tree] = boundary
             end
             # Check "back face" (y_max)
             if tree_nodes[3] in node_set_dict[boundary] &&
                tree_nodes[4] in node_set_dict[boundary] &&
                tree_nodes[7] in node_set_dict[boundary] &&
                tree_nodes[8] in node_set_dict[boundary]
-                # Front face is position 4 in p4est indexing
-                boundary_names[4, tree] = boundary
+                # Front face is position 2 in unstructured indexing
+                boundary_names[2, tree] = boundary
             end
             # Check "left face" (x_min)
             if tree_nodes[1] in node_set_dict[boundary] &&
                tree_nodes[4] in node_set_dict[boundary] &&
                tree_nodes[5] in node_set_dict[boundary] &&
                tree_nodes[8] in node_set_dict[boundary]
-                # Left face is position 1 in p4est indexing
-                boundary_names[1, tree] = boundary
+                # Left face is position 6 in unstructured indexing
+                boundary_names[6, tree] = boundary
             end
             # Check "right face" (x_max)
             if tree_nodes[2] in node_set_dict[boundary] &&
                tree_nodes[3] in node_set_dict[boundary] &&
                tree_nodes[6] in node_set_dict[boundary] &&
                tree_nodes[7] in node_set_dict[boundary]
-                # Right face is position 2 in p4est indexing
-                boundary_names[2, tree] = boundary
+                # Right face is position 4 in unstructured indexing
+                boundary_names[4, tree] = boundary
             end
             # Check "bottom face" (z_min)
             if tree_nodes[1] in node_set_dict[boundary] &&
                tree_nodes[2] in node_set_dict[boundary] &&
                tree_nodes[3] in node_set_dict[boundary] &&
                tree_nodes[4] in node_set_dict[boundary]
-                # Bottom face is position 5 in p4est indexing
-                boundary_names[5, tree] = boundary
+                # Bottom face is position 3 in unstructured indexing
+                boundary_names[3, tree] = boundary
             end
             # Check "top face" (z_max)
             if tree_nodes[5] in node_set_dict[boundary] &&
                tree_nodes[6] in node_set_dict[boundary] &&
                tree_nodes[7] in node_set_dict[boundary] &&
                tree_nodes[8] in node_set_dict[boundary]
-                # Top face is position 6 in p4est indexing
-                boundary_names[6, tree] = boundary
+                # Top face is position 5 in unstructured indexing
+                boundary_names[5, tree] = boundary
             end
         end
     end
