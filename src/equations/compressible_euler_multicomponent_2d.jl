@@ -236,8 +236,6 @@ function initial_condition_weak_blast_wave(x, t,
     return prim2cons(vcat(prim_other, prim_rho), equations)
 end
 
-
-
 """
     boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
                                  equations::CompressibleEulerMulticomponentEquations2D)
@@ -286,7 +284,8 @@ Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), 
         sound_speed = sqrt(gamma * p_local / rho_local) # local sound speed
         p_star = p_local *
                  (1 + 0.5f0 * (gamma - 1) * v_normal / sound_speed)^(2 *
-                                                                     gamma / (gamma - 1.0f0))
+                                                                     gamma /
+                                                                     (gamma - 1.0f0))
     else # v_normal > 0
         A = 2 / ((gamma + 1) * rho_local)
         B = p_local * (gamma - 1) / (gamma + 1)
@@ -299,7 +298,7 @@ Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), 
     return vcat(SVector(p_star * normal_direction[1],
                         p_star * normal_direction[2],
                         0.0f0),
-                 zero(SVector{ncomponents(equations), eltype(u_inner)}))
+                zero(SVector{ncomponents(equations), eltype(u_inner)}))
 end
 
 """

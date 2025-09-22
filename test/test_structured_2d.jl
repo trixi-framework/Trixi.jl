@@ -390,7 +390,7 @@ end
                         ],
                         periodicity=false,
                         boundary_conditions=boundary_condition_slip_wall,
-                        tspan = (0.0, 0.001))
+                        tspan=(0.0, 0.001))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

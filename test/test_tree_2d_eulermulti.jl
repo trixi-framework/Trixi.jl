@@ -266,7 +266,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
-        
+
     @trixi_testset "elixir_eulermulti_ec.jl with boundary_condition_slip_wall" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
                             l2=[
