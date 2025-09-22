@@ -374,6 +374,33 @@ end
     end
 end
 
+@trixi_testset "elixir_eulermulti_blastwave_ec.jl with boundary_condition_slip_wall" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_blastwave_ec.jl"),
+                        l2=[
+                            0.00590577460356355,
+                            0.0058356110669994885,
+                            0.023476513968766127,
+                            0.006257192755546406
+                        ],
+                        linf=[
+                            0.24551185682148474,
+                            0.13366891476222145,
+                            0.38463507643419703,
+                            0.1024571160655714
+                        ],
+                        periodicity=false,
+                        boundary_conditions=boundary_condition_slip_wall,
+                        tspan = (0.0, 0.001))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 16_500
+    end
+end
+
 @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
