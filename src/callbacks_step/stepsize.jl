@@ -13,8 +13,8 @@ Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself.
 The keyword argument `cfl` must be either a `Real` number, corresponding to a constant 
 CFL number, or a function of time `t` returning a `Real` number.
-The latter approach allows for variable CFL numbers that can be used to realize e.g.
-a ramp-up of the timestep.
+The latter approach allows for variable CFL numbers that can be used to realize, e.g.,
+a ramp-up of the time step.
 
 One can additionally supply a diffusive CFL number `cfl_diffusive` to
 limit the admissible timestep also respecting diffusive restrictions.
