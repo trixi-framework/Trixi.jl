@@ -54,12 +54,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                             tspan=(0.0, 0.001))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl" begin
@@ -89,16 +84,11 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
         @test startswith(lines[end], "15")
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            # Larger values for allowed allocations due to usage of custom
-            # integrator which are not *recorded* for the methods from
-            # OrdinaryDiffEq.jl
-            # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-        end
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test_allocations(Trixi.rhs!, semi, sol, 15000)
     end
 
     @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl" begin
@@ -122,16 +112,11 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                             tspan=(0.0, 0.001))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            # Larger values for allowed allocations due to usage of custom
-            # integrator which are not *recorded* for the methods from
-            # OrdinaryDiffEq.jl
-            # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-        end
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test_allocations(Trixi.rhs!, semi, sol, 15000)
     end
 
     @trixi_testset "elixir_eulermulti_ec.jl" begin
@@ -150,12 +135,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_eulermulti_es.jl" begin
@@ -180,12 +160,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
@@ -206,12 +181,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_eulermulti_convergence_es.jl" begin
@@ -232,12 +202,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_eulermulti_convergence_es.jl with flux_chandrashekar" begin
@@ -259,12 +224,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                             volume_flux=flux_chandrashekar)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_eulermulti_ec.jl with boundary_condition_slip_wall" begin
