@@ -60,9 +60,9 @@ and `c1_squared` is equal to one.
 """
 function initial_condition_convergence_test(x, t,
                                             equations::LinearElasticityEquations1D)
-    @unpack rho, c1_squared = equations
+    @unpack rho = equations
 
-    v = sinpi(2 * t) * cospi(2 * x[1] / (c1_squared * rho))
+    v = sinpi(2 * t) * cospi(2 * x[1] / rho)
     sigma = -cospi(2 * t) * sinpi(2 * x[1] * rho)
 
     return SVector(v, sigma)
