@@ -19,7 +19,7 @@ mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
                       periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_condition_periodic)
+                                    boundary_conditions = boundary_condition_slip_wall)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
