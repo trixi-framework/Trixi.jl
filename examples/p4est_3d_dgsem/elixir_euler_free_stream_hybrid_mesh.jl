@@ -11,13 +11,14 @@ initial_condition = initial_condition_constant
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
-mesh_file = "/home/daniel/Sciebo/Job/Doktorand/Content/Meshes/HighOrderCFDWorkshop/CS1/Pointwise/hybrid_mesh_3d.inp"
-mesh_file = "/home/daniel/Sciebo/Job/Doktorand/Content/Meshes/HighOrderCFDWorkshop/CS1/Pointwise/single_cell_Q27_test_straight.inp"
-mesh_file = "/home/daniel/Sciebo/Job/Doktorand/Content/Meshes/Cube/example_2.inp"
-
+target_mesh_file = joinpath(@__DIR__, "hybrid_hexmesh.inp")
+isfile(target_mesh_file) ||
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/70c1d59e3c6378ee4d7e21769e430fce/raw/25d063663199a20813d2f94ec04135fc2d9d1713/hybrid_hexmesh.inp",
+                   target_mesh_file)
+mesh_file = target_mesh_file
 
 # Refine the given mesh twice
-mesh = P4estMesh{3}(mesh_file, initial_refinement_level = 0)
+mesh = P4estMesh{3}(mesh_file, initial_refinement_level = 2)
 
 boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -31,14 +32,14 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 30
+analysis_interval = 200
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 2.0)
+stepsize_callback = StepsizeCallback(cfl = 5.0)
 
-save_solution = SaveSolutionCallback(interval = 100,
+save_solution = SaveSolutionCallback(interval = 500,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
