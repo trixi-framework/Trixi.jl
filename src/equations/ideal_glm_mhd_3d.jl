@@ -1433,6 +1433,31 @@ end
     return v
 end
 
+@inline function pressure(u, equations::IdealGlmMhdEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+         -
+         0.5f0 * (B1^2 + B2^2 + B3^2)
+         -
+         0.5f0 * psi^2)
+    return p
+end
+
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u,
+                                       equations::IdealGlmMhdEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_square = v1^2 + v2^2 + v3^2
+
+    return (equations.gamma - 1) *
+           SVector(0.5f0 * v_square, -v1, -v2, -v3, 1, -B1, -B2, -B3, -psi)
+end
+
 @inline function density_pressure(u, equations::IdealGlmMhdEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
