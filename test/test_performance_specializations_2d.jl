@@ -5,6 +5,8 @@ using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = examples_dir()
+
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
@@ -14,7 +16,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
 @timed_testset "TreeMesh2D, flux_shima_etal_turbo" begin
     trixi_include(@__MODULE__,
-                  joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"),
+                  joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_ec.jl"),
                   initial_refinement_level = 0, tspan = (0.0, 0.0), polydeg = 3,
                   volume_flux = flux_shima_etal_turbo,
                   surface_flux = flux_shima_etal_turbo)
@@ -57,7 +59,7 @@ end
 
 @timed_testset "TreeMesh2D, flux_ranocha_turbo" begin
     trixi_include(@__MODULE__,
-                  joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"),
+                  joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_ec.jl"),
                   initial_refinement_level = 0, tspan = (0.0, 0.0), polydeg = 3,
                   volume_flux = flux_ranocha_turbo, surface_flux = flux_ranocha_turbo)
     u_ode = copy(sol.u[end])
@@ -99,7 +101,7 @@ end
 
 @timed_testset "StructuredMesh2D, flux_shima_etal_turbo" begin
     trixi_include(@__MODULE__,
-                  joinpath(examples_dir(), "structured_2d_dgsem", "elixir_euler_ec.jl"),
+                  joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1), tspan = (0.0, 0.0), polydeg = 3,
                   volume_flux = flux_shima_etal_turbo,
                   surface_flux = flux_shima_etal_turbo)
@@ -142,7 +144,7 @@ end
 
 @timed_testset "StructuredMesh2D, flux_ranocha_turbo" begin
     trixi_include(@__MODULE__,
-                  joinpath(examples_dir(), "structured_2d_dgsem", "elixir_euler_ec.jl"),
+                  joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1), tspan = (0.0, 0.0), polydeg = 3,
                   volume_flux = flux_ranocha_turbo, surface_flux = flux_ranocha_turbo)
     u_ode = copy(sol.u[end])
