@@ -325,7 +325,7 @@ Should be used together with [`TreeMesh`](@ref).
 end
 
 """
-    boundary_condition_slip_wall(u_inner, normal_direction, direction, x, t,
+    boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, direction, x, t,
                                  surface_flux_function, equations::CompressibleEulerMulticomponentEquations2D)
 
 Should be used together with [`StructuredMesh`](@ref).
