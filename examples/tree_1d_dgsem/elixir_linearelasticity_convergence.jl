@@ -4,10 +4,9 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear elasticity equations
 
-# "Material parameters" need to be integers such that the manufactured solutions stays periodic on [0,1]
-rho = 3
-c1 = 2
-c1_squared = c1^2
+rho = 3.0 # The material density rho can be any positive integer to ensure periodicity of the solution.
+c1_squared = 1.0 # Required to be one for the initial condition to stay periodic.
+c1 = sqrt(c1_squared)
 equations = LinearElasticityEquations1D(rho, c1_squared, c1)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
@@ -26,7 +25,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0) # Relatively short simulation time due to high wave speeds (~5990 m/s)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
