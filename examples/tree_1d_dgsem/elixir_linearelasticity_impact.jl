@@ -12,13 +12,14 @@ equations = LinearElasticityEquations1D(rho = rho, mu = mu, lambda = lambda)
 
 basis = LobattoLegendreBasis(5)
 
-# Use subcell shock capturing techniques to weaken oscillations at discontinuities
+# Use subcell shock capturing technique to weaken oscillations at discontinuities
 alpha_max = 0.4 # This controls the amount of dissipation added (larger = more dissipation)
+indicator_variable = velocity # We limit here based on velocity
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = alpha_max,
                                          alpha_min = 0.001,
                                          alpha_smooth = true,
-                                         variable = first)
+                                         variable = indicator_variable)
 
 volume_flux = flux_central
 surface_flux = flux_lax_friedrichs

@@ -110,4 +110,10 @@ end
 # Convert conservative variables to primitive
 @inline cons2prim(u, equations::LinearElasticityEquations1D) = u
 @inline cons2entropy(u, ::LinearElasticityEquations1D) = u
+
+# Useful for e.g. limiting indicator variable selection
+@inline function velocity(u, equations::LinearElasticityEquations1D)
+    return u[1]
+end
+
 end # muladd
