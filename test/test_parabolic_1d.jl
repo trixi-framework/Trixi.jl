@@ -90,12 +90,7 @@ end
                         l2=[6.763177530985864e-5], linf=[0.0002344578097126515])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
