@@ -465,6 +465,28 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_hybrid_mesh.jl"),
+                        l2=[
+                            6.459343647140878e-16,
+                            1.6402804603545678e-15,
+                            2.0956682982886904e-15,
+                            2.3267454534698676e-15,
+                            3.802615222445529e-15
+                        ],
+                        linf=[
+                            1.1657341758564144e-14,
+                            1.6056600493641326e-14,
+                            3.5665914666083154e-14,
+                            3.68594044175552e-14,
+                            6.217248937900877e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_alfven_wave_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_er.jl"),
