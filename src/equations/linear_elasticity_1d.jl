@@ -49,6 +49,11 @@ function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
     return LinearElasticityEquations1D(rho, c_1_squared)
 end
 
+# Constructor with keywords with dilatational wave speed supplied
+function LinearElasticityEquations1D(; rho::Real, c_1_squared::Real)
+    return LinearElasticityEquations1D(rho, c_1_squared)
+end
+
 function varnames(::typeof(cons2cons), ::LinearElasticityEquations1D)
     ("v", "sigma")
 end
