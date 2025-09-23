@@ -29,8 +29,7 @@ end
 # OBS! This is the standard (not de-aliased) form of the volume integral.
 # So it is not provably stable for variable coefficients due to the the metric terms.
 function calc_volume_integral!(du, u,
-                               mesh::UnstructuredMesh2D,
-                               nonconservative_terms::False, equations,
+                               mesh::UnstructuredMesh2D, equations,
                                volume_integral::VolumeIntegralStrongForm,
                                dg::FDSBP, cache)
     D = dg.basis # SBP derivative operator
@@ -92,8 +91,7 @@ end
 # part of the flux splitting f^+ and the D^+ operator acts on the negative part
 # of the flux splitting f^-.
 function calc_volume_integral!(du, u,
-                               mesh::UnstructuredMesh2D,
-                               nonconservative_terms::False, equations,
+                               mesh::UnstructuredMesh2D, equations,
                                volume_integral::VolumeIntegralUpwind,
                                dg::FDSBP, cache)
     # Assume that
