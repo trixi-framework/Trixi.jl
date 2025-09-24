@@ -46,25 +46,7 @@ function create_cache(mesh::P4estMesh{3},
                                                                  nnodes(dg))
 
     if have_nonconservative_terms(equations) == true
-        # Extract the nonconservative flux as a dispatch argument for `n_nonconservative_terms`
-        _, volume_flux_noncons = volume_integral.volume_flux_dg
-
-        flux_nonconservative_temp_threaded = A5d[A5d(undef, nvariables(equations),
-                                                     n_nonconservative_terms(volume_flux_noncons),
-                                                     nnodes(dg), nnodes(dg),
-                                                     nnodes(dg))
-                                                 for _ in 1:Threads.nthreads()]
-        fhat_nonconservative_temp_threaded = A5d[A5d(undef, nvariables(equations),
-                                                     n_nonconservative_terms(volume_flux_noncons),
-                                                     nnodes(dg), nnodes(dg),
-                                                     nnodes(dg))
-                                                 for _ in 1:Threads.nthreads()]
-        phi_threaded = A5d[A5d(undef, nvariables(equations),
-                               n_nonconservative_terms(volume_flux_noncons),
-                               nnodes(dg), nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.nthreads()]
-        cache = (; cache..., flux_nonconservative_temp_threaded,
-                 fhat_nonconservative_temp_threaded, phi_threaded)
+        error("Unsupported system of equations with nonconservative terms")
     end
 
     return (; cache..., antidiffusive_fluxes,
