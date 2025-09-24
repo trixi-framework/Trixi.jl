@@ -12,19 +12,19 @@ Linear elasticity equations in one space dimension. The equations are given by
 ```math
 \partial_t
 \begin{pmatrix}
-    v \\ \sigma
+    v_1 \\ \sigma_{11}
 \end{pmatrix}
 +
 \partial_x
 \begin{pmatrix}
-    -\frac{1}{\rho} \sigma \\ -\frac{\rho}{c_1^2} v
+    -\frac{1}{\rho} \sigma_{11} \\ -\frac{\rho}{c_1^2} v_1
 \end{pmatrix}
 =
 \begin{pmatrix}
     0 \\ 0
 \end{pmatrix}
 ```
-The variables are the deformation velocity `v` and the stress `\sigma`.
+The variables are the deformation velocity `v_1` and the stress `\sigma_{11}`.
 
 The parameters are the constant density of the material `\rho`
 and the Lamé parameters `\lambda` and `\mu`.
@@ -50,10 +50,10 @@ function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
 end
 
 function varnames(::typeof(cons2cons), ::LinearElasticityEquations1D)
-    ("v", "sigma")
+    ("v1", "sigma11")
 end
 function varnames(::typeof(cons2prim), ::LinearElasticityEquations1D)
-    ("v", "sigma")
+    ("v1", "sigma11")
 end
 
 """
@@ -67,18 +67,18 @@ function initial_condition_convergence_test(x, t,
                                             equations::LinearElasticityEquations1D)
     @unpack rho = equations
 
-    v = sinpi(2 * t) * cospi(2 * x[1] / rho)
-    sigma = -cospi(2 * t) * sinpi(2 * x[1] * rho)
+    v1 = sinpi(2 * t) * cospi(2 * x[1] / rho)
+    sigma11 = -cospi(2 * t) * sinpi(2 * x[1] * rho)
 
-    return SVector(v, sigma)
+    return SVector(v1, sigma11)
 end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LinearElasticityEquations1D)
     @unpack rho, c1_squared = equations
-    v, sigma = u
-    f1 = -sigma / rho
-    f2 = -rho * c1_squared * v
+    v1, sigma11 = u
+    f1 = -sigma11 / rho
+    f2 = -rho * c1_squared * v1
 
     return SVector(f1, f2)
 end
