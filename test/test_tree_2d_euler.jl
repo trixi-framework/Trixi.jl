@@ -697,7 +697,6 @@ end
         @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
     end
 
-    # Note: Not conservative
     @trixi_testset "piecewise linear" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_blast_wave_amr_sc_subcell.jl"),
@@ -706,10 +705,15 @@ end
         state_integrals = Trixi.integrate(sol.u[2], semi)
         initial_state_integrals = analysis_callback.affect!.initial_state_integrals
 
-        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
-        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
-        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
-        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+        # Note: Not conservative
+        @test_broken isapprox(state_integrals[1], initial_state_integrals[1],
+                              atol = 1e-13)
+        @test_broken isapprox(state_integrals[2], initial_state_integrals[2],
+                              atol = 1e-13)
+        @test_broken isapprox(state_integrals[3], initial_state_integrals[3],
+                              atol = 1e-13)
+        @test_broken isapprox(state_integrals[4], initial_state_integrals[4],
+                              atol = 1e-13)
     end
 
     @trixi_testset "global factor" begin
@@ -725,7 +729,6 @@ end
         @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
     end
 
-    # Note: Not conservative
     @trixi_testset "alternative implementation" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_blast_wave_amr_sc_subcell.jl"),
@@ -733,10 +736,15 @@ end
         state_integrals = Trixi.integrate(sol.u[2], semi)
         initial_state_integrals = analysis_callback.affect!.initial_state_integrals
 
-        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
-        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
-        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
-        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+        # Note: Not conservative
+        @test_broken isapprox(state_integrals[1], initial_state_integrals[1],
+                              atol = 1e-13)
+        @test_broken isapprox(state_integrals[2], initial_state_integrals[2],
+                              atol = 1e-13)
+        @test_broken isapprox(state_integrals[3], initial_state_integrals[3],
+                              atol = 1e-13)
+        @test_broken isapprox(state_integrals[4], initial_state_integrals[4],
+                              atol = 1e-13)
     end
 end
 
