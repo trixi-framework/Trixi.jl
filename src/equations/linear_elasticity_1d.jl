@@ -28,6 +28,11 @@ The variables are the deformation velocity `v` and the stress `\sigma`.
 
 The parameters are the constant density of the material `\rho`
 and the Lamé parameters `\lambda` and `\mu`.
+
+For reference, see
+- Aleksey Sikstel (2020)
+  Analysis and numerical methods for coupled hyperbolic conservation laws
+  [DOI: 10.18154/RWTH-2020-07821](https://doi.org/10.18154/RWTH-2020-07821)
 """
 struct LinearElasticityEquations1D{RealT <: Real} <:
        AbstractLinearElasticityEquations{1, 2}
@@ -115,5 +120,4 @@ end
 @inline function velocity(u, equations::LinearElasticityEquations1D)
     return u[1]
 end
-
 end # muladd

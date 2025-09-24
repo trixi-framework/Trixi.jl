@@ -67,9 +67,6 @@ Source terms used for convergence tests in combination with
     return SVector(du)
 end
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::InviscidBurgersEquation1D)
-
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
     return SVector(0.5f0 * u[1]^2)
