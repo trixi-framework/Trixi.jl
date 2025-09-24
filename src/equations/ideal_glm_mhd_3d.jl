@@ -1445,8 +1445,7 @@ end
 
 # Transformation from conservative variables u to d(p)/d(u)
 @inline function gradient_conservative(::typeof(pressure),
-                                       u,
-                                       equations::IdealGlmMhdEquations3D)
+                                       u, equations::IdealGlmMhdEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
 
     v1 = rho_v1 / rho

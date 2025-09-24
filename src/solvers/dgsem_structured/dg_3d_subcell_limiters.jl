@@ -154,7 +154,6 @@
     return nothing
 end
 
-# TODO: This is the 2d version for now.
 # Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
 # (**with non-conservative terms in "local * symmetric" form**).
 #

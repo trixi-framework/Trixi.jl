@@ -18,7 +18,7 @@ function perform_idp_correction!(u, dt,
             inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                      mesh, i, j, k, element)
 
-            # Note: antidiffusive_flux1[v, i, xi, eta, element] = antidiffusive_flux2[v, xi, i, eta, element] = antidiffusive_flux2[v, xi, eta, i, element] = 0 for all i in 1:nnodes and xi, eta in {1, nnodes+1}
+            # Note: antidiffusive_flux1[v, i, xi, eta, element] = antidiffusive_flux2[v, xi, i, eta, element] = antidiffusive_flux3[v, xi, eta, i, element] = 0 for all i in 1:nnodes and xi, eta in {1, nnodes+1}
             alpha_flux1 = (1 - alpha1[i, j, k, element]) *
                           get_node_vars(antidiffusive_flux1_R, equations, dg,
                                         i, j, k, element)

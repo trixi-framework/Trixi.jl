@@ -813,8 +813,6 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
                                       "expectations $(nmortars(mortars))")
 end
 
-# TODO: Does it make sense to implement those dimension independent
-# with indices like [variables, **direction**, i, j, k, elements]?
 mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real}
     antidiffusive_flux1_L::Array{uEltype, 5} # [variables, i, j, k, elements]
     antidiffusive_flux1_R::Array{uEltype, 5} # [variables, i, j, k, elements]
