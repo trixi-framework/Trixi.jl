@@ -441,6 +441,52 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_tandem_spheres.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_tandem_spheres.jl"),
+                        # Strict tols to avoid issues with different systems (CI vs local machines)
+                        tspan=(0.0, 1e-3), tols=1e-8,
+                        l2=[
+                            1.4563595831943405e-6,
+                            1.1433846164578946e-6,
+                            6.45964041497078e-7,
+                            6.446228703680879e-7,
+                            3.648646693902689e-6
+                        ],
+                        linf=[
+                            0.08928818652777637,
+                            0.09007801634411498,
+                            0.04241320785718675,
+                            0.04253018852293939,
+                            0.22552627764127076
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_hybrid_mesh.jl"),
+                        l2=[
+                            6.459343647140878e-16,
+                            1.6402804603545678e-15,
+                            2.0956682982886904e-15,
+                            2.3267454534698676e-15,
+                            3.802615222445529e-15
+                        ],
+                        linf=[
+                            1.1657341758564144e-14,
+                            1.6056600493641326e-14,
+                            3.5665914666083154e-14,
+                            3.68594044175552e-14,
+                            6.217248937900877e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_alfven_wave_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_er.jl"),
