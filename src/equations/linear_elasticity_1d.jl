@@ -95,12 +95,6 @@ end
     return equations.c1
 end
 
-# Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
-                                     equations::LinearElasticityEquations1D)
-    min_max_speed_davis(u_ll, u_rr, orientation, equations)
-end
-
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::LinearElasticityEquations1D)
