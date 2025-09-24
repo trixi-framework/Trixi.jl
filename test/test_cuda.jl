@@ -18,12 +18,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                         linf=6.627000273229378e-5,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
@@ -52,12 +47,7 @@ end
                         sol=nothing,) # TODO: GPU. Remove this once we can run the simulation on the GPU
     # # Ensure that we do not have excessive memory allocations
     # # (e.g., from type instabilities)
-    # let
-    #     t = sol.t[end]
-    #     u_ode = sol.u[end]
-    #     du_ode = similar(u_ode)
-    #     @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    # end
+    # @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
