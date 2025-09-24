@@ -86,7 +86,7 @@ solver = DGSEM(polydeg = 4, surface_flux = surface_flux)
 #                  periodicity=false)
 
 trees_per_cube_face = (6, 2)
-mesh = Trixi.P4estMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
+mesh = P4estMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
                                   polydeg = 4, initial_refinement_level = 0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
