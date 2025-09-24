@@ -59,6 +59,15 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_cfl.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_cfl.jl"),
+                        l2=[6.763177530985864e-5], linf=[0.0002344578097126515])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion.jl"),
                         tspan=(0.0, 0.0), initial_refinement_level=5)
@@ -98,6 +107,24 @@ end
                             0.0006255102377159538,
                             0.00036195501456059986,
                             0.0016147729485886941
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_periodic_cfl.jl"),
+                        l2=[
+                            0.00011582226718630047,
+                            6.277345250542003e-5,
+                            0.0002822257163816253
+                        ],
+                        linf=[
+                            0.0006389893469918029,
+                            0.0003608325914101762,
+                            0.0016369657641206459
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
