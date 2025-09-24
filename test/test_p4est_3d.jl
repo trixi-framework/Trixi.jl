@@ -324,21 +324,21 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_sc_subcell (positivity bounds).jl" begin
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl (positivity bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         l2=[
-                            0.20192400360203736,
-                            0.07695890787669382,
-                            0.07710756354791536,
-                            0.07941551494813669,
-                            0.37221345244744125
+                            0.20370740336156326,
+                            0.07738215048882423,
+                            0.07750769336870189,
+                            0.07968468047902258,
+                            0.37181794398158247
                         ],
                         linf=[
-                            1.5810218765306052,
-                            1.1429216064031185,
-                            1.225663052060263,
-                            1.3174846939209266,
-                            4.941059740343397
+                            1.5933167922339475,
+                            1.173472492290809,
+                            1.248189450386073,
+                            1.367434301765811,
+                            4.938315602773411
                         ],
                         tspan=(0.0, 0.3),)
     # Ensure that we do not have excessive memory allocations
