@@ -30,7 +30,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     # Extra test to make sure the "TimeSeriesCallback" made correct data.
-    # Extracts data at all points from the first step of the time series and compares it to the 
+    # Extracts data at all points from the first step of the time series and compares it to the
     # exact solution and an interpolated reference solution
     point_data = [getindex(time_series.affect!.point_data[i], 1:5) for i in 1:3]
     exact_data = [initial_condition_convergence_test(time_series.affect!.point_coordinates[:,
@@ -452,6 +452,32 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        l2=[
+                            0.25003459084178553,
+                            0.06981426300361189,
+                            0.06960917113351622,
+                            0.07112935085634706,
+                            0.36196040089082077
+                        ],
+                        linf=[
+                            0.9881999922982347,
+                            0.5842364881872105,
+                            0.5776759437706297,
+                            0.6224080381717345,
+                            4.859589168967835
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
 end
 end
 
