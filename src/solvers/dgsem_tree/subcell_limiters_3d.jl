@@ -39,15 +39,13 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 5},
     @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
 
     if limiter.local_twosided
-        @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,
-                                                                   u, t, dt, semi)
+        error("Unsupported type of limiter: local_twosided_variables_cons")
     end
     if limiter.positivity
         @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
     end
     if limiter.local_onesided
-        @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha, limiter,
-                                                                   u, t, dt, semi)
+        error("Unsupported type of limiter: local_onesided_variables_nonlinear")
     end
 
     # Calculate alpha1, alpha2 and alpha3
