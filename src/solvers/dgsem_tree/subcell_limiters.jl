@@ -108,6 +108,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         end
     end
     local_onesided_variables_nonlinear_ = Tuple(local_onesided_variables_nonlinear_)
+    positivity_variables_nonlinear = Tuple(positivity_variables_nonlinear)
 
     local_twosided_variables_cons_ = get_variable_index.(local_twosided_variables_cons,
                                                          equations)
