@@ -324,6 +324,32 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
+                        l2=[
+                            0.16371327294681623,
+                            0.0779033135575244,
+                            0.07790331355752474,
+                            0.07790331355752393,
+                            0.36689870760596666
+                        ],
+                        linf=[
+                            4.210879608740924,
+                            2.881468426664787,
+                            2.8814684266647874,
+                            2.8814684266647856,
+                            6.002617193075404
+                        ],
+                        tspan=(0.0, 0.2),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10_000)
+end
+
 @trixi_testset "elixir_euler_sedov.jl (HLLE)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[
