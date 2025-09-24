@@ -251,7 +251,7 @@ export lake_at_rest_error
 export ncomponents, eachcomponent
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
-       P4estMeshView, T8codeMesh
+       P4estMeshView, T8codeMesh, P4estMeshCubedSphere
 
 export DG,
        DGSEM, LobattoLegendreBasis,
