@@ -11,7 +11,7 @@ function perform_idp_correction!(u, dt,
                                  equations, dg, cache)
     @unpack inverse_weights = dg.basis
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
-    @unpack alpha1, alpha2 = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    @unpack alpha = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
 
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
@@ -19,19 +19,40 @@ function perform_idp_correction!(u, dt,
             inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                      mesh, i, j, element)
 
-            # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
-            alpha_flux1 = (1 - alpha1[i, j, element]) *
-                          get_node_vars(antidiffusive_flux1_R, equations, dg,
-                                        i, j, element)
-            alpha_flux1_ip1 = (1 - alpha1[i + 1, j, element]) *
-                              get_node_vars(antidiffusive_flux1_L, equations, dg,
-                                            i + 1, j, element)
-            alpha_flux2 = (1 - alpha2[i, j, element]) *
-                          get_node_vars(antidiffusive_flux2_R, equations, dg,
-                                        i, j, element)
-            alpha_flux2_jp1 = (1 - alpha2[i, j + 1, element]) *
-                              get_node_vars(antidiffusive_flux2_L, equations, dg,
-                                            i, j + 1, element)
+            # Note: For LGL nodes, the high-order and low-order fluxes at element interfaces are equal.
+            # Therefore, we only need to consider the inner updates and setting the outer fluxes to zero.
+            if i > 1
+                alpha1 = max(alpha[i - 1, j, element], alpha[i, j, element])
+                alpha_flux1 = (1 - alpha1) *
+                              get_node_vars(antidiffusive_flux1_R, equations, dg,
+                                            i, j, element)
+            else
+                alpha_flux1 = zero(SVector{nvariables(equations), eltype(u)})
+            end
+            if i < nnodes(dg)
+                alpha1_ip1 = max(alpha[i, j, element], alpha[i + 1, j, element])
+                alpha_flux1_ip1 = (1 - alpha1_ip1) *
+                                  get_node_vars(antidiffusive_flux1_L, equations, dg,
+                                                i + 1, j, element)
+            else
+                alpha_flux1_ip1 = zero(SVector{nvariables(equations), eltype(u)})
+            end
+            if j > 1
+                alpha2 = max(alpha[i, j - 1, element], alpha[i, j, element])
+                alpha_flux2 = (1 - alpha2) *
+                              get_node_vars(antidiffusive_flux2_R, equations, dg,
+                                            i, j, element)
+            else
+                alpha_flux2 = zero(SVector{nvariables(equations), eltype(u)})
+            end
+            if j < nnodes(dg)
+                alpha2_jp1 = max(alpha[i, j, element], alpha[i, j + 1, element])
+                alpha_flux2_jp1 = (1 - alpha2_jp1) *
+                                  get_node_vars(antidiffusive_flux2_L, equations, dg,
+                                                i, j + 1, element)
+            else
+                alpha_flux2_jp1 = zero(SVector{nvariables(equations), eltype(u)})
+            end
 
             for v in eachvariable(equations)
                 u[v, i, j, element] += dt * inverse_jacobian *
