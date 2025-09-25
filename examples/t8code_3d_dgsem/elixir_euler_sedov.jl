@@ -67,8 +67,7 @@ coordinates_min = (-1.0, -1.0, -1.0)
 coordinates_max = (1.0, 1.0, 1.0)
 
 trees_per_dimension = (4, 4, 4)
-mesh = T8codeMesh(trees_per_dimension,
-                  polydeg = 4,
+mesh = T8codeMesh(trees_per_dimension, polydeg = 4,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   periodicity = true)
 

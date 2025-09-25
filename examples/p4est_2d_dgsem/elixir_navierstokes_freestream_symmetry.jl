@@ -28,8 +28,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hlle)
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 trees_per_dimension = (4, 4)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 1,
+mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (false, true))
 

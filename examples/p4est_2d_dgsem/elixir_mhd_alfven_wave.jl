@@ -20,8 +20,7 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (sqrt(2.0), sqrt(2.0))
 
 trees_per_dimension = (8, 8)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3,
+mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = true)
 

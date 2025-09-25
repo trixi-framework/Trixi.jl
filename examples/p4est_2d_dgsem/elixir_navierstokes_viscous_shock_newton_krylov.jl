@@ -104,8 +104,7 @@ coordinates_min = (-domain_length / 2, -domain_length / 2)
 coordinates_max = (domain_length / 2, domain_length / 2)
 
 trees_per_dimension = (12, 3)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3,
+mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (false, true))
 
