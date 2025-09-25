@@ -411,7 +411,7 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 # [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) supports efficient Jacobian computations by leveraging the
 # [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl)
 # and [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl) packages.
-# These tools allow to detect the sparsity pattern of the Jacobian and compute the 
+# These tools allow to detect the sparsity pattern of the Jacobian and compute the
 # optional coloring vector for efficient Jacobian evaluations.
 # These are then handed over to the ODE solver from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 
@@ -441,7 +441,7 @@ jac_detector = TracerSparsityDetector()
 # [`jacobian_eltype`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#SparseConnectivityTracer.jacobian_eltype).
 jac_eltype = jacobian_eltype(float_type, jac_detector)
 
-# Now we can construct the semidiscretization for sparsity detection with `jac_eltype` as the 
+# Now we can construct the semidiscretization for sparsity detection with `jac_eltype` as the
 # datatype for the working arrays and helper datastructures.
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,
                                              initial_condition_convergence_test, solver,
@@ -487,7 +487,7 @@ ode_jac_sparse = semidiscretize(semi_float_type, tspan,
 # Currently we are bound to finite differencing here.
 using OrdinaryDiffEqSDIRK, ADTypes
 sol = solve(ode_jac_sparse, TRBDF2(; autodiff = AutoFiniteDiff()), dt = 0.1,
-            save_everystep = false)
+            save_everystep = false);
 
 # ## Linear systems
 
