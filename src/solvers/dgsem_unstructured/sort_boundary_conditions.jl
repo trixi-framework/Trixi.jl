@@ -270,7 +270,8 @@ function boundary_condition_default_tree_1D(boundary_condition)
 end
 
 """
-    boundary_condition_default_tree_2D
+    boundary_condition_default_tree_2D(boundary_condition)
+
 Create a default boundary condition dictionary for tree meshes in 2D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
