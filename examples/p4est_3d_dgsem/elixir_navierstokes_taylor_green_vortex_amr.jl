@@ -58,7 +58,7 @@ trees_per_dimension = (2, 2, 2)
 
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 periodicity = (true, true, true))
+                 periodicity = (true, true, true), initial_refinement_level = 0)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver)
