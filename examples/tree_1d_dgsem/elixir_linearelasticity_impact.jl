@@ -1,4 +1,4 @@
-using OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -13,7 +13,7 @@ equations = LinearElasticityEquations1D(rho = rho, mu = mu, lambda = lambda)
 basis = LobattoLegendreBasis(5)
 
 # Use subcell shock capturing technique to weaken oscillations at discontinuities
-alpha_max = 0.4 # This controls the amount of dissipation added (larger = more dissipation)
+alpha_max = 0.25 # This controls the amount of dissipation added (larger = more dissipation)
 indicator_variable = velocity # We limit here based on velocity
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = alpha_max,
@@ -90,7 +90,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 1.3)
+stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -99,6 +99,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode, SSPRK54();
             dt = 42.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
