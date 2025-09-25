@@ -1051,8 +1051,8 @@ The mesh will have two boundaries, `:inside` and `:outside`.
                                        each face.
 - `layers::Integer`: the number of trees in the third local dimension of each face, i.e., the number
                      of layers of the sphere.
-- `inner_radius::Integer`: the inner radius of the sphere.
-- `thickness::Integer`: the thickness of the sphere. The outer radius will be `inner_radius + thickness`.
+- `inner_radius::RealT`: the inner radius of the sphere.
+- `thickness::RealT`: the thickness of the sphere. The outer radius will be `inner_radius + thickness`.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
@@ -1077,8 +1077,8 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
     tree_node_coordinates = Array{RealT, 5}(undef, 3,
                                             ntuple(_ -> length(nodes), 3)...,
                                             n_trees)
-    calc_tree_node_coordinates!(tree_node_coordinates, nodes, trees_per_face_dimension,
-                                layers,
+    calc_tree_node_coordinates!(tree_node_coordinates, nodes,
+                                trees_per_face_dimension, layers,
                                 inner_radius, thickness)
 
     p4est = new_p4est(connectivity, initial_refinement_level)
