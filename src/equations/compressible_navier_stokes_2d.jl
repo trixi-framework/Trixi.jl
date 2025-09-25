@@ -96,6 +96,7 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, Mu,
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
+    max_4over3_kappa::RealT    # max(4/3, kappa) used for diffusive CFL => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations2D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -118,6 +119,7 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
                                         typeof(mu),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
                                                            mu, Prandtl, kappa,
+                                                           max(4 / 3, kappa),
                                                            equations,
                                                            gradient_variables)
 end
@@ -224,7 +226,6 @@ end
     # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
     #
     # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
-    # TODO: Return two (i.e., per direction) or only one speed?
     return dynamic_viscosity(u, equations_parabolic) / u[1] *
            equations_parabolic.max_4over3_kappa
 end
