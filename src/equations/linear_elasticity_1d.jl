@@ -37,8 +37,8 @@ For reference, see
 struct LinearElasticityEquations1D{RealT <: Real} <:
        AbstractLinearElasticityEquations{1, 2}
     rho::RealT # Constant density of the material
-    c1_squared::RealT # Squared dilatational wave speed
     c1::RealT # Dilatational wave speed
+    E::RealT # Young's modulus
 end
 
 function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
@@ -46,7 +46,12 @@ function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
     @assert mu>0 "Shear modulus mu (second Lamé parameter) must be positive."
 
     c1_squared = (lambda + 2 * mu) / rho
-    return LinearElasticityEquations1D(rho, c1_squared, sqrt(c1_squared))
+
+    # Young's modulus
+    # See for reference equation (11-11) in
+    # https://cns.gatech.edu/~predrag/courses/PHYS-4421-04/lautrup/book/elastic.pdf
+    E = mu * (3 * lambda + 2 * mu) / (lambda + mu)
+    return LinearElasticityEquations1D(rho, sqrt(c1_squared), E)
 end
 
 function varnames(::typeof(cons2cons), ::LinearElasticityEquations1D)
@@ -61,7 +66,7 @@ end
 
 A smooth initial condition used for convergence tests.
 This requires that the material parameters `rho` is a positive integer
-and `c1_squared` is equal to one.
+and `c1` is equal to one
 """
 function initial_condition_convergence_test(x, t,
                                             equations::LinearElasticityEquations1D)
@@ -75,10 +80,10 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LinearElasticityEquations1D)
-    @unpack rho, c1_squared = equations
+    @unpack rho, c1 = equations
     v1, sigma11 = u
     f1 = -sigma11 / rho
-    f2 = -rho * c1_squared * v1
+    f2 = -rho * c1^2 * v1
 
     return SVector(f1, f2)
 end
@@ -114,4 +119,16 @@ end
 @inline function velocity(u, equations::LinearElasticityEquations1D)
     return u[1]
 end
+
+@inline function energy_kinetic(u, equations::LinearElasticityEquations1D)
+    return 0.5 * equations.rho * u[1]^2
+end
+@inline function energy_internal(u, equations::LinearElasticityEquations1D)
+    return 0.5 * u[2]^2 / equations.E
+end
+@inline function energy_total(u, equations::LinearElasticityEquations1D)
+    return energy_kinetic(u, equations) + energy_internal(u, equations)
+end
+
+@inline entropy(u, equations::LinearElasticityEquations1D) = energy_total(u, equations)
 end # muladd
