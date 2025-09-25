@@ -18,7 +18,6 @@ coordinates_max = (1.0, 1.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = true,
                 n_cells_max = 30_000)
 
 function initial_condition_diffusive_convergence_test(x, t,
@@ -53,7 +52,6 @@ semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver,
                                              uEltype = jac_eltype;
-                                             solver_parabolic = ViscousFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -68,7 +66,7 @@ du_ode = similar(u0_ode)
 ###############################################################################
 ### Compute the Jacobian sparsity pattern ###
 
-# Only the parabolic part of the `SplitODEProblem` is treated implicitly so we only need the parabolic Jacobian
+# Only the parabolic part of the `SplitODEProblem` is treated implicitly so we only need the parabolic Jacobian, see
 # https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitFunction
 
 # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
@@ -87,7 +85,7 @@ coloring_vec_parabolic = column_colors(coloring_result)
 ###############################################################################
 ### sparsity-aware semidiscretization and ODE ###
 
-# Semidiscretization for actual simulation. `eEltype` is here retrieved from `solver`
+# Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
 semi_float_type = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
