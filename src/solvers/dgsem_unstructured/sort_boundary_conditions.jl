@@ -153,7 +153,7 @@ function boundary_condition_default_p4est_2D(boundary_condition)
 end 
 
 """
-    boundary_condition_default_3D
+    boundary_condition_default_3D(boundary_condition)
 
 Create a default boundary condition dictionary for p4est meshes in 3D
 that use the standard boundary naming convention.
