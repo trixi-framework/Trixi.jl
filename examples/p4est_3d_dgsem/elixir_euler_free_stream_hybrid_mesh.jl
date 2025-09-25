@@ -3,48 +3,50 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
-# with two additional passive tracer variables
-gamma = 1.4
-flow_equations = CompressibleEulerEquations2D(gamma)
-equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
 
-initial_condition = initial_condition_density_wave
+equations = CompressibleEulerEquations3D(1.4)
 
-solver = DGSEM(polydeg = 5, surface_flux = FluxTracerEquationsCentral(flux_ranocha))
+# Test free stream preservation with constant initial condition
+initial_condition = initial_condition_constant
 
-coordinates_min = (-1.0, -1.0)
-coordinates_max = (1.0, 1.0)
-trees_per_dimension = (4, 4)
+solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
-mesh = P4estMesh(trees_per_dimension, polydeg = 3,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max)
+target_mesh_file = joinpath(@__DIR__, "hybrid_hexmesh.inp")
+isfile(target_mesh_file) ||
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/70c1d59e3c6378ee4d7e21769e430fce/raw/25d063663199a20813d2f94ec04135fc2d9d1713/hybrid_hexmesh.inp",
+                   target_mesh_file)
+mesh_file = target_mesh_file
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+# Refine the given mesh twice
+mesh = P4estMesh{3}(mesh_file, initial_refinement_level = 2)
+
+boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 200
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
+stepsize_callback = StepsizeCallback(cfl = 5.0)
+
+save_solution = SaveSolutionCallback(interval = 500,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 1.6)
-
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
+                        stepsize_callback, save_solution)
 
 ###############################################################################
 # run the simulation
