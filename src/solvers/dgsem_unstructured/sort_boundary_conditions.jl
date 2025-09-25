@@ -143,7 +143,6 @@ This function applies the same boundary condition to all standard boundaries:
 
 # Returns
 - `Dict{Symbol, Any}`: Dictionary mapping boundary names to the boundary condition
-
 """
 function boundary_condition_default_p4est_2D(boundary_condition)
 
