@@ -71,12 +71,9 @@ integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false),
                   maxiters=maxiters, verbose=false)
 if run_profiler
     prof_result = CUDA.@profile solve!(integrator)
-    # the internal profiler will return the results to be printed
-    if isa(prof_result, CUDA.Profile.ProfileResults)
-        print(prof_result)
-    end
 else
     solve!(integrator)
+    prof_result = nothing
 end
 
 finalize(mesh)

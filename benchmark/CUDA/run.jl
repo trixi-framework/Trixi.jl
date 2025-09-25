@@ -6,7 +6,7 @@ using JSON
 function main(elixir_path)
 
     # setup
-    maxiters = 10
+    maxiters = 50
     initial_refinement_level = 3
     storage_type = CuArray
     real_type = Float64
@@ -55,21 +55,32 @@ function main(elixir_path)
     end
 
     # run profiler
+    maxiters = 5
+    initial_refinement_level = 2
+
     println("Running profiler (Float64)...")
     trixi_include(elixir_path,
-                  maxiters=5,
+                  maxiters=maxiters,
                   initial_refinement_level=initial_refinement_level,
                   storage_type=storage_type,
                   real_type=Float64,
                   run_profiler=true)
 
+    open("profile_float64.txt", "w") do io
+           show(io, prof_result)
+    end
+
     println("Running profiler (Float32)...")
     trixi_include(elixir_path,
-                  maxiters=5,
+                  maxiters=maxiters,
                   initial_refinement_level=initial_refinement_level,
                   storage_type=storage_type,
                   real_type=Float32,
                   run_profiler=true)
+
+    open("profile_float32.txt", "w") do io
+           show(io, prof_result)
+    end
 end
 
 # hardcoded elixir
