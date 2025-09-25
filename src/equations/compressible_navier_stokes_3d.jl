@@ -225,6 +225,35 @@ function flux(u, gradients, orientation::Integer,
     end
 end
 
+@inline function max_diffusivity(u,
+                                 equations_parabolic::CompressibleNavierStokesDiffusion3D)
+    # For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
+    # as suggested in Section 3.5 of 
+    #
+    # FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
+    # https://doi.org/10.1016/j.camwa.2020.05.004
+    #
+    # For details on the derivation of eigenvalues of the diffusivity matrix
+    # for the compressible Navier-Stokes equations see for instance
+    # 
+    # - Richard P. Dwight (2006)
+    #   Efficiency improvements of RANS-based analysis and optimization using implicit and adjoint methods on unstructured grids
+    #   PhD Thesis, University of Manchester
+    #   https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
+    #   See especially equations (2.79), (3.24), and (3.25) from Chapter 3.2.3
+    #
+    # The eigenvalues of the diffusivity matrix in 3D are
+    # -mu/rho .* {0, 4/3, 1, 1, kappa}
+    #
+    # See for instance also the computation in FLUXO:
+    # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
+    #
+    # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
+    # TODO: Return two (i.e., per direction) or only one speed?
+    return dynamic_viscosity(u, equations_parabolic) / u[1] *
+           equations_parabolic.max_4over3_kappa
+end
+
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, _ = u
