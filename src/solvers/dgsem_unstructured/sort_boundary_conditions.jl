@@ -221,7 +221,8 @@ function boundary_condition_default_structured_2D(boundary_condition)
 end
 
 """
-    boundary_condition_default_structured_3D
+    boundary_condition_default_structured_3D(boundary_condition)
+
 Create a default boundary condition dictionary for structured meshes in 3D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
