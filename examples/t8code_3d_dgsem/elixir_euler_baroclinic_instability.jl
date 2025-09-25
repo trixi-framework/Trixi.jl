@@ -232,7 +232,7 @@ trees_per_cube_face = (8, 4)
 inner_radius = 6.371229e6 # Radius of the inner side of the shell
 thickness = 30000.0 # Thickness of the shell
 mesh = Trixi.T8codeMeshCubedSphere(trees_per_cube_face..., inner_radius, thickness,
-                                   polydeg = 5, initial_refinement_level = 0)
+                                   polydeg = 5)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_baroclinic_instability,
