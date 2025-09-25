@@ -370,14 +370,16 @@ end
 
 # In case of coupled system, use minimum timestep over all systems
 # Case for constant `cfl_number`.
-function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCoupledP4est)
+function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+                      semi::SemidiscretizationCoupledP4est)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
+        calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
     end
 
     return dt
 end
+
 
 ################################################################################
 ### Equations
