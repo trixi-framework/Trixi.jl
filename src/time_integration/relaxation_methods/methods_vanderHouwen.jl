@@ -163,8 +163,9 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType, Params, Sol, F,
-                                                Alg, SimpleIntegratorOptions,
+mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType <: AbstractVector,
+                                                Params, Sol, F, Alg,
+                                                SimpleIntegratorOptions,
                                                 AbstractRelaxationSolver} <:
                RelaxationIntegrator
     u::uType
@@ -221,15 +222,7 @@ function init(ode::ODEProblem, alg::vanderHouwenRelaxationAlgorithm;
                                                   k_prev, direction, gamma, S_old,
                                                   alg.relaxation_solver)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with van-der-Houwen time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
 end
@@ -245,12 +238,7 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         error("time step size `dt` is NaN")
     end
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Relaxation vdH RK integration step" begin
         num_stages = length(alg.c)
@@ -338,23 +326,11 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         end
     end
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 
 # used for AMR
@@ -365,5 +341,7 @@ function Base.resize!(integrator::vanderHouwenRelaxationIntegrator, new_size)
     resize!(integrator.k_prev, new_size)
     # Relaxation addition
     resize!(integrator.direction, new_size)
+
+    return nothing
 end
 end # @muladd

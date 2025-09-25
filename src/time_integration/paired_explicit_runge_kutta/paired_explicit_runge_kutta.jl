@@ -78,6 +78,8 @@ function add_tstop!(integrator::AbstractPairedExplicitRKIntegrator, t)
         pop!(integrator.opts.tstops)
     end
     push!(integrator.opts.tstops, integrator.tdir * t)
+
+    return nothing
 end
 
 has_tstop(integrator::AbstractPairedExplicitRKIntegrator) = !isempty(integrator.opts.tstops)
@@ -86,6 +88,8 @@ first_tstop(integrator::AbstractPairedExplicitRKIntegrator) = first(integrator.o
 # Function that computes the first stage of a general PERK method
 @inline function PERK_k1!(integrator::AbstractPairedExplicitRKIntegrator, p)
     integrator.f(integrator.k1, integrator.u, p, integrator.t)
+
+    return nothing
 end
 
 @inline function PERK_k2!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg)
@@ -96,6 +100,8 @@ end
 
     integrator.f(integrator.du, integrator.u_tmp, p,
                  integrator.t + alg.c[2] * integrator.dt)
+
+    return nothing
 end
 
 @inline function PERK_ki!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg,
@@ -110,6 +116,8 @@ end
 
     integrator.f(integrator.du, integrator.u_tmp, p,
                  integrator.t + alg.c[stage] * integrator.dt)
+
+    return nothing
 end
 
 # used for AMR (Adaptive Mesh Refinement)
@@ -119,6 +127,8 @@ function Base.resize!(integrator::AbstractPairedExplicitRKIntegrator, new_size)
     resize!(integrator.u_tmp, new_size)
 
     resize!(integrator.k1, new_size)
+
+    return nothing
 end
 
 # get a cache where the RHS can be stored
@@ -130,6 +140,8 @@ u_modified!(integrator::AbstractPairedExplicitRKIntegrator, ::Bool) = false
 # stop the time integration
 function terminate!(integrator::AbstractPairedExplicitRKIntegrator)
     integrator.finalstep = true
+
+    return nothing
 end
 
 """
@@ -155,6 +167,8 @@ function modify_dt_for_tstops!(integrator::AbstractPairedExplicitRKIntegrator)
                             min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
         end
     end
+
+    return nothing
 end
 
 # Add definitions of functions related to polynomial optimization by NLsolve here

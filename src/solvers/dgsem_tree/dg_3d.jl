@@ -110,9 +110,8 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                  T8codeMesh{3}},
-                      equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::TreeMesh{3}, equations,
+                      mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal compare performance of different types
     A3d = Array{uEltype, 3}
     fstar_primary_upper_left_threaded = A3d[A3d(undef, nvariables(equations),
@@ -149,11 +148,13 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                   nnodes(mortar_l2))
                               for _ in 1:Threads.nthreads()]
 
-    (; fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
-     fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
-     fstar_secondary_upper_left_threaded, fstar_secondary_upper_right_threaded,
-     fstar_secondary_lower_left_threaded, fstar_secondary_lower_right_threaded,
-     fstar_tmp1_threaded)
+    cache = (; fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
+             fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
+             fstar_secondary_upper_left_threaded, fstar_secondary_upper_right_threaded,
+             fstar_secondary_lower_left_threaded, fstar_secondary_lower_right_threaded,
+             fstar_tmp1_threaded)
+
+    return cache
 end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
@@ -292,6 +293,8 @@ function calc_volume_integral!(du, u,
                                   nonconservative_terms, equations,
                                   volume_integral.volume_flux, dg, cache)
     end
+
+    return nothing
 end
 
 @inline function flux_differencing_kernel!(du, u,
@@ -341,6 +344,8 @@ end
                                        equations, dg, i, j, kk, element)
         end
     end
+
+    return nothing
 end
 
 @inline function flux_differencing_kernel!(du, u,
@@ -392,6 +397,8 @@ end
         multiply_add_to_node_vars!(du, alpha * 0.5f0, integral_contribution, equations,
                                    dg, i, j, k, element)
     end
+
+    return nothing
 end
 
 # TODO: Taal dimension agnostic
@@ -688,6 +695,8 @@ function calc_interface_flux!(surface_flux_values,
             end
         end
     end
+
+    return nothing
 end
 
 function calc_interface_flux!(surface_flux_values,
@@ -793,6 +802,7 @@ end
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::TreeMesh{3}, equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
+    return nothing
 end
 
 function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
@@ -823,6 +833,8 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
     calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[6],
                                      equations, surface_integral, dg, cache,
                                      6, firsts[6], lasts[6])
+
+    return nothing
 end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 5},

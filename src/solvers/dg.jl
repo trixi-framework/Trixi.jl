@@ -770,6 +770,8 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
             set_node_vars!(u, u_node, equations, dg, i, element)
         end
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
@@ -779,6 +781,8 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
         compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
                                       element)
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
@@ -805,6 +809,8 @@ function compute_coefficients_element!(u, func, t, equations, dg::DG,
         u_node = func(x_node, t, equations)
         set_node_vars!(u, u_node, equations, dg, i, j, element)
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
@@ -817,16 +823,19 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
             set_node_vars!(u, u_node, equations, dg, i, j, k, element)
         end
     end
+
+    return nothing
 end
 
 # Discretizations specific to each mesh type of Trixi.jl
+
 # If some functionality is shared by multiple combinations of meshes/solvers,
 # it is defined in the directory of the most basic mesh and solver type.
 # The most basic solver type in Trixi.jl is DGSEM (historic reasons and background
 # of the main contributors).
 # We consider the `TreeMesh` to be the most basic mesh type since it is Cartesian
-# and was the first mesh in Trixi.jl. The order of the other mesh types is the same
-# as the include order below.
+# and was the first mesh in Trixi.jl.
+# The order of the other mesh types is the same as the include order below.
 include("dgsem_tree/dg.jl")
 include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
