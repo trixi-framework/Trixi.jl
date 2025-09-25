@@ -169,7 +169,6 @@ This function applies the same boundary condition to all standard boundaries:
 # Returns
 - `Dict{Symbol, Any}`: Dictionary mapping boundary names to the boundary condition
 """
-
 function boundary_condition_default_p4est_3D(boundary_condition)
 
      return Dict(:x_neg => boundary_condition,
@@ -199,6 +198,7 @@ function boundary_condition_default_structured_1D(boundary_condition)
     return (x_neg = boundary_condition,
             x_pos = boundary_condition)
 end
+
 """
     boundary_condition_default_structured_2D(boundary_condition)
 
@@ -250,7 +250,6 @@ function boundary_condition_default_structured_3D(boundary_condition)
 
 end 
 
-
 """
     boundary_condition_default_tree_1D(boundary_condition)
 
@@ -263,7 +262,6 @@ This function applies the same boundary condition to all standard boundaries:
 - `boundary_condition`: The boundary condition function to apply to all boundaries
 # Returns
 - Named tuple mapping boundary names to the boundary condition
-
 """
 function boundary_condition_default_tree_1D(boundary_condition)
 
