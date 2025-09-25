@@ -908,7 +908,7 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
 
             # Create interface between elements
             count += 1
-            # Note: `local_neighbor_ids` stores the MPI-local neighbors, 
+            # Note: `local_neighbor_ids` stores the MPI-local neighbors,
             # but with globally valid index!
             mpi_interfaces.local_neighbor_ids[count] = element
 
@@ -1218,7 +1218,7 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
             # 3 -> large element
             count += 1
 
-            # Note: `local_neighbor_ids` stores the MPI-local neighbors, 
+            # Note: `local_neighbor_ids` stores the MPI-local neighbors,
             # but with globally valid index!
             local_neighbor_ids = Vector{Int}()
             local_neighbor_positions = Vector{Int}()
@@ -1353,71 +1353,78 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
 end
 
 # Container data structure (structure-of-arrays style) for variables used for IDP limiting
-mutable struct ContainerSubcellLimiterIDP2D{uEltype <: Real}
-    alpha::Array{uEltype, 3}                  # [i, j, element]
-    alpha1::Array{uEltype, 3}
-    alpha2::Array{uEltype, 3}
-    variable_bounds::Dict{Symbol, Array{uEltype, 3}}
+mutable struct ContainerSubcellLimiterIDP{uEltype <: Real, NDIMSP1, NDIMSP2} <:
+               AbstractContainer
+    alpha::Array{uEltype, NDIMSP1} # [i, j, k, element]
+    alpha_interfaces::Array{uEltype, NDIMSP2} # [direction, i, j, k, element]
+    variable_bounds::Dict{Symbol, Array{uEltype, NDIMSP1}}
     # internal `resize!`able storage
     _alpha::Vector{uEltype}
-    _alpha1::Vector{uEltype}
-    _alpha2::Vector{uEltype}
+    _alpha_interfaces::Vector{uEltype}
     _variable_bounds::Dict{Symbol, Vector{uEltype}}
 end
 
-function ContainerSubcellLimiterIDP2D{uEltype}(capacity::Integer, n_nodes,
-                                               bound_keys) where {uEltype <: Real}
+function ContainerSubcellLimiterIDP{uEltype}(n_dims, capacity::Integer, n_nodes,
+                                             bound_keys) where {uEltype <: Real}
     nan_uEltype = convert(uEltype, NaN)
 
     # Initialize fields with defaults
-    _alpha = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-    alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
-    _alpha1 = fill(nan_uEltype, (n_nodes + 1) * n_nodes * capacity)
-    alpha1 = unsafe_wrap(Array, pointer(_alpha1), (n_nodes + 1, n_nodes, capacity))
-    _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * capacity)
-    alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
+    _alpha = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+    alpha = unsafe_wrap(Array, pointer(_alpha),
+                        (ntuple(_ -> n_nodes, n_dims)..., capacity))
+    _alpha_interfaces = fill(nan_uEltype,
+                             n_dims * prod(ntuple(_ -> n_nodes + 1, n_dims)) * capacity)
+    alpha_interfaces = unsafe_wrap(Array, pointer(_alpha_interfaces),
+                                   (n_dims, ntuple(_ -> n_nodes + 1, n_dims)...,
+                                    capacity))
 
     _variable_bounds = Dict{Symbol, Vector{uEltype}}()
-    variable_bounds = Dict{Symbol, Array{uEltype, 3}}()
+    variable_bounds = Dict{Symbol, Array{uEltype, n_dims + 1}}()
     for key in bound_keys
-        _variable_bounds[key] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+        _variable_bounds[key] = fill(nan_uEltype,
+                                     prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
         variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
-                                           (n_nodes, n_nodes, capacity))
+                                           (ntuple(_ -> n_nodes, n_dims)..., capacity))
     end
 
-    return ContainerSubcellLimiterIDP2D{uEltype}(alpha, alpha1, alpha2,
-                                                 variable_bounds,
-                                                 _alpha, _alpha1, _alpha2,
-                                                 _variable_bounds)
+    return ContainerSubcellLimiterIDP{uEltype, n_dims + 1, n_dims + 2}(alpha,
+                                                                       alpha_interfaces,
+                                                                       variable_bounds,
+                                                                       _alpha,
+                                                                       _alpha_interfaces,
+                                                                       _variable_bounds)
 end
 
-nnodes(container::ContainerSubcellLimiterIDP2D) = size(container.alpha, 1)
+nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
+function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
     n_nodes = nnodes(container)
+    n_dims = size(container.alpha_interfaces, 1)
 
-    (; _alpha, _alpha1, _alpha2) = container
+    (; _alpha, _alpha_interfaces) = container
     resize!(_alpha, n_nodes * n_nodes * capacity)
-    container.alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
+    container.alpha = unsafe_wrap(Array, pointer(_alpha),
+                                  (ntuple(_ -> n_nodes, n_dims)..., capacity))
     container.alpha .= convert(eltype(container.alpha), NaN)
-    resize!(_alpha1, (n_nodes + 1) * n_nodes * capacity)
-    container.alpha1 = unsafe_wrap(Array, pointer(_alpha1),
-                                   (n_nodes + 1, n_nodes, capacity))
-    resize!(_alpha2, n_nodes * (n_nodes + 1) * capacity)
-    container.alpha2 = unsafe_wrap(Array, pointer(_alpha2),
-                                   (n_nodes, n_nodes + 1, capacity))
+    resize!(_alpha_interfaces,
+            n_dims * prod(ntuple(_ -> n_nodes + 1, n_dims)) * capacity)
+    container.alpha_interfaces = unsafe_wrap(Array, pointer(_alpha_interfaces),
+                                             (n_dims,
+                                              ntuple(_ -> n_nodes + 1, n_dims)...,
+                                              capacity))
 
     (; _variable_bounds) = container
     for (key, _) in _variable_bounds
-        resize!(_variable_bounds[key], n_nodes * n_nodes * capacity)
+        resize!(_variable_bounds[key], prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
         container.variable_bounds[key] = unsafe_wrap(Array,
                                                      pointer(_variable_bounds[key]),
-                                                     (n_nodes, n_nodes, capacity))
+                                                     (ntuple(_ -> n_nodes, n_dims)...,
+                                                      capacity))
     end
 
     return nothing
