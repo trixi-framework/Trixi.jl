@@ -168,7 +168,6 @@ This function applies the same boundary condition to all standard boundaries:
 - `boundary_condition`: The boundary condition function to apply to all boundaries
 # Returns
 - `Dict{Symbol, Any}`: Dictionary mapping boundary names to the boundary condition
-
 """
 
 function boundary_condition_default_p4est_3D(boundary_condition)
