@@ -56,6 +56,8 @@ function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
         limiter_entropy_bounded!(u, u_prev, limiter!.exp_entropy_decrease_max,
                                  mesh_equations_solver_cache(semi)...)
     end
+
+    return nothing
 end
 
 # Exponentiated entropy change for the thermodynamic entropy (see `entropy_thermodynamic`) 
