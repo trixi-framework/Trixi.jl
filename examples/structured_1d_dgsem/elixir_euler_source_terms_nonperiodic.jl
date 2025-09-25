@@ -30,6 +30,9 @@ f1() = SVector(0.0)
 f2() = SVector(2.0)
 mesh = StructuredMesh((16,), (f1, f2), periodicity = false)
 
+# Alternative to the boundary_conditions defined above:
+# boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms,
                                     boundary_conditions = boundary_conditions)

@@ -35,6 +35,9 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = false, initial_refinement_level = 1)
 
+# Alternative to the boundary_conditions defined above:
+# boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test,
                                     boundary_conditions = boundary_conditions)

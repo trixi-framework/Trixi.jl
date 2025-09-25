@@ -22,6 +22,10 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000,
                 periodicity = (false, true, true))
 
+# Alternative to the boundary_conditions defined above if you want to apply the same boundary condition to all faces of the mesh:
+# boundary_condition = boundary_condition_periodic
+# boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_poisson_nonperiodic,
                                     boundary_conditions = boundary_conditions)
