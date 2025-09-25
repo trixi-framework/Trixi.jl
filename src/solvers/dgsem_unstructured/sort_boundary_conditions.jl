@@ -154,6 +154,7 @@ end
 
 """
     boundary_condition_default_3D
+
 Create a default boundary condition dictionary for p4est meshes in 3D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
