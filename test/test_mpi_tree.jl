@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 
 # Needed to skip certain tests on Windows CI
 CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
@@ -25,8 +25,8 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
 
     @trixi_testset "elixir_advection_restart.jl" begin
         using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49
-        Trixi.mpi_isroot() && println("═"^100)
-        Trixi.mpi_isroot() &&
+        mpi_isroot() && println("═"^100)
+        mpi_isroot() &&
             println(joinpath(EXAMPLES_DIR,
                              "elixir_advection_timeintegration_adaptive.jl"))
         trixi_include(@__MODULE__,
@@ -35,8 +35,8 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                       alg = RDPK3SpFSAL49(), tspan = (0.0, 10.0))
         l2_expected, linf_expected = analysis_callback(sol)
 
-        Trixi.mpi_isroot() && println("═"^100)
-        Trixi.mpi_isroot() &&
+        mpi_isroot() && println("═"^100)
+        mpi_isroot() &&
             println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
         # Errors are exactly the same as in the elixir_advection_extended.jl
         trixi_include(@__MODULE__,
@@ -45,8 +45,8 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                       base_elixir = "elixir_advection_timeintegration_adaptive.jl")
         l2_actual, linf_actual = analysis_callback(sol)
 
-        Trixi.mpi_isroot() && @test l2_actual == l2_expected
-        Trixi.mpi_isroot() && @test linf_actual == linf_expected
+        mpi_isroot() && @test l2_actual == l2_expected
+        mpi_isroot() && @test linf_actual == linf_expected
     end
 
     @trixi_testset "elixir_advection_mortar.jl" begin
@@ -60,7 +60,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as in the serial test!
                             l2=[4.913300828257469e-5],
-                            linf=[0.00045263895394385967],)
+                            linf=[0.00045263895394385967])
     end
 
     @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
@@ -68,7 +68,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                                      "elixir_advection_amr_nonperiodic.jl"),
                             # Expected errors are exactly the same as in the serial test!
                             l2=[3.2207388565869075e-5],
-                            linf=[0.0007508059772436404],)
+                            linf=[0.0007508059772436404])
     end
 
     @trixi_testset "elixir_advection_restart_amr.jl" begin
@@ -81,15 +81,16 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
     # Linear scalar advection with AMR
     # These example files are only for testing purposes and have no practical use
     @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
+        using Trixi: Trixi
         # Here, we also test that SaveSolutionCallback prints multiple mesh files with AMR
         # Start with a clean environment: remove Trixi.jl output directory if it exists
         outdir = "out"
-        Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
+        mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
         Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_refine_twice.jl"),
                             l2=[0.00020547512522578292],
-                            linf=[0.007831753383083506],)
+                            linf=[0.007831753383083506])
         meshfiles = filter(file -> endswith(file, ".h5") && startswith(file, "mesh"),
                            readdir(outdir))
         @test length(meshfiles) > 1
@@ -99,7 +100,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_coarsen_twice.jl"),
                             l2=[0.0014321062757891826],
-                            linf=[0.0253454486893413],)
+                            linf=[0.0253454486893413])
     end
 
     # Hyperbolic diffusion
@@ -204,7 +205,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                                     0.0002973166773747593,
                                     0.0002973166773760916,
                                     0.001154106793870291
-                                ],)
+                                ])
         end
     end
 
@@ -245,8 +246,8 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                                 ])
 
             @testset "error-based step size control" begin
-                Trixi.mpi_isroot() && println("-"^100)
-                Trixi.mpi_isroot() &&
+                mpi_isroot() && println("-"^100)
+                mpi_isroot() &&
                     println("elixir_euler_ec.jl with error-based step size control")
 
                 # Use callbacks without stepsize_callback to test error-based step size control
@@ -257,7 +258,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                             ode_default_options()..., callback = callbacks)
                 summary_callback()
                 errors = analysis_callback(sol)
-                if Trixi.mpi_isroot()
+                if mpi_isroot()
                     @test errors.l2≈[
                         0.061653630426688116,
                         0.05006930431098764,
@@ -323,7 +324,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                                 0.03857193149447702,
                                 0.031090457959835893,
                                 0.12125130332971423
-                            ],)
+                            ])
     end
 
     if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
