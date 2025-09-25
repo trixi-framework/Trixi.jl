@@ -193,7 +193,6 @@ This function applies the same boundary condition to all standard boundaries:
 # Returns
 - Named tuple mapping boundary names to the boundary condition
 """
-
 function boundary_condition_default_structured_1D(boundary_condition)
 
     return (x_neg = boundary_condition,
