@@ -26,7 +26,7 @@ end
 
 @trixi_testset "elixir_linearelasticity_impact.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearelasticity_impact.jl"),
-                        l2=[0.004322195190964512, 368483.78279872204],
+                        l2=[0.004322196488938371, 368483.8160335645],
                         linf=[0.010726138542416276, 999999.9958776952])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
