@@ -219,6 +219,7 @@ function boundary_condition_default_structured_2D(boundary_condition)
             y_neg = boundary_condition,
             y_pos = boundary_condition)
 end
+
 """
     boundary_condition_default_structured_3D
 Create a default boundary condition dictionary for structured meshes in 3D
