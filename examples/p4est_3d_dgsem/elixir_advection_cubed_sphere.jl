@@ -19,7 +19,7 @@ boundary_conditions = Dict(:inside => boundary_condition,
 trees_per_face_dim = 5 # number of trees in the first two local dimensions of each face
 sphere_layers = 3 # number of trees in the third local dimension of each face
 inner_radius = 0.5 # inner radius of the sphere
-thickness = 0.5 # thickness of the sphere, outer radius is `inner_radius + thickness`
+thickness = 0.5 # thickness of the spherical shell, outer radius is `inner_radius + thickness`
 mesh = P4estMeshCubedSphere(trees_per_face_dim, sphere_layers,
                             inner_radius, thickness,
                             polydeg = 3)

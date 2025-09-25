@@ -1052,7 +1052,7 @@ The mesh will have two boundaries, `:inside` and `:outside`.
 - `layers::Integer`: the number of trees in the third local dimension of each face, i.e., the number
                      of layers of the sphere.
 - `inner_radius::RealT`: the inner radius of the sphere.
-- `thickness::RealT`: the thickness of the sphere. The outer radius will be `inner_radius + thickness`.
+- `thickness::RealT`: the thickness of the spherical shell. The outer radius will be `inner_radius + thickness`.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.

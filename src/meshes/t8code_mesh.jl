@@ -797,7 +797,7 @@ Construct a cubed spherical shell of given inner radius and thickness as `T8code
 - `layers::Integer`: the number of trees in the third local dimension of each face, i.e.,
                      the number of layers of the shell.
 - `inner_radius::RealT`: Radius of the inner side of the shell.
-- `thickness::RealT`: Thickness of the shell. The outer radius will be
+- `thickness::RealT`: Thickness of the spherical shell. The outer radius will be
                         `inner_radius + thickness`.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
