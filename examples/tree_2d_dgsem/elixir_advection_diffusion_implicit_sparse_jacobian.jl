@@ -37,9 +37,6 @@ function initial_condition_diffusive_convergence_test(x, t,
 end
 initial_condition = initial_condition_diffusive_convergence_test
 
-boundary_conditions = boundary_condition_periodic
-boundary_conditions_parabolic = boundary_condition_periodic
-
 ###############################################################################
 ### semidiscretization for sparsity detection ###
 
@@ -51,9 +48,7 @@ jac_eltype = jacobian_eltype(real(solver), jac_detector)
 semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver,
-                                             uEltype = jac_eltype;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+                                             uEltype = jac_eltype)
 
 tspan = (0.0, 1.5) # Re-used for wrapping `rhs_parabolic!` below
 
@@ -88,10 +83,7 @@ coloring_vec_parabolic = column_colors(coloring_result)
 # Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
 semi_float_type = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
-                                             initial_condition, solver;
-                                             solver_parabolic = ViscousFormulationBassiRebay1(),
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+                                             initial_condition, solver)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_jac_sparse = semidiscretize(semi_float_type, tspan,
