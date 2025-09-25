@@ -17,7 +17,7 @@ boundary_conditions = Dict(:inside => boundary_condition,
                            :outside => boundary_condition)
 
 mesh = P4estMeshCubedSphere(5, 3, 0.5, 0.5,
-                            polydeg = 3, initial_refinement_level = 0)
+                            polydeg = 3)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
