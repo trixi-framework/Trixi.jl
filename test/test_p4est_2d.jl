@@ -805,7 +805,7 @@ end
     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-12)
 end
 
-@trixi_testset "elixir_euler_weak_blast_wave_amr_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_weak_blast_wave_amr_sc_subcell.jl (local limiting)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
@@ -813,16 +813,16 @@ end
                                                              min)],
                         cfl=0.3,
                         l2=[
-                            0.12049996737110788,
-                            0.12093081896617454,
-                            0.12093228477129307,
-                            0.7676282307274036
+                            0.12153378582660491,
+                            0.1215091567409984,
+                            0.1215090354183208,
+                            0.7684174582749469
                         ],
                         linf=[
-                            0.5256684445963113,
-                            0.6997710439450362,
-                            0.6997495003742517,
-                            3.985531821525631
+                            0.5365328391224498,
+                            0.7050461256270535,
+                            0.7050580847524439,
+                            4.044520049640171
                         ],
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
