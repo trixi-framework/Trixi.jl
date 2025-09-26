@@ -156,6 +156,7 @@ include("indicators_3d.jl")
 
 include("subcell_limiters_2d.jl")
 include("dg_2d_subcell_limiters.jl")
+include("dg_3d_subcell_limiters.jl")
 
 # Specialized implementations used to improve performance
 include("dg_2d_compressible_euler.jl")
