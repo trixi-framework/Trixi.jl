@@ -91,9 +91,7 @@ end
                                                       surface_flux_function,
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach3_flow(x, t, equations)
-    flux = Trixi.flux(u_boundary, normal_direction, equations)
-
-    return flux
+    return flux(u_boundary, normal_direction, equations)
 end
 
 # For physical significance of boundary conditions, see sketch at `mapping_cylinder_shock_fitted`
