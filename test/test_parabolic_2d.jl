@@ -479,6 +479,23 @@ end
                         tspan=(0.0, 1.0))
 end
 
+@trixi_testset "TreeMesh2D: elixir_navierstokes_viscous_shock.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        l2=[
+                            2.817640352994614e-5,
+                            1.3827801939742e-5,
+                            3.1001993851549174e-17,
+                            1.7535689010948764e-5
+                        ],
+                        linf=[
+                            0.0002185837290411552,
+                            0.00013405261969601234,
+                            1.8273738729889617e-16,
+                            0.00015782934605046428
+                        ])
+end
+
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
