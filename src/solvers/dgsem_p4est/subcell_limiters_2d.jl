@@ -10,18 +10,17 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
     _, _, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
 
-    (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
+        primary_element = cache.interfaces.neighbor_ids[1, interface]
+        primary_indices = cache.interfaces.node_indices[1, interface]
 
         # Get element and side index information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
+        secondary_element = cache.interfaces.neighbor_ids[2, interface]
+        secondary_indices = cache.interfaces.node_indices[2, interface]
 
         # Create the local i,j indexing
         i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
@@ -65,6 +64,106 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
             j_primary += j_primary_step
             i_secondary += i_secondary_step
             j_secondary += j_secondary_step
+        end
+    end
+
+    # Calc bounds at mortars
+    # TODO: How to include values at mortar interfaces?
+    # See comment above TreeMesh version
+    l2_mortars = dg.mortar isa LobattoLegendreMortarL2
+    for mortar in eachmortar(dg, cache)
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        # Get index information on the small elements
+        small_indices = cache.mortars.node_indices[1, mortar]
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = cache.mortars.node_indices[2, mortar]
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for i in eachnode(dg)
+            i_mortar_s = iszero(i_small_step) ? j_small : i_small
+            i_mortar_l = iszero(i_large_step) ? j_large : i_large
+
+            var_lower = u[variable, i_small, j_small, lower_element]
+            var_upper = u[variable, i_small, j_small, upper_element]
+            var_large = u[variable, i_large, j_large, large_element]
+
+            i_small_inner = i_small_start
+            j_small_inner = j_small_start
+            i_large_inner = i_large_start
+            j_large_inner = j_large_start
+            for j in eachnode(dg)
+                j_mortar_s = iszero(i_small_step) ? j_small_inner : i_small_inner
+                j_mortar_l = iszero(i_large_step) ? j_large_inner : i_large_inner
+
+                # values of large element to lower element
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s] > 0
+                    var_min[i_small_inner, j_small_inner, lower_element] = min(var_min[i_small_inner,
+                                                                                       j_small_inner,
+                                                                                       lower_element],
+                                                                               var_large)
+                    var_max[i_small_inner, j_small_inner, lower_element] = max(var_max[i_small_inner,
+                                                                                       j_small_inner,
+                                                                                       lower_element],
+                                                                               var_large)
+                end
+                # values of lower element to large element
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s] > 0
+                    var_min[i_large_inner, j_large_inner, large_element] = min(var_min[i_large_inner,
+                                                                                       j_large_inner,
+                                                                                       large_element],
+                                                                               var_lower)
+                    var_max[i_large_inner, j_large_inner, large_element] = max(var_max[i_large_inner,
+                                                                                       j_large_inner,
+                                                                                       large_element],
+                                                                               var_lower)
+                end
+                # values of large element to upper element
+                if l2_mortars ||
+                   dg.mortar.mortar_weights[i_mortar_l, j_mortar_s + nnodes(dg)] > 0
+                    var_min[i_small_inner, j_small_inner, upper_element] = min(var_min[i_small_inner,
+                                                                                       j_small_inner,
+                                                                                       upper_element],
+                                                                               var_large)
+                    var_max[i_small_inner, j_small_inner, upper_element] = max(var_max[i_small_inner,
+                                                                                       j_small_inner,
+                                                                                       upper_element],
+                                                                               var_large)
+                end
+                # values of upper element to large element
+                if l2_mortars ||
+                   dg.mortar.mortar_weights[j_mortar_l, i_mortar_s + nnodes(dg)] > 0
+                    var_min[i_large_inner, j_large_inner, large_element] = min(var_min[i_large_inner,
+                                                                                       j_large_inner,
+                                                                                       large_element],
+                                                                               var_upper)
+                    var_max[i_large_inner, j_large_inner, large_element] = max(var_max[i_large_inner,
+                                                                                       j_large_inner,
+                                                                                       large_element],
+                                                                               var_upper)
+                end
+                i_small_inner += i_small_step
+                j_small_inner += j_small_step
+                i_large_inner += i_large_step
+                j_large_inner += j_large_step
+            end
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
         end
     end
 
@@ -138,18 +237,17 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
 
-    (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
+        primary_element = cache.interfaces.neighbor_ids[1, interface]
+        primary_indices = cache.interfaces.node_indices[1, interface]
 
         # Get element and side index information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
+        secondary_element = cache.interfaces.neighbor_ids[2, interface]
+        secondary_indices = cache.interfaces.node_indices[2, interface]
 
         # Create the local i,j indexing
         i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
@@ -187,6 +285,93 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
             j_primary += j_primary_step
             i_secondary += i_secondary_step
             j_secondary += j_secondary_step
+        end
+    end
+
+    # Calc bounds at mortars
+    # TODO: How to include values at mortar interfaces?
+    # See comment above TreeMesh version
+    l2_mortars = dg.mortar isa LobattoLegendreMortarL2
+    for mortar in eachmortar(dg, cache)
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        # Get index information on the small elements
+        small_indices = cache.mortars.node_indices[1, mortar]
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = cache.mortars.node_indices[2, mortar]
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for i in eachnode(dg)
+            i_mortar_s = iszero(i_small_step) ? j_small : i_small
+            i_mortar_l = iszero(i_large_step) ? j_large : i_large
+
+            u_lower = get_node_vars(u, equations, dg, i_small, j_small, lower_element)
+            u_upper = get_node_vars(u, equations, dg, i_small, j_small, upper_element)
+            u_large = get_node_vars(u, equations, dg, i_large, j_large, large_element)
+            var_lower = variable(u_lower, equations)
+            var_upper = variable(u_upper, equations)
+            var_large = variable(u_large, equations)
+
+            i_small_inner = i_small_start
+            j_small_inner = j_small_start
+            i_large_inner = i_large_start
+            j_large_inner = j_large_start
+            for j in eachnode(dg)
+                j_mortar_s = iszero(i_small_step) ? j_small_inner : i_small_inner
+                j_mortar_l = iszero(i_large_step) ? j_large_inner : i_large_inner
+
+                # values of large element to lower element
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s] > 0
+                    var_minmax[i_small_inner, j_small_inner, lower_element] = minmax(var_minmax[i_small_inner,
+                                                                                                j_small_inner,
+                                                                                                lower_element],
+                                                                                     var_large)
+                end
+                # values of lower element to large element
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s] > 0
+                    var_minmax[i_large_inner, j_large_inner, large_element] = minmax(var_minmax[i_large_inner,
+                                                                                                j_large_inner,
+                                                                                                large_element],
+                                                                                     var_lower)
+                end
+                # values of large element to upper element
+                if l2_mortars ||
+                   dg.mortar.mortar_weights[i_mortar_l, j_mortar_s + nnodes(dg)] > 0
+                    var_minmax[i_small_inner, j_small_inner, upper_element] = minmax(var_minmax[i_small_inner,
+                                                                                                j_small_inner,
+                                                                                                upper_element],
+                                                                                     var_large)
+                end
+                # values of upper element to large element
+                if l2_mortars ||
+                   dg.mortar.mortar_weights[j_mortar_l, i_mortar_s + nnodes(dg)] > 0
+                    var_minmax[i_large_inner, j_large_inner, large_element] = minmax(var_minmax[i_large_inner,
+                                                                                                j_large_inner,
+                                                                                                large_element],
+                                                                                     var_upper)
+                end
+                i_small_inner += i_small_step
+                j_small_inner += j_small_step
+                i_large_inner += i_large_step
+                j_large_inner += j_large_step
+            end
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
         end
     end
 
