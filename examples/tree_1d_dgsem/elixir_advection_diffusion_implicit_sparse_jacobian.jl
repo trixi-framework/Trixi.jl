@@ -6,22 +6,22 @@ using OrdinaryDiffEqSDIRK, ADTypes
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
 
-advection_velocity = (1.5, 1.0)
-equations = LinearScalarAdvectionEquation2D(advection_velocity)
+advection_velocity = 1.5
+equations = LinearScalarAdvectionEquation1D(advection_velocity)
 diffusivity() = 5.0e-2
-equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
+equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0)
-coordinates_max = (1.0, 1.0)
+coordinates_min = -1.0
+coordinates_max = 1.0
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 30_000)
 
 function initial_condition_diffusive_convergence_test(x, t,
-                                                      equation::LinearScalarAdvectionEquation2D)
+                                                      equation::LinearScalarAdvectionEquation1D)
     # Store translated coordinate for easy use of exact solution
     RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t

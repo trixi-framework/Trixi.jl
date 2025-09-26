@@ -264,47 +264,6 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_implicit_sparse_jacobian.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
-                                 "elixir_advection_diffusion_implicit_sparse_jacobian.jl"),
-                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
-                        l2=[4.3996570276332366e-5], linf=[7.656808122324943e-5])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi_float_type, t)) < 1000
-    end
-end
-
-@trixi_testset "TreeMesh2D: elixir_navierstokes_convergence_implicit_sparse_jacobian.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_navierstokes_convergence_implicit_sparse_jacobian.jl"),
-                        tspan=(0.0, 0.5),
-                        l2=[
-                            0.0032371766320782765,
-                            0.006148721228526513,
-                            0.00407449264954935,
-                            0.00832496237207414
-                        ],
-                        linf=[
-                            0.017011038728151018,
-                            0.05999349864161193,
-                            0.01523347198959316,
-                            0.03580225621058908
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
@@ -630,6 +589,32 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "P4estMesh2D: elixir_navierstokes_convergence_nonperiodic_implicit_sparse_jacobian.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_convergence_nonperiodic_implicit_sparse_jacobian.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[
+                            0.0032371766320782765,
+                            0.006148721228526513,
+                            0.00407449264954935,
+                            0.00832496237207414
+                        ],
+                        linf=[
+                            0.017011038728151018,
+                            0.05999349864161193,
+                            0.01523347198959316,
+                            0.03580225621058908
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin

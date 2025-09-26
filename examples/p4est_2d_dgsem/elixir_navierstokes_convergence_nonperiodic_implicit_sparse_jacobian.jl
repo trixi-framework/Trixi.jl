@@ -20,10 +20,11 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 2,
-                periodicity = (true, false),
-                n_cells_max = 30_000)
+trees_per_dimension = (4, 4)
+mesh = P4estMesh(trees_per_dimension,
+                polydeg=3, initial_refinement_level = 2,
+                coordinates_min=coordinates_min, coordinates_max=coordinates_max,
+                periodicity = (false, false))
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)
@@ -184,24 +185,26 @@ initial_condition = initial_condition_navier_stokes_convergence_test
 # BC types
 velocity_bc_top_bottom = NoSlip() do x, t, equations_parabolic
     u_cons = initial_condition_navier_stokes_convergence_test(x, t, equations_parabolic)
-    # This may be an `SVector` or simply a `Tuple`
-    return (u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
+    return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
 end
-heat_bc_top_bottom = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
+
+heat_bc_top_bottom = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom,
                                                                   heat_bc_top_bottom)
 
+boundary_condition_left_right = BoundaryConditionDirichlet(initial_condition_navier_stokes_convergence_test)
+
 # define inviscid boundary conditions
-boundary_conditions = (; x_neg = boundary_condition_periodic,
-                       x_pos = boundary_condition_periodic,
-                       y_neg = boundary_condition_slip_wall,
-                       y_pos = boundary_condition_slip_wall)
+boundary_conditions = Dict(:x_neg => boundary_condition_left_right,
+                           :x_pos => boundary_condition_left_right,
+                           :y_neg => boundary_condition_slip_wall,
+                           :y_pos => boundary_condition_slip_wall)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; x_neg = boundary_condition_periodic,
-                                 x_pos = boundary_condition_periodic,
-                                 y_neg = boundary_condition_top_bottom,
-                                 y_pos = boundary_condition_top_bottom)
+boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_left_right,
+                                     :x_pos => boundary_condition_left_right,
+                                     :y_neg => boundary_condition_top_bottom,
+                                     :y_pos => boundary_condition_top_bottom)
 
 ###############################################################################
 ### semidiscretization for sparsity detection ###
