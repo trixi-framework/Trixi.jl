@@ -452,6 +452,11 @@ end
     @test isnothing(display(c3d))
 end
 
+@timed_testset "DG IDP mortar container debug output" begin
+    c2d = Trixi.IDPMortarContainer2D{Float64}(1, 1, 1)
+    @test isnothing(display(c2d))
+end
+
 @timed_testset "Printing indicators/controllers" begin
     # OBS! Constructing indicators/controllers using the parameters below doesn't make sense. It's
     # just useful to run basic tests of `show` methods.
