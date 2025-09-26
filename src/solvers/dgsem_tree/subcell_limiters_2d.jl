@@ -12,9 +12,9 @@
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, bound_keys)
-    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)}(0,
-                                                                                   nnodes(basis),
-                                                                                   bound_keys)
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{real(basis)}(2, 0,
+                                                                                 nnodes(basis),
+                                                                                 bound_keys)
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
@@ -51,18 +51,20 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4},
     end
 
     # Calculate alpha1 and alpha2
-    @unpack alpha1, alpha2 = limiter.cache.subcell_limiter_coefficients
+    @unpack alpha_interfaces = limiter.cache.subcell_limiter_coefficients
     @threaded for element in eachelement(dg, semi.cache)
         for j in eachnode(dg), i in 2:nnodes(dg)
-            alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
+            alpha_interfaces[1, i, j, element] = max(alpha[i - 1, j, element],
+                                                     alpha[i, j, element])
         end
         for j in 2:nnodes(dg), i in eachnode(dg)
-            alpha2[i, j, element] = max(alpha[i, j - 1, element], alpha[i, j, element])
+            alpha_interfaces[2, i, j, element] = max(alpha[i, j - 1, element],
+                                                     alpha[i, j, element])
         end
-        alpha1[1, :, element] .= zero(eltype(alpha1))
-        alpha1[nnodes(dg) + 1, :, element] .= zero(eltype(alpha1))
-        alpha2[:, 1, element] .= zero(eltype(alpha2))
-        alpha2[:, nnodes(dg) + 1, element] .= zero(eltype(alpha2))
+        alpha_interfaces[1, 1, :, element] .= zero(eltype(alpha_interfaces))
+        alpha_interfaces[1, nnodes(dg) + 1, :, element] .= zero(eltype(alpha_interfaces))
+        alpha_interfaces[2, :, 1, element] .= zero(eltype(alpha_interfaces))
+        alpha_interfaces[2, :, nnodes(dg) + 1, element] .= zero(eltype(alpha_interfaces))
     end
 
     return nothing
