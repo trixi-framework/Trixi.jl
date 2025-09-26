@@ -57,6 +57,9 @@ end
 cells_per_dimension = (4, 4, 4)
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
 
+# Alternative to the boundary_conditions defined above:
+# boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test,
                                     boundary_conditions = boundary_conditions)

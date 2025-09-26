@@ -50,6 +50,10 @@ boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initia
                                      :y_neg => BoundaryConditionDirichlet(initial_condition),
                                      :y_pos => BoundaryConditionDirichlet(initial_condition))
 
+# Alternative to the boundary_conditions_parabolic defined above:
+# boundary_condition = BoundaryConditionDirichlet(initial_condition)
+# boundary_conditions_parabolic = boundary_condition_default(mesh, boundary_condition)
+
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
