@@ -36,9 +36,7 @@
 
 using Trixi
 rm("out", force = true, recursive = true) #hide #md
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi_include(default_example_unstructured())
-end #hide #md
+trixi_include(default_example_unstructured())
 
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
 # on the curved quadrilateral mesh described in the
@@ -53,9 +51,7 @@ end #hide #md
 # To convert the HDF5-formatted `.h5` output file(s) from Trixi.jl into VTK format execute the following
 
 using Trixi2Vtk
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi2vtk("out/solution_000000180.h5", output_directory = "out")
-end #hide #md
+trixi2vtk("out/solution_000000180.h5", output_directory = "out")
 
 # Note this step takes about 15-30 seconds as the package `Trixi2Vtk` must be precompiled and executed for the first time
 # in your REPL session. The `trixi2vtk` command above will convert the solution file at the final time into a `.vtu` file
@@ -63,18 +59,14 @@ end #hide #md
 # where the new files will be saved; it defaults to the current directory. (2) Specifying a higher number of
 # visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
 
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi2vtk("out/solution_000000180.h5", output_directory = "out", nvisnodes = 12)
-end #hide #md
+trixi2vtk("out/solution_000000180.h5", output_directory = "out", nvisnodes = 12)
 
 # By default `trixi2vtk` sets `nvisnodes` to be the same as the number of nodes specified in
 # the `elixir` file used to run the simulation.
 
 # Finally, if you want to convert all the solution files to VTK execute
 
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi2vtk("out/solution_000*.h5", output_directory = "out", nvisnodes = 12)
-end #hide #md
+trixi2vtk("out/solution_000*.h5", output_directory = "out", nvisnodes = 12)
 
 # then it is possible to open the `.pvd` file with ParaView and create a video of the simulation.
 
@@ -365,12 +357,10 @@ stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
 
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    ## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
-    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-                dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                ode_default_options()..., callback = callbacks)
-end #hide #md
+## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks)
 
 # Visualization of the solution is carried out in a similar way as above. That is, one converts the `.h5`
 # output files with `trixi2vtk` and then plot the solution in ParaView. An example plot of the pressure

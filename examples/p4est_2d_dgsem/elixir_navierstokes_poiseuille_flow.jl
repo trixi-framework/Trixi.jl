@@ -54,7 +54,7 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x
                                     surface_flux_function,
                                     equations::CompressibleEulerEquations2D)
     # Calculate the boundary flux entirely from the internal solution state
-    return Trixi.flux(u_inner, normal_direction, equations)
+    return flux(u_inner, normal_direction, equations)
 end
 
 ### Hyperbolic boundary conditions ###

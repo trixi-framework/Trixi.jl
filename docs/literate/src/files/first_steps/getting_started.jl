@@ -141,7 +141,7 @@
 # trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
 # ```
 using Trixi, OrdinaryDiffEqLowStorageRK #hide #md
-trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")); #hide #md
 
 # The output contains a recap of the setup and various information about the course of the simulation.
 # For instance, the solution was approximated over the [`TreeMesh`](@ref) with 1024 effective cells using
@@ -216,7 +216,7 @@ nothing; #hide #md
 #   `elixir_euler_ec.jl` file that you just edited.
 #   ```julia
 #   using Trixi
-#   trixi_include(path/to/file)
+#   trixi_include(path/to/file);
 #   using Plots
 #   plot(sol)
 #   ```
@@ -224,7 +224,7 @@ nothing; #hide #md
 # condition.
 
 trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
-              initial_condition = initial_condition) #hide #md
+              initial_condition = initial_condition); #hide #md
 pd = PlotData2D(sol) #hide #md
 p1 = plot(pd["rho"]) #hide #md
 p2 = plot(pd["v1"], clim = (0.05, 0.15)) #hide #md
