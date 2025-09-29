@@ -1,7 +1,7 @@
 using Trixi
 using SparseConnectivityTracer # For obtaining the Jacobian sparsity pattern
 using SparseMatrixColorings # For obtaining the coloring vector
-using OrdinaryDiffEqSDIRK, ADTypes
+using OrdinaryDiffEqBDF, ADTypes
 
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
@@ -113,7 +113,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 time_int_tol = 1.0e-9
 time_abs_tol = 1.0e-9
 
-sol = solve(ode_jac_sparse, TRBDF2(; autodiff = AutoFiniteDiff());
-            dt = 0.1, save_everystep = false,
+sol = solve(ode_jac_sparse, SBDF2(; autodiff = AutoFiniteDiff());
+            dt = 0.01, save_everystep = false,
             abstol = time_abs_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

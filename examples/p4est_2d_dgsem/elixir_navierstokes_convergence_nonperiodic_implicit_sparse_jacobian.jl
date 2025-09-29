@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 using SparseConnectivityTracer # For obtaining the Jacobian sparsity pattern
 using SparseMatrixColorings # For obtaining the coloring vector
-using OrdinaryDiffEqSDIRK, ADTypes
+using OrdinaryDiffEqBDF, ADTypes
 
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
@@ -222,7 +222,7 @@ semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
-tspan = (0.0, 0.5) # Re-used for wrapping `rhs_parabolic!` below
+tspan = (0.0, 0.05) # Re-used for wrapping `rhs_parabolic!` below
 
 # Call `semidiscretize` to create the ODE problem to have access to the
 # initial condition based on which the sparsity pattern is computed
@@ -280,7 +280,7 @@ time_int_tol = 1e-8
 sol = solve(ode_jac_sparse, 
             # Default `AutoForwardDiff()` is not yet working, see
             # https://github.com/trixi-framework/Trixi.jl/issues/2369
-            Kvaerno4(; autodiff = AutoFiniteDiff()); 
-            abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
+            SBDF2(; autodiff = AutoFiniteDiff()); 
+            abstol = time_int_tol, reltol = time_int_tol, dt = 0.0005,
             save_everystep = false,
             ode_default_options()..., callback = callbacks)
