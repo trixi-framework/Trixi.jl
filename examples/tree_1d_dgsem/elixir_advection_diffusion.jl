@@ -1,6 +1,6 @@
 using OrdinaryDiffEqSDIRK, ADTypes
 using Trixi
-import LinearSolve:LUFactorization
+import LinearSolve: LUFactorization
 
 ###############################################################################
 # semidiscretization of the linear advection diffusion equation
