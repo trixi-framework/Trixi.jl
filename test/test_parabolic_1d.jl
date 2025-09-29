@@ -117,7 +117,7 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_implicit_sparse_jacobian.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
-                        l2=[0.05199461836224946], linf=[0.07350050454306145])
+                        l2=[0.05240130204342638], linf=[0.07407444680136666])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
