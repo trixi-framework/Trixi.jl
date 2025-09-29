@@ -16,13 +16,16 @@ function max_dt(backend, u, t, mesh::TreeMesh{3},
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
             lambda1, lambda2, lambda3 = max_abs_speeds(u_node, equations)
-            max_lambda1 = max(max_lambda1, lambda1)
-            max_lambda2 = max(max_lambda2, lambda2)
-            max_lambda3 = max(max_lambda3, lambda3)
+            max_lambda1 = Base.max(max_lambda1, lambda1)
+            max_lambda2 = Base.max(max_lambda2, lambda2)
+            max_lambda3 = Base.max(max_lambda3, lambda3)
         end
         inv_jacobian = cache.elements.inverse_jacobian[element]
-        max_scaled_speed = max(max_scaled_speed,
-                               inv_jacobian * (max_lambda1 + max_lambda2 + max_lambda3))
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian *
+                                    (max_lambda1 + max_lambda2 + max_lambda3))
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
@@ -38,8 +41,11 @@ function max_dt(backend, u, t, mesh::TreeMesh{3},
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         inv_jacobian = cache.elements.inverse_jacobian[element]
-        max_scaled_speed = max(max_scaled_speed,
-                               inv_jacobian * (max_lambda1 + max_lambda2 + max_lambda3))
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian *
+                                    (max_lambda1 + max_lambda2 + max_lambda3))
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
@@ -59,7 +65,9 @@ function max_dt(backend::Nothing, u, t,
         max_lambda = max_scaled_speed_element(u, typeof(mesh), equations, dg,
                                               contravariant_vectors, inverse_jacobian,
                                               element)
-        max_scaled_speed = max(max_scaled_speed, max_lambda)
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
@@ -154,10 +162,12 @@ function max_dt(backend, u, t,
 
             inv_jacobian = abs(inverse_jacobian[i, j, k, element])
 
-            max_scaled_speed = max(max_scaled_speed,
-                                   inv_jacobian *
-                                   (lambda1_transformed + lambda2_transformed +
-                                    lambda3_transformed))
+            # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+            # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+            max_scaled_speed = Base.max(max_scaled_speed,
+                                        inv_jacobian *
+                                        (lambda1_transformed + lambda2_transformed +
+                                         lambda3_transformed))
         end
     end
 
