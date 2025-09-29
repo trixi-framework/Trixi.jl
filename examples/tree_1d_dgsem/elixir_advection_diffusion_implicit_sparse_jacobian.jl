@@ -7,9 +7,9 @@ using OrdinaryDiffEqBDF, ADTypes
 # semidiscretization of the linear advection-diffusion equation
 
 advection_velocity = 1.5
-equations = LinearScalarAdvectionEquation1D(advection_velocity)
+equations_hyperbolic = LinearScalarAdvectionEquation1D(advection_velocity)
 diffusivity() = 5.0e-2
-equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
+equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations_hyperbolic)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
@@ -46,7 +46,7 @@ jac_detector = TracerSparsityDetector()
 jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
 semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations, equations_parabolic),
+                                             (equations_hyperbolic, equations_parabolic),
                                              initial_condition, solver,
                                              uEltype = jac_eltype)
 
@@ -63,6 +63,9 @@ du_ode = similar(u0_ode)
 
 # Only the parabolic part of the `SplitODEProblem` is treated implicitly so we only need the parabolic Jacobian, see
 # https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitFunction
+# Although we do sparsity detection on the entire RHS (since semi_jac_type depends on both equations and 
+# equations_parabolic), this is equivalent to doing sparsity detection on the diffusion problem alone
+# (see next section for a demonstration of this)
 
 # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
 # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
@@ -78,11 +81,39 @@ coloring_result = coloring(jac_prototype_parabolic, coloring_prob, coloring_alg)
 coloring_vec_parabolic = column_colors(coloring_result)
 
 ###############################################################################
+### Compare sparsity pattern based on hyperbolic-parabolic ###
+### problem with sparsity pattern of parabolic-only problem ###
+
+# We construct a semidiscretization just as we did previously, but this time with advection_velocity=0
+equations_hyperbolic_no_advection = LinearScalarAdvectionEquation1D(0)
+equations_parabolic_no_advection = LaplaceDiffusion1D(diffusivity(), equations_hyperbolic_no_advection)
+
+semi_jac_type_no_advection = SemidiscretizationHyperbolicParabolic(mesh,
+                                             (equations_hyperbolic_no_advection, 
+                                             equations_parabolic_no_advection),
+                                             initial_condition, solver,
+                                             uEltype = jac_eltype)
+ode_jac_type_no_advection = semidiscretize(semi_jac_type_no_advection, tspan)
+
+# Do sparsity detection on our semidiscretization with advection turned off
+rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode, u0_ode, semi_jac_type_no_advection, tspan[1])
+
+jac_prototype_parabolic_no_advection = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_ode, jac_detector)
+
+coloring_result_no_advection = coloring(jac_prototype_parabolic_no_advection, coloring_prob, coloring_alg)
+coloring_vec_parabolic_no_advection = column_colors(coloring_result)
+
+# Given that the stencil for parabolic solvers are always larger than those of hyperbolic solvers,
+# the sparsity detection will never depend on the hyperbolic part of the problem
+@assert(jac_prototype_parabolic == jac_prototype_parabolic_no_advection)
+@assert(coloring_vec_parabolic == coloring_vec_parabolic_no_advection)
+
+###############################################################################
 ### sparsity-aware semidiscretization and ODE ###
 
 # Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
 semi_float_type = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations, equations_parabolic),
+                                             (equations_hyperbolic, equations_parabolic),
                                              initial_condition, solver)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
