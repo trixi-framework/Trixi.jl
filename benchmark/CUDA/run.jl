@@ -56,7 +56,7 @@ function main(elixir_path)
 
     # run profiler
     maxiters = 5
-    initial_refinement_level = 2
+    initial_refinement_level = 1
 
     println("Running profiler (Float64)...")
     trixi_include(elixir_path,

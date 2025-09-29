@@ -306,6 +306,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
     u_euler = wrap_array(u_ode, semi_euler)
     u_gravity = wrap_array(cache.u_ode, semi_gravity)
     du_gravity = wrap_array(cache.du_ode, semi_gravity)
+    backend = trixi_backend(u_ode)
 
     # set up main loop
     finalstep = false
@@ -317,7 +318,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
     @unpack equations = semi_gravity
     while !finalstep
         dtau = @trixi_timeit timer() "calculate dtau" begin
-            cfl * max_dt(u_gravity, tau, semi_gravity.mesh,
+            cfl * max_dt(backend, u_gravity, tau, semi_gravity.mesh,
                    have_constant_speed(equations), equations,
                    semi_gravity.solver, semi_gravity.cache)
         end
