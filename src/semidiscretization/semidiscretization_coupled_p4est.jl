@@ -264,13 +264,32 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
     semi_coupled = integrator.p
     du_ode_coupled = first(get_tmp_cache(integrator))
 
+    # Extract global solution vector.
+    n_nodes = length(semi_coupled.semis[1].mesh.parent.nodes)
+    # Reformat the global solutions vector.
+    u_ode_reformatted = Vector{real(semi_coupled)}(undef, ndofs(semi_coupled))
+    u_ode_reformatted_reshape = reshape(u_ode_reformatted,
+                                        (n_nodes,
+                                         n_nodes,
+                                         length(semi_coupled.mesh_ids)))
+    # Extract the global solution vector from the local solutions.
+    foreach_enumerate(semi_coupled.semis) do (i, semi_)
+        u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+        system_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+        system_ode_reshape = reshape(system_ode,
+                                     (n_nodes, n_nodes,
+                                      Int(length(system_ode) / n_nodes^2)))
+        u_ode_reformatted_reshape[:, :, semi_coupled.mesh_ids .== i] .= system_ode_reshape
+    end
+
     # Loop over coupled systems' callbacks and initialize them individually
     for i in eachsystem(semi_coupled)
         cb = analysis_callback_coupled.callbacks[i]
         semi = semi_coupled.semis[i]
         u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
         du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
-        initialize!(cb, u_ode, du_ode, t, integrator, semi)
+        initialize!(cb, u_ode, du_ode, t, integrator, semi;
+                    u_global = u_ode_reformatted_reshape, semi_coupled = semi_coupled)
     end
 end
 

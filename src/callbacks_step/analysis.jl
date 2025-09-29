@@ -150,7 +150,7 @@ end
 # This is the actual initialization method
 # Note: we have this indirection to allow initializing a callback from the AnalysisCallbackCoupled
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
-                     integrator, semi) where {Condition, Affect! <: AnalysisCallback}
+                     integrator, semi; u_global = nothing, semi_coupled = nothing) where {Condition, Affect! <: AnalysisCallback}
     initial_state_integrals = integrate(u_ode, semi)
     _, equations, _, _ = mesh_equations_solver_cache(semi)
 
@@ -218,7 +218,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
     # Note: For details see the actual callback function below
     analysis_callback.start_gc_time = Base.gc_time_ns()
 
-    analysis_callback(u_ode, du_ode, integrator, semi)
+    analysis_callback(u_ode, du_ode, integrator, semi; u_global = u_global, semi_coupled = semi_coupled)
     return nothing
 end
 
@@ -227,16 +227,18 @@ function (analysis_callback::AnalysisCallback)(integrator)
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     u_ode = integrator.u
-    analysis_callback(u_ode, du_ode, integrator, semi)
+    analysis_callback(u_ode, du_ode, integrator, semi; u_global, semi_coupled)
 end
 
 # This method gets called internally as the main entry point to the AnalysiCallback
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
-function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
+function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi;
+                                               u_global = nothing, semi_coupled = nothing)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     @unpack dt, t = integrator
     iter = integrator.stats.naccept
 
+    @autoinfiltrate
     # Compute the percentage of the simulation that is done
     t = integrator.t
     t_initial = first(integrator.sol.prob.tspan)
