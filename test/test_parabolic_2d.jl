@@ -595,17 +595,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_convergence_nonperiodic_implicit_sparse_jacobian.jl"),
                         tspan=(0.0, 0.003),
+                        initial_refinement_level=1,
                         l2=[
-                            3.1541556275071338e-6,
-                            8.184640302981804e-6,
-                            8.062391655601536e-6,
-                            4.7582512486365587e-5
+                            4.588219785453587e-5,
+                            0.00011485891993215742,
+                            0.00011457767113486697,
+                            0.0007063058724082755
                         ],
                         linf=[
-                            1.5362999041812486e-5,
-                            3.765373955166851e-5,
-                            4.380899179601272e-5,
-                            0.000278756949764869
+                            0.00017051082943986273,
+                            0.0005007782853971854,
+                            0.0005309051938069409,
+                            0.0036206287734668052
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
