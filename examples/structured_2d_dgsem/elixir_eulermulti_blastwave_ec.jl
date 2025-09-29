@@ -12,15 +12,14 @@ volume_flux = flux_ranocha
 solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
+cells_per_dimension = (32, 32)
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
-                n_cells_max = 10_000,
-                periodicity = true)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_condition_periodic)
+                                    boundary_conditions = boundary_condition_slip_wall)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -31,9 +30,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_integrals = (Trixi.density,))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -42,7 +39,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 1.0)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
