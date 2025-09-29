@@ -1366,14 +1366,11 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
 end
 
 # Container data structure (structure-of-arrays style) for variables used for IDP limiting
-mutable struct ContainerSubcellLimiterIDP{uEltype <: Real, NDIMSP1, NDIMSP2} <:
-               AbstractContainer
+mutable struct ContainerSubcellLimiterIDP{uEltype <: Real, NDIMSP1} <: AbstractContainer
     alpha::Array{uEltype, NDIMSP1} # [i, j, k, element]
-    alpha_interfaces::Array{uEltype, NDIMSP2} # [direction, i, j, k, element]
     variable_bounds::Dict{Symbol, Array{uEltype, NDIMSP1}}
     # internal `resize!`able storage
     _alpha::Vector{uEltype}
-    _alpha_interfaces::Vector{uEltype}
     _variable_bounds::Dict{Symbol, Vector{uEltype}}
 end
 
@@ -1385,11 +1382,6 @@ function ContainerSubcellLimiterIDP{uEltype}(n_dims, capacity::Integer, n_nodes,
     _alpha = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
     alpha = unsafe_wrap(Array, pointer(_alpha),
                         (ntuple(_ -> n_nodes, n_dims)..., capacity))
-    _alpha_interfaces = fill(nan_uEltype,
-                             n_dims * prod(ntuple(_ -> n_nodes + 1, n_dims)) * capacity)
-    alpha_interfaces = unsafe_wrap(Array, pointer(_alpha_interfaces),
-                                   (n_dims, ntuple(_ -> n_nodes + 1, n_dims)...,
-                                    capacity))
 
     _variable_bounds = Dict{Symbol, Vector{uEltype}}()
     variable_bounds = Dict{Symbol, Array{uEltype, n_dims + 1}}()
@@ -1400,12 +1392,8 @@ function ContainerSubcellLimiterIDP{uEltype}(n_dims, capacity::Integer, n_nodes,
                                            (ntuple(_ -> n_nodes, n_dims)..., capacity))
     end
 
-    return ContainerSubcellLimiterIDP{uEltype, n_dims + 1, n_dims + 2}(alpha,
-                                                                       alpha_interfaces,
-                                                                       variable_bounds,
-                                                                       _alpha,
-                                                                       _alpha_interfaces,
-                                                                       _variable_bounds)
+    return ContainerSubcellLimiterIDP{uEltype, n_dims + 1}(alpha, variable_bounds,
+                                                           _alpha, _variable_bounds)
 end
 
 nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
@@ -1417,19 +1405,13 @@ nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
 # internal storage.
 function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
     n_nodes = nnodes(container)
-    n_dims = size(container.alpha_interfaces, 1)
+    n_dims = length(size(container.alpha)) - 1
 
-    (; _alpha, _alpha_interfaces) = container
-    resize!(_alpha, n_nodes * n_nodes * capacity)
+    (; _alpha) = container
+    resize!(_alpha, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
     container.alpha = unsafe_wrap(Array, pointer(_alpha),
                                   (ntuple(_ -> n_nodes, n_dims)..., capacity))
     container.alpha .= convert(eltype(container.alpha), NaN)
-    resize!(_alpha_interfaces,
-            n_dims * prod(ntuple(_ -> n_nodes + 1, n_dims)) * capacity)
-    container.alpha_interfaces = unsafe_wrap(Array, pointer(_alpha_interfaces),
-                                             (n_dims,
-                                              ntuple(_ -> n_nodes + 1, n_dims)...,
-                                              capacity))
 
     (; _variable_bounds) = container
     for (key, _) in _variable_bounds

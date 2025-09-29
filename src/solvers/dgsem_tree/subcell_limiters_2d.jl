@@ -30,8 +30,8 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
             idp_bounds_delta_global)
 end
 
-function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4},
-                                      semi, equations, dg::DGSEM,
+# dimension agnostic
+function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
                                       t, dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
@@ -48,23 +48,6 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4},
     if limiter.local_onesided
         @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha, limiter,
                                                                    u, t, dt, semi)
-    end
-
-    # Calculate alpha1 and alpha2
-    @unpack alpha_interfaces = limiter.cache.subcell_limiter_coefficients
-    @threaded for element in eachelement(dg, semi.cache)
-        for j in eachnode(dg), i in 2:nnodes(dg)
-            alpha_interfaces[1, i, j, element] = max(alpha[i - 1, j, element],
-                                                     alpha[i, j, element])
-        end
-        for j in 2:nnodes(dg), i in eachnode(dg)
-            alpha_interfaces[2, i, j, element] = max(alpha[i, j - 1, element],
-                                                     alpha[i, j, element])
-        end
-        alpha_interfaces[1, 1, :, element] .= zero(eltype(alpha_interfaces))
-        alpha_interfaces[1, nnodes(dg) + 1, :, element] .= zero(eltype(alpha_interfaces))
-        alpha_interfaces[2, :, 1, element] .= zero(eltype(alpha_interfaces))
-        alpha_interfaces[2, :, nnodes(dg) + 1, element] .= zero(eltype(alpha_interfaces))
     end
 
     return nothing
