@@ -16,13 +16,13 @@ function main(elixir_path)
     # start simulation with tiny final time to trigger compilation
     duration_compile = @elapsed begin
         trixi_include(elixir_path,
-                      tspan=(0.0, 1e-14),
-                      storage_type=storage_type,
-                      real_type=real_type)
+                      tspan = (0.0, 1e-14),
+                      storage_type = storage_type,
+                      real_type = real_type)
         trixi_include(elixir_path,
-                      tspan=(0.0, 1e-14),
-                      storage_type=storage_type,
-                      real_type=Float32)
+                      tspan = (0.0, 1e-14),
+                      storage_type = storage_type,
+                      real_type = Float32)
     end
 
     println("Finished warm-up in $duration_compile seconds\n")
@@ -30,10 +30,10 @@ function main(elixir_path)
 
     # start the real simulation
     duration_elixir = @elapsed trixi_include(elixir_path,
-                                             maxiters=maxiters,
-                                             initial_refinement_level=initial_refinement_level,
-                                             storage_type=storage_type,
-                                             real_type=real_type)
+                                             maxiters = maxiters,
+                                             initial_refinement_level = initial_refinement_level,
+                                             storage_type = storage_type,
+                                             real_type = real_type)
 
     # store metrics (on every rank!)
     metrics = Dict{String, Float64}("elapsed time" => duration_elixir)
@@ -60,26 +60,26 @@ function main(elixir_path)
 
     println("Running profiler (Float64)...")
     trixi_include(elixir_path,
-                  maxiters=maxiters,
-                  initial_refinement_level=initial_refinement_level,
-                  storage_type=storage_type,
-                  real_type=Float64,
-                  run_profiler=true)
+                  maxiters = maxiters,
+                  initial_refinement_level = initial_refinement_level,
+                  storage_type = storage_type,
+                  real_type = Float64,
+                  run_profiler = true)
 
     open("profile_float64.txt", "w") do io
-           show(io, prof_result)
+        show(io, prof_result)
     end
 
     println("Running profiler (Float32)...")
     trixi_include(elixir_path,
-                  maxiters=maxiters,
-                  initial_refinement_level=initial_refinement_level,
-                  storage_type=storage_type,
-                  real_type=Float32,
-                  run_profiler=true)
+                  maxiters = maxiters,
+                  initial_refinement_level = initial_refinement_level,
+                  storage_type = storage_type,
+                  real_type = Float32,
+                  run_profiler = true)
 
     open("profile_float32.txt", "w") do io
-           show(io, prof_result)
+        show(io, prof_result)
     end
 end
 

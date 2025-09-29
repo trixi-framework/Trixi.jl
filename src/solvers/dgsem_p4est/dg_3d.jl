@@ -237,14 +237,14 @@ end
 
 @kernel function calc_interface_flux_KAkernel!(surface_flux_values, meshT,
                                                nonconservative_terms, equations,
-                                               surface_integral, solverT, u_inferface,
+                                               surface_integral, solverT, u_interface,
                                                neighbor_ids, node_indices,
                                                contravariant_vectors, index_range)
     interface = @index(Global)
     calc_interface_flux_interface!(surface_flux_values,
                                    meshT,
                                    nonconservative_terms,
-                                   equations, surface_integral, solverT, u_inferface,
+                                   equations, surface_integral, solverT, u_interface,
                                    neighbor_ids, node_indices, contravariant_vectors,
                                    index_range, interface)
 end
