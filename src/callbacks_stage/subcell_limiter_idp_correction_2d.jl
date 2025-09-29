@@ -20,7 +20,8 @@ function perform_idp_correction!(u, dt,
                                                      mesh, i, j, element)
 
             # Note: For LGL nodes, the high-order and low-order fluxes at element interfaces are equal.
-            # Therefore, we only need to consider the inner updates and setting the outer fluxes to zero.
+            # Therefore, the antidiffusive fluxes are zero.
+            # To avoid accessing zero entries, we directly use zero vectors instead.
             if i > 1
                 alpha1 = max(alpha[i - 1, j, element], alpha[i, j, element])
                 alpha_flux1 = (1 - alpha1) *
