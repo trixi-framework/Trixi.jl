@@ -1,4 +1,4 @@
-module TestExamples1DBurgers
+module TestExamples1DLinearElasticity
 
 using Test
 using Trixi

@@ -22,7 +22,7 @@ Linear elasticity equations in one space dimension. The equations are given by
 =
 \begin{pmatrix}
     0 \\ 0
-\end{pmatrix}
+\end{pmatrix}.
 ```
 The variables are the deformation velocity `v_1` and the stress `\sigma_{11}`.
 
@@ -42,8 +42,12 @@ struct LinearElasticityEquations1D{RealT <: Real} <:
 end
 
 function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
-    @assert rho>0 "Density rho must be positive."
-    @assert mu>0 "Shear modulus mu (second Lamé parameter) must be positive."
+    if !(rho > 0)
+        throw(ArgumentError("Density rho must be positive."))
+    end
+    if !(mu > 0)
+        throw(ArgumentError("Shear modulus mu (second Lamé parameter) must be positive."))
+    end
 
     c1_squared = (lambda + 2 * mu) / rho
 
@@ -66,7 +70,7 @@ end
 
 A smooth initial condition used for convergence tests.
 This requires that the material parameters `rho` is a positive integer
-and `c1` is equal to one
+and `c1` is equal to one.
 """
 function initial_condition_convergence_test(x, t,
                                             equations::LinearElasticityEquations1D)
@@ -121,10 +125,10 @@ end
 end
 
 @inline function energy_kinetic(u, equations::LinearElasticityEquations1D)
-    return 0.5 * equations.rho * u[1]^2
+    return 0.5f0 * equations.rho * u[1]^2
 end
 @inline function energy_internal(u, equations::LinearElasticityEquations1D)
-    return 0.5 * u[2]^2 / equations.E
+    return 0.5f0 * u[2]^2 / equations.E
 end
 @inline function energy_total(u, equations::LinearElasticityEquations1D)
     return energy_kinetic(u, equations) + energy_internal(u, equations)
