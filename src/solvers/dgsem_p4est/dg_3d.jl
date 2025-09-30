@@ -171,7 +171,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                              nonconservative_terms,
+                              have_nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
@@ -220,7 +220,8 @@ function calc_interface_flux!(surface_flux_values,
                                                         i_primary, j_primary, k_primary,
                                                         primary_element)
 
-                calc_interface_flux!(surface_flux_values, mesh, nonconservative_terms,
+                calc_interface_flux!(surface_flux_values, mesh,
+                                     have_nonconservative_terms,
                                      equations,
                                      surface_integral, dg, cache,
                                      interface, normal_direction,
@@ -252,7 +253,7 @@ end
 # Inlined function for interface flux computation for conservative flux terms
 @inline function calc_interface_flux!(surface_flux_values,
                                       mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                      nonconservative_terms::False, equations,
+                                      have_nonconservative_terms::False, equations,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
                                       primary_i_node_index, primary_j_node_index,
@@ -281,7 +282,7 @@ end
 # Inlined function for interface flux computation for flux + nonconservative terms
 @inline function calc_interface_flux!(surface_flux_values,
                                       mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                      nonconservative_terms::True, equations,
+                                      have_nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
                                       primary_i_node_index, primary_j_node_index,
@@ -409,7 +410,7 @@ end
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                     nonconservative_terms::False, equations,
+                                     have_nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache, i_index, j_index,
                                      k_index, i_node_index, j_node_index,
                                      direction_index,
@@ -445,7 +446,7 @@ end
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                     nonconservative_terms::True, equations,
+                                     have_nonconservative_terms::True, equations,
                                      surface_integral, dg::DG, cache, i_index, j_index,
                                      k_index, i_node_index, j_node_index,
                                      direction_index,
@@ -590,7 +591,7 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                           nonconservative_terms, equations,
+                           have_nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -631,7 +632,7 @@ function calc_mortar_flux!(surface_flux_values,
                                                             element)
 
                     calc_mortar_flux!(fstar_primary, fstar_secondary, mesh,
-                                      nonconservative_terms, equations,
+                                      have_nonconservative_terms, equations,
                                       surface_integral, dg, cache,
                                       mortar, position, normal_direction,
                                       i, j)
@@ -667,7 +668,7 @@ end
 # Inlined version of the mortar flux computation on small elements for conservation fluxes
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                   nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
                                    i_node_index, j_node_index)
@@ -692,7 +693,7 @@ end
 # with nonconservative terms
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                   nonconservative_terms::True, equations,
+                                   have_nonconservative_terms::True, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
                                    i_node_index, j_node_index)
