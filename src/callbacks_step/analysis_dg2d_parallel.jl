@@ -163,9 +163,21 @@ function integrate_via_indices(func::Func, u,
                             normalize = normalize)
 
     # OBS! Global results are only calculated on MPI root, all other domains receive `nothing`
-    global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())
+    if local_integral isa Real
+        global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())
+    else
+        global_integral = MPI.Reduce!(Base.unsafe_convert(Ptr{Float64},
+                                                          Ref(local_integral)), +,
+                                      mpi_root(), mpi_comm())
+    end
+
     if mpi_isroot()
-        integral = convert(typeof(local_integral), global_integral[])
+        if local_integral isa Real
+            integral = global_integral[]
+        else
+            global_wrapped = unsafe_wrap(Array, global_integral, length(local_integral))
+            integral = convert(typeof(local_integral), global_wrapped)
+        end
     else
         integral = convert(typeof(local_integral), NaN * local_integral)
     end
@@ -198,10 +210,20 @@ function integrate_via_indices(func::Func, u,
         end
     end
 
-    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
+    if integral isa Real
+        global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
+    else
+        global_integral = MPI.Reduce!(Base.unsafe_convert(Ptr{Float64}, Ref(integral)),
+                                      +, mpi_root(), mpi_comm())
+    end
     total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
     if mpi_isroot()
-        integral = convert(typeof(integral), global_integral[])
+        if integral isa Real
+            integral = global_integral[]
+        else
+            global_wrapped = unsafe_wrap(Array, global_integral, length(integral))
+            integral = convert(typeof(integral), global_wrapped)
+        end
     else
         integral = convert(typeof(integral), NaN * integral)
         total_volume = volume # non-root processes receive nothing from reduce -> overwrite
