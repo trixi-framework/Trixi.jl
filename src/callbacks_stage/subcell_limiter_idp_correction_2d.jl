@@ -35,23 +35,23 @@ function perform_idp_correction!(u, dt,
                 alpha_flux1_ip1 = (1 - alpha1_ip1) *
                                   get_node_vars(antidiffusive_flux1_L, equations, dg,
                                                 i + 1, j, element)
-            else
+            else # At "right" boundary node
                 alpha_flux1_ip1 = zero(SVector{nvariables(equations), eltype(u)})
             end
-            if j > 1
+            if j > 1 # Not at "bottom" boundary node
                 alpha2 = max(alpha[i, j - 1, element], alpha[i, j, element])
                 alpha_flux2 = (1 - alpha2) *
                               get_node_vars(antidiffusive_flux2_R, equations, dg,
                                             i, j, element)
-            else
+            else # At "bottom" boundary node
                 alpha_flux2 = zero(SVector{nvariables(equations), eltype(u)})
             end
-            if j < nnodes(dg)
+            if j < nnodes(dg) # Not at "top" boundary node
                 alpha2_jp1 = max(alpha[i, j, element], alpha[i, j + 1, element])
                 alpha_flux2_jp1 = (1 - alpha2_jp1) *
                                   get_node_vars(antidiffusive_flux2_L, equations, dg,
                                                 i, j + 1, element)
-            else
+            else # At "top" boundary node
                 alpha_flux2_jp1 = zero(SVector{nvariables(equations), eltype(u)})
             end
 
