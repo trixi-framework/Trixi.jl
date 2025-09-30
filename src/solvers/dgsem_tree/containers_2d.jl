@@ -1528,7 +1528,7 @@ end
 
 # Initialize auxiliary mortar node variables
 # 2D TreeMesh implementation, similar to prolong2mortars
-# Each mortar has two sides (indentified by first variable of u_upper / u_lower)
+# Each mortar has two sides (identified by first variable of u_upper / u_lower)
 # On the side with two small elements, values can be copied from the aux vars field
 # On the side with one large element, values are usually interpolated to small elements
 # We do this differently here and use the same small element values on both side. This

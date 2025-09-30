@@ -104,7 +104,8 @@ end
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
-                 have_nonconservative_terms(equations), equations,
+                 have_nonconservative_terms(equations),
+                 have_aux_node_vars(equations), equations,
                  volume_flux_fv, dg, element, cache)
 
     # antidiffusive flux
