@@ -27,9 +27,6 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# For curved meshes (all meshtypes except for the Cartesian `TreeMesh`) the averaging of the mapping terms
-# (which are stored in `cache.elements.contravariant_vectors`)
-# is "peeled apart" from the evaluation of the physical fluxes in each Cartesian direction.
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
