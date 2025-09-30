@@ -307,7 +307,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                have_nonconservative_terms, equations,
@@ -427,7 +427,7 @@ end
 end
 
 # TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                have_nonconservative_terms, equations,
@@ -468,7 +468,7 @@ function calc_volume_integral!(du, u,
 end
 
 # TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                have_nonconservative_terms, equations,
