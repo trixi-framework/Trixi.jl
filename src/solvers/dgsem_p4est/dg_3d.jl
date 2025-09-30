@@ -299,7 +299,7 @@ function calc_interface_flux_interface!(surface_flux_values,
                                                     i_primary, j_primary, k_primary,
                                                     primary_element)
 
-            calc_interface_flux!(surface_flux_values, meshT, nonconservative_terms,
+            calc_interface_flux!(surface_flux_values, meshT, have_nonconservative_terms,
                                  equations,
                                  surface_integral, solverT, u_interface,
                                  interface, normal_direction,

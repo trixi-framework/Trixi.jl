@@ -228,8 +228,21 @@ function rhs!(backend, du, u, t,
     return nothing
 end
 
+function calc_volume_integral!(backend, du, u,
+                               mesh::TreeMesh{3},
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+    @threaded for element in eachelement(dg, cache)
+        weak_form_kernel!(du, u, element, mesh,
+                          have_nonconservative_terms, equations,
+                          dg, cache)
+    end
+    return nothing
+end
+
 function calc_volume_integral!(backend::Nothing, du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
@@ -244,7 +257,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
 end
 
 function calc_volume_integral!(backend::Backend, du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
@@ -652,7 +665,7 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u, mesh::TreeMesh{3}, equations, dg::DG)
+function prolong2interfaces!(backend, cache, u, mesh::TreeMesh{3}, equations, dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
