@@ -48,8 +48,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df00
                            joinpath(@__DIR__, "cube_unstructured_2.inp"))
 
 mesh = T8codeMesh(mesh_file, 3; polydeg = 5,
-                  mapping = mapping,
-                  initial_refinement_level = 0)
+                  mapping = mapping)
 
 # Create the semidiscretization object.
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

@@ -19,8 +19,7 @@ trees_per_dimension = (8, 8)
 # Create parent P4estMesh with 8 x 8 trees and 8 x 8 elements
 parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,
-                        coordinates_max = coordinates_max,
-                        initial_refinement_level = 0)
+                        coordinates_max = coordinates_max)
 
 # Define the mesh view covering the whole parent mesh.
 cell_ids = collect(1:Trixi.ncells(parent_mesh))
