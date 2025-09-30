@@ -87,7 +87,8 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                                     contravariant_vectors,
                                                     i_element, j_element, local_element)
 
-            calc_mpi_interface_flux!(surface_flux_values, mesh, have_nonconservative_terms,
+            calc_mpi_interface_flux!(surface_flux_values, mesh,
+                                     have_nonconservative_terms,
                                      have_aux_node_vars, equations,
                                      surface_integral, dg, cache,
                                      interface, normal_direction,
