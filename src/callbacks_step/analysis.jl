@@ -149,8 +149,8 @@ end
 
 # This is the actual initialization method
 # Note: we have this indirection to allow initializing a callback from the AnalysisCallbackCoupled
-function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
-                     integrator, semi; u_global = nothing, semi_coupled = nothing) where {Condition, Affect! <: AnalysisCallback}
+function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t, integrator, semi;
+                     u_ode_coupled = nothing, du_ode_coupled = nothing, semi_coupled = nothing) where {Condition, Affect! <: AnalysisCallback}
     initial_state_integrals = integrate(u_ode, semi)
     _, equations, _, _ = mesh_equations_solver_cache(semi)
 
@@ -218,7 +218,8 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
     # Note: For details see the actual callback function below
     analysis_callback.start_gc_time = Base.gc_time_ns()
 
-    analysis_callback(u_ode, du_ode, integrator, semi; u_global = u_global, semi_coupled = semi_coupled)
+    analysis_callback(u_ode, du_ode, integrator, semi;
+                      u_ode_coupled = u_ode_coupled, du_ode_coupled = du_ode_coupled, semi_coupled = semi_coupled)
     return nothing
 end
 
@@ -227,18 +228,17 @@ function (analysis_callback::AnalysisCallback)(integrator)
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     u_ode = integrator.u
-    analysis_callback(u_ode, du_ode, integrator, semi; u_global, semi_coupled)
+    analysis_callback(u_ode, du_ode, integrator, semi; u_ode_coupled, semi_coupled)
 end
 
 # This method gets called internally as the main entry point to the AnalysiCallback
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi;
-                                               u_global = nothing, semi_coupled = nothing)
+                                               u_ode_coupled = nothing, du_ode_coupled = nothing, semi_coupled = nothing)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     @unpack dt, t = integrator
     iter = integrator.stats.naccept
 
-    @autoinfiltrate
     # Compute the percentage of the simulation that is done
     t = integrator.t
     t_initial = first(integrator.sol.prob.tspan)
@@ -339,11 +339,17 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi;
         # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
         # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
         # hyperbolic-parabolic systems.
-        @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
+        if isnothing(u_ode_coupled) then
+            @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
+        else
+            # For a coupled system the time integration is on the coupled (global) array.
+            @notimeit timer() integrator.f(du_ode_coupled, u_ode_coupled, semi_coupled, t)
+        end
         u = wrap_array(u_ode, mesh, equations, solver, cache)
         du = wrap_array(du_ode, mesh, equations, solver, cache)
         # Compute l2_error, linf_error
-        analysis_callback(io, du, u, u_ode, t, semi)
+        analysis_callback(io, du, u, u_ode, t, semi;
+                          u_ode_coupled=u_ode_coupled, du_ode_coupled = du_ode_coupled,  semi_coupled=semi_coupled)
 
         mpi_println("─"^100)
         mpi_println()
@@ -370,7 +376,8 @@ end
 
 # This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
 # and serves as a function barrier. Additionally, it makes the code easier to profile and optimize.
-function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
+function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi;
+                                               u_ode_coupled = nothing, du_ode_coupled = nothing, semi_coupled = nothing)
     @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
     cache_analysis = analysis_callback.cache
     _, equations, _, _ = mesh_equations_solver_cache(semi)

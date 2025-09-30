@@ -289,7 +289,7 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
         u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
         du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
         initialize!(cb, u_ode, du_ode, t, integrator, semi;
-                    u_global = u_ode_reformatted_reshape, semi_coupled = semi_coupled)
+                    u_ode_coupled = u_ode_coupled, du_ode_coupled = du_ode_coupled, semi_coupled = semi_coupled)
     end
 end
 
@@ -464,7 +464,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              normal_direction,
                                                              surface_flux_function,
                                                              direction,
-                                                             u_global)
+                                                             u_ode_coupled)
     n_nodes = length(mesh.parent.nodes)
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
@@ -507,8 +507,8 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         i_index_g = i_index
     end
     # Perform integer division to get the right shape of the array.
-    u_global_reshape = reshape(u_global,
-                               (n_nodes, n_nodes, length(u_global) ÷ n_nodes^2))
+    u_global_reshape = reshape(u_ode_coupled,
+                               (n_nodes, n_nodes, length(u_ode_coupled) ÷ n_nodes^2))
     u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_global])
 
     # u_boundary = u_inner
