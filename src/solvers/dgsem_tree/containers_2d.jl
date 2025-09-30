@@ -1041,7 +1041,7 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
 
             # Create interface between elements
             count += 1
-            # Note: `local_neighbor_ids` stores the MPI-local neighbors, 
+            # Note: `local_neighbor_ids` stores the MPI-local neighbors,
             # but with globally valid index!
             mpi_interfaces.local_neighbor_ids[count] = element
 
@@ -1351,7 +1351,7 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
             # 3 -> large element
             count += 1
 
-            # Note: `local_neighbor_ids` stores the MPI-local neighbors, 
+            # Note: `local_neighbor_ids` stores the MPI-local neighbors,
             # but with globally valid index!
             local_neighbor_ids = Vector{Int}()
             local_neighbor_positions = Vector{Int}()
@@ -1498,6 +1498,19 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
                                                         pointer(_surface_flux_values_high_order),
                                                         (n_variables, n_nodes, 2 * 2,
                                                          capacity))
+
+    uEltype = eltype(fluxes.antidiffusive_flux1_L)
+    @threaded for element in axes(fluxes.antidiffusive_flux1_L, 4)
+        fluxes.antidiffusive_flux1_L[:, 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_L[:, n_nodes + 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_R[:, 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_R[:, n_nodes + 1, :, element] .= zero(uEltype)
+
+        fluxes.antidiffusive_flux2_L[:, :, 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_L[:, :, n_nodes + 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_R[:, :, 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_R[:, :, n_nodes + 1, element] .= zero(uEltype)
+    end
 
     return nothing
 end
