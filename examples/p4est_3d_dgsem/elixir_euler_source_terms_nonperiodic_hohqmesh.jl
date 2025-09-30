@@ -27,7 +27,7 @@ solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/11461efbfb02c42e06aca338b3d0b645/raw/81deeb1ebc4945952c30af5bb75fe222a18d975c/abaqus_half_circle_3d.inp",
                            joinpath(@__DIR__, "abaqus_half_circle_3d.inp"))
 
-mesh = P4estMesh{3}(mesh_file, initial_refinement_level = 0)
+mesh = P4estMesh{3}(mesh_file)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test,
