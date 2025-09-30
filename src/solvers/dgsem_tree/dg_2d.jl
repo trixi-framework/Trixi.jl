@@ -187,7 +187,6 @@ function rhs!(du, u, t, u_global, semis,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
-    @autoinfiltrate
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
     # Calculate volume integral

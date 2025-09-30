@@ -228,7 +228,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     u_ode = integrator.u
-    analysis_callback(u_ode, du_ode, integrator, semi; u_ode_coupled, semi_coupled)
+    analysis_callback(u_ode, du_ode, integrator, semi)
 end
 
 # This method gets called internally as the main entry point to the AnalysiCallback
@@ -339,7 +339,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi;
         # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
         # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
         # hyperbolic-parabolic systems.
-        if isnothing(u_ode_coupled) then
+        if isnothing(u_ode_coupled)
             @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
         else
             # For a coupled system the time integration is on the coupled (global) array.
