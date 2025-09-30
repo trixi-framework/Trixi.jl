@@ -28,6 +28,11 @@ The variables are the deformation velocity `v_1` and the stress `\sigma_{11}`.
 
 The parameters are the constant density of the material `\rho`
 and the Lamé parameters `\lambda` and `\mu`.
+From these, one can compute the dilatational wave speed as
+```math
+c_1^2= \frac{\lambda + 2 * \mu}{\rho}
+```
+In one dimension the linear elasticity equations reduce to a wave equation.
 
 For reference, see
 - Aleksey Sikstel (2020)
