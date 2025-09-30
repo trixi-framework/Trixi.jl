@@ -27,7 +27,7 @@ function perform_idp_correction!(u, dt,
                 alpha_flux1 = (1 - alpha1) *
                               get_node_vars(antidiffusive_flux1_R, equations, dg,
                                             i, j, element)
-            else # at "left" boundary node
+            else # At "left" boundary node
                 alpha_flux1 = zero(SVector{nvariables(equations), eltype(u)})
             end
             if i < nnodes(dg) # Not at "right" boundary node
