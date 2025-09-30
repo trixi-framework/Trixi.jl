@@ -264,6 +264,8 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
     semi_coupled = integrator.p
     du_ode_coupled = first(get_tmp_cache(integrator))
 
+    # This might be necessary for analysis callback during the run
+    # but for tests we might get away without it.
     # Extract global solution vector.
     n_nodes = length(semi_coupled.semis[1].mesh.parent.nodes)
     # Reformat the global solutions vector.
