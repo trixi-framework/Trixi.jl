@@ -130,6 +130,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         end
     end
     local_onesided_variables_nonlinear_ = Tuple(local_onesided_variables_nonlinear_)
+    positivity_variables_nonlinear = Tuple(positivity_variables_nonlinear)
 
     local_twosided_variables_cons_ = get_variable_index.(local_twosided_variables_cons,
                                                          equations)
@@ -302,25 +303,13 @@ end
 
 @inline function idp_positivity!(alpha, limiter, u, dt, semi, elements)
     # Conservative variables
-    for variable in limiter.positivity_variables_cons
-        @trixi_timeit timer() "conservative variables" idp_positivity_conservative!(alpha,
-                                                                                    limiter,
-                                                                                    u,
-                                                                                    dt,
-                                                                                    semi,
-                                                                                    elements,
-                                                                                    variable)
+    @trixi_timeit timer() "conservative variables" for variable in limiter.positivity_variables_cons
+        idp_positivity_conservative!(alpha, limiter, u, dt, semi, elements, variable)
     end
 
     # Nonlinear variables
-    for variable in limiter.positivity_variables_nonlinear
-        @trixi_timeit timer() "nonlinear variables" idp_positivity_nonlinear!(alpha,
-                                                                              limiter,
-                                                                              u,
-                                                                              dt,
-                                                                              semi,
-                                                                              elements,
-                                                                              variable)
+    @trixi_timeit timer() "nonlinear variables" for variable in limiter.positivity_variables_nonlinear
+        idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, elements, variable)
     end
 
     return nothing
@@ -330,8 +319,8 @@ end
 # Newton-bisection method
 
 @inline function newton_loop!(alpha, bound, u, indices, variable, min_or_max,
-                              initial_check, final_check, equations, dt, limiter,
-                              antidiffusive_flux)
+                              initial_check, final_check,
+                              equations, dt, limiter, antidiffusive_flux)
     newton_reltol, newton_abstol = limiter.newton_tolerances
 
     beta = 1 - alpha[indices...]

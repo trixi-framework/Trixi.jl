@@ -30,7 +30,7 @@
 # Therefore, subcell limiting with the IDP limiter requires the use of a Trixi-intern
 # time integration SSPRK method called with
 # ````julia
-# Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)
+# Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...);
 # ````
 #-
 # Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher)

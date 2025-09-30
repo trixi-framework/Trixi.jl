@@ -132,7 +132,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
                            joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp"))
 
-mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 0)
+mesh = P4estMesh{2}(mesh_file)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)

@@ -21,12 +21,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                         linf=[6.627000273229378e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_float32.jl" begin
@@ -38,12 +33,7 @@ end
                         RealT=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_coupled.jl" begin
@@ -77,12 +67,7 @@ end
         ] rtol=1.0e-4
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # Test plotdata construction for coupled semidiscretization
@@ -103,12 +88,7 @@ end
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 
@@ -127,12 +107,7 @@ end
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 
@@ -142,12 +117,7 @@ end
                         linf=[3.477948874874848e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_extended.jl with polydeg=4" begin
@@ -160,12 +130,7 @@ end
                         cfl=1.4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @testset "elixir_advection_rotated.jl" begin
@@ -177,12 +142,7 @@ end
                             alpha=0.0)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_advection_rotated.jl with α = 0.1" begin
@@ -193,12 +153,7 @@ end
                             alpha=0.1)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_advection_rotated.jl with α = 0.5 * pi" begin
@@ -209,12 +164,7 @@ end
                             alpha=0.5 * pi)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 
@@ -225,12 +175,7 @@ end
                         linf=[6.627000273229378e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_waving_flag.jl" begin
@@ -239,12 +184,7 @@ end
                         linf=[0.0016167719118129753])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_free_stream.jl" begin
@@ -253,12 +193,7 @@ end
                         linf=[9.903189379656396e-14])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_nonperiodic.jl" begin
@@ -267,12 +202,7 @@ end
                         linf=[0.007252625722805939])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_restart.jl" begin
@@ -281,12 +211,7 @@ end
                         linf=[3.438434404412494e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_restart.jl with waving flag mesh" begin
@@ -298,12 +223,7 @@ end
                         restart_file="restart_000000021.h5",)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_restart.jl with free stream mesh" begin
@@ -314,12 +234,7 @@ end
                         restart_file="restart_000000036.h5",)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_convergence_implicit_sparse_jacobian.jl" begin
@@ -340,12 +255,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi_float_type, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi_float_type, sol, 1000)
 end
 
 @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
@@ -367,12 +277,27 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_eulermulti_blastwave_ec.jl with boundary_condition_slip_wall" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_blastwave_ec.jl"),
+                        l2=[
+                            0.005884923780993405,
+                            0.005815148890903912,
+                            0.023438850211096113,
+                            0.006254106697017372
+                        ],
+                        linf=[
+                            0.24483047700349253,
+                            0.13364458078315503,
+                            0.38469398740194993,
+                            0.1024647566986494
+                        ],
+                        tspan=(0.0, 0.001))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_convergence_wavingflag_IDP.jl" begin
@@ -393,16 +318,11 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_convergence_wavingflag_MCL.jl" begin
@@ -423,16 +343,11 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_source_terms.jl" begin
@@ -452,12 +367,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @testset "elixir_euler_source_terms_rotated.jl" begin
@@ -480,12 +390,7 @@ end
                             alpha=0.0)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_source_terms_rotated.jl with α = 0.1" begin
@@ -507,12 +412,7 @@ end
                             alpha=0.1)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_source_terms_rotated.jl with α = 0.2 * pi" begin
@@ -534,12 +434,7 @@ end
                             alpha=0.2 * pi)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_source_terms_rotated.jl with α = 0.5 * pi" begin
@@ -561,12 +456,7 @@ end
                             alpha=0.5 * pi)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 
@@ -587,12 +477,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_source_terms_sc_subcell.jl" begin
@@ -613,16 +498,11 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_source_terms_waving_flag.jl" begin
@@ -642,12 +522,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_free_stream.jl" begin
@@ -667,12 +542,7 @@ end
                         atol=7.0e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_free_stream_sc_subcell.jl" begin
@@ -693,16 +563,11 @@ end
                         atol=7.0e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_free_stream_MCL.jl" begin
@@ -722,16 +587,11 @@ end
                         atol=7.0e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -739,7 +599,7 @@ end
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 @trixi_testset "elixir_euler_free_stream.jl with FluxRotated(FluxLaxFriedrichs(max_abs_speed_naive))" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
@@ -759,12 +619,7 @@ end
                         atol=7.0e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_double_mach.jl" begin
@@ -793,16 +648,11 @@ end
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_double_mach_MCL.jl" begin
@@ -840,16 +690,11 @@ end
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_shock_upstream_sc_subcell.jl" begin
@@ -871,16 +716,11 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_shock_upstream_MCL.jl" begin
@@ -901,16 +741,11 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
@@ -930,12 +765,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_vortex_perk4.jl" begin
@@ -954,16 +784,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 8000)
 end
 
 @trixi_testset "elixir_euler_ec.jl" begin
@@ -983,12 +808,7 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_sedov.jl" begin
@@ -1008,12 +828,7 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (local bounds)" begin
@@ -1034,16 +849,11 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (global bounds)" begin
@@ -1068,16 +878,11 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
@@ -1095,12 +900,7 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_warm_bubble.jl" begin
@@ -1122,12 +922,7 @@ end
                         tspan=(0.0, 10.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 100)
 end
 
 @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
@@ -1142,12 +937,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_eulerpolytropic_convergence.jl with FluxHLL(min_max_speed_naive)" begin
@@ -1166,12 +956,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_eulerpolytropic_ec.jl" begin
@@ -1188,12 +973,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_eulerpolytropic_isothermal_wave.jl" begin
@@ -1209,12 +989,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_eulerpolytropic_wave.jl" begin
@@ -1229,12 +1004,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
@@ -1244,16 +1014,11 @@ end
                         tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-    end
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
 @trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
@@ -1272,12 +1037,7 @@ end
                         tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_mhd_ec.jl" begin
@@ -1295,12 +1055,7 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
@@ -1318,12 +1073,7 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_mhd_onion.jl" begin
@@ -1338,12 +1088,7 @@ end
                             0.038667260744994714, 0.0, 3.376777801961409e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
@@ -1362,12 +1107,7 @@ end
                             0.026146463886273865])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_mhd_orszag_tang_sc_subcell.jl (local * symmetric)" begin
@@ -1397,12 +1137,7 @@ end
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_mhd_orszag_tang_sc_subcell.jl (local * jump)" begin
@@ -1434,7 +1169,7 @@ end
                         # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
                         # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
                         # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-                        # We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+                        # We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
                         # `StepsizeCallback` (CFL-Condition) and less diffusion.
                         surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
                                       flux_nonconservative_powell_local_jump),
@@ -1443,12 +1178,7 @@ end
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_mhd_coupled.jl" begin
@@ -1538,12 +1268,7 @@ end
         ] rtol=1.0e-4
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 
@@ -1574,12 +1299,7 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_lbm_eulerpolytropic_coupled.jl" begin
@@ -1616,12 +1336,7 @@ end
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 end
