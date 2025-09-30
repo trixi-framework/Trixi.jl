@@ -234,8 +234,6 @@ function step!(integrator::SimpleIntegratorSSP)
 
     @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    unstable_check(integrator.dt, integrator.u, integrator)
-
     check_max_iter!(integrator)
 
     return nothing
@@ -246,14 +244,6 @@ get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
-
-function unstable_check(dt, u_ode, integrator::SimpleIntegratorSSP)
-    if !isfinite(dt) || !all(isfinite, u_ode)
-        @warn "Instability detected. Aborting"
-        terminate!(integrator)
-    end
-    return nothing
-end
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
