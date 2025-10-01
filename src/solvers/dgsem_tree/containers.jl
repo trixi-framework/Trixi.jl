@@ -54,6 +54,71 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     return nothing
 end
 
+# Container data structure (structure-of-arrays style) for variables used for IDP limiting
+mutable struct ContainerSubcellLimiterIDP{NDIMS, uEltype <: Real, NDIMSP1} <:
+               AbstractContainer
+    alpha::Array{uEltype, NDIMSP1} # [i, j, k, element]
+    variable_bounds::Dict{Symbol, Array{uEltype, NDIMSP1}}
+    # internal `resize!`able storage
+    _alpha::Vector{uEltype}
+    _variable_bounds::Dict{Symbol, Vector{uEltype}}
+end
+
+function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
+                                                    bound_keys) where {NDIMS,
+                                                                       uEltype <: Real}
+    nan_uEltype = convert(uEltype, NaN)
+
+    # Initialize fields with defaults
+    _alpha = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
+    alpha = unsafe_wrap(Array, pointer(_alpha),
+                        (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+
+    _variable_bounds = Dict{Symbol, Vector{uEltype}}()
+    variable_bounds = Dict{Symbol, Array{uEltype, NDIMS + 1}}()
+    for key in bound_keys
+        _variable_bounds[key] = fill(nan_uEltype,
+                                     prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
+        variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
+                                           (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+    end
+
+    return ContainerSubcellLimiterIDP{NDIMS, uEltype, NDIMS + 1}(alpha,
+                                                                 variable_bounds,
+                                                                 _alpha,
+                                                                 _variable_bounds)
+end
+
+@inline nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
+@inline Base.ndims(::ContainerSubcellLimiterIDP{NDIMS}) where {NDIMS} = NDIMS
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
+    n_nodes = nnodes(container)
+    n_dims = ndims(container)
+
+    (; _alpha) = container
+    resize!(_alpha, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+    container.alpha = unsafe_wrap(Array, pointer(_alpha),
+                                  (ntuple(_ -> n_nodes, n_dims)..., capacity))
+    container.alpha .= convert(eltype(container.alpha), NaN)
+
+    (; _variable_bounds) = container
+    for (key, _) in _variable_bounds
+        resize!(_variable_bounds[key], prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+        container.variable_bounds[key] = unsafe_wrap(Array,
+                                                     pointer(_variable_bounds[key]),
+                                                     (ntuple(_ -> n_nodes, n_dims)...,
+                                                      capacity))
+    end
+
+    return nothing
+end
+
 # Dimension-specific implementations
 include("containers_1d.jl")
 include("containers_2d.jl")

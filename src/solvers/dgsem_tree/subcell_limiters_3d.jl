@@ -9,27 +9,6 @@
 # IDP Limiting
 ###############################################################################
 
-# this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{3},
-                      basis::LobattoLegendreBasis, bound_keys)
-    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP3D{real(basis)}(0,
-                                                                                   nnodes(basis),
-                                                                                   bound_keys)
-
-    # Memory for bounds checking routine with `BoundsCheckCallback`.
-    # Local variable contains the maximum deviation since the last export.
-    idp_bounds_delta_local = Dict{Symbol, real(basis)}()
-    # Global variable contains the total maximum deviation.
-    idp_bounds_delta_global = Dict{Symbol, real(basis)}()
-    for key in bound_keys
-        idp_bounds_delta_local[key] = zero(real(basis))
-        idp_bounds_delta_global[key] = zero(real(basis))
-    end
-
-    return (; subcell_limiter_coefficients, idp_bounds_delta_local,
-            idp_bounds_delta_global)
-end
-
 ###############################################################################
 # Global positivity limiting of conservative variables
 
