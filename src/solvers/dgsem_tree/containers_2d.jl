@@ -1366,7 +1366,8 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
 end
 
 # Container data structure (structure-of-arrays style) for variables used for IDP limiting
-mutable struct ContainerSubcellLimiterIDP{uEltype <: Real, NDIMSP1} <: AbstractContainer
+mutable struct ContainerSubcellLimiterIDP{NDIMS, uEltype <: Real, NDIMSP1} <:
+               AbstractContainer
     alpha::Array{uEltype, NDIMSP1} # [i, j, k, element]
     variable_bounds::Dict{Symbol, Array{uEltype, NDIMSP1}}
     # internal `resize!`able storage
@@ -1374,29 +1375,33 @@ mutable struct ContainerSubcellLimiterIDP{uEltype <: Real, NDIMSP1} <: AbstractC
     _variable_bounds::Dict{Symbol, Vector{uEltype}}
 end
 
-function ContainerSubcellLimiterIDP{uEltype}(n_dims, capacity::Integer, n_nodes,
-                                             bound_keys) where {uEltype <: Real}
+function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
+                                                    bound_keys) where {NDIMS,
+                                                                       uEltype <: Real}
     nan_uEltype = convert(uEltype, NaN)
 
     # Initialize fields with defaults
-    _alpha = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+    _alpha = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
     alpha = unsafe_wrap(Array, pointer(_alpha),
-                        (ntuple(_ -> n_nodes, n_dims)..., capacity))
+                        (ntuple(_ -> n_nodes, NDIMS)..., capacity))
 
     _variable_bounds = Dict{Symbol, Vector{uEltype}}()
-    variable_bounds = Dict{Symbol, Array{uEltype, n_dims + 1}}()
+    variable_bounds = Dict{Symbol, Array{uEltype, NDIMS + 1}}()
     for key in bound_keys
         _variable_bounds[key] = fill(nan_uEltype,
-                                     prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+                                     prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
         variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
-                                           (ntuple(_ -> n_nodes, n_dims)..., capacity))
+                                           (ntuple(_ -> n_nodes, NDIMS)..., capacity))
     end
 
-    return ContainerSubcellLimiterIDP{uEltype, n_dims + 1}(alpha, variable_bounds,
-                                                           _alpha, _variable_bounds)
+    return ContainerSubcellLimiterIDP{NDIMS, uEltype, NDIMS + 1}(alpha,
+                                                                 variable_bounds,
+                                                                 _alpha,
+                                                                 _variable_bounds)
 end
 
-nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
+@inline nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
+@inline Base.ndims(::ContainerSubcellLimiterIDP{NDIMS}) where {NDIMS} = NDIMS
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
@@ -1405,7 +1410,7 @@ nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
 # internal storage.
 function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
     n_nodes = nnodes(container)
-    n_dims = length(size(container.alpha)) - 1
+    n_dims = ndims(container)
 
     (; _alpha) = container
     resize!(_alpha, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
