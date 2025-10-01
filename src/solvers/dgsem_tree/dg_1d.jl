@@ -237,6 +237,23 @@ end
     return nothing
 end
 
+function calc_volume_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
+                               dg::DGSEM, cache)
+    @unpack x_interfaces, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
+
+    # Calculate LGL second-order FV volume integral
+    @threaded for element in eachelement(dg, cache)
+        fvO2_kernel!(du, u, mesh,
+                     have_nonconservative_terms, equations,
+                     volume_flux_fv, dg, cache, element,
+                     x_interfaces, reconstruction_mode, slope_limiter, true)
+    end
+
+    return nothing
+end
+
 @inline function fvO2_kernel!(du, u,
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               nonconservative_terms, equations,
