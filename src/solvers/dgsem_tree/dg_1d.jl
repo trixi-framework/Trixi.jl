@@ -126,7 +126,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 =#
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                                   have_nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False,
+                                   have_aux_node_vars::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -148,7 +149,8 @@ end
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                                           have_nonconservative_terms::False, equations,
+                                           have_nonconservative_terms::False,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -178,7 +180,8 @@ end
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                                           have_nonconservative_terms::True, equations,
+                                           have_nonconservative_terms::True,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -186,7 +189,8 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, mesh, False(), False(), equations,
+                              symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -213,7 +217,7 @@ end
 
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                            have_nonconservative_terms, equations,
+                            equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
     @unpack inverse_weights = dg.basis
@@ -221,7 +225,8 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, u, mesh, have_nonconservative_terms, equations,
+    calcflux_fv!(fstar1_L, fstar1_R, u, mesh, have_nonconservative_terms(equations),
+                 equations,
                  volume_flux_fv,
                  dg, element, cache)
 
