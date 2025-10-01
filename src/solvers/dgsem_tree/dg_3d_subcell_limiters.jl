@@ -141,8 +141,8 @@ end
         for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, k, element] = fhat1_L[v, i, j, k] -
                                                          fstar1_L[v, i, j, k]
-            antidiffusive_flux1_R[v, i, j, k, element] = antidiffusive_flux1_L[v, i, j,
-                                                                               k,
+            antidiffusive_flux1_R[v, i, j, k, element] = antidiffusive_flux1_L[v,
+                                                                               i, j, k,
                                                                                element]
         end
     end
@@ -150,8 +150,8 @@ end
         for v in eachvariable(equations)
             antidiffusive_flux2_L[v, i, j, k, element] = fhat2_L[v, i, j, k] -
                                                          fstar2_L[v, i, j, k]
-            antidiffusive_flux2_R[v, i, j, k, element] = antidiffusive_flux2_L[v, i, j,
-                                                                               k,
+            antidiffusive_flux2_R[v, i, j, k, element] = antidiffusive_flux2_L[v,
+                                                                               i, j, k,
                                                                                element]
         end
     end
@@ -159,26 +159,11 @@ end
         for v in eachvariable(equations)
             antidiffusive_flux3_L[v, i, j, k, element] = fhat3_L[v, i, j, k] -
                                                          fstar3_L[v, i, j, k]
-            antidiffusive_flux3_R[v, i, j, k, element] = antidiffusive_flux3_L[v, i, j,
-                                                                               k,
+            antidiffusive_flux3_R[v, i, j, k, element] = antidiffusive_flux3_L[v,
+                                                                               i, j, k,
                                                                                element]
         end
     end
-
-    antidiffusive_flux1_L[:, 1, :, :, element] .= zero(eltype(antidiffusive_flux1_L))
-    antidiffusive_flux1_L[:, nnodes(dg) + 1, :, :, element] .= zero(eltype(antidiffusive_flux1_L))
-    antidiffusive_flux1_R[:, 1, :, :, element] .= zero(eltype(antidiffusive_flux1_R))
-    antidiffusive_flux1_R[:, nnodes(dg) + 1, :, :, element] .= zero(eltype(antidiffusive_flux1_R))
-
-    antidiffusive_flux2_L[:, :, 1, :, element] .= zero(eltype(antidiffusive_flux2_L))
-    antidiffusive_flux2_L[:, :, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux2_L))
-    antidiffusive_flux2_R[:, :, 1, :, element] .= zero(eltype(antidiffusive_flux2_R))
-    antidiffusive_flux2_R[:, :, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux2_R))
-
-    antidiffusive_flux3_L[:, :, :, 1, element] .= zero(eltype(antidiffusive_flux3_L))
-    antidiffusive_flux3_L[:, :, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux3_L))
-    antidiffusive_flux3_R[:, :, :, 1, element] .= zero(eltype(antidiffusive_flux3_R))
-    antidiffusive_flux3_R[:, :, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux3_R))
 
     return nothing
 end
@@ -218,21 +203,6 @@ end
                                                          fstar3_R[v, i, j, k]
         end
     end
-
-    antidiffusive_flux1_L[:, 1, :, :, element] .= zero(eltype(antidiffusive_flux1_L))
-    antidiffusive_flux1_L[:, nnodes(dg) + 1, :, :, element] .= zero(eltype(antidiffusive_flux1_L))
-    antidiffusive_flux1_R[:, 1, :, :, element] .= zero(eltype(antidiffusive_flux1_R))
-    antidiffusive_flux1_R[:, nnodes(dg) + 1, :, :, element] .= zero(eltype(antidiffusive_flux1_R))
-
-    antidiffusive_flux2_L[:, :, 1, :, element] .= zero(eltype(antidiffusive_flux2_L))
-    antidiffusive_flux2_L[:, :, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux2_L))
-    antidiffusive_flux2_R[:, :, 1, :, element] .= zero(eltype(antidiffusive_flux2_R))
-    antidiffusive_flux2_R[:, :, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux2_R))
-
-    antidiffusive_flux3_L[:, :, :, 1, element] .= zero(eltype(antidiffusive_flux3_L))
-    antidiffusive_flux3_L[:, :, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux3_L))
-    antidiffusive_flux3_R[:, :, :, 1, element] .= zero(eltype(antidiffusive_flux3_R))
-    antidiffusive_flux3_R[:, :, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux3_R))
 
     return nothing
 end

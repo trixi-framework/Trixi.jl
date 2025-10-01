@@ -69,7 +69,6 @@ end
 trees_per_dimension = (8, 8)
 mesh = T8codeMesh(trees_per_dimension, polydeg = 4,
                   mapping = mapping_twist,
-                  initial_refinement_level = 0,
                   periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

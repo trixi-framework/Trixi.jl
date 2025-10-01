@@ -51,7 +51,7 @@ plot(x -> sum(initial_condition(x, 0.0, equations)), label = "initial condition"
 # inflow/outflow boundaries are necessary. To define the inflow values, we initialize a `boundary_value_function`.
 function boundary_condition_sine_sector(x, t, equation::LinearScalarAdvectionEquation1D)
     if 1 <= t <= 3
-        scalar = sin(2 * pi * sum(t - 1))
+        scalar = sinpi(2 * sum(t - 1))
     else
         scalar = zero(t)
     end

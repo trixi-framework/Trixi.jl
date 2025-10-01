@@ -28,12 +28,19 @@ end
                    Val(ndims(contravariant_vectors) - 3)))
 end
 
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `StructuredMesh`es.
+function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
+                             mesh::StructuredMesh, equations, surface_integral,
+                             dg::DG)
+    @assert isperiodic(mesh)
+end
+
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionPeriodic,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms::False,
+                                                  have_nonconservative_terms::False,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
@@ -47,7 +54,7 @@ end
                                                   boundary_condition::BoundaryConditionPeriodic,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms::True,
+                                                  have_nonconservative_terms::True,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
@@ -61,7 +68,7 @@ end
                                                   boundary_condition,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms::False,
+                                                  have_nonconservative_terms::False,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
@@ -100,7 +107,7 @@ end
                                                   boundary_condition,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms::True,
+                                                  have_nonconservative_terms::True,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,

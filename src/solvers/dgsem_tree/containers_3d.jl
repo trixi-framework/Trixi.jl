@@ -903,124 +903,57 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
     resize!(_antidiffusive_flux1_L,
             n_variables * (n_nodes + 1) * n_nodes * n_nodes * capacity)
     fluxes.antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
-                                               (n_variables, n_nodes + 1, n_nodes,
-                                                n_nodes,
+                                               (n_variables,
+                                                n_nodes + 1, n_nodes, n_nodes,
                                                 capacity))
     resize!(_antidiffusive_flux1_R,
             n_variables * (n_nodes + 1) * n_nodes * n_nodes * capacity)
     fluxes.antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
-                                               (n_variables, n_nodes + 1, n_nodes,
-                                                n_nodes,
+                                               (n_variables,
+                                                n_nodes + 1, n_nodes, n_nodes,
                                                 capacity))
     resize!(_antidiffusive_flux2_L,
             n_variables * n_nodes * (n_nodes + 1) * n_nodes * capacity)
     fluxes.antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
-                                               (n_variables, n_nodes, n_nodes + 1,
-                                                n_nodes,
+                                               (n_variables,
+                                                n_nodes, n_nodes + 1, n_nodes,
                                                 capacity))
     resize!(_antidiffusive_flux2_R,
             n_variables * n_nodes * (n_nodes + 1) * n_nodes * capacity)
     fluxes.antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
-                                               (n_variables, n_nodes, n_nodes + 1,
-                                                n_nodes,
+                                               (n_variables,
+                                                n_nodes, n_nodes + 1, n_nodes,
                                                 capacity))
 
     resize!(_antidiffusive_flux3_L,
             n_variables * n_nodes * n_nodes * (n_nodes + 1) * capacity)
     fluxes.antidiffusive_flux3_L = unsafe_wrap(Array, pointer(_antidiffusive_flux3_L),
-                                               (n_variables, n_nodes, n_nodes,
-                                                n_nodes + 1,
+                                               (n_variables,
+                                                n_nodes, n_nodes, n_nodes + 1,
                                                 capacity))
     resize!(_antidiffusive_flux3_R,
             n_variables * n_nodes * n_nodes * (n_nodes + 1) * capacity)
     fluxes.antidiffusive_flux3_R = unsafe_wrap(Array, pointer(_antidiffusive_flux3_R),
-                                               (n_variables, n_nodes, n_nodes,
-                                                n_nodes + 1,
+                                               (n_variables,
+                                                n_nodes, n_nodes, n_nodes + 1,
                                                 capacity))
-    return nothing
-end
 
-# TODO: Does it make sense to implement the alpha1/2/3 dimension independent
-# with indices like [**direction**, i, j, k, elements]?
-# Container data structure (structure-of-arrays style) for variables used for IDP limiting
-mutable struct ContainerSubcellLimiterIDP3D{uEltype <: Real}
-    alpha::Array{uEltype, 4} # [i, j, k, element]
-    alpha1::Array{uEltype, 4}
-    alpha2::Array{uEltype, 4}
-    alpha3::Array{uEltype, 4}
-    variable_bounds::Dict{Symbol, Array{uEltype, 4}}
-    # internal `resize!`able storage
-    _alpha::Vector{uEltype}
-    _alpha1::Vector{uEltype}
-    _alpha2::Vector{uEltype}
-    _alpha3::Vector{uEltype}
-    _variable_bounds::Dict{Symbol, Vector{uEltype}}
-end
+    uEltype = eltype(fluxes.antidiffusive_flux1_L)
+    @threaded for element in axes(fluxes.antidiffusive_flux1_L, 5)
+        fluxes.antidiffusive_flux1_L[:, 1, :, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_L[:, n_nodes + 1, :, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_R[:, 1, :, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_R[:, n_nodes + 1, :, :, element] .= zero(uEltype)
 
-function ContainerSubcellLimiterIDP3D{uEltype}(capacity::Integer, n_nodes,
-                                               bound_keys) where {uEltype <: Real}
-    nan_uEltype = convert(uEltype, NaN)
+        fluxes.antidiffusive_flux2_L[:, :, 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_L[:, :, n_nodes + 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_R[:, :, 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_R[:, :, n_nodes + 1, :, element] .= zero(uEltype)
 
-    # Initialize fields with defaults
-    _alpha = fill(nan_uEltype, n_nodes * n_nodes * n_nodes * capacity)
-    alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, n_nodes, capacity))
-    _alpha1 = fill(nan_uEltype, (n_nodes + 1) * n_nodes * n_nodes * capacity)
-    alpha1 = unsafe_wrap(Array, pointer(_alpha1),
-                         (n_nodes + 1, n_nodes, n_nodes, capacity))
-    _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * n_nodes * capacity)
-    alpha2 = unsafe_wrap(Array, pointer(_alpha2),
-                         (n_nodes, n_nodes + 1, n_nodes, capacity))
-    _alpha3 = fill(nan_uEltype, n_nodes * n_nodes * (n_nodes + 1) * capacity)
-    alpha3 = unsafe_wrap(Array, pointer(_alpha3),
-                         (n_nodes, n_nodes, n_nodes + 1, capacity))
-
-    _variable_bounds = Dict{Symbol, Vector{uEltype}}()
-    variable_bounds = Dict{Symbol, Array{uEltype, 4}}()
-    for key in bound_keys
-        _variable_bounds[key] = fill(nan_uEltype,
-                                     n_nodes * n_nodes * n_nodes * capacity)
-        variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
-                                           (n_nodes, n_nodes, n_nodes, capacity))
-    end
-
-    return ContainerSubcellLimiterIDP3D{uEltype}(alpha, alpha1, alpha2, alpha3,
-                                                 variable_bounds,
-                                                 _alpha, _alpha1, _alpha2, _alpha3,
-                                                 _variable_bounds)
-end
-
-nnodes(container::ContainerSubcellLimiterIDP3D) = size(container.alpha, 1)
-
-# Only one-dimensional `Array`s are `resize!`able in Julia.
-# Hence, we use `Vector`s as internal storage and `resize!`
-# them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
-function Base.resize!(container::ContainerSubcellLimiterIDP3D, capacity)
-    n_nodes = nnodes(container)
-
-    (; _alpha, _alpha1, _alpha2, _alpha3) = container
-    resize!(_alpha, n_nodes * n_nodes * n_nodes * capacity)
-    container.alpha = unsafe_wrap(Array, pointer(_alpha),
-                                  (n_nodes, n_nodes, n_nodes, capacity))
-    container.alpha .= convert(eltype(container.alpha), NaN)
-    resize!(_alpha1, (n_nodes + 1) * n_nodes * n_nodes * capacity)
-    container.alpha1 = unsafe_wrap(Array, pointer(_alpha1),
-                                   (n_nodes + 1, n_nodes, n_nodes, capacity))
-    resize!(_alpha2, n_nodes * (n_nodes + 1) * n_nodes * capacity)
-    container.alpha2 = unsafe_wrap(Array, pointer(_alpha2),
-                                   (n_nodes, n_nodes + 1, n_nodes, capacity))
-    resize!(_alpha3, n_nodes * n_nodes * (n_nodes + 1) * capacity)
-    container.alpha3 = unsafe_wrap(Array, pointer(_alpha3),
-                                   (n_nodes, n_nodes, n_nodes + 1, capacity))
-
-    (; _variable_bounds) = container
-    for (key, _) in _variable_bounds
-        resize!(_variable_bounds[key], n_nodes * n_nodes * n_nodes * capacity)
-        container.variable_bounds[key] = unsafe_wrap(Array,
-                                                     pointer(_variable_bounds[key]),
-                                                     (n_nodes, n_nodes, n_nodes,
-                                                      capacity))
+        fluxes.antidiffusive_flux3_L[:, :, :, 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux3_L[:, :, :, n_nodes + 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux3_R[:, :, :, 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux3_R[:, :, :, n_nodes + 1, element] .= zero(uEltype)
     end
 
     return nothing
