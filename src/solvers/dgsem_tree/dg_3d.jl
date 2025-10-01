@@ -1318,7 +1318,8 @@ end
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{3}, StructuredMesh{3}},
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::Union{TreeMesh{3}, StructuredMesh{3}},
                                 equations, surface_integral, dg::DGSEM, cache)
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements

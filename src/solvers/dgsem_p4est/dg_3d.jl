@@ -358,7 +358,7 @@ end
 
 # Inlined function for interface flux computation for flux + nonconservative terms
 @inline function calc_interface_flux!(surface_flux_values,
-                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                      ::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
                                       have_nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,

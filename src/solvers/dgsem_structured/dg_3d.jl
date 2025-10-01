@@ -39,7 +39,8 @@ function rhs!(backend, du, u, t,
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
@@ -80,7 +81,8 @@ function calc_volume_integral!(backend::Backend, du, u,
     return nothing
 end
 
-@kernel function weak_form_KAkernel!(du, u, meshT, have_nonconservative_terms, equations,
+@kernel function weak_form_KAkernel!(du, u, meshT, have_nonconservative_terms,
+                                     equations,
                                      dg::DGSEM, contravariant_vectors)
     element = @index(Global)
     weak_form_kernel_element!(du, u, element, meshT,
