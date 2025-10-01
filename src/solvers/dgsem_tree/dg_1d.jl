@@ -222,7 +222,8 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, u, mesh, nonconservative_terms, equations,
+    calcflux_fv!(fstar1_L, fstar1_R, u, mesh,
+                 have_nonconservative_terms, equations,
                  volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
