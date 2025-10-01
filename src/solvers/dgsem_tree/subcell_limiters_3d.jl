@@ -30,50 +30,6 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
             idp_bounds_delta_global)
 end
 
-function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 5},
-                                      semi, equations, dg::DGSEM,
-                                      t, dt;
-                                      kwargs...)
-    @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
-    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
-
-    if limiter.local_twosided
-        error("Unsupported type of limiter: local_twosided_variables_cons")
-    end
-    if limiter.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
-    end
-    if limiter.local_onesided
-        error("Unsupported type of limiter: local_onesided_variables_nonlinear")
-    end
-
-    # Calculate alpha1, alpha2 and alpha3
-    @unpack alpha1, alpha2, alpha3 = limiter.cache.subcell_limiter_coefficients
-    @threaded for element in eachelement(dg, semi.cache)
-        for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-            alpha1[i, j, k, element] = max(alpha[i - 1, j, k, element],
-                                           alpha[i, j, k, element])
-        end
-        for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-            alpha2[i, j, k, element] = max(alpha[i, j - 1, k, element],
-                                           alpha[i, j, k, element])
-        end
-        for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-            alpha3[i, j, k, element] = max(alpha[i, j, k - 1, element],
-                                           alpha[i, j, k, element])
-        end
-        alpha1[1, :, :, element] .= zero(eltype(alpha1))
-        alpha1[nnodes(dg) + 1, :, :, element] .= zero(eltype(alpha1))
-        alpha2[:, 1, :, element] .= zero(eltype(alpha2))
-        alpha2[:, nnodes(dg) + 1, :, element] .= zero(eltype(alpha2))
-        alpha3[:, :, 1, element] .= zero(eltype(alpha3))
-        alpha3[:, :, nnodes(dg) + 1, element] .= zero(eltype(alpha3))
-    end
-
-    return nothing
-end
-
 ###############################################################################
 # Global positivity limiting of conservative variables
 
