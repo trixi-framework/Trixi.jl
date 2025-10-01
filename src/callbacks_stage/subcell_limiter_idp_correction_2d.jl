@@ -22,7 +22,7 @@ function perform_idp_correction!(u, dt,
             # Note: For LGL nodes, the high-order and low-order fluxes at element interfaces are equal.
             # Therefore, the antidiffusive fluxes are zero.
             # To avoid accessing zero entries, we directly use zero vectors instead.
-            if i > 1 # Not at "left" boundary node 
+            if i > 1 # Not at "left" boundary node
                 alpha1 = max(alpha[i - 1, j, element], alpha[i, j, element])
                 alpha_flux1 = (1 - alpha1) *
                               get_node_vars(antidiffusive_flux1_R, equations, dg,
