@@ -154,6 +154,29 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                                      gamma_constant_newton)
 end
 
+# dimension agnostic
+function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
+                                      t, dt;
+                                      kwargs...)
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
+    # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
+    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
+
+    if limiter.local_twosided
+        @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,
+                                                                   u, t, dt, semi)
+    end
+    if limiter.positivity
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
+    end
+    if limiter.local_onesided
+        @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha, limiter,
+                                                                   u, t, dt, semi)
+    end
+
+    return nothing
+end
+
 function Base.show(io::IO, limiter::SubcellLimiterIDP)
     @nospecialize limiter # reduce precompilation time
     (; local_twosided, positivity, local_onesided) = limiter
