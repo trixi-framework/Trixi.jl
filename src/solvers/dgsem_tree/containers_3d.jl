@@ -939,7 +939,7 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
                                                 capacity))
 
     uEltype = eltype(fluxes.antidiffusive_flux1_L)
-    @threaded for element in axes(fluxes.antidiffusive_flux1_L, 4)
+    @threaded for element in axes(fluxes.antidiffusive_flux1_L, 5)
         fluxes.antidiffusive_flux1_L[:, 1, :, :, element] .= zero(uEltype)
         fluxes.antidiffusive_flux1_L[:, n_nodes + 1, :, :, element] .= zero(uEltype)
         fluxes.antidiffusive_flux1_R[:, 1, :, :, element] .= zero(uEltype)
