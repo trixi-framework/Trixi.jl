@@ -154,7 +154,6 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                                      gamma_constant_newton)
 end
 
-# dimension agnostic
 function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
                                       t, dt;
                                       kwargs...)
