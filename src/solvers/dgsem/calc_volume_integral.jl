@@ -20,7 +20,7 @@ function calc_volume_integral!(du, u, mesh,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         weak_form_kernel!(du, u, element, mesh,
-                          nonconservative_terms, equations,
+                          have_nonconservative_terms, equations,
                           dg, cache)
     end
 
@@ -33,7 +33,7 @@ function calc_volume_integral!(du, u, mesh,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         flux_differencing_kernel!(du, u, element, mesh,
-                                  nonconservative_terms, equations,
+                                  have_nonconservative_terms, equations,
                                   volume_integral.volume_flux, dg, cache)
     end
 
