@@ -29,14 +29,6 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
     return nothing
 end
 
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::StructuredMesh{1}, equations, surface_integral,
-                             dg::DG)
-    @assert isperiodic(mesh)
-    return nothing
-end
-
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{1}, equations, surface_integral,
                              dg::DG)
