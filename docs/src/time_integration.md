@@ -30,7 +30,7 @@ are the following. Further documentation can be found in the
   from Trixi.jl.
 - If you start Julia with multiple threads and want to use them also in the time
   integration method from OrdinaryDiffEq.jl, you need to pass the keyword argument
-  `thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`)` to the algorithm, e.g.,
+  `thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`) to the algorithm, e.g.,
   `RDPK3SpFSAL49(thread = Trixi.True())` or
   `CarpenterKennedy2N54(thread = Trixi.True(), williamson_condition = false)`.
   For more information on using thread-based parallelism in Trixi.jl, please refer to
@@ -40,6 +40,8 @@ are the following. Further documentation can be found in the
   pass `internalnorm = ode_norm` and you should pass `unstable_check = ode_unstable_check` to
   OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/), which are both
   included in [`ode_default_options`](@ref).
+- Hyperbolic-parabolic problems can be solved using IMEX (implicit-explicit) integrators.
+  Available options from OrdinaryDiffEq.jl are [IMEX SDIRK](https://docs.sciml.ai/OrdinaryDiffEq/stable/implicit/SDIRK/#IMEX-SDIRK) (Single-Diagonal Implicit Runge-Kutta) methods and [IMEX BDF](https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/#IMEX-Multistep) (Backwards Differentiation Formula) methods.
 
 !!! note "Number of `rhs!` calls"
     If you use explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
