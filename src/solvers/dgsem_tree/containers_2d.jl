@@ -1273,7 +1273,7 @@ end
 #                          flux2(i, j)
 #                               |
 #                            (i, j-1)
-mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real}
+mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real} <: AbstractContainer
     antidiffusive_flux1_L::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux1_R::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux2_L::Array{uEltype, 4} # [variables, i, j, elements]
