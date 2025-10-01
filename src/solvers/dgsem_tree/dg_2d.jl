@@ -156,7 +156,7 @@ function rhs!(backend, du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
@@ -1021,7 +1021,7 @@ end
     return nothing
 end
 
-function calc_surface_integral!(du, u,
+function calc_surface_integral!(backend::Nothing, du, u,
                                 mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                             StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
