@@ -945,15 +945,9 @@ end
 # Container data structure (structure-of-arrays style) for variables used for IDP limiting
 mutable struct ContainerSubcellLimiterIDP3D{uEltype <: Real}
     alpha::Array{uEltype, 4} # [i, j, k, element]
-    alpha1::Array{uEltype, 4}
-    alpha2::Array{uEltype, 4}
-    alpha3::Array{uEltype, 4}
     variable_bounds::Dict{Symbol, Array{uEltype, 4}}
     # internal `resize!`able storage
     _alpha::Vector{uEltype}
-    _alpha1::Vector{uEltype}
-    _alpha2::Vector{uEltype}
-    _alpha3::Vector{uEltype}
     _variable_bounds::Dict{Symbol, Vector{uEltype}}
 end
 
@@ -964,15 +958,6 @@ function ContainerSubcellLimiterIDP3D{uEltype}(capacity::Integer, n_nodes,
     # Initialize fields with defaults
     _alpha = fill(nan_uEltype, n_nodes * n_nodes * n_nodes * capacity)
     alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, n_nodes, capacity))
-    _alpha1 = fill(nan_uEltype, (n_nodes + 1) * n_nodes * n_nodes * capacity)
-    alpha1 = unsafe_wrap(Array, pointer(_alpha1),
-                         (n_nodes + 1, n_nodes, n_nodes, capacity))
-    _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * n_nodes * capacity)
-    alpha2 = unsafe_wrap(Array, pointer(_alpha2),
-                         (n_nodes, n_nodes + 1, n_nodes, capacity))
-    _alpha3 = fill(nan_uEltype, n_nodes * n_nodes * (n_nodes + 1) * capacity)
-    alpha3 = unsafe_wrap(Array, pointer(_alpha3),
-                         (n_nodes, n_nodes, n_nodes + 1, capacity))
 
     _variable_bounds = Dict{Symbol, Vector{uEltype}}()
     variable_bounds = Dict{Symbol, Array{uEltype, 4}}()
@@ -983,10 +968,8 @@ function ContainerSubcellLimiterIDP3D{uEltype}(capacity::Integer, n_nodes,
                                            (n_nodes, n_nodes, n_nodes, capacity))
     end
 
-    return ContainerSubcellLimiterIDP3D{uEltype}(alpha, alpha1, alpha2, alpha3,
-                                                 variable_bounds,
-                                                 _alpha, _alpha1, _alpha2, _alpha3,
-                                                 _variable_bounds)
+    return ContainerSubcellLimiterIDP3D{uEltype}(alpha, variable_bounds,
+                                                 _alpha, _variable_bounds)
 end
 
 nnodes(container::ContainerSubcellLimiterIDP3D) = size(container.alpha, 1)
@@ -999,20 +982,11 @@ nnodes(container::ContainerSubcellLimiterIDP3D) = size(container.alpha, 1)
 function Base.resize!(container::ContainerSubcellLimiterIDP3D, capacity)
     n_nodes = nnodes(container)
 
-    (; _alpha, _alpha1, _alpha2, _alpha3) = container
+    (; _alpha) = container
     resize!(_alpha, n_nodes * n_nodes * n_nodes * capacity)
     container.alpha = unsafe_wrap(Array, pointer(_alpha),
                                   (n_nodes, n_nodes, n_nodes, capacity))
     container.alpha .= convert(eltype(container.alpha), NaN)
-    resize!(_alpha1, (n_nodes + 1) * n_nodes * n_nodes * capacity)
-    container.alpha1 = unsafe_wrap(Array, pointer(_alpha1),
-                                   (n_nodes + 1, n_nodes, n_nodes, capacity))
-    resize!(_alpha2, n_nodes * (n_nodes + 1) * n_nodes * capacity)
-    container.alpha2 = unsafe_wrap(Array, pointer(_alpha2),
-                                   (n_nodes, n_nodes + 1, n_nodes, capacity))
-    resize!(_alpha3, n_nodes * n_nodes * (n_nodes + 1) * capacity)
-    container.alpha3 = unsafe_wrap(Array, pointer(_alpha3),
-                                   (n_nodes, n_nodes, n_nodes + 1, capacity))
 
     (; _variable_bounds) = container
     for (key, _) in _variable_bounds
