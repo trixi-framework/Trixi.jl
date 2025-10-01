@@ -14,8 +14,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
+        calc_volume_integral!(du, u, mesh, equations,
                               dg.volume_integral, dg, cache)
     end
 
@@ -60,7 +59,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    element,
                                    mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                T8codeMesh{3}},
-                                   have_nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False,
+                                   have_aux_node_vars::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -118,7 +118,8 @@ end
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
-                                           have_nonconservative_terms::False, equations,
+                                           have_nonconservative_terms::False,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -201,7 +202,8 @@ end
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
-                                           have_nonconservative_terms::True, equations,
+                                           have_nonconservative_terms::True,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
