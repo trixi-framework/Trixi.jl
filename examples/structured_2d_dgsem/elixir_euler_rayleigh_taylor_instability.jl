@@ -76,6 +76,10 @@ boundary_conditions = (x_neg = boundary_condition_slip_wall,
                        y_neg = boundary_condition_slip_wall,
                        y_pos = boundary_condition_slip_wall)
 
+# Alternative to the boundary_conditions defined above:
+# boundary_condition = boundary_condition_slip_wall
+# boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+
 # # Alternative setup: left/right periodic BCs and Dirichlet BCs on the top/bottom.
 # boundary_conditions = (
 #                        x_neg=boundary_condition_periodic,

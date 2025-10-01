@@ -141,6 +141,7 @@ include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
+include("solvers/default_boundary_conditions.jl")  
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
@@ -151,7 +152,6 @@ include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-
 # Special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
 
@@ -220,6 +220,15 @@ export initial_condition_constant,
        initial_condition_weak_blast_wave
 
 export boundary_condition_do_nothing,
+       boundary_condition_default_p4est_2D,
+       boundary_condition_default_p4est_3D,
+       boundary_condition_default_structured_1D,
+       boundary_condition_default_structured_2D,
+       boundary_condition_default_structured_3D,
+       boundary_condition_default_tree_1D,
+       boundary_condition_default_tree_2D,
+       boundary_condition_default_tree_3D,
+       boundary_condition_default,
        boundary_condition_periodic,
        BoundaryConditionDirichlet,
        BoundaryConditionNeumann,
