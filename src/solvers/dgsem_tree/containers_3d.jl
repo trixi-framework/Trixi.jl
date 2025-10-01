@@ -955,6 +955,7 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
         fluxes.antidiffusive_flux3_R[:, :, :, 1, element] .= zero(uEltype)
         fluxes.antidiffusive_flux3_R[:, :, :, n_nodes + 1, element] .= zero(uEltype)
     end
+
     return nothing
 end
 end # @muladd
