@@ -40,7 +40,7 @@ function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
 end
 
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::TreeMesh{2},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralStrongForm,
@@ -96,7 +96,7 @@ end
 # the finite difference stencils. Thus, the D^- operator acts on the positive
 # part of the flux splitting f^+ and the D^+ operator acts on the negative part
 # of the flux splitting f^-.
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::TreeMesh{2},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralUpwind,
