@@ -8,41 +8,6 @@
 # everything related to a DG semidiscretization in 3D,
 # currently limited to Lobatto-Legendre nodes
 
-# This method is called when a SemidiscretizationHyperbolic is constructed.
-# It constructs the basic `cache` used throughout the simulation to compute
-# the RHS etc.
-function create_cache(mesh::TreeMesh{3}, equations,
-                      dg::DG, RealT, uEltype)
-    # Get cells for which an element needs to be created (i.e. all leaf cells)
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
-
-    interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
-
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
-
-    mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
-
-    cache = (; elements, interfaces, boundaries, mortars)
-
-    # Add specialized parts of the cache required to compute the volume integral etc.
-    cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
-
-    return cache
-end
-
-# The methods below are specialized on the volume integral type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                  T8codeMesh{3}},
-                      equations, volume_integral::VolumeIntegralFluxDifferencing,
-                      dg::DG, uEltype)
-    NamedTuple()
-end
-
 function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                   T8codeMesh{3}},
                       equations,
@@ -228,58 +193,6 @@ function rhs!(backend, du, u, t,
     return nothing
 end
 
-function calc_volume_integral!(backend, du, u,
-                               mesh::TreeMesh{3},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel!(du, u, element, mesh,
-                          have_nonconservative_terms, equations,
-                          dg, cache)
-    end
-    return nothing
-end
-
-function calc_volume_integral!(backend::Nothing, du, u,
-                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    @unpack contravariant_vectors = cache.elements
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel_element!(du, u, element, typeof(mesh),
-                                  have_nonconservative_terms, equations,
-                                  dg, contravariant_vectors)
-    end
-    return nothing
-end
-
-function calc_volume_integral!(backend::Backend, du, u,
-                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack contravariant_vectors = cache.elements
-
-    kernel! = weak_form_KAkernel!(backend)
-    kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations, dg,
-            contravariant_vectors,
-            ndrange = nelements(dg, cache))
-    return nothing
-end
-
-@kernel function weak_form_KAkernel!(du, u, meshT, have_nonconservative_terms, equations,
-                                     dg::DGSEM, contravariant_vectors)
-    element = @index(Global)
-    weak_form_kernel_element!(du, u, element, meshT,
-                              have_nonconservative_terms, equations,
-                              dg, contravariant_vectors)
-end
-
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -320,6 +233,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
+<<<<<<< HEAD
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
@@ -335,6 +249,8 @@ function calc_volume_integral!(backend::Nothing, du, u,
     return nothing
 end
 
+=======
+>>>>>>> main
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{3},
                                            have_nonconservative_terms::False, equations,
@@ -439,6 +355,7 @@ end
     return nothing
 end
 
+<<<<<<< HEAD
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
@@ -498,6 +415,8 @@ function calc_volume_integral!(backend::Nothing, du, u,
     return nothing
 end
 
+=======
+>>>>>>> main
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                         T8codeMesh{3}},
@@ -834,13 +753,6 @@ function prolong2boundaries!(cache, u,
         end
     end
 
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::TreeMesh{3}, equations, surface_integral, dg::DG)
-    @assert isempty(eachboundary(dg, cache))
     return nothing
 end
 
@@ -1555,7 +1467,7 @@ function apply_jacobian!(du, mesh::TreeMesh{3},
     return nothing
 end
 
-# TODO: Taal dimension agnostic
+# Need dimension specific version to avoid error at dispatching
 function calc_sources!(du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{3}, dg::DG, cache)
     return nothing

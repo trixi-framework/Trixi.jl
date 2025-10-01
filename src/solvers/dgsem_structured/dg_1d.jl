@@ -14,7 +14,7 @@ function rhs!(backend, du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
@@ -67,14 +67,6 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
         end
     end
 
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::StructuredMesh{1}, equations, surface_integral,
-                             dg::DG)
-    @assert isperiodic(mesh)
     return nothing
 end
 

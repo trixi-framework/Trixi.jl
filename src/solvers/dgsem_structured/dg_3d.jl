@@ -14,7 +14,7 @@ function rhs!(backend, du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
@@ -47,6 +47,45 @@ function rhs!(backend, du, u, t,
     end
 
     return nothing
+end
+
+function calc_volume_integral!(backend::Nothing, du, u,
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+    @unpack contravariant_vectors = cache.elements
+    @threaded for element in eachelement(dg, cache)
+        weak_form_kernel_element!(du, u, element, typeof(mesh),
+                                  have_nonconservative_terms, equations,
+                                  dg, contravariant_vectors)
+    end
+    return nothing
+end
+
+function calc_volume_integral!(backend::Backend, du, u,
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+    nelements(dg, cache) == 0 && return nothing
+    @unpack contravariant_vectors = cache.elements
+
+    kernel! = weak_form_KAkernel!(backend)
+    kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations, dg,
+            contravariant_vectors,
+            ndrange = nelements(dg, cache))
+    return nothing
+end
+
+@kernel function weak_form_KAkernel!(du, u, meshT, have_nonconservative_terms, equations,
+                                     dg::DGSEM, contravariant_vectors)
+    element = @index(Global)
+    weak_form_kernel_element!(du, u, element, meshT,
+                              have_nonconservative_terms, equations,
+                              dg, contravariant_vectors)
 end
 
 #=
@@ -146,6 +185,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
+            # average mapping terms in first coordinate direction,
+            # used as normal vector in the flux computation
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -162,6 +203,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
+            # average mapping terms in second coordinate direction,
+            # used as normal vector in the flux computation
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -178,6 +221,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
+            # average mapping terms in third coordinate direction,
+            # used as normal vector in the flux computation
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -228,6 +273,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
+            # average mapping terms in first coordinate direction,
+            # used as normal vector in the flux computation
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -243,6 +290,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
+            # average mapping terms in second coordinate direction,
+            # used as normal vector in the flux computation
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -258,6 +307,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
+            # average mapping terms in third coordinate direction,
+            # used as normal vector in the flux computation
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -688,14 +739,6 @@ end
         end
     end
 
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::StructuredMesh{3}, equations, surface_integral,
-                             dg::DG)
-    @assert isperiodic(mesh)
     return nothing
 end
 
