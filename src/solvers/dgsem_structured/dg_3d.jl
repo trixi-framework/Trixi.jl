@@ -14,8 +14,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
+        calc_volume_integral!(du, u, mesh, equations,
                               dg.volume_integral, dg, cache)
     end
 
@@ -145,6 +144,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
+            # average mapping terms in first coordinate direction,
+            # used as normal vector in the flux computation
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -161,6 +162,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
+            # average mapping terms in second coordinate direction,
+            # used as normal vector in the flux computation
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -177,6 +180,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
+            # average mapping terms in third coordinate direction,
+            # used as normal vector in the flux computation
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -227,6 +232,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
+            # average mapping terms in first coordinate direction,
+            # used as normal vector in the flux computation
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -242,6 +249,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
+            # average mapping terms in second coordinate direction,
+            # used as normal vector in the flux computation
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -257,6 +266,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
+            # average mapping terms in third coordinate direction,
+            # used as normal vector in the flux computation
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -687,14 +698,6 @@ end
         end
     end
 
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::StructuredMesh{3}, equations, surface_integral,
-                             dg::DG)
-    @assert isperiodic(mesh)
     return nothing
 end
 
