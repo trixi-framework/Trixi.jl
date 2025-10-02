@@ -63,7 +63,7 @@ end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::TreeMesh{1}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
@@ -72,7 +72,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end

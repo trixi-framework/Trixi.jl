@@ -102,7 +102,7 @@ end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
               equations,
               boundary_conditions, source_terms::Source,
@@ -112,7 +112,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
@@ -156,7 +156,7 @@ function rhs!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
@@ -1021,7 +1021,7 @@ end
     return nothing
 end
 
-function calc_surface_integral!(du, u,
+function calc_surface_integral!(backend::Nothing, du, u,
                                 mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                             StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,

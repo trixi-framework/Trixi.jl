@@ -610,6 +610,13 @@ end
     return u_ll, u_rr
 end
 
+# As above but dispatches on an type argument
+@inline function get_surface_node_vars(u, equations, ::Type{<:DG}, indices...)
+    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), Val(nvariables(equations))))
+    return u_ll, u_rr
+end
+
 @inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
@@ -774,54 +781,46 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
     return nothing
 end
 
-function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
+function compute_coefficients!(backend::Nothing, u, func, t,
+                               mesh::Union{AbstractMesh{2}, AbstractMesh{3}},
                                equations, dg::DG, cache)
     @unpack node_coordinates = cache.elements
+    node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
     @threaded for element in eachelement(dg, cache)
         compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
-                                      element)
+                                      element, node_indices)
     end
 
     return nothing
 end
 
-function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
+function compute_coefficients!(backend::Backend, u, func, t,
+                               mesh::Union{AbstractMesh{2}, AbstractMesh{3}},
                                equations, dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
+
     @unpack node_coordinates = cache.elements
-    kernel! = compute_coefficients_kernel!(backend)
-    kernel!(u, func, t, equations, dg, node_coordinates,
+    node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
+
+    kernel! = compute_coefficients_KAkernel!(backend)
+    kernel!(u, func, t, equations, dg, node_coordinates, node_indices,
             ndrange = nelements(dg, cache))
     return nothing
 end
 
-@kernel function compute_coefficients_kernel!(u, func, t, equations,
-                                              dg::DG, node_coordinates)
+@kernel function compute_coefficients_KAkernel!(u, func, t, equations,
+                                                dg::DG, node_coordinates, node_indices)
     element = @index(Global)
-    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates, element)
+    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates, element,
+                                  node_indices)
 end
 
 function compute_coefficients_element!(u, func, t, equations, dg::DG,
-                                       node_coordinates, element)
-    for j in eachnode(dg), i in eachnode(dg)
-        x_node = get_node_coords(node_coordinates, equations, dg, i,
-                                 j, element)
+                                       node_coordinates, element, node_indices)
+    for indices in node_indices
+        x_node = get_node_coords(node_coordinates, equations, dg, indices, element)
         u_node = func(x_node, t, equations)
-        set_node_vars!(u, u_node, equations, dg, i, j, element)
-    end
-
-    return nothing
-end
-
-function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
-                               equations, dg::DG, cache)
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     j, k, element)
-            u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, k, element)
-        end
+        set_node_vars!(u, u_node, equations, dg, indices, element)
     end
 
     return nothing

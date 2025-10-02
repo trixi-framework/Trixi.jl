@@ -447,7 +447,7 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
 end
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::Union{ParallelTreeMesh{2}, ParallelP4estMesh{2},
                           ParallelT8codeMesh{2}}, equations,
               boundary_conditions, source_terms::Source,
@@ -476,7 +476,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end

@@ -280,11 +280,18 @@ end
     return nothing
 end
 
-@inline function save_solution_file(u_ode, t, dt, iter,
+@inline function save_solution_file(_u_ode, t, dt, iter,
                                     semi::AbstractSemidiscretization, solution_callback,
                                     element_variables = Dict{Symbol, Any}(),
                                     node_variables = Dict{Symbol, Any}();
                                     system = "")
+    # TODO GPU currently on CPU
+    backend = trixi_backend(_u_ode)
+    if backend isa Nothing # TODO GPU KA CPU backend
+        u_ode = _u_ode
+    else
+        u_ode = Array(_u_ode)
+    end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
     save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,

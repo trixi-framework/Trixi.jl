@@ -647,7 +647,7 @@ end
     return nothing
 end
 
-function calc_surface_integral!(du, u,
+function calc_surface_integral!(backend::Nothing, du, u,
                                 mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                             T8codeMesh{2}},
                                 equations,
