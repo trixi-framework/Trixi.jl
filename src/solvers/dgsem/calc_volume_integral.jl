@@ -15,12 +15,12 @@ end
 # dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
 
 function calc_volume_integral!(du, u, mesh,
-                               nonconservative_terms, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         weak_form_kernel!(du, u, element, mesh,
-                          nonconservative_terms, equations,
+                          have_nonconservative_terms, equations,
                           dg, cache)
     end
 
@@ -28,12 +28,12 @@ function calc_volume_integral!(du, u, mesh,
 end
 
 function calc_volume_integral!(du, u, mesh,
-                               nonconservative_terms, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
-        flux_differencing_kernel!(du, u, element, mesh, nonconservative_terms,
-                                  equations,
+        flux_differencing_kernel!(du, u, element, mesh,
+                                  have_nonconservative_terms, equations,
                                   volume_integral.volume_flux, dg, cache)
     end
 
@@ -41,7 +41,7 @@ function calc_volume_integral!(du, u, mesh,
 end
 
 function calc_volume_integral!(du, u, mesh,
-                               nonconservative_terms, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
@@ -61,17 +61,18 @@ function calc_volume_integral!(du, u, mesh,
 
         if dg_only
             flux_differencing_kernel!(du, u, element, mesh,
-                                      nonconservative_terms, equations,
+                                      have_nonconservative_terms, equations,
                                       volume_flux_dg, dg, cache)
         else
             # Calculate DG volume integral contribution
             flux_differencing_kernel!(du, u, element, mesh,
-                                      nonconservative_terms, equations,
+                                      have_nonconservative_terms, equations,
                                       volume_flux_dg, dg, cache, 1 - alpha_element)
 
             # Calculate FV volume integral contribution
-            fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
-                       dg, cache, element, alpha_element)
+            fv_kernel!(du, u, mesh,
+                       have_nonconservative_terms, equations,
+                       volume_flux_fv, dg, cache, element, alpha_element)
         end
     end
 
@@ -79,15 +80,16 @@ function calc_volume_integral!(du, u, mesh,
 end
 
 function calc_volume_integral!(du, u, mesh,
-                               nonconservative_terms, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)
     @unpack volume_flux_fv = volume_integral
 
     # Calculate LGL FV volume integral
     @threaded for element in eachelement(dg, cache)
-        fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
-                   dg, cache, element, true)
+        fv_kernel!(du, u, mesh,
+                   have_nonconservative_terms, equations,
+                   volume_flux_fv, dg, cache, element, true)
     end
 
     return nothing
