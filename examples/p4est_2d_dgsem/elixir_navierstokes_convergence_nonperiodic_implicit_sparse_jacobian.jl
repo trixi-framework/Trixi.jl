@@ -24,7 +24,7 @@ trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
                 polydeg=3, initial_refinement_level = 2,
                 coordinates_min=coordinates_min, coordinates_max=coordinates_max,
-                periodicity = (false, false))
+                periodicity = false)
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)

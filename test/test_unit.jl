@@ -2810,7 +2810,7 @@ end
     semi_jac_type_no_advection = SemidiscretizationHyperbolicParabolic(mesh,
                                                 (equations_hyperbolic_no_advection, 
                                                 equations_parabolic_no_advection),
-                                                initial_condition, solver,
+                                                initial_condition_convergence_test, solver,
                                                 uEltype = jac_eltype)
     ode_jac_type_no_advection = semidiscretize(semi_jac_type_no_advection, tspan)
 
@@ -2821,9 +2821,7 @@ end
 
     # Given that the stencil for parabolic solvers are always larger than those of hyperbolic solvers,
     # the sparsity detection will never depend on the hyperbolic part of the problem
-    @assert(jac_prototype_parabolic == jac_prototype_parabolic_no_advection)
-
-    @test isapprox(jac_prototype_parabolic, jac_prototype_parabolic_no_advection; rtol = 5e-8)
+    @test jac_prototype_parabolic == jac_prototype_parabolic_no_advection
 end
 end
 

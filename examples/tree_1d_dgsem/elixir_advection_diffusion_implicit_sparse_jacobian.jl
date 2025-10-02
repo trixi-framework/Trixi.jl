@@ -59,6 +59,22 @@ u0_ode = ode_jac_type.u0
 du_ode = similar(u0_ode)
 
 ###############################################################################
+### Compute the Jacobian sparsity pattern ###
+
+# Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+# https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+
+jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_ode, jac_detector)
+
+# For most efficient solving we also want the coloring vector
+
+coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
+coloring_alg = GreedyColoringAlgorithm(; decompression = :direct)
+coloring_result = coloring(jac_prototype_parabolic, coloring_prob, coloring_alg)
+coloring_vec_parabolic = column_colors(coloring_result)
+
+###############################################################################
 ### sparsity-aware semidiscretization and ODE ###
 
 # Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
