@@ -65,7 +65,14 @@ end
 
 polydeg = 2
 basis = LobattoLegendreBasis(polydeg)
-surface_flux = flux_lax_friedrichs
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 
 # Flux Differencing is required, shock capturing not!
@@ -114,7 +121,7 @@ force_boundary_names = (:BottomWing, :TopWing)
 aoa() = deg2rad(3.06)
 
 rho_inf() = 1.4
-u_inf(equations) = 0.84
+u_inf() = 0.84
 
 ### Wing projected area calculated from geometry information provided at ###
 ### https://www.grc.nasa.gov/www/wind/valid/m6wing/m6wing.html ###
@@ -131,10 +138,10 @@ A = height * (0.5 * (g_I + g_III) + g_II)
 
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            LiftCoefficientPressure3D(aoa(), rho_inf(),
-                                                                     u_inf(equations), A))
+                                                                     u_inf(), A))
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            DragCoefficientPressure3D(aoa(), rho_inf(),
-                                                                     u_inf(equations), A))
+                                                                     u_inf(), A))
 
 analysis_interval = 100_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,

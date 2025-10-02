@@ -25,12 +25,6 @@ function create_cache(::Type{IndicatorHennemannGassner},
             modal_tmp2_threaded)
 end
 
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations{3}, dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
-end
-
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
 # with @batch (@threaded).
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
@@ -148,6 +142,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
         alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper_right],
                            alpha[large])
     end
+
+    return nothing
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -160,12 +156,6 @@ function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{3},
                           for _ in 1:Threads.nthreads()]
 
     return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{3},
-                      dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
 end
 
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
@@ -227,12 +217,6 @@ function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{3},
                           for _ in 1:Threads.nthreads()]
 
     return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{3},
-                      dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
 end
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},

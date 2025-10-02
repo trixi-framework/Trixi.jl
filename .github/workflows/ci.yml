@@ -35,6 +35,11 @@ on:
       - 'utils/**'
   workflow_dispatch:
 
+# needed to allow julia-actions/cache to delete old caches that it has created
+permissions:
+  actions: write
+  contents: read
+
 # Cancel redundant CI tests automatically
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -103,13 +108,15 @@ jobs:
             arch: x64
             trixi_test: threaded
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v2
+        with:
+          include-matrix: false
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
@@ -176,8 +183,8 @@ jobs:
       # Instead, we use the more tedious approach described above.
       # At first, we check out the repository and download all artifacts
       # (and list files for debugging).
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
       - run: ls -R
       # Next, we merge the individual coverage files and upload
       # the combined results to Coveralls.
