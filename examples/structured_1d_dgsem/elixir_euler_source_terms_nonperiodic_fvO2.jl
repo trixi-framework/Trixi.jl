@@ -11,7 +11,7 @@ initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 # you can either use a single function to impose the BCs weakly in all
-# 1*ndims == 2 directions or you can pass a tuple containing BCs for
+# 2*ndims == 2 directions or you can pass a tuple containing BCs for
 # each direction
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (x_neg = boundary_condition,

@@ -233,7 +233,7 @@ end
                                         reconstruction_mode = reconstruction_O2_full,
                                         slope_limiter = minmod)
 
-This gives an up to  O(2)-accurate finite volume scheme on an LGL-type subcell
+This gives an up to  second order accurate finite volume scheme on an LGL-type subcell
 mesh (LGL = Legendre-Gauss-Lobatto).
 Depending on the `reconstruction_mode` and `slope_limiter`, experimental orders of convergence
 between 1 and 2 can be expected in practice.
@@ -244,9 +244,9 @@ The interface values of the inner DG-subcells are reconstructed using the standa
 For the DG-subcells at the boundaries, two options are available:
 
 1) The unlimited slope is used on these cells.
-   This gives full O(2) accuracy, but also does not damp overshoots between cells.
+   This gives full second order accuracy, but also does not damp overshoots between cells.
    The `reconstruction_mode` corresponding to this is `reconstruction_O2_full`.
-2) On boundary subcells, the solution is represented using a constant value, thereby falling back to formally only O(1).
+2) On boundary subcells, the solution is represented using a constant value, thereby falling back to formally only first order.
    The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
    In the reference below, this is the recommended reconstruction mode and is thus used by default.
 

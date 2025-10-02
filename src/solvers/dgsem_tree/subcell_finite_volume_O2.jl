@@ -5,7 +5,7 @@
 
 Returns the constant "reconstructed" values `u_lr, u_rl` at the interface `x_interfaces[node_index - 1]`.
 Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
-Formally O(1) accurate.
+Formally first order accurate.
 If a first-order finite volume scheme is desired, [`VolumeIntegralPureLGLFiniteVolume`](@ref) is an
 equivalent, but more efficient choice.
 """
@@ -69,7 +69,7 @@ Total-Variation-Diminishing (TVD) choices for the limiter are
     4) [`vanLeer`](@ref)
 
 The reconstructed slopes are for `reconstruction_O2_full` not limited at the cell boundaries.
-Formally O(2) accurate when used without a limiter, i.e., `limiter = `[`central_slope`](@ref).
+Formally second order accurate when used without a limiter, i.e., `limiter = `[`central_slope`](@ref).
 This approach corresponds to equation (79) described in
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
