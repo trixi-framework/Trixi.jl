@@ -242,10 +242,10 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity, temperature
-global_mean_vars,
-equilibrium_distribution,
-waterheight, waterheight_pressure
+export density, pressure, density_pressure, velocity, temperature,
+       global_mean_vars,
+       equilibrium_distribution,
+       waterheight, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
