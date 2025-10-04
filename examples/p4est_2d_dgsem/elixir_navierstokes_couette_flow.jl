@@ -67,9 +67,8 @@ bs_hyperbolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition), # 
 velocity_bc_top_left = NoSlip((x, t, equations) -> SVector(x[2] / height() * v_top(), 0))
 # Use isothermal for inflow - adiabatic should also work
 heat_bc_top_left = Isothermal() do x, t, equations_parabolic
-    Trixi.temperature(initial_condition(x, t,
-                                        equations_parabolic),
-                      equations_parabolic)
+    temperature(initial_condition(x, t, equations_parabolic),
+                equations_parabolic)
 end
 bc_parabolic_top_left = BoundaryConditionNavierStokesWall(velocity_bc_top_left,
                                                           heat_bc_top_left)
