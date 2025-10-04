@@ -11,8 +11,8 @@ equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_godunov)
 
-coordinates_min = (-1.0, )
-coordinates_max = (0.0, )
+coordinates_min = (-1.0,)
+coordinates_max = (0.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 periodicity = false,

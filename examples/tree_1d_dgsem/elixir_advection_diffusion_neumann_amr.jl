@@ -11,8 +11,8 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_godunov)
 initial_condition_zero(x, t, equations::LinearScalarAdvectionEquation1D) = SVector(0.0)
 initial_condition = initial_condition_zero
 
-coordinates_min = (-1.0, )
-coordinates_max = (1.0, )
+coordinates_min = (-1.0,)
+coordinates_max = (1.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 periodicity = false,
