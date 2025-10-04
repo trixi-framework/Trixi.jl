@@ -42,6 +42,7 @@ end
     return flux_inner
 end
 
+# Required for the 1D (TreeMesh) case
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
                                                                   orientation,
                                                                   direction,
@@ -51,6 +52,7 @@ end
     return boundary_condition.boundary_value_function(x, t, equations_parabolic)
 end
 
+# Required for the 1D (TreeMesh) case
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
                                                                   orientation,
                                                                   direction,
@@ -70,6 +72,26 @@ end
 
 @inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
                                                                 normal::AbstractVector,
+                                                                x, t,
+                                                                operator_type::Gradient,
+                                                                equations_parabolic::AbstractLaplaceDiffusion)
+    return flux_inner
+end
+
+# Required for the 1D (TreeMesh) case
+@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
+                                                                orientation,
+                                                                direction,
+                                                                x, t,
+                                                                operator_type::Divergence,
+                                                                equations_parabolic::AbstractLaplaceDiffusion)
+    return boundary_condition.boundary_normal_flux_function(x, t, equations_parabolic)
+end
+
+# Required for the 1D (TreeMesh) case
+@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
+                                                                orientation,
+                                                                direction,
                                                                 x, t,
                                                                 operator_type::Gradient,
                                                                 equations_parabolic::AbstractLaplaceDiffusion)
