@@ -149,6 +149,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
+                        l2=[
+                            0.0005159476609077155,
+                            0.000649450399792432,
+                            0.0010602371635625239
+                        ],
+                        linf=[
+                            0.0017927309507015377,
+                            0.001662532939591621,
+                            0.004580416775184837
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `:compact` printing
+    show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), volume_integral)
+end
+
 @trixi_testset "elixir_euler_weak_blast_er.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_er.jl"),

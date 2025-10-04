@@ -8,41 +8,6 @@
 # everything related to a DG semidiscretization in 3D,
 # currently limited to Lobatto-Legendre nodes
 
-# This method is called when a SemidiscretizationHyperbolic is constructed.
-# It constructs the basic `cache` used throughout the simulation to compute
-# the RHS etc.
-function create_cache(mesh::TreeMesh{3}, equations,
-                      dg::DG, RealT, uEltype)
-    # Get cells for which an element needs to be created (i.e. all leaf cells)
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
-
-    interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
-
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
-
-    mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
-
-    cache = (; elements, interfaces, boundaries, mortars)
-
-    # Add specialized parts of the cache required to compute the volume integral etc.
-    cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
-
-    return cache
-end
-
-# The methods below are specialized on the volume integral type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                  T8codeMesh{3}},
-                      equations, volume_integral::VolumeIntegralFluxDifferencing,
-                      dg::DG, uEltype)
-    NamedTuple()
-end
-
 function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                   T8codeMesh{3}},
                       equations,
@@ -157,91 +122,6 @@ function create_cache(mesh::TreeMesh{3}, equations,
     return cache
 end
 
-# TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
-
-function rhs!(du, u, t,
-              mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg, cache)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
-                         dg.mortar, dg)
-    end
-
-    # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
-                          dg.mortar, dg.surface_integral, dg, cache)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-
-    return nothing
-end
-
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel!(du, u, element, mesh,
-                          nonconservative_terms, equations,
-                          dg, cache)
-    end
-
-    return nothing
-end
-
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -251,7 +131,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 =#
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::TreeMesh{3},
-                                   nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -282,24 +162,9 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        flux_differencing_kernel!(du, u, element, mesh,
-                                  nonconservative_terms, equations,
-                                  volume_integral.volume_flux, dg, cache)
-    end
-
-    return nothing
-end
-
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{3},
-                                           nonconservative_terms::False, equations,
+                                           have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -350,7 +215,7 @@ end
 
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{3},
-                                           nonconservative_terms::True, equations,
+                                           have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -401,72 +266,13 @@ end
     return nothing
 end
 
-# TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralShockCapturingHG,
-                               dg::DGSEM, cache)
-    @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
-
-    # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-    alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
-                                                               cache)
-
-    # For `Float64`, this gives 1.8189894035458565e-12
-    # For `Float32`, this gives 1.1920929f-5
-    RealT = eltype(alpha)
-    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
-    @threaded for element in eachelement(dg, cache)
-        alpha_element = alpha[element]
-        # Clip blending factor for values close to zero (-> pure DG)
-        dg_only = isapprox(alpha_element, 0, atol = atol)
-
-        if dg_only
-            flux_differencing_kernel!(du, u, element, mesh,
-                                      nonconservative_terms, equations,
-                                      volume_flux_dg, dg, cache)
-        else
-            # Calculate DG volume integral contribution
-            flux_differencing_kernel!(du, u, element, mesh,
-                                      nonconservative_terms, equations,
-                                      volume_flux_dg, dg, cache, 1 - alpha_element)
-
-            # Calculate FV volume integral contribution
-            fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
-                       dg, cache, element, alpha_element)
-        end
-    end
-
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
-                               dg::DGSEM, cache)
-    @unpack volume_flux_fv = volume_integral
-
-    # Calculate LGL FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
-                   dg, cache, element, true)
-    end
-
-    return nothing
-end
-
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                         T8codeMesh{3}},
-                            nonconservative_terms, equations,
+                            have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
@@ -477,8 +283,8 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                 mesh, nonconservative_terms, equations, volume_flux_fv, dg, element,
-                 cache)
+                 mesh, have_nonconservative_terms, equations,
+                 volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -502,7 +308,7 @@ end
 # Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
-                              mesh::TreeMesh{3}, nonconservative_terms::False,
+                              mesh::TreeMesh{3}, have_nonconservative_terms::False,
                               equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     fstar1_L[:, 1, :, :] .= zero(eltype(fstar1_L))
@@ -547,10 +353,11 @@ end
     return nothing
 end
 
-# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
+# Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
-                              mesh::TreeMesh{3}, nonconservative_terms::True, equations,
+                              mesh::TreeMesh{3},
+                              have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
@@ -666,7 +473,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{3},
-                              nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -701,7 +508,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{3},
-                              nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -795,13 +602,6 @@ function prolong2boundaries!(cache, u,
         end
     end
 
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::TreeMesh{3}, equations, surface_integral, dg::DG)
-    @assert isempty(eachboundary(dg, cache))
     return nothing
 end
 
@@ -1063,7 +863,7 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{3},
-                           nonconservative_terms::False, equations,
+                           have_nonconservative_terms::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -1121,7 +921,7 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{3},
-                           nonconservative_terms::True, equations,
+                           have_nonconservative_terms::True, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
@@ -1516,7 +1316,7 @@ function apply_jacobian!(du, mesh::TreeMesh{3},
     return nothing
 end
 
-# TODO: Taal dimension agnostic
+# Need dimension specific version to avoid error at dispatching
 function calc_sources!(du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{3}, dg::DG, cache)
     return nothing
