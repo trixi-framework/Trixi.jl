@@ -731,17 +731,21 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
                         tspan=(0.0, 0.1),
+                        atol_lin_solve=1e-11,
+                        rtol_lin_solve=1e-11,
+                        atol_ode_solve=1e-10,
+                        rtol_ode_solve=1e-10,
                         l2=[
-                            3.468233560427797e-5,
-                            2.64864594855224e-5,
-                            7.879490760481979e-10,
-                            2.8748482665365446e-5
+                            3.428501006908931e-5,
+                            2.5967418005884837e-5,
+                            2.7084890458524478e-17,
+                            2.855861765163304e-5
                         ],
                         linf=[
-                            0.00018754529350140103,
-                            0.00014045634087878067,
-                            9.043610782328732e-9,
-                            0.00014499382160382268
+                            0.00018762342908784646,
+                            0.0001405900207752664,
+                            3.661971738081151e-16,
+                            0.00014510700486747297
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -901,19 +905,19 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_blast_reflective.jl"),
                         l2=[
-                            0.08271777454941344,
-                            0.10020048140682014,
-                            0.10020048140682006,
-                            0.5954017435122945
+                            0.015140702486341239,
+                            0.035675739843665635,
+                            0.035675739843665615,
+                            0.21415725909973524
                         ],
                         linf=[
-                            0.4785944470287504,
-                            0.7205772140501768,
-                            0.7205772140501767,
-                            3.25120873497427
+                            0.2339198598727935,
+                            0.5951310665112189,
+                            0.5951310665112187,
+                            3.0106576605775333
                         ],
-                        tspan=(0.0, 0.05),
-                        abstol=1e-7, reltol=1e-7)
+                        tspan=(0.0, 0.01),
+                        abstol=1e-11, reltol=1e-11)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
