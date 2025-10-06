@@ -220,24 +220,6 @@ struct AnalysisCallbackCoupledP4est{CB}
     callbacks::CB
 end
 
-function Base.show(io::IO, ::MIME"text/plain",
-                   cb_coupled::DiscreteCallback{<:Any, <:AnalysisCallbackCoupledP4est})
-    @nospecialize cb_coupled # reduce precompilation time
-
-    if get(io, :compact, false)
-        show(io, cb_coupled)
-    else
-        analysis_callback_coupled = cb_coupled.affect!
-
-        summary_header(io, "AnalysisCallbackCoupledP4est")
-        for (i, cb) in enumerate(analysis_callback_coupled.callbacks)
-            summary_line(io, "Callback #$i", "")
-            show(increment_indent(io), MIME"text/plain"(), cb)
-        end
-        summary_footer(io)
-    end
-end
-
 # Convenience constructor for the coupled callback that gets called directly from the elixirs
 function AnalysisCallbackCoupledP4est(semi_coupled, callbacks...)
     if length(callbacks) != nsystems(semi_coupled)
