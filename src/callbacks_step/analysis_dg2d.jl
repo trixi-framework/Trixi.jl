@@ -113,9 +113,9 @@ function calc_error_norms(func, u, t, analyzer,
         l2_error_local = zero(l2_error)
 
         # Interpolate solution and node locations to analysis nodes
-        multiply_dimensionwise!(u_local, vandermonde, view(u, :, :, :, element), u_tmp1)
+        multiply_dimensionwise!(u_local, vandermonde, view(u,:,:,:,element), u_tmp1)
         multiply_dimensionwise!(x_local, vandermonde,
-                                view(node_coordinates, :, :, :, element), x_tmp1)
+                                view(node_coordinates,:,:,:,element), x_tmp1)
 
         # Calculate errors at each analysis node
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
@@ -147,7 +147,8 @@ function calc_error_norms(func, u, t, analyzer,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
-    @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
+    @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local,
+            jacobian_tmp1 = cache_analysis
 
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
@@ -157,11 +158,11 @@ function calc_error_norms(func, u, t, analyzer,
     # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)
         # Interpolate solution and node locations to analysis nodes
-        multiply_dimensionwise!(u_local, vandermonde, view(u, :, :, :, element), u_tmp1)
+        multiply_dimensionwise!(u_local, vandermonde, view(u,:,:,:,element), u_tmp1)
         multiply_dimensionwise!(x_local, vandermonde,
-                                view(node_coordinates, :, :, :, element), x_tmp1)
+                                view(node_coordinates,:,:,:,element), x_tmp1)
         multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
-                                       inv.(view(inverse_jacobian, :, :, element)),
+                                       inv.(view(inverse_jacobian,:,:,element)),
                                        jacobian_tmp1)
 
         # Calculate errors at each analysis node
@@ -212,7 +213,8 @@ end
 
 function integrate_via_indices(func::Func, u,
                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                           UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           P4estMeshView{2},
                                            T8codeMesh{2}},
                                equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
@@ -224,7 +226,7 @@ function integrate_via_indices(func::Func, u,
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
-                                                                                   cache)
+                                                                        cache)
         for j in eachnode(dg), i in eachnode(dg)
             volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
             integral += volume_jacobian * weights[i] * weights[j] *
@@ -316,8 +318,10 @@ function analyze(::Val{:l2_divb}, du, u, t,
                                                          dg, cache, derivative_matrix
         divb = zero(eltype(u))
         # Get the contravariant vectors Ja^1 and Ja^2
-        Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
-        Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+        Ja11,
+        Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+        Ja21,
+        Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         # Compute the transformed divergence
         for k in eachnode(dg)
             u_kj = get_node_vars(u, equations, dg, k, j, element)
@@ -377,10 +381,12 @@ function analyze(::Val{:linf_divb}, du, u, t,
         for j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             # Get the contravariant vectors Ja^1 and Ja^2
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
-                                                  i, j, element)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
-                                                  i, j, element)
+            Ja11,
+            Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                            i, j, element)
+            Ja21,
+            Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                            i, j, element)
             # Compute the transformed divergence
             for k in eachnode(dg)
                 u_kj = get_node_vars(u, equations, dg, k, j, element)

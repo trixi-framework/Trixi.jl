@@ -142,7 +142,7 @@ end
                         linf=[0.0009605782290112996, 0.0009605782290100784])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-#     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    #     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
     # Ensure we cover the calculation of the node coordinates
     node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
@@ -300,7 +300,7 @@ end
                             1.0764117f0
                         ],
                         tspan=(0.0f0, 1.0f0),
-                        rtol=10 * sqrt(eps(Float32)), # to make CI pass
+                        rtol=10*sqrt(eps(Float32)), # to make CI pass
                         RealT=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

@@ -241,8 +241,7 @@ end
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                                                                 Affect! <:
-                                                                AnalysisCallbackCoupledP4est
-                                                                }
+                                                                AnalysisCallbackCoupledP4est}
     semi_coupled = sol.prob.p
     u_ode_coupled = sol.u[end]
     @unpack callbacks = cb.affect!
@@ -266,8 +265,9 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
         semi = semi_coupled.semis[i]
         u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
 
-        l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi,
-                                                cache_analysis)
+        l2_error,
+        linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi,
+                                      cache_analysis)
         append!(l2_error_collection, l2_error)
         append!(linf_error_collection, linf_error)
     end
@@ -320,7 +320,6 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
 
     return dt
 end
-
 
 ################################################################################
 ### Equations
