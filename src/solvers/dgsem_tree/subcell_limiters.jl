@@ -55,6 +55,7 @@ where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) o
 Implementation in 3D:
 The only supported limiter is the positivity limiter for conservative variables using
 (`positivity_variables_cons`). `BoundsCheckCallback` is not supported in 3D yet.
+More features coming soon.
 
 ## References
 
