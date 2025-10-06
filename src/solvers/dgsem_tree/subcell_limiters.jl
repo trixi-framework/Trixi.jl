@@ -53,9 +53,10 @@ where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) o
     Without the callback, no correction takes place, leading to a standard low-order FV scheme.
 
 Implementation in 3D:
-The only supported limiter is the positivity limiter for conservative variables using
-(`positivity_variables_cons`). `BoundsCheckCallback` is not supported in 3D yet.
-More features coming soon.
+In 3D, only the positivity limiter for conservative variables using
+(`positivity_variables_cons`) is implemented and merged for `P4estMesh`.
+`BoundsCheckCallback` is not supported in 3D yet.
+More features will follow soon.
 
 ## References
 
