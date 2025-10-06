@@ -149,7 +149,8 @@ end
 
 # This is the actual initialization method
 # Note: we have this indirection to allow initializing a callback from the AnalysisCallbackCoupled
-function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t, integrator, semi) where {Condition, Affect! <: AnalysisCallback}
+function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
+                     integrator, semi) where {Condition, Affect! <: AnalysisCallback}
     initial_state_integrals = integrate(u_ode, semi)
     _, equations, _, _ = mesh_equations_solver_cache(semi)
 
