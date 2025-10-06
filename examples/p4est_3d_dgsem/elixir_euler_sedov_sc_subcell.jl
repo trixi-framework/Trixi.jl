@@ -1,4 +1,3 @@
-using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -7,7 +6,7 @@ using Trixi
 equations = CompressibleEulerEquations3D(1.4)
 
 """
-    initial_condition_medium_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
+    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
 
 The Sedov blast wave setup based on Flash
 - https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
@@ -96,4 +95,4 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),)
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  ode_default_options()..., callback = callbacks);
+                  callback = callbacks);
