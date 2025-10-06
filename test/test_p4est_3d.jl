@@ -347,7 +347,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs!, semi, sol, 10_000)
 end
 
 @trixi_testset "elixir_euler_sedov.jl (HLLE)" begin
