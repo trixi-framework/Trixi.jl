@@ -174,10 +174,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
-output_directory = "out"
-# output_directory = "../../../scratch/astrojet/idp_level8_alllimiting_pureloworderMortars/out"
 mortar = MortarIDP(basis; pure_low_order = false,
-                   output_directory = output_directory,
                    basis_function = :piecewise_constant,
                    # basis_function = :piecewise_linear,
                    positivity_variables_cons = [1],
@@ -192,8 +189,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = (false, true),
                 n_cells_max = 100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions,
-                                    uEltype = Float32)
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -203,25 +199,19 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 1000
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_interval = 18
-# Note: The visualization of alpha has two significant immediat changes (picture 57 and 161).
-# That happens because I used fixed time intervals to visualize (dt=5e-6) instead of an fixed time step interval.
-save_solution = SaveSolutionCallback(output_directory = output_directory,
-                                     #  dt = 5e-6,
-                                     interval = save_interval,
+save_solution = SaveSolutionCallback(interval = 50,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
 restart_interval = 21800
-save_restart = SaveRestartCallback(output_directory = output_directory,
-                                   interval = restart_interval,
+save_restart = SaveRestartCallback(interval = restart_interval,
                                    save_final_restart = true)
 
 positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-10, 1.0e-10),
@@ -267,5 +257,4 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),
 # run the simulation
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  ode_default_options()...,
                   maxiters = 1_000_000, callback = callbacks);
