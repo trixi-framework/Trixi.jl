@@ -233,7 +233,7 @@ end
                                      semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
-    (; inverse_weights) = dg.basis
+    (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     variable_string = string(variable)

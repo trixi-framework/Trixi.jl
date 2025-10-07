@@ -38,6 +38,10 @@ include("dg_parallel.jl")
 # Helper structs for parabolic AMR
 include("containers_viscous.jl")
 
+# Some functions for a second-order Finite-Volume (MUSCL) alike 
+# scheme on DG-subcells.
+include("subcell_finite_volume_O2.jl")
+
 # 1D DG implementation
 include("dg_1d.jl")
 include("dg_1d_parabolic.jl")
@@ -59,7 +63,5 @@ include("dg_3d_compressible_euler.jl")
 # Subcell limiters
 include("subcell_limiters.jl")
 include("subcell_limiters_2d.jl")
-include("subcell_limiters_3d.jl")
 include("dg_2d_subcell_limiters.jl")
-include("dg_3d_subcell_limiters.jl")
 end # @muladd
