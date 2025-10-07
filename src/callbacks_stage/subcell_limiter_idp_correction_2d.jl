@@ -9,7 +9,7 @@ function perform_idp_correction!(u, dt,
                                  mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                              P4estMesh{2}},
                                  equations, dg, cache)
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     @unpack alpha = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
 
@@ -22,7 +22,7 @@ function perform_idp_correction!(u, dt,
             # Note: For LGL nodes, the high-order and low-order fluxes at element interfaces are equal.
             # Therefore, the antidiffusive fluxes are zero.
             # To avoid accessing zero entries, we directly use zero vectors instead.
-            if i > 1 # Not at "left" boundary node 
+            if i > 1 # Not at "left" boundary node
                 alpha1 = max(alpha[i - 1, j, element], alpha[i, j, element])
                 alpha_flux1 = (1 - alpha1) *
                               get_node_vars(antidiffusive_flux1_R, equations, dg,
