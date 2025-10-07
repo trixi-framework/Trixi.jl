@@ -122,77 +122,6 @@ function create_cache(mesh::TreeMesh{3}, equations,
     return cache
 end
 
-# TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
-
-function rhs!(backend, du, u, t,
-              mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(backend, du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(backend, cache, u, mesh, equations, dg)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg, cache)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
-                         dg.mortar, dg)
-    end
-
-    # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
-                          dg.mortar, dg.surface_integral, dg, cache)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(backend, du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
-                                                     cache)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-
-    return nothing
-end
-
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -343,7 +272,7 @@ end
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
