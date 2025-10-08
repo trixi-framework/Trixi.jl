@@ -280,13 +280,13 @@ end
     return nothing
 end
 
-@inline function save_solution_file(_u_ode, t, dt, iter,
+@inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::AbstractSemidiscretization, solution_callback,
                                     element_variables = Dict{Symbol, Any}(),
                                     node_variables = Dict{Symbol, Any}();
                                     system = "")
     # TODO GPU currently on CPU
-    backend = trixi_backend(_u_ode)
+    backend = trixi_backend(u_ode)
     if backend !== nothing
         u_ode = Array(u_ode)
     end
