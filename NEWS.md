@@ -6,6 +6,13 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes in the v0.13 lifecycle
+
+#### Added
+- Initial 3D support (positivity limiting for conservative variables) for subcell limiting with
+  `P4estMesh` was added ([#2582]).
+
+
 ## Changes when updating to v0.13 from v0.12.x
 
 #### Changed
