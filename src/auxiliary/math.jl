@@ -417,9 +417,8 @@ Given ε = 1.0e-4, we use the following algorithm.
   for Intel, AMD, and VIA CPUs.
   [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
-@inline stolarsky_mean(x::Real, y::Real, gamma::Real) = stolarsky_mean_1(promote(x,
-                                                                                 y)...,
-                                                                         gamma)
+@inline stolarsky_mean(x::Real, y::Real, gamma::Real) = stolarsky_mean(promote(x, y)...,
+                                                                       gamma)
 
 @inline function stolarsky_mean(x::RealT, y::RealT, gamma::Real) where {RealT <: Real}
     epsilon_f2 = convert(RealT, 1.0e-4)
