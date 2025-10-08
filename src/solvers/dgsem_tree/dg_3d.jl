@@ -472,7 +472,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
     return nothing
 end
 
-function calc_interface_flux!(backend, surface_flux_values,
+function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{3},
                               have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
@@ -507,7 +507,7 @@ function calc_interface_flux!(backend, surface_flux_values,
     return nothing
 end
 
-function calc_interface_flux!(backend, surface_flux_values,
+function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{3},
                               have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)

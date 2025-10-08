@@ -405,7 +405,7 @@ end
     return nothing
 end
 
-function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{1}, equations,
+function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations,
                              dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces

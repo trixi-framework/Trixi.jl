@@ -250,7 +250,7 @@ end
 # already separates the solution information into right-traveling and
 # left-traveling information. So we only need to compute the appropriate
 # flux information at each side of an interface.
-function calc_interface_flux!(surface_flux_values,
+function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{3},
                               have_nonconservative_terms::False, equations,
                               surface_integral::SurfaceIntegralUpwind,
