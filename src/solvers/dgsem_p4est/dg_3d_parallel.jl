@@ -45,7 +45,8 @@ function rhs!(du, u, t,
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
+                             have_nonconservative_terms(equations),
+                             have_aux_node_vars(equations), equations,
                              dg.surface_integral, dg, cache)
     end
 
@@ -69,7 +70,8 @@ function rhs!(du, u, t,
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
+                          have_nonconservative_terms(equations),
+                          have_aux_node_vars(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
@@ -94,7 +96,8 @@ function rhs!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations, dg.surface_integral, dg, cache)
+        calc_surface_integral!(du, u, mesh, have_aux_node_vars(equations), equations,
+                               dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
