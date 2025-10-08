@@ -63,7 +63,7 @@ end
     end
 end
 
-function prolong2interfaces!(cache, u,
+function prolong2interfaces!(backend::Nothing, cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, dg::DG)
     @unpack interfaces = cache

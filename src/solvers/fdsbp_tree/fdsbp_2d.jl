@@ -159,7 +159,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::TreeMesh{2},
+function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{2},
                                 equations, surface_integral::SurfaceIntegralStrongForm,
                                 dg::DG, cache)
     inv_weight_left = inv(left_boundary_weight(dg.basis))
@@ -202,7 +202,7 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
 end
 
 # Periodic FDSBP operators need to use a single element without boundaries
-function calc_surface_integral!(du, u, mesh::TreeMesh2D,
+function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh2D,
                                 equations, surface_integral::SurfaceIntegralStrongForm,
                                 dg::PeriodicFDSBP, cache)
     @assert nelements(dg, cache) == 1
@@ -260,7 +260,7 @@ end
 # in the specialized `calc_interface_flux` routine. These SATs are still of
 # a strong form penalty type, except that the interior flux at a particular
 # side of the element are computed in the upwind direction.
-function calc_surface_integral!(du, u, mesh::TreeMesh{2},
+function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{2},
                                 equations, surface_integral::SurfaceIntegralUpwind,
                                 dg::FDSBP, cache)
     inv_weight_left = inv(left_boundary_weight(dg.basis))
@@ -304,7 +304,7 @@ function calc_surface_integral!(du, u, mesh::TreeMesh{2},
 end
 
 # Periodic FDSBP operators need to use a single element without boundaries
-function calc_surface_integral!(du, u, mesh::TreeMesh2D,
+function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh2D,
                                 equations, surface_integral::SurfaceIntegralUpwind,
                                 dg::PeriodicFDSBP, cache)
     @assert nelements(dg, cache) == 1

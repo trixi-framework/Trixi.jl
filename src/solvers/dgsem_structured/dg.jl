@@ -35,7 +35,7 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
     @assert isperiodic(mesh)
 end
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::Union{StructuredMesh, StructuredMeshView{2}}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}

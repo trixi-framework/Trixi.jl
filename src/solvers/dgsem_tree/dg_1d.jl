@@ -238,7 +238,8 @@ end
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function calc_volume_integral!(backend::Nothing, du, u,
+                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                dg::DGSEM, cache)
@@ -404,7 +405,8 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations, dg::DG)
+function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{1}, equations,
+                             dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
