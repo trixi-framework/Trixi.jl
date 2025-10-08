@@ -136,7 +136,7 @@ function max_dt(backend, u, t,
     max_scaled_speed = nextfloat(zero(t))
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
-    if backend !== nothing 
+    if backend !== nothing
         # TODO: Port to GPU
         contravariant_vectors = Array(cache.elements.contravariant_vectors)
         inverse_jacobian = Array(cache.elements.inverse_jacobian)
