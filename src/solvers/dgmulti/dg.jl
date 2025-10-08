@@ -662,7 +662,7 @@ function calc_sources!(du, u, t, source_terms,
     return nothing
 end
 
-function rhs!(du, u, t, mesh, equations,
+function rhs!(backend, du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
