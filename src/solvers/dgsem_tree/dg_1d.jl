@@ -103,7 +103,7 @@ function rhs!(backend, du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
@@ -613,7 +613,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral, dg::DGSEM, cache)
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
@@ -639,7 +640,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     return nothing
 end
 
-function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function apply_jacobian!(backend::Nothing, du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
