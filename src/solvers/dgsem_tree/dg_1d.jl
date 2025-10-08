@@ -271,7 +271,8 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fvO2!(fstar1_L, fstar1_R, u, mesh, have_nonconservative_terms(equations), equations,
+    calcflux_fvO2!(fstar1_L, fstar1_R, u, mesh, have_nonconservative_terms(equations),
+                   equations,
                    volume_flux_fv, dg, element, cache,
                    x_interfaces, reconstruction_mode, slope_limiter)
 
@@ -430,7 +431,7 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
                               have_nonconservative_terms::False,
-                              have_aux_node_vars::False, equations,
+                              equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -462,7 +463,7 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
                               have_nonconservative_terms::True,
-                              have_aux_node_vars::False, equations,
+                              equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, orientations = cache.interfaces

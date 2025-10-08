@@ -250,7 +250,8 @@ end
 # flux information at each side of an interface.
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{3},
-                              have_nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False,
+                              have_aux_node_vars::False, equations,
                               surface_integral::SurfaceIntegralUpwind,
                               dg::FDSBP, cache)
     @unpack splitting = surface_integral
