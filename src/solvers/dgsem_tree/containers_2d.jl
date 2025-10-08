@@ -1461,7 +1461,7 @@ end
 # On the side with two small elements, values can be copied from the aux vars field
 # On the side with one large element, values are usually interpolated to small elements
 # We do this differently here and use the same small element values on both side. This
-# assumes that the aux_field computes a smooth variable field with no jumps
+# assumes that the `aux_field` function computes a field with no jumps.
 function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
                                     cache)
     @unpack aux_node_vars, aux_mortar_node_vars = aux_vars

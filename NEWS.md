@@ -5,6 +5,18 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.13 lifecycle
+
+#### Added
+
+- Auxiliary variables ([#2348]).
+  An additional container in `cache` is made available to central functions like flux
+  computations. Possible applications are steady background states, variable velocity
+  fields, geometrical information, or any other pointwise, passive quantity that is
+  required in addition to the unknows in the governing equations. The auxiliary variables
+  are set up by supplying a function to the `SemidiscretizationHyperbolic` constructor via
+  the keyword argument `aux_field`.
+
 
 ## Changes when updating to v0.13 from v0.12.x
 
@@ -80,8 +92,6 @@ for human readability.
   paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 - Passive tracers for arbitrary equations with density and flow variables ([#2364])
-- Auxiliary variables, which can, e.g., be used to store a steady state and solve
-  for perturbations only ([#2348])
 
 #### Deprecated
 
