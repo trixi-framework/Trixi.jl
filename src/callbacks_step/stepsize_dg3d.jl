@@ -180,10 +180,10 @@ function max_dt(backend, u, t, mesh::ParallelP4estMesh{3},
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), P4estMesh{3},
+                Tuple{typeof(backend), typeof(u), typeof(t), P4estMesh{3},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                backend, u, t, mesh, constant_speed, equations, dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -197,10 +197,10 @@ function max_dt(backend, u, t, mesh::ParallelP4estMesh{3},
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), P4estMesh{3},
+                Tuple{typeof(backend), typeof(u), typeof(t), P4estMesh{3},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                backend, u, t, mesh, constant_speed, equations, dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -214,10 +214,10 @@ function max_dt(backend, u, t, mesh::ParallelT8codeMesh{3},
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), T8codeMesh{3},
+                Tuple{typeof(backend), typeof(u), typeof(t), T8codeMesh{3},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                backend, u, t, mesh, constant_speed, equations, dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -231,10 +231,10 @@ function max_dt(backend, u, t, mesh::ParallelT8codeMesh{3},
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), T8codeMesh{3},
+                Tuple{typeof(backend), typeof(u), typeof(t), T8codeMesh{3},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                backend, u, t, mesh, constant_speed, equations, dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
