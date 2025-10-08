@@ -25,12 +25,6 @@ function create_cache(::Type{IndicatorHennemannGassner},
             modal_tmp2_threaded)
 end
 
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations{3}, dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
-end
-
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
 # with @batch (@threaded).
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
@@ -148,6 +142,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
         alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper_right],
                            alpha[large])
     end
+
+    return nothing
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -162,17 +158,12 @@ function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{3},
     return (; alpha, indicator_threaded)
 end
 
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{3},
-                      dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
-end
-
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
                                    mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
     @assert nnodes(dg)>=3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
     @unpack alpha, indicator_threaded = löhner.cache
+    @unpack variable = löhner
     resize!(alpha, nelements(dg, cache))
 
     @threaded for element in eachelement(dg, cache)
@@ -181,7 +172,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
         # Calculate indicator variables at Gauss-Lobatto nodes
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
-            indicator[i, j, k] = löhner.variable(u_local, equations)
+            indicator[i, j, k] = variable(u_local, equations)
         end
 
         estimate = zero(real(dg))
@@ -226,12 +217,6 @@ function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{3},
                           for _ in 1:Threads.nthreads()]
 
     return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{3},
-                      dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
 end
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},

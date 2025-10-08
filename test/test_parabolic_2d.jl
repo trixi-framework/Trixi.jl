@@ -5,6 +5,8 @@ using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = examples_dir()
+
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
@@ -13,6 +15,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 #! format: noindent
 
 @trixi_testset "DGMulti 2D rhs_parabolic!" begin
+    using Trixi
     dg = DGMulti(polydeg = 2, element_type = Quad(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
                  volume_integral = VolumeIntegralWeakForm())
@@ -28,9 +31,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
                                                  initial_condition, dg)
-    @test_nowarn_mod show(stdout, semi)
-    @test_nowarn_mod show(stdout, MIME"text/plain"(), semi)
-    @test_nowarn_mod show(stdout, boundary_condition_do_nothing)
+    @trixi_test_nowarn show(stdout, semi)
+    @trixi_test_nowarn show(stdout, MIME"text/plain"(), semi)
+    @trixi_test_nowarn show(stdout, boundary_condition_do_nothing)
 
     @test nvariables(semi) == nvariables(equations)
     @test Base.ndims(semi) == Base.ndims(mesh)
@@ -44,19 +47,21 @@ isdir(outdir) && rm(outdir, recursive = true)
     # test "do nothing" BC just returns first argument
     @test boundary_condition_do_nothing(u0, nothing) == u0
 
-    @unpack cache, cache_parabolic, equations_parabolic = semi
-    @unpack gradients = cache_parabolic
+    (; cache, cache_parabolic, equations_parabolic) = semi
+    (; gradients) = cache_parabolic
     for dim in eachindex(gradients)
         fill!(gradients[dim], zero(eltype(gradients[dim])))
     end
 
-    # unpack VectorOfArray 
+    # unpack VectorOfArray
     u0 = Base.parent(ode.u0)
     t = 0.0
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
+    parabolic_scheme = semi.solver_parabolic
     Trixi.calc_gradient!(gradients, u0, t, mesh, equations_parabolic,
-                         boundary_condition_periodic, dg, cache, cache_parabolic)
-    @unpack x, y, xq, yq = mesh.md
+                         boundary_condition_periodic, dg, parabolic_scheme,
+                         cache, cache_parabolic)
+    (; x, y, xq, yq) = mesh.md
     @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
     @test getindex.(gradients[2], 1) ≈ xq .^ 2
 
@@ -72,59 +77,45 @@ isdir(outdir) && rm(outdir, recursive = true)
                            equations_parabolic,
                            boundary_condition_periodic,
                            dg, semi.solver_parabolic, cache, cache_parabolic)
+    Trixi.invert_jacobian!(du, mesh, equations_parabolic, dg, cache; scaling = 1.0)
     @test getindex.(du, 1) ≈ 2 * y
 end
 
 @trixi_testset "DGMulti: elixir_advection_diffusion.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[0.2485803335154642],
                         linf=[1.079606969242132])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "DGMulti: elixir_advection_diffusion_periodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion_periodic.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[0.03180371984888462],
                         linf=[0.2136821621370909])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "DGMulti: elixir_advection_diffusion_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[0.002123168335604323],
                         linf=[0.00963640423513712])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "DGMulti: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_navierstokes_convergence.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[
@@ -141,16 +132,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "DGMulti: elixir_navierstokes_convergence_curved.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_navierstokes_convergence_curved.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[
@@ -164,19 +150,14 @@ end
                             0.04103131887989486,
                             0.03990424032494211,
                             0.13094018584692968
-                        ],)
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "DGMulti: elixir_navierstokes_lid_driven_cavity.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.5),
                         l2=[
@@ -193,32 +174,33 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
                         l2=[4.0915532997994255e-6],
                         linf=[2.3040850347877395e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_diffusion.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
+                        l2=[6.193056910594806e-6], linf=[4.918855889635143e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (Refined mesh)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
@@ -242,33 +224,48 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
-        @test (@allocated Trixi.rhs_parabolic!(du_ode, u_ode, semi, t)) < 100
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 100)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 100)
+end
+
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_amr.jl"),
+                        initial_refinement_level=2,
+                        base_level=2,
+                        med_level=3,
+                        max_level=4,
+                        l2=[0.0009662045510830027],
+                        linf=[0.006121646998993091])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         l2=[0.007646800618485118],
                         linf=[0.10067621050468958])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        l2=[0.007009146246373517], linf=[0.09535203925012649])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         analysis_callback=AnalysisCallback(semi,
@@ -290,16 +287,12 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (isothermal walls)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    using Trixi: Trixi
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
@@ -320,16 +313,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         gradient_variables=GradientVariablesEntropy(),
@@ -347,16 +335,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables, isothermal walls)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         gradient_variables=GradientVariablesEntropy(),
@@ -378,16 +361,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (flux differencing)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_central),
@@ -405,16 +383,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Refined mesh)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         tspan=(0.0, 0.0), initial_refinement_level=3)
     LLID = Trixi.local_leaf_cells(mesh.tree)
@@ -446,16 +419,11 @@ end
            0.0020771191202548778]
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.5),
                         l2=[
@@ -472,16 +440,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_shearlayer_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_amr.jl"),
                         l2=[
                             0.005155557460409018,
@@ -499,7 +462,7 @@ end
 end
 
 @trixi_testset "TreeMesh2D: elixir_navierstokes_taylor_green_vortex_sutherland.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_sutherland.jl"),
                         l2=[
                             0.001452856280034929,
@@ -517,7 +480,7 @@ end
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
                         tspan=(0.0, 0.5),
@@ -525,16 +488,11 @@ end
                         linf=[0.008154128363741964])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
                         tspan=(0.0, 0.5),
@@ -542,16 +500,11 @@ end
                         linf=[0.008154128363741964])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic_curved.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
                         tspan=(0.0, 0.5),
@@ -559,48 +512,33 @@ end
                         linf=[0.04807038397976693])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic_amr.jl"),
                         tspan=(0.0, 0.01),
                         l2=[0.014715887539773128],
                         linf=[0.2285802791900049])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         tspan=(0.0, 0.01),
                         l2=[0.007934195641974433],
                         linf=[0.11030265194954081])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_curved.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
                         tspan=(0.0, 0.5),
@@ -608,16 +546,11 @@ end
                         linf=[0.14186297438393505])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=1, tspan=(0.0, 0.2),
                         l2=[
@@ -634,16 +567,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_convergence_nonperiodic.jl"),
                         initial_refinement_level=1, tspan=(0.0, 0.2),
                         l2=[
@@ -660,16 +588,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.5),
                         l2=[
@@ -686,16 +609,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity_amr.jl"),
                         tspan=(0.0, 1.0),
                         l2=[
@@ -708,16 +626,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_navierstokes_NACA0012airfoil_mach08.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_NACA0012airfoil_mach08.jl"),
                         l2=[0.000186486564226516,
                             0.0005076712323400374,
@@ -730,12 +643,7 @@ end
                         initial_refinement_level=0,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode) # Just a placeholder in this case
@@ -762,8 +670,28 @@ end
     @test isapprox(lift_f, 0.005621910087395724, atol = 1e-13)
 end
 
+@trixi_testset "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl"),
+                        l2=[
+                            6.191672324705442e-6,
+                            0.00011583392224949682,
+                            0.00011897020463459889,
+                            0.006467379086802275
+                        ],
+                        linf=[
+                            0.0017446176443216936,
+                            0.06961708834164942,
+                            0.037063246278530367,
+                            1.4435072005258793
+                        ], tspan=(0.0, 0.01),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         l2=[
                             0.0002576236264053728,
@@ -779,16 +707,36 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
+                        tspan=(0.0, 0.1),
+                        atol_lin_solve=1e-11,
+                        rtol_lin_solve=1e-11,
+                        atol_ode_solve=1e-10,
+                        rtol_ode_solve=1e-10,
+                        l2=[
+                            3.428501006908931e-5,
+                            2.5967418005884837e-5,
+                            2.7084890458524478e-17,
+                            2.855861765163304e-5
+                        ],
+                        linf=[
+                            0.00018762342908784646,
+                            0.0001405900207752664,
+                            3.661971738081151e-16,
+                            0.00014510700486747297
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_navierstokes_SD7003airfoil.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_SD7003airfoil.jl"),
                         l2=[
                             9.292899618740586e-5,
@@ -805,38 +753,157 @@ end
                         tspan=(0.0, 5e-3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_navierstokes_SD7003airfoil.jl (CFL-Interval)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_SD7003airfoil.jl"),
+                        l2=[
+                            9.292895651912815e-5,
+                            0.0001350510066877861,
+                            7.964905098170568e-5,
+                            0.00023365678706785303
+                        ],
+                        linf=[
+                            0.2845614660523972,
+                            0.29577255454711177,
+                            0.19307666048254143,
+                            0.7188872358580256
+                        ],
+                        tspan=(0.0, 5e-3),
+                        stepsize_callback=StepsizeCallback(cfl = 2.2, interval = 5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_navierstokes_vortex_street.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         l2=[
-                            0.00525982921933851,
-                            0.012059890474305961,
-                            0.00958808867603675,
-                            0.027447629432184845
+                            0.012420217727434794,
+                            0.028935260981567217,
+                            0.023078384429351353,
+                            0.11317643179072025
                         ],
                         linf=[
-                            0.21303186936723756,
-                            0.5323378916431336,
-                            0.2929673561258163,
-                            0.9497315029535995
+                            0.4484833725983406,
+                            1.268913882714608,
+                            0.7071821629898418,
+                            3.643975012834931
                         ],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_navierstokes_poiseuille_flow.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_poiseuille_flow.jl"),
+                        l2=[
+                            0.028671228188785286,
+                            0.2136420195921885,
+                            0.009953689550858224,
+                            0.13216036594768157
+                        ],
+                        linf=[
+                            0.30901218409540543,
+                            1.3488655161645846,
+                            0.1304661713119874,
+                            1.2094591729756736],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl"),
+                        l2=[
+                            0.1987691550257618,
+                            0.1003336666735962,
+                            0.1599420846677608,
+                            0.07314642823482713
+                        ],
+                        linf=[
+                            0.8901520920065688,
+                            0.47421178500575756,
+                            0.38859478648621326,
+                            0.3247497921546598
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
+@trixi_testset "elixir_navierstokes_freestream_symmetry.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_freestream_symmetry.jl"),
+                        l2=[
+                            4.37868326434923e-15,
+                            7.002449644031901e-16,
+                            1.0986677074164136e-14,
+                            1.213800745067394e-14
+                        ],
+                        linf=[
+                            2.531308496145357e-14,
+                            3.8367543336926215e-15,
+                            4.9960036108132044e-14,
+                            6.705747068735946e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_navierstokes_couette_flow.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_couette_flow.jl"),
+                        l2=[
+                            0.009585252225488753,
+                            0.007939233099864973,
+                            0.0007617512688442657,
+                            0.027229870237669436
+                        ],
+                        linf=[
+                            0.027230029149270862,
+                            0.027230451118692933,
+                            0.0038642959675975713,
+                            0.04738248734987671
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_navierstokes_blast_reflective.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_blast_reflective.jl"),
+                        l2=[
+                            0.015140702486341239,
+                            0.035675739843665635,
+                            0.035675739843665615,
+                            0.21415725909973524
+                        ],
+                        linf=[
+                            0.2339198598727935,
+                            0.5951310665112189,
+                            0.5951310665112187,
+                            3.0106576605775333
+                        ],
+                        tspan=(0.0, 0.01),
+                        abstol=1e-11, reltol=1e-11)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end
 

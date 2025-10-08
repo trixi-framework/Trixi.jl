@@ -36,13 +36,11 @@
 
 using Trixi
 rm("out", force = true, recursive = true) #hide #md
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi_include(default_example_unstructured())
-end #hide #md
+trixi_include(default_example_unstructured())
 
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
 # on the curved quadrilateral mesh described in the
-# [Trixi.jl documentation](https://trixi-framework.github.io/Trixi.jl/stable/meshes/unstructured_quad_mesh/).
+# [Trixi.jl documentation](https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/unstructured_quad_mesh/).
 
 # Apart from the usual error and timing output provided by the Trixi.jl run, it is useful to visualize and inspect
 # the solution. One option available in the Trixi.jl framework to visualize the solution on
@@ -53,9 +51,7 @@ end #hide #md
 # To convert the HDF5-formatted `.h5` output file(s) from Trixi.jl into VTK format execute the following
 
 using Trixi2Vtk
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi2vtk("out/solution_000000180.h5", output_directory = "out")
-end #hide #md
+trixi2vtk("out/solution_000000180.h5", output_directory = "out")
 
 # Note this step takes about 15-30 seconds as the package `Trixi2Vtk` must be precompiled and executed for the first time
 # in your REPL session. The `trixi2vtk` command above will convert the solution file at the final time into a `.vtu` file
@@ -63,18 +59,14 @@ end #hide #md
 # where the new files will be saved; it defaults to the current directory. (2) Specifying a higher number of
 # visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
 
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi2vtk("out/solution_000000180.h5", output_directory = "out", nvisnodes = 12)
-end #hide #md
+trixi2vtk("out/solution_000000180.h5", output_directory = "out", nvisnodes = 12)
 
 # By default `trixi2vtk` sets `nvisnodes` to be the same as the number of nodes specified in
 # the `elixir` file used to run the simulation.
 
 # Finally, if you want to convert all the solution files to VTK execute
 
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi2vtk("out/solution_000*.h5", output_directory = "out", nvisnodes = 12)
-end #hide #md
+trixi2vtk("out/solution_000*.h5", output_directory = "out", nvisnodes = 12)
 
 # then it is possible to open the `.pvd` file with ParaView and create a video of the simulation.
 
@@ -298,7 +290,8 @@ output = generate_mesh(control_file);
 
 # The complete elixir file for this simulation example is given below.
 
-using OrdinaryDiffEq, Trixi
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 equations = CompressibleEulerEquations2D(1.4) # set gas gamma = 1.4
 
@@ -364,14 +357,10 @@ stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
 
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    ## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
-    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-                dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                save_everystep = false, callback = callbacks)
-    ## print the timer summary
-    summary_callback()
-end #hide #md
+## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks)
 
 # Visualization of the solution is carried out in a similar way as above. That is, one converts the `.h5`
 # output files with `trixi2vtk` and then plot the solution in ParaView. An example plot of the pressure
@@ -532,7 +521,7 @@ mesh = UnstructuredMesh2D(mesh_file);
 # ```
 
 # Now, you can create a `P4estMesh` from your mesh file. It is described in detail in the
-# [P4est-based mesh](https://trixi-framework.github.io/Trixi.jl/stable/meshes/p4est_mesh/#P4est-based-mesh)
+# [P4est-based mesh](https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/p4est_mesh/#P4est-based-mesh)
 # part of the Trixi.jl docs.
 # ```julia
 # using Trixi
@@ -560,7 +549,7 @@ mesh = UnstructuredMesh2D(mesh_file);
 # ```
 
 # We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize
-# with ParaView, see the appropriate [visualization section](https://trixi-framework.github.io/Trixi.jl/stable/visualization/#Trixi2Vtk)
+# with ParaView, see the appropriate [visualization section](https://trixi-framework.github.io/TrixiDocumentation/stable/visualization/#Trixi2Vtk)
 # for details.
 
 # ![simulation_straight_sides_p4est_amr](https://user-images.githubusercontent.com/74359358/168049930-8abce6ac-cd47-4d04-b40b-0fa459bbd98d.png)
@@ -573,5 +562,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "Trixi2Vtk", "HOHQMesh"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots", "Trixi2Vtk", "HOHQMesh"],
            mode = PKGMODE_MANIFEST)

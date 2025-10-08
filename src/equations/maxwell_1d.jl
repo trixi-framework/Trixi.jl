@@ -76,7 +76,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Int,
                                      equations::MaxwellEquations1D)
-    λ_max = equations.speed_of_light
+    return equations.speed_of_light
 end
 
 @inline have_constant_speed(::MaxwellEquations1D) = True()

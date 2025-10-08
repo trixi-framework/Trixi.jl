@@ -2,7 +2,7 @@
 # of the size of the Earth's atmosphere (using an atmospheric height of 30km).
 # The initial condition and source terms have also been rescaled to planetary size.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 using LinearAlgebra
 
@@ -86,8 +86,10 @@ solver = DGSEM(polydeg = 4, surface_flux = surface_flux)
 #                  periodicity=false)
 
 trees_per_cube_face = (6, 2)
-mesh = Trixi.P4estMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
-                                  polydeg = 4, initial_refinement_level = 0)
+inner_radius = 6.371229e6
+thickness = 30000.0 # thickness of the spherical shell, outer radius is `inner_radius + thickness`
+mesh = P4estMeshCubedSphere(trees_per_cube_face..., inner_radius, thickness,
+                            polydeg = 4)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test_sphere,
@@ -131,5 +133,3 @@ callbacks = CallbackSet(summary_callback,
 # Use a Runge-Kutta method with automatic (error based) time step size control
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);
-
-summary_callback() # print the timer summary

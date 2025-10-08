@@ -3,7 +3,6 @@
 # This is a union of a Trixi.jl-specific SciMLBase.ODESolution and of Trixi.jl's own
 # TimeIntegratorSolution.
 #
-# Note: This is an experimental feature and may be changed in future releases without notice.
 #! format: off
 const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, discType, P} where
     {T, N, uType, uType2, DType, tType, rateType, discType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
@@ -42,9 +41,6 @@ end
     Base.getindex(pd::AbstractPlotData, variable_name)
 
 Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function Base.getindex(pd::AbstractPlotData, variable_name)
     variable_id = findfirst(isequal(variable_name), pd.variable_names)
@@ -63,9 +59,6 @@ Base.eltype(pd::AbstractPlotData) = Pair{String, PlotDataSeries{typeof(pd)}}
 
 Holds all relevant data for creating 2D plots of multiple solution variables and to visualize the
 mesh.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <:
        AbstractPlotData{2}
@@ -123,9 +116,6 @@ end
 
 Holds all relevant data for creating 1D plots of multiple solution variables and to visualize the
 mesh.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{1}
     x::Coordinates
@@ -146,8 +136,6 @@ function Base.show(io::IO, pd::PlotData1D)
 end
 
 # Auxiliary data structure for visualizing a single variable
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 struct PlotDataSeries{PD <: AbstractPlotData}
     plot_data::PD
     variable_id::Int
@@ -177,9 +165,6 @@ end
     getmesh(pd::AbstractPlotData)
 
 Extract grid lines from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 getmesh(pd::AbstractPlotData) = PlotMesh(pd)
 
@@ -195,6 +180,10 @@ Create a new `PlotData2D` object that can be used for visualizing 2D/3D DGSEM so
 from the solution are used for plotting. This can be changed by passing an appropriate conversion
 function to `solution_variables`.
 
+For coupled semidiscretizations, i.e., `semi isa` [`SemidiscretizationCoupled`](@ref) a vector of
+`PlotData2D` objects is returned, one for each semidiscretization which is part of the
+coupled semidiscretization.
+
 If `grid_lines` is `true`, also extract grid vertices for visualizing the mesh. The output
 resolution is indirectly set via `max_supported_level`: all data is interpolated to
 `2^max_supported_level` uniformly distributed points in each spatial direction, also setting the
@@ -206,9 +195,6 @@ When visualizing data from a three-dimensional simulation, a 2D slice is extract
 `slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 
 # Examples
 ```julia
@@ -231,6 +217,23 @@ function PlotData2D(u_ode, semi; kwargs...)
     PlotData2D(wrap_array_native(u_ode, semi),
                mesh_equations_solver_cache(semi)...;
                kwargs...)
+end
+
+function PlotData2D(u_ode, semi::SemidiscretizationCoupled; kwargs...)
+    plot_data_array = []
+    @unpack semis = semi
+
+    foreach_enumerate(semis) do (i, semi_)
+        u_loc = get_system_u_ode(u_ode, i, semi)
+        u_loc_wrapped = wrap_array_native(u_loc, semi_)
+
+        push!(plot_data_array,
+              PlotData2D(u_loc_wrapped,
+                         mesh_equations_solver_cache(semi_)...;
+                         kwargs...))
+    end
+
+    return plot_data_array
 end
 
 # Redirect `PlotDataTriangulated2D` constructor.
@@ -294,9 +297,6 @@ end
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
 returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData2D(sol::TrixiODESolution; kwargs...)
     PlotData2D(sol.u[end], sol.prob.p; kwargs...)
@@ -548,9 +548,6 @@ This applies analogously to three-dimensional simulations, where `slice` may be 
 Another way to visualize 2D/3D data is by creating a plot along a given curve.
 This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
 which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData1D(u_ode, semi; kwargs...)
     PlotData1D(wrap_array_native(u_ode, semi),
@@ -660,25 +657,40 @@ function PlotData1D(u, mesh, equations, solver, cache;
                                             variable_names)
 
     original_nodes = cache.elements.node_coordinates
-    unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
-                                              solver, cache)
 
     orientation_x = 0 # Set 'orientation' to zero on default.
 
     if ndims(mesh) == 1
+        unstructured_data = get_unstructured_data(u, solution_variables_,
+                                                  mesh, equations, solver, cache)
         x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data,
                                                nvisnodes, reinterpolate)
         orientation_x = 1
     elseif ndims(mesh) == 2
-        # Create a 'PlotData2DTriangulated' object so a triangulation can be used when extracting relevant data.
-        pd = PlotData2DTriangulated(u, mesh, equations, solver, cache;
-                                    solution_variables, nvisnodes)
-        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point,
-                                                               nvisnodes)
+        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(u, mesh, equations,
+                                                               solver, cache,
+                                                               curve, slice,
+                                                               point, nvisnodes,
+                                                               solution_variables_)
     else # ndims(mesh) == 3
         # Extract the information required to create a PlotData1D object.
-        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve,
-                                                               slice, point, nvisnodes)
+        # If no curve is defined, create an axis curve.
+        if curve === nothing
+            curve = axis_curve(view(original_nodes, 1, :, :, :, :),
+                               view(original_nodes, 2, :, :, :, :),
+                               view(original_nodes, 3, :, :, :, :),
+                               slice, point, nvisnodes)
+        end
+
+        # We need to loop through all the points and check in which element they are
+        # located. A general implementation working for all mesh types has to perform
+        # a naive loop through all nodes. However, the P4estMesh and the T8codeMesh
+        # can make use of the efficient search functionality of p4est/t8code
+        # to speed up the process. Thus, we pass the mesh, too.
+        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(u, mesh, equations,
+                                                               solver, cache,
+                                                               curve,
+                                                               solution_variables_)
     end
 
     return PlotData1D(x, data, variable_names_, mesh_vertices_x,
@@ -746,9 +758,6 @@ end
 Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!`
 (which returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData1D(sol::TrixiODESolution; kwargs...)
     PlotData1D(sol.u[end], sol.prob.p; kwargs...)

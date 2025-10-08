@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -7,7 +7,7 @@ using Trixi
 prandtl_number() = 0.72
 
 # Use Sutherland's law for a temperature-dependent viscosity.
-# For details, see e.g. 
+# For details, see e.g.
 # Frank M. White: Viscous Fluid Flow, 2nd Edition.
 # 1991, McGraw-Hill, ISBN, 0-07-069712-4
 # Pages 28 and 29.
@@ -16,7 +16,7 @@ prandtl_number() = 0.72
     T_ref = convert(RealT, 291.15)
 
     R_specific_air = convert(RealT, 287.052874)
-    T = R_specific_air * Trixi.temperature(u, equations)
+    T = R_specific_air * temperature(u, equations)
 
     C_air = 120
     mu_ref_air = convert(RealT, 1.827e-5)
@@ -92,4 +92,3 @@ callbacks = CallbackSet(summary_callback,
 time_int_tol = 1e-9
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-summary_callback() # print the timer summary

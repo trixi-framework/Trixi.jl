@@ -5,6 +5,8 @@ using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = examples_dir()
+
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
@@ -13,7 +15,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 #! format: noindent
 
 @trixi_testset "DGMulti: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_3d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_3d",
                                  "elixir_navierstokes_convergence.jl"),
                         cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.1),
                         l2=[
@@ -32,16 +34,11 @@ isdir(outdir) && rm(outdir, recursive = true)
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "DGMulti: elixir_navierstokes_convergence_curved.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_3d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_3d",
                                  "elixir_navierstokes_convergence_curved.jl"),
                         cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.1),
                         l2=[
@@ -60,16 +57,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "DGMulti: elixir_navierstokes_taylor_green_vortex.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_3d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_3d",
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.25),
                         l2=[
@@ -88,16 +80,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         l2=[
@@ -116,16 +103,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_convergence.jl (isothermal walls)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
@@ -148,16 +130,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_convergence.jl (Entropy gradient variables)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         gradient_variables=GradientVariablesEntropy(),
@@ -177,16 +154,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_convergence.jl (Entropy gradient variables, isothermal walls)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         gradient_variables=GradientVariablesEntropy(),
@@ -210,16 +182,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_convergence.jl (flux differencing)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_central),
@@ -239,16 +206,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_convergence.jl (Refined mesh)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
@@ -282,16 +244,11 @@ end
            0.019256819037817507]
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.25),
                         l2=[
@@ -310,16 +267,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl (Refined mesh)" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
@@ -337,9 +289,9 @@ end
                                                                      enstrophy))
     callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
     # Use CarpenterKennedy2N54 since `RDPK3SpFSAL49` gives slightly different results on different machines
-    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
                 dt = 5e-3,
-                save_everystep = false, callback = callbacks)
+                ode_default_options()..., callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)
     @test l2_error ≈ [
         7.314319856736271e-5,
@@ -357,17 +309,12 @@ end
     ]
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
-        @test (@allocated Trixi.rhs_parabolic!(du_ode, u_ode, semi, t)) < 100
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 100)
+    @test_allocations(Trixi.Trixi.rhs_parabolic!, semi, sol, 100)
 end
 
 @trixi_testset "P4estMesh3D: elixir_navierstokes_convergence.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         l2=[
@@ -386,16 +333,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.25),
                         surface_flux=FluxHLL(min_max_speed_naive),
@@ -415,16 +357,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_diffusion_amr.jl"),
                         initial_refinement_level=2,
                         base_level=2,
@@ -434,31 +371,46 @@ end
                         linf=[0.0015844326511498252])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_advection_diffusion_amr.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        initial_refinement_level=2,
+                        base_level=2,
+                        med_level=3,
+                        max_level=4,
+                        l2=[0.00036862382924645736],
+                        linf=[0.0015952118405399007])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         l2=[0.0009808996243280868],
                         linf=[0.01732621559135459])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        l2=[0.0009432415534931421], linf=[0.016955330290404563])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_amr.jl"),
                         initial_refinement_level=0,
                         max_level=2,
@@ -479,16 +431,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh3D: elixir_navierstokes_blast_wave_amr.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_blast_wave_amr.jl"),
                         tspan=(0.0, 0.01),
                         l2=[
@@ -502,16 +449,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh3D: elixir_navierstokes_viscous_shock.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         l2=[
                             0.0002576235461250765,
@@ -529,16 +471,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh3D: elixir_navierstokes_viscous_shock_dirichlet_bc.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_viscous_shock_dirichlet_bc.jl"),
                         l2=[
                             0.0002576236289909761,
@@ -556,12 +493,30 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "P4estMesh3D: elixir_navierstokes_crm.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_crm.jl"),
+                        l2=[
+                            2.2353998537135728e-10,
+                            6.438639847871375e-8,
+                            4.8159768090963756e-8,
+                            6.287534321002294e-8,
+                            7.596958320246443e-5
+                        ],
+                        linf=[
+                            0.36753460935979454,
+                            209.1460932734352,
+                            51.3036359192352,
+                            41.461135962058904,
+                            113004.3158457772
+                        ],
+                        tspan=(0.0, 1e-10))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end
 

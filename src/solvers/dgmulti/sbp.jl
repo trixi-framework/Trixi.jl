@@ -135,8 +135,8 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
                   periodicity)
 
     boundary_faces = []
-    return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(boundary_faces)}(md,
-                                                                                   boundary_faces)
+    return DGMultiMesh{NDIMS, rd.element_type, typeof(md),
+                       typeof(boundary_faces)}(md, boundary_faces)
 end
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
@@ -154,9 +154,8 @@ function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
 end
 
 # do nothing for interface terms if using a periodic operator
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
-                             surface_integral, dg::DGMultiPeriodicFDSBP)
+function prolong2interfaces!(cache, u,
+                             mesh::DGMultiMesh, equations, dg::DGMultiPeriodicFDSBP)
     @assert nelements(mesh, dg, cache) == 1
     nothing
 end
@@ -206,7 +205,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
             #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
             # TODO: DGMulti.
-            # This would have to be changed if `has_nonconservative_terms = False()`
+            # This would have to be changed if `have_nonconservative_terms = False()`
             # because then `volume_flux` is non-symmetric.
             A = dg.basis.Drst[dim]
 
@@ -243,7 +242,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
             A = dg.basis.Drst[dim]
 
-            # since has_nonconservative_terms::False,
+            # since have_nonconservative_terms::False,
             # the volume flux is symmetric.
             flux_is_symmetric = True()
             hadamard_sum!(du, A, flux_is_symmetric, volume_flux,

@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -6,7 +6,7 @@ using Trixi
 gamma = 5 / 3
 equations = CompressibleEulerEquations2D(gamma)
 
-# Initial condition adopted from 
+# Initial condition adopted from
 # - Yong Liu, Jianfang Lu, and Chi-Wang Shu
 #   An oscillation free discontinuous Galerkin method for hyperbolic systems
 #   https://tinyurl.com/c76fjtx4
@@ -35,7 +35,14 @@ boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_astr
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
 
-surface_flux = flux_lax_friedrichs # HLLC needs more shock capturing (alpha_max)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive) # HLLC needs more shock capturing (alpha_max)
 volume_flux = flux_ranocha # works with Chandrashekar flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -110,4 +117,3 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 # use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
 sol = solve(ode, SSPRK43(stage_limiter!);
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

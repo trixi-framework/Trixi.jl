@@ -5,6 +5,8 @@ using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = examples_dir()
+
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
@@ -15,78 +17,63 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
 @testset "TreeMesh" begin
     @trixi_testset "elixir_advection_restart.jl" begin
-        elixir = joinpath(examples_dir(), "tree_2d_dgsem",
+        elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                           "elixir_advection_extended.jl")
-        Trixi.mpi_isroot() && println("═"^100)
-        Trixi.mpi_isroot() && println(elixir)
+        mpi_isroot() && println("═"^100)
+        mpi_isroot() && println(elixir)
         trixi_include(@__MODULE__, elixir, tspan = (0.0, 10.0))
         l2_expected, linf_expected = analysis_callback(sol)
 
-        elixir = joinpath(examples_dir(), "tree_2d_dgsem",
+        elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                           "elixir_advection_restart.jl")
-        Trixi.mpi_isroot() && println("═"^100)
-        Trixi.mpi_isroot() && println(elixir)
+        mpi_isroot() && println("═"^100)
+        mpi_isroot() && println(elixir)
         # Errors are exactly the same as in the elixir_advection_extended.jl
         trixi_include(@__MODULE__, elixir)
         l2_actual, linf_actual = analysis_callback(sol)
 
-        Trixi.mpi_isroot() && @test l2_actual == l2_expected
-        Trixi.mpi_isroot() && @test linf_actual == linf_expected
+        mpi_isroot() && @test l2_actual == l2_expected
+        mpi_isroot() && @test linf_actual == linf_expected
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_advection_restart.jl with threaded time integration" begin
-        @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_advection_restart.jl"),
                             alg=CarpenterKennedy2N54(williamson_condition = false,
-                                                     thread = OrdinaryDiffEq.True()),
+                                                     thread = Trixi.True()),
                             # Expected errors are exactly the same as in the serial test!
                             l2=[8.005068880114254e-6],
                             linf=[6.39093577996519e-5])
     end
 
     @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_advection_amr_refine_twice.jl"),
                             l2=[0.00020547512522578292],
                             linf=[0.007831753383083506])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_advection_amr_coarsen_twice.jl"),
                             l2=[0.0014321062757891826],
                             linf=[0.0253454486893413])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_euler_source_terms_nonperiodic.jl"),
                             l2=[
                                 2.259440511766445e-6,
@@ -104,16 +91,11 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_ec.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_euler_ec.jl"),
                             l2=[
                                 0.061751715597716854,
@@ -130,34 +112,45 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    end
+
+    @trixi_testset "elixir_euler_positivity.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                     "elixir_euler_positivity.jl"),
+                            l2=[
+                                0.48862067511841695,
+                                0.16787541578869494,
+                                0.16787541578869422,
+                                0.6184319933114926
+                            ],
+                            linf=[
+                                2.6766520821013002,
+                                1.2910938760258996,
+                                1.2910938760258899,
+                                6.473385481404865
+                            ],
+                            tspan=(0.0, 1.0),)
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_advection_diffusion.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_advection_diffusion.jl"),
                             initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
-                            alg=RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
                             l2=[4.0915532997994255e-6],
                             linf=[2.3040850347877395e-5])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "FDSBP, elixir_advection_extended.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "tree_2d_fdsbp",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_fdsbp",
                                      "elixir_advection_extended.jl"),
                             l2=[2.898644263922225e-6],
                             linf=[8.491517930142578e-6],
@@ -165,16 +158,11 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "FDSBP, elixir_euler_convergence.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "tree_2d_fdsbp",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_fdsbp",
                                      "elixir_euler_convergence.jl"),
                             l2=[
                                 1.7088389997042244e-6,
@@ -192,18 +180,13 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 end
 
 @testset "StructuredMesh" begin
     @trixi_testset "elixir_advection_restart.jl with waving flag mesh" begin
-        @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
                                      "elixir_advection_restart.jl"),
                             l2=[0.00016265538265929818],
                             linf=[0.0015194252169410394],
@@ -213,16 +196,11 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_mhd_ec.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
                                      "elixir_mhd_ec.jl"),
                             l2=[0.04937478399958968, 0.0611701500558669,
                                 0.06099805934392425, 0.031551737882277144,
@@ -238,18 +216,13 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 end
 
 @testset "UnstructuredMesh" begin
     @trixi_testset "elixir_acoustics_gauss_wall.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "unstructured_2d_dgsem",
                                      "elixir_acoustics_gauss_wall.jl"),
                             l2=[0.029330394861252995, 0.029345079728907965,
                                 0.03803795043486467, 0.0,
@@ -263,18 +236,13 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 end
 
 @testset "P4estMesh" begin
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                      "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                             l2=[
                                 0.0034516244508588046,
@@ -291,16 +259,11 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_eulergravity_convergence.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                      "elixir_eulergravity_convergence.jl"),
                             l2=[
                                 0.00024871265138964204,
@@ -320,7 +283,7 @@ end
 
 @testset "T8codeMesh" begin
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "t8code_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "t8code_2d_dgsem",
                                      "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                             l2=[
                                 0.0034516244508588046,
@@ -337,7 +300,7 @@ end
     end
 
     @trixi_testset "elixir_eulergravity_convergence.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "t8code_2d_dgsem",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "t8code_2d_dgsem",
                                      "elixir_eulergravity_convergence.jl"),
                             l2=[
                                 0.00024871265138964204,
@@ -357,7 +320,7 @@ end
 
 @testset "DGMulti" begin
     @trixi_testset "elixir_euler_weakform.jl (SBP, EC)" begin
-        @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                      "elixir_euler_weakform.jl"),
                             cells_per_dimension=(4, 4),
                             volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
@@ -374,22 +337,17 @@ end
                                 0.05321027922532284,
                                 0.05321027922605448,
                                 0.13392025411839015
-                            ],)
+                            ])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_curved.jl with threaded time integration" begin
-        @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                      "elixir_euler_curved.jl"),
-                            alg=RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
                             l2=[
                                 1.720916434676505e-5,
                                 1.5928649356300228e-5,
@@ -405,16 +363,11 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                      "elixir_euler_triangulate_pkg_mesh.jl"),
                             l2=[
                                 2.344076909832665e-6,
@@ -431,16 +384,11 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_fdsbp_periodic.jl (2D)" begin
-        @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                      "elixir_euler_fdsbp_periodic.jl"),
                             l2=[
                                 1.3333320340010056e-6,
@@ -457,16 +405,11 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_fdsbp_periodic.jl (3D)" begin
-        @test_trixi_include(joinpath(examples_dir(),
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "dgmulti_3d/elixir_euler_fdsbp_periodic.jl"),
                             l2=[
                                 7.561468750241556e-5,
@@ -484,12 +427,7 @@ end
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 end

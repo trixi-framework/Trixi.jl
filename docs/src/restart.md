@@ -75,7 +75,7 @@ Before we compute the solution using
 we need to set the integrator
 and its time step number, e.g.:
 ```julia
-integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false),
+integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false);
                   dt=dt, save_everystep=false, callback=callbacks);
 load_timestep!(integrator, restart_filename)
 ```
