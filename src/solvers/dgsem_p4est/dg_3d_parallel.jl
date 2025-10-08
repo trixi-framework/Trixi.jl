@@ -96,7 +96,7 @@ function rhs!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, have_aux_node_vars(equations), equations,
+        calc_surface_integral!(du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
@@ -105,7 +105,8 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(du, u, t, source_terms, have_aux_node_vars(equations), equations,
+                      dg, cache)
     end
 
     # Finish to send MPI data
