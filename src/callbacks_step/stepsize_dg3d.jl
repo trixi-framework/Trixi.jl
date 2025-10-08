@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function max_dt(backend, u, t, mesh::TreeMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{3},
                 constant_speed::False, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -31,7 +31,7 @@ function max_dt(backend, u, t, mesh::TreeMesh{3},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(backend, u, t, mesh::TreeMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{3},
                 constant_speed::True, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -135,10 +135,9 @@ function max_dt(backend, u, t,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    if backend isa Nothing  # TODO GPU KA CPU backend as well
-        @unpack contravariant_vectors, inverse_jacobian = cache.elements
-    else
-        # TODO GPU is this sufficient?
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    if backend !== nothing 
+        # TODO: Port to GPU
         contravariant_vectors = Array(cache.elements.contravariant_vectors)
         inverse_jacobian = Array(cache.elements.inverse_jacobian)
     end
