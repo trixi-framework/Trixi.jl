@@ -138,7 +138,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations_parabolic,
+        calc_surface_integral!(nothing, du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache_parabolic)
     end
 
@@ -227,7 +227,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate interface fluxes for the gradient.
     # This reuses `calc_interface_flux!` for the purely hyperbolic case.
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
+        calc_interface_flux!(nothing, cache_parabolic.elements.surface_flux_values,
                              mesh, False(), # False() = no nonconservative terms
                              equations_parabolic, dg.surface_integral, dg,
                              cache_parabolic)
