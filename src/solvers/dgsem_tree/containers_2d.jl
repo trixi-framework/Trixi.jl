@@ -1406,7 +1406,7 @@ end
 #                          flux2(i, j)
 #                               |
 #                            (i, j-1)
-mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real}
+mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real} <: AbstractContainer
     antidiffusive_flux1_L::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux1_R::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux2_L::Array{uEltype, 4} # [variables, i, j, elements]
@@ -1510,77 +1510,6 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
         fluxes.antidiffusive_flux2_L[:, :, n_nodes + 1, element] .= zero(uEltype)
         fluxes.antidiffusive_flux2_R[:, :, 1, element] .= zero(uEltype)
         fluxes.antidiffusive_flux2_R[:, :, n_nodes + 1, element] .= zero(uEltype)
-    end
-
-    return nothing
-end
-
-# Container data structure (structure-of-arrays style) for variables used for IDP limiting
-mutable struct ContainerSubcellLimiterIDP2D{uEltype <: Real}
-    alpha::Array{uEltype, 3}                  # [i, j, element]
-    alpha1::Array{uEltype, 3}
-    alpha2::Array{uEltype, 3}
-    variable_bounds::Dict{Symbol, Array{uEltype, 3}}
-    # internal `resize!`able storage
-    _alpha::Vector{uEltype}
-    _alpha1::Vector{uEltype}
-    _alpha2::Vector{uEltype}
-    _variable_bounds::Dict{Symbol, Vector{uEltype}}
-end
-
-function ContainerSubcellLimiterIDP2D{uEltype}(capacity::Integer, n_nodes,
-                                               bound_keys) where {uEltype <: Real}
-    nan_uEltype = convert(uEltype, NaN)
-
-    # Initialize fields with defaults
-    _alpha = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-    alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
-    _alpha1 = fill(nan_uEltype, (n_nodes + 1) * n_nodes * capacity)
-    alpha1 = unsafe_wrap(Array, pointer(_alpha1), (n_nodes + 1, n_nodes, capacity))
-    _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * capacity)
-    alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
-
-    _variable_bounds = Dict{Symbol, Vector{uEltype}}()
-    variable_bounds = Dict{Symbol, Array{uEltype, 3}}()
-    for key in bound_keys
-        _variable_bounds[key] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-        variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
-                                           (n_nodes, n_nodes, capacity))
-    end
-
-    return ContainerSubcellLimiterIDP2D{uEltype}(alpha, alpha1, alpha2,
-                                                 variable_bounds,
-                                                 _alpha, _alpha1, _alpha2,
-                                                 _variable_bounds)
-end
-
-nnodes(container::ContainerSubcellLimiterIDP2D) = size(container.alpha, 1)
-
-# Only one-dimensional `Array`s are `resize!`able in Julia.
-# Hence, we use `Vector`s as internal storage and `resize!`
-# them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
-function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
-    n_nodes = nnodes(container)
-
-    (; _alpha, _alpha1, _alpha2) = container
-    resize!(_alpha, n_nodes * n_nodes * capacity)
-    container.alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
-    container.alpha .= convert(eltype(container.alpha), NaN)
-    resize!(_alpha1, (n_nodes + 1) * n_nodes * capacity)
-    container.alpha1 = unsafe_wrap(Array, pointer(_alpha1),
-                                   (n_nodes + 1, n_nodes, capacity))
-    resize!(_alpha2, n_nodes * (n_nodes + 1) * capacity)
-    container.alpha2 = unsafe_wrap(Array, pointer(_alpha2),
-                                   (n_nodes, n_nodes + 1, capacity))
-
-    (; _variable_bounds) = container
-    for (key, _) in _variable_bounds
-        resize!(_variable_bounds[key], n_nodes * n_nodes * capacity)
-        container.variable_bounds[key] = unsafe_wrap(Array,
-                                                     pointer(_variable_bounds[key]),
-                                                     (n_nodes, n_nodes, capacity))
     end
 
     return nothing

@@ -2410,6 +2410,58 @@ end
                    1.803e-5, atol = 5e-8)
 end
 
+@testset "Slope Limiters" begin
+    sl = 1.0
+    sr = -1.0
+
+    # Test for code coverage
+    dummy = 42
+    @test reconstruction_constant(dummy, sl, sr, dummy, dummy, dummy, dummy, dummy) ==
+          (sl, sr)
+
+    @test minmod(sl, sr) == 0.0
+    @test monotonized_central(sl, sr) == 0.0
+    @test superbee(sl, sr) == 0.0
+    @test vanLeer(sl, sr) == 0.0
+
+    sr = 0.5
+    @test minmod(sl, sr) == 0.5
+    @test monotonized_central(sl, sr) == 0.75
+    @test superbee(sl, sr) == 1.0
+    @test isapprox(vanLeer(sl, sr), 2 / 3)
+
+    sl = -1.0
+    sr = 0.0
+    @test minmod(sl, sr) == 0.0
+    @test monotonized_central(sl, sr) == 0.0
+    @test superbee(sl, sr) == 0.0
+    @test vanLeer(sl, sr) == 0.0
+
+    sr = -0.8
+    @test minmod(sl, sr) == -0.8
+    @test monotonized_central(sl, sr) == -0.9
+    @test superbee(sl, sr) == -1.0
+    @test isapprox(vanLeer(sl, sr), -8 / 9)
+
+    # Test symmetry
+    @test minmod(sr, sl) == -0.8
+    @test monotonized_central(sr, sl) == -0.9
+    @test superbee(sr, sl) == -1.0
+    @test isapprox(vanLeer(sr, sl), -8 / 9)
+
+    sl = 1.0
+    sr = 0.0
+    @test minmod(sl, sr) == 0.0
+    @test monotonized_central(sl, sr) == 0.0
+    @test superbee(sl, sr) == 0.0
+    @test vanLeer(sl, sr) == 0.0
+
+    @test central_slope(sl, sr) == 0.5
+
+    # Test van Leer zero case
+    @test vanLeer(0.0, 0.0) == 0.0
+end
+
 # Velocity functions are present in many equations and are tested here
 @testset "Velocity functions for different equations" begin
     gamma = 1.4
