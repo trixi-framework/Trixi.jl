@@ -1,5 +1,6 @@
 using OrdinaryDiffEqSDIRK, ADTypes
 using Trixi
+import LinearSolve: LUFactorization
 
 ###############################################################################
 # semidiscretization of the linear advection diffusion equation
@@ -87,6 +88,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-10
 time_abs_tol = 1.0e-10
-sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()); # This is an IMEX SDIRK method
+# This is an IMEX SDIRK method
+ode_alg = KenCarp4(autodiff = AutoFiniteDiff(), linsolve = LUFactorization())
+sol = solve(ode, ode_alg;
             abstol = time_abs_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

@@ -234,7 +234,7 @@ end
 end
 
 # Return the contravariant basis vector corresponding to the Cartesian
-# coordinate diretion `orientation` in a given `element` of the `mesh`.
+# coordinate direction `orientation` in a given `element` of the `mesh`.
 # The contravariant basis vectors have entries `dx_i / dxhat_j` where
 # j ∈ {1, ..., NDIMS}. Here, `x_i` and `xhat_j` are the ith physical coordinate
 # and jth reference coordinate, respectively. These are geometric terms which
