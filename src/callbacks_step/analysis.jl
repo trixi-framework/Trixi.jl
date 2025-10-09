@@ -119,9 +119,9 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
     condition = (u, t,
-                 integrator) -> interval > 0 &&
-                                (integrator.stats.naccept % interval == 0 ||
-                                 isfinished(integrator))
+    integrator) -> interval > 0 &&
+        (integrator.stats.naccept % interval == 0 ||
+         isfinished(integrator))
 
     analyzer = SolutionAnalyzer(solver; kwargs...)
     cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache,
