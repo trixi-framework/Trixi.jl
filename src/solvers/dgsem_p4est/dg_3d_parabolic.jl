@@ -352,21 +352,22 @@ end
 end
 
 # This version is used for parabolic gradient computations
-@inline function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
+@inline function calc_interface_flux!(surface_flux_values,
+                                      ::Type{<:Union{P4estMesh{3}}},
                                       have_nonconservative_terms::False,
                                       equations::AbstractEquationsParabolic,
-                                      surface_integral, dg::DG, cache,
+                                      surface_integral, solverT::Type{<:DG},
+                                      u_interface,
                                       interface_index, normal_direction,
                                       primary_i_node_index, primary_j_node_index,
                                       primary_direction_index, primary_element_index,
                                       secondary_i_node_index, secondary_j_node_index,
                                       secondary_direction_index,
                                       secondary_element_index)
-    @unpack u = cache.interfaces
     @unpack surface_flux = surface_integral
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index,
-                                       primary_j_node_index,
+    u_ll, u_rr = get_surface_node_vars(u_interface, equations, solverT,
+                                       primary_i_node_index, primary_j_node_index,
                                        interface_index)
 
     flux_ = 0.5f0 * (u_ll + u_rr) # we assume that the gradient computations utilize a central flux

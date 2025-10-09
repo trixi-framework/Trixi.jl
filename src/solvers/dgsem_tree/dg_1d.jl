@@ -108,7 +108,8 @@ function rhs!(backend, du, u, t,
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
@@ -640,7 +641,8 @@ function calc_surface_integral!(backend::Nothing, du, u,
     return nothing
 end
 
-function apply_jacobian!(backend::Nothing, du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function apply_jacobian!(backend::Nothing, du,
+                         mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
