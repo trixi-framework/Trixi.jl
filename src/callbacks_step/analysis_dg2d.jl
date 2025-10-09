@@ -160,7 +160,7 @@ function calc_error_norms(func, u, t, analyzer,
         # Interpolate solution and node locations to analysis nodes
         multiply_dimensionwise!(u_local, vandermonde, view(u,:,:,:,element), u_tmp1)
         multiply_dimensionwise!(x_local, vandermonde,
-                                view(node_coordinates,:,:,:,element), x_tmp1)
+                                view(node_coordinates, :, :, :, element), x_tmp1)
         multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
                                        inv.(view(inverse_jacobian, :, :, element)),
                                        jacobian_tmp1)
