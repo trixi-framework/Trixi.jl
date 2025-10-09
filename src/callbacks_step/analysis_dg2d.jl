@@ -162,7 +162,7 @@ function calc_error_norms(func, u, t, analyzer,
         multiply_dimensionwise!(x_local, vandermonde,
                                 view(node_coordinates,:,:,:,element), x_tmp1)
         multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
-                                       inv.(view(inverse_jacobian,:,:,element)),
+                                       inv.(view(inverse_jacobian, :, :, element)),
                                        jacobian_tmp1)
 
         # Calculate errors at each analysis node
