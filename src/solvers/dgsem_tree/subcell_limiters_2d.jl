@@ -860,7 +860,7 @@ end
                !all(isfinite(flux_upper_high_order)) ||
                !all(isfinite.(flux_large_high_order))
                 limiting_factor[mortar] = 1
-                continue
+                break
             end
 
             Qm_upper = min(0, var_min_upper - var_upper)
