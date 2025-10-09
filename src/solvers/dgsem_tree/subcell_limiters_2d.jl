@@ -83,9 +83,11 @@ end
         end
     end
 
+    # Calc bounds at mortars
     # TODO: How to include values at mortar interfaces?
     # - For LobattoLegendreMortarIDP: include only values of nodes with nonnegative local weights
     # - For LobattoLegendreMortarL2: include all neighboring values (TODO?)
+    l2_mortars = dg.mortar isa LobattoLegendreMortarL2
     for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
@@ -115,71 +117,64 @@ end
                     indices_large = (i, 1)
                 end
             end
-            u_lower = get_node_vars(u, equations, dg, indices_small...,
-                                    lower_element)
-            u_upper = get_node_vars(u, equations, dg, indices_small...,
-                                    upper_element)
-            u_large = get_node_vars(u, equations, dg, indices_large...,
-                                    large_element)
-            var_lower = u_lower[variable]
-            var_upper = u_upper[variable]
-            var_large = u_large[variable]
+            var_lower = u[variable, indices_small..., lower_element]
+            var_upper = u[variable, indices_small..., upper_element]
+            var_large = u[variable, indices_large..., large_element]
 
             for j in eachnode(dg)
                 if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
                     if orientation == 1
                         # L2 mortars in x-direction
-                        indices_small = (1, j)
-                        indices_large = (nnodes(dg), j)
+                        indices_small_inner = (1, j)
+                        indices_large_inner = (nnodes(dg), j)
                     else
                         # L2 mortars in y-direction
-                        indices_small = (j, 1)
-                        indices_large = (j, nnodes(dg))
+                        indices_small_inner = (j, 1)
+                        indices_large_inner = (j, nnodes(dg))
                     end
                 else # large_sides[mortar] == 2 -> small elements on left side
                     if orientation == 1
                         # L2 mortars in x-direction
-                        indices_small = (nnodes(dg), j)
-                        indices_large = (1, j)
+                        indices_small_inner = (nnodes(dg), j)
+                        indices_large_inner = (1, j)
                     else
                         # L2 mortars in y-direction
-                        indices_small = (j, nnodes(dg))
-                        indices_large = (j, 1)
+                        indices_small_inner = (j, nnodes(dg))
+                        indices_large_inner = (j, 1)
                     end
                 end
 
-                l2_mortars = dg.mortar isa LobattoLegendreMortarL2
                 if l2_mortars || dg.mortar.mortar_weights[i, j] > 0
-                    var_min[indices_small..., lower_element] = min(var_min[indices_small...,
-                                                                           lower_element],
-                                                                   var_large)
-                    var_max[indices_small..., lower_element] = max(var_max[indices_small...,
-                                                                           lower_element],
-                                                                   var_large)
+                    var_min[indices_small_inner..., lower_element] = min(var_min[indices_small_inner...,
+                                                                                 lower_element],
+                                                                         var_large)
+                    var_max[indices_small_inner..., lower_element] = max(var_max[indices_small_inner...,
+                                                                                 lower_element],
+                                                                         var_large)
                 end
                 if l2_mortars || dg.mortar.mortar_weights[j, i] > 0
-                    var_min[indices_large..., large_element] = min(var_min[indices_large...,
-                                                                           large_element],
-                                                                   var_lower)
-                    var_max[indices_large..., large_element] = max(var_max[indices_large...,
-                                                                           large_element],
-                                                                   var_lower)
+                    var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
+                                                                                 large_element],
+                                                                         var_lower)
+                    var_max[indices_large_inner..., large_element] = max(var_max[indices_large_inner...,
+                                                                                 large_element],
+                                                                         var_lower)
                 end
                 if l2_mortars || dg.mortar.mortar_weights[i, j + nnodes(dg)] > 0
-                    var_min[indices_small..., upper_element] = min(var_min[indices_small...,
-                                                                           upper_element],
-                                                                   var_large)
-                    var_max[indices_small..., upper_element] = max(var_max[indices_small...,
-                                                                           upper_element],
-                                                                   var_large)
+                    var_min[indices_small_inner..., upper_element] = min(var_min[indices_small_inner...,
+                                                                                 upper_element],
+                                                                         var_large)
+                    var_max[indices_small_inner..., upper_element] = max(var_max[indices_small_inner...,
+                                                                                 upper_element],
+                                                                         var_large)
                 end
                 if l2_mortars || dg.mortar.mortar_weights[j, i + nnodes(dg)] > 0
-                    var_min[indices_large..., large_element] = min(var_min[indices_large...,
-                                                                           large_element],
-                                                                   var_upper)
-                    var_max[indices_large..., large_element] = max(var_max[indices_large...,
-                                                                           large_element],
-                                                                   var_upper)
+                    var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
+                                                                                 large_element],
+                                                                         var_upper)
+                    var_max[indices_large_inner..., large_element] = max(var_max[indices_large_inner...,
+                                                                                 large_element],
+                                                                         var_upper)
                 end
             end
         end
@@ -679,7 +674,7 @@ end
                !all(isfinite(flux_upper_high_order)) ||
                !all(isfinite.(flux_large_high_order))
                 limiting_factor[mortar] = 1
-                continue
+                break
             end
 
             Qm_upper = min(0, var_min_upper - var_upper)
