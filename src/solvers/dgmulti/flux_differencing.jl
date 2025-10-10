@@ -234,7 +234,7 @@ end
 end
 
 # Return the contravariant basis vector corresponding to the Cartesian
-# coordinate diretion `orientation` in a given `element` of the `mesh`.
+# coordinate direction `orientation` in a given `element` of the `mesh`.
 # The contravariant basis vectors have entries `dx_i / dxhat_j` where
 # j ∈ {1, ..., NDIMS}. Here, `x_i` and `xhat_j` are the ith physical coordinate
 # and jth reference coordinate, respectively. These are geometric terms which
@@ -453,7 +453,8 @@ end
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::False, volume_flux,
+                                          have_nonconservative_terms::False,
+                                          volume_flux,
                                           has_sparse_operators::False, mesh,
                                           equations, dg, cache)
     for dim in eachdim(mesh)
@@ -466,7 +467,7 @@ end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::True, volume_flux,
+                                          have_nonconservative_terms::True, volume_flux,
                                           has_sparse_operators::False, mesh,
                                           equations, dg, cache)
     flux_conservative, flux_nonconservative = volume_flux
@@ -490,7 +491,8 @@ end
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::False, volume_flux,
+                                          have_nonconservative_terms::False,
+                                          volume_flux,
                                           has_sparse_operators::True, mesh,
                                           equations, dg, cache)
     @unpack Qrst_skew = cache
@@ -520,7 +522,7 @@ end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::True, volume_flux,
+                                          have_nonconservative_terms::True, volume_flux,
                                           has_sparse_operators::True, mesh,
                                           equations, dg, cache)
     @unpack Qrst_skew = cache
