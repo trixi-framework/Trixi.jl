@@ -593,7 +593,7 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
 end
 
 # Similar to `P4estMortarContainer`, but has additional parameter `u_large` to safe the original data of the large element.
-# Used for `LobattoLegendreMortarIDP` with subcell limting and non-conforming meshes.
+# Used for `LobattoLegendreMortarIDP` with subcell limiting and non-conforming meshes.
 mutable struct P4estIDPMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                        uArray <: DenseArray{uEltype, NDIMSP3},
                                        uLArray <: DenseArray{uEltype, NDIMSP1},
