@@ -681,6 +681,44 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::CompressibleEulerMulticomponentEquations2D)
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+    # Normalize the normal vector (if not guaranteed to be unit)
+    n1, n2 = normal_direction
+    norm_n = sqrt(n1^2 + n2^2)
+    n1 /= norm_n
+    n2 /= norm_n
+
+    # Densities and gamma
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+    gamma_ll = totalgamma(u_ll, equations)
+    gamma_rr = totalgamma(u_rr, equations)
+
+    # Velocities
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+    v2_rr = rho_v2_rr / rho_rr
+
+    # Normal velocity components
+    v_n_ll = v1_ll * n1 + v2_ll * n2
+    v_n_rr = v1_rr * n1 + v2_rr * n2
+
+    # Pressure and sound speeds
+    p_ll = (gamma_ll - 1f0) * (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2))
+    p_rr = (gamma_rr - 1f0) * (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2))
+
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    return max(abs(v_n_ll), abs(v_n_rr)) + max(c_ll, c_rr)
+end
+
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::CompressibleEulerMulticomponentEquations2D)
