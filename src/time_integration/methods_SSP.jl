@@ -10,20 +10,6 @@
 abstract type SimpleAlgorithmSSP <: AbstractTimeIntegrationAlgorithm end
 
 """
-    SimpleSSPRK(; stage_callbacks=())
-
-The explicit strong stability-preserving (SSP) Runge-Kutta (RK) methods. These methods can be
-written and are implemented as a convex combination of forward Euler steps.
-"""
-struct SimpleSSPRK{NStages, StageCallbacks} <: SimpleAlgorithmSSP
-    numerator_a::SVector{NStages, Float64}
-    numerator_b::SVector{NStages, Float64}
-    denominator::SVector{NStages, Float64}
-    c::SVector{NStages, Float64}
-    stage_callbacks::StageCallbacks
-end
-
-"""
     SimpleSSPRK33(; stage_callbacks=())
 
 The third-order SSP Runge-Kutta method of Shu and Osher.
@@ -34,48 +20,35 @@ The third-order SSP Runge-Kutta method of Shu and Osher.
   "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
   [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
 """
-function SimpleSSPRK33(; stage_callbacks = ())
-    # Mathematically speaking, it is not necessary for the algorithm to split the factors
-    # into numerator and denominator. Otherwise, however, rounding errors of the order of
-    # the machine accuracy will occur, which will add up over time and thus endanger the
-    # conservation of the simulation.
-    # See also https://github.com/trixi-framework/Trixi.jl/pull/1640.
-    numerator_a = SVector(0.0, 3.0, 1.0) # a = numerator_a / denominator
-    numerator_b = SVector(1.0, 1.0, 2.0) # b = numerator_b / denominator
-    denominator = SVector(1.0, 4.0, 3.0)
-    c = SVector(0.0, 1.0, 1 / 2)
+struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
+    numerator_a::SVector{3, Float64}
+    numerator_b::SVector{3, Float64}
+    denominator::SVector{3, Float64}
+    c::SVector{3, Float64}
+    stage_callbacks::StageCallbacks
 
-    # Butcher tableau
-    #   c |       A
-    #   0 |
-    #   1 |   1
-    # 1/2 | 1/4  1/4
-    # --------------------
-    #   b | 1/6  1/6  2/3
+    function SimpleSSPRK33(; stage_callbacks = ())
+        # Mathematically speaking, it is not necessary for the algorithm to split the factors
+        # into numerator and denominator. Otherwise, however, rounding errors of the order of
+        # the machine accuracy will occur, which will add up over time and thus endanger the
+        # conservation of the simulation.
+        # See also https://github.com/trixi-framework/Trixi.jl/pull/1640.
+        numerator_a = SVector(0.0, 3.0, 1.0) # a = numerator_a / denominator
+        numerator_b = SVector(1.0, 1.0, 2.0) # b = numerator_b / denominator
+        denominator = SVector(1.0, 4.0, 3.0)
+        c = SVector(0.0, 1.0, 1 / 2)
 
-    SimpleSSPRK{length(c), typeof(stage_callbacks)}(numerator_a, numerator_b,
-                                                    denominator, c, stage_callbacks)
-end
+        # Butcher tableau
+        #   c |       A
+        #   0 |
+        #   1 |   1
+        # 1/2 | 1/4  1/4
+        # --------------------
+        #   b | 1/6  1/6  2/3
 
-"""
-    SimpleEuler(; stage_callbacks=())
-
-The basic explicit Euler method.
-"""
-function SimpleEuler(; stage_callbacks = ())
-    numerator_a = SVector(0.0) # a = numerator_a / denominator
-    numerator_b = SVector(1.0) # b = numerator_b / denominator
-    denominator = SVector(1.0)
-    c = SVector(0.0)
-
-    # Butcher tableau
-    #   c |       A
-    #   0 |
-    # --------------------
-    #   b | 1
-
-    SimpleSSPRK{length(c), typeof(stage_callbacks)}(numerator_a, numerator_b,
-                                                    denominator, c, stage_callbacks)
+        new{typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
+                                     stage_callbacks)
+    end
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
