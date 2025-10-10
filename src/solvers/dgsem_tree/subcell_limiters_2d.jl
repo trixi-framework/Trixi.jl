@@ -85,8 +85,9 @@ end
 
     # Calc bounds at mortars
     # TODO: How to include values at mortar interfaces?
-    # - For "alternative implementation" and "global factors" include all neighboring values
-    # - For "local factors" include only values with nonnegative local weights
+    # - For LobattoLegendreMortarIDP:
+    #     - For "alternative implementation" and "global factors" include all neighboring values
+    #     - For "local factors" include only values of nodes with nonnegative local weights
     # - For LobattoLegendreMortarL2: include all neighboring values (TODO?)
     l2_mortars = dg.mortar isa LobattoLegendreMortarL2
     alternative = dg.mortar isa LobattoLegendreMortarIDPAlternative

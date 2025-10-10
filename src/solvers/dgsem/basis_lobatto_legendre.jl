@@ -171,6 +171,77 @@ end
 left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
+struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
+                               ForwardMatrix <: AbstractMatrix{RealT},
+                               ReverseMatrix <: AbstractMatrix{RealT}} <:
+       AbstractMortarL2{RealT}
+    forward_upper::ForwardMatrix
+    forward_lower::ForwardMatrix
+    reverse_upper::ReverseMatrix
+    reverse_lower::ReverseMatrix
+end
+
+function Adapt.adapt_structure(to, mortar::LobattoLegendreMortarL2)
+    forward_upper = adapt(to, mortar.forward_upper)
+    forward_lower = adapt(to, mortar.forward_lower)
+    reverse_upper = adapt(to, mortar.reverse_upper)
+    reverse_lower = adapt(to, mortar.reverse_lower)
+    return LobattoLegendreMortarL2{eltype(forward_upper), nnodes(mortar),
+                                   typeof(forward_upper),
+                                   typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                          reverse_upper, reverse_lower)
+end
+
+function MortarL2(basis::LobattoLegendreBasis)
+    RealT = real(basis)
+    nnodes_ = nnodes(basis)
+
+    forward_upper = calc_forward_upper(nnodes_, RealT)
+    forward_lower = calc_forward_lower(nnodes_, RealT)
+    reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
+    reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
+
+    # We keep the matrices above stored using the standard `Matrix` type
+    # since this is usually as fast as `SMatrix`
+    # (when using `let` in the volume integral/`@threaded`)
+    # and reduces latency
+
+    # TODO: Taal performance
+    #       Check the performance of different implementations of `mortar_fluxes_to_elements!`
+    #       with different types of the reverse matrices and different types of
+    #       `fstar_upper_threaded` etc. used in the cache.
+    #       Check whether `@turbo` with `eachnode` in `multiply_dimensionwise!` can be faster than
+    #       `@tullio` when the matrix sizes are not necessarily static.
+    # reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
+    # reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
+
+    LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper),
+                            typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                   reverse_upper, reverse_lower)
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarL2)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarL2{", real(mortar), "}(polydeg=", polydeg(mortar),
+          ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarL2{", real(mortar), "} with polynomials of degree ",
+          polydeg(mortar))
+end
+
+@inline Base.real(mortar::LobattoLegendreMortarL2{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortarL2{RealT, NNODES}) where {RealT,
+                                                                               NNODES}
+    NNODES
+end
+
+@inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
+
 struct LobattoLegendreMortarIDP{RealT <: Real, NNODES,
                                 LimitingVariablesNonlinear, Mortar} <:
        AbstractMortarL2{RealT}
@@ -251,16 +322,20 @@ end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
-    # TODO
-    print(io, "LobattoLegendreMortarIDP{", real(mortar), "}(polydeg=", polydeg(mortar),
-          ")")
+
+    print(io, "LobattoLegendreMortarIDP(polydeg=", polydeg(mortar), ", positivity for ",
+          mortar.positivity_variables_cons, " and ",
+          mortar.positivity_variables_nonlinear, ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
-    # TODO
+
     print(io, "LobattoLegendreMortarIDP{", real(mortar),
           "} with polynomials of degree ",
-          polydeg(mortar))
+          polydeg(mortar),
+          " and positivity limiting for conservative variables ",
+          mortar.positivity_variables_cons, " and ",
+          mortar.positivity_variables_nonlinear)
 end
 
 @inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
@@ -279,77 +354,6 @@ end
 
 @inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
 @inline polydeg(mortar::LobattoLegendreMortarIDPAlternative) = nnodes(mortar) - 1
-
-struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
-                               ForwardMatrix <: AbstractMatrix{RealT},
-                               ReverseMatrix <: AbstractMatrix{RealT}} <:
-       AbstractMortarL2{RealT}
-    forward_upper::ForwardMatrix
-    forward_lower::ForwardMatrix
-    reverse_upper::ReverseMatrix
-    reverse_lower::ReverseMatrix
-end
-
-function Adapt.adapt_structure(to, mortar::LobattoLegendreMortarL2)
-    forward_upper = adapt(to, mortar.forward_upper)
-    forward_lower = adapt(to, mortar.forward_lower)
-    reverse_upper = adapt(to, mortar.reverse_upper)
-    reverse_lower = adapt(to, mortar.reverse_lower)
-    return LobattoLegendreMortarL2{eltype(forward_upper), nnodes(mortar),
-                                   typeof(forward_upper),
-                                   typeof(reverse_upper)}(forward_upper, forward_lower,
-                                                          reverse_upper, reverse_lower)
-end
-
-function MortarL2(basis::LobattoLegendreBasis)
-    RealT = real(basis)
-    nnodes_ = nnodes(basis)
-
-    forward_upper = calc_forward_upper(nnodes_, RealT)
-    forward_lower = calc_forward_lower(nnodes_, RealT)
-    reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
-    reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
-
-    # We keep the matrices above stored using the standard `Matrix` type 
-    # since this is usually as fast as `SMatrix`
-    # (when using `let` in the volume integral/`@threaded`)
-    # and reduces latency
-
-    # TODO: Taal performance
-    #       Check the performance of different implementations of `mortar_fluxes_to_elements!`
-    #       with different types of the reverse matrices and different types of
-    #       `fstar_upper_threaded` etc. used in the cache.
-    #       Check whether `@turbo` with `eachnode` in `multiply_dimensionwise!` can be faster than
-    #       `@tullio` when the matrix sizes are not necessarily static.
-    # reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
-    # reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
-
-    LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper),
-                            typeof(reverse_upper)}(forward_upper, forward_lower,
-                                                   reverse_upper, reverse_lower)
-end
-
-function Base.show(io::IO, mortar::LobattoLegendreMortarL2)
-    @nospecialize mortar # reduce precompilation time
-
-    print(io, "LobattoLegendreMortarL2{", real(mortar), "}(polydeg=", polydeg(mortar),
-          ")")
-end
-function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2)
-    @nospecialize mortar # reduce precompilation time
-
-    print(io, "LobattoLegendreMortarL2{", real(mortar), "} with polynomials of degree ",
-          polydeg(mortar))
-end
-
-@inline Base.real(mortar::LobattoLegendreMortarL2{RealT}) where {RealT} = RealT
-
-@inline function nnodes(mortar::LobattoLegendreMortarL2{RealT, NNODES}) where {RealT,
-                                                                               NNODES}
-    NNODES
-end
-
-@inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
 
 # TODO: We can create EC mortars along the lines of the following implementation.
 # abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end

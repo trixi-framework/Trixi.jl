@@ -61,7 +61,7 @@ end
 
 function calc_mortar_weights(basis, RealT; basis_function = :piecewise_constant)
     n_nodes = nnodes(basis)
-    weights = zeros(RealT, n_nodes, 2 * n_nodes) # [large element, small element]
+    weights = zeros(RealT, n_nodes, 2 * n_nodes) # [node (large element), node (small element)]
     weights_sum = zeros(RealT, n_nodes, 3)       # [node, left/right/large element]
 
     if basis_function == :piecewise_constant
@@ -87,21 +87,23 @@ end
 
 function calc_mortar_weights_piecewise_constant!(mortar_weights, n_nodes, RealT)
     _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
-    cum_LGL_weights = [zero(RealT); cumsum(weights)] .- 1.0
 
-    cum_LGL_weights_lower = 0.5f0 * cum_LGL_weights .- 0.5f0
-    cum_LGL_weights_upper = cum_LGL_weights_lower .+ 1.0
+    # Cumulative LGL weights to construct LGL subgrid
+    cum_weights = [zero(RealT); cumsum(weights)] .- 1.0
+
+    cum_weights_lower = 0.5f0 * cum_weights .- 0.5f0
+    cum_weights_upper = cum_weights_lower .+ 1.0f0
 
     for i in 1:n_nodes
         for j in 1:n_nodes
             # basis function of left element
-            interval_left = max(cum_LGL_weights[i], cum_LGL_weights_lower[j])
-            interval_right = min(cum_LGL_weights[i + 1], cum_LGL_weights_lower[j + 1])
+            interval_left = max(cum_weights[i], cum_weights_lower[j])
+            interval_right = min(cum_weights[i + 1], cum_weights_lower[j + 1])
             mortar_weights[i, j] = max(zero(RealT), interval_right - interval_left)
 
             # basis function of right element
-            interval_left = max(cum_LGL_weights[i], cum_LGL_weights_upper[j])
-            interval_right = min(cum_LGL_weights[i + 1], cum_LGL_weights_upper[j + 1])
+            interval_left = max(cum_weights[i], cum_weights_upper[j])
+            interval_right = min(cum_weights[i + 1], cum_weights_upper[j + 1])
             mortar_weights[i, n_nodes + j] = max(zero(RealT),
                                                  interval_right - interval_left)
         end
