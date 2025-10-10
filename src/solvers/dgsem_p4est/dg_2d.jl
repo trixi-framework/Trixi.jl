@@ -9,7 +9,8 @@
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                       equations,
-                      mortar_l2::LobattoLegendreMortarL2, uEltype)
+                      mortar_l2::Union{LobattoLegendreMortarL2,
+                                       LobattoLegendreMortarIDP}, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,

@@ -40,6 +40,20 @@ function calc_forward_upper(n_nodes, RealT = Float64)
     return operator
 end
 
+function calc_forward_upper_low_order(n_nodes, RealT)
+    nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
+    forward_upper = zeros(RealT, n_nodes, n_nodes)
+
+    for j in 1:n_nodes
+        poly = low_order_interpolating_polynomials(0.5f0 * (nodes[j] + 1), nodes)
+        for i in 1:n_nodes
+            forward_upper[j, i] = poly[i]
+        end
+    end
+
+    return forward_upper
+end
+
 # Calculate forward projection matrix for discrete L2 projection from large to lower
 #
 # Note: This is actually an interpolation.
@@ -58,6 +72,20 @@ function calc_forward_lower(n_nodes, RealT = Float64)
     end
 
     return operator
+end
+
+function calc_forward_lower_low_order(n_nodes, RealT)
+    nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
+    forward_lower = zeros(RealT, n_nodes, n_nodes)
+
+    for j in 1:n_nodes
+        poly = low_order_interpolating_polynomials(0.5f0 * (nodes[j] - 1), nodes)
+        for i in 1:n_nodes
+            forward_lower[j, i] = poly[i]
+        end
+    end
+
+    return forward_lower
 end
 
 # Calculate reverse projection matrix for discrete L2 projection from upper to large (Gauss version)
@@ -133,6 +161,29 @@ function calc_reverse_upper(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
     return operator
 end
 
+function calc_reverse_upper_low_order(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
+    # Calculate nodes, weights, and barycentric weights
+    nodes, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
+
+    # Calculate projection matrix (actually: discrete L2 projection with errors)
+    operator = zeros(RealT, n_nodes, n_nodes)
+    for j in 1:n_nodes
+        poly = low_order_interpolating_polynomials(nodes[j], 0.5f0 * (nodes .+ 1))
+        if !iseven(n_nodes)
+            poly[1] *= 0.5f0
+        end
+        for i in 1:n_nodes
+            operator[j, i] = poly[i]
+        end
+        # poly = low_order_interpolating_polynomials(0.5f0 * (nodes[j] + 1), nodes)
+        # for i in 1:n_nodes
+        #     operator[i, j] = 0.5f0 * poly[i] * weights[j] / weights[i]
+        # end
+    end
+
+    return operator
+end
+
 # Calculate reverse projection matrix for discrete L2 projection from lower to large (Gauss-Lobatto
 # version)
 function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
@@ -147,6 +198,29 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
         for i in 1:n_nodes
             operator[i, j] = 0.5f0 * poly[i] * weights[j] / weights[i]
         end
+    end
+
+    return operator
+end
+
+function calc_reverse_lower_low_order(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
+    # Calculate nodes, weights, and barycentric weights
+    nodes, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
+
+    # Calculate projection matrix (actually: discrete L2 projection with errors)
+    operator = zeros(RealT, n_nodes, n_nodes)
+    for j in 1:n_nodes
+        poly = low_order_interpolating_polynomials(nodes[j], 0.5f0 * (nodes .- 1))
+        if !iseven(n_nodes)
+            poly[end] *= 0.5f0
+        end
+        for i in 1:n_nodes
+            operator[j, i] = poly[i]
+        end
+        # poly = low_order_interpolating_polynomials(0.5f0 * (nodes[j] - 1), nodes)
+        # for i in 1:n_nodes
+        #     operator[i, j] = 0.5f0 * poly[i] * weights[j] / weights[i]
+        # end
     end
 
     return operator
