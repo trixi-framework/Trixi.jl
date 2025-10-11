@@ -52,6 +52,9 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Maxwell
     include("test_tree_1d_maxwell.jl")
 
+    # Linear elasticity
+    include("test_tree_1d_linear_elasticity.jl")
+
     # Passive tracers
     include("test_tree_1d_passive_tracers.jl")
 end
