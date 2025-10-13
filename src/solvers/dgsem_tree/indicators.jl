@@ -283,6 +283,10 @@ over the course of a simulation, this can be used to identify troubled cells.
 
 Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
 more advanced/ (entropy) stable volume integral for the troubled cells.
+
+!!! note
+    This indicator is not implemented as an AMR indicator, i.e., it is currently not
+    possible to employ this as the `indicator` in [`ControllerThreeLevel`](@ref).
 """
 struct IndicatorEntropyViolation{EntropyFunction, RealT <: Real, Cache <: NamedTuple} <:
        AbstractIndicator
@@ -300,29 +304,12 @@ function IndicatorEntropyViolation(basis; entropy_function = entropy, threshold 
                                              threshold, cache)
 end
 
-# this method is used when the indicator is constructed as for AMR
-function IndicatorEntropyViolation(semi::AbstractSemidiscretization;
-                                   entropy_function = entropy, threshold = 1e-9)
-    cache = create_cache(IndicatorEntropyViolation, semi)
-    return IndicatorEntropyViolation{typeof(entropy_function),
-                                     typeof(threshold),
-                                     typeof(cache)}(entropy_function,
-                                                    threshold, cache)
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is used when the indicator is constructed as for the adaptive volume integral
 function create_cache(::Type{IndicatorEntropyViolation}, basis::LobattoLegendreBasis)
     entropy_old = Vector{real(basis)}()
     alpha = Vector{Bool}()
 
     return (; alpha, entropy_old)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorEntropyViolation}, mesh,
-                      equations::AbstractEquations,
-                      dg::DGSEM, cache)
-    return create_cache(typ, dg.basis)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyViolation)
