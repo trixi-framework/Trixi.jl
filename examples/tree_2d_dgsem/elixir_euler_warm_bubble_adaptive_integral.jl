@@ -100,7 +100,7 @@ volume_integral = VolumeIntegralAdaptive(indicator;
                                          volume_integral_stabilized = VolumeIntegralFluxDifferencing(volume_flux))
 
 # This would be the standard version
-#volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
@@ -132,18 +132,11 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = analysis_interval,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     output_directory = "out",
-                                     solution_variables = cons2prim)
-
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
-                        #save_solution,
                         stepsize_callback)
 
 ###############################################################################
