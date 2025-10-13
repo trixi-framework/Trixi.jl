@@ -82,7 +82,7 @@ end
 function calc_mortar_weights!(mortar_weights, n_nodes, RealT)
     _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
 
-    # Local mortar weigths are of the form: `w_ij = int_S psi_i phi_j ds`,
+    # Local mortar weights are of the form: `w_ij = int_S psi_i phi_j ds`,
     # where `phi_i` are the basis functions of the small element and `psi_j` are the basis functions
     # of the large element. `S` is the face connecting both elements.
     # We use piecewise constant basis functions on the LGL subgrid. So, only focus on interval,
