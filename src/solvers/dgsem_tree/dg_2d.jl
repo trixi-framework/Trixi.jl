@@ -1558,7 +1558,7 @@ end
         u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
         aux_ll, _ = get_aux_surface_node_vars(aux, equations, dg,
                                               position, i, interface)
-        # TODO: currently only leftright = 1 is used
+        # only leftright = 1 is used
         flux = surface_flux(u_ll, u_rr, aux_ll, aux_ll, orientation, equations)
 
         # Copy flux to left and right element storage

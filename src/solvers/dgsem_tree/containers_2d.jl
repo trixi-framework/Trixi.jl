@@ -1476,24 +1476,24 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solve
                 # L2 mortars in x-direction
                 for l in eachnode(solver)
                     for v in axes(aux_mortar_node_vars, 2)
-                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v, 1,
-                                                                                  l,
-                                                                                  upper_element]
-                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v, 1,
-                                                                                  l,
-                                                                                  lower_element]
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v, 1,
+                                                                                 l,
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v, 1,
+                                                                                 l,
+                                                                                 lower_element]
                     end
                 end
             else
                 # L2 mortars in y-direction
                 for l in eachnode(solver)
                     for v in axes(aux_mortar_node_vars, 2)
-                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v, l,
-                                                                                  1,
-                                                                                  upper_element]
-                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v, l,
-                                                                                  1,
-                                                                                  lower_element]
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v, l,
+                                                                                 1,
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v, l,
+                                                                                 1,
+                                                                                 lower_element]
                     end
                 end
             end
@@ -1502,26 +1502,26 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solve
                 # L2 mortars in x-direction
                 for l in eachnode(solver)
                     for v in axes(aux_mortar_node_vars, 2)
-                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v,
-                                                                                  nnodes(solver),
-                                                                                  l,
-                                                                                  upper_element]
-                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v,
-                                                                                  nnodes(solver),
-                                                                                  l,
-                                                                                  lower_element]
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v,
+                                                                                 nnodes(solver),
+                                                                                 l,
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v,
+                                                                                 nnodes(solver),
+                                                                                 l,
+                                                                                 lower_element]
                     end
                 end
             else
                 # L2 mortars in y-direction
                 for l in eachnode(solver)
                     for v in axes(aux_mortar_node_vars, 2)
-                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v, l,
-                                                                                  nnodes(solver),
-                                                                                  upper_element]
-                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v, l,
-                                                                                  nnodes(solver),
-                                                                                  lower_element]
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v, l,
+                                                                                 nnodes(solver),
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v, l,
+                                                                                 nnodes(solver),
+                                                                                 lower_element]
                     end
                 end
             end
