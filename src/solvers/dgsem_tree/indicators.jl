@@ -334,6 +334,12 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyViolat
     end
 end
 
+function get_element_variables!(element_variables, indicator::IndicatorEntropyViolation,
+                                ::VolumeIntegralAdaptive)
+    element_variables[:indicator_integral_stabilized] = Int.(indicator.cache.alpha)
+    return nothing
+end
+
 # Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function (indicator_entropy_violation::IndicatorEntropyViolation)(u,
                                                                   mesh, equations,
