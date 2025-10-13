@@ -59,6 +59,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
             flux_temp_threaded, fhat_temp_threaded)
 end
 
+# Subcell limiting currently only implemented for certain mesh types
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                            P4estMesh{2}},
@@ -83,7 +84,7 @@ end
                                           have_nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
     @unpack volume_flux_dg, volume_flux_fv = volume_integral
 
     # high-order DG fluxes

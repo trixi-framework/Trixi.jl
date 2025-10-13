@@ -10,12 +10,12 @@ for human readability.
 
 #### Changed
 
-- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!` 
+- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!`
   function got renamed to `Trixi.set_threading_backend!` ([#2476]).
 - Default wave-speed estimate used within `flux_lax_friedrichs` changed from `max_abs_speed_naive` to
   `max_abs_speed` which is less diffusive.
   In v0.13, `flux_lax_friedrichs = FluxLaxFriedrichs(max_abs_speed = max_abs_speed)`
-  instead of the previous default 
+  instead of the previous default
   `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)` ([#2458]).
 - The signature of the `VisualizationCallback` constructor changed.
   In the new version, it is mandatory to pass the semidiscretization `semi` to
@@ -296,7 +296,7 @@ for human readability.
   `(; a, b) = stuff` instead of `@unpack a, b = stuff`.
 - The constructor `DGMultiMesh(dg; cells_per_dimension, kwargs...)` is deprecated
   and will be removed. The new constructor `DGMultiMesh(dg, cells_per_dimension; kwargs...)`
-  does not have `cells_per_dimesion` as a keyword argument.
+  does not have `cells_per_dimension` as a keyword argument.
 
 #### Removed
 

@@ -9,65 +9,6 @@
 # IDP Limiting
 ###############################################################################
 
-# this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, bound_keys)
-    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)}(0,
-                                                                                   nnodes(basis),
-                                                                                   bound_keys)
-
-    # Memory for bounds checking routine with `BoundsCheckCallback`.
-    # Local variable contains the maximum deviation since the last export.
-    idp_bounds_delta_local = Dict{Symbol, real(basis)}()
-    # Global variable contains the total maximum deviation.
-    idp_bounds_delta_global = Dict{Symbol, real(basis)}()
-    for key in bound_keys
-        idp_bounds_delta_local[key] = zero(real(basis))
-        idp_bounds_delta_global[key] = zero(real(basis))
-    end
-
-    return (; subcell_limiter_coefficients, idp_bounds_delta_local,
-            idp_bounds_delta_global)
-end
-
-function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4},
-                                      semi, equations, dg::DGSEM,
-                                      t, dt;
-                                      kwargs...)
-    @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
-    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
-
-    if limiter.local_twosided
-        @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,
-                                                                   u, t, dt, semi)
-    end
-    if limiter.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
-    end
-    if limiter.local_onesided
-        @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha, limiter,
-                                                                   u, t, dt, semi)
-    end
-
-    # Calculate alpha1 and alpha2
-    @unpack alpha1, alpha2 = limiter.cache.subcell_limiter_coefficients
-    @threaded for element in eachelement(dg, semi.cache)
-        for j in eachnode(dg), i in 2:nnodes(dg)
-            alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
-        end
-        for j in 2:nnodes(dg), i in eachnode(dg)
-            alpha2[i, j, element] = max(alpha[i, j - 1, element], alpha[i, j, element])
-        end
-        alpha1[1, :, element] .= zero(eltype(alpha1))
-        alpha1[nnodes(dg) + 1, :, element] .= zero(eltype(alpha1))
-        alpha2[:, 1, element] .= zero(eltype(alpha2))
-        alpha2[:, nnodes(dg) + 1, element] .= zero(eltype(alpha2))
-    end
-
-    return nothing
-end
-
 ###############################################################################
 # Calculation of local bounds using low-order FV solution
 
@@ -292,7 +233,7 @@ end
                                      semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
-    (; inverse_weights) = dg.basis
+    (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     variable_string = string(variable)

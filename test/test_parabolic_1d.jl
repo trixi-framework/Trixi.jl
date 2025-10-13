@@ -68,6 +68,24 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_dirichlet_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_dirichlet_amr.jl"),
+                        l2=[3.668679081538521e-6], linf=[0.0001053981743872842])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_neumann_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_neumann_amr.jl"),
+                        l2=[0.9974473329813947], linf=[1.0000064761980827])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion.jl"),
                         tspan=(0.0, 0.0), initial_refinement_level=5)
@@ -84,7 +102,7 @@ end
     # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
     callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                             amr_callback)
-    sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff());
+    sol = solve(ode, ode_alg;
                 abstol = time_abs_tol, reltol = time_int_tol,
                 ode_default_options()..., callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)

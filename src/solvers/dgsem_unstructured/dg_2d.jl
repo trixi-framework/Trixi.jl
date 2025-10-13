@@ -308,7 +308,6 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-# TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
                                          T8codeMesh},
@@ -504,7 +503,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
 end
 
 # This routine computes the maximum value of the discrete metric identities necessary to ensure
-# that the approxmiation will be free-stream preserving (i.e. a constant solution remains constant)
+# that the approximation will be free-stream preserving (i.e. a constant solution remains constant)
 # on a curvilinear mesh.
 #   Note! Independent of the equation system and is only a check on the discrete mapping terms.
 #         Can be used for a metric identities check on StructuredMesh{2} or UnstructuredMesh2D
