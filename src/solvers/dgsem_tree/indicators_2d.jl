@@ -213,23 +213,6 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
     return alpha
 end
 
-# Used in `IndicatorEntropyViolation` and the (stage-) limiters
-# `PositivityPreservingLimiterZhangShu` and `EntropyBoundedLimiter`.
-@inline function compute_u_mean(u::AbstractArray{<:Any, 4}, mesh::AbstractMesh{2},
-                                equations, dg::DGSEM, inverse_jacobian, element)
-    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
-    total_volume = zero(eltype(u))
-    for j in eachnode(dg), i in eachnode(dg)
-        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
-                                                       i, j, element)))
-        u_node = get_node_vars(u, equations, dg, i, j, element)
-        u_mean += u_node *
-                  dg.weights[i] * dg.weights[j] * volume_jacobian
-        total_volume += dg.weights[i] * dg.weights[j] * volume_jacobian
-    end
-    return u_mean / total_volume # normalize with the total volume
-end
-
 function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArray{<:Any,
                                                                                    4},
                                                                   mesh, equations,
@@ -239,16 +222,12 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
     resize!(alpha, nelements(dg, cache))
     @unpack entropy_function, threshold = indicator_entropy_violation
 
-    # For computing the mean value
-    @unpack weights = dg.basis
-    @unpack inverse_jacobian = cache.elements
-
     # Beginning of simulation or after AMR: Need to compute `entropy_old` for every element
     if length(entropy_old) != nelements(dg, cache)
         resize!(entropy_old, nelements(dg, cache))
 
         @threaded for element in eachelement(dg, cache)
-            u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian, element)
+            u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
 
             # Compute entropy of the mean state
             entropy_old[element] = entropy_function(u_mean, equations)
@@ -257,7 +236,7 @@ function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArr
         end
     else
         @threaded for element in eachelement(dg, cache)
-            u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian, element)
+            u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
 
             # Compute entropy of the mean state
             entropy_element = entropy_function(u_mean, equations)
