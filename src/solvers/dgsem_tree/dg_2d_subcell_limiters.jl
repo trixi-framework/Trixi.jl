@@ -82,24 +82,39 @@ end
 function calc_mortar_weights!(mortar_weights, n_nodes, RealT)
     _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
 
-    # Cumulative LGL weights to construct LGL subgrid
-    cum_weights = [zero(RealT); cumsum(weights)] .- 1.0
+    # Local mortar weigths are of the form: `w_ij = int_S psi_i phi_j ds`,
+    # where `phi_i` are the basis functions of the small element and `psi_j` are the basis functions
+    # of the large element. `S` is the face connecting both elements.
+    # We use piecewise constant basis functions on the LGL subgrid. So, only focus on interval,
+    # where both basis functions are non-zero. `interval = [left_bound, right_bound]`.
+    # `w_ij = int_S psi_i phi_j ds = int_{left_bound}^{right_bound} ds = right_bound - left_bound`.
+    # `right_bound = min(left_bound_large, left_bound_small)`
+    # `left_bound = max(right_bound_large, right_bound_small)`
+    # If `right_bound <= left_bound`, i.e., both intervals don't overlap, then `w_ij = 0`.
 
-    cum_weights_lower = 0.5f0 * cum_weights .- 0.5f0
-    cum_weights_upper = cum_weights_lower .+ 1.0f0
+    # Due to the LGL subgrid, the interval bounds are cumulative LGL quadrature weights.
+    cum_weights_large = [zero(RealT); cumsum(weights)] .- 1 # on [-1, 1]
+    cum_weights_lower = 0.5f0 * cum_weights_large .- 0.5f0  # on [-1, 0]
+    cum_weights_upper = cum_weights_lower .+ 1              # on [0, 1]
+    # So, for `w_ij` we have
+    # `right_bound = min(cum_weights_large[i], cum_weights_small[j])`
+    # `left_bound = max(cum_weights_large[i+1], cum_weights_small[j+1])`
 
-    for i in 1:n_nodes
-        for j in 1:n_nodes
-            # basis function of left element
-            interval_left = max(cum_weights[i], cum_weights_lower[j])
-            interval_right = min(cum_weights[i + 1], cum_weights_lower[j + 1])
-            mortar_weights[i, j] = max(zero(RealT), interval_right - interval_left)
+    for j in 1:n_nodes, i in 1:n_nodes
+        # lower and large element element
+        left = max(cum_weights_large[i], cum_weights_lower[j])
+        right = min(cum_weights_large[i + 1], cum_weights_lower[j + 1])
 
-            # basis function of right element
-            interval_left = max(cum_weights[i], cum_weights_upper[j])
-            interval_right = min(cum_weights[i + 1], cum_weights_upper[j + 1])
-            mortar_weights[i, n_nodes + j] = max(zero(RealT),
-                                                 interval_right - interval_left)
+        # Local weight of 0 if intervals do not overlap, i.e., `right <= left`
+        if right > left
+            mortar_weights[i, j] = right - left
+        end
+
+        # upper and large element
+        left = max(cum_weights_large[i], cum_weights_upper[j])
+        right = min(cum_weights_large[i + 1], cum_weights_upper[j + 1])
+        if right > left
+            mortar_weights[i, n_nodes + j] = right - left
         end
     end
 
