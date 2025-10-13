@@ -99,7 +99,7 @@ function calc_volume_integral!(du, u, mesh,
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
 
     # Calculate decision variable
-    decision = @trixi_timeit timer() "decision variable" indicator(u, mesh, equations,
+    decision = @trixi_timeit timer() "integral selector" indicator(u, mesh, equations,
                                                                    dg, cache)
 
     @threaded for element in eachelement(dg, cache)
