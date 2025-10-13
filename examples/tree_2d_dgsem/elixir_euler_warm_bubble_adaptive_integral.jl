@@ -126,9 +126,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 10_000
-
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_errors = (:entropy_conservation_error,))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -142,5 +140,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.True());
-            maxiters = 1.0e7, dt = 1.0, # solve needs a value here, will be overwritten by the stepsize_callback
+            dt = 1.0, # solve needs a value here, will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
