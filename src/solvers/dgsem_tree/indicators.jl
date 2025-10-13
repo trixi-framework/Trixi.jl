@@ -5,8 +5,6 @@
 @muladd begin
 #! format: noindent
 
-abstract type AbstractIndicator end
-
 function create_cache(typ::Type{IndicatorType},
                       semi) where {IndicatorType <: AbstractIndicator}
     create_cache(typ, mesh_equations_solver_cache(semi)...)
@@ -332,7 +330,7 @@ function Base.show(io::IO, indicator::IndicatorEntropyViolation)
 
     print(io, "IndicatorEntropyViolation(")
     print(io, "entropy_function=", indicator.entropy_function, ")")
-    # TODO
+    print(io, ", threshold=", indicator.threshold, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyViolation)
@@ -342,8 +340,8 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyViolat
         show(io, indicator)
     else
         setup = [
-            "indicator entropy function" => indicator.entropy_function
-        # TODO
+            "entropy function" => indicator.entropy_function,
+            "threshold" => indicator.threshold
         ]
         summary_box(io, "IndicatorEntropyViolation", setup)
     end
