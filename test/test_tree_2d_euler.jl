@@ -838,9 +838,20 @@ end
 end
 
 @trixi_testset "elixir_euler_warm_bubble_adaptive_integral.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_warm_bubble_adaptive_integral.jl"),
-                        l2=[0.00013825808580898802, 0.020825708543006523, 0.033271396036282944, 31.40577195951473],
-                        linf=[0.0016808767214395726, 0.1569800071927574, 0.334407123906728, 330.80085209582467],
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_warm_bubble_adaptive_integral.jl"),
+                        l2=[
+                            0.00013825808580898802,
+                            0.020825708543006523,
+                            0.033271396036282944,
+                            31.40577195951473
+                        ],
+                        linf=[
+                            0.0016808767214395726,
+                            0.1569800071927574,
+                            0.334407123906728,
+                            330.80085209582467
+                        ],
                         tspan=(0.0, 10.0),
                         initial_refinement_level=4)
     # Ensure that we do not have excessive memory allocations
