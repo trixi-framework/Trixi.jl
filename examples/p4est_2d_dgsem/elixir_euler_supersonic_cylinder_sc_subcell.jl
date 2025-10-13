@@ -41,9 +41,7 @@ initial_condition = initial_condition_mach3_flow
                                                       x, t, surface_flux_function,
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach3_flow(x, t, equations)
-    flux = Trixi.flux(u_boundary, normal_direction, equations)
-
-    return flux
+    return flux(u_boundary, normal_direction, equations)
 end
 
 # For subcell limiting, the calculation of local bounds for non-periodic domains requires the
@@ -65,9 +63,7 @@ end
 @inline function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
                                             surface_flux_function,
                                             equations::CompressibleEulerEquations2D)
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, normal_direction, equations)
 end
 
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
@@ -126,7 +122,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
                            joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp"))
 
-mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 0)
+mesh = P4estMesh{2}(mesh_file)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)

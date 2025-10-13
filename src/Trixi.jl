@@ -18,7 +18,7 @@ module Trixi
 using Preferences: @load_preference, set_preferences!
 const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
 const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
-const _PREFERENCE_THREADING = @load_preference("backend", :polyester)
+const _PREFERENCE_THREADING = Symbol(@load_preference("backend", "polyester"))
 const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
 
 # Include other packages that are used in Trixi.jl
@@ -242,8 +242,10 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity, global_mean_vars,
-       equilibrium_distribution, waterheight, waterheight_pressure
+export density, pressure, density_pressure, velocity, temperature,
+       global_mean_vars,
+       equilibrium_distribution,
+       waterheight, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
@@ -251,20 +253,25 @@ export lake_at_rest_error
 export ncomponents, eachcomponent
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
-       P4estMeshView, T8codeMesh
+       P4estMeshView, P4estMeshCubedSphere, T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
        FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
-       VolumeIntegralPureLGLFiniteVolume,
+       VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
        VolumeIntegralAdaptive, IndicatorEntropyViolation,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
+
+export reconstruction_O2_inner, reconstruction_O2_full,
+       reconstruction_constant,
+       minmod, monotonized_central, superbee, vanLeer,
+       central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
@@ -310,7 +317,9 @@ export trixi_include, examples_dir, get_examples, default_example,
 
 export ode_norm, ode_unstable_check
 
-export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
+export convergence_test,
+       jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
+       linear_structure
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 

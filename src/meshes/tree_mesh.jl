@@ -252,5 +252,7 @@ end
 isperiodic(mesh::TreeMesh) = isperiodic(mesh.tree)
 isperiodic(mesh::TreeMesh, dimension) = isperiodic(mesh.tree, dimension)
 
+Base.real(::TreeMesh{NDIMS, TreeType, RealT}) where {NDIMS, TreeType, RealT} = RealT
+
 include("parallel_tree_mesh.jl")
 end # @muladd

@@ -7,9 +7,6 @@
 
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{2}, equations, dg::DGSEM, cache)
-    @unpack weights = dg.basis
-    @unpack inverse_jacobian = cache.elements
-
     @threaded for element in eachelement(dg, cache)
         # determine minimum value
         value_min = typemax(eltype(u))
@@ -21,7 +18,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # detect if limiting is necessary
         value_min < threshold || continue
 
-        u_mean = compute_u_mean(u, mesh, equations, dg, inverse_jacobian, element)
+        u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).

@@ -238,6 +238,11 @@ function get_element_variables!(element_variables, u, mesh, equations,
                            volume_integral)
 end
 
+# Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
+# second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
+# volume integrals.
+abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegral end
+
 """
     VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
 
@@ -256,7 +261,8 @@ mesh (LGL = Legendre-Gauss-Lobatto).
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
+struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <:
+       AbstractVolumeIntegralPureLGLFiniteVolume
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
 end
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
@@ -272,6 +278,85 @@ function Base.show(io::IO, ::MIME"text/plain",
             "FV flux" => integral.volume_flux_fv
         ]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
+    end
+end
+
+"""
+    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis, volume_flux_fv;
+                                        reconstruction_mode = reconstruction_O2_full,
+                                        slope_limiter = minmod)
+
+This gives an up to  second order accurate finite volume scheme on an LGL-type subcell
+mesh (LGL = Legendre-Gauss-Lobatto).
+Depending on the `reconstruction_mode` and `slope_limiter`, experimental orders of convergence
+between 1 and 2 can be expected in practice.
+Since this is a volume integral, all reconstructions are purely cell-local, i.e.,
+no neighboring elements are queried at reconstruction stage.
+
+The interface values of the inner DG-subcells are reconstructed using the standard MUSCL-type reconstruction.
+For the DG-subcells at the boundaries, two options are available:
+
+1) The unlimited slope is used on these cells.
+   This gives full second order accuracy, but also does not damp overshoots between cells.
+   The `reconstruction_mode` corresponding to this is `reconstruction_O2_full`.
+2) On boundary subcells, the solution is represented using a constant value, thereby falling back to formally only first order.
+   The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
+   In the reference below, this is the recommended reconstruction mode and is thus used by default.
+
+!!! note "Conservative Systems only"
+    Currently only implemented for systems in conservative form, i.e.,
+    `have_nonconservative_terms(equations) = False()`
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+See especially Sections 3.2, Section 4, and Appendix D of the paper
+
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. 
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+"""
+struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
+                                           Reconstruction, Limiter} <:
+       AbstractVolumeIntegralPureLGLFiniteVolume
+    x_interfaces::Vector{RealT} # x-coordinates of the sub-cell element interfaces
+    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+    reconstruction_mode::Reconstruction # which type of FV reconstruction to use
+    slope_limiter::Limiter # which type of slope limiter function
+end
+
+function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis, volume_flux_fv;
+                                             reconstruction_mode = reconstruction_O2_full,
+                                             slope_limiter = minmod) where {Basis}
+    # Suffices to store only the intermediate boundaries of the sub-cell elements                                             
+    x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
+    VolumeIntegralPureLGLFiniteVolumeO2{eltype(basis.weights),
+                                        typeof(basis),
+                                        typeof(volume_flux_fv),
+                                        typeof(reconstruction_mode),
+                                        typeof(slope_limiter)}(x_interfaces,
+                                                               volume_flux_fv,
+                                                               reconstruction_mode,
+                                                               slope_limiter)
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   integral::VolumeIntegralPureLGLFiniteVolumeO2)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        setup = [
+            "FV flux" => integral.volume_flux_fv,
+            "Reconstruction" => integral.reconstruction_mode,
+            "Slope limiter" => integral.slope_limiter,
+            "Subcell boundaries" => vcat([-1.0], integral.x_interfaces, [1.0])
+        ]
+        summary_box(io, "VolumeIntegralPureLGLFiniteVolumeO2", setup)
     end
 end
 
@@ -316,6 +401,18 @@ function Base.show(io::IO, mime::MIME"text/plain",
         show(increment_indent(io), mime, integral.limiter)
         summary_footer(io)
     end
+end
+
+# Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
+Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
+
+function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
+    # Resize container antidiffusive_fluxes
+    resize!(semi.cache.antidiffusive_fluxes, new_size)
+
+    # Resize container subcell_limiter_coefficients
+    @unpack limiter = volume_integral
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 end
 
 # TODO: FD. Should this definition live in a different file because it is
@@ -811,6 +908,8 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
             set_node_vars!(u, u_node, equations, dg, i, element)
         end
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
@@ -820,6 +919,8 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
         compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
                                       element)
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
@@ -846,6 +947,8 @@ function compute_coefficients_element!(u, func, t, equations, dg::DG,
         u_node = func(x_node, t, equations)
         set_node_vars!(u, u_node, equations, dg, i, j, element)
     end
+
+    return nothing
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
@@ -858,16 +961,19 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
             set_node_vars!(u, u_node, equations, dg, i, j, k, element)
         end
     end
+
+    return nothing
 end
 
 # Discretizations specific to each mesh type of Trixi.jl
+
 # If some functionality is shared by multiple combinations of meshes/solvers,
 # it is defined in the directory of the most basic mesh and solver type.
 # The most basic solver type in Trixi.jl is DGSEM (historic reasons and background
 # of the main contributors).
 # We consider the `TreeMesh` to be the most basic mesh type since it is Cartesian
-# and was the first mesh in Trixi.jl. The order of the other mesh types is the same
-# as the include order below.
+# and was the first mesh in Trixi.jl.
+# The order of the other mesh types is the same as the include order below.
 include("dgsem_tree/dg.jl")
 include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
