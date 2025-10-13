@@ -49,14 +49,6 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
     return (; cache..., fstar1_L_threaded, fstar1_R_threaded)
 end
 
-# TODO: Taal dimension agnostic
-function create_cache(mesh, equations,
-                      volume_integral::VolumeIntegralAdaptive, dg::DG, uEltype)
-    return create_cache(mesh, equations,
-                        volume_integral.volume_integral_stabilized,
-                        dg, uEltype)
-end
-
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::AbstractVolumeIntegralPureLGLFiniteVolume,
                       dg::DG, uEltype)

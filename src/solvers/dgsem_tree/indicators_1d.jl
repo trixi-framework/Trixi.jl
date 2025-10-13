@@ -213,45 +213,4 @@ function create_cache(typ::Type{IndicatorEntropyViolation}, mesh,
                       dg::DGSEM, cache)
     cache = create_cache(typ, dg.basis)
 end
-
-function (indicator_entropy_violation::IndicatorEntropyViolation)(u::AbstractArray{<:Any,
-                                                                                   3},
-                                                                  mesh, equations,
-                                                                  dg::DGSEM, cache;
-                                                                  kwargs...)
-    @unpack alpha, entropy_old = indicator_entropy_violation.cache
-    resize!(alpha, nelements(dg, cache))
-    @unpack entropy_function, threshold = indicator_entropy_violation
-
-    # Beginning of simulation or after AMR: Need to compute `entropy_old` for every element
-    if length(entropy_old) != nelements(dg, cache)
-        resize!(entropy_old, nelements(dg, cache))
-
-        @threaded for element in eachelement(dg, cache)
-            u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
-
-            # Compute entropy of the mean state
-            entropy_old[element] = entropy_function(u_mean, equations)
-
-            alpha[element] = true # Be conservative: Use stabilized volume integral everywhere
-        end
-    else
-        @threaded for element in eachelement(dg, cache)
-            u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
-
-            # Compute entropy of the mean state
-            entropy_element = entropy_function(u_mean, equations)
-
-            # Check if entropy growth exceeds threshold
-            if entropy_element - entropy_old[element] > threshold
-                alpha[element] = true
-            else
-                alpha[element] = false
-            end
-            entropy_old[element] = entropy_element # Update `entropy_old`
-        end
-    end
-
-    return alpha
-end
 end # @muladd
