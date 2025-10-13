@@ -274,7 +274,7 @@ computing the difference in entropy ``\eta`` (determined by the `entropy_functio
 ```math
 \Delta \eta_m^{(n+1)} = \eta^{(n+1)}(\bar{\boldsymbol{u}}_m) - \eta^{(n)}(\bar{\boldsymbol{u}}_m)
 ```
-for every element `m` in the mesh.
+for every cell `m` in the mesh.
 The `entropy_function` is evaluated at the mean state ``\bar{\boldsymbol{u}}`` and defaults
 to [`entropy`](@ref).
 
@@ -284,7 +284,7 @@ Thus, for the mathematical entropy (default for `entropy`) which should not grow
 over the course of a simulation, this can be used to identify troubled cells.
 
 Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
-more advanced/stable volume integral for the troubled cells.
+more advanced/ (entropy) stable volume integral for the troubled cells.
 """
 struct IndicatorEntropyViolation{EntropyFunction, RealT <: Real, Cache <: NamedTuple} <:
        AbstractIndicator
@@ -305,8 +305,8 @@ end
 # this method is used when the indicator is constructed as for AMR
 function IndicatorEntropyViolation(semi::AbstractSemidiscretization;
                                    entropy_function = entropy, threshold = 1e-9)
-    cache = create_cache(IndicatorMax, semi)
-    return IndicatorEntropyViolation{typeof(variable),
+    cache = create_cache(IndicatorEntropyViolation, semi)
+    return IndicatorEntropyViolation{typeof(entropy_function),
                                      typeof(threshold),
                                      typeof(cache)}(entropy_function,
                                                     threshold, cache)
