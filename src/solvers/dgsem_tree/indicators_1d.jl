@@ -198,19 +198,4 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
 
     return alpha
 end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorEntropyViolation}, basis::LobattoLegendreBasis)
-    entropy_old = Vector{real(basis)}()
-    alpha = Vector{Bool}()
-
-    return (; alpha, entropy_old)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorEntropyViolation}, mesh,
-                      equations::AbstractEquations,
-                      dg::DGSEM, cache)
-    cache = create_cache(typ, dg.basis)
-end
 end # @muladd
