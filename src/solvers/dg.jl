@@ -190,9 +190,8 @@ end
                            volume_integral_default = VolumeIntegralWeakForm(),
                            volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central))
 
-TODO
-Possible combinations: Default [`VolumeIntegralWeakForm`](@ref) and [`VolumeIntegralFluxDifferencing`], but also 
-possible [`VolumeIntegralWeakForm()`](@ref) and [`VolumeIntegralShockCapturingHG`](@ref)
+Possible combination: [`VolumeIntegralWeakForm`](@ref) and [`VolumeIntegralFluxDifferencing`](@ref).
+TODO: Extend to  [`VolumeIntegralWeakForm`](@ref) and [`VolumeIntegralShockCapturingHG`](@ref).
 """
 struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
                               Indicator} <: AbstractVolumeIntegral
