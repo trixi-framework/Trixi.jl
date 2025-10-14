@@ -44,7 +44,6 @@ jac_detector = TracerSparsityDetector()
 jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
 # Semidiscretization for sparsity pattern detection
-# Must be called 'semi' in order for the convergence test to run successfully
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
                                              initial_condition_convergence_test,
                                              solver,
@@ -79,6 +78,7 @@ coloring_vec = column_colors(coloring_result)
 ### sparsity-aware semidiscretization and ode ###
 
 # Semidiscretization for actual simulation
+# Must be called 'semi' in order for the convergence test to run successfully
 semi = SemidiscretizationHyperbolic(mesh, equations,
                                                initial_condition_convergence_test,
                                                solver,
