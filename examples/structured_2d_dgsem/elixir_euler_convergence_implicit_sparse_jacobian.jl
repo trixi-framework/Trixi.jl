@@ -80,9 +80,9 @@ coloring_vec = column_colors(coloring_result)
 # Semidiscretization for actual simulation
 # Must be called 'semi' in order for the convergence test to run successfully
 semi = SemidiscretizationHyperbolic(mesh, equations,
-                                               initial_condition_convergence_test,
-                                               solver,
-                                               source_terms = source_terms_convergence_test)
+                                    initial_condition_convergence_test,
+                                    solver,
+                                    source_terms = source_terms_convergence_test)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_jac_sparse = semidiscretize(semi, tspan,
