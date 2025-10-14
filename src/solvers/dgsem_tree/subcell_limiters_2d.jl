@@ -116,8 +116,10 @@ end
                 end
             end
             # Get solution data
-            var_small = (u[variable, indices_small..., cache.mortars.neighbor_ids[1, mortar]],
-                         u[variable, indices_small..., cache.mortars.neighbor_ids[2, mortar]])
+            var_small = (u[variable, indices_small...,
+                           cache.mortars.neighbor_ids[1, mortar]],
+                         u[variable, indices_small...,
+                           cache.mortars.neighbor_ids[2, mortar]])
             var_large = u[variable, indices_large..., large_element]
 
             for j in eachnode(dg)
@@ -144,9 +146,11 @@ end
                 end
 
                 for small_element_index in 1:2
-                    small_element = cache.mortars.neighbor_ids[small_element_index, mortar]
+                    small_element = cache.mortars.neighbor_ids[small_element_index,
+                                                               mortar]
                     # from large to small element
-                    if l2_mortars || dg.mortar.mortar_weights[i, j, small_element_index] > 0
+                    if l2_mortars ||
+                       dg.mortar.mortar_weights[i, j, small_element_index] > 0
                         var_min[indices_small_inner..., small_element] = min(var_min[indices_small_inner...,
                                                                                      small_element],
                                                                              var_large)
@@ -155,7 +159,8 @@ end
                                                                              var_large)
                     end
                     # from small to large element
-                    if l2_mortars || dg.mortar.mortar_weights[j, i, small_element_index] > 0
+                    if l2_mortars ||
+                       dg.mortar.mortar_weights[j, i, small_element_index] > 0
                         var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
                                                                                      large_element],
                                                                              var_small[small_element_index])
