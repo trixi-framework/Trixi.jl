@@ -2756,8 +2756,6 @@ end
             rhs_parabolic!(du_para, u_ode, semi, t)
 
             Trixi.@threaded for i in eachindex(du_ode)
-                # Try to enable optimizations due to `muladd` by avoiding `+=`
-                # https://github.com/trixi-framework/Trixi.jl/pull/2480#discussion_r2224531702
                 du_ode[i] = du_ode[i] + du_para[i]
             end
         end
