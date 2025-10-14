@@ -200,7 +200,7 @@ function calc_gradient!(gradients, u_transformed, t,
                         # surface at -y
                         normal_direction = get_normal_direction(3,
                                                                 contravariant_vectors,
-                                                                l, m, 1, element)
+                                                                l, 1, m, element)
                         grad[v, l, 1, m, element] = (grad[v, l, 1, m, element] +
                                                      surface_flux_values[v, l, m, 3,
                                                                          element] *
