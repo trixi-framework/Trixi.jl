@@ -61,22 +61,20 @@ end
 
 function calc_mortar_weights(basis, RealT)
     n_nodes = nnodes(basis)
-    weights = zeros(RealT, n_nodes, 2 * n_nodes) # [node (large element), node (small element)]
-    weights_sum = zeros(RealT, n_nodes, 3)       # [node, left/right/large element]
+    mortar_weights = zeros(RealT, n_nodes, n_nodes, 2) # [node (large element), node (small element), small element]
+    mortar_weights_sums = zeros(RealT, n_nodes, 3)     # [node, left/right/large element]
 
-    calc_mortar_weights!(weights, n_nodes, RealT)
+    calc_mortar_weights!(mortar_weights, n_nodes, RealT)
 
     # Sums of mortar weights for normalization
-    for i in eachnode(basis)
-        for j in eachnode(basis)
-            weights_sum[i, 1] += weights[j, i]           # left element
-            weights_sum[i, 2] += weights[j, i + n_nodes] # right element
-            weights_sum[i, 3] += weights[i, j]           # large element
-            weights_sum[i, 3] += weights[i, j + n_nodes]
-        end
+    for i in eachnode(basis), j in eachnode(basis)
+        mortar_weights_sums[i, 1] += mortar_weights[j, i, 1] # left element
+        mortar_weights_sums[i, 2] += mortar_weights[j, i, 2] # right element
+        mortar_weights_sums[i, 3] += mortar_weights[i, j, 1] # large element
+        mortar_weights_sums[i, 3] += mortar_weights[i, j, 2] # large element
     end
 
-    return weights, weights_sum
+    return mortar_weights, mortar_weights_sums
 end
 
 function calc_mortar_weights!(mortar_weights, n_nodes, RealT)
@@ -107,14 +105,14 @@ function calc_mortar_weights!(mortar_weights, n_nodes, RealT)
 
         # Local weight of 0 if intervals do not overlap, i.e., `right <= left`
         if right > left
-            mortar_weights[i, j] = right - left
+            mortar_weights[i, j, 1] = right - left
         end
 
         # upper and large element
         left = max(cum_weights_large[i], cum_weights_upper[j])
         right = min(cum_weights_large[i + 1], cum_weights_upper[j + 1])
         if right > left
-            mortar_weights[i, n_nodes + j] = right - left
+            mortar_weights[i, j, 2] = right - left
         end
     end
 
@@ -895,7 +893,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     flux = surface_flux(u_large_local, u_lower_local, orientation,
                                         equations)
 
-                    factor = mortar_weights[j, i]
+                    factor = mortar_weights[j, i, 1]
                     if !isapprox(factor, zero(typeof(factor)))
                         # Lower element
                         multiply_add_to_node_vars!(surface_flux_values,
@@ -922,7 +920,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     flux = surface_flux(u_large_local, u_upper_local, orientation,
                                         equations)
 
-                    factor = mortar_weights[j, i + nnodes(dg)]
+                    factor = mortar_weights[j, i, 2]
                     if !isapprox(factor, zero(typeof(factor)))
                         # Upper element
                         multiply_add_to_node_vars!(surface_flux_values,
@@ -963,7 +961,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     flux = surface_flux(u_lower_local, u_large_local, orientation,
                                         equations)
 
-                    factor = mortar_weights[j, i]
+                    factor = mortar_weights[j, i, 1]
                     if !isapprox(factor, zero(typeof(factor)))
                         # Lower element
                         multiply_add_to_node_vars!(surface_flux_values,
@@ -990,7 +988,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     flux = surface_flux(u_upper_local, u_large_local, orientation,
                                         equations)
 
-                    factor = mortar_weights[j, i + nnodes(dg)]
+                    factor = mortar_weights[j, i, 2]
                     if !isapprox(factor, zero(typeof(factor)))
                         # Upper element
                         multiply_add_to_node_vars!(surface_flux_values,
