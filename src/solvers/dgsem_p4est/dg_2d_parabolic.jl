@@ -282,21 +282,26 @@ function calc_gradient!(gradients, u_transformed, t,
                     # surface at -x
                     normal_direction_x, _ = get_normal_direction(1,
                                                                  contravariant_vectors,
-                                                                 1, l, element)
-                    gradients_x[v, 1, l, element] = (gradients_x[v, 1, l, element] +
-                                                     surface_flux_values[v, l, 1,
+                                                                 1, l,
+                                                                 element)
+                    gradients_x[v, 1, l, element] = (gradients_x[v,
+                                                                 1, l,
+                                                                 element] +
+                                                     surface_flux_values[v,
+                                                                         l, 1,
                                                                          element] *
                                                      factor_1 * normal_direction_x)
 
                     # surface at +x
                     normal_direction_x, _ = get_normal_direction(2,
                                                                  contravariant_vectors,
-                                                                 nnodes(dg), l, element)
-                    gradients_x[v, nnodes(dg), l, element] = (gradients_x[v, nnodes(dg),
-                                                                          l,
+                                                                 nnodes(dg), l,
+                                                                 element)
+                    gradients_x[v, nnodes(dg), l, element] = (gradients_x[v,
+                                                                          nnodes(dg), l,
                                                                           element] +
-                                                              surface_flux_values[v, l,
-                                                                                  2,
+                                                              surface_flux_values[v,
+                                                                                  l, 2,
                                                                                   element] *
                                                               factor_2 *
                                                               normal_direction_x)
@@ -304,21 +309,26 @@ function calc_gradient!(gradients, u_transformed, t,
                     # surface at -y
                     normal_direction_x, _ = get_normal_direction(3,
                                                                  contravariant_vectors,
-                                                                 l, 1, element)
-                    gradients_x[v, l, 1, element] = (gradients_x[v, l, 1, element] +
-                                                     surface_flux_values[v, l, 3,
+                                                                 l, 1,
+                                                                 element)
+                    gradients_x[v, l, 1, element] = (gradients_x[v,
+                                                                 l, 1,
+                                                                 element] +
+                                                     surface_flux_values[v,
+                                                                         l, 3,
                                                                          element] *
                                                      factor_1 * normal_direction_x)
 
                     # surface at +y
                     normal_direction_x, _ = get_normal_direction(4,
                                                                  contravariant_vectors,
-                                                                 l, nnodes(dg), element)
-                    gradients_x[v, l, nnodes(dg), element] = (gradients_x[v, l,
-                                                                          nnodes(dg),
+                                                                 l, nnodes(dg),
+                                                                 element)
+                    gradients_x[v, l, nnodes(dg), element] = (gradients_x[v,
+                                                                          l, nnodes(dg),
                                                                           element] +
-                                                              surface_flux_values[v, l,
-                                                                                  4,
+                                                              surface_flux_values[v,
+                                                                                  l, 4,
                                                                                   element] *
                                                               factor_2 *
                                                               normal_direction_x)
@@ -328,21 +338,26 @@ function calc_gradient!(gradients, u_transformed, t,
                     # surface at -x
                     _, normal_direction_y = get_normal_direction(1,
                                                                  contravariant_vectors,
-                                                                 1, l, element)
-                    gradients_y[v, 1, l, element] = (gradients_y[v, 1, l, element] +
-                                                     surface_flux_values[v, l, 1,
+                                                                 1, l,
+                                                                 element)
+                    gradients_y[v, 1, l, element] = (gradients_y[v,
+                                                                 1, l,
+                                                                 element] +
+                                                     surface_flux_values[v,
+                                                                         l, 1,
                                                                          element] *
                                                      factor_1 * normal_direction_y)
 
                     # surface at +x
                     _, normal_direction_y = get_normal_direction(2,
                                                                  contravariant_vectors,
-                                                                 nnodes(dg), l, element)
-                    gradients_y[v, nnodes(dg), l, element] = (gradients_y[v, nnodes(dg),
-                                                                          l,
+                                                                 nnodes(dg), l,
+                                                                 element)
+                    gradients_y[v, nnodes(dg), l, element] = (gradients_y[v,
+                                                                          nnodes(dg), l,
                                                                           element] +
-                                                              surface_flux_values[v, l,
-                                                                                  2,
+                                                              surface_flux_values[v,
+                                                                                  l, 2,
                                                                                   element] *
                                                               factor_2 *
                                                               normal_direction_y)
@@ -350,21 +365,26 @@ function calc_gradient!(gradients, u_transformed, t,
                     # surface at -y
                     _, normal_direction_y = get_normal_direction(3,
                                                                  contravariant_vectors,
-                                                                 l, 1, element)
-                    gradients_y[v, l, 1, element] = (gradients_y[v, l, 1, element] +
-                                                     surface_flux_values[v, l, 3,
+                                                                 l, 1,
+                                                                 element)
+                    gradients_y[v, l, 1, element] = (gradients_y[v,
+                                                                 l, 1,
+                                                                 element] +
+                                                     surface_flux_values[v,
+                                                                         l, 3,
                                                                          element] *
                                                      factor_1 * normal_direction_y)
 
                     # surface at +y
                     _, normal_direction_y = get_normal_direction(4,
                                                                  contravariant_vectors,
-                                                                 l, nnodes(dg), element)
-                    gradients_y[v, l, nnodes(dg), element] = (gradients_y[v, l,
-                                                                          nnodes(dg),
+                                                                 l, nnodes(dg),
+                                                                 element)
+                    gradients_y[v, l, nnodes(dg), element] = (gradients_y[v,
+                                                                          l, nnodes(dg),
                                                                           element] +
-                                                              surface_flux_values[v, l,
-                                                                                  4,
+                                                              surface_flux_values[v,
+                                                                                  l, 4,
                                                                                   element] *
                                                               factor_2 *
                                                               normal_direction_y)
