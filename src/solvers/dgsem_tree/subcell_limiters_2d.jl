@@ -90,8 +90,6 @@ end
     l2_mortars = dg.mortar isa LobattoLegendreMortarL2
     for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
-        upper_element = cache.mortars.neighbor_ids[2, mortar]
-        lower_element = cache.mortars.neighbor_ids[1, mortar]
 
         orientation = cache.mortars.orientations[mortar]
 
@@ -117,8 +115,9 @@ end
                     indices_large = (i, 1)
                 end
             end
-            var_lower = u[variable, indices_small..., lower_element]
-            var_upper = u[variable, indices_small..., upper_element]
+            # Get solution data
+            var_small = (u[variable, indices_small..., cache.mortars.neighbor_ids[1, mortar]],
+                         u[variable, indices_small..., cache.mortars.neighbor_ids[2, mortar]])
             var_large = u[variable, indices_large..., large_element]
 
             for j in eachnode(dg)
@@ -144,41 +143,26 @@ end
                     end
                 end
 
-                # from large to lower element
-                if l2_mortars || dg.mortar.mortar_weights[i, j, 1] > 0
-                    var_min[indices_small_inner..., lower_element] = min(var_min[indices_small_inner...,
-                                                                                 lower_element],
-                                                                         var_large)
-                    var_max[indices_small_inner..., lower_element] = max(var_max[indices_small_inner...,
-                                                                                 lower_element],
-                                                                         var_large)
-                end
-                # from lower to large element
-                if l2_mortars || dg.mortar.mortar_weights[j, i, 1] > 0
-                    var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
-                                                                                 large_element],
-                                                                         var_lower)
-                    var_max[indices_large_inner..., large_element] = max(var_max[indices_large_inner...,
-                                                                                 large_element],
-                                                                         var_lower)
-                end
-                # from large to upper element
-                if l2_mortars || dg.mortar.mortar_weights[i, j, 2] > 0
-                    var_min[indices_small_inner..., upper_element] = min(var_min[indices_small_inner...,
-                                                                                 upper_element],
-                                                                         var_large)
-                    var_max[indices_small_inner..., upper_element] = max(var_max[indices_small_inner...,
-                                                                                 upper_element],
-                                                                         var_large)
-                end
-                # from upper to large element
-                if l2_mortars || dg.mortar.mortar_weights[j, i, 2] > 0
-                    var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
-                                                                                 large_element],
-                                                                         var_upper)
-                    var_max[indices_large_inner..., large_element] = max(var_max[indices_large_inner...,
-                                                                                 large_element],
-                                                                         var_upper)
+                for small_element_index in 1:2
+                    small_element = cache.mortars.neighbor_ids[small_element_index, mortar]
+                    # from large to small element
+                    if l2_mortars || dg.mortar.mortar_weights[i, j, small_element_index] > 0
+                        var_min[indices_small_inner..., small_element] = min(var_min[indices_small_inner...,
+                                                                                     small_element],
+                                                                             var_large)
+                        var_max[indices_small_inner..., small_element] = max(var_max[indices_small_inner...,
+                                                                                     small_element],
+                                                                             var_large)
+                    end
+                    # from small to large element
+                    if l2_mortars || dg.mortar.mortar_weights[j, i, small_element_index] > 0
+                        var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
+                                                                                     large_element],
+                                                                             var_small[small_element_index])
+                        var_max[indices_large_inner..., large_element] = max(var_max[indices_large_inner...,
+                                                                                     large_element],
+                                                                             var_small[small_element_index])
+                    end
                 end
             end
         end
