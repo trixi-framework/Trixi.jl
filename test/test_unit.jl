@@ -2745,7 +2745,25 @@ end
     @test isapprox(sparse(jac_finite_diff), jac_sparse_finite_diff; rtol = 5e-8)
 end
 
-@testset "Parabolic-Hyperbolic Problem Sparsity Pattern " begin
+@testset "Parabolic-Hyperbolic Problem Sparsity Pattern" begin
+
+    function rhs_hyperbolic_parabolic!(du_ode, u_ode,
+                                    semi::SemidiscretizationHyperbolicParabolic, t)
+        Trixi.@trixi_timeit timer() "rhs_hyperbolic_parabolic!" begin
+            # Implementation of split ODE problem in OrdinaryDiffEq
+            du_para = similar(du_ode) # This obviously allocates
+            rhs!(du_ode, u_ode, semi, t)
+            rhs_parabolic!(du_para, u_ode, semi, t)
+
+            Trixi.@threaded for i in eachindex(du_ode)
+                # Try to enable optimizations due to `muladd` by avoiding `+=`
+                # https://github.com/trixi-framework/Trixi.jl/pull/2480#discussion_r2224531702
+                du_ode[i] = du_ode[i] + du_para[i]
+            end
+        end
+        return nothing
+    end
+
     ###############################################################################
     ### equations, solver, mesh ###
 
@@ -2815,7 +2833,7 @@ end
     ode_jac_type_no_advection = semidiscretize(semi_jac_type_no_advection, tspan)
 
     # Do sparsity detection on our semidiscretization with advection turned off
-    rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode, u0_ode, semi_jac_type_no_advection, tspan[1])
+    rhs_hyper_para! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode, semi_jac_type_no_advection, tspan[1])
 
     jac_prototype_parabolic_no_advection = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_ode, jac_detector)
 
