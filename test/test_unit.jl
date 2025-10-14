@@ -680,10 +680,9 @@ end
 
 @timed_testset "StepsizeCallback" begin
     # Ensure a proper error is thrown if used with adaptive time integration schemes
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_2d_dgsem",
-                                            "elixir_advection_diffusion.jl"),
-                                   tspan = (0, 0.05))
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_diffusion.jl"),
+                        tspan=(0, 0.05))
 
     @test_throws ArgumentError solve(ode, alg; ode_default_options()...,
                                      callback = StepsizeCallback(cfl = 1.0))
@@ -691,10 +690,9 @@ end
 
 @timed_testset "TimeSeriesCallback" begin
     # Test the 2D TreeMesh version of the callback and some warnings
-    @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), "tree_2d_dgsem",
-                                            "elixir_acoustics_gaussian_source.jl"),
-                                   tspan = (0, 0.05))
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_acoustics_gaussian_source.jl"),
+                        tspan=(0, 0.05))
 
     point_data_1 = time_series.affect!.point_data[1]
     @test all(isapprox.(point_data_1[1:7],
@@ -2405,6 +2403,58 @@ end
     # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html at 18°C
     @test isapprox(mu_control(u, equations_parabolic, T_ref, R_specific, C, mu_ref),
                    1.803e-5, atol = 5e-8)
+end
+
+@testset "Slope Limiters" begin
+    sl = 1.0
+    sr = -1.0
+
+    # Test for code coverage
+    dummy = 42
+    @test reconstruction_constant(dummy, sl, sr, dummy, dummy, dummy, dummy, dummy) ==
+          (sl, sr)
+
+    @test minmod(sl, sr) == 0.0
+    @test monotonized_central(sl, sr) == 0.0
+    @test superbee(sl, sr) == 0.0
+    @test vanLeer(sl, sr) == 0.0
+
+    sr = 0.5
+    @test minmod(sl, sr) == 0.5
+    @test monotonized_central(sl, sr) == 0.75
+    @test superbee(sl, sr) == 1.0
+    @test isapprox(vanLeer(sl, sr), 2 / 3)
+
+    sl = -1.0
+    sr = 0.0
+    @test minmod(sl, sr) == 0.0
+    @test monotonized_central(sl, sr) == 0.0
+    @test superbee(sl, sr) == 0.0
+    @test vanLeer(sl, sr) == 0.0
+
+    sr = -0.8
+    @test minmod(sl, sr) == -0.8
+    @test monotonized_central(sl, sr) == -0.9
+    @test superbee(sl, sr) == -1.0
+    @test isapprox(vanLeer(sl, sr), -8 / 9)
+
+    # Test symmetry
+    @test minmod(sr, sl) == -0.8
+    @test monotonized_central(sr, sl) == -0.9
+    @test superbee(sr, sl) == -1.0
+    @test isapprox(vanLeer(sr, sl), -8 / 9)
+
+    sl = 1.0
+    sr = 0.0
+    @test minmod(sl, sr) == 0.0
+    @test monotonized_central(sl, sr) == 0.0
+    @test superbee(sl, sr) == 0.0
+    @test vanLeer(sl, sr) == 0.0
+
+    @test central_slope(sl, sr) == 0.5
+
+    # Test van Leer zero case
+    @test vanLeer(0.0, 0.0) == 0.0
 end
 
 # Velocity functions are present in many equations and are tested here

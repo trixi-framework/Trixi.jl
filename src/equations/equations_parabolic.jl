@@ -10,6 +10,14 @@ struct GradientVariablesConservative end
 # Linear scalar diffusion for use in linear scalar advection-diffusion problems
 abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
+
+# Used in (diffusive) CFL condition computation
+@inline have_constant_diffusivity(::AbstractLaplaceDiffusion) = True()
+
+@inline function max_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
+    return equations_parabolic.diffusivity
+end
+
 include("laplace_diffusion_1d.jl")
 include("laplace_diffusion_2d.jl")
 include("laplace_diffusion_3d.jl")
