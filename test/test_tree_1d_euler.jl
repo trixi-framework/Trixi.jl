@@ -362,7 +362,7 @@ end
     @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
                       indicator)
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
-                      indicator)
+                      volume_integral)
 end
 
 @trixi_testset "test_quasi_1D_entropy" begin
