@@ -8,7 +8,7 @@
 function perform_idp_correction!(u, dt,
                                  mesh::P4estMesh{3},
                                  equations, dg, cache)
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of DG subcell sizes
     @unpack antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
     @unpack alpha = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
 
