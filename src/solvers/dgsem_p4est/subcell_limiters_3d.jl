@@ -17,7 +17,7 @@
                                               variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R) = cache.antidiffusive_fluxes
-    (; inverse_weights) = dg.basis
+    (; inverse_weights) = dg.basis # Plays role of DG subcell sizes
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -34,8 +34,8 @@
 
             # Compute bound
             if limiter.local_twosided &&
-               variable in limiter.local_twosided_variables_cons &&
-               var_min[i, j, k, element] >= positivity_correction_factor * var
+               (variable in limiter.local_twosided_variables_cons) &&
+               (var_min[i, j, k, element] >= positivity_correction_factor * var)
                 # Local limiting is more restrictive that positivity limiting
                 # => Skip positivity limiting for this node
                 continue
@@ -50,7 +50,7 @@
             Qm = min(0, (var_min[i, j, k, element] - var) / dt)
 
             # Calculate Pm
-            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+            # Note: Boundaries of antidiffusive_flux1/2/3 are constant 0, so they make no difference here.
             val_flux1_local = inverse_weights[i] *
                               antidiffusive_flux1_R[variable, i, j, k, element]
             val_flux1_local_ip1 = -inverse_weights[i] *

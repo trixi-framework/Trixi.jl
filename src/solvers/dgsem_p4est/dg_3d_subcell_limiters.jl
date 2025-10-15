@@ -50,8 +50,10 @@ function create_cache(mesh::P4estMesh{3},
     end
 
     return (; cache..., antidiffusive_fluxes,
-            fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded,
-            fhat3_L_threaded, fhat3_R_threaded, flux_temp_threaded, fhat_temp_threaded)
+            fhat1_L_threaded, fhat1_R_threaded,
+            fhat2_L_threaded, fhat2_R_threaded,
+            fhat3_L_threaded, fhat3_R_threaded,
+            flux_temp_threaded, fhat_temp_threaded)
 end
 
 @inline function subcell_limiting_kernel!(du, u, element,
@@ -59,7 +61,7 @@ end
                                           nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of DG subcell sizes
     @unpack volume_flux_dg, volume_flux_fv = volume_integral
 
     # high-order DG fluxes
@@ -71,9 +73,9 @@ end
     fhat2_R = fhat2_R_threaded[Threads.threadid()]
     fhat3_L = fhat3_L_threaded[Threads.threadid()]
     fhat3_R = fhat3_R_threaded[Threads.threadid()]
-    calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R, u, mesh,
-                   nonconservative_terms, equations, volume_flux_dg, dg, element,
-                   cache)
+    calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
+                   u, mesh, nonconservative_terms, equations, volume_flux_dg,
+                   dg, element, cache)
 
     # low-order FV fluxes
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache
@@ -84,15 +86,15 @@ end
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     fstar3_L = fstar3_L_threaded[Threads.threadid()]
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u, mesh,
-                 nonconservative_terms, equations, volume_flux_fv, dg, element,
-                 cache)
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R,
+                 u, mesh, nonconservative_terms, equations, volume_flux_fv,
+                 dg, element, cache)
 
     # antidiffusive flux
     calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
                             fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R,
-                            u, mesh, nonconservative_terms, equations, limiter, dg,
-                            element, cache)
+                            u, mesh, nonconservative_terms, equations, limiter,
+                            dg, element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -113,8 +115,8 @@ end
 # (**without non-conservative terms**).
 #
 # See also `flux_differencing_kernel!`.
-@inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R, u,
-                                mesh::P4estMesh{3},
+@inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
+                                u, mesh::P4estMesh{3},
                                 nonconservative_terms::False, equations,
                                 volume_flux, dg::DGSEM, element, cache)
     (; contravariant_vectors) = cache.elements
@@ -139,7 +141,8 @@ end
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction
-        Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element) # x direction
+        Ja1_node = get_contravariant_vector(1, contravariant_vectors,
+                                            i, j, k, element) # x direction
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
         # the computation of the diagonal terms. In addition, we use the symmetry
@@ -150,8 +153,8 @@ end
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
             # pull the contravariant vectors and compute the average
-            Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, k,
-                                                   element)
+            Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
+                                                   ii, j, k, element)
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
 
             # compute the contravariant sharp flux in the direction of the averaged contravariant vector
@@ -184,14 +187,15 @@ end
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction
-        Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+        Ja2_node = get_contravariant_vector(2, contravariant_vectors,
+                                            i, j, k, element)
 
         # y direction
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
             # pull the contravariant vectors and compute the average
-            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, k,
-                                                   element)
+            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
+                                                   i, jj, k, element)
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the averaged contravariant vector
             fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
@@ -223,14 +227,15 @@ end
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction
-        Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+        Ja3_node = get_contravariant_vector(3, contravariant_vectors,
+                                            i, j, k, element)
 
-        # y direction
+        # z direction
         for kk in (k + 1):nnodes(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
             # pull the contravariant vectors and compute the average
-            Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors, i, j, kk,
-                                                   element)
+            Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
+                                                   i, j, kk, element)
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the averaged contravariant vector
             fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
@@ -241,7 +246,7 @@ end
         end
     end
 
-    # FV-form flux `fhat` in y direction
+    # FV-form flux `fhat` in z direction
     fhat3_L[:, :, :, 1] .= zero(eltype(fhat3_L))
     fhat3_L[:, :, :, nnodes(dg) + 1] .= zero(eltype(fhat3_L))
     fhat3_R[:, :, :, 1] .= zero(eltype(fhat3_R))
@@ -259,14 +264,24 @@ end
 end
 
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
-@inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
+@inline function calcflux_antidiffusive!(fhat1_L, fhat1_R,
+                                         fhat2_L, fhat2_R,
                                          fhat3_L, fhat3_R,
-                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                         fstar1_L, fstar1_R,
+                                         fstar2_L, fstar2_R,
                                          fstar3_L, fstar3_R,
                                          u, mesh::P4estMesh{3},
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
+
+    # Due to the use of LGL nodes, the DG staggered fluxes `fhat` and FV fluxes `fstar` are equal
+    # on the element interfaces. So, they are not computed in the volume integral and set to zero
+    # in their respective computation.
+    # The antidiffusive fluxes are therefore zero on the element interfaces and don't need to be
+    # computed either. They are set to zero directly after resizing the container.
+    # This applies to the indices `i=1` and `i=nnodes(dg)+1` for `antidiffusive_flux1_L` and
+    # `antidiffusive_flux1_R` and analogously for the other two directions.
 
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)

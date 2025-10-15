@@ -666,6 +666,14 @@ end
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
 
+    # Due to the use of LGL nodes, the DG staggered fluxes `fhat` and FV fluxes `fstar` are equal
+    # on the element interfaces. So, they are not computed in the volume integral and set to zero
+    # in their respective computation.
+    # The antidiffusive fluxes are therefore zero on the element interfaces and don't need to be
+    # computed either. They are set to zero directly after resizing the container.
+    # This applies to the indices `i=1` and `i=nnodes(dg)+1` for `antidiffusive_flux1_L` and
+    # `antidiffusive_flux1_R` and analogously for the second direction.
+
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, element] = fhat1_L[v, i, j] -
