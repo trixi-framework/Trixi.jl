@@ -52,6 +52,9 @@ where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) o
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
     Without the callback, no correction takes place, leading to a standard low-order FV scheme.
 
+Implementation in 3D:
+In 3D, subcell limiting is only supported with for `P4estMesh`.
+
 ## References
 
 - Rueda-Ramírez, Pazner, Gassner (2022)
