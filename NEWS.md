@@ -9,8 +9,9 @@ for human readability.
 ## Changes in the v0.13 lifecycle
 
 #### Added
-- Initial 3D support (positivity limiting for conservative variables) for subcell limiting with
-  `P4estMesh` was added ([#2582]).
+- Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582]).
+  In the new version, positivity limiting for conservative variables (using `positivity_variables_cons`)
+  is supported. `BoundsCheckCallback` is not supported in 3D yet.
 
 
 ## Changes when updating to v0.13 from v0.12.x
