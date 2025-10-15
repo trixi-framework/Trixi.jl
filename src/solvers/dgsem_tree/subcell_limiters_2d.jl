@@ -539,7 +539,7 @@ end
                                                    mesh::TreeMesh{2}, var_index)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
-    (; orientations) = cache.mortars
+    (; orientations, large_sides, u_large, u_upper, u_lower) = cache.mortars
     (; surface_flux_values) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
     (; boundary_interpolation) = dg.basis
@@ -556,30 +556,12 @@ end
         var_min_lower = typemax(eltype(surface_flux_values))
         var_min_large = typemax(eltype(surface_flux_values))
         for i in eachnode(dg)
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-                if orientations[mortar] == 1
-                    # L2 mortars in x-direction
-                    indices_small = (1, i)
-                    indices_large = (nnodes(dg), i)
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, 1)
-                    indices_large = (i, nnodes(dg))
-                end
-            else # large_sides[mortar] == 2 -> small elements on left side
-                if orientations[mortar] == 1
-                    # L2 mortars in x-direction
-                    indices_small = (nnodes(dg), i)
-                    indices_large = (1, i)
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, nnodes(dg))
-                    indices_large = (i, 1)
-                end
-            end
-            var_upper = u[var_index, indices_small..., upper_element]
-            var_lower = u[var_index, indices_small..., lower_element]
-            var_large = u[var_index, indices_large..., large_element]
+            # Get small side of mortar
+            small_side = large_sides[mortar] == 1 ? 2 : 1
+
+            var_upper = u_upper[small_side, var_index, i, mortar]
+            var_lower = u_lower[small_side, var_index, i, mortar]
+            var_large = u_large[var_index, i, mortar]
             var_min_upper = min(var_min_upper, var_upper)
             var_min_lower = min(var_min_lower, var_lower)
             var_min_large = min(var_min_large, var_large)
