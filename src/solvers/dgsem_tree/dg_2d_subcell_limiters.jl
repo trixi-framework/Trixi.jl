@@ -59,12 +59,13 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
             flux_temp_threaded, fhat_temp_threaded)
 end
 
-function calc_mortar_weights(basis, RealT)
+function calc_mortar_weights(equations::AbstractEquations{2},
+                             basis::LobattoLegendreBasis, RealT)
     n_nodes = nnodes(basis)
     mortar_weights = zeros(RealT, n_nodes, n_nodes, 2) # [node (large element), node (small element), small element]
     mortar_weights_sums = zeros(RealT, n_nodes, 3)     # [node, left/right/large element]
 
-    calc_mortar_weights!(mortar_weights, n_nodes, RealT)
+    calc_mortar_weights!(equations, mortar_weights, n_nodes, RealT)
 
     # Sums of mortar weights for normalization
     for i in eachnode(basis), j in eachnode(basis)
@@ -77,7 +78,8 @@ function calc_mortar_weights(basis, RealT)
     return mortar_weights, mortar_weights_sums
 end
 
-function calc_mortar_weights!(mortar_weights, n_nodes, RealT)
+function calc_mortar_weights!(equations::AbstractEquations{2},
+                              mortar_weights, n_nodes, RealT)
     _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
 
     # Local mortar weights are of the form: `w_ij = int_S psi_i phi_j ds`,

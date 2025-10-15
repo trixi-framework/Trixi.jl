@@ -250,16 +250,19 @@ struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
     mortar_weights_sums::Array{RealT, 2} # [node, left/right/large element]
 end
 
-function MortarIDP(basis::LobattoLegendreBasis;
-                   positivity_variables_cons = Int[]) # TODO: String[], "rho" instead of 1
+function MortarIDP(equations, basis::LobattoLegendreBasis;
+                   positivity_variables_cons = String[])
     RealT = real(basis)
     nnodes_ = nnodes(basis)
 
     mortar_l2 = MortarL2(basis)
 
-    mortar_weights, mortar_weights_sums = calc_mortar_weights(basis, RealT)
+    mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis, RealT)
 
-    LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(positivity_variables_cons,
+    positivity_variables_cons_ = get_variable_index.(positivity_variables_cons,
+                                                     equations)
+
+    LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(positivity_variables_cons_,
                                                                 mortar_l2,
                                                                 mortar_weights,
                                                                 mortar_weights_sums)
