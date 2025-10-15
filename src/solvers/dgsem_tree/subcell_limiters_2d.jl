@@ -551,7 +551,7 @@ end
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
 
-        # Calc minimal low-order solution
+        # Compute minimal bound
         var_min_upper = typemax(eltype(surface_flux_values))
         var_min_lower = typemax(eltype(surface_flux_values))
         var_min_large = typemax(eltype(surface_flux_values))
@@ -570,60 +570,43 @@ end
         var_min_lower = positivity_correction_factor * var_min_lower
         var_min_large = positivity_correction_factor * var_min_large
 
-        for i in eachnode(dg)
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-                if orientations[mortar] == 1
-                    # L2 mortars in x-direction
-                    indices_small = (1, i)
-                    indices_large = (nnodes(dg), i)
-                    direction_small = 1
-                    direction_large = 2
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, 1)
-                    indices_large = (i, nnodes(dg))
-                    direction_small = 3
-                    direction_large = 4
-                end
-                factor_small = boundary_interpolation[1, 1]
-                factor_large = -boundary_interpolation[nnodes(dg), 2]
-            else # large_sides[mortar] == 2 -> small elements on left side
-                if orientations[mortar] == 1
-                    # L2 mortars in x-direction
-                    indices_small = (nnodes(dg), i)
-                    indices_large = (1, i)
-                    direction_small = 2
-                    direction_large = 1
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, nnodes(dg))
-                    indices_large = (i, 1)
-                    direction_small = 4
-                    direction_large = 3
-                end
-                factor_large = boundary_interpolation[1, 1]
-                factor_small = -boundary_interpolation[nnodes(dg), 2]
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if orientations[mortar] == 1
+                direction_small = 1
+                direction_large = 2
+            else
+                direction_small = 3
+                direction_large = 4
             end
             # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
             # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_small = boundary_interpolation[1, 1]
+            factor_large = -boundary_interpolation[nnodes(dg), 2]
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if orientations[mortar] == 1
+                direction_small = 2
+                direction_large = 1
+            else
+                direction_small = 4
+                direction_large = 3
+            end
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_large = boundary_interpolation[1, 1]
+            factor_small = -boundary_interpolation[nnodes(dg), 2]
+        end
 
-            var_upper = u[var_index, indices_small..., upper_element]
-            var_lower = u[var_index, indices_small..., lower_element]
-            var_large = u[var_index, indices_large..., large_element]
+        for i in eachnode(dg)
+            # Get small side of mortar
+            small_side = large_sides[mortar] == 1 ? 2 : 1
+
+            var_upper = u_upper[small_side, var_index, i, mortar]
+            var_lower = u_lower[small_side, var_index, i, mortar]
+            var_large = u_large[var_index, i, mortar]
 
             if min(var_upper, var_lower, var_large) < 0
                 error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
             end
-
-            inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, indices_small...,
-                                                          upper_element)
-            inverse_jacobian_lower = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, indices_small...,
-                                                          lower_element)
-            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, indices_large...,
-                                                          large_element)
 
             # Calculate Pm
             flux_lower_high_order = surface_flux_values_high_order[var_index, i,
@@ -651,14 +634,50 @@ end
             flux_difference_large = factor_large *
                                     (flux_large_high_order - flux_large_low_order)
 
-            # Check if high-order fluxes are finite. Otherwise, use pure low-order fluxes.
+            # Use pure low-order fluxes if high-order fluxes are not finite.
             if !all(isfinite.(flux_lower_high_order)) ||
-               !all(isfinite(flux_upper_high_order)) ||
+               !all(isfinite.(flux_upper_high_order)) ||
                !all(isfinite.(flux_large_high_order))
                 limiting_factor[mortar] = 1
                 break
             end
 
+            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+                if orientations[mortar] == 1
+                    # L2 mortars in x-direction
+                    indices_small = (1, i)
+                    indices_large = (nnodes(dg), i)
+                else
+                    # L2 mortars in y-direction
+                    indices_small = (i, 1)
+                    indices_large = (i, nnodes(dg))
+                end
+            else # large_sides[mortar] == 2 -> small elements on left side
+                if orientations[mortar] == 1
+                    # L2 mortars in x-direction
+                    indices_small = (nnodes(dg), i)
+                    indices_large = (1, i)
+                else
+                    # L2 mortars in y-direction
+                    indices_small = (i, nnodes(dg))
+                    indices_large = (i, 1)
+                end
+            end
+            inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, indices_small...,
+                                                          upper_element)
+            inverse_jacobian_lower = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, indices_small...,
+                                                          lower_element)
+            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, indices_large...,
+                                                          large_element)
+
+            # Real one-sided Zalesak-type limiter
+            # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+            # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+            # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+            #       for each mortar, not each node
             Qm_upper = min(0, var_min_upper - var_upper)
             Qm_lower = min(0, var_min_lower - var_lower)
             Qm_large = min(0, var_min_large - var_large)
@@ -677,8 +696,9 @@ end
             Qm_lower = abs(Qm_lower) / (abs(Pm_lower) + eps(typeof(Qm_lower)) * 100)
             Qm_large = abs(Qm_large) / (abs(Pm_large) + eps(typeof(Qm_large)) * 100)
 
-            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Qm_upper,
-                                          1 - Qm_lower, 1 - Qm_large)
+            # Calculate limiting factor
+            limiting_factor[mortar] = max(limiting_factor[mortar],
+                                          1 - Qm_upper, 1 - Qm_lower, 1 - Qm_large)
         end
     end
 
