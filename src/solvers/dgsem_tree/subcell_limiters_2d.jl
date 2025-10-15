@@ -120,6 +120,13 @@ end
                            cache.mortars.neighbor_ids[1, mortar]],
                          u[variable, indices_small...,
                            cache.mortars.neighbor_ids[2, mortar]])
+            # Using the following version with `ntuple` creates allocations due to a type instability of `indices_small`.
+            # var_small = index -> u[variable, indices_small..., cache.mortars.neighbor_ids[index, mortar]]
+            # Theoretically, that could be fixed with the following version:
+            # f = let indices_small = indices_small
+            #     index -> u[variable, indices_small..., cache.mortars.neighbor_ids[index, mortar]]
+            # end
+            # var_small = ntuple(f, Val(2))
             var_large = u[variable, indices_large..., large_element]
 
             for j in eachnode(dg)
