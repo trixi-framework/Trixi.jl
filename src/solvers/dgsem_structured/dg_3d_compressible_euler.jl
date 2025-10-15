@@ -21,6 +21,7 @@
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                            have_nonconservative_terms::False,
+                                           have_aux_node_vars::False,
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -353,6 +354,7 @@ end
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                            have_nonconservative_terms::False,
+                                           have_aux_node_vars::False,
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)

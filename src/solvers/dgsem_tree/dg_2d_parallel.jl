@@ -476,8 +476,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
+        calc_volume_integral!(du, u, mesh, equations,
                               dg.volume_integral, dg, cache)
     end
 
@@ -490,7 +489,8 @@ function rhs!(du, u, t,
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
+                             have_nonconservative_terms(equations),
+                             have_aux_node_vars(equations), equations,
                              dg.surface_integral, dg, cache)
     end
 
@@ -515,7 +515,8 @@ function rhs!(du, u, t,
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
+                          have_nonconservative_terms(equations),
+                          have_aux_node_vars(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
@@ -527,14 +528,16 @@ function rhs!(du, u, t,
     # Calculate MPI interface fluxes
     @trixi_timeit timer() "MPI interface flux" begin
         calc_mpi_interface_flux!(cache.elements.surface_flux_values, mesh,
-                                 have_nonconservative_terms(equations), equations,
+                                 have_nonconservative_terms(equations),
+                                 have_aux_node_vars(equations), equations,
                                  dg.surface_integral, dg, cache)
     end
 
     # Calculate MPI mortar fluxes
     @trixi_timeit timer() "MPI mortar flux" begin
         calc_mpi_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                              have_nonconservative_terms(equations), equations,
+                              have_nonconservative_terms(equations),
+                              have_aux_node_vars(equations), equations,
                               dg.mortar, dg.surface_integral, dg, cache)
     end
 
@@ -549,7 +552,8 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(du, u, t, source_terms, have_aux_node_vars(equations),
+                      equations, dg, cache)
     end
 
     # Finish to send MPI data
@@ -722,7 +726,8 @@ end
 
 function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
-                                  have_nonconservative_terms::False, equations,
+                                  have_nonconservative_terms::False,
+                                  have_aux_node_vars::False, equations,
                                   surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
@@ -761,9 +766,57 @@ function calc_mpi_interface_flux!(surface_flux_values,
     return nothing
 end
 
+function calc_mpi_interface_flux!(surface_flux_values,
+                                  mesh::ParallelTreeMesh{2},
+                                  have_nonconservative_terms::False,
+                                  have_aux_node_vars::True, equations,
+                                  surface_integral, dg::DG, cache)
+    @unpack surface_flux = surface_integral
+    @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
+    @unpack aux_mpiinterface_node_vars = cache.aux_vars
+
+    @threaded for interface in eachmpiinterface(dg, cache)
+        # Get local neighboring element
+        element = local_neighbor_ids[interface]
+
+        # Determine interface direction with respect to element:
+        if orientations[interface] == 1 # interface in x-direction
+            if remote_sides[interface] == 1 # local element in positive direction
+                direction = 1
+            else # local element in negative direction
+                direction = 2
+            end
+        else # interface in y-direction
+            if remote_sides[interface] == 1 # local element in positive direction
+                direction = 3
+            else # local element in negative direction
+                direction = 4
+            end
+        end
+
+        for i in eachnode(dg)
+            # Call pointwise Riemann solver
+            u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+            aux_ll, aux_rr = get_aux_surface_node_vars(aux_mpiinterface_node_vars,
+                                                       equations, dg, i,
+                                                       interface)
+            flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr,
+                                orientations[interface], equations)
+
+            # Copy flux to local element storage
+            for v in eachvariable(equations)
+                surface_flux_values[v, i, direction, element] = flux[v]
+            end
+        end
+    end
+
+    return nothing
+end
+
 function calc_mpi_mortar_flux!(surface_flux_values,
                                mesh::ParallelTreeMesh{2},
-                               have_nonconservative_terms::False, equations,
+                               have_nonconservative_terms::False,
+                               have_aux_node_vars::False, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -780,14 +833,53 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         # Because `have_nonconservative_terms` is `False` the primary and secondary fluxes
         # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
+        calc_fstar!(fstar_primary_upper, equations,
+                    surface_flux, dg, u_upper, mortar, orientation, cache)
+        calc_fstar!(fstar_primary_lower, equations,
+                    surface_flux, dg, u_lower, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_upper, equations,
+                    surface_flux, dg, u_upper, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_lower, equations,
+                    surface_flux, dg, u_lower, mortar, orientation, cache)
+
+        mpi_mortar_fluxes_to_elements!(surface_flux_values,
+                                       mesh, equations, mortar_l2, dg, cache,
+                                       mortar, fstar_primary_upper, fstar_primary_lower,
+                                       fstar_secondary_upper, fstar_secondary_lower)
+    end
+
+    return nothing
+end
+
+function calc_mpi_mortar_flux!(surface_flux_values,
+                               mesh::ParallelTreeMesh{2},
+                               have_nonconservative_terms::False,
+                               have_aux_node_vars::True, equations,
+                               mortar_l2::LobattoLegendreMortarL2,
+                               surface_integral, dg::DG, cache)
+    @unpack surface_flux = surface_integral
+    @unpack u_lower, u_upper, orientations = cache.mpi_mortars
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, fstar_secondary_upper_threaded, fstar_secondary_lower_threaded = cache
+    @unpack aux_mpimortar_node_vars = cache.aux_vars
+
+    @threaded for mortar in eachmpimortar(dg, cache)
+        # Choose thread-specific pre-allocated container
+        fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+        fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
+        fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
+
+        # Because `have_nonconservative_terms` is `False` the primary and secondary fluxes
+        # are identical. So, we could possibly save on computation and just pass two copies later.
+        orientation = orientations[mortar]
+        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper,
+                    aux_mpimortar_node_vars, 2, mortar, orientation, cache)
+        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower,
+                    aux_mpimortar_node_vars, 1, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper,
+                    aux_mpimortar_node_vars, 2, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower,
+                    aux_mpimortar_node_vars, 1, mortar, orientation, cache)
 
         mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations, mortar_l2, dg, cache,
@@ -854,7 +946,6 @@ end
                     direction = 3
                 end
             end
-
             multiply_dimensionwise!(view(surface_flux_values, :, :, direction, element),
                                     mortar_l2.reverse_upper, fstar_secondary_upper,
                                     mortar_l2.reverse_lower, fstar_secondary_lower)
