@@ -179,6 +179,7 @@ export AcousticPerturbationEquations2D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D,
        MaxwellEquations1D,
+       LinearElasticityEquations1D,
        PassiveTracerEquations
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
