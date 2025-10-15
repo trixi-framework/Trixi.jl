@@ -14,7 +14,7 @@ end
 # The following `calc_volume_integral!` functions are
 # dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
 
-function calc_volume_integral!(du, u, mesh,
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -27,7 +27,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh,
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -40,7 +40,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh,
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -79,7 +79,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh,
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)

@@ -63,7 +63,7 @@ end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::TreeMesh{1}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
@@ -72,7 +72,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
@@ -103,12 +103,13 @@ function rhs!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
@@ -238,7 +239,8 @@ end
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function calc_volume_integral!(backend::Nothing, du, u,
+                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                dg::DGSEM, cache)
@@ -404,7 +406,8 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations, dg::DG)
+function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations,
+                             dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -611,7 +614,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral, dg::DGSEM, cache)
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
@@ -637,7 +641,8 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     return nothing
 end
 
-function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function apply_jacobian!(backend::Nothing, du,
+                         mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
