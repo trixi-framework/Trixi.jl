@@ -31,6 +31,9 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 10_000,
                 periodicity = false)
 
+# Alternative to the boundary_conditions defined above:
+# boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test,
                                     boundary_conditions = boundary_conditions)
