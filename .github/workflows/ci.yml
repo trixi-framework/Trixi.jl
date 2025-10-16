@@ -91,8 +91,12 @@ jobs:
             os: ubuntu-latest
             arch: x64
             trixi_test: threaded_legacy
+          - version: '1.12'
+            os: ubuntu-latest
+            arch: x64
+            trixi_test: threaded_legacy
           - version: '1.10'
-            os: macos-13
+            os: macos-15-intel
             arch: x64
             trixi_test: mpi
           - version: '1.10'

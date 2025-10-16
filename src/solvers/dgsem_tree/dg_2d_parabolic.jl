@@ -548,9 +548,13 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                 # L2 mortars in x-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        cache.mortars.u_upper[2, v, l, mortar] = flux_viscous_x[v, 1, l,
+                        cache.mortars.u_upper[2, v, l, mortar] = flux_viscous_x[v,
+                                                                                1,
+                                                                                l,
                                                                                 upper_element]
-                        cache.mortars.u_lower[2, v, l, mortar] = flux_viscous_x[v, 1, l,
+                        cache.mortars.u_lower[2, v, l, mortar] = flux_viscous_x[v,
+                                                                                1,
+                                                                                l,
                                                                                 lower_element]
                     end
                 end
@@ -558,9 +562,13 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                 # L2 mortars in y-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        cache.mortars.u_upper[2, v, l, mortar] = flux_viscous_y[v, l, 1,
+                        cache.mortars.u_upper[2, v, l, mortar] = flux_viscous_y[v,
+                                                                                l,
+                                                                                1,
                                                                                 upper_element]
-                        cache.mortars.u_lower[2, v, l, mortar] = flux_viscous_y[v, l, 1,
+                        cache.mortars.u_lower[2, v, l, mortar] = flux_viscous_y[v,
+                                                                                l,
+                                                                                1,
                                                                                 lower_element]
                     end
                 end
@@ -584,10 +592,12 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                 # L2 mortars in y-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        cache.mortars.u_upper[1, v, l, mortar] = flux_viscous_y[v, l,
+                        cache.mortars.u_upper[1, v, l, mortar] = flux_viscous_y[v,
+                                                                                l,
                                                                                 nnodes(dg),
                                                                                 upper_element]
-                        cache.mortars.u_lower[1, v, l, mortar] = flux_viscous_y[v, l,
+                        cache.mortars.u_lower[1, v, l, mortar] = flux_viscous_y[v,
+                                                                                l,
                                                                                 nnodes(dg),
                                                                                 lower_element]
                     end
@@ -890,31 +900,38 @@ function calc_gradient!(gradients, u_transformed, t,
             for l in eachnode(dg)
                 for v in eachvariable(equations_parabolic)
                     # surface at -x
-                    gradients_x[v, 1, l, element] = (gradients_x[v, 1, l, element] -
-                                                     surface_flux_values[v, l, 1,
+                    gradients_x[v, 1, l, element] = (gradients_x[v,
+                                                                 1, l,
+                                                                 element] -
+                                                     surface_flux_values[v,
+                                                                         l, 1,
                                                                          element] *
                                                      factor_1)
 
                     # surface at +x
-                    gradients_x[v, nnodes(dg), l, element] = (gradients_x[v, nnodes(dg),
-                                                                          l, element] +
-                                                              surface_flux_values[v, l,
-                                                                                  2,
+                    gradients_x[v, nnodes(dg), l, element] = (gradients_x[v,
+                                                                          nnodes(dg), l,
+                                                                          element] +
+                                                              surface_flux_values[v,
+                                                                                  l, 2,
                                                                                   element] *
                                                               factor_2)
 
                     # surface at -y
-                    gradients_y[v, l, 1, element] = (gradients_y[v, l, 1, element] -
-                                                     surface_flux_values[v, l, 3,
+                    gradients_y[v, l, 1, element] = (gradients_y[v,
+                                                                 l, 1,
+                                                                 element] -
+                                                     surface_flux_values[v,
+                                                                         l, 3,
                                                                          element] *
                                                      factor_1)
 
                     # surface at +y
-                    gradients_y[v, l, nnodes(dg), element] = (gradients_y[v, l,
-                                                                          nnodes(dg),
+                    gradients_y[v, l, nnodes(dg), element] = (gradients_y[v,
+                                                                          l, nnodes(dg),
                                                                           element] +
-                                                              surface_flux_values[v, l,
-                                                                                  4,
+                                                              surface_flux_values[v,
+                                                                                  l, 4,
                                                                                   element] *
                                                               factor_2)
                 end
