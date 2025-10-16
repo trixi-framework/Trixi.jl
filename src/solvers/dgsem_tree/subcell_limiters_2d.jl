@@ -540,7 +540,7 @@ end
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; orientations, large_sides, u_large, u_upper, u_lower) = cache.mortars
-    (; surface_flux_values) = cache.elements
+    (; surface_flux_values, inverse_jacobian) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
     (; boundary_interpolation) = dg.basis
 
@@ -551,14 +551,14 @@ end
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
 
+        # Get small side of mortar
+        small_side = large_sides[mortar] == 1 ? 2 : 1
+
         # Compute minimal bound
         var_min_upper = typemax(eltype(surface_flux_values))
         var_min_lower = typemax(eltype(surface_flux_values))
         var_min_large = typemax(eltype(surface_flux_values))
         for i in eachnode(dg)
-            # Get small side of mortar
-            small_side = large_sides[mortar] == 1 ? 2 : 1
-
             var_upper = u_upper[small_side, var_index, i, mortar]
             var_lower = u_lower[small_side, var_index, i, mortar]
             var_large = u_large[var_index, i, mortar]
@@ -570,6 +570,7 @@ end
         var_min_lower = positivity_correction_factor * var_min_lower
         var_min_large = positivity_correction_factor * var_min_large
 
+        # Compute limiting factor
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
             if orientations[mortar] == 1
                 direction_small = 1
@@ -597,9 +598,6 @@ end
         end
 
         for i in eachnode(dg)
-            # Get small side of mortar
-            small_side = large_sides[mortar] == 1 ? 2 : 1
-
             var_upper = u_upper[small_side, var_index, i, mortar]
             var_lower = u_lower[small_side, var_index, i, mortar]
             var_large = u_large[var_index, i, mortar]
@@ -663,14 +661,14 @@ end
                     indices_large = (i, 1)
                 end
             end
-            inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, indices_small...,
+            inverse_jacobian_upper = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                          indices_small...,
                                                           upper_element)
-            inverse_jacobian_lower = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, indices_small...,
+            inverse_jacobian_lower = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                          indices_small...,
                                                           lower_element)
-            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, indices_large...,
+            inverse_jacobian_large = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                          indices_large...,
                                                           large_element)
 
             # Real one-sided Zalesak-type limiter
