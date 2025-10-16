@@ -905,6 +905,43 @@ end
     return nothing
 end
 
+function calc_gradient_volume_integral!(gradients, u_transformed,
+                                        mesh::TreeMesh{3},
+                                        equations_parabolic::AbstractEquationsParabolic,
+                                        dg::DGSEM, cache)
+    @unpack derivative_dhat = dg.basis
+    gradients_x, gradients_y, gradients_z = gradients
+
+    @threaded for element in eachelement(dg, cache)
+        # Calculate volume terms in one element,
+        # corresponds to `kernel` functions for the hyperbolic part of the flux
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                   i, j, k, element)
+
+            for ii in eachnode(dg)
+                multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
+                                           u_node, equations_parabolic, dg,
+                                           ii, j, k, element)
+            end
+
+            for jj in eachnode(dg)
+                multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
+                                           u_node, equations_parabolic, dg,
+                                           i, jj, k, element)
+            end
+
+            for kk in eachnode(dg)
+                multiply_add_to_node_vars!(gradients_z, derivative_dhat[kk, k],
+                                           u_node, equations_parabolic, dg,
+                                           i, j, kk, element)
+            end
+        end
+    end
+
+    return nothing
+end
+
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::TreeMesh{3}, equations, dg::DG,
                                        parabolic_scheme,
@@ -959,33 +996,8 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        @unpack derivative_dhat = dg.basis
-        @threaded for element in eachelement(dg, cache)
-
-            # Calculate volume terms in one element
-            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                u_node = get_node_vars(u_transformed, equations_parabolic, dg,
-                                       i, j, k, element)
-
-                for ii in eachnode(dg)
-                    multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
-                                               u_node, equations_parabolic, dg,
-                                               ii, j, k, element)
-                end
-
-                for jj in eachnode(dg)
-                    multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
-                                               u_node, equations_parabolic, dg,
-                                               i, jj, k, element)
-                end
-
-                for kk in eachnode(dg)
-                    multiply_add_to_node_vars!(gradients_z, derivative_dhat[kk, k],
-                                               u_node, equations_parabolic, dg,
-                                               i, j, kk, element)
-                end
-            end
-        end
+        calc_gradient_volume_integral!(gradients, u_transformed,
+                                       mesh, equations_parabolic, dg, cache)
     end
 
     # Prolong solution to interfaces

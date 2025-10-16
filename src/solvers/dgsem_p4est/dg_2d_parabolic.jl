@@ -164,57 +164,8 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        (; derivative_dhat) = dg.basis
-        (; contravariant_vectors) = cache.elements
-
-        @threaded for element in eachelement(dg, cache)
-
-            # Calculate gradients with respect to reference coordinates in one element
-            for j in eachnode(dg), i in eachnode(dg)
-                u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j,
-                                       element)
-
-                for ii in eachnode(dg)
-                    multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
-                                               u_node, equations_parabolic, dg,
-                                               ii, j, element)
-                end
-
-                for jj in eachnode(dg)
-                    multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
-                                               u_node, equations_parabolic, dg,
-                                               i, jj, element)
-                end
-            end
-
-            # now that the reference coordinate gradients are computed, transform them node-by-node to physical gradients
-            # using the contravariant vectors
-            for j in eachnode(dg), i in eachnode(dg)
-                Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
-                                                      i, j, element)
-                Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
-                                                      i, j, element)
-
-                gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic,
-                                                      dg, i, j, element)
-                gradients_reference_2 = get_node_vars(gradients_y, equations_parabolic,
-                                                      dg, i, j, element)
-
-                # note that the contravariant vectors are transposed compared with computations of flux
-                # divergences in `calc_volume_integral!`. See
-                # https://github.com/trixi-framework/Trixi.jl/pull/1490#discussion_r1213345190
-                # for a more detailed discussion.
-                gradient_x_node = Ja11 * gradients_reference_1 +
-                                  Ja21 * gradients_reference_2
-                gradient_y_node = Ja12 * gradients_reference_1 +
-                                  Ja22 * gradients_reference_2
-
-                set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
-                               i, j, element)
-                set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
-                               i, j, element)
-            end
-        end
+        calc_gradient_volume_integral!(gradients, u_transformed,
+                                       mesh, equations_parabolic, dg, cache)
     end
 
     # Prolong solution to interfaces.
@@ -889,6 +840,66 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
             j_node += j_node_step
         end
     end
+    return nothing
+end
+
+function calc_gradient_volume_integral!(gradients, u_transformed,
+                                        mesh::P4estMesh{2},
+                                        equations_parabolic::AbstractEquationsParabolic,
+                                        dg::DG, cache)
+    @unpack derivative_dhat = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    gradients_x, gradients_y = gradients
+
+    @threaded for element in eachelement(dg, cache)
+        # Calculate volume terms in one element,
+        # corresponds to `kernel` functions for the hyperbolic part of the flux
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                   i, j, element)
+
+            for ii in eachnode(dg)
+                multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
+                                           u_node, equations_parabolic, dg,
+                                           ii, j, element)
+            end
+
+            for jj in eachnode(dg)
+                multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
+                                           u_node, equations_parabolic, dg,
+                                           i, jj, element)
+            end
+        end
+
+        # now that the reference coordinate gradients are computed, transform them node-by-node to physical gradients
+        # using the contravariant vectors
+        for j in eachnode(dg), i in eachnode(dg)
+            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                  i, j, element)
+            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                  i, j, element)
+
+            gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic, dg,
+                                                  i, j, element)
+            gradients_reference_2 = get_node_vars(gradients_y, equations_parabolic, dg,
+                                                  i, j, element)
+
+            # note that the contravariant vectors are transposed compared with computations of flux
+            # divergences in `calc_volume_integral!`. See
+            # https://github.com/trixi-framework/Trixi.jl/pull/1490#discussion_r1213345190
+            # for a more detailed discussion.
+            gradient_x_node = Ja11 * gradients_reference_1 +
+                              Ja21 * gradients_reference_2
+            gradient_y_node = Ja12 * gradients_reference_1 +
+                              Ja22 * gradients_reference_2
+
+            set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
+                           i, j, element)
+            set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
+                           i, j, element)
+        end
+    end
+
     return nothing
 end
 
