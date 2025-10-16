@@ -571,7 +571,7 @@ end
         var_min_large = positivity_correction_factor * var_min_large
 
         # Set up correct direction and factors
-        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+        if large_sides[mortar] == 1 # -> small elements on right side
             if orientations[mortar] == 1
                 direction_small = 1
                 direction_large = 2
@@ -627,21 +627,20 @@ end
             flux_large_high_order = surface_flux_values_high_order[var_index, i,
                                                                    direction_large,
                                                                    large_element]
-            flux_large_low_order = surface_flux_values_high_order[var_index, i,
-                                                                  direction_large,
-                                                                  large_element]
+            flux_large_low_order = surface_flux_values[var_index, i, direction_large,
+                                                       large_element]
             flux_difference_large = factor_large *
                                     (flux_large_high_order - flux_large_low_order)
 
             # Use pure low-order fluxes if high-order fluxes are not finite.
-            if !all(isfinite.(flux_lower_high_order)) ||
-               !all(isfinite.(flux_upper_high_order)) ||
-               !all(isfinite.(flux_large_high_order))
+            if !isfinite(flux_lower_high_order) ||
+               !isfinite(flux_upper_high_order) ||
+               !isfinite(flux_large_high_order)
                 limiting_factor[mortar] = 1
                 break
             end
 
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if large_sides[mortar] == 1 # -> small elements on right side
                 if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     indices_small = (1, i)
