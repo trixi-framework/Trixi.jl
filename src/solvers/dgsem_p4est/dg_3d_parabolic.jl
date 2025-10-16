@@ -69,7 +69,7 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_gradients!(cache_parabolic, t, boundary_conditions_parabolic,
+        calc_gradient_boundary_flux!(cache_parabolic, t, boundary_conditions_parabolic,
                                       mesh, equations_parabolic, dg.surface_integral,
                                       dg)
     end
@@ -795,7 +795,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
     return nothing
 end
 
-# TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
+# TODO: parabolic, finish implementing `calc_gradient_boundary_flux!` and `calc_boundary_flux_divergence!`
 function prolong2boundaries!(cache_parabolic, flux_viscous,
                              mesh::P4estMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
