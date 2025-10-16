@@ -344,10 +344,10 @@ function get_unsigned_normal_vector_2d(direction)
 end
 
 function calc_gradient_boundary_flux!(cache, t,
-                                       boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                       mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                                       equations_parabolic::AbstractEquationsParabolic,
-                                       surface_integral, dg::DG)
+                                      boundary_conditions_parabolic::BoundaryConditionPeriodic,
+                                      mesh::Union{TreeMesh{2}, P4estMesh{2}},
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
     return nothing
 end
 
@@ -360,10 +360,10 @@ function calc_boundary_flux_divergence!(cache, t,
 end
 
 function calc_gradient_boundary_flux!(cache, t,
-                                       boundary_conditions_parabolic::NamedTuple,
-                                       mesh::TreeMesh{2},
-                                       equations_parabolic::AbstractEquationsParabolic,
-                                       surface_integral, dg::DG)
+                                      boundary_conditions_parabolic::NamedTuple,
+                                      mesh::TreeMesh{2}, # for dispatch only
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -769,7 +769,7 @@ end
 end
 
 function calc_gradient_volume_integral!(gradients, u_transformed,
-                                        mesh::TreeMesh{2},
+                                        mesh::TreeMesh{2}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DGSEM, cache)
     @unpack derivative_dhat = dg.basis
@@ -837,7 +837,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
 end
 
 function calc_gradient_surface_integral!(gradients,
-                                         mesh::TreeMesh{2},
+                                         mesh::TreeMesh{2}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache, cache_parabolic)
     @unpack boundary_interpolation = dg.basis
@@ -939,9 +939,9 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
         calc_gradient_boundary_flux!(cache_parabolic, t,
-                                      boundary_conditions_parabolic, mesh,
-                                      equations_parabolic,
-                                      dg.surface_integral, dg)
+                                     boundary_conditions_parabolic, mesh,
+                                     equations_parabolic,
+                                     dg.surface_integral, dg)
     end
 
     # Prolong solution to mortars

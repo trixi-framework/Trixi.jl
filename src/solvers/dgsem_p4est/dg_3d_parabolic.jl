@@ -70,8 +70,8 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
         calc_gradient_boundary_flux!(cache_parabolic, t, boundary_conditions_parabolic,
-                                      mesh, equations_parabolic, dg.surface_integral,
-                                      dg)
+                                     mesh, equations_parabolic, dg.surface_integral,
+                                     dg)
     end
 
     # Prolong solution to mortars. These should reuse the hyperbolic version of `prolong2mortars`

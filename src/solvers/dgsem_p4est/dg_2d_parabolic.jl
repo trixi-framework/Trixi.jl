@@ -193,8 +193,8 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
         calc_gradient_boundary_flux!(cache_parabolic, t, boundary_conditions_parabolic,
-                                      mesh, equations_parabolic, dg.surface_integral,
-                                      dg)
+                                     mesh, equations_parabolic, dg.surface_integral,
+                                     dg)
     end
 
     # Prolong solution to mortars. This reuses the hyperbolic version of `prolong2mortars`
@@ -779,16 +779,16 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
 end
 
 function calc_gradient_boundary_flux!(cache, t,
-                                       boundary_condition::Union{BoundaryConditionPeriodic,
-                                                                 BoundaryConditionDoNothing},
-                                       mesh::P4estMesh, equations, surface_integral,
-                                       dg::DG)
+                                      boundary_condition::Union{BoundaryConditionPeriodic,
+                                                                BoundaryConditionDoNothing},
+                                      mesh::P4estMesh, equations, surface_integral,
+                                      dg::DG)
     @assert isempty(eachboundary(dg, cache))
 end
 
 # Function barrier for type stability
 function calc_gradient_boundary_flux!(cache, t, boundary_conditions, mesh::P4estMesh,
-                                       equations, surface_integral, dg::DG)
+                                      equations, surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
     calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,

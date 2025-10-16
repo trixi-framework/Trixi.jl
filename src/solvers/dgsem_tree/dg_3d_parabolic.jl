@@ -310,10 +310,10 @@ function get_unsigned_normal_vector_3d(direction)
 end
 
 function calc_gradient_boundary_flux!(cache, t,
-                                       boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                       mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                                       equations_parabolic::AbstractEquationsParabolic,
-                                       surface_integral, dg::DG)
+                                      boundary_conditions_parabolic::BoundaryConditionPeriodic,
+                                      mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
     return nothing
 end
 
@@ -326,10 +326,10 @@ function calc_boundary_flux_divergence!(cache, t,
 end
 
 function calc_gradient_boundary_flux!(cache, t,
-                                       boundary_conditions_parabolic::NamedTuple,
-                                       mesh::TreeMesh{3},
-                                       equations_parabolic::AbstractEquationsParabolic,
-                                       surface_integral, dg::DG)
+                                      boundary_conditions_parabolic::NamedTuple,
+                                      mesh::TreeMesh{3}, # for dispatch only
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -1125,8 +1125,8 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
         calc_gradient_boundary_flux!(cache_parabolic, t, boundary_conditions_parabolic,
-                                      mesh, equations_parabolic,
-                                      dg.surface_integral, dg)
+                                     mesh, equations_parabolic,
+                                     dg.surface_integral, dg)
     end
 
     # Prolong solution to mortars
@@ -1146,7 +1146,7 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin 
+    @trixi_timeit timer() "surface integral" begin
         calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
                                         dg, cache, cache_parabolic)
     end
