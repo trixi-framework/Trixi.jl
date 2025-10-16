@@ -149,7 +149,7 @@ end
                 end
 
                 # values of large element to lower element
-                if include_all_values || dg.mortar.mortar_weights[i, j] > 0
+                if include_all_values || dg.mortar.mortar_weights[i, j, 1] > 0
                     var_min[indices_small_inner..., lower_element] = min(var_min[indices_small_inner...,
                                                                                  lower_element],
                                                                          var_large)
@@ -158,7 +158,7 @@ end
                                                                          var_large)
                 end
                 # values of lower element to large element
-                if include_all_values || dg.mortar.mortar_weights[j, i] > 0
+                if include_all_values || dg.mortar.mortar_weights[j, i, 1] > 0
                     var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
                                                                                  large_element],
                                                                          var_lower)
@@ -167,8 +167,7 @@ end
                                                                          var_lower)
                 end
                 # values of large element to upper element
-                if include_all_values ||
-                   dg.mortar.mortar_weights[i, j + nnodes(dg)] > 0
+                if include_all_values || dg.mortar.mortar_weights[i, j, 2] > 0
                     var_min[indices_small_inner..., upper_element] = min(var_min[indices_small_inner...,
                                                                                  upper_element],
                                                                          var_large)
@@ -177,8 +176,7 @@ end
                                                                          var_large)
                 end
                 # values of upper element to large element
-                if include_all_values ||
-                   dg.mortar.mortar_weights[j, i + nnodes(dg)] > 0
+                if include_all_values || dg.mortar.mortar_weights[j, i, 2] > 0
                     var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
                                                                                  large_element],
                                                                          var_upper)
@@ -365,27 +363,25 @@ end
                 end
 
                 # values of large element to lower element
-                if include_all_values || dg.mortar.mortar_weights[i, j] > 0
+                if include_all_values || dg.mortar.mortar_weights[i, j, 1] > 0
                     var_minmax[indices_small_inner..., lower_element] = min_or_max(var_minmax[indices_small_inner...,
                                                                                               lower_element],
                                                                                    var_large)
                 end
                 # values of lower element to large element
-                if include_all_values || dg.mortar.mortar_weights[j, i] > 0
+                if include_all_values || dg.mortar.mortar_weights[j, i, 1] > 0
                     var_minmax[indices_large_inner..., large_element] = min_or_max(var_minmax[indices_large_inner...,
                                                                                               large_element],
                                                                                    var_lower)
                 end
                 # values of large element to upper element
-                if include_all_values ||
-                   dg.mortar.mortar_weights[i, j + nnodes(dg)] > 0
+                if include_all_values || dg.mortar.mortar_weights[i, j, 2] > 0
                     var_minmax[indices_small_inner..., upper_element] = min_or_max(var_minmax[indices_small_inner...,
                                                                                               upper_element],
                                                                                    var_large)
                 end
                 # values of upper element to large element
-                if include_all_values ||
-                   dg.mortar.mortar_weights[j, i + nnodes(dg)] > 0
+                if include_all_values || dg.mortar.mortar_weights[j, i, 2] > 0
                     var_minmax[indices_large_inner..., large_element] = min_or_max(var_minmax[indices_large_inner...,
                                                                                               large_element],
                                                                                    var_upper)

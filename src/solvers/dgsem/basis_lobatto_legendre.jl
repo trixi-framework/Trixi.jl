@@ -250,8 +250,8 @@ struct LobattoLegendreMortarIDP{RealT <: Real, NNODES,
     pure_low_order::Bool
     local_factor::Bool
     mortar_l2::Mortar
-    mortar_weights::Matrix{RealT}      # [large element, small element]
-    mortar_weights_sums::Matrix{RealT} # [node, left/right/large element]
+    mortar_weights::Array{RealT, 3}      # [node (large element), node (small element), small element]
+    mortar_weights_sums::Array{RealT, 2} # [node, left/right/large element]
     output_directory::String
 end
 

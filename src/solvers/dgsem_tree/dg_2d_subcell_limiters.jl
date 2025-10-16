@@ -63,28 +63,26 @@ function calc_mortar_weights(equations::AbstractEquations{2},
                              basis::LobattoLegendreBasis, RealT;
                              basis_function = :piecewise_constant)
     n_nodes = nnodes(basis)
-    weights = zeros(RealT, n_nodes, 2 * n_nodes) # [node (large element), node (small element)]
-    weights_sum = zeros(RealT, n_nodes, 3)       # [node, left/right/large element]
+    mortar_weights = zeros(RealT, n_nodes, n_nodes, 2) # [node (large element), node (small element), small element]
+    mortar_weights_sums = zeros(RealT, n_nodes, 3)     # [node, left/right/large element]
 
     if basis_function == :piecewise_constant
-        calc_mortar_weights_piecewise_constant!(weights, n_nodes, RealT)
+        calc_mortar_weights_piecewise_constant!(mortar_weights, n_nodes, RealT)
     elseif basis_function == :piecewise_linear
-        calc_mortar_weights_piecewise_linear!(weights, basis)
+        calc_mortar_weights_piecewise_linear!(mortar_weights, basis)
     else
         error("Unsupported basis function type: $basis_function")
     end
 
     # Sums of mortar weights for normalization
-    for i in eachnode(basis)
-        for j in eachnode(basis)
-            weights_sum[i, 1] += weights[j, i]           # left element
-            weights_sum[i, 2] += weights[j, i + n_nodes] # right element
-            weights_sum[i, 3] += weights[i, j]           # large element
-            weights_sum[i, 3] += weights[i, j + n_nodes]
-        end
+    for i in eachnode(basis), j in eachnode(basis)
+        mortar_weights_sums[i, 1] += mortar_weights[j, i, 1] # left element
+        mortar_weights_sums[i, 2] += mortar_weights[j, i, 2] # right element
+        mortar_weights_sums[i, 3] += mortar_weights[i, j, 1] # large element
+        mortar_weights_sums[i, 3] += mortar_weights[i, j, 2] # large element
     end
 
-    return weights, weights_sum
+    return mortar_weights, mortar_weights_sums
 end
 
 function calc_mortar_weights_piecewise_constant!(mortar_weights, n_nodes, RealT)
@@ -101,12 +99,12 @@ function calc_mortar_weights_piecewise_constant!(mortar_weights, n_nodes, RealT)
             # basis function of left element
             interval_left = max(cum_weights[i], cum_weights_lower[j])
             interval_right = min(cum_weights[i + 1], cum_weights_lower[j + 1])
-            mortar_weights[i, j] = max(zero(RealT), interval_right - interval_left)
+            mortar_weights[i, j, 1] = max(zero(RealT), interval_right - interval_left)
 
             # basis function of right element
             interval_left = max(cum_weights[i], cum_weights_upper[j])
             interval_right = min(cum_weights[i + 1], cum_weights_upper[j + 1])
-            mortar_weights[i, n_nodes + j] = max(zero(RealT),
+            mortar_weights[i, j, 2] = max(zero(RealT),
                                                  interval_right - interval_left)
         end
     end
@@ -114,7 +112,7 @@ function calc_mortar_weights_piecewise_constant!(mortar_weights, n_nodes, RealT)
     return mortar_weights
 end
 
-function calc_mortar_weights_piecewise_linear!(weights, basis)
+function calc_mortar_weights_piecewise_linear!(mortar_weights, basis)
     (; nodes) = basis
     n_nodes = nnodes(basis)
     nodes_lower = 0.5f0 * nodes .- 0.5f0
@@ -136,18 +134,18 @@ function calc_mortar_weights_piecewise_linear!(weights, basis)
                     interval_left = max(nodes[i - 1], nodes_lower[j - 1])
                     interval_right = min(nodes[i], nodes_lower[j])
                     if interval_left < interval_right
-                        weights[i, j] += function_product(interval_right,
-                                                          i - 1, i, j - 1, j,
-                                                          nodes_lower) -
-                                         function_product(interval_left,
-                                                          i - 1, i, j - 1, j,
-                                                          nodes_lower)
+                        mortar_weights[i, j, 1] += function_product(interval_right,
+                                                                    i - 1, i, j - 1, j,
+                                                                    nodes_lower) -
+                                                   function_product(interval_left,
+                                                                    i - 1, i, j - 1, j,
+                                                                    nodes_lower)
                     end
                     # basis function of right element
                     interval_left = max(nodes[i - 1], nodes_upper[j - 1])
                     interval_right = min(nodes[i], nodes_upper[j])
                     if interval_left < interval_right
-                        weights[i, n_nodes + j] += function_product(interval_right,
+                        mortar_weights[i, j, 2] += function_product(interval_right,
                                                                     i - 1, i, j - 1, j,
                                                                     nodes_upper) -
                                                    function_product(interval_left,
@@ -161,18 +159,18 @@ function calc_mortar_weights_piecewise_linear!(weights, basis)
                     interval_left = max(nodes[i - 1], nodes_lower[j])
                     interval_right = min(nodes[i], nodes_lower[j + 1])
                     if interval_left < interval_right
-                        weights[i, j] += function_product(interval_right,
-                                                          i - 1, i, j + 1, j,
-                                                          nodes_lower) -
-                                         function_product(interval_left,
-                                                          i - 1, i, j + 1, j,
-                                                          nodes_lower)
+                        mortar_weights[i, j, 1] += function_product(interval_right,
+                                                                    i - 1, i, j + 1, j,
+                                                                    nodes_lower) -
+                                                   function_product(interval_left,
+                                                                    i - 1, i, j + 1, j,
+                                                                    nodes_lower)
                     end
                     # basis function of right element
                     interval_left = max(nodes[i - 1], nodes_upper[j])
                     interval_right = min(nodes[i], nodes_upper[j + 1])
                     if interval_left < interval_right
-                        weights[i, n_nodes + j] += function_product(interval_right,
+                        mortar_weights[i, j, 2] += function_product(interval_right,
                                                                     i - 1, i, j + 1, j,
                                                                     nodes_upper) -
                                                    function_product(interval_left,
@@ -189,18 +187,18 @@ function calc_mortar_weights_piecewise_linear!(weights, basis)
                     interval_left = max(nodes[i], nodes_lower[j - 1])
                     interval_right = min(nodes[i + 1], nodes_lower[j])
                     if interval_left < interval_right
-                        weights[i, j] += function_product(interval_right,
-                                                          i + 1, i, j - 1, j,
-                                                          nodes_lower) -
-                                         function_product(interval_left,
-                                                          i + 1, i, j - 1, j,
-                                                          nodes_lower)
+                        mortar_weights[i, j, 1] += function_product(interval_right,
+                                                                    i + 1, i, j - 1, j,
+                                                                    nodes_lower) -
+                                                   function_product(interval_left,
+                                                                    i + 1, i, j - 1, j,
+                                                                    nodes_lower)
                     end
                     # basis function of right element
                     interval_left = max(nodes[i], nodes_upper[j - 1])
                     interval_right = min(nodes[i + 1], nodes_upper[j])
                     if interval_left < interval_right
-                        weights[i, n_nodes + j] += function_product(interval_right,
+                        mortar_weights[i, j, 2] += function_product(interval_right,
                                                                     i + 1, i, j - 1, j,
                                                                     nodes_upper) -
                                                    function_product(interval_left,
@@ -214,18 +212,18 @@ function calc_mortar_weights_piecewise_linear!(weights, basis)
                     interval_left = max(nodes[i], nodes_lower[j])
                     interval_right = min(nodes[i + 1], nodes_lower[j + 1])
                     if interval_left < interval_right
-                        weights[i, j] += function_product(interval_right,
-                                                          i + 1, i, j + 1, j,
-                                                          nodes_lower) -
-                                         function_product(interval_left,
-                                                          i + 1, i, j + 1, j,
-                                                          nodes_lower)
+                        mortar_weights[i, j, 1] += function_product(interval_right,
+                                                                    i + 1, i, j + 1, j,
+                                                                    nodes_lower) -
+                                                   function_product(interval_left,
+                                                                    i + 1, i, j + 1, j,
+                                                                    nodes_lower)
                     end
                     # basis function of right element
                     interval_left = max(nodes[i], nodes_upper[j])
                     interval_right = min(nodes[i + 1], nodes_upper[j + 1])
                     if interval_left < interval_right
-                        weights[i, n_nodes + j] += function_product(interval_right,
+                        mortar_weights[i, j, 2] += function_product(interval_right,
                                                                     i + 1, i, j + 1, j,
                                                                     nodes_upper) -
                                                    function_product(interval_left,
@@ -237,7 +235,7 @@ function calc_mortar_weights_piecewise_linear!(weights, basis)
         end
     end
 
-    return weights
+    return mortar_weights
 end
 
 # Subcell limiting currently only implemented for certain mesh types
@@ -1052,7 +1050,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
 
                     if local_factor
-                        factor = mortar_weights[j, i]
+                        factor = mortar_weights[j, i, 1]
                         if !isapprox(factor, zero(typeof(factor)))
                             # Lower element
                             multiply_add_to_node_vars!(surface_flux_values,
@@ -1092,7 +1090,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
 
                     if local_factor
-                        factor = mortar_weights[j, i + nnodes(dg)]
+                        factor = mortar_weights[j, i, 2]
                         if !isapprox(factor, zero(typeof(factor)))
                             # Upper element
                             multiply_add_to_node_vars!(surface_flux_values,
@@ -1146,7 +1144,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
 
                     if local_factor
-                        factor = mortar_weights[j, i]
+                        factor = mortar_weights[j, i, 1]
                         if !isapprox(factor, zero(typeof(factor)))
                             # Lower element
                             multiply_add_to_node_vars!(surface_flux_values,
@@ -1186,7 +1184,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
 
                     if local_factor
-                        factor = mortar_weights[j, i + nnodes(dg)]
+                        factor = mortar_weights[j, i, 2]
                         if !isapprox(factor, zero(typeof(factor)))
                             # Upper element
                             multiply_add_to_node_vars!(surface_flux_values,
@@ -1284,7 +1282,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
             for j in eachnode(dg)
                 j_mortar = iszero(i_large_step) ? j_large : i_large
 
-                factor = mortar_weights[j_mortar, i_mortar]
+                factor = mortar_weights[j_mortar, i_mortar, 1]
                 if !isapprox(factor, zero(typeof(factor)))
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar)
 
@@ -1329,7 +1327,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
             for j in eachnode(dg)
                 j_mortar = iszero(i_large_step) ? j_large : i_large
 
-                factor = mortar_weights[j_mortar, i_mortar + nnodes(dg)]
+                factor = mortar_weights[j_mortar, i_mortar, 2]
                 if !isapprox(factor, zero(typeof(factor)))
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar)
 

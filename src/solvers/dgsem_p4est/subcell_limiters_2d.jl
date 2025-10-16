@@ -110,7 +110,7 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
                 j_mortar_l = iszero(i_large_step) ? j_large_inner : i_large_inner
 
                 # values of large element to lower element
-                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s] > 0
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 1] > 0
                     var_min[i_small_inner, j_small_inner, lower_element] = min(var_min[i_small_inner,
                                                                                        j_small_inner,
                                                                                        lower_element],
@@ -121,7 +121,7 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
                                                                                var_large)
                 end
                 # values of lower element to large element
-                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s] > 0
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s, 1] > 0
                     var_min[i_large_inner, j_large_inner, large_element] = min(var_min[i_large_inner,
                                                                                        j_large_inner,
                                                                                        large_element],
@@ -132,8 +132,7 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
                                                                                var_lower)
                 end
                 # values of large element to upper element
-                if l2_mortars ||
-                   dg.mortar.mortar_weights[i_mortar_l, j_mortar_s + nnodes(dg)] > 0
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 2] > 0
                     var_min[i_small_inner, j_small_inner, upper_element] = min(var_min[i_small_inner,
                                                                                        j_small_inner,
                                                                                        upper_element],
@@ -144,8 +143,7 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
                                                                                var_large)
                 end
                 # values of upper element to large element
-                if l2_mortars ||
-                   dg.mortar.mortar_weights[j_mortar_l, i_mortar_s + nnodes(dg)] > 0
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s, 2] > 0
                     var_min[i_large_inner, j_large_inner, large_element] = min(var_min[i_large_inner,
                                                                                        j_large_inner,
                                                                                        large_element],
@@ -334,30 +332,28 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
                 j_mortar_l = iszero(i_large_step) ? j_large_inner : i_large_inner
 
                 # values of large element to lower element
-                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s] > 0
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 1] > 0
                     var_minmax[i_small_inner, j_small_inner, lower_element] = minmax(var_minmax[i_small_inner,
                                                                                                 j_small_inner,
                                                                                                 lower_element],
                                                                                      var_large)
                 end
                 # values of lower element to large element
-                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s] > 0
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s, 1] > 0
                     var_minmax[i_large_inner, j_large_inner, large_element] = minmax(var_minmax[i_large_inner,
                                                                                                 j_large_inner,
                                                                                                 large_element],
                                                                                      var_lower)
                 end
                 # values of large element to upper element
-                if l2_mortars ||
-                   dg.mortar.mortar_weights[i_mortar_l, j_mortar_s + nnodes(dg)] > 0
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 2] > 0
                     var_minmax[i_small_inner, j_small_inner, upper_element] = minmax(var_minmax[i_small_inner,
                                                                                                 j_small_inner,
                                                                                                 upper_element],
                                                                                      var_large)
                 end
                 # values of upper element to large element
-                if l2_mortars ||
-                   dg.mortar.mortar_weights[j_mortar_l, i_mortar_s + nnodes(dg)] > 0
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s, 2] > 0
                     var_minmax[i_large_inner, j_large_inner, large_element] = minmax(var_minmax[i_large_inner,
                                                                                                 j_large_inner,
                                                                                                 large_element],
