@@ -836,6 +836,67 @@ function calc_gradient_interface_flux!(surface_flux_values,
     return nothing
 end
 
+function calc_gradient_surface_integral!(gradients,
+                                         mesh::TreeMesh{2},
+                                         equations_parabolic::AbstractEquationsParabolic,
+                                         dg::DGSEM, cache, cache_parabolic)
+    @unpack boundary_interpolation = dg.basis
+    @unpack surface_flux_values = cache_parabolic.elements
+
+    gradients_x, gradients_y = gradients
+
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # Access the factors only once before beginning the loop to increase performance.
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
+
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg)
+            for v in eachvariable(equations_parabolic)
+                # surface at -x
+                gradients_x[v, 1, l, element] = (gradients_x[v,
+                                                             1, l,
+                                                             element] -
+                                                 surface_flux_values[v,
+                                                                     l, 1,
+                                                                     element] *
+                                                 factor_1)
+
+                # surface at +x
+                gradients_x[v, nnodes(dg), l, element] = (gradients_x[v,
+                                                                      nnodes(dg), l,
+                                                                      element] +
+                                                          surface_flux_values[v,
+                                                                              l, 2,
+                                                                              element] *
+                                                          factor_2)
+
+                # surface at -y
+                gradients_y[v, l, 1, element] = (gradients_y[v,
+                                                             l, 1,
+                                                             element] -
+                                                 surface_flux_values[v,
+                                                                     l, 3,
+                                                                     element] *
+                                                 factor_1)
+
+                # surface at +y
+                gradients_y[v, l, nnodes(dg), element] = (gradients_y[v,
+                                                                      l, nnodes(dg),
+                                                                      element] +
+                                                          surface_flux_values[v,
+                                                                              l, 4,
+                                                                              element] *
+                                                          factor_2)
+            end
+        end
+    end
+
+    return nothing
+end
+
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t,
                         mesh::TreeMesh{2}, equations_parabolic,
@@ -899,56 +960,8 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        @unpack boundary_interpolation = dg.basis
-        @unpack surface_flux_values = cache_parabolic.elements
-
-        # Note that all fluxes have been computed with outward-pointing normal vectors.
-        # Access the factors only once before beginning the loop to increase performance.
-        # We also use explicit assignments instead of `+=` to let `@muladd` turn these
-        # into FMAs (see comment at the top of the file).
-        factor_1 = boundary_interpolation[1, 1]
-        factor_2 = boundary_interpolation[nnodes(dg), 2]
-        @threaded for element in eachelement(dg, cache)
-            for l in eachnode(dg)
-                for v in eachvariable(equations_parabolic)
-                    # surface at -x
-                    gradients_x[v, 1, l, element] = (gradients_x[v,
-                                                                 1, l,
-                                                                 element] -
-                                                     surface_flux_values[v,
-                                                                         l, 1,
-                                                                         element] *
-                                                     factor_1)
-
-                    # surface at +x
-                    gradients_x[v, nnodes(dg), l, element] = (gradients_x[v,
-                                                                          nnodes(dg), l,
-                                                                          element] +
-                                                              surface_flux_values[v,
-                                                                                  l, 2,
-                                                                                  element] *
-                                                              factor_2)
-
-                    # surface at -y
-                    gradients_y[v, l, 1, element] = (gradients_y[v,
-                                                                 l, 1,
-                                                                 element] -
-                                                     surface_flux_values[v,
-                                                                         l, 3,
-                                                                         element] *
-                                                     factor_1)
-
-                    # surface at +y
-                    gradients_y[v, l, nnodes(dg), element] = (gradients_y[v,
-                                                                          l, nnodes(dg),
-                                                                          element] +
-                                                              surface_flux_values[v,
-                                                                                  l, 4,
-                                                                                  element] *
-                                                              factor_2)
-                end
-            end
-        end
+        calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
+                                        dg, cache, cache_parabolic)
     end
 
     # Apply Jacobian from mapping to reference element

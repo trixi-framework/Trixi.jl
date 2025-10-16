@@ -906,7 +906,7 @@ end
 end
 
 function calc_gradient_volume_integral!(gradients, u_transformed,
-                                        mesh::TreeMesh{3},
+                                        mesh::TreeMesh{3}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DGSEM, cache)
     @unpack derivative_dhat = dg.basis
@@ -980,6 +980,108 @@ function calc_gradient_interface_flux!(surface_flux_values,
     return nothing
 end
 
+function calc_gradient_surface_integral!(gradients,
+                                         mesh::TreeMesh{3}, # for dispatch only
+                                         equations_parabolic::AbstractEquationsParabolic,
+                                         dg::DGSEM, cache, cache_parabolic)
+    @unpack boundary_interpolation = dg.basis
+    @unpack surface_flux_values = cache_parabolic.elements
+
+    gradients_x, gradients_y, gradients_z = gradients
+
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # Access the factors only once before beginning the loop to increase performance.
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    @threaded for element in eachelement(dg, cache)
+        for m in eachnode(dg), l in eachnode(dg)
+            for v in eachvariable(equations_parabolic)
+                # surface at -x
+                gradients_x[v, 1, l, m, element] = (gradients_x[v,
+                                                                1,
+                                                                l,
+                                                                m,
+                                                                element] -
+                                                    surface_flux_values[v,
+                                                                        l,
+                                                                        m,
+                                                                        1,
+                                                                        element] *
+                                                    factor_1)
+
+                # surface at +x
+                gradients_x[v, nnodes(dg), l, m, element] = (gradients_x[v,
+                                                                         nnodes(dg),
+                                                                         l,
+                                                                         m,
+                                                                         element] +
+                                                             surface_flux_values[v,
+                                                                                 l,
+                                                                                 m,
+                                                                                 2,
+                                                                                 element] *
+                                                             factor_2)
+
+                # surface at -y
+                gradients_y[v, l, 1, m, element] = (gradients_y[v,
+                                                                l,
+                                                                1,
+                                                                m,
+                                                                element] -
+                                                    surface_flux_values[v,
+                                                                        l,
+                                                                        m,
+                                                                        3,
+                                                                        element] *
+                                                    factor_1)
+
+                # surface at +y
+                gradients_y[v, l, nnodes(dg), m, element] = (gradients_y[v,
+                                                                         l,
+                                                                         nnodes(dg),
+                                                                         m,
+                                                                         element] +
+                                                             surface_flux_values[v,
+                                                                                 l,
+                                                                                 m,
+                                                                                 4,
+                                                                                 element] *
+                                                             factor_2)
+
+                # surface at -z
+                gradients_z[v, l, m, 1, element] = (gradients_z[v,
+                                                                l,
+                                                                m,
+                                                                1,
+                                                                element] -
+                                                    surface_flux_values[v,
+                                                                        l,
+                                                                        m,
+                                                                        5,
+                                                                        element] *
+                                                    factor_1)
+
+                # surface at +z
+                gradients_z[v, l, m, nnodes(dg), element] = (gradients_z[v,
+                                                                         l,
+                                                                         m,
+                                                                         nnodes(dg),
+                                                                         element] +
+                                                             surface_flux_values[v,
+                                                                                 l,
+                                                                                 m,
+                                                                                 6,
+                                                                                 element] *
+                                                             factor_2)
+            end
+        end
+    end
+
+    return nothing
+end
+
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t,
                         mesh::TreeMesh{3}, equations_parabolic,
@@ -1044,99 +1146,9 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        @unpack boundary_interpolation = dg.basis
-        @unpack surface_flux_values = cache_parabolic.elements
-
-        # Note that all fluxes have been computed with outward-pointing normal vectors.
-        # Access the factors only once before beginning the loop to increase performance.
-        # We also use explicit assignments instead of `+=` to let `@muladd` turn these
-        # into FMAs (see comment at the top of the file).
-        factor_1 = boundary_interpolation[1, 1]
-        factor_2 = boundary_interpolation[nnodes(dg), 2]
-        @threaded for element in eachelement(dg, cache)
-            for m in eachnode(dg), l in eachnode(dg)
-                for v in eachvariable(equations_parabolic)
-                    # surface at -x
-                    gradients_x[v, 1, l, m, element] = (gradients_x[v,
-                                                                    1,
-                                                                    l,
-                                                                    m,
-                                                                    element] -
-                                                        surface_flux_values[v,
-                                                                            l,
-                                                                            m,
-                                                                            1,
-                                                                            element] *
-                                                        factor_1)
-
-                    # surface at +x
-                    gradients_x[v, nnodes(dg), l, m, element] = (gradients_x[v,
-                                                                             nnodes(dg),
-                                                                             l,
-                                                                             m,
-                                                                             element] +
-                                                                 surface_flux_values[v,
-                                                                                     l,
-                                                                                     m,
-                                                                                     2,
-                                                                                     element] *
-                                                                 factor_2)
-
-                    # surface at -y
-                    gradients_y[v, l, 1, m, element] = (gradients_y[v,
-                                                                    l,
-                                                                    1,
-                                                                    m,
-                                                                    element] -
-                                                        surface_flux_values[v,
-                                                                            l,
-                                                                            m,
-                                                                            3,
-                                                                            element] *
-                                                        factor_1)
-
-                    # surface at +y
-                    gradients_y[v, l, nnodes(dg), m, element] = (gradients_y[v,
-                                                                             l,
-                                                                             nnodes(dg),
-                                                                             m,
-                                                                             element] +
-                                                                 surface_flux_values[v,
-                                                                                     l,
-                                                                                     m,
-                                                                                     4,
-                                                                                     element] *
-                                                                 factor_2)
-
-                    # surface at -z
-                    gradients_z[v, l, m, 1, element] = (gradients_z[v,
-                                                                    l,
-                                                                    m,
-                                                                    1,
-                                                                    element] -
-                                                        surface_flux_values[v,
-                                                                            l,
-                                                                            m,
-                                                                            5,
-                                                                            element] *
-                                                        factor_1)
-
-                    # surface at +z
-                    gradients_z[v, l, m, nnodes(dg), element] = (gradients_z[v,
-                                                                             l,
-                                                                             m,
-                                                                             nnodes(dg),
-                                                                             element] +
-                                                                 surface_flux_values[v,
-                                                                                     l,
-                                                                                     m,
-                                                                                     6,
-                                                                                     element] *
-                                                                 factor_2)
-                end
-            end
-        end
+    @trixi_timeit timer() "surface integral" begin 
+        calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
+                                        dg, cache, cache_parabolic)
     end
 
     # Apply Jacobian from mapping to reference element

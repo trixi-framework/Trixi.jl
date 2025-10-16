@@ -94,110 +94,8 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        (; boundary_interpolation) = dg.basis
-        (; surface_flux_values) = cache_parabolic.elements
-        (; contravariant_vectors) = cache.elements
-
-        # Access the factors only once before beginning the loop to increase performance.
-        # We also use explicit assignments instead of `+=` to let `@muladd` turn these
-        # into FMAs (see comment at the top of the file).
-        factor_1 = boundary_interpolation[1, 1]
-        factor_2 = boundary_interpolation[nnodes(dg), 2]
-        @threaded for element in eachelement(dg, cache)
-            for l in eachnode(dg), m in eachnode(dg)
-                for v in eachvariable(equations_parabolic)
-                    for dim in 1:3
-                        grad = gradients[dim]
-                        # surface at -x
-                        normal_direction = get_normal_direction(1,
-                                                                contravariant_vectors,
-                                                                1, l, m,
-                                                                element)
-                        grad[v, 1, l, m, element] = (grad[v, 1, l, m,
-                                                          element] +
-                                                     surface_flux_values[v,
-                                                                         l,
-                                                                         m,
-                                                                         1,
-                                                                         element] *
-                                                     factor_1 * normal_direction[dim])
-
-                        # surface at +x
-                        normal_direction = get_normal_direction(2,
-                                                                contravariant_vectors,
-                                                                nnodes(dg), l, m,
-                                                                element)
-                        grad[v, nnodes(dg), l, m, element] = (grad[v, nnodes(dg), l, m,
-                                                                   element] +
-                                                              surface_flux_values[v,
-                                                                                  l,
-                                                                                  m,
-                                                                                  2,
-                                                                                  element] *
-                                                              factor_2 *
-                                                              normal_direction[dim])
-
-                        # surface at -y
-                        normal_direction = get_normal_direction(3,
-                                                                contravariant_vectors,
-                                                                l, 1, m,
-                                                                element)
-                        grad[v, l, 1, m, element] = (grad[v, l, 1, m,
-                                                          element] +
-                                                     surface_flux_values[v,
-                                                                         l,
-                                                                         m,
-                                                                         3,
-                                                                         element] *
-                                                     factor_1 * normal_direction[dim])
-
-                        # surface at +y
-                        normal_direction = get_normal_direction(4,
-                                                                contravariant_vectors,
-                                                                l, nnodes(dg), m,
-                                                                element)
-                        grad[v, l, nnodes(dg), m, element] = (grad[v, l, nnodes(dg), m,
-                                                                   element] +
-                                                              surface_flux_values[v,
-                                                                                  l,
-                                                                                  m,
-                                                                                  4,
-                                                                                  element] *
-                                                              factor_2 *
-                                                              normal_direction[dim])
-
-                        # surface at -z
-                        normal_direction = get_normal_direction(5,
-                                                                contravariant_vectors,
-                                                                l, m, 1,
-                                                                element)
-                        grad[v, l, m, 1, element] = (grad[v, l, m, 1,
-                                                          element] +
-                                                     surface_flux_values[v,
-                                                                         l,
-                                                                         m,
-                                                                         5,
-                                                                         element] *
-                                                     factor_1 * normal_direction[dim])
-
-                        # surface at +z
-                        normal_direction = get_normal_direction(6,
-                                                                contravariant_vectors,
-                                                                l, m, nnodes(dg),
-                                                                element)
-                        grad[v, l, m, nnodes(dg), element] = (grad[v, l, m, nnodes(dg),
-                                                                   element] +
-                                                              surface_flux_values[v,
-                                                                                  l,
-                                                                                  m,
-                                                                                  6,
-                                                                                  element] *
-                                                              factor_2 *
-                                                              normal_direction[dim])
-                    end
-                end
-            end
-        end
+        calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
+                                        dg, cache, cache_parabolic)
     end
 
     # Apply Jacobian from mapping to reference element
@@ -821,7 +719,7 @@ end
 end
 
 function calc_gradient_volume_integral!(gradients, u_transformed,
-                                        mesh::P4estMesh{2},
+                                        mesh::P4estMesh{3}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DG, cache)
     @unpack derivative_dhat = dg.basis
@@ -1025,6 +923,106 @@ function calc_boundary_flux!(cache, t,
             i_node += i_node_step_j
             j_node += j_node_step_j
             k_node += k_node_step_j
+        end
+    end
+
+    return nothing
+end
+
+function calc_gradient_surface_integral!(gradients,
+                                         mesh::P4estMesh{3}, # for dispatch only
+                                         equations_parabolic::AbstractEquationsParabolic,
+                                         dg::DGSEM, cache, cache_parabolic)
+    @unpack boundary_interpolation = dg.basis
+    @unpack surface_flux_values = cache_parabolic.elements
+    @unpack contravariant_vectors = cache.elements
+
+    # Access the factors only once before beginning the loop to increase performance.
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg), m in eachnode(dg)
+            for v in eachvariable(equations_parabolic)
+                for dim in 1:3
+                    grad = gradients[dim]
+                    # surface at -x
+                    normal_direction = get_normal_direction(1, contravariant_vectors,
+                                                            1, l, m,
+                                                            element)
+                    grad[v, 1, l, m, element] = (grad[v,
+                                                      1, l, m,
+                                                      element] +
+                                                 surface_flux_values[v,
+                                                                     l, m, 1,
+                                                                     element] *
+                                                 factor_1 * normal_direction[dim])
+
+                    # surface at +x
+                    normal_direction = get_normal_direction(2, contravariant_vectors,
+                                                            nnodes(dg), l, m,
+                                                            element)
+                    grad[v, nnodes(dg), l, m, element] = (grad[v,
+                                                               nnodes(dg), l, m,
+                                                               element] +
+                                                          surface_flux_values[v,
+                                                                              l, m, 2,
+                                                                              element] *
+                                                          factor_2 *
+                                                          normal_direction[dim])
+
+                    # surface at -y
+                    normal_direction = get_normal_direction(3, contravariant_vectors,
+                                                            l, 1, m,
+                                                            element)
+                    grad[v, l, 1, m, element] = (grad[v,
+                                                      l, 1, m,
+                                                      element] +
+                                                 surface_flux_values[v,
+                                                                     l, m, 3,
+                                                                     element] *
+                                                 factor_1 * normal_direction[dim])
+
+                    # surface at +y
+                    normal_direction = get_normal_direction(4, contravariant_vectors,
+                                                            l, nnodes(dg), m,
+                                                            element)
+                    grad[v, l, nnodes(dg), m, element] = (grad[v,
+                                                               l, nnodes(dg), m,
+                                                               element] +
+                                                          surface_flux_values[v,
+                                                                              l, m, 4,
+                                                                              element] *
+                                                          factor_2 *
+                                                          normal_direction[dim])
+
+                    # surface at -z
+                    normal_direction = get_normal_direction(5, contravariant_vectors,
+                                                            l, m, 1,
+                                                            element)
+                    grad[v, l, m, 1, element] = (grad[v,
+                                                      l, m, 1,
+                                                      element] +
+                                                 surface_flux_values[v,
+                                                                     l, m, 5,
+                                                                     element] *
+                                                 factor_1 * normal_direction[dim])
+
+                    # surface at +z
+                    normal_direction = get_normal_direction(6, contravariant_vectors,
+                                                            l, m, nnodes(dg),
+                                                            element)
+                    grad[v, l, m, nnodes(dg), element] = (grad[v,
+                                                               l, m, nnodes(dg),
+                                                               element] +
+                                                          surface_flux_values[v,
+                                                                              l, m, 6,
+                                                                              element] *
+                                                          factor_2 *
+                                                          normal_direction[dim])
+                end
+            end
         end
     end
 
