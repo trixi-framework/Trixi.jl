@@ -270,8 +270,8 @@ struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES,
     output_directory::String
 end
 
-function MortarIDP(basis::LobattoLegendreBasis;
-                   positivity_variables_cons = Int[], # TODO: String[], "rho" instead of 1
+function MortarIDP(equations, basis::LobattoLegendreBasis;
+                   positivity_variables_cons = String[],
                    positivity_variables_nonlinear = [],
                    alternative = false,
                    local_factor = true, basis_function = :piecewise_constant,
@@ -281,6 +281,9 @@ function MortarIDP(basis::LobattoLegendreBasis;
     nnodes_ = nnodes(basis)
 
     mortar_l2 = MortarL2(basis)
+
+    positivity_variables_cons_ = get_variable_index.(positivity_variables_cons,
+                                                     equations)
 
     if alternative
         forward_upper_low_order = calc_forward_upper_low_order(nnodes_, RealT)
@@ -296,7 +299,7 @@ function MortarIDP(basis::LobattoLegendreBasis;
                                             typeof(positivity_variables_nonlinear),
                                             typeof(mortar_l2),
                                             typeof(forward_upper_low_order),
-                                            typeof(reverse_upper_low_order)}(positivity_variables_cons,
+                                            typeof(reverse_upper_low_order)}(positivity_variables_cons_,
                                                                              positivity_variables_nonlinear,
                                                                              mortar_l2,
                                                                              forward_upper_low_order,
@@ -305,11 +308,11 @@ function MortarIDP(basis::LobattoLegendreBasis;
                                                                              reverse_lower_low_order,
                                                                              output_directory)
     else
-        mortar_weights, mortar_weights_sums = calc_mortar_weights(basis, RealT;
+        mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis, RealT;
                                                                   basis_function = basis_function)
 
         LobattoLegendreMortarIDP{RealT, nnodes_, typeof(positivity_variables_nonlinear),
-                                 typeof(mortar_l2)}(positivity_variables_cons,
+                                 typeof(mortar_l2)}(positivity_variables_cons_,
                                                     positivity_variables_nonlinear,
                                                     pure_low_order,
                                                     local_factor,

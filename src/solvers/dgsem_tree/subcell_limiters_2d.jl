@@ -788,7 +788,7 @@ end
             flux_difference_large = factor_large *
                                     (flux_large_high_order - flux_large_low_order)
 
-            # Check if high-order fluxes are finite. Otherwise, use pure low-order fluxes.
+            # Use pure low-order fluxes if high-order fluxes are not finite.
             if !isfinite(flux_lower_high_order) ||
                !isfinite(flux_upper_high_order) ||
                !isfinite(flux_large_high_order)
@@ -814,8 +814,8 @@ end
             Qm_lower = abs(Qm_lower) / (abs(Pm_lower) + eps(typeof(Qm_lower)) * 100)
             Qm_large = abs(Qm_large) / (abs(Pm_large) + eps(typeof(Qm_large)) * 100)
 
-            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Qm_upper,
-                                          1 - Qm_lower, 1 - Qm_large)
+            limiting_factor[mortar] = max(limiting_factor[mortar],
+                                          1 - Qm_upper, 1 - Qm_lower, 1 - Qm_large)
         end
     end
 

@@ -43,8 +43,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
-mortar = MortarIDP(basis, pure_low_order = false,
-                   positivity_variables_cons = [1],
+mortar = MortarIDP(equations, basis, pure_low_order = false,
+                   positivity_variables_cons = ["rho"],
                    positivity_variables_nonlinear = [pressure])
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 

@@ -59,7 +59,9 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
             flux_temp_threaded, fhat_temp_threaded)
 end
 
-function calc_mortar_weights(basis, RealT; basis_function = :piecewise_constant)
+function calc_mortar_weights(equations::AbstractEquations{2},
+                             basis::LobattoLegendreBasis, RealT;
+                             basis_function = :piecewise_constant)
     n_nodes = nnodes(basis)
     weights = zeros(RealT, n_nodes, 2 * n_nodes) # [node (large element), node (small element)]
     weights_sum = zeros(RealT, n_nodes, 3)       # [node, left/right/large element]
