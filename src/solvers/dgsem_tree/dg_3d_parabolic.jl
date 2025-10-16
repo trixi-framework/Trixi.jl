@@ -180,14 +180,20 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                 for k in eachnode(dg), j in eachnode(dg),
                     v in eachvariable(equations_parabolic)
                     # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                    boundaries_u[1, v, j, k, boundary] = flux_viscous_x[v, nnodes(dg),
-                                                                        j, k, element]
+                    boundaries_u[1, v, j, k, boundary] = flux_viscous_x[v,
+                                                                        nnodes(dg),
+                                                                        j,
+                                                                        k,
+                                                                        element]
                 end
             else # Element in +x direction of boundary
                 for k in eachnode(dg), j in eachnode(dg),
                     v in eachvariable(equations_parabolic)
                     # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                    boundaries_u[2, v, j, k, boundary] = flux_viscous_x[v, 1, j, k,
+                    boundaries_u[2, v, j, k, boundary] = flux_viscous_x[v,
+                                                                        1,
+                                                                        j,
+                                                                        k,
                                                                         element]
                 end
             end
@@ -198,8 +204,10 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                 for k in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
                     # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                    boundaries_u[1, v, i, k, boundary] = flux_viscous_y[v, i,
-                                                                        nnodes(dg), k,
+                    boundaries_u[1, v, i, k, boundary] = flux_viscous_y[v,
+                                                                        i,
+                                                                        nnodes(dg),
+                                                                        k,
                                                                         element]
                 end
             else
@@ -207,7 +215,10 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                 for k in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
                     # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                    boundaries_u[2, v, i, k, boundary] = flux_viscous_y[v, i, 1, k,
+                    boundaries_u[2, v, i, k, boundary] = flux_viscous_y[v,
+                                                                        i,
+                                                                        1,
+                                                                        k,
                                                                         element]
                 end
             end
@@ -218,7 +229,9 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                 for j in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
                     # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                    boundaries_u[1, v, i, j, boundary] = flux_viscous_z[v, i, j,
+                    boundaries_u[1, v, i, j, boundary] = flux_viscous_z[v,
+                                                                        i,
+                                                                        j,
                                                                         nnodes(dg),
                                                                         element]
                 end
@@ -227,7 +240,10 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                 for j in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
                     # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                    boundaries_u[2, v, i, j, boundary] = flux_viscous_z[v, i, j, 1,
+                    boundaries_u[2, v, i, j, boundary] = flux_viscous_z[v,
+                                                                        i,
+                                                                        j,
+                                                                        1,
                                                                         element]
                 end
             end
@@ -1030,16 +1046,23 @@ function calc_gradient!(gradients, u_transformed, t,
             for m in eachnode(dg), l in eachnode(dg)
                 for v in eachvariable(equations_parabolic)
                     # surface at -x
-                    gradients_x[v, 1, l, m, element] = (gradients_x[v, 1, l, m,
+                    gradients_x[v, 1, l, m, element] = (gradients_x[v,
+                                                                    1,
+                                                                    l,
+                                                                    m,
                                                                     element] -
-                                                        surface_flux_values[v, l, m, 1,
+                                                        surface_flux_values[v,
+                                                                            l,
+                                                                            m,
+                                                                            1,
                                                                             element] *
                                                         factor_1)
 
                     # surface at +x
                     gradients_x[v, nnodes(dg), l, m, element] = (gradients_x[v,
                                                                              nnodes(dg),
-                                                                             l, m,
+                                                                             l,
+                                                                             m,
                                                                              element] +
                                                                  surface_flux_values[v,
                                                                                      l,
@@ -1049,14 +1072,21 @@ function calc_gradient!(gradients, u_transformed, t,
                                                                  factor_2)
 
                     # surface at -y
-                    gradients_y[v, l, 1, m, element] = (gradients_y[v, l, 1, m,
+                    gradients_y[v, l, 1, m, element] = (gradients_y[v,
+                                                                    l,
+                                                                    1,
+                                                                    m,
                                                                     element] -
-                                                        surface_flux_values[v, l, m, 3,
+                                                        surface_flux_values[v,
+                                                                            l,
+                                                                            m,
+                                                                            3,
                                                                             element] *
                                                         factor_1)
 
                     # surface at +y
-                    gradients_y[v, l, nnodes(dg), m, element] = (gradients_y[v, l,
+                    gradients_y[v, l, nnodes(dg), m, element] = (gradients_y[v,
+                                                                             l,
                                                                              nnodes(dg),
                                                                              m,
                                                                              element] +
@@ -1068,14 +1098,22 @@ function calc_gradient!(gradients, u_transformed, t,
                                                                  factor_2)
 
                     # surface at -z
-                    gradients_z[v, l, m, 1, element] = (gradients_z[v, l, m, 1,
+                    gradients_z[v, l, m, 1, element] = (gradients_z[v,
+                                                                    l,
+                                                                    m,
+                                                                    1,
                                                                     element] -
-                                                        surface_flux_values[v, l, m, 5,
+                                                        surface_flux_values[v,
+                                                                            l,
+                                                                            m,
+                                                                            5,
                                                                             element] *
                                                         factor_1)
 
                     # surface at +z
-                    gradients_z[v, l, m, nnodes(dg), element] = (gradients_z[v, l, m,
+                    gradients_z[v, l, m, nnodes(dg), element] = (gradients_z[v,
+                                                                             l,
+                                                                             m,
                                                                              nnodes(dg),
                                                                              element] +
                                                                  surface_flux_values[v,
