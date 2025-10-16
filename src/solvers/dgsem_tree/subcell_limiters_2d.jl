@@ -783,16 +783,15 @@ end
             flux_large_high_order = surface_flux_values_high_order[var_index, i,
                                                                    direction_large,
                                                                    large_element]
-            flux_large_low_order = surface_flux_values_high_order[var_index, i,
-                                                                  direction_large,
-                                                                  large_element]
+            flux_large_low_order = surface_flux_values[var_index, i, direction_large,
+                                                       large_element]
             flux_difference_large = factor_large *
                                     (flux_large_high_order - flux_large_low_order)
 
             # Check if high-order fluxes are finite. Otherwise, use pure low-order fluxes.
-            if !all(isfinite.(flux_lower_high_order)) ||
-               !all(isfinite(flux_upper_high_order)) ||
-               !all(isfinite.(flux_large_high_order))
+            if !isfinite(flux_lower_high_order) ||
+               !isfinite(flux_upper_high_order) ||
+               !isfinite(flux_large_high_order)
                 limiting_factor[mortar] = 1
                 break
             end
