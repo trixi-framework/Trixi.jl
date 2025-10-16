@@ -570,7 +570,7 @@ end
         var_min_lower = positivity_correction_factor * var_min_lower
         var_min_large = positivity_correction_factor * var_min_large
 
-        # Compute limiting factor
+        # Set up correct direction and factors
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
             if orientations[mortar] == 1
                 direction_small = 1
@@ -597,6 +597,7 @@ end
             factor_small = -boundary_interpolation[nnodes(dg), 2]
         end
 
+        # Compute limiting factor
         for i in eachnode(dg)
             var_upper = u_upper[small_side, var_index, i, mortar]
             var_lower = u_lower[small_side, var_index, i, mortar]
@@ -606,7 +607,7 @@ end
                 error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
             end
 
-            # Calculate Pm
+            # Compute flux differences
             flux_lower_high_order = surface_flux_values_high_order[var_index, i,
                                                                    direction_small,
                                                                    lower_element]
