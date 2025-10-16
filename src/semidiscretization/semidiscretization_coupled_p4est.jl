@@ -252,24 +252,6 @@ struct AnalysisCallbackCoupledP4est{CB}
     callbacks::CB
 end
 
-function Base.show(io::IO, ::MIME"text/plain",
-                   cb_coupled::DiscreteCallback{<:Any, <:AnalysisCallbackCoupledP4est})
-    @nospecialize cb_coupled # reduce precompilation time
-
-    if get(io, :compact, false)
-        show(io, cb_coupled)
-    else
-        analysis_callback_coupled = cb_coupled.affect!
-
-        summary_header(io, "AnalysisCallbackCoupledP4est")
-        for (i, cb) in enumerate(analysis_callback_coupled.callbacks)
-            summary_line(io, "Callback #$i", "")
-            show(increment_indent(io), MIME"text/plain"(), cb)
-        end
-        summary_footer(io)
-    end
-end
-
 # Convenience constructor for the coupled callback that gets called directly from the elixirs
 function AnalysisCallbackCoupledP4est(semi_coupled, callbacks...)
     if length(callbacks) != nsystems(semi_coupled)
@@ -409,10 +391,11 @@ end
 
 # In case of coupled system, use minimum timestep over all systems
 # Case for constant `cfl_number`.
-function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCoupledP4est)
+function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+                      semi::SemidiscretizationCoupledP4est)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
+        calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
     end
 
     return dt

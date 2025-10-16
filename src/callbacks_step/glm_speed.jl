@@ -61,9 +61,10 @@ end
 function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Int[])
     @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
-    glm_speed_callback = GlmSpeedCallback{typeof(glm_scale), typeof(cfl)}(glm_scale,
-                                                                          cfl,
-                                                                          semi_indices)
+    cfl_function = isa(cfl, Real) ? Returns(cfl) : cfl
+    glm_speed_callback = GlmSpeedCallback{typeof(glm_scale), typeof(cfl_function)}(glm_scale,
+                                                                                   cfl_function,
+                                                                                   semi_indices)
 
     DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the effect!
                      save_positions = (false, false),
@@ -86,11 +87,7 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt, t)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
     # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-    if cfl isa Real # Case for constant CFL
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
-    else # Variable CFL
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl(t), mesh, equations, solver, cache)
-    end
+    c_h_deltat = calc_dt_for_cleaning_speed(cfl(t), mesh, equations, solver, cache)
 
     # c_h is proportional to its own time step divided by the complete MHD time step
     # We use @reset here since the equations are immutable (to work on GPUs etc.).

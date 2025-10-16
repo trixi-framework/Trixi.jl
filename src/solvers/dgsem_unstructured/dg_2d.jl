@@ -156,7 +156,7 @@ end
 # quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
-                              nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -210,7 +210,7 @@ end
 # on an unstructured quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
-                              nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -308,7 +308,6 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-# TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
@@ -436,7 +435,7 @@ end
 # boundary flux values are set according to a particular `boundary_condition` function
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::UnstructuredMesh2D,
-                                     nonconservative_terms::False, equations,
+                                     have_nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
                                      boundary_index)
@@ -472,7 +471,7 @@ end
 # `derivative_split` from `dg.basis` in [`flux_differencing_kernel!`](@ref)
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::UnstructuredMesh2D,
-                                     nonconservative_terms::True, equations,
+                                     have_nonconservative_terms::True, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
                                      boundary_index)
@@ -548,7 +547,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
 end
 
 # This routine computes the maximum value of the discrete metric identities necessary to ensure
-# that the approxmiation will be free-stream preserving (i.e. a constant solution remains constant)
+# that the approximation will be free-stream preserving (i.e. a constant solution remains constant)
 # on a curvilinear mesh.
 #   Note! Independent of the equation system and is only a check on the discrete mapping terms.
 #         Can be used for a metric identities check on StructuredMesh{2} or UnstructuredMesh2D

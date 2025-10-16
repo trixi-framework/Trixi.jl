@@ -6,7 +6,7 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-# ## Splitting a system into hyperbolic and parabolic parts.
+# ## Splitting a system into hyperbolic and parabolic parts
 
 # For a mixed hyperbolic-parabolic system, we represent the hyperbolic and parabolic
 # parts of the system  separately. We first define the hyperbolic (advection) part of

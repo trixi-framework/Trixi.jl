@@ -45,8 +45,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df00
                            joinpath(@__DIR__, "cube_unstructured_2.inp"))
 
 mesh = T8codeMesh(mesh_file, 3; polydeg = 3,
-                  mapping = mapping,
-                  initial_refinement_level = 0)
+                  mapping = mapping)
 
 # Note: This is actually a `p8est_quadrant_t` which is much bigger than the
 # following struct. But we only need the first four fields for our purpose.

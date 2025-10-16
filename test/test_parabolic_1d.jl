@@ -21,12 +21,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                         linf=[2.8990878868540015e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_ldg.jl" begin
@@ -35,12 +30,7 @@ end
                         l2=[9.234438322146518e-6], linf=[5.425491770139068e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg.jl" begin
@@ -49,12 +39,7 @@ end
                         l2=[9.235894939144276e-6], linf=[5.402550135213957e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg_newton_krylov.jl" begin
@@ -62,12 +47,7 @@ end
                         l2=[4.2710445174631516e-6], linf=[2.28491835256861e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_restart.jl" begin
@@ -76,12 +56,16 @@ end
                         linf=[3.910500545667439e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_cfl.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_cfl.jl"),
+                        l2=[6.763177530985864e-5], linf=[0.0002344578097126515])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
@@ -100,7 +84,7 @@ end
     # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
     callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                             amr_callback)
-    sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff());
+    sol = solve(ode, ode_alg;
                 abstol = time_abs_tol, reltol = time_int_tol,
                 ode_default_options()..., callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)
@@ -108,12 +92,7 @@ end
     @test linf_error ≈ [3.262867898701227e-5]
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" begin
@@ -131,12 +110,25 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_periodic_cfl.jl"),
+                        l2=[
+                            0.00011582226718630047,
+                            6.277345250542003e-5,
+                            0.0002822257163816253
+                        ],
+                        linf=[
+                            0.0006389893469918029,
+                            0.0003608325914101762,
+                            0.0016369657641206459
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl: GradientVariablesEntropy" begin
@@ -158,12 +150,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl" begin
@@ -182,12 +169,7 @@ end
                         atol=1e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl: GradientVariablesEntropy" begin
@@ -210,12 +192,7 @@ end
                         atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl" begin
@@ -237,12 +214,7 @@ end
                         atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy" begin
@@ -265,12 +237,7 @@ end
                         atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock.jl" begin
@@ -287,12 +254,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock_imex.jl" begin
@@ -310,12 +272,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end
 
