@@ -682,7 +682,7 @@ end
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, n::AbstractVector,
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::CompressibleEulerMulticomponentEquations2D)
     # Unpack conservative variables
     rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
@@ -695,15 +695,15 @@ end
     gamma_rr = totalgamma(u_rr, equations)
 
     # Normalize the direction vector
-    n = n / norm(n)
+    normal_direction = normal_direction / norm(normal_direction)
 
     # Velocity components
     v_ll_vec = SVector(rho_v1_ll, rho_v2_ll) / rho_ll
     v_rr_vec = SVector(rho_v1_rr, rho_v2_rr) / rho_rr
 
-    # Project velocities onto the direction n.
-    v_ll = dot(v_ll_vec, n)
-    v_rr = dot(v_rr_vec, n)
+    # Project velocities onto the direction normal_direction.
+    v_ll = dot(v_ll_vec, normal_direction)
+    v_rr = dot(v_rr_vec, normal_direction)
 
     # Compute pressures
     p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * dot(v_ll_vec, v_ll_vec) * rho_ll)
