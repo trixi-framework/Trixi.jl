@@ -308,7 +308,8 @@ function MortarIDP(equations, basis::LobattoLegendreBasis;
                                                                              reverse_lower_low_order,
                                                                              output_directory)
     else
-        mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis, RealT;
+        mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis,
+                                                                  RealT;
                                                                   basis_function = basis_function)
 
         LobattoLegendreMortarIDP{RealT, nnodes_, typeof(positivity_variables_nonlinear),

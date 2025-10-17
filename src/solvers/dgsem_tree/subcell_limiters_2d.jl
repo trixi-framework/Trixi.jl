@@ -94,8 +94,6 @@ end
     include_all_values = l2_mortars || alternative || !(dg.mortar.local_factor)
     for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
-        upper_element = cache.mortars.neighbor_ids[2, mortar]
-        lower_element = cache.mortars.neighbor_ids[1, mortar]
 
         orientation = cache.mortars.orientations[mortar]
 
@@ -121,8 +119,18 @@ end
                     indices_large = (i, 1)
                 end
             end
-            var_lower = u[variable, indices_small..., lower_element]
-            var_upper = u[variable, indices_small..., upper_element]
+            # Get solution data
+            var_small = (u[variable, indices_small...,
+                           cache.mortars.neighbor_ids[1, mortar]],
+                         u[variable, indices_small...,
+                           cache.mortars.neighbor_ids[2, mortar]])
+            # Using the following version with `ntuple` creates allocations due to a type instability of `indices_small`.
+            # var_small = index -> u[variable, indices_small..., cache.mortars.neighbor_ids[index, mortar]]
+            # Theoretically, that could be fixed with the following version:
+            # f = let indices_small = indices_small
+            #     index -> u[variable, indices_small..., cache.mortars.neighbor_ids[index, mortar]]
+            # end
+            # var_small = ntuple(f, Val(2))
             var_large = u[variable, indices_large..., large_element]
 
             for j in eachnode(dg)
@@ -148,41 +156,29 @@ end
                     end
                 end
 
-                # values of large element to lower element
-                if include_all_values || dg.mortar.mortar_weights[i, j, 1] > 0
-                    var_min[indices_small_inner..., lower_element] = min(var_min[indices_small_inner...,
-                                                                                 lower_element],
-                                                                         var_large)
-                    var_max[indices_small_inner..., lower_element] = max(var_max[indices_small_inner...,
-                                                                                 lower_element],
-                                                                         var_large)
-                end
-                # values of lower element to large element
-                if include_all_values || dg.mortar.mortar_weights[j, i, 1] > 0
-                    var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
-                                                                                 large_element],
-                                                                         var_lower)
-                    var_max[indices_large_inner..., large_element] = max(var_max[indices_large_inner...,
-                                                                                 large_element],
-                                                                         var_lower)
-                end
-                # values of large element to upper element
-                if include_all_values || dg.mortar.mortar_weights[i, j, 2] > 0
-                    var_min[indices_small_inner..., upper_element] = min(var_min[indices_small_inner...,
-                                                                                 upper_element],
-                                                                         var_large)
-                    var_max[indices_small_inner..., upper_element] = max(var_max[indices_small_inner...,
-                                                                                 upper_element],
-                                                                         var_large)
-                end
-                # values of upper element to large element
-                if include_all_values || dg.mortar.mortar_weights[j, i, 2] > 0
-                    var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
-                                                                                 large_element],
-                                                                         var_upper)
-                    var_max[indices_large_inner..., large_element] = max(var_max[indices_large_inner...,
-                                                                                 large_element],
-                                                                         var_upper)
+                for small_element_index in 1:2
+                    small_element = cache.mortars.neighbor_ids[small_element_index,
+                                                               mortar]
+                    # from large to small element
+                    if include_all_values ||
+                       dg.mortar.mortar_weights[i, j, small_element_index] > 0
+                        var_min[indices_small_inner..., small_element] = min(var_min[indices_small_inner...,
+                                                                                     small_element],
+                                                                             var_large)
+                        var_max[indices_small_inner..., small_element] = max(var_max[indices_small_inner...,
+                                                                                     small_element],
+                                                                             var_large)
+                    end
+                    # from small to large element
+                    if include_all_values ||
+                       dg.mortar.mortar_weights[j, i, small_element_index] > 0
+                        var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
+                                                                                     large_element],
+                                                                             var_small[small_element_index])
+                        var_max[indices_large_inner..., large_element] = max(var_max[indices_large_inner...,
+                                                                                     large_element],
+                                                                             var_small[small_element_index])
+                    end
                 end
             end
         end
@@ -655,7 +651,7 @@ end
                                                    mesh::TreeMesh{2}, var_index)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
-    (; orientations) = cache.mortars
+    (; orientations, inverse_jacobian) = cache.mortars
     (; surface_flux_values) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
     (; boundary_interpolation) = dg.basis
@@ -704,42 +700,58 @@ end
         var_min_lower = positivity_correction_factor * var_min_lower
         var_min_large = positivity_correction_factor * var_min_large
 
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if orientations[mortar] == 1
+                # L2 mortars in x-direction
+                direction_small = 1
+                direction_large = 2
+            else
+                # L2 mortars in y-direction
+                direction_small = 3
+                direction_large = 4
+            end
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_small = boundary_interpolation[1, 1]
+            factor_large = -boundary_interpolation[nnodes(dg), 2]
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if orientations[mortar] == 1
+                # L2 mortars in x-direction
+                direction_small = 2
+                direction_large = 1
+            else
+                # L2 mortars in y-direction
+                direction_small = 4
+                direction_large = 3
+            end
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_large = boundary_interpolation[1, 1]
+            factor_small = -boundary_interpolation[nnodes(dg), 2]
+        end
+
         for i in eachnode(dg)
             if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
                 if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     indices_small = (1, i)
                     indices_large = (nnodes(dg), i)
-                    direction_small = 1
-                    direction_large = 2
                 else
                     # L2 mortars in y-direction
                     indices_small = (i, 1)
                     indices_large = (i, nnodes(dg))
-                    direction_small = 3
-                    direction_large = 4
                 end
-                factor_small = boundary_interpolation[1, 1]
-                factor_large = -boundary_interpolation[nnodes(dg), 2]
             else # large_sides[mortar] == 2 -> small elements on left side
                 if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     indices_small = (nnodes(dg), i)
                     indices_large = (1, i)
-                    direction_small = 2
-                    direction_large = 1
                 else
                     # L2 mortars in y-direction
                     indices_small = (i, nnodes(dg))
                     indices_large = (i, 1)
-                    direction_small = 4
-                    direction_large = 3
                 end
-                factor_large = boundary_interpolation[1, 1]
-                factor_small = -boundary_interpolation[nnodes(dg), 2]
             end
-            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
-            # This sign switch is directly applied to the boundary interpolation factors here.
 
             var_upper = u[var_index, indices_small..., upper_element]
             var_lower = u[var_index, indices_small..., lower_element]
@@ -749,14 +761,14 @@ end
                 error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
             end
 
-            inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, indices_small...,
+            inverse_jacobian_upper = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                          indices_small...,
                                                           upper_element)
-            inverse_jacobian_lower = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, indices_small...,
+            inverse_jacobian_lower = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                          indices_small...,
                                                           lower_element)
-            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, indices_large...,
+            inverse_jacobian_large = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                          indices_large...,
                                                           large_element)
 
             # Calculate Pm
