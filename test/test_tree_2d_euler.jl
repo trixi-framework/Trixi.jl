@@ -837,6 +837,28 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 100)
 end
 
+@trixi_testset "elixir_euler_warm_bubble_adaptive_integral.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_warm_bubble_adaptive_integral.jl"),
+                        l2=[
+                            0.00013825807605215672,
+                            0.020825709335780908,
+                            0.03327139463903476,
+                            31.40577277353277
+                        ],
+                        linf=[
+                            0.00168084149525638,
+                            0.15700603506542876,
+                            0.3344044463224682,
+                            330.7915698685101
+                        ],
+                        tspan=(0.0, 10.0),
+                        initial_refinement_level=4)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 100)
+end
+
 # Coverage test for all initial conditions
 @testset "Compressible Euler: Tests for initial conditions" begin
     @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_constant" begin
