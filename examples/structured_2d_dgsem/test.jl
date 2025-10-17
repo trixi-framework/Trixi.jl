@@ -39,7 +39,6 @@ cells_per_dimension = (30, 30)
 
 # Define the mesh
 
-
 # If we use tree mesh, it is good.
 #mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 5, n_cells_max = 10_000, periodicity = false)         
 
