@@ -19,7 +19,6 @@ function initial_condition_test(x, t, equations::ShallowWaterEquations2D)
 end
 
 initial_condition = initial_condition_test
-    
 # Define the dirichlet boundary condition
 boundary_conditions = BoundaryConditionDirichlet(initial_condition_test)
 
