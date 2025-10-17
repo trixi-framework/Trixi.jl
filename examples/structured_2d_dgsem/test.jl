@@ -44,8 +44,8 @@ cells_per_dimension = (30, 30)
 #mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 5, n_cells_max = 10_000, periodicity = false)         
 
 # If we use a structured mesh is wrong.
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max, periodicity = false)
-
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = false)
 
 # Create the semi discretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
