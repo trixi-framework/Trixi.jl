@@ -651,8 +651,8 @@ end
                                                    mesh::TreeMesh{2}, var_index)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
-    (; orientations, inverse_jacobian) = cache.mortars
-    (; surface_flux_values) = cache.elements
+    (; orientations) = cache.mortars
+    (; surface_flux_values, inverse_jacobian) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
     (; boundary_interpolation) = dg.basis
 

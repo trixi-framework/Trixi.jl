@@ -67,7 +67,8 @@ function calc_mortar_weights(equations::AbstractEquations{2},
     mortar_weights_sums = zeros(RealT, n_nodes, 3)     # [node, left/right/large element]
 
     if basis_function == :piecewise_constant
-        calc_mortar_weights_piecewise_constant!(equations, mortar_weights, n_nodes, RealT)
+        calc_mortar_weights_piecewise_constant!(equations, mortar_weights, n_nodes,
+                                                RealT)
     elseif basis_function == :piecewise_linear
         calc_mortar_weights_piecewise_linear!(equations, mortar_weights, basis)
     else
