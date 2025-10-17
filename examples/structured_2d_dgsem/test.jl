@@ -30,8 +30,10 @@ solver = DGSEM(polydeg = 3,
                surface_flux = (flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-xl = 0.0;   yl = 0.0;
-xr = 3.0;   yr = 3.0;
+xl = 0.0;
+yl = 0.0;
+xr = 3.0;
+yr = 3.0;
 coordinates_min = (xl, yl)
 coordinates_max = (xr, yr)
 cells_per_dimension = (30, 30)
