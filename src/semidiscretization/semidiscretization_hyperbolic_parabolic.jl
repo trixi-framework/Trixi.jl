@@ -403,6 +403,9 @@ function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
     A = LinearMap(length(u_ode), ismutating = true) do dest, src
         rhs!(dest, src, semi, t0)
 
+        # additional storage for parabolic part
+        # slightly less allocations when allocated here instead of
+        # outside the `do` block
         dest_para = similar(dest)
         rhs_parabolic!(dest_para, src, semi, t0)
 
