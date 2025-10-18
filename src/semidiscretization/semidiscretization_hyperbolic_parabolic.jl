@@ -361,6 +361,55 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
     return nothing
 end
 
+"""
+    linear_structure(semi::SemidiscretizationHyperbolicParabolic;
+                     t0=zero(real(semi)))
+
+Wraps the right-hand side operator of the hyperbolic-parabolic semidiscretization `semi`
+at time `t0` as an affine-linear operator given by a linear operator `A`
+and a vector `b`.
+
+This has the benefit of greatly reduced memory consumption compared to constructing
+the full system matrix explicitly, as done for instance in
+[`jacobian_fd`](@ref) and [`jacobian_ad_forward`](@ref).
+
+The returned linear operator `A` is a matrix-free `LinearMap` which can be
+supplied to iterative solvers from e.g. [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
+"""
+function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
+                          t0 = zero(real(semi)))
+    # allocate memory
+    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+    du_ode = similar(u_ode)
+
+    # get the right hand side from possible source terms
+    u_ode .= zero(eltype(u_ode))
+    rhs!(du_ode, u_ode, semi, t0)
+    b = -du_ode
+
+    # Repeat for parabolic part
+    rhs_parabolic!(du_ode, u_ode, semi, t0)
+    @. b -= du_ode
+
+    # Create a copy of `b` used internally to extract the linear part of `semi`.
+    # This is necessary to get everything correct when the users updates the
+    # returned vector `b`.
+    b_tmp = copy(b)
+
+    # wrap the linear operator
+    A = LinearMap(length(u_ode), ismutating = true) do dest, src
+        rhs!(dest, src, semi, t0)
+
+        dest_para = similar(dest)
+        rhs_parabolic!(dest_para, src, semi, t0)
+
+        @. dest += dest_para + b_tmp
+        dest
+    end
+
+    return A, b
+end
+
 function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u0_ode,
                               du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))

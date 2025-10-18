@@ -264,6 +264,15 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_diffusion_linear_map" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_diffusion_linear_map.jl"),
+                        l2=[2.9013819015992238e-5], linf=[0.00030207438889962024])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
