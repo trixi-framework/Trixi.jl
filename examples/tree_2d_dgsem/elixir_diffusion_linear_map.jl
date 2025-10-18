@@ -18,8 +18,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 80_000,
                 periodicity = false)
 
-# Define some (arbitrary) initial condition,
-# required only for construction of the semidiscretization
+# Define arbitrary initial condition,
+# required only for construction of the semidiscretization, but never called
 initial_condition = Returns(0)
 
 function bc_homogeneous(x, t, equations)
