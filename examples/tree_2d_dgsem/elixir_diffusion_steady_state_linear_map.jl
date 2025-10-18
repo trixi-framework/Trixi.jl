@@ -62,6 +62,7 @@ u_ls = A_matrix \ b
 # Iterative solve, works directly on the linear map, no explicit matrix construction required!
 using Krylov
 
+# This solves the Laplace equation (i.e., steady-state diffusion/heat equation)
 u_ls, stats = gmres(A_map, b)
 
 ###############################################################################
