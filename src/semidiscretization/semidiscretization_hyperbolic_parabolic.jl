@@ -367,7 +367,10 @@ end
 
 Wraps the right-hand side operator of the hyperbolic-parabolic semidiscretization `semi`
 at time `t0` as an affine-linear operator given by a linear operator `A`
-and a vector `b`.
+and a vector `b`:
+```math
+\\partial_t u(t) = A u(t) - b,
+```
 
 This has the benefit of greatly reduced memory consumption compared to constructing
 the full system matrix explicitly, as done for instance in
@@ -382,7 +385,7 @@ function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
     u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
     du_ode = similar(u_ode)
 
-    # get the right hand side from possible source terms
+    # get the right hand side from boundary conditions and optional source terms
     u_ode .= zero(eltype(u_ode))
     rhs!(du_ode, u_ode, semi, t0)
     b = -du_ode

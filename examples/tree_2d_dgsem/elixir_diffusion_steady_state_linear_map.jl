@@ -18,9 +18,14 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 80_000,
                 periodicity = false)
 
-# Define arbitrary initial condition,
-# required only for construction of the semidiscretization, but never called
-initial_condition = Returns(0)
+# Analytical/continuous steady-state solution
+function continuous_solution(x, t, equations)
+    a = (1 - cosh(2 * pi)) / (sinh(2 * pi))
+
+    u_sol = (cosh(2 * pi * x[2]) + a * sinh(2 * pi * x[2])) * sinpi(2 * x[1])
+    return SVector(u_sol)
+end
+initial_condition = continuous_solution
 
 function bc_homogeneous(x, t, equations)
     return SVector(0)
@@ -61,31 +66,13 @@ u_ls, stats = gmres(A_map, b)
 
 ###############################################################################
 
-# Construct the ODE problem for easy plotting and comparison to analytical solution.
+# Construct the ODE problem for easy plotting and comparison to analytical solution
 tspan = (0.0, 0.0)
-
-# Analytical/continuous solution
-function continuous_solution(x, t, equations)
-    a = (1 - cosh(2 * pi)) / (sinh(2 * pi))
-
-    u_sol = (cosh(2 * pi * x[2]) + a * sinh(2 * pi * x[2])) * sinpi(2 * x[1])
-    return SVector(u_sol)
-end
-initial_condition_sol = continuous_solution
-
-# Exchange only the initial condition, rest remains the same
-semi_sol = SemidiscretizationHyperbolicParabolic(mesh,
-                                                 (equations, equations_parabolic),
-                                                 initial_condition_sol, solver;
-                                                 solver_parabolic = ViscousFormulationLocalDG(),
-                                                 boundary_conditions = (boundary_conditions,
-                                                                        boundary_conditions))
-
-ode = semidiscretize(semi_sol, tspan)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 # Analysis callback quantifies discretization/interpolation error of the exact solution
-analysis_callback = AnalysisCallback(semi_sol)
+analysis_callback = AnalysisCallback(semi)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback)
 
