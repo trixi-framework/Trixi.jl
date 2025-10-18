@@ -270,7 +270,7 @@ function linear_structure(semi::AbstractSemidiscretization;
     A = LinearMap(length(u_ode), ismutating = true) do dest, src
         rhs!(dest, src, semi, t0)
         @. dest += b_tmp
-        dest
+        return dest
     end
 
     return A, b
