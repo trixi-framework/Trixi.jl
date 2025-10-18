@@ -2747,11 +2747,11 @@ end
 
 @testset "Parabolic-Hyperbolic Problem Sparsity Pattern" begin
 
+    # Poor-mans rebuild of `SplitODEProblem` from SciML
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
                                     semi::SemidiscretizationHyperbolicParabolic, t)
         Trixi.@trixi_timeit timer() "rhs_hyperbolic_parabolic!" begin
-            # Implementation of split ODE problem in OrdinaryDiffEq
-            du_para = similar(du_ode) # This obviously allocates
+            du_para = similar(du_ode) # This obviously allocates, but fine for this test
             rhs!(du_ode, u_ode, semi, t)
             rhs_parabolic!(du_para, u_ode, semi, t)
 

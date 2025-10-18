@@ -98,11 +98,8 @@ analysis_callback = AnalysisCallback(semi_float_type, interval = analysis_interv
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_restart = SaveRestartCallback(interval = 100,
-                                   save_final_restart = true)
-
 # Note: No `stepsize_callback` due to (implicit) solver with adaptive timestep control
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_restart)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 ###############################################################################
 ### solve the ODE problem ###

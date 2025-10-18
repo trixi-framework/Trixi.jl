@@ -311,7 +311,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
         
         # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
         # first function implicitly and the second one explicitly. Thus, we pass the
-        # stiffer parabolic function first.
+        # (potentially) stiffer parabolic function first.
         return SplitODEProblem{iip}(parabolic_ode, rhs!, u0_ode, tspan, semi)
     else
         # We could also construct an `ODEFunction` without the Jacobian here,
@@ -372,7 +372,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
         
         # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
         # first function implicitly and the second one explicitly. Thus, we pass the
-        # stiffer parabolic function first.
+        # (potentially) stiffer parabolic function first.
         return SplitODEProblem{iip}(parabolic_ode, rhs!, u0_ode, tspan, semi)
     else
         # We could also construct an `ODEFunction` without the Jacobian here,
