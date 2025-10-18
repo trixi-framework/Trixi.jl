@@ -20,10 +20,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 # Define some (arbitrary) initial condition,
 # required only for construction of the semidiscretization
-function initial_condition_zero(x, t, equations)
-    return SVector(0)
-end
-initial_condition = initial_condition_zero
+initial_condition = Returns(0)
 
 function bc_homogeneous(x, t, equations)
     return SVector(0)
