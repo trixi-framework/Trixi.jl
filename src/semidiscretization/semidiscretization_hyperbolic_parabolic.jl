@@ -374,7 +374,7 @@ the full system matrix explicitly, as done for instance in
 [`jacobian_fd`](@ref) and [`jacobian_ad_forward`](@ref).
 
 The returned linear operator `A` is a matrix-free `LinearMap` which can be
-supplied to iterative solvers from e.g. [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
+supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
 """
 function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
                           t0 = zero(real(semi)))
@@ -392,7 +392,7 @@ function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
     @. b -= du_ode
 
     # Create a copy of `b` used internally to extract the linear part of `semi`.
-    # This is necessary to get everything correct when the users updates the
+    # This is necessary to get everything correct when the user updates the
     # returned vector `b`.
     b_tmp = copy(b)
 

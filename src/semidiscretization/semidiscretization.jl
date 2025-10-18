@@ -246,7 +246,7 @@ the full system matrix explicitly, as done for instance in
 [`jacobian_fd`](@ref) and [`jacobian_ad_forward`](@ref).
 
 The returned linear operator `A` is a matrix-free `LinearMap` which can be
-supplied to iterative solvers from e.g. [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
+supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
 """
 function linear_structure(semi::AbstractSemidiscretization;
                           t0 = zero(real(semi)))

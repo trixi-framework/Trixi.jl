@@ -96,7 +96,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1e-4,
             ode_default_options()..., callback = callbacks);
 
-# Check interpolation errors due to choice of number cells & polynomial degree
+# Check interpolation errors due to choice of number of cells & polynomial degree
 interpolation_errors = analysis_callback(sol)
 
 using Plots
