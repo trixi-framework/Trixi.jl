@@ -404,7 +404,7 @@ function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
         rhs_parabolic!(dest_para, src, semi, t0)
 
         @. dest += dest_para + b_tmp
-        dest
+        return dest
     end
 
     return A, b
