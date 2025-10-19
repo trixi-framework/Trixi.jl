@@ -46,7 +46,8 @@ jac_detector = TracerSparsityDetector()
 jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
 semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations_hyperbolic, equations_parabolic),
+                                             (equations_hyperbolic, 
+                                             equations_parabolic),
                                              initial_condition, solver,
                                              uEltype = jac_eltype)
 
@@ -63,9 +64,11 @@ du_ode = similar(u0_ode)
 
 # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
 # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode, u0_ode, 
+                                                                  semi_jac_type, tspan[1])
 
-jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_ode, jac_detector)
+jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_ode, 
+                                            jac_detector)
 
 # For most efficient solving we also want the coloring vector
 
@@ -79,8 +82,9 @@ coloring_vec_parabolic = column_colors(coloring_result)
 
 # Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
 semi_float_type = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations_hyperbolic, equations_parabolic),
-                                             initial_condition, solver)
+                                             (equations_hyperbolic, 
+                                              equations_parabolic),
+                                              initial_condition, solver)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_jac_sparse = semidiscretize(semi_float_type, tspan,
