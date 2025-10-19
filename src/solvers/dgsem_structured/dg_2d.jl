@@ -5,50 +5,6 @@
 @muladd begin
 #! format: noindent
 
-function rhs!(du, u, t,
-              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache, u, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, u, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-
-    return nothing
-end
-
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -61,7 +17,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                                UnstructuredMesh2D, P4estMesh{2},
                                                P4estMeshView{2}, T8codeMesh{2}},
-                                   nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -104,7 +60,7 @@ end
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
-                                           nonconservative_terms::False, equations,
+                                           have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -128,6 +84,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, element)
+            # average mapping terms in first coordinate direction,
+            # used as normal vector in the flux computation
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -144,6 +102,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, element)
+            # average mapping terms in second coordinate direction,
+            # used as normal vector in the flux computation
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -164,7 +124,7 @@ end
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
-                                           nonconservative_terms::True, equations,
+                                           have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -195,6 +155,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, element)
+            # average mapping terms in first coordinate direction,
+            # used as normal vector in the flux computation
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # Compute the contravariant nonconservative flux.
             fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_avg,
@@ -209,6 +171,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, element)
+            # average mapping terms in second coordinate direction,
+            # used as normal vector in the flux computation
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -235,7 +199,7 @@ end
                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                           UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
-                              nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -306,7 +270,7 @@ end
                               mesh::Union{StructuredMesh{2}, StructuredMesh{2},
                                           UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
-                              nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -397,7 +361,7 @@ end
 
 function calc_interface_flux!(cache, u,
                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
-                              nonconservative_terms, # can be True/False
+                              have_nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
     @unpack elements = cache
 
@@ -409,14 +373,14 @@ function calc_interface_flux!(cache, u,
         calc_interface_flux!(elements.surface_flux_values,
                              elements.left_neighbors[1, element],
                              element, 1, u, mesh,
-                             nonconservative_terms, equations,
+                             have_nonconservative_terms, equations,
                              surface_integral, dg, cache)
 
         # Interfaces in y-direction (`orientation` = 2)
         calc_interface_flux!(elements.surface_flux_values,
                              elements.left_neighbors[2, element],
                              element, 2, u, mesh,
-                             nonconservative_terms, equations,
+                             have_nonconservative_terms, equations,
                              surface_integral, dg, cache)
     end
 
@@ -427,7 +391,7 @@ end
                                       orientation, u,
                                       mesh::Union{StructuredMesh{2},
                                                   StructuredMeshView{2}},
-                                      nonconservative_terms::False, equations,
+                                      have_nonconservative_terms::False, equations,
                                       surface_integral, dg::DG, cache)
     # This is slow for LSA, but for some reason faster for Euler (see #519)
     if left_element <= 0 # left_element = 0 at boundaries
@@ -485,9 +449,9 @@ end
                                       orientation, u,
                                       mesh::Union{StructuredMesh{2},
                                                   StructuredMeshView{2}},
-                                      nonconservative_terms::True, equations,
+                                      have_nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache)
-    # See comment on `calc_interface_flux!` with `nonconservative_terms::False`
+    # See comment on `calc_interface_flux!` with `have_nonconservative_terms::False`
     if left_element <= 0 # left_element = 0 at boundaries
         return nothing
     end
@@ -551,14 +515,6 @@ end
         end
     end
 
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
-                             equations, surface_integral, dg::DG)
-    @assert isperiodic(mesh)
     return nothing
 end
 
