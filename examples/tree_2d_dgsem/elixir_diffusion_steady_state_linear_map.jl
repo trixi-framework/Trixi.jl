@@ -43,6 +43,7 @@ boundary_conditions = (; x_neg = bc_homogeneous_dirichlet,
                        y_pos = bc_sin_dirichlet,
                        x_pos = bc_homogeneous_dirichlet)
 
+# `solver_parabolic = ViscousFormulationLocalDG()` strictly required for elliptic/diffusion-dominated problem
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
