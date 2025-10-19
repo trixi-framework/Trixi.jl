@@ -51,6 +51,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions))
 
+# Note that `linear_structure` does not access the `initial_condition`/steady-state solution
 A_map, b = linear_structure(semi)
 
 # Direct solve, with explicit matrix construction.
