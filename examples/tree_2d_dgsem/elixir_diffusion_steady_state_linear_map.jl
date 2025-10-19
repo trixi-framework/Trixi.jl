@@ -91,7 +91,7 @@ using Plots
 # Plot analytical solution
 plot(sol)
 
-# Inject linear system solution for plotting
+# Inject linear system solution for plotting & error computation
 sol.u[1] = u_ls
 plot(sol)
 
