@@ -193,7 +193,8 @@ end
         # (e.g., from type instabilities)
         du = zero(b)
         u = zero(b)
-        @allocated multiple!(du, A, u) < 1000
+        mul!(du, A, u) # compilation run
+        @test (@allocated mul!(du, A, u)) == 0
 
         J_parabolic = jacobian_ad_forward_parabolic(semi)
         λ_parabolic = eigvals(J_parabolic)
