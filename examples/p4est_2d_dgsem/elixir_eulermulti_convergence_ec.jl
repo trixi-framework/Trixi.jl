@@ -15,9 +15,9 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
 cells_per_dimension = (16, 16)
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
-mesh = P4estMesh(cells_per_dimension, polydeg=3, coordinates_min=coordinates_min,
-                 coordinates_max=coordinates_max,
-                 initial_refinement_level=1)
+mesh = P4estMesh(cells_per_dimension, polydeg = 3, coordinates_min = coordinates_min,
+                 coordinates_max = coordinates_max,
+                 initial_refinement_level = 1)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test)
