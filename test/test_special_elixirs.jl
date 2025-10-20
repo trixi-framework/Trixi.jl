@@ -186,9 +186,14 @@ end
         λ = eigvals(J)
         @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
-        A, _ = linear_structure(semi)
+        A, b = linear_structure(semi)
         @test Matrix(A) == J
         @test sparse(A) == sparse(J)
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        du = zero(b)
+        u = zero(b)
+        @allocated multiple!(du, A, u) < 1000
 
         J_parabolic = jacobian_ad_forward_parabolic(semi)
         λ_parabolic = eigvals(J_parabolic)
