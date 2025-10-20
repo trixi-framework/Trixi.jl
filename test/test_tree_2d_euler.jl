@@ -591,6 +591,9 @@ end
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
+
+    # test long printing format
+    @test_nowarn display(solver.mortar)
 end
 
 @trixi_testset "elixir_euler_colliding_flow.jl" begin
