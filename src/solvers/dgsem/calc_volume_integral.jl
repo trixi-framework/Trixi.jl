@@ -92,7 +92,8 @@ function calc_volume_integral!(du, u, mesh,
                                                                        VolumeIntegralFD,
                                                                        Indicator},
                                dg::DGSEM,
-                               cache) where {VolumeIntegralFD <:
+                               cache) where {
+                                             VolumeIntegralFD <:
                                              VolumeIntegralFluxDifferencing,
                                              Indicator <: AbstractIndicator}
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
