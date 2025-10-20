@@ -254,7 +254,7 @@ supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSm
 """
 function linear_structure(semi::AbstractSemidiscretization;
                           t0 = zero(real(semi)))
-    if !have_constant_speed(semi.equations)
+    if have_constant_speed(semi.equations) == False()
         throw(ArgumentError("`linear_structure` expects linear equations."))
     end
 
