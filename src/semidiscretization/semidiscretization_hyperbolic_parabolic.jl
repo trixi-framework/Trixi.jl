@@ -382,7 +382,9 @@ supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSm
 """
 function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
                           t0 = zero(real(semi)))
-    @assert Bool(have_constant_speed(semi.equations)) "`linear_structure` expects linear equations."
+    if !have_constant_speed(semi.equations)
+        throw(ArgumentError("`linear_structure` expects linear equations."))
+    end
 
     # allocate memory
     u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
