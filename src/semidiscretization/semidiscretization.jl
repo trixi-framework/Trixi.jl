@@ -241,14 +241,14 @@ Wraps the right-hand side operator of the semidiscretization `semi`
 at time `t0` as an affine-linear operator given by a linear operator `A`
 and a vector `b`:
 ```math
-\\partial_t u(t) = A u(t) - b,
+\\partial_t u(t) = A u(t) - b.
 ```
 
 This has the benefit of greatly reduced memory consumption compared to constructing
 the full system matrix explicitly, as done for instance in
 [`jacobian_fd`](@ref) and [`jacobian_ad_forward`](@ref).
 
-The returned linear operator `A` is a matrix-free `LinearMap` which can be
+The returned linear operator `A` is a matrix-free operator which can be
 supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
 """
 function linear_structure(semi::AbstractSemidiscretization;

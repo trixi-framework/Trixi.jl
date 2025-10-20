@@ -8,7 +8,8 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 diffusivity() = 1
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
-# Hyperbolic flux does not matter for this example
+# The hyperbolic flux does not matter for this example since
+# the hyperbolic part is zero.
 solver = DGSEM(polydeg = 5, surface_flux = flux_central)
 
 coordinates_min = (0.0, 0.0)
@@ -64,7 +65,11 @@ u_ls = A_matrix \ b
 # Iterative solve, works directly on the linear map, no explicit matrix construction required!
 using Krylov
 
-# This solves the Laplace equation (i.e., steady-state diffusion/heat equation)
+# This solves the Laplace equation (i.e., steady-state diffusion/heat equation).
+# Note that we do not use CG since the operator `A_map` itself is only
+# symmetric and positive definite with respect to the inner product induced by
+# the DGSEM quadrature, not the standard Euclidean inner product. Standard CG
+# would require multiplying the result of `A_map * u` (and `b`) by the mass matrix.
 u_ls, stats = gmres(A_map, b)
 
 ###############################################################################
