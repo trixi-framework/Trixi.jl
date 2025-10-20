@@ -560,6 +560,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
+                        l2=[
+                            1.881988082117652e-6,
+                            1.8819880821092312e-6,
+                            3.0944987119080497e-6,
+                            7.33132754166772e-7,
+                            1.466265508333544e-6
+                        ],
+                        linf=[
+                            1.0907606294185967e-5,
+                            1.0907606329269015e-5,
+                            1.9961476473540074e-5,
+                            4.61297224585433e-6,
+                            9.22594449170866e-6
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[1.0513414461545583e-5, 1.0517900957166411e-6,
