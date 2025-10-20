@@ -76,6 +76,7 @@ u_ls, stats = gmres(A_map, b)
 ###############################################################################
 
 # Construct the ODE problem for easy plotting and comparison to analytical solution
+# Note that we only solve a steady-state problem, i.e., `tspan` has a range of zero.
 tspan = (0.0, 0.0)
 ode = semidiscretize(semi, tspan)
 
@@ -100,7 +101,7 @@ using Plots
 plot(sol)
 
 # Inject linear system solution for plotting & error computation
-sol.u[1] = u_ls
+sol.u[end] = u_ls
 plot(sol)
 
 # Check linear system solution errors
