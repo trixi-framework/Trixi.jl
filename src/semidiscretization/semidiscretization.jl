@@ -243,6 +243,7 @@ and a vector `b`:
 ```math
 \\partial_t u(t) = A u(t) - b.
 ```
+Works only for linear equations, i.e., equations with `have_constant_speed(equations) == True()`.
 
 This has the benefit of greatly reduced memory consumption compared to constructing
 the full system matrix explicitly, as done for instance in
