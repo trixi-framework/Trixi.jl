@@ -235,7 +235,7 @@ end
 
 """
     linear_structure(semi::AbstractSemidiscretization;
-                     t0=zero(real(semi)))
+                     t0 = zero(real(semi)))
 
 Wraps the right-hand side operator of the semidiscretization `semi`
 at time `t0` as an affine-linear operator given by a linear operator `A`
@@ -253,6 +253,8 @@ supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSm
 """
 function linear_structure(semi::AbstractSemidiscretization;
                           t0 = zero(real(semi)))
+    @assert Bool(have_constant_speed(semi.equations)) "`linear_structure` expects linear equations."
+
     # allocate memory
     u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
     du_ode = similar(u_ode)
@@ -278,8 +280,8 @@ end
 
 """
     jacobian_fd(semi::AbstractSemidiscretization;
-                t0=zero(real(semi)),
-                u0_ode=compute_coefficients(t0, semi))
+                t0 = zero(real(semi)),
+                u0_ode = compute_coefficients(t0, semi))
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and simple second order finite difference to compute the Jacobian `J`
@@ -331,8 +333,8 @@ end
 
 """
     jacobian_ad_forward(semi::AbstractSemidiscretization;
-                        t0=zero(real(semi)),
-                        u0_ode=compute_coefficients(t0, semi))
+                        t0 = zero(real(semi)),
+                        u0_ode = compute_coefficients(t0, semi))
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and forward mode automatic differentiation to compute the Jacobian `J`

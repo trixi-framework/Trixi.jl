@@ -381,6 +381,8 @@ supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSm
 """
 function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
                           t0 = zero(real(semi)))
+    @assert Bool(have_constant_speed(semi.equations)) "`linear_structure` expects linear equations."
+
     # allocate memory
     u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
     du_ode = similar(u_ode)
@@ -399,14 +401,12 @@ function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
     # returned vector `b`.
     b_tmp = copy(b)
 
+    # additional storage for parabolic part
+    dest_para = similar(du_ode)
+
     # wrap the linear operator
     A = LinearMap(length(u_ode), ismutating = true) do dest, src
         rhs!(dest, src, semi, t0)
-
-        # additional storage for parabolic part
-        # slightly less allocations when allocated here instead of
-        # outside the `do` block
-        dest_para = similar(dest)
         rhs_parabolic!(dest_para, src, semi, t0)
 
         @. dest += dest_para + b_tmp
@@ -433,8 +433,8 @@ end
 
 """
     jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic;
-                                  t0=zero(real(semi)),
-                                  u0_ode=compute_coefficients(t0, semi))
+                                  t0 = zero(real(semi)),
+                                  u0_ode = compute_coefficients(t0, semi))
 
 Uses the *parabolic part* of the right-hand side operator of the [`SemidiscretizationHyperbolicParabolic`](@ref) `semi`
 and forward mode automatic differentiation to compute the Jacobian `J` of the 

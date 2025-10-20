@@ -55,10 +55,11 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 # Note that `linear_structure` does not access the `initial_condition`/steady-state solution
 A_map, b = linear_structure(semi)
 
-# Direct solve, with explicit matrix construction.
-# Has some troubles due to poor conditioning, visible in top right corner
+# Direct solve, with explicit sparse matrix construction.
+# Has trouble due to poor conditioning, visible in top right corner
 #=
-A_matrix = Matrix(A_map) # This is very memory consuming
+using SparseArrays
+A_matrix = sparse(A_map)
 u_ls = A_matrix \ b
 =#
 
@@ -95,7 +96,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
 interpolation_errors = analysis_callback(sol)
 
 using Plots
-# Plot analytical solution
+# Plot analytical solution (interpolated initial condition)
 plot(sol)
 
 # Inject linear system solution for plotting & error computation
