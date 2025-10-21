@@ -261,7 +261,7 @@ end
                                                                    SVector{3, RealT}}, # Version for DGMulti
                                                  ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive}) where {RealT <:
                                                                                                                            Real}
-    return gradient[1]
+    return gradient[1] # Extract first (and only) component from gradients
 end
 
 # the first argument is always the "transformed" variables.
@@ -299,7 +299,7 @@ end
     v1 = rho_v1 / rho
     T = temperature(u, equations)
 
-    grad_entropy_vars = gradient_entropy_vars[1]
+    grad_entropy_vars = gradient_entropy_vars[1] # Extract first (and only) component from gradients
 
     return SVector(grad_entropy_vars[1],
                    T * (grad_entropy_vars[2] + v1 * grad_entropy_vars[3]), # grad(u) = T*(grad(w_2)+v1*grad(w_3))
