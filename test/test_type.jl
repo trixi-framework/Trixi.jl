@@ -673,8 +673,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
                                                                               equations_parabolic)) ==
                       RealT
-                @test eltype(@inferred Trixi.convert_derivative_to_primitive(u,
-                                                                             (gradients,),
+                @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradients,
                                                                              equations_parabolic)) ==
                       RealT
 
