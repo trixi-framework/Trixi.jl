@@ -252,7 +252,7 @@ end
 # TODO: parabolic; entropy stable viscous terms
 @inline function convert_derivative_to_primitive(u, gradient,
                                                  ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
-    return gradients
+    return gradient
 end
 
 @inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
