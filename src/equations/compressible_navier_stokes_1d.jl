@@ -155,7 +155,7 @@ function flux(u, gradients, orientation::Integer,
     # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, T)
     # either computed directly or reverse engineered from the gradient of the entropy variables
     # by way of the `convert_gradient_variables` function.
-    _, dv1dx, dTdx = convert_derivative_to_primitive(u, gradients, equations)
+    _, dv1dx, dTdx = convert_derivative_to_primitive(u, gradients[1], equations)
 
     # Viscous stress (tensor)
     tau_11 = dv1dx
@@ -250,9 +250,9 @@ end
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
 # TODO: parabolic; entropy stable viscous terms
-@inline function convert_derivative_to_primitive(u, gradients,
+@inline function convert_derivative_to_primitive(u, gradient,
                                                  ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
-    return gradients[1] # Extract first (and only) component from gradients
+    return gradients
 end
 
 @inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
@@ -266,11 +266,9 @@ end
     v1 = rho_v1 / rho
     T = temperature(u, equations)
 
-    grad_entropy_vars = gradient_entropy_vars[1] # Extract first (and only) component from gradients
-
-    return SVector(grad_entropy_vars[1],
-                   T * (grad_entropy_vars[2] + v1 * grad_entropy_vars[3]), # grad(u) = T*(grad(w_2)+v1*grad(w_3))
-                   T * T * grad_entropy_vars[3])
+    return SVector(gradient_entropy_vars[1],
+                   T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[3]), # grad(u) = T*(grad(w_2)+v1*grad(w_3))
+                   T * T * gradient_entropy_vars[3])
 end
 
 # This routine is required because `prim2cons` is called in `initial_condition`, which
