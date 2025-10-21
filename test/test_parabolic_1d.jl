@@ -300,9 +300,9 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_advection_diffusion_nonperiodic.jl" begin
+@trixi_testset "DGMulti: elixir_advection_diffusion_sbp.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
-                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                                 "elixir_advection_diffusion_sbp.jl"),
                         l2=[2.027026825559297e-5],
                         linf=[3.1997648799242384e-5])
     # Ensure that we do not have excessive memory allocations
