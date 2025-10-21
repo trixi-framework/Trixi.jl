@@ -5,14 +5,14 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
-
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
 @testset "SemidiscretizationHyperbolicParabolic (1D)" begin
 #! format: noindent
+
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion.jl"),
@@ -292,6 +292,8 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_1d")
 
 @trixi_testset "DGMulti: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
