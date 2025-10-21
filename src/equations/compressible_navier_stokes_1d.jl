@@ -250,7 +250,7 @@ end
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
 # TODO: parabolic; entropy stable viscous terms
-@inline function convert_derivative_to_primitive(u, gradient::SVector{3, RealT}, # Version for TreeMesh
+@inline function convert_derivative_to_primitive(u, gradient::SVector{3, RealT}, # TreeMesh version
                                                  ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive}) where {RealT <:
                                                                                                                            Real}
     return gradient
@@ -258,7 +258,7 @@ end
 
 @inline function convert_derivative_to_primitive(u,
                                                  gradient::SVector{1,
-                                                                   SVector{3, RealT}}, # Version for DGMulti
+                                                                   SVector{3, RealT}}, # DGMulti version
                                                  ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive}) where {RealT <:
                                                                                                                            Real}
     return gradient[1] # Extract first (and only) component from gradients
@@ -267,7 +267,7 @@ end
 # the first argument is always the "transformed" variables.
 @inline function convert_derivative_to_primitive(w,
                                                  gradient_entropy_vars::SVector{3,
-                                                                                RealT}, # Version for TreeMesh
+                                                                                RealT}, # TreeMesh version
                                                  equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy}) where {RealT <:
                                                                                                                                   Real}
 
@@ -287,7 +287,7 @@ end
 @inline function convert_derivative_to_primitive(w,
                                                  gradient_entropy_vars::SVector{1,
                                                                                 SVector{3,
-                                                                                        RealT}}, # Version for DGMulti
+                                                                                        RealT}}, # DGMulti version
                                                  equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy}) where {RealT <:
                                                                                                                                   Real}
 
