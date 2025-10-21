@@ -660,7 +660,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             for equations_parabolic in (equations_parabolic_primitive,
                                         equations_parabolic_entropy)
-                @test eltype(@inferred flux(u, (gradients,), orientation, equations_parabolic)) ==
+                @test eltype(@inferred flux(u, (gradients,), orientation,
+                                            equations_parabolic)) ==
                       RealT
 
                 @test eltype(@inferred cons2prim(u, equations_parabolic)) == RealT
