@@ -255,6 +255,7 @@ end
     return gradient
 end
 
+# the first argument is always the "transformed" variables.
 @inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
                                                  equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
 
