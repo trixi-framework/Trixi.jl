@@ -250,46 +250,13 @@ end
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
 # TODO: parabolic; entropy stable viscous terms
-@inline function convert_derivative_to_primitive(u, gradient::SVector{3, RealT}, # TreeMesh version
-                                                 ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive}) where {RealT <:
-                                                                                                                           Real}
-    return gradient
+@inline function convert_derivative_to_primitive(u, gradients,
+                                                 ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
+    return gradients[1] # Extract first (and only) component from gradients
 end
 
-@inline function convert_derivative_to_primitive(u,
-                                                 gradient::SVector{1,
-                                                                   SVector{3, RealT}}, # DGMulti version
-                                                 ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive}) where {RealT <:
-                                                                                                                           Real}
-    return gradient[1] # Extract first (and only) component from gradients
-end
-
-# the first argument is always the "transformed" variables.
-@inline function convert_derivative_to_primitive(w,
-                                                 gradient_entropy_vars::SVector{3,
-                                                                                RealT}, # TreeMesh version
-                                                 equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy}) where {RealT <:
-                                                                                                                                  Real}
-
-    # TODO: parabolic. This is inefficient to pass in transformed variables but then transform them back.
-    # We can fix this if we directly compute v1, T from the entropy variables
-    u = entropy2cons(w, equations) # calls a "modified" entropy2cons defined for CompressibleNavierStokesDiffusion1D
-    rho, rho_v1, _ = u
-
-    v1 = rho_v1 / rho
-    T = temperature(u, equations)
-
-    return SVector(gradient_entropy_vars[1],
-                   T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[3]), # grad(u) = T*(grad(w_2)+v1*grad(w_3))
-                   T * T * gradient_entropy_vars[3])
-end
-
-@inline function convert_derivative_to_primitive(w,
-                                                 gradient_entropy_vars::SVector{1,
-                                                                                SVector{3,
-                                                                                        RealT}}, # DGMulti version
-                                                 equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy}) where {RealT <:
-                                                                                                                                  Real}
+@inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
+                                                 equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
 
     # TODO: parabolic. This is inefficient to pass in transformed variables but then transform them back.
     # We can fix this if we directly compute v1, T from the entropy variables

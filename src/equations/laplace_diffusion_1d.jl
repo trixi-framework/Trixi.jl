@@ -18,18 +18,9 @@ function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion1D)
     varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
-function flux(u, gradients::SVector{1, RealT}, # TreeMesh version
-              orientation::Integer,
-              equations_parabolic::LaplaceDiffusion1D) where {RealT <: Real}
-    dudx = gradients
-    # orientation == 1
-    return equations_parabolic.diffusivity * dudx
-end
-
-function flux(u, gradients::SVector{1, SVector{1, RealT}}, # DGMulti version
-              orientation::Integer,
-              equations_parabolic::LaplaceDiffusion1D) where {RealT <: Real}
-    dudx = gradients[1] # Extract first (and only) component from gradients
+function flux(u, gradients, orientation::Integer,
+              equations_parabolic::LaplaceDiffusion1D)
+    dudx, = gradients
     # orientation == 1
     return equations_parabolic.diffusivity * dudx
 end
