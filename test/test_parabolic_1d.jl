@@ -5,11 +5,11 @@ using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = examples_dir()
+
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
-
-EXAMPLES_DIR = examples_dir()
 
 @testset "SemidiscretizationHyperbolicParabolic (1D)" begin
 #! format: noindent
