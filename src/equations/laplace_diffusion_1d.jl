@@ -20,7 +20,7 @@ end
 
 function flux(u, gradients, orientation::Integer,
               equations_parabolic::LaplaceDiffusion1D)
-    dudx, = gradients
+    dudx, = gradients # Extract first (and only) component from gradients
     # orientation == 1
     return equations_parabolic.diffusivity * dudx
 end
