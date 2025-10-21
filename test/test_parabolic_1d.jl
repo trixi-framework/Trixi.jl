@@ -302,6 +302,43 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "DGMulti: elixir_navierstokes_convergence_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        l2=[
+                            3.792507750192902e-5,
+                            4.085145751417269e-5,
+                            0.0002455008811883454
+                        ],
+                        linf=[
+                            0.00010974669014740535,
+                            9.26102644349669e-5,
+                            0.0005481045795789896
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "DGMulti: elixir_navierstokes_convergence_periodic.jl (GradientVariablesEntropy)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        gradient_variables=GradientVariablesEntropy(),
+                        l2=[
+                            3.8529612020417076e-5,
+                            4.08360274584103e-5,
+                            0.00024603153574582305
+                        ],
+                        linf=[
+                            0.00011058363926053083,
+                            9.260654106713062e-5,
+                            0.0005485389540780261
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 end
 
 # Clean up afterwards: delete Trixi output directory
