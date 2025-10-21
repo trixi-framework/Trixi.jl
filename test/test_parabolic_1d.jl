@@ -9,10 +9,10 @@ include("test_trixi.jl")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
+EXAMPLES_DIR = examples_dir()
+
 @testset "SemidiscretizationHyperbolicParabolic (1D)" begin
 #! format: noindent
-
-EXAMPLES_DIR = examples_dir()
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
