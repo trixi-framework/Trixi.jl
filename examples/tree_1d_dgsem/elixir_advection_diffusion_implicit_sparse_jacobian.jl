@@ -46,10 +46,9 @@ jac_detector = TracerSparsityDetector()
 jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
 semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations_hyperbolic, 
-                                             equations_parabolic),
-                                             initial_condition, solver,
-                                             uEltype = jac_eltype)
+                    (equations_hyperbolic, equations_parabolic),
+                    initial_condition, solver,
+                    uEltype = jac_eltype)
 
 tspan = (0.0, 1.5) # Re-used for wrapping `rhs_parabolic!` below
 
@@ -66,17 +65,17 @@ du_ode = similar(u0_ode)
 # https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitFunction
 # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
 # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode, u0_ode, 
+rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode, u0_ode,
                                                                   semi_jac_type, tspan[1])
 
-jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_ode, 
+jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_ode,
                                             jac_detector)
 
 # For most efficient solving we also want the coloring vector
 
 # We chose `nonsymmetric` `structure` because we're computing a Jacobian, which
 # can't be assumed to be symmetric
-# We arbitrarily chose a column-based `patitioning`. This means that we will color
+# We arbitrarily chose a column-based `partitioning`. This means that we will color
 # structurally orthogonal columns the same. `row` partitioning would be equally valid here
 coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
 # The `decompression` arg specifies our evaluation scheme. The `direct` method requires solving
@@ -90,9 +89,8 @@ coloring_vec_parabolic = column_colors(coloring_result)
 
 # Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
 semi_float_type = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations_hyperbolic, 
-                                              equations_parabolic),
-                                              initial_condition, solver)
+                        (equations_hyperbolic, equations_parabolic),
+                        initial_condition, solver)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_jac_sparse = semidiscretize(semi_float_type, tspan,
