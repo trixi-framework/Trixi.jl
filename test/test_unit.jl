@@ -2790,7 +2790,7 @@ end
     # Semidiscretization for sparsity pattern detection
     semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
                                                           (equations_hyperbolic,
-                                                          equations_parabolic),
+                                                           equations_parabolic),
                                                           initial_condition_convergence_test,
                                                           solver,
                                                           uEltype = jac_eltype) # Need to supply Jacobian element type
@@ -2849,7 +2849,7 @@ end
 
     semi_jac_type_zero_advection = SemidiscretizationHyperbolicParabolic(mesh,
                                                                          (equations_hyperbolic_zero_advection,
-                                                                         equations_parabolic_zero_advection),
+                                                                          equations_parabolic_zero_advection),
                                                                          initial_condition_convergence_test,
                                                                          solver,
                                                                          uEltype = jac_eltype)

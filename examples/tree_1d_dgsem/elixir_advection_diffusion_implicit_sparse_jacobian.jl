@@ -47,7 +47,7 @@ jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
 semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
                                                       (equations_hyperbolic,
-                                                      equations_parabolic),
+                                                       equations_parabolic),
                                                       initial_condition, solver,
                                                       uEltype = jac_eltype)
 
@@ -91,7 +91,7 @@ coloring_vec_parabolic = column_colors(coloring_result)
 # Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
 semi_float_type = SemidiscretizationHyperbolicParabolic(mesh,
                                                         (equations_hyperbolic,
-                                                        equations_parabolic),
+                                                         equations_parabolic),
                                                         initial_condition, solver)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
