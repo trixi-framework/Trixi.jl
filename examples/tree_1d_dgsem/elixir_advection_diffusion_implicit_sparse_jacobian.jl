@@ -62,7 +62,9 @@ du_ode = similar(u0_ode)
 ###############################################################################
 ### Compute the Jacobian sparsity pattern ###
 
-# Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+# Only the parabolic part of the `SplitODEProblem` is treated implicitly so we only need the parabolic Jacobian, see
+# https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitFunction
+# Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
 # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
 rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode, u0_ode, 
                                                                   semi_jac_type, tspan[1])
@@ -72,7 +74,13 @@ jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_o
 
 # For most efficient solving we also want the coloring vector
 
+# We chose `nonsymmetric` `structure` because we're computing a Jacobian, which
+# can't be assumed to be symmetric
+# We arbitrarily chose a column-based `patitioning`. This means that we will color
+# structurally orthogonal columns the same. `row` partitioning would be equally valid here
 coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
+# The `decompression` arg specifies our evaluation scheme. The `direct` method requires solving
+# a diagonal system, whereas the `substitution` method solves a triangular system of equations
 coloring_alg = GreedyColoringAlgorithm(; decompression = :direct)
 coloring_result = coloring(jac_prototype_parabolic, coloring_prob, coloring_alg)
 coloring_vec_parabolic = column_colors(coloring_result)
@@ -102,8 +110,11 @@ analysis_callback = AnalysisCallback(semi_float_type, interval = analysis_interv
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+save_restart = SaveRestartCallback(interval = 100,
+                                   save_final_restart = true)
+
 # Note: No `stepsize_callback` due to (implicit) solver with adaptive timestep control
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_restart)
 
 ###############################################################################
 ### solve the ODE problem ###
