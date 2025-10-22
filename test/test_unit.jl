@@ -2749,7 +2749,7 @@ end
 
     # Poor-mans rebuild of `SplitODEProblem` from SciML
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
-                            semi::SemidiscretizationHyperbolicParabolic, t)
+                                       semi::SemidiscretizationHyperbolicParabolic, t)
         Trixi.@trixi_timeit timer() "rhs_hyperbolic_parabolic!" begin
             du_para = similar(du_ode) # This obviously allocates, but fine for this test
             rhs!(du_ode, u_ode, semi, t)
@@ -2789,10 +2789,11 @@ end
 
     # Semidiscretization for sparsity pattern detection
     semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
-                    (equations_hyperbolic, equations_parabolic),
-                    initial_condition_convergence_test,
-                    solver,
-                    uEltype = jac_eltype) # Need to supply Jacobian element type
+                                                          (equations_hyperbolic,
+                                                          equations_parabolic),
+                                                          initial_condition_convergence_test,
+                                                          solver,
+                                                          uEltype = jac_eltype) # Need to supply Jacobian element type
 
     tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
 
@@ -2827,10 +2828,11 @@ end
 
     # Do sparsity detection on our semidiscretization with advection turned off
     rhs_hyper_para! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
-                                                semi_jac_type_zero_advection, tspan[1])
+                                                                    semi_jac_type_zero_advection,
+                                                                    tspan[1])
 
     jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!,
-                                                du_ode, u0_ode, jac_detector)
+                                                           du_ode, u0_ode, jac_detector)
 
     # Given that the stencil for parabolic solvers are always larger than those of hyperbolic solvers,
     # the sparsity detection will never depend on the hyperbolic part of the problem
@@ -2843,21 +2845,23 @@ end
     # We construct a semidiscretization just as we did previously, but this time with advection_velocity=0
     equations_hyperbolic_zero_advection = LinearScalarAdvectionEquation1D(0)
     equations_parabolic_zero_advection = LaplaceDiffusion1D(diffusivity(),
-                                            equations_hyperbolic_zero_advection)
+                                                            equations_hyperbolic_zero_advection)
 
     semi_jac_type_zero_advection = SemidiscretizationHyperbolicParabolic(mesh,
-                                        (equations_hyperbolic_zero_advection,
-                                        equations_parabolic_zero_advection),
-                                        initial_condition_convergence_test,
-                                        solver, uEltype = jac_eltype)
+                                                                         (equations_hyperbolic_zero_advection,
+                                                                         equations_parabolic_zero_advection),
+                                                                         initial_condition_convergence_test,
+                                                                         solver,
+                                                                         uEltype = jac_eltype)
 
     # Do sparsity detection on our semidiscretization with advection turned off
     rhs_hyper_para! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
-                                                semi_jac_type_zero_advection,
-                                                tspan[1])
+                                                                    semi_jac_type_zero_advection,
+                                                                    tspan[1])
 
     jac_prototype_parabolic_zero_advection = jacobian_sparsity(rhs_parabolic_wrapped!,
-                                                        du_ode, u0_ode, jac_detector)
+                                                               du_ode, u0_ode,
+                                                               jac_detector)
 
     # Given that the stencil for parabolic solvers are always larger than those of hyperbolic solvers,
     # the sparsity detection will never depend on the hyperbolic part of the problem

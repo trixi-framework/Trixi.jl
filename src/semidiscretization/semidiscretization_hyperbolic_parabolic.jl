@@ -305,9 +305,9 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
         # Convert `jac_prototype_parabolic` to real type, as seen here:
         # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
         parabolic_ode = SciMLBase.ODEFunction(rhs_parabolic!,
-            jac_prototype = convert.(eltype(u0_ode),
-            jac_prototype_parabolic),
-            colorvec = colorvec_parabolic) # coloring vector is optional
+                                              jac_prototype = convert.(eltype(u0_ode),
+                                                                       jac_prototype_parabolic),
+                                              colorvec = colorvec_parabolic) # coloring vector is optional
 
         # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
         # first function implicitly and the second one explicitly. Thus, we pass the
@@ -366,9 +366,9 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
         # Convert `jac_prototype_parabolic` to real type, as seen here:
         # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
         parabolic_ode = SciMLBase.ODEFunction(rhs_parabolic!,
-            jac_prototype = convert.(eltype(u0_ode),
-            jac_prototype_parabolic),
-            colorvec = colorvec_parabolic) # coloring vector is optional
+                                              jac_prototype = convert.(eltype(u0_ode),
+                                                                       jac_prototype_parabolic),
+                                              colorvec = colorvec_parabolic) # coloring vector is optional
 
         # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
         # first function implicitly and the second one explicitly. Thus, we pass the
