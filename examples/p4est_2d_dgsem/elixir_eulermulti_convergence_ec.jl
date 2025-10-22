@@ -9,7 +9,7 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
 initial_condition = initial_condition_convergence_test
 
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 cells_per_dimension = (16, 16)
