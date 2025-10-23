@@ -11,8 +11,8 @@ initial_condition = initial_condition_convergence_test
 
 polydeg = 3 # Governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)
-surface_flux = flux_hllc
-volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis, surface_flux,
+volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
+                                                      surface_flux = flux_hllc,
                                                       reconstruction_mode = reconstruction_O2_full,
                                                       slope_limiter = monotonized_central)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,

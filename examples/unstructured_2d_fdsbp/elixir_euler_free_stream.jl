@@ -25,8 +25,9 @@ boundary_conditions = Dict(:Body => boundary_condition_free_stream,
 D_SBP = derivative_operator(SummationByPartsOperators.MattssonAlmquistVanDerWeide2018Accurate(),
                             derivative_order = 1, accuracy_order = 4,
                             xmin = -1.0, xmax = 1.0, N = 12)
+surface_integral = SurfaceIntegralStrongForm(surface_flux = flux_hll)
 solver = FDSBP(D_SBP,
-               surface_integral = SurfaceIntegralStrongForm(flux_hll),
+               surface_integral = surface_integral,
                volume_integral = VolumeIntegralStrongForm())
 
 ###############################################################################

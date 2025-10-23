@@ -239,7 +239,7 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
-    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis,
+    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
                                         volume_flux_fv = flux_lax_friedrichs;
                                         reconstruction_mode = reconstruction_O2_full,
                                         slope_limiter = minmod)
@@ -286,7 +286,7 @@ struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
     slope_limiter::Limiter # which type of slope limiter function
 end
 
-function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis,
+function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
                                              volume_flux_fv = flux_lax_friedrichs;
                                              reconstruction_mode = reconstruction_O2_full,
                                              slope_limiter = minmod) where {Basis}
@@ -419,6 +419,7 @@ abstract type AbstractSurfaceIntegral end
 
 """
     SurfaceIntegralWeakForm(surface_flux=flux_central)
+    SurfaceIntegralWeakForm(; surface_flux)
 
 The classical weak form surface integral type for DG methods as explained in standard
 textbooks.
@@ -441,6 +442,7 @@ struct SurfaceIntegralWeakForm{SurfaceFlux} <: AbstractSurfaceIntegral
 end
 
 SurfaceIntegralWeakForm() = SurfaceIntegralWeakForm(flux_central)
+SurfaceIntegralWeakForm(; surface_flux) = SurfaceIntegralWeakForm(surface_flux)
 
 function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralWeakForm)
     @nospecialize integral # reduce precompilation time
@@ -457,6 +459,7 @@ end
 
 """
     SurfaceIntegralStrongForm(surface_flux=flux_central)
+    SurfaceIntegralStrongForm(; surface_flux)
 
 The classical strong form surface integral type for FD/DG methods.
 
@@ -467,6 +470,7 @@ struct SurfaceIntegralStrongForm{SurfaceFlux} <: AbstractSurfaceIntegral
 end
 
 SurfaceIntegralStrongForm() = SurfaceIntegralStrongForm(flux_central)
+SurfaceIntegralStrongForm(; surface_flux) = SurfaceIntegralStrongForm(surface_flux)
 
 function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongForm)
     @nospecialize integral # reduce precompilation time

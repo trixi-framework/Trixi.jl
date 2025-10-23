@@ -19,8 +19,8 @@ boundary_conditions = (x_neg = boundary_condition,
 
 polydeg = 8 # Governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)
-surface_flux = flux_hll
-volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis, surface_flux,
+volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
+                                                      surface_flux = flux_hll,
                                                       reconstruction_mode = reconstruction_O2_inner,
                                                       slope_limiter = vanLeer)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
