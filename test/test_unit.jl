@@ -2827,11 +2827,11 @@ end
     ### sparsity pattern detected on combined hyperbolic and parabolic function ###
 
     # Do sparsity detection on our semidiscretization with advection turned off
-    rhs_hyper_para! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
+    rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
                                                                     semi_jac_type_zero_advection,
                                                                     tspan[1])
 
-    jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!,
+    jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_hyp_para_wrapped!,
                                                            du_ode, u0_ode, jac_detector)
 
     # Given that the stencil for parabolic solvers are always larger than those of hyperbolic solvers,
@@ -2855,11 +2855,11 @@ end
                                                                          uEltype = jac_eltype)
 
     # Do sparsity detection on our semidiscretization with advection turned off
-    rhs_hyper_para! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
+    rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
                                                                     semi_jac_type_zero_advection,
                                                                     tspan[1])
 
-    jac_prototype_parabolic_zero_advection = jacobian_sparsity(rhs_parabolic_wrapped!,
+    jac_prototype_parabolic_zero_advection = jacobian_sparsity(rhs_hyp_para_wrapped!,
                                                                du_ode, u0_ode,
                                                                jac_detector)
 
