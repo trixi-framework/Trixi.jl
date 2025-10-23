@@ -123,12 +123,6 @@ function VisualizationCallback(semi, plot_data_creator = nothing;
     # only "officially" supported visualization packages. However, in general nothing
     # prevents anyone from using other packages, given that appropriate `plot_creator`s are
     # passed.
-
-    # TODO: rest of this comment?
-    # This is also the reason why the visualization callback is not included via
-    # Requires.jl only when Plots is present.
-    # In the future, we should update/remove this warning if other plotting packages are
-    # starting to be used.
     if !(:Plots in names(@__MODULE__, all = true)) &&
        Base.get_extension(Trixi, :TrixiMakieExt) === nothing
         @warn "Neither `Plots` nor `Makie loaded but required by `VisualizationCallback` to visualize results"
