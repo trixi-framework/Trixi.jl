@@ -89,7 +89,8 @@ struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
 
 """
-    VolumeIntegralFluxDifferencing(volume_flux)
+    VolumeIntegralFluxDifferencing(volume_flux = flux_central)
+    VolumeIntegralFluxDifferencing(; volume_flux = flux_central)
 
 Volume integral type for DG methods based on SBP operators and flux differencing
 using a symmetric two-point `volume_flux`. This `volume_flux` needs to satisfy
@@ -115,6 +116,14 @@ the interface of numerical fluxes in Trixi.jl.
 """
 struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
     volume_flux::VolumeFlux
+end
+
+function VolumeIntegralFluxDifferencing(volume_flux = flux_central)
+    return VolumeIntegralFluxDifferencing{typeof(volume_flux)}(volume_flux)
+end
+
+function VolumeIntegralFluxDifferencing(; volume_flux = flux_central)
+    return VolumeIntegralFluxDifferencing{typeof(volume_flux)}(volume_flux)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDifferencing)
@@ -191,7 +200,8 @@ end
 abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegral end
 
 """
-    VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
+    VolumeIntegralPureLGLFiniteVolume(volume_flux_fv = flux_lax_friedrichs)
+    VolumeIntegralPureLGLFiniteVolume(; volume_flux_fv = flux_lax_friedrichs)
 
 A volume integral that only uses the subcell finite volume schemes of the
 [`VolumeIntegralShockCapturingHG`](@ref).
@@ -214,6 +224,14 @@ struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <:
 end
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
 
+function VolumeIntegralPureLGLFiniteVolume(volume_flux_fv = flux_lax_friedrichs)
+    return VolumeIntegralPureLGLFiniteVolume{typeof(volume_flux_fv)}(volume_flux_fv)
+end
+
+function VolumeIntegralPureLGLFiniteVolume(; volume_flux_fv = flux_lax_friedrichs)
+    return VolumeIntegralPureLGLFiniteVolume{typeof(volume_flux_fv)}(volume_flux_fv)
+end
+
 function Base.show(io::IO, ::MIME"text/plain",
                    integral::VolumeIntegralPureLGLFiniteVolume)
     @nospecialize integral # reduce precompilation time
@@ -229,7 +247,8 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
-    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis, volume_flux_fv;
+    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis,
+                                        volume_flux_fv = flux_lax_friedrichs;
                                         reconstruction_mode = reconstruction_O2_full,
                                         slope_limiter = minmod)
 
@@ -275,7 +294,8 @@ struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
     slope_limiter::Limiter # which type of slope limiter function
 end
 
-function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis, volume_flux_fv;
+function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis,
+                                             volume_flux_fv = flux_lax_friedrichs;
                                              reconstruction_mode = reconstruction_O2_full,
                                              slope_limiter = minmod) where {Basis}
     # Suffices to store only the intermediate boundaries of the sub-cell elements                                             
@@ -309,7 +329,8 @@ end
 
 """
     VolumeIntegralSubcellLimiting(limiter;
-                                  volume_flux_dg, volume_flux_fv)
+                                  volume_flux_dg = flux_central,
+                                  volume_flux_fv = flux_lax_friedrichs)
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
 with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
@@ -327,8 +348,9 @@ struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
     limiter::Limiter
 end
 
-function VolumeIntegralSubcellLimiting(limiter; volume_flux_dg,
-                                       volume_flux_fv)
+function VolumeIntegralSubcellLimiting(limiter;
+                                       volume_flux_dg = flux_central,
+                                       volume_flux_fv = flux_lax_friedrichs)
     VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
                                   typeof(limiter)}(volume_flux_dg, volume_flux_fv,
                                                    limiter)
