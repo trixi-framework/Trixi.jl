@@ -242,40 +242,97 @@ end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
 
-struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH, Mortar} <:
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH,
+                                LimitingVariablesNonlinear, Mortar} <:
        AbstractMortar{RealT}
     positivity_variables_cons::Vector{Int}
+    positivity_variables_nonlinear::LimitingVariablesNonlinear
+    pure_low_order::Bool
+    local_factor::Bool
     mortar_l2::Mortar
     # LENGTH = `2 * (NDIMS - 1) + 1`
     mortar_weights::Array{RealT, LENGTH}     # [node_i (large), node_j (large), node_i (small), node_j (small), small_element]
     mortar_weights_sums::Array{RealT, NDIMS} # [node_i, node_j, small (1) / large (2) element]
+    output_directory::String
+end
+
+struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES,
+                                           LimitingVariablesNonlinear, Mortar,
+                                           ForwardMatrix <: AbstractMatrix{RealT},
+                                           ReverseMatrix <: AbstractMatrix{RealT}} <:
+       AbstractMortar{RealT}
+    positivity_variables_cons::Vector{Int}
+    positivity_variables_nonlinear::LimitingVariablesNonlinear
+    mortar_l2::Mortar
+    forward_upper_low_order::ForwardMatrix
+    forward_lower_low_order::ForwardMatrix
+    reverse_upper_low_order::ReverseMatrix
+    reverse_lower_low_order::ReverseMatrix
+    output_directory::String
 end
 
 function MortarIDP(equations, basis::LobattoLegendreBasis;
-                   positivity_variables_cons = String[])
+                   positivity_variables_cons = String[],
+                   positivity_variables_nonlinear = [],
+                   alternative = false,
+                   local_factor = true, basis_function = :piecewise_constant,
+                   pure_low_order = false,
+                   output_directory = "out")
     RealT = real(basis)
     n_dims = ndims(equations)
     nnodes_ = nnodes(basis)
 
     mortar_l2 = MortarL2(basis)
 
-    mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis, RealT)
-
     positivity_variables_cons_ = get_variable_index.(positivity_variables_cons,
                                                      equations)
 
-    LobattoLegendreMortarIDP{RealT, nnodes_, n_dims,
-                             2 * (n_dims - 1) + 1, typeof(mortar_l2)}(positivity_variables_cons_,
-                                                                      mortar_l2,
-                                                                      mortar_weights,
-                                                                      mortar_weights_sums)
+    if alternative
+        forward_upper_low_order = calc_forward_upper_low_order(nnodes_, RealT)
+        forward_lower_low_order = calc_forward_lower_low_order(nnodes_, RealT)
+        reverse_upper_low_order = calc_reverse_upper_low_order(nnodes_,
+                                                               Val(:gauss_lobatto),
+                                                               RealT)
+        reverse_lower_low_order = calc_reverse_lower_low_order(nnodes_,
+                                                               Val(:gauss_lobatto),
+                                                               RealT)
+
+        LobattoLegendreMortarIDPAlternative{RealT, nnodes_,
+                                            typeof(positivity_variables_nonlinear),
+                                            typeof(mortar_l2),
+                                            typeof(forward_upper_low_order),
+                                            typeof(reverse_upper_low_order)}(positivity_variables_cons_,
+                                                                             positivity_variables_nonlinear,
+                                                                             mortar_l2,
+                                                                             forward_upper_low_order,
+                                                                             forward_lower_low_order,
+                                                                             reverse_upper_low_order,
+                                                                             reverse_lower_low_order,
+                                                                             output_directory)
+    else
+        mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis,
+                                                                  RealT;
+                                                                  basis_function = basis_function)
+
+        LobattoLegendreMortarIDP{RealT, nnodes_, n_dims, 2 * (n_dims - 1) + 1,
+                                 typeof(positivity_variables_nonlinear),
+                                 typeof(mortar_l2)}(positivity_variables_cons_,
+                                                    positivity_variables_nonlinear,
+                                                    pure_low_order,
+                                                    local_factor,
+                                                    mortar_l2,
+                                                    mortar_weights,
+                                                    mortar_weights_sums,
+                                                    output_directory)
+    end
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
 
     print(io, "LobattoLegendreMortarIDP(polydeg=", polydeg(mortar), ", positivity for ",
-          mortar.positivity_variables_cons, ")")
+          mortar.positivity_variables_cons, " and ",
+          mortar.positivity_variables_nonlinear, ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
@@ -284,7 +341,8 @@ function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
           "} with polynomials of degree ",
           polydeg(mortar),
           " and positivity limiting for conservative variables ",
-          mortar.positivity_variables_cons)
+          mortar.positivity_variables_cons, " and ",
+          mortar.positivity_variables_nonlinear)
 end
 
 @inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
@@ -294,7 +352,15 @@ end
     NNODES
 end
 
+@inline function nnodes(mortar::LobattoLegendreMortarIDPAlternative{RealT, NNODES}) where {
+                                                                                           RealT,
+                                                                                           NNODES
+                                                                                           }
+    NNODES
+end
+
 @inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
+@inline polydeg(mortar::LobattoLegendreMortarIDPAlternative) = nnodes(mortar) - 1
 
 # TODO: We can create EC mortars along the lines of the following implementation.
 # abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
@@ -623,6 +689,32 @@ function lagrange_interpolating_polynomials(x, nodes, wbary)
 
     for i in 1:n_nodes
         polynomials[i] /= total
+    end
+
+    return polynomials
+end
+
+function low_order_interpolating_polynomials(x, nodes)
+    n_nodes = length(nodes)
+    polynomials = zeros(eltype(nodes), n_nodes)
+
+    for i in 1:n_nodes
+        # Avoid division by zero when `x` is close to node by using
+        # the Kronecker-delta property at nodes
+        # of the Lagrange interpolation polynomials.
+        if isapprox(x, nodes[i], rtol = eps(x))
+            polynomials[i] = 1
+            return polynomials
+        end
+    end
+
+    for i in 1:(n_nodes - 1)
+        if nodes[i] < x < nodes[i + 1]
+            diff = nodes[i + 1] - nodes[i]
+            polynomials[i] = (nodes[i + 1] - x) / diff
+            polynomials[i + 1] = (x - nodes[i]) / diff
+            break
+        end
     end
 
     return polynomials

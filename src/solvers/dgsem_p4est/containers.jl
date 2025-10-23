@@ -554,7 +554,7 @@ end
 
 # Create mortar container and initialize mortar data.
 function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
-                      basis, elements)
+                      basis, elements, mortar::LobattoLegendreMortarL2)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -592,6 +592,120 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
     return mortars
 end
 
+# Similar to `P4estMortarContainer`, but has additional parameter `u_large` to safe the original data of the large element.
+# Used for `LobattoLegendreMortarIDP` with subcell limiting and non-conforming meshes.
+mutable struct P4estIDPMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
+                                       uArray <: DenseArray{uEltype, NDIMSP3},
+                                       uLArray <: DenseArray{uEltype, NDIMSP1},
+                                       IdsMatrix <: DenseMatrix{Int},
+                                       IndicesMatrix <:
+                                       DenseMatrix{NTuple{NDIMS, Symbol}},
+                                       uVector <: DenseVector{uEltype},
+                                       IdsVector <: DenseVector{Int},
+                                       IndicesVector <:
+                                       DenseVector{NTuple{NDIMS, Symbol}}} <:
+               AbstractContainer
+    u::uArray # [small/large side, variable, position, i, j, mortar]
+    u_large::uLArray # [variable, i, j, mortar]
+    neighbor_ids::IdsMatrix # [position, mortar]
+    node_indices::IndicesMatrix # [small/large, mortar]
+    limiting_factor::Vector{uEltype} # [mortar]
+    # internal `resize!`able storage
+    _u::uVector
+    _u_large::uVector
+    _neighbor_ids::IdsVector
+    _node_indices::IndicesVector
+end
+
+@inline nmortars(mortars::P4estIDPMortarContainer) = size(mortars.neighbor_ids, 2)
+@inline Base.ndims(::P4estIDPMortarContainer{NDIMS}) where {NDIMS} = NDIMS
+@inline function Base.eltype(::P4estIDPMortarContainer{NDIMS, uEltype}) where {NDIMS,
+                                                                               uEltype}
+    uEltype
+end
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(mortars::P4estIDPMortarContainer, capacity)
+    @unpack _u, _u_large, _neighbor_ids, _node_indices, limiting_factor = mortars
+
+    n_dims = ndims(mortars)
+    n_nodes = size(mortars.u, 4)
+    n_variables = size(mortars.u, 2)
+    ArrayType = storage_type(mortars)
+
+    resize!(_u, 2 * n_variables * 2^(n_dims - 1) * n_nodes^(n_dims - 1) * capacity)
+    mortars.u = unsafe_wrap(ArrayType, pointer(_u),
+                            (2, n_variables, 2^(n_dims - 1),
+                             ntuple(_ -> n_nodes, n_dims - 1)..., capacity))
+
+    resize!(_u_large, n_variables * n_nodes^(n_dims - 1) * capacity)
+    mortars.u_large = unsafe_wrap(ArrayType, pointer(_u_large),
+                                  (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
+                                   capacity))
+
+    resize!(_neighbor_ids, (2^(n_dims - 1) + 1) * capacity)
+    mortars.neighbor_ids = unsafe_wrap(ArrayType, pointer(_neighbor_ids),
+                                       (2^(n_dims - 1) + 1, capacity))
+
+    resize!(_node_indices, 2 * capacity)
+    mortars.node_indices = unsafe_wrap(ArrayType, pointer(_node_indices), (2, capacity))
+
+    resize!(limiting_factor, capacity)
+
+    return nothing
+end
+
+# Create mortar container and initialize mortar data.
+function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
+                      basis, elements, mortar::LobattoLegendreMortarIDP)
+    NDIMS = ndims(elements)
+    uEltype = eltype(elements)
+
+    # Initialize container
+    n_mortars = count_required_surfaces(mesh).mortars
+
+    _u = Vector{uEltype}(undef,
+                         2 * nvariables(equations) * 2^(NDIMS - 1) *
+                         nnodes(basis)^(NDIMS - 1) * n_mortars)
+    u = unsafe_wrap(Array, pointer(_u),
+                    (2, nvariables(equations), 2^(NDIMS - 1),
+                     ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mortars))
+
+    _u_large = Vector{uEltype}(undef,
+                               nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
+                               n_mortars)
+    u_large = unsafe_wrap(Array, pointer(_u_large),
+                          (nvariables(equations),
+                           ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mortars))
+
+    _neighbor_ids = Vector{Int}(undef, (2^(NDIMS - 1) + 1) * n_mortars)
+    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+                               (2^(NDIMS - 1) + 1, n_mortars))
+
+    _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
+    node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
+
+    limiting_factor = Vector{uEltype}(undef, n_mortars)
+
+    mortars = P4estIDPMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3, typeof(u),
+                                      typeof(u_large),
+                                      typeof(neighbor_ids), typeof(node_indices),
+                                      typeof(_u), typeof(_neighbor_ids),
+                                      typeof(_node_indices)}(u, u_large,
+                                                             neighbor_ids,
+                                                             node_indices,
+                                                             limiting_factor,
+                                                             _u, _u_large,
+                                                             _neighbor_ids,
+                                                             _node_indices)
+
+    if n_mortars > 0
+        init_mortars!(mortars, mesh)
+    end
+
+    return mortars
+end
+
 function init_mortars!(mortars, mesh::Union{P4estMesh, P4estMeshView})
     init_surfaces!(nothing, mortars, nothing, mesh)
 
@@ -600,6 +714,12 @@ end
 
 function Adapt.parent_type(::Type{<:P4estMortarContainer{<:Any, <:Any, <:Any, <:Any,
                                                          ArrayT}}) where {ArrayT}
+    ArrayT
+end
+
+function Adapt.parent_type(::Type{<:P4estIDPMortarContainer{<:Any, <:Any, <:Any, <:Any,
+                                                            <:Any,
+                                                            ArrayT}}) where {ArrayT}
     ArrayT
 end
 
