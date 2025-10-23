@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -48,8 +48,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df00
                            joinpath(@__DIR__, "cube_unstructured_2.inp"))
 
 mesh = P4estMesh{3}(mesh_file, polydeg = 5,
-                    mapping = mapping,
-                    initial_refinement_level = 0)
+                    mapping = mapping)
 
 # create the semidiscretization object
 

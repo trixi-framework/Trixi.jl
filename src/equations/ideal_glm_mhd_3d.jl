@@ -71,10 +71,13 @@ end
     initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations3D)
 
 An Alfvén wave as smooth initial condition used for convergence tests.
+See for reference section 5.1 in
+ - Christoph Altmann (2012)
+   Explicit Discontinuous Galerkin Methods for Magnetohydrodynamics
+   [DOI: 10.18419/opus-3895](http://dx.doi.org/10.18419/opus-3895)
 """
 function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations3D)
     # Alfvén wave in three space dimensions
-    # Altmann thesis http://dx.doi.org/10.18419/opus-3895
     # domain must be set to [-1, 1]^3, γ = 5/3
     RealT = eltype(x)
     p = 1
@@ -135,7 +138,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::IdealGlmMhdEquations3D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
     v1 = rho_v1 / rho

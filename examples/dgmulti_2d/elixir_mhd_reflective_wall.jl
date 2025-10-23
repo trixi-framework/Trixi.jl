@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 using LinearAlgebra: norm, dot # for use in the MHD boundary condition
 
@@ -28,7 +28,14 @@ function initial_condition_perturbation(x, t, equations::IdealGlmMhdEquations2D)
 end
 initial_condition = initial_condition_perturbation
 
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 
 solver = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = GaussSBP(),
@@ -93,11 +100,15 @@ cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         stepsize_callback,
-                        glm_speed_callback)
+                        glm_speed_callback,
+                        save_solution)
 
 ###############################################################################
 # run the simulation

@@ -21,12 +21,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                         linf=[4.467840577382365e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_burgers_gauss_shock_capturing.jl " begin
@@ -37,12 +32,7 @@ end
                         linf=[0.74780611426038])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_flux_diff.jl " begin
@@ -61,39 +51,29 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_shu_osher_gauss_shock_capturing.jl " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shu_osher_gauss_shock_capturing.jl"),
-                        cells_per_dimension=(64,), tspan=(0.0, 1.0),
                         l2=[
-                            1.6967151731067875,
-                            6.018445633981826,
-                            21.77425594743242
+                            1.696712726264938,
+                            6.018435800027037,
+                            21.774221602026298
                         ],
                         linf=[
-                            3.2229876650556477,
-                            10.702690533393842,
-                            38.37424900889908
+                            3.2229930998898952,
+                            10.702431261492814,
+                            38.37420027341893
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_flux_diff.jl (convergence)" begin
+    using Trixi: convergence_test
     mean_convergence = convergence_test(@__MODULE__,
                                         joinpath(EXAMPLES_DIR,
                                                  "elixir_euler_flux_diff.jl"), 3)
@@ -102,12 +82,7 @@ end
                    rtol = 0.05)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_flux_diff.jl (SBP) " begin
@@ -126,15 +101,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_flux_diff.jl (FD SBP)" begin
+    using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 4,
@@ -157,17 +128,11 @@ end
     show(stdout, MIME"text/plain"(), semi.solver.basis)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_modified_sod.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_1d",
-                                 "elixir_euler_modified_sod.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_modified_sod.jl"),
                         cells_per_dimension=(16,),
                         l2=[0.26352391505659767, 0.4528974787813885, 0.9310255091126164],
                         linf=[
@@ -177,12 +142,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
@@ -199,15 +159,11 @@ end
     show(stdout, MIME"text/plain"(), semi.solver.basis)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "DGMulti with periodic SBP unit test" begin
+    using Trixi: periodic_derivative_operator, DGMulti, Line, DGMultiMesh
     # see https://github.com/trixi-framework/Trixi.jl/pull/1013
     global D = periodic_derivative_operator(derivative_order = 1,
                                             accuracy_order = 4,
@@ -222,32 +178,6 @@ end
 end
 
 # test non-conservative systems
-@trixi_testset "elixir_shallow_water_quasi_1d.jl (SBP) " begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallow_water_quasi_1d.jl"),
-                        cells_per_dimension=(8,),
-                        approximation_type=SBP(),
-                        l2=[
-                            3.0300196635805022e-6,
-                            1.6921833812545857e-5,
-                            2.9844594164368975e-16,
-                            1.1012004949980629e-15
-                        ],
-                        linf=[
-                            1.2043309307818717e-5,
-                            5.346754311919e-5,
-                            9.43689570931383e-16,
-                            2.220446049250313e-15
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
 @trixi_testset "elixir_euler_quasi_1d.jl (SBP) " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d.jl"),
                         cells_per_dimension=(8,),
@@ -266,12 +196,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_quasi_1d.jl (Polynomial) " begin
@@ -292,12 +217,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end
 

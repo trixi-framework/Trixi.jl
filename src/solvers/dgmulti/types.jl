@@ -71,14 +71,21 @@ Base.real(rd::RefElemData) = eltype(rd.r)
               RefElemData_kwargs...)
 
 Create a discontinuous Galerkin method which uses
-- approximations of polynomial degree `polydeg`
-- element type `element_type` (`Tri()`, `Quad()`, `Tet()`, and `Hex()` currently supported)
+- Approximations of polynomial degree `polydeg`.
+- Element type `element_type` (`Tri()`, `Quad()`, `Tet()`, `Hex()`, and `Wedge()` are
+  currently supported)
 
 Optional:
-- `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`, `Quad()`,
-  and `Hex()` element types).
-- `RefElemData_kwargs` are additional keyword arguments for `RefElemData`, such as `quad_rule_vol`.
-  For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
+- `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`,
+  `Quad()`, and `Hex()` element types).
+- `RefElemData_kwargs` are additional keyword arguments for `RefElemData`, such as
+  `quad_rule_vol`.
+
+For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
+
+!!! note "Wedge elements"
+    For `Wedge` elements (i.e. triangular prisms), the polynomial degree may optionally be
+    specified as a tuple of the form `polydeg = (polydeg_tri, polydeg_line)`.
 """
 function DGMulti(; polydeg = nothing,
                  element_type::AbstractElemShape,
@@ -93,11 +100,24 @@ function DGMulti(; polydeg = nothing,
             polydeg = polydeg, kwargs...)
 end
 
-# dispatchable constructor for DGMulti using a TensorProductWedge
+# `Wedge` element types can optionally take `polydeg = (polydeg_tri, polydeg_line)`, which
+# constructs a `TensorProductWedge` approximation. Since Julia does not dispatch on keyword
+# arguments, we wrap a method which makes `polydeg` a positional argument.
 function DGMulti(element_type::Wedge,
                  approximation_type,
                  volume_integral,
                  surface_integral;
+                 polydeg,
+                 kwargs...)
+    return DGMulti(element_type, approximation_type, volume_integral, surface_integral,
+                   polydeg; kwargs...)
+end
+
+# Constructor with `polydeg::Tuple` as a positional argument to allow dispatch
+function DGMulti(element_type::Wedge,
+                 approximation_type,
+                 volume_integral,
+                 surface_integral,
                  polydeg::Tuple,
                  kwargs...)
     factor_a = RefElemData(Tri(), approximation_type, polydeg[1]; kwargs...)
@@ -105,6 +125,19 @@ function DGMulti(element_type::Wedge,
 
     tensor = TensorProductWedge(factor_a, factor_b)
     rd = RefElemData(element_type, tensor; kwargs...)
+    # `nothing` is passed as `mortar`
+    return DG(rd, nothing, surface_integral, volume_integral)
+end
+
+# Constructor with `polydeg::Integer` as a positional argument to allow dispatch
+function DGMulti(element_type::Wedge,
+                 approximation_type,
+                 volume_integral,
+                 surface_integral,
+                 polydeg::Integer,
+                 kwargs...)
+    rd = RefElemData(element_type, approximation_type, polydeg; kwargs...)
+    # `nothing` is passed as `mortar`
     return DG(rd, nothing, surface_integral, volume_integral)
 end
 
@@ -343,7 +376,7 @@ end
 function SimpleKronecker(NDIMS, A, eltype_A = eltype(A))
     @assert size(A, 1) == size(A, 2) # check if square
     tmp_storage = [zeros(eltype_A, ntuple(_ -> size(A, 2), NDIMS)...)
-                   for _ in 1:Threads.nthreads()]
+                   for _ in 1:Threads.maxthreadid()]
     return SimpleKronecker{NDIMS, typeof(A), typeof(tmp_storage)}(A, tmp_storage)
 end
 

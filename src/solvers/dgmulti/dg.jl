@@ -42,6 +42,8 @@ end
     end
 end
 
+@inline nelements(dg::DGMulti, cache) = size(cache.u_values)[end]
+
 """
     eachdim(mesh)
 
@@ -157,7 +159,7 @@ function reset_du!(du, dg::DGMulti, other_args...)
         du[i] = zero(eltype(du))
     end
 
-    return du
+    return nothing
 end
 
 # Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
@@ -187,7 +189,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
 
     # local storage for volume integral and source computations
     local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
     # For affine meshes, we just access one element of this interpolated data.
@@ -198,16 +200,16 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
 
     # for scaling by curved geometric terms (not used by affine DGMultiMesh)
     flux_threaded = [[allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                      for _ in 1:NDIMS] for _ in 1:Threads.nthreads()]
+                      for _ in 1:NDIMS] for _ in 1:Threads.maxthreadid()]
     rotated_flux_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
             u_values, u_face_values, flux_face_values,
             local_values_threaded, flux_threaded, rotated_flux_threaded)
 end
 
-function compute_coefficients!(u, initial_condition, t,
+function compute_coefficients!(::Nothing, u, initial_condition, t,
                                mesh::DGMultiMesh, equations, dg::DGMulti, cache)
     md = mesh.md
     rd = dg.basis
@@ -221,6 +223,8 @@ function compute_coefficients!(u, initial_condition, t,
 
     # multiplying by Pq computes the L2 projection
     apply_to_each_field(mul_by!(rd.Pq), u, u_values)
+
+    return nothing
 end
 
 # estimates the timestep based on polynomial degree and mesh. Does not account for physics (e.g.,
@@ -265,13 +269,12 @@ function max_dt(u, t, mesh::DGMultiMesh,
     @unpack md = mesh
     rd = dg.basis
 
+    # Compute max_speeds only once, since it's constant for all nodes/elements
+    max_speeds = max_abs_speeds(equations)
+
     dt_min = Inf
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
-        max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
-        for i in Base.OneTo(rd.Np) # loop over nodes
-            max_speeds = max.(max_abs_speeds(equations), max_speeds)
-        end
         dt_min = min(dt_min, h_e / sum(max_speeds))
     end
     # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
@@ -282,12 +285,13 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 # interpolates from solution coefficients to face quadrature points
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
-                             surface_integral, dg::DGMulti)
+function prolong2interfaces!(cache, u,
+                             mesh::DGMultiMesh, equations, dg::DGMulti)
     rd = dg.basis
     @unpack u_face_values = cache
     apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
+
+    return nothing
 end
 
 # version for affine meshes
@@ -319,6 +323,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             end
         end
     end
+
+    return nothing
 end
 
 # version for curved meshes
@@ -365,6 +371,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                 view(du, :, e), rotated_flux_values)
         end
     end
+
+    return nothing
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
@@ -385,6 +393,8 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
         normal = SVector{NDIMS}(getindex.(nxyzJ, idM)) / Jf[idM]
         flux_face_values[idM] = surface_flux(uM, uP, normal, equations) * Jf[idM]
     end
+
+    return nothing
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
@@ -418,6 +428,8 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
                                     Jf[idM]
         end
     end
+
+    return nothing
 end
 
 # assumes cache.flux_face_values is computed and filled with
@@ -427,12 +439,13 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 dg::DGMulti, cache)
     rd = dg.basis
     apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
+
+    return nothing
 end
 
 # Specialize for nodal SBP discretizations. Uses that Vf*u = u[Fmask,:]
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations, surface_integral,
-                             dg::DGMultiSBP)
+function prolong2interfaces!(cache, u,
+                             mesh::DGMultiMesh, equations, dg::DGMultiSBP)
     rd = dg.basis
     @unpack Fmask = rd
     @unpack u_face_values = cache
@@ -441,6 +454,8 @@ function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations, surface_int
             u_face_values[i, e] = u[fid, e]
         end
     end
+
+    return nothing
 end
 
 # Specialize for nodal SBP discretizations. Uses that du = LIFT*u is equivalent to
@@ -457,6 +472,8 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
             du[fid, e] = du[fid, e] + flux_face_values[i, e] * lift_scalings[i]
         end
     end
+
+    return nothing
 end
 
 # do nothing for periodic (default) boundary conditions
@@ -472,6 +489,8 @@ function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
                                    key,
                                    mesh, have_nonconservative_terms, equations, dg)
     end
+
+    return nothing
 end
 
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
@@ -516,6 +535,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
 
     # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
     # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+
+    return nothing
 end
 
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,
@@ -564,6 +585,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
 
     # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
     # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+
+    return nothing
 end
 
 # inverts Jacobian and scales by -1.0
@@ -575,6 +598,8 @@ function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache;
             du[i, e] *= scaling * invJ
         end
     end
+
+    return nothing
 end
 
 # inverts Jacobian using weight-adjusted DG, and scales by -1.0.
@@ -601,6 +626,8 @@ function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
         # project back to polynomials
         apply_to_each_field(mul_by!(Pq), view(du, :, e), du_at_quad_points)
     end
+
+    return nothing
 end
 
 # Multiple calc_sources! to resolve method ambiguities
@@ -631,6 +658,8 @@ function calc_sources!(du, u, t, source_terms,
         end
         apply_to_each_field(mul_by_accum!(Pq), view(du, :, e), source_values)
     end
+
+    return nothing
 end
 
 function rhs!(du, u, t, mesh, equations,
@@ -645,7 +674,7 @@ function rhs!(du, u, t, mesh, equations,
     end
 
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     @trixi_timeit timer() "interface flux" begin

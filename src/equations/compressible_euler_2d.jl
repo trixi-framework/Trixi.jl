@@ -294,7 +294,7 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
-Should be used together with [`UnstructuredMesh2D`](@ref) or [`P4estMesh`](@ref).
+Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), or [`T8codeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t,
@@ -354,7 +354,7 @@ Should be used together with [`TreeMesh`](@ref).
         normal_direction = SVector(zero(RealT), one(RealT))
     end
 
-    # compute and return the flux using `boundary_condition_slip_wall` routine above
+    # compute and return the flux using `boundary_condition_slip_wall` routine below
     return boundary_condition_slip_wall(u_inner, normal_direction, direction,
                                         x, t, surface_flux_function, equations)
 end
@@ -384,7 +384,7 @@ Should be used together with [`StructuredMesh`](@ref).
     return boundary_flux
 end
 
-# Calculate 2D flux for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
     v1 = rho_v1 / rho
@@ -404,7 +404,7 @@ end
     return SVector(f1, f2, f3, f4)
 end
 
-# Calculate 2D flux for a single point in the normal direction
+# Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::CompressibleEulerEquations2D)
