@@ -240,7 +240,7 @@ end
 
 """
     VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
-                                        volume_flux_fv = flux_lax_friedrichs;
+                                        volume_flux_fv = flux_lax_friedrichs,
                                         reconstruction_mode = reconstruction_O2_full,
                                         slope_limiter = minmod)
 
@@ -287,7 +287,7 @@ struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
 end
 
 function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
-                                             volume_flux_fv = flux_lax_friedrichs;
+                                             volume_flux_fv = flux_lax_friedrichs,
                                              reconstruction_mode = reconstruction_O2_full,
                                              slope_limiter = minmod) where {Basis}
     # Suffices to store only the intermediate boundaries of the sub-cell elements                                             
