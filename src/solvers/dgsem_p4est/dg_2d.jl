@@ -14,11 +14,11 @@ function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
-    fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    u_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    u_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
     cache = (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
              fstar_secondary_upper_threaded, fstar_secondary_lower_threaded,

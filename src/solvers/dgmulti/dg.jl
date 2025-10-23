@@ -189,7 +189,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
 
     # local storage for volume integral and source computations
     local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
     # For affine meshes, we just access one element of this interpolated data.
@@ -200,9 +200,9 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
 
     # for scaling by curved geometric terms (not used by affine DGMultiMesh)
     flux_threaded = [[allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                      for _ in 1:NDIMS] for _ in 1:Threads.nthreads()]
+                      for _ in 1:NDIMS] for _ in 1:Threads.maxthreadid()]
     rotated_flux_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
             u_values, u_face_values, flux_face_values,
