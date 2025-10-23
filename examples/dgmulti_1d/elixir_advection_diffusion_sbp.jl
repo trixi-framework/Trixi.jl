@@ -1,9 +1,8 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-surface_integral = SurfaceIntegralWeakForm(surface_flux = flux_lax_friedrichs)
 dg = DGMulti(polydeg = 3, element_type = Line(), approximation_type = GaussSBP(),
-             surface_integral = surface_integral)
+             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs))
 
 advection_velocity = 0.1
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
