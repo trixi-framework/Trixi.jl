@@ -69,12 +69,6 @@ function SemidiscretizationCoupledP4est(semis...)
                                                                 mesh_ids)
 end
 
-function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
-    @nospecialize semi # reduce precompilation time
-
-    print(io, "SemidiscretizationCoupledP4est($(semi.semis))")
-end
-
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4est)
     @nospecialize semi # reduce precompilation time
 
@@ -123,17 +117,11 @@ function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCouple
     end
 end
 
-@inline Base.ndims(semi::SemidiscretizationCoupledP4est) = ndims(semi.semis[1])
-
 @inline nsystems(semi::SemidiscretizationCoupledP4est) = length(semi.semis)
 
 @inline eachsystem(semi::SemidiscretizationCoupledP4est) = Base.OneTo(nsystems(semi))
 
 @inline Base.real(semi::SemidiscretizationCoupledP4est) = promote_type(real.(semi.semis)...)
-
-@inline function Base.eltype(semi::SemidiscretizationCoupledP4est)
-    promote_type(eltype.(semi.semis)...)
-end
 
 @inline function ndofs(semi::SemidiscretizationCoupledP4est)
     sum(ndofs, semi.semis)
@@ -368,10 +356,6 @@ mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
     function BoundaryConditionCoupledP4est(coupling_converter)
         new{typeof(coupling_converter)}(coupling_converter)
     end
-end
-
-function Base.eltype(boundary_condition::BoundaryConditionCoupledP4est)
-    eltype(boundary_condition.u_boundary)
 end
 
 """
