@@ -716,6 +716,10 @@ end
                                                             plot_creator = Trixi.save_plot),
                         tspan=(0.0, 3.0))
 
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_amr_visualization_makie.jl"),
+                        tspan=(0.0, 3.0))
+
     @testset "elixir_advection_amr_visualization.jl with save_plot" begin
         @test isfile(joinpath(outdir, "solution_000000000.png"))
         @test isfile(joinpath(outdir, "solution_000000020.png"))
