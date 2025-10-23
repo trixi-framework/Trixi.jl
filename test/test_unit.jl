@@ -2828,7 +2828,7 @@ end
 
     # Do sparsity detection on our semidiscretization with advection turned off
     rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
-                                                                    semi_jac_type_zero_advection,
+                                                                    semi_jac_type,
                                                                     tspan[1])
 
     jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_hyp_para_wrapped!,
