@@ -57,8 +57,9 @@ function calculate_cfl(ode_algorithm::AbstractPairedExplicitRK, ode)
 
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u_ode)
 
-    cfl_number = dt_opt / max_dt(u, t0, mesh,
+    cfl_number = dt_opt / max_dt(backend, u, t0, mesh,
                         have_constant_speed(equations), equations,
                         solver, cache)
     return cfl_number
