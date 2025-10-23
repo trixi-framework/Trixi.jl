@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 using GLMakie
 
@@ -53,7 +52,7 @@ save_solution = SaveSolutionCallback(interval = 100,
 # via `using GLMakie` (see above).
 # Additional keyword arguments, such as colorrange, will get passed to the respective
 # plotting command.
-visualization = VisualizationCallback(interval = 100,
+visualization = VisualizationCallback(semi; interval = 100,
                                       plot_creator = Trixi.show_plot_makie,
                                       colorrange = (0.0, 1.0))
 
@@ -79,4 +78,3 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
