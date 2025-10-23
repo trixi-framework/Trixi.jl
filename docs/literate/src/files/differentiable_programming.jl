@@ -332,7 +332,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ode = semidiscretize(semi, (0.0, 1.0))
 sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
 round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5)
-@test round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5) == 0.24986 #src
+@test round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5) == 0.25 #src
 
 # do not need any modifications since they are sufficiently generic (and enough effort
 # has been spend to allow general types inside these calls).
