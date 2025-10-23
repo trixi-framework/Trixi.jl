@@ -13,13 +13,13 @@ function create_cache(::Type{IndicatorHennemannGassner},
 
     A = Array{real(basis), ndims(equations)}
     indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
     modal_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                      for _ in 1:Threads.nthreads()]
+                      for _ in 1:Threads.maxthreadid()]
     modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
     modal_tmp2_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded,
             modal_tmp2_threaded)
@@ -153,7 +153,7 @@ function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{3},
 
     A = Array{real(basis), ndims(equations)}
     indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
 end
@@ -214,7 +214,7 @@ function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{3},
 
     A = Array{real(basis), ndims(equations)}
     indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
 end
