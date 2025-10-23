@@ -89,7 +89,7 @@ struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
 
 """
-    VolumeIntegralFluxDifferencing(volume_flux = flux_central)
+    VolumeIntegralFluxDifferencing(volume_flux)
     VolumeIntegralFluxDifferencing(; volume_flux = flux_central)
 
 Volume integral type for DG methods based on SBP operators and flux differencing
@@ -116,10 +116,6 @@ the interface of numerical fluxes in Trixi.jl.
 """
 struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
     volume_flux::VolumeFlux
-end
-
-function VolumeIntegralFluxDifferencing(volume_flux = flux_central)
-    return VolumeIntegralFluxDifferencing{typeof(volume_flux)}(volume_flux)
 end
 
 function VolumeIntegralFluxDifferencing(; volume_flux = flux_central)
@@ -200,7 +196,7 @@ end
 abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegral end
 
 """
-    VolumeIntegralPureLGLFiniteVolume(volume_flux_fv = flux_lax_friedrichs)
+    VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
     VolumeIntegralPureLGLFiniteVolume(; volume_flux_fv = flux_lax_friedrichs)
 
 A volume integral that only uses the subcell finite volume schemes of the
@@ -223,10 +219,6 @@ struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <:
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
 end
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
-
-function VolumeIntegralPureLGLFiniteVolume(volume_flux_fv = flux_lax_friedrichs)
-    return VolumeIntegralPureLGLFiniteVolume{typeof(volume_flux_fv)}(volume_flux_fv)
-end
 
 function VolumeIntegralPureLGLFiniteVolume(; volume_flux_fv = flux_lax_friedrichs)
     return VolumeIntegralPureLGLFiniteVolume{typeof(volume_flux_fv)}(volume_flux_fv)
