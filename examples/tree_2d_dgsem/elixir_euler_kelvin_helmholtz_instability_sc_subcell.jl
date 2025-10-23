@@ -1,5 +1,3 @@
-# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
-using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -68,7 +66,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:limiting_coefficient,))
 
 save_restart = SaveRestartCallback(interval = 1000,
                                    save_final_restart = true)
@@ -89,5 +88,5 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  ode_default_options()...,
                   callback = callbacks);
-summary_callback() # print the timer summary

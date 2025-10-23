@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 using LinearAlgebra: norm, dot # for use in the MHD boundary condition
 
@@ -93,17 +93,19 @@ cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         stepsize_callback,
-                        glm_speed_callback)
+                        glm_speed_callback,
+                        save_solution)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1e-5, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -87,10 +87,12 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 1,
-                                      med_level = 2, med_threshold = 0.05,
-                                      max_level = 3, max_threshold = 0.15)
+amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
+                                              base_level = 1,
+                                              med_level = 2, med_threshold = 0.05, # med_level = current level
+                                              max_level = 3, max_threshold = 0.15,
+                                              max_threshold_secondary = indicator_sc.alpha_max)
+
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
                            adapt_initial_condition = false,
@@ -107,7 +109,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

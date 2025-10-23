@@ -135,6 +135,26 @@ end
                             0.008526972236273522
                         ],
                         tspan=(0.0, 0.01))
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+                        surface_flux=FluxPlusDissipation(flux_ranocha,
+                                                         DissipationMatrixWintersEtal()),
+                        l2=[
+                            4.068002997087932e-5,
+                            4.4742882348806466e-5,
+                            5.101817697733163e-5,
+                            5.100410876233901e-5,
+                            0.000199848133462063
+                        ],
+                        linf=[
+                            0.0013080357114820806,
+                            0.0028524316301083985,
+                            0.0019100643150573582,
+                            0.0024800222220195955,
+                            0.00830424488849335
+                        ],
+                        tspan=(0.0, 0.01),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -567,6 +587,42 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_alfven_wave_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_nonperiodic.jl"),
+                        l2=[
+                            0.00017912812934894293,
+                            0.000630910737693146,
+                            0.0002256138768371346,
+                            0.0007301686017397987,
+                            0.0006647296256552257,
+                            0.0006409790941359089,
+                            0.00033986873316986315,
+                            0.0007277161123570452,
+                            1.3184121257198033e-5
+                        ],
+                        linf=[
+                            0.0012248374096375247,
+                            0.004857541490859554,
+                            0.001813452620706816,
+                            0.004803571938364726,
+                            0.005271403957646026,
+                            0.004571200760744465,
+                            0.002618188297242474,
+                            0.005010126350015381,
+                            6.309149507784953e-5
+                        ],
+                        tspan=(0.0, 0.25),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_shockcapturing_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_amr.jl"),
                         l2=[
@@ -662,18 +718,18 @@ end
 @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
-                            0.011345993108796831,
-                            0.018525073963833696,
-                            0.019102348105917946,
-                            0.01920515438943838,
-                            0.15060493968460148
+                            0.012046270976464931,
+                            0.01894521652831441,
+                            0.01951983946363743,
+                            0.019748755875702628,
+                            0.15017285006198244
                         ],
                         linf=[
-                            0.2994949779783401,
-                            0.5530175050084679,
-                            0.5335803757792128,
-                            0.5647252867336123,
-                            3.6462732329242566
+                            0.3156585581400839,
+                            0.6653806948576124,
+                            0.5451454769741236,
+                            0.558669830478818,
+                            3.6406796982784635
                         ],
                         tspan=(0.0, 0.025),)
     # Ensure that we do not have excessive memory allocations
@@ -694,6 +750,37 @@ end
     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
+
+@trixi_testset "elixir_euler_OMNERA_M6_wing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_OMNERA_M6_wing.jl"),
+                        l2=[
+                            1.3302852203314697e-7,
+                            7.016342225152883e-8,
+                            1.0954098970860626e-7,
+                            6.834890433113107e-8,
+                            3.796737956937651e-7
+                        ],
+                        linf=[
+                            0.08856648749331164,
+                            0.07431651477033197,
+                            0.08791247483932041,
+                            0.012973811024139751,
+                            0.25575828277482016
+                        ],
+                        tspan=(0.0, 5e-8))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+# Multi-ion MHD tests
+include("test_p4est_3d_mhdmultiion.jl")
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

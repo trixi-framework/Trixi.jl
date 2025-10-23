@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -6,7 +6,7 @@ using Trixi
 gamma = 5 / 3
 equations = CompressibleEulerEquations2D(gamma)
 
-# Initial condition adopted from 
+# Initial condition adopted from
 # - Yong Liu, Jianfang Lu, and Chi-Wang Shu
 #   An oscillation free discontinuous Galerkin method for hyperbolic systems
 #   https://tinyurl.com/c76fjtx4
@@ -110,4 +110,3 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 # use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
 sol = solve(ode, SSPRK43(stage_limiter!);
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

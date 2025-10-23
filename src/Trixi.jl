@@ -15,6 +15,13 @@ See also: [trixi-framework/Trixi.jl](https://github.com/trixi-framework/Trixi.jl
 """
 module Trixi
 
+using Preferences: @load_preference, set_preferences!
+const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
+const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
+const _PREFERENCE_POLYESTER = @load_preference("polyester", true)
+const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
+const _PREFERENCE_USE_NATIVE_THREADING = @load_preference("native_threading", true)
+
 # Include other packages that are used in Trixi.jl
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
@@ -33,7 +40,8 @@ using Reexport: @reexport
 # as long as HDF5.jl uses Requires.jl to enable parallel HDF5 with MPI
 using MPI: MPI
 
-using SciMLBase: CallbackSet, DiscreteCallback,
+@reexport using SciMLBase: CallbackSet
+using SciMLBase: DiscreteCallback,
                  ODEProblem, ODESolution,
                  SplitODEProblem
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
@@ -43,6 +51,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
 
 using DelimitedFiles: readdlm
 using Downloads: Downloads
+using Adapt: Adapt, adapt
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
 using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
@@ -51,8 +60,15 @@ using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
+using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
 using LinearMaps: LinearMap
-using LoopVectorization: LoopVectorization, @turbo, indices
+if _PREFERENCE_LOOPVECTORIZATION
+    using LoopVectorization: LoopVectorization, @turbo, indices
+else
+    using LoopVectorization: LoopVectorization, indices
+    include("auxiliary/mock_turbo.jl")
+end
+
 using StaticArrayInterface: static_length # used by LoopVectorization
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
@@ -80,11 +96,6 @@ using SimpleUnPack: @pack!
 using DataStructures: BinaryHeap, FasterForward, extract_all!
 
 using UUIDs: UUID
-using Preferences: @load_preference, set_preferences!
-
-const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
-const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
-const _PREFERENCE_POLYESTER = @load_preference("polyester", true)
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
@@ -124,6 +135,7 @@ include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
+include("auxiliary/vector_of_arrays.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
 include("auxiliary/t8code.jl")
@@ -157,21 +169,22 @@ export AcousticPerturbationEquations2D,
        CompressibleEulerEquationsQuasi1D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
-       IdealGlmMhdMultiIonEquations2D,
+       IdealGlmMhdMultiIonEquations2D, IdealGlmMhdMultiIonEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D,
        HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
        LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
-       ShallowWaterEquations1D, ShallowWaterEquations2D,
-       ShallowWaterEquationsQuasi1D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D,
-       MaxwellEquations1D
+       MaxwellEquations1D,
+       PassiveTracerEquations
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
+       LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
+       LaplaceDiffusionEntropyVariables3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
        CompressibleNavierStokesDiffusion3D
 
@@ -181,22 +194,22 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
+       flux_nonconservative_powell_local_jump,
        flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal,
        flux_nonconservative_central,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
        flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
-       hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
-       DissipationLaxFriedrichsEntropyVariables,
-       FluxLaxFriedrichs, max_abs_speed_naive,
+       DissipationLaxFriedrichsEntropyVariables, DissipationMatrixWintersEtal,
+       FluxLaxFriedrichs, max_abs_speed_naive, max_abs_speed,
        FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
        FluxLMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
-       FluxHydrostaticReconstruction,
-       FluxUpwind
+       FluxUpwind,
+       FluxTracerEquationsCentral
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
@@ -214,11 +227,14 @@ export boundary_condition_do_nothing,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
        boundary_condition_wall,
-       BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal,
+       BoundaryConditionNavierStokesWall,
+       NoSlip, Slip,
+       Adiabatic, Isothermal,
        BoundaryConditionCoupled
 
 export initial_condition_convergence_test, source_terms_convergence_test,
-       source_terms_lorentz
+       source_terms_lorentz, source_terms_collision_ion_electron,
+       source_terms_collision_ion_ion
 export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic,
        boundary_condition_poisson_nonperiodic
@@ -228,15 +244,15 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity, global_mean_vars,
-       equilibrium_distribution, waterheight_pressure
-export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
-       cross_helicity,
-       enstrophy, magnetic_field, divergence_cleaning_field
+       equilibrium_distribution, waterheight, waterheight_pressure
+export entropy, energy_total, energy_kinetic, energy_internal,
+       energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
+       enstrophy, vorticity
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
-       T8codeMesh
+       P4estMeshView, T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
@@ -254,7 +270,8 @@ export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,
-       eachelement, eachnode, eachvariable
+       eachelement, eachnode, eachvariable,
+       get_node_vars
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
@@ -276,8 +293,15 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled,
-       AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure,
-       DragCoefficientShearStress, LiftCoefficientShearStress
+       AnalysisSurfaceIntegral, DragCoefficientPressure2D, LiftCoefficientPressure2D,
+       DragCoefficientShearStress2D, LiftCoefficientShearStress2D,
+       DragCoefficientPressure3D, LiftCoefficientPressure3D
+
+# TODO: deprecation introduced in v0.11
+@deprecate DragCoefficientPressure DragCoefficientPressure2D
+@deprecate LiftCoefficientPressure LiftCoefficientPressure2D
+@deprecate DragCoefficientShearStress DragCoefficientShearStress2D
+@deprecate LiftCoefficientShearStress LiftCoefficientShearStress2D
 
 export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!

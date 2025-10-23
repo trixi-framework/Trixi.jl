@@ -47,7 +47,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                      "elixir_advection_restart.jl"),
                             alg=CarpenterKennedy2N54(williamson_condition = false,
-                                                     thread = OrdinaryDiffEq.True()),
+                                                     thread = Trixi.True()),
                             # Expected errors are exactly the same as in the serial test!
                             l2=[8.005068880114254e-6],
                             linf=[6.39093577996519e-5])
@@ -138,11 +138,37 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         end
     end
 
+    @trixi_testset "elixir_euler_positivity.jl" begin
+        @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                     "elixir_euler_positivity.jl"),
+                            l2=[
+                                0.48862067511841695,
+                                0.16787541578869494,
+                                0.16787541578869422,
+                                0.6184319933114926
+                            ],
+                            linf=[
+                                2.6766520821013002,
+                                1.2910938760258996,
+                                1.2910938760258899,
+                                6.473385481404865
+                            ],
+                            tspan=(0.0, 1.0),)
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        end
+    end
+
     @trixi_testset "elixir_advection_diffusion.jl" begin
         @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                      "elixir_advection_diffusion.jl"),
                             initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
-                            alg=RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
                             l2=[4.0915532997994255e-6],
                             linf=[2.3040850347877395e-5])
 
@@ -389,7 +415,7 @@ end
     @trixi_testset "elixir_euler_curved.jl with threaded time integration" begin
         @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                      "elixir_euler_curved.jl"),
-                            alg=RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
                             l2=[
                                 1.720916434676505e-5,
                                 1.5928649356300228e-5,

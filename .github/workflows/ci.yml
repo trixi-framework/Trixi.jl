@@ -72,7 +72,8 @@ jobs:
           - t8code_part1
           - t8code_part2
           - unstructured_dgmulti
-          - parabolic
+          - parabolic_part1
+          - parabolic_part2
           - paper_self_gravitating_gas_dynamics
           - misc_part1
           - misc_part2
@@ -119,6 +120,7 @@ jobs:
         env:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # for authenticated downloads without strict rate limits
       - uses: julia-actions/julia-processcoverage@v1
         if: ${{ !cancelled() }}
         with:

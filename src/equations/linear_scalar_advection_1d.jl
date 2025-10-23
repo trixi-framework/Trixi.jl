@@ -128,7 +128,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::LinearScalarAdvectionEquation1D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equation::LinearScalarAdvectionEquation1D)
     a = equation.advection_velocity[orientation]
@@ -138,7 +138,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Int,
                                      equation::LinearScalarAdvectionEquation1D)
-    λ_max = abs(equation.advection_velocity[orientation])
+    return abs(equation.advection_velocity[orientation])
 end
 
 """

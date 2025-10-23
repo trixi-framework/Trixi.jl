@@ -1,7 +1,7 @@
 # Trixi.jl
 
-[![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
-[![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
+[![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/TrixiDocumentation/stable)
+[![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/TrixiDocumentation/dev)
 [![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 [![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/@trixi-framework)
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
@@ -20,7 +20,7 @@ having an extensible design with a fast implementation, Trixi.jl is
 focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
-* 1D, 2D, and 3D simulations on [line/quad/hex/simplex meshes](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations)
+* 1D, 2D, and 3D simulations on [line/quad/hex/simplex meshes](https://trixi-framework.github.io/TrixiDocumentation/stable/overview/#Semidiscretizations)
   * Cartesian and curvilinear meshes
   * Conforming and non-conforming meshes
   * Structured and unstructured meshes
@@ -53,7 +53,7 @@ installation and postprocessing procedures. Its features include:
   * Linearized Euler and acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
-  * Shallow water equations
+  * Shallow water equations via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl)
   * Several scalar conservation laws (e.g., linear advection, Burgers' equation, LWR traffic flow)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
@@ -72,20 +72,22 @@ with Julia v1.10 and newer. We recommend using the latest stable release of Juli
 
 ### For users
 Trixi.jl and its related tools are registered Julia packages. Hence, you
-can install Trixi.jl, the visualization tool
-[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
+can install Trixi.jl, the visualization tools
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl), and
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+as well as the time integration sub-packages of
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
 by executing the following commands in the Julia REPL:
 ```julia
 julia> using Pkg
 
-julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
+julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEqLowStorageRK",
+                "OrdinaryDiffEqSSPRK", "Plots"])
 ```
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
 The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-provides time integration schemes used by Trixi.jl, while
+and its sub-packages provide time integration schemes used by Trixi.jl, while
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) can be used to directly
 visualize Trixi.jl's results from the REPL.
 
@@ -126,13 +128,13 @@ to share with others.
 
 Since the postprocessing tool Trixi2Vtk.jl typically does not need to be modified,
 it is recommended to install it as a normal package.  Likewise, you can install
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and
-[Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl) and
+sub-packages of [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 as ordinary packages. To achieve this, use the following REPL commands:
 ```julia
 julia> using Pkg
 
-julia> Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])
+julia> Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Trixi2Vtk", "Plots"])
 ```
 Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
 can be omitted.
@@ -316,13 +318,13 @@ with the help of Trixi.jl, please cite the following articles:
 
 In addition, you can also refer to Trixi.jl directly as
 ```bibtex
-@misc{schlottkelakemper2020trixi,
+@misc{schlottkelakemper2025trixi,
   title={{T}rixi.jl: {A}daptive high-order numerical simulations
          of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
-          Ranocha, Hendrik and Winters, Andrew R and Chan, Jesse},
-  year={2021},
-  month={09},
+          Ranocha, Hendrik and Winters, Andrew R and Chan, Jesse
+          and Rueda-Ramírez, Andrés},
+  year={2025},
   howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
   doi={10.5281/zenodo.3996439}
 }
@@ -335,7 +337,8 @@ Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
-(Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+(Linköping University, Sweden), [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+and [Andrés Rueda-Ramírez](https://andres.rueda-ramirez.com) (Polytechnic University of Madrid (UPM), Spain),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found under [Authors](@ref).
 
@@ -357,6 +360,8 @@ Participating research groups in alphabetical order:
 [Applied and Computational Mathematics, RWTH Aachen University 🇩🇪](https://www.acom.rwth-aachen.de)
 
 [Applied Mathematics, Department of Mathematics, University of Hamburg 🇩🇪](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
+
+[Department of Applied Mathematics in Aerospace Engineering, Polytechnic University of Madrid (UPM) 🇪🇸](https://numath.dmae.upm.es/)
 
 [Division of Applied Mathematics, Department of Mathematics, Linköping University 🇸🇪](https://liu.se/en/employee/andwi94)
 
