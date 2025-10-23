@@ -19,13 +19,40 @@ function get_element_variables!(element_variables, mesh, dg, cache)
     nothing
 end
 
-# Function to define "element variables" for the SaveSolutionCallback. It does
-# nothing by default, but can be specialized for certain volume integral types. 
-# For instance, shock capturing volume integrals output the blending factor
-# as an "element variable".
-function get_node_variables!(node_variables, mesh, equations,
-                             volume_integral::AbstractVolumeIntegral, dg, cache)
-    nothing
+### Functions to define `node variables` for the `SaveSolutionCallback`. ###
+
+# Abstract function which is to be overwritten for the specific `node_variable`
+# in e.g. the elixirs.
+function get_node_variable end
+
+# Version for (purely) hyperbolic equations.
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache)
+        end
+    end
+
+    return nothing
+end
+# Version for parabolic-extended equations
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache,
+                             equations_parabolic, cache_parabolic)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache,
+                                                    equations_parabolic,
+                                                    cache_parabolic)
+        end
+    end
+
+    return nothing
 end
 
 """
@@ -63,6 +90,7 @@ create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTupl
 
 """
     VolumeIntegralFluxDifferencing(volume_flux)
+    VolumeIntegralFluxDifferencing(; volume_flux = flux_central)
 
 Volume integral type for DG methods based on SBP operators and flux differencing
 using a symmetric two-point `volume_flux`. This `volume_flux` needs to satisfy
@@ -88,6 +116,10 @@ the interface of numerical fluxes in Trixi.jl.
 """
 struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
     volume_flux::VolumeFlux
+end
+
+function VolumeIntegralFluxDifferencing(; volume_flux = flux_central)
+    return VolumeIntegralFluxDifferencing{typeof(volume_flux)}(volume_flux)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDifferencing)
@@ -158,8 +190,14 @@ function get_element_variables!(element_variables, u, mesh, equations,
                            volume_integral)
 end
 
+# Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
+# second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
+# volume integrals.
+abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegral end
+
 """
     VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
+    VolumeIntegralPureLGLFiniteVolume(; volume_flux_fv = flux_lax_friedrichs)
 
 A volume integral that only uses the subcell finite volume schemes of the
 [`VolumeIntegralShockCapturingHG`](@ref).
@@ -176,10 +214,15 @@ mesh (LGL = Legendre-Gauss-Lobatto).
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
+struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <:
+       AbstractVolumeIntegralPureLGLFiniteVolume
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
 end
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
+
+function VolumeIntegralPureLGLFiniteVolume(; volume_flux_fv = flux_lax_friedrichs)
+    return VolumeIntegralPureLGLFiniteVolume{typeof(volume_flux_fv)}(volume_flux_fv)
+end
 
 function Base.show(io::IO, ::MIME"text/plain",
                    integral::VolumeIntegralPureLGLFiniteVolume)
@@ -196,8 +239,90 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
+    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
+                                        volume_flux_fv = flux_lax_friedrichs,
+                                        reconstruction_mode = reconstruction_O2_full,
+                                        slope_limiter = minmod)
+
+This gives an up to  second order accurate finite volume scheme on an LGL-type subcell
+mesh (LGL = Legendre-Gauss-Lobatto).
+Depending on the `reconstruction_mode` and `slope_limiter`, experimental orders of convergence
+between 1 and 2 can be expected in practice.
+Since this is a volume integral, all reconstructions are purely cell-local, i.e.,
+no neighboring elements are queried at reconstruction stage.
+
+The interface values of the inner DG-subcells are reconstructed using the standard MUSCL-type reconstruction.
+For the DG-subcells at the boundaries, two options are available:
+
+1) The unlimited slope is used on these cells.
+   This gives full second order accuracy, but also does not damp overshoots between cells.
+   The `reconstruction_mode` corresponding to this is `reconstruction_O2_full`.
+2) On boundary subcells, the solution is represented using a constant value, thereby falling back to formally only first order.
+   The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
+   In the reference below, this is the recommended reconstruction mode and is thus used by default.
+
+!!! note "Conservative Systems only"
+    Currently only implemented for systems in conservative form, i.e.,
+    `have_nonconservative_terms(equations) = False()`
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+See especially Sections 3.2, Section 4, and Appendix D of the paper
+
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. 
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+"""
+struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
+                                           Reconstruction, Limiter} <:
+       AbstractVolumeIntegralPureLGLFiniteVolume
+    x_interfaces::Vector{RealT} # x-coordinates of the sub-cell element interfaces
+    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+    reconstruction_mode::Reconstruction # which type of FV reconstruction to use
+    slope_limiter::Limiter # which type of slope limiter function
+end
+
+function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
+                                             volume_flux_fv = flux_lax_friedrichs,
+                                             reconstruction_mode = reconstruction_O2_full,
+                                             slope_limiter = minmod) where {Basis}
+    # Suffices to store only the intermediate boundaries of the sub-cell elements                                             
+    x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
+    VolumeIntegralPureLGLFiniteVolumeO2{eltype(basis.weights),
+                                        typeof(basis),
+                                        typeof(volume_flux_fv),
+                                        typeof(reconstruction_mode),
+                                        typeof(slope_limiter)}(x_interfaces,
+                                                               volume_flux_fv,
+                                                               reconstruction_mode,
+                                                               slope_limiter)
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   integral::VolumeIntegralPureLGLFiniteVolumeO2)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        setup = [
+            "FV flux" => integral.volume_flux_fv,
+            "Reconstruction" => integral.reconstruction_mode,
+            "Slope limiter" => integral.slope_limiter,
+            "Subcell boundaries" => vcat([-1.0], integral.x_interfaces, [1.0])
+        ]
+        summary_box(io, "VolumeIntegralPureLGLFiniteVolumeO2", setup)
+    end
+end
+
+"""
     VolumeIntegralSubcellLimiting(limiter;
-                                  volume_flux_dg, volume_flux_fv)
+                                  volume_flux_dg = flux_central,
+                                  volume_flux_fv = flux_lax_friedrichs)
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
 with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
@@ -215,8 +340,9 @@ struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
     limiter::Limiter
 end
 
-function VolumeIntegralSubcellLimiting(limiter; volume_flux_dg,
-                                       volume_flux_fv)
+function VolumeIntegralSubcellLimiting(limiter;
+                                       volume_flux_dg = flux_central,
+                                       volume_flux_fv = flux_lax_friedrichs)
     VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
                                   typeof(limiter)}(volume_flux_dg, volume_flux_fv,
                                                    limiter)
@@ -238,16 +364,16 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function get_node_variables!(node_variables, mesh, equations,
-                             volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
-    # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
-    # called here to get up-to-date values for IO, this is not easily possible in this case
-    # because the calculation is very integrated into the method.
-    # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
-    # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
-    # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
-    get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
-                        equations)
+# Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
+Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
+
+function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
+    # Resize container antidiffusive_fluxes
+    resize!(semi.cache.antidiffusive_fluxes, new_size)
+
+    # Resize container subcell_limiter_coefficients
+    @unpack limiter = volume_integral
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 end
 
 # TODO: FD. Should this definition live in a different file because it is
@@ -400,6 +526,9 @@ struct DG{Basis, Mortar, SurfaceIntegral, VolumeIntegral}
     volume_integral::VolumeIntegral
 end
 
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(DG)
+
 function Base.show(io::IO, dg::DG)
     @nospecialize dg # reduce precompilation time
 
@@ -441,13 +570,9 @@ function get_element_variables!(element_variables, u, mesh, equations, dg::DG, c
     get_element_variables!(element_variables, mesh, dg, cache)
 end
 
-function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
-    get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
-end
-
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
                           UnstructuredMesh2D,
-                          P4estMesh, T8codeMesh}
+                          P4estMesh, P4estMeshView, T8codeMesh}
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
     nelements(cache.elements) * nnodes(dg)^ndims(mesh)
@@ -545,6 +670,20 @@ end
     SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
 end
 
+"""
+    get_node_vars(u, equations, solver::DG, indices...)
+
+Return the value of the variable (vector) `u` at a node inside a specific element.
+The node is specified by the indices `indices...` argument which is a combination of
+node index inside the element and the element index itself.
+Thus, in 1D this is a two integer tuple `indices = (i, element)`,
+in 2D a three integer tuple `indices = (i, j, element)`,
+and in 3D a four integer tuple `indices = (i, j, k, element)`.
+It is also possible to call this function without `indices` being explicitly a tuple,
+i.e., `get_node_vars(u, equations, solver::DG, i, j, k, element)` is also valid.
+For more details, see the documentation:
+https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
+"""
 @inline function get_node_vars(u, equations, solver::DG, indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
@@ -614,8 +753,11 @@ include("fdsbp_unstructured/fdsbp.jl")
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
-    zeros(eltype(cache.elements),
-          nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    u_ode = similar(cache.elements.node_coordinates, eltype(cache.elements),
+                    nvariables(equations) * nnodes(dg)^ndims(mesh) *
+                    nelements(dg, cache))
+    fill!(u_ode, zero(eltype(u_ode)))
+    return u_ode
 end
 
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
@@ -638,7 +780,7 @@ end
     # since LoopVectorization does not support `ForwardDiff.Dual`s. Hence, we use
     # optimized `PtrArray`s whenever possible and fall back to plain `Array`s
     # otherwise.
-    if _PREFERENCE_POLYESTER && LoopVectorization.check_args(u_ode)
+    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(u_ode)
         # This version using `PtrArray`s from StrideArrays.jl is very fast and
         # does not result in allocations.
         #
@@ -658,7 +800,8 @@ end
         #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
+        ArrayType = Trixi.storage_type(u_ode)
+        unsafe_wrap(ArrayType{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
                     (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
                      nelements(dg, cache)))
     end
@@ -672,7 +815,7 @@ end
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
     # See comments on the DGSEM version above
-    if LoopVectorization.check_args(u_ode)
+    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(u_ode)
         # Here, we do not specialize on the number of nodes using `StaticInt` since
         # - it will not be type stable (SBP operators just store it as a runtime value)
         # - FD methods tend to use high node counts
@@ -707,8 +850,8 @@ end
                  nelements(dg, cache)))
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg::DG,
-                               cache)
+function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
+                               equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
@@ -726,22 +869,51 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg:
             set_node_vars!(u, u_node, equations, dg, i, element)
         end
     end
+
+    return nothing
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations, dg::DG,
-                               cache)
+function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
+                               equations, dg::DG, cache)
+    @unpack node_coordinates = cache.elements
     @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     j, element)
-            u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, element)
-        end
+        compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
+                                      element)
     end
+
+    return nothing
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG,
-                               cache)
+function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
+                               equations, dg::DG, cache)
+    nelements(dg, cache) == 0 && return nothing
+    @unpack node_coordinates = cache.elements
+    kernel! = compute_coefficients_kernel!(backend)
+    kernel!(u, func, t, equations, dg, node_coordinates,
+            ndrange = nelements(dg, cache))
+    return nothing
+end
+
+@kernel function compute_coefficients_kernel!(u, func, t, equations,
+                                              dg::DG, node_coordinates)
+    element = @index(Global)
+    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates, element)
+end
+
+function compute_coefficients_element!(u, func, t, equations, dg::DG,
+                                       node_coordinates, element)
+    for j in eachnode(dg), i in eachnode(dg)
+        x_node = get_node_coords(node_coordinates, equations, dg, i,
+                                 j, element)
+        u_node = func(x_node, t, equations)
+        set_node_vars!(u, u_node, equations, dg, i, j, element)
+    end
+
+    return nothing
+end
+
+function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
+                               equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
@@ -750,16 +922,19 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg:
             set_node_vars!(u, u_node, equations, dg, i, j, k, element)
         end
     end
+
+    return nothing
 end
 
 # Discretizations specific to each mesh type of Trixi.jl
+
 # If some functionality is shared by multiple combinations of meshes/solvers,
 # it is defined in the directory of the most basic mesh and solver type.
 # The most basic solver type in Trixi.jl is DGSEM (historic reasons and background
 # of the main contributors).
 # We consider the `TreeMesh` to be the most basic mesh type since it is Cartesian
-# and was the first mesh in Trixi.jl. The order of the other mesh types is the same
-# as the include order below.
+# and was the first mesh in Trixi.jl.
+# The order of the other mesh types is the same as the include order below.
 include("dgsem_tree/dg.jl")
 include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")

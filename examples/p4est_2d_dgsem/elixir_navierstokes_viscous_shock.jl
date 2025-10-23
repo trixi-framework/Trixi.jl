@@ -1,7 +1,7 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-# This is the classic 1D viscous shock wave problem with analytical solution 
+# This is the classic 1D viscous shock wave problem with analytical solution
 # for a special value of the Prandtl number.
 # The original references are:
 #
@@ -16,13 +16,13 @@ using Trixi
 #   https://ntrs.nasa.gov/api/citations/19930090863/downloads/19930090863.pdf
 #
 # - M. Morduchow, P. A. Libby (1949)
-#   On a Complete Solution of the One-Dimensional Flow Equations 
+#   On a Complete Solution of the One-Dimensional Flow Equations
 #   of a Viscous, Head-Conducting, Compressible Gas
 #   [DOI: 10.2514/8.11882](https://doi.org/10.2514/8.11882)
 #
 #
 # The particular problem considered here is described in
-# - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017) 
+# - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017)
 #   Entropy in self-similar shock profiles
 #   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 
@@ -37,8 +37,8 @@ prandtl_number() = 3 / 4
 ### Free choices: ###
 gamma() = 5 / 3
 
-# In Margolin et al., the Navier-Stokes equations are given for an 
-# isotropic stress tensor τ, i.e., ∇ ⋅ τ = μ Δu 
+# In Margolin et al., the Navier-Stokes equations are given for an
+# isotropic stress tensor τ, i.e., ∇ ⋅ τ = μ Δu
 mu_isotropic() = 0.15
 mu_bar() = mu_isotropic() / (gamma() - 1) # Re-scaled viscosity
 
@@ -60,7 +60,7 @@ l() = mu_bar() / (rho_0() * v()) * 2 * gamma() / (gamma() + 1) # Appropriate len
 """
     initial_condition_viscous_shock(x, t, equations)
 
-Classic 1D viscous shock wave problem with analytical solution 
+Classic 1D viscous shock wave problem with analytical solution
 for a special value of the Prandtl number.
 The version implemented here is described in
 - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017)
@@ -88,7 +88,7 @@ initial_condition = initial_condition_viscous_shock
 
 equations = CompressibleEulerEquations2D(gamma())
 
-# Trixi implements the stress tensor in deviatoric form, thus we need to 
+# Trixi implements the stress tensor in deviatoric form, thus we need to
 # convert the "isotropic viscosity" to the "deviatoric viscosity"
 mu_deviatoric() = mu_bar() * 3 / 4
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu_deviatoric(),
@@ -101,8 +101,7 @@ coordinates_min = (-domain_length / 2, -domain_length / 2)
 coordinates_max = (domain_length / 2, domain_length / 2)
 
 trees_per_dimension = (8, 2)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 0,
+mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (false, true))
 
@@ -113,9 +112,7 @@ function boundary_condition_inflow(u_inner, normal_direction::AbstractVector, x,
                                    surface_flux_function,
                                    equations::CompressibleEulerEquations2D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
-    flux = Trixi.flux(u_cons, normal_direction, equations)
-
-    return flux
+    return flux(u_cons, normal_direction, equations)
 end
 
 # Completely free outflow
@@ -123,9 +120,7 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x
                                     surface_flux_function,
                                     equations::CompressibleEulerEquations2D)
     # Calculate the boundary flux entirely from the internal solution state
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, normal_direction, equations)
 end
 
 boundary_conditions = Dict(:x_neg => boundary_condition_inflow,
@@ -134,17 +129,13 @@ boundary_conditions = Dict(:x_neg => boundary_condition_inflow,
 ### Viscous boundary conditions ###
 # For the viscous BCs, we use the known analytical solution
 velocity_bc = NoSlip() do x, t, equations_parabolic
-    Trixi.velocity(initial_condition_viscous_shock(x,
-                                                   t,
-                                                   equations_parabolic),
-                   equations_parabolic)
+    velocity(initial_condition_viscous_shock(x, t, equations_parabolic),
+             equations_parabolic)
 end
 
 heat_bc = Isothermal() do x, t, equations_parabolic
-    Trixi.temperature(initial_condition_viscous_shock(x,
-                                                      t,
-                                                      equations_parabolic),
-                      equations_parabolic)
+    temperature(initial_condition_viscous_shock(x, t, equations_parabolic),
+                equations_parabolic)
 end
 
 boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, heat_bc)
@@ -179,5 +170,3 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             dt = 1e-3, ode_default_options()..., callback = callbacks)
-
-summary_callback() # print the timer summary

@@ -13,8 +13,6 @@
 #
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
 
-# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
-using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -43,19 +41,16 @@ initial_condition = initial_condition_mach3_flow
                                                       x, t, surface_flux_function,
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach3_flow(x, t, equations)
-    flux = Trixi.flux(u_boundary, normal_direction, equations)
-
-    return flux
+    return flux(u_boundary, normal_direction, equations)
 end
 
 # For subcell limiting, the calculation of local bounds for non-periodic domains requires the
 # boundary outer state. Those functions return the boundary value for a specific boundary condition
 # at time `t`, for the node with spatial indices `indices` and the given `normal_direction`.
-# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_supersonic_inflow),
                                                 normal_direction::AbstractVector,
-                                                equations, dg, cache,
+                                                mesh::P4estMesh, equations, dg, cache,
                                                 indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
 
@@ -68,24 +63,21 @@ end
 @inline function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
                                             surface_flux_function,
                                             equations::CompressibleEulerEquations2D)
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, normal_direction, equations)
 end
 
-# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_outflow),
                                                 normal_direction::AbstractVector,
-                                                equations, dg, cache,
+                                                mesh::P4estMesh, equations, dg, cache,
                                                 indices...)
     return u_inner
 end
 
-# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_slip_wall),
                                                 normal_direction::AbstractVector,
+                                                mesh::P4estMesh{2},
                                                 equations::CompressibleEulerEquations2D,
                                                 dg, cache, indices...)
     factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
@@ -104,7 +96,14 @@ boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
                            :Left => boundary_condition_supersonic_inflow)
 
 volume_flux = flux_ranocha_turbo
-surface_flux = flux_lax_friedrichs
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
@@ -123,7 +122,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
                            joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp"))
 
-mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 0)
+mesh = P4estMesh{2}(mesh_file)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
@@ -146,7 +145,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:limiting_coefficient,))
 
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
@@ -160,4 +160,3 @@ stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
-summary_callback() # print the timer summary

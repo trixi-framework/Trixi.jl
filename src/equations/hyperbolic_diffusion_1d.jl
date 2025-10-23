@@ -44,7 +44,7 @@ end
 """
     initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
 
-A non-priodic smooth initial condition. Can be used for convergence tests in combination with
+A non-periodic smooth initial condition. Can be used for convergence tests in combination with
 [`source_terms_poisson_nonperiodic`](@ref) and [`boundary_condition_poisson_nonperiodic`](@ref).
 !!! note
     The solution is periodic but the initial guess is not.
@@ -153,7 +153,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     return SVector(phi, q1)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::HyperbolicDiffusionEquations1D)
     phi, q1 = u
@@ -169,7 +169,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::HyperbolicDiffusionEquations1D)
-    λ_max = sqrt(equations.nu * equations.inv_Tr)
+    return sqrt(equations.nu * equations.inv_Tr)
 end
 
 @inline have_constant_speed(::HyperbolicDiffusionEquations1D) = True()

@@ -234,7 +234,7 @@ end
 end
 
 # Return the contravariant basis vector corresponding to the Cartesian
-# coordinate diretion `orientation` in a given `element` of the `mesh`.
+# coordinate direction `orientation` in a given `element` of the `mesh`.
 # The contravariant basis vectors have entries `dx_i / dxhat_j` where
 # j ∈ {1, ..., NDIMS}. Here, `x_i` and `xhat_j` are the ith physical coordinate
 # and jth reference coordinate, respectively. These are geometric terms which
@@ -311,11 +311,11 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, Real
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
 
     local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
-                               for _ in 1:Threads.nthreads()]
+                               for _ in 1:Threads.maxthreadid()]
 
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
@@ -356,16 +356,16 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
 
     # local storage for interface fluxes, rhs, and source
     local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
     # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
     # projecting it and storing it into `du`.
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total)
-                               for _ in 1:Threads.nthreads()]
+                               for _ in 1:Threads.maxthreadid()]
     rhs_local_threaded = [allocate_nested_array(uEltype, nvars,
                                                 (num_quad_points_total,), dg)
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
 
     # interpolate geometric terms to both quadrature and face values for curved meshes
     (; Vq, Vf) = dg.basis
@@ -431,7 +431,7 @@ end
 
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
-@inline function has_sparse_operators(::Union{Tri, Tet},
+@inline function has_sparse_operators(::Union{Line, Tri, Tet},
                                       approx_type::AT) where {AT <: SBP}
     False()
 end
@@ -453,7 +453,8 @@ end
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::False, volume_flux,
+                                          have_nonconservative_terms::False,
+                                          volume_flux,
                                           has_sparse_operators::False, mesh,
                                           equations, dg, cache)
     for dim in eachdim(mesh)
@@ -466,7 +467,7 @@ end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::True, volume_flux,
+                                          have_nonconservative_terms::True, volume_flux,
                                           has_sparse_operators::False, mesh,
                                           equations, dg, cache)
     flux_conservative, flux_nonconservative = volume_flux
@@ -490,7 +491,8 @@ end
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::False, volume_flux,
+                                          have_nonconservative_terms::False,
+                                          volume_flux,
                                           has_sparse_operators::True, mesh,
                                           equations, dg, cache)
     @unpack Qrst_skew = cache
@@ -520,7 +522,7 @@ end
 end
 
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
-                                          has_nonconservative_terms::True, volume_flux,
+                                          have_nonconservative_terms::True, volume_flux,
                                           has_sparse_operators::True, mesh,
                                           equations, dg, cache)
     @unpack Qrst_skew = cache
@@ -671,9 +673,7 @@ function rhs!(du, u, t, mesh, equations,
                                                                   dg, cache)
 
     @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh,
-                                                                   equations,
-                                                                   dg.surface_integral,
-                                                                   dg)
+                                                                   equations, dg)
 
     @trixi_timeit timer() "interface flux" calc_interface_flux!(cache,
                                                                 dg.surface_integral,

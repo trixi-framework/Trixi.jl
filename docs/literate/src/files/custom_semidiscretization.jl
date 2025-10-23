@@ -47,7 +47,8 @@
 # First, we discretize this equation using the standard functionality
 # of Trixi.jl.
 
-using Trixi, OrdinaryDiffEq, Plots
+using OrdinaryDiffEqLowStorageRK
+using Trixi, Plots
 
 # The linear scalar advection equation is already implemented in
 # Trixi.jl as [`LinearScalarAdvectionEquation1D`](@ref). We construct
@@ -116,7 +117,7 @@ end
 plot!(sol.u[1], semi, label = "u0", linestyle = :dot, legend = :topleft)
 
 # You can of course also use some
-# [callbacks](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/)
+# [callbacks](https://trixi-framework.github.io/TrixiDocumentation/stable/callbacks/)
 # provided by Trixi.jl as usual.
 
 summary_callback = SummaryCallback()
@@ -129,7 +130,6 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, RDPK3SpFSAL49();
             ode_default_options()..., callback = callbacks)
-summary_callback()
 
 # ## Using a custom ODE right-hand side function
 
@@ -182,7 +182,6 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode_source_custom, RDPK3SpFSAL49();
             ode_default_options()..., callback = callbacks)
-summary_callback()
 
 # ## Setting up a custom semidiscretization
 
@@ -298,7 +297,6 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode_semi_custom, RDPK3SpFSAL49();
             ode_default_options()..., callback = callbacks)
-summary_callback()
 
 # For even more advanced usage of custom semidiscretizations, you
 # may look at the source code of the ones contained in Trixi.jl, e.g.,
@@ -315,5 +313,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

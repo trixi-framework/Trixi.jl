@@ -216,7 +216,7 @@ norm(J[1:4:end])
 # the total energy of a simulation using the linear scalar advection equation with respect to the
 # wave number (frequency) of the initial data.
 
-using Trixi, OrdinaryDiffEq, ForwardDiff, Plots
+using Trixi, OrdinaryDiffEqLowOrderRK, ForwardDiff, Plots
 
 function energy_at_final_time(k) # k is the wave number of the initial condition
     equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
@@ -230,7 +230,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
-    sol = solve(ode, BS3(), save_everystep = false)
+    sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
@@ -280,7 +280,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
-    sol = solve(ode, BS3(), save_everystep = false)
+    sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
@@ -330,9 +330,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # does. This is basically the only part where you need to modify your standard Trixi.jl
 # code to enable automatic differentiation. From there on, the remaining steps
 ode = semidiscretize(semi, (0.0, 1.0))
-sol = solve(ode, BS3(), save_everystep = false)
+sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
 round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5)
-@test round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5) == 0.24986 #src
+@test round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5) == 0.25 #src
 
 # do not need any modifications since they are sufficiently generic (and enough effort
 # has been spend to allow general types inside these calls).
@@ -349,7 +349,7 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5)
 # sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
 # in the primitive variables.
 
-using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
+using Trixi, OrdinaryDiffEqLowOrderRK, Measurements, Plots, LaTeXStrings
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
@@ -362,7 +362,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 ode = semidiscretize(semi, (0.0, 1.5))
 
-sol = solve(ode, BS3(), save_everystep = false);
+sol = solve(ode, BS3(); ode_default_options()...);
 
 plot(sol)
 
@@ -401,13 +401,101 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 
 # This discrepancy is of the expected order of magnitude for central finite difference approximations.
 
+# ## Automatic Jacobian sparsity detection and coloring
+
+# When solving large sparse nonlinear ODE systems originating from spatial discretizations
+# with compact stencils such as the DG method with implicit time integrators,
+# exploiting the sparsity of the Jacobian can lead to significant speedups in the Newton-Raphson solver.
+# Similarly, steady-state problems can also be solved faster.
+
+# [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) supports efficient Jacobian computations by leveraging the
+# [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl)
+# and [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl) packages.
+# These tools allow to detect the sparsity pattern of the Jacobian and compute the
+# optional coloring vector for efficient Jacobian evaluations.
+# These are then handed over to the ODE solver from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
+
+# Below is a minimal example in 1D, showing how to use these packages with Trixi.jl.
+# First, we define the the `equation` and `mesh` as for an ordinary simulation:
+
+using Trixi
+
+advection_velocity = 1.0
+equation = LinearScalarAdvectionEquation1D(advection_velocity)
+
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4, n_cells_max = 10^4)
+
+# We define the basic floating point type used for the actual simulation
+# and construct the solver:
+float_type = Float64
+solver = DGSEM(polydeg = 3, surface_flux = flux_godunov, RealT = float_type)
+
+# Next, we set up the sparsity detection. For this we need
+using SparseConnectivityTracer # For Jacobian sparsity pattern
+
+# We use the [global `TracerSparsityDetector()`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/global_vs_local/) here.
+jac_detector = TracerSparsityDetector()
+
+# Next, we retrieve the right element type corresponding to `float_type` for the Jacobian sparsity detection.
+# For more details, see the API documentation of
+# [`jacobian_eltype`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#SparseConnectivityTracer.jacobian_eltype).
+jac_eltype = jacobian_eltype(float_type, jac_detector)
+
+# Now we can construct the semidiscretization for sparsity detection with `jac_eltype` as the
+# datatype for the working arrays and helper datastructures.
+semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,
+                                             initial_condition_convergence_test, solver,
+                                             uEltype = jac_eltype) # Supply sparsity detection datatype here
+
+tspan = (0.0, 1.0) # Re-used later in `rhs!` evaluation
+ode_jac_type = semidiscretize(semi_jac_type, tspan)
+u0_ode = ode_jac_type.u0
+du_ode = similar(u0_ode)
+
+# Wrap the RHS for sparsity detection to match the expected signature `f!(du, u)` required by
+# [`jacobian_sparsity`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity).
+rhs_wrapped! = (du, u) -> Trixi.rhs!(du, u, semi_jac_type, tspan[1])
+jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
+
+# Optionally, we can also compute the coloring vector to reduce Jacobian evaluations
+# to `1 + maximum(coloring_vec)` for finite differencing and `maximum(coloring_vec)` for algorithmic differentiation.
+# For this, we need
+using SparseMatrixColorings
+
+# We partition by columns as we are using finite differencing here.
+# One would also partition by columns if forward-based algorithmic differentiation were used,
+# and only partition by rows if reverse-mode AD were used.
+# See also [the documentation of the now deprecated SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl?tab=readme-ov-file#matrix-coloring) package,
+# the predecessor in spirit to SparseConnectivityTracer.jl and SparseMatrixColorings.jl, for more information.
+coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
+coloring_alg = GreedyColoringAlgorithm(; decompression = :direct)
+coloring_result = coloring(jac_prototype, coloring_prob, coloring_alg)
+coloring_vec = column_colors(coloring_result)
+
+# Now, set up the actual semidiscretization for the simulation.
+# The datatype is automatically retrieved from the solver (in this case `float_type = Float64`).
+semi_float_type = SemidiscretizationHyperbolic(mesh, equation,
+                                               initial_condition_convergence_test, solver)
+# Supply the sparse Jacobian prototype and the optional coloring vector.
+# Internally, an [`ODEFunction`](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEFunction)
+# with `jac_prototype = jac_prototype` and `colorvec = coloring_vec` is created.
+ode_jac_sparse = semidiscretize(semi_float_type, tspan,
+                                jac_prototype = jac_prototype,
+                                colorvec = coloring_vec)
+
+# You can now solve the ODE problem efficiently with an implicit solver.
+# Currently we are bound to finite differencing here.
+using OrdinaryDiffEqSDIRK, ADTypes
+sol = solve(ode_jac_sparse, TRBDF2(; autodiff = AutoFiniteDiff()), dt = 0.1,
+            save_everystep = false);
+
 # ## Linear systems
 
 # When a linear PDE is discretized using a linear scheme such as a standard DG method,
 # the resulting semidiscretization yields an affine ODE of the form
 
 # ```math
-# \partial_t u(t) = A u(t) + b,
+# \partial_t u(t) = A u(t) - b,
 # ```
 
 # where `A` is a linear operator ("matrix") and `b` is a vector. Trixi.jl allows you
@@ -445,6 +533,18 @@ scatter(real.(λ), imag.(λ))
 relative_maximum = maximum(real, λ) / maximum(abs, λ)
 @test relative_maximum < 1.0e-15 #src
 
+# Since the linear structure defines the action of the linear matrix-alike operator `A`
+# on a vector, Krylov-subspace based iterative solvers can be employed to efficiently solve
+# the resulting linear system. 
+# For instance, one may use the [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl) package to solve
+# e.g. steady-stage problems, i.e., problems where ``\partial_t u(t) = 0``.
+# Note that the present problem does not possess an actual steady state.
+
+# Anyways, to solve the linear system ``A u = b``, one can use for instance the GMRES method:
+using Krylov
+
+u_steady_state, solve_stats = gmres(A, b)
+
 # ## Package versions
 
 # These results were obtained using the following versions.
@@ -453,5 +553,10 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "ForwardDiff"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowOrderRK", "OrdinaryDiffEqSDIRK",
+               "Plots", "LaTeXStrings",
+               "ForwardDiff", "SparseConnectivityTracer", "SparseMatrixColorings",
+               "ADTypes",
+               "Krylov", "LinearAlgebra",
+               "Measurements"],
            mode = PKGMODE_MANIFEST)

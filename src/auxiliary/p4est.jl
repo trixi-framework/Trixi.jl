@@ -24,7 +24,7 @@ function init_p4est()
         p4est_init(C_NULL, SC_LP_ERROR)
     else
         @warn "Preferences for P4est.jl are not set correctly. Until fixed, using `P4estMesh` will result in a crash. " *
-              "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
+              "See also https://trixi-framework.github.io/TrixiDocumentation/stable/parallelization/#parallel_system_MPI"
     end
 
     return nothing
@@ -56,6 +56,16 @@ end
 function load_pointerwrapper_sc(::Type{T}, sc_array::PointerWrapper{sc_array},
                                 i::Integer = 1) where {T}
     return PointerWrapper(T, pointer(sc_array.array) + (i - 1) * sizeof(T))
+end
+
+function unsafe_load_sc(::Type{T}, sc_array::PointerWrapper{sc_array},
+                        i::Integer = 1) where {T}
+    return unsafe_load(Ptr{T}(pointer(sc_array.array)), i)
+end
+
+function unsafe_store_sc!(sc_array::PointerWrapper{sc_array}, x::T,
+                          i::Integer = 1) where {T}
+    return unsafe_store!(Ptr{T}(pointer(sc_array.array)), x, i)
 end
 
 # Create new `p4est` from a p4est_connectivity

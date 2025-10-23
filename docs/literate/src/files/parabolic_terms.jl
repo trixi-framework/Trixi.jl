@@ -3,10 +3,10 @@
 # Experimental support for parabolic diffusion terms is available in Trixi.jl.
 # This demo illustrates parabolic terms for the advection-diffusion equation.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-# ## Splitting a system into hyperbolic and parabolic parts.
+# ## Splitting a system into hyperbolic and parabolic parts
 
 # For a mixed hyperbolic-parabolic system, we represent the hyperbolic and parabolic
 # parts of the system  separately. We first define the hyperbolic (advection) part of
@@ -100,5 +100,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

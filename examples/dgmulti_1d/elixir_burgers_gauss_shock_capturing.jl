@@ -1,11 +1,11 @@
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 
 equations = InviscidBurgersEquation1D()
 
 ###############################################################################
-# setup the GSBP DG discretization that uses the Gauss operators from 
-# Chan, Del Rey Fernandez, Carpenter (2019). 
+# setup the GSBP DG discretization that uses the Gauss operators from
+# Chan, Del Rey Fernandez, Carpenter (2019).
 # [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
 surface_flux = flux_lax_friedrichs
@@ -55,14 +55,19 @@ summary_callback = SummaryCallback()
 # analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
 
+# SaveSolutionCallback allows to save the solution to a file in regular intervals
+save_solution = SaveSolutionCallback(interval = 100,
+                                     solution_variables = cons2prim)
+
 # handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 # collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
+                        stepsize_callback)
 
 # ###############################################################################
 # # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, save_everystep = false, callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1.0, ode_default_options()..., callback = callbacks);

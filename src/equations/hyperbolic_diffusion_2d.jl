@@ -45,9 +45,8 @@ end
         q1 = one(RealT)
         q2 = one(RealT)
     else
-        # TODO: sincospi
-        sinpi_x1, cospi_x1 = sincos(convert(RealT, pi) * x[1])
-        sinpi_2x2, cospi_2x2 = sincos(convert(RealT, pi) * 2 * x[2])
+        sinpi_x1, cospi_x1 = sincospi(x[1])
+        sinpi_2x2, cospi_2x2 = sincospi(2 * x[2])
         phi = 2 * cospi_x1 * sinpi_2x2 + 2 # ϕ
         q1 = -2 * convert(RealT, pi) * sinpi_x1 * sinpi_2x2     # ϕ_x
         q2 = 4 * convert(RealT, pi) * cospi_x1 * cospi_2x2     # ϕ_y
@@ -130,7 +129,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     return SVector(phi, q1, q2)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::HyperbolicDiffusionEquations2D)
     phi, q1, q2 = u

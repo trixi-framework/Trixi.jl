@@ -7,6 +7,7 @@
 
 include("types.jl")
 include("utilities.jl")
+include("utilities_p4est_t8code.jl")
 include("recipes_plots.jl")
 
 # Add function definitions here such that they can be exported from Trixi.jl and extended in the
