@@ -58,7 +58,7 @@ end
 @trixi_testset "elixir_euler_convergence_pure_fv.jl (O2, constant reconstruction)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
                         volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
-                                                                            flux_hllc,
+                                                                            volume_flux_fv = flux_hllc,
                                                                             reconstruction_mode = reconstruction_constant,
                                                                             slope_limiter = central_slope),
                         l2=[
