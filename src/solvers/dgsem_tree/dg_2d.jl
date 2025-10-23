@@ -41,19 +41,20 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
                          dg, uEltype)
 
-    A3dp1_x = Array{uEltype, 3}
-    A3dp1_y = Array{uEltype, 3}
+    A3 = Array{uEltype, 3}
 
-    fstar1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1)
-                                for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1)
-                                for _ in 1:Threads.maxthreadid()]
+    fstar1_L_threaded = A3[A3(undef, nvariables(equations),
+                              nnodes(dg) + 1, nnodes(dg))
+                           for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A3[A3(undef, nvariables(equations),
+                              nnodes(dg) + 1, nnodes(dg))
+                           for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A3[A3(undef, nvariables(equations),
+                              nnodes(dg), nnodes(dg) + 1)
+                           for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A3[A3(undef, nvariables(equations),
+                              nnodes(dg), nnodes(dg) + 1)
+                           for _ in 1:Threads.maxthreadid()]
 
     return (; cache...,
             fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
@@ -63,19 +64,20 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
-    A3dp1_x = Array{uEltype, 3}
-    A3dp1_y = Array{uEltype, 3}
+    A3 = Array{uEltype, 3}
 
-    fstar1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1)
-                                for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1)
-                                for _ in 1:Threads.maxthreadid()]
+    fstar1_L_threaded = A3[A3(undef, nvariables(equations),
+                              nnodes(dg) + 1, nnodes(dg))
+                           for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A3[A3(undef, nvariables(equations),
+                              nnodes(dg) + 1, nnodes(dg))
+                           for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A3[A3(undef, nvariables(equations),
+                              nnodes(dg), nnodes(dg) + 1)
+                           for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A3[A3(undef, nvariables(equations),
+                              nnodes(dg), nnodes(dg) + 1)
+                           for _ in 1:Threads.maxthreadid()]
 
     return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
             fstar2_R_threaded)
