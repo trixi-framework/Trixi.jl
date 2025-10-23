@@ -421,9 +421,10 @@ function makie_layout_helper(n)
     end
 end
 
-function Trixi.show_plot_makie(visualization_callback, plot_data::PlotData2DTriangulated, variable_names;
-                                show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
-                                time = nothing, timestep = nothing)
+function Trixi.show_plot_makie(visualization_callback,
+                               plot_data::PlotData2DTriangulated, variable_names;
+                               show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
+                               time = nothing, timestep = nothing)
     Makie.plot(plot_data, plot_mesh = show_mesh)
 end
 
