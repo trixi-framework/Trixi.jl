@@ -120,7 +120,7 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_implicit_sparse_jacobian.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_implicit_sparse_jacobian.jl"),
                         tspan=(0.0, 0.4),
                         l2=[0.05240130204342638], linf=[0.07407444680136666])
@@ -135,7 +135,7 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_implicit_sparse_jacobian_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_implicit_sparse_jacobian_restart.jl"),
                         l2=[0.08292233849124372], linf=[0.11726345328639576])
     # Ensure that we do not have excessive memory allocations
@@ -149,7 +149,7 @@ end
 end
 
 @trixi_testset "elixir_advection_implicit_sparse_jacobian_restart.jl (no colorvec)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_implicit_sparse_jacobian_restart.jl"),
                         colorvec_parabolic=nothing,
                         l2=[0.08292233849124372], linf=[0.11726345328639576])
