@@ -169,6 +169,73 @@ end
     return nothing
 end
 
+@inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
+                                                boundary_conditions,
+                                                mesh::P4estMesh{3},
+                                                equations, dg, cache)
+    (; boundary_condition_types, boundary_indices) = boundary_conditions
+    (; contravariant_vectors) = cache.elements
+
+    (; boundaries) = cache
+    index_range = eachnode(dg)
+
+    foreach_enumerate(boundary_condition_types) do (i, boundary_condition)
+        for boundary in boundary_indices[i]
+            element = boundaries.neighbor_ids[boundary]
+            node_indices = boundaries.node_indices[boundary]
+            direction = indices2direction(node_indices)
+
+            i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
+                                                                                index_range)
+            j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
+                                                                                index_range)
+            k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
+                                                                                index_range)
+
+            i_node = i_node_start
+            j_node = j_node_start
+            k_node = k_node_start
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    normal_direction = get_normal_direction(direction,
+                                                            contravariant_vectors,
+                                                            i_node, j_node, k_node,
+                                                            element)
+
+                    u_inner = get_node_vars(u, equations, dg, i_node, j_node, k_node,
+                                            element)
+
+                    u_outer = get_boundary_outer_state(u_inner, t, boundary_condition,
+                                                       normal_direction,
+                                                       mesh, equations, dg, cache,
+                                                       i_node, j_node, k_node, element)
+                    var_outer = u_outer[variable]
+
+                    var_min[i_node, j_node, k_node, element] = min(var_min[i_node,
+                                                                           j_node,
+                                                                           k_node,
+                                                                           element],
+                                                                   var_outer)
+                    var_max[i_node, j_node, k_node, element] = max(var_max[i_node,
+                                                                           j_node,
+                                                                           k_node,
+                                                                           element],
+                                                                   var_outer)
+
+                    i_node += i_node_step_i
+                    j_node += j_node_step_i
+                    k_node += k_node_step_i
+                end
+                i_node += i_node_step_j
+                j_node += j_node_step_j
+                k_node += k_node_step_j
+            end
+        end
+    end
+
+    return nothing
+end
+
 @inline function calc_bounds_onesided!(var_minmax, min_or_max, variable,
                                        u::AbstractArray{<:Any, 5}, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
@@ -319,6 +386,68 @@ end
                                                 boundary_conditions::BoundaryConditionPeriodic,
                                                 mesh::P4estMesh{3},
                                                 equations, dg, cache)
+    return nothing
+end
+
+@inline function calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
+                                                boundary_conditions,
+                                                mesh::P4estMesh{3},
+                                                equations, dg, cache)
+    (; boundary_condition_types, boundary_indices) = boundary_conditions
+    (; contravariant_vectors) = cache.elements
+
+    (; boundaries) = cache
+    index_range = eachnode(dg)
+
+    foreach_enumerate(boundary_condition_types) do (i, boundary_condition)
+        for boundary in boundary_indices[i]
+            element = boundaries.neighbor_ids[boundary]
+            node_indices = boundaries.node_indices[boundary]
+            direction = indices2direction(node_indices)
+
+            i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
+                                                                                index_range)
+            j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
+                                                                                index_range)
+            k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
+                                                                                index_range)
+
+            i_node = i_node_start
+            j_node = j_node_start
+            k_node = k_node_start
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    normal_direction = get_normal_direction(direction,
+                                                            contravariant_vectors,
+                                                            i_node, j_node, k_node,
+                                                            element)
+
+                    u_inner = get_node_vars(u, equations, dg, i_node, j_node, k_node,
+                                            element)
+
+                    u_outer = get_boundary_outer_state(u_inner, t, boundary_condition,
+                                                       normal_direction,
+                                                       mesh, equations, dg, cache,
+                                                       i_node, j_node, k_node, element)
+                    var_outer = variable(u_outer, equations)
+
+                    var_minmax[i_node, j_node, k_node, element] = minmax(var_minmax[i_node,
+                                                                                    j_node,
+                                                                                    k_node,
+                                                                                    element],
+                                                                         var_outer)
+
+                    i_node += i_node_step_i
+                    j_node += j_node_step_i
+                    k_node += k_node_step_i
+                end
+                i_node += i_node_step_j
+                j_node += j_node_step_j
+                k_node += k_node_step_j
+            end
+        end
+    end
+
     return nothing
 end
 
