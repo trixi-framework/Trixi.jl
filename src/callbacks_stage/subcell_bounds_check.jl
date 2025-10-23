@@ -214,4 +214,5 @@ end
 end
 
 include("subcell_bounds_check_2d.jl")
+include("subcell_bounds_check_3d.jl")
 end # @muladd
