@@ -15,7 +15,7 @@ function IndicatorVortex(semi)
     alpha = Vector{real(basis)}()
     A = Array{real(basis), 2}
     indicator_threaded = [A(undef, nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
     cache = (; semi.mesh, alpha, indicator_threaded)
 
     return IndicatorVortex{typeof(cache)}(cache)
@@ -119,7 +119,7 @@ initial_condition = initial_condition_isentropic_vortex
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
@@ -153,7 +153,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # Add `:temperature` to `extra_node_variables` tuple ...
 extra_node_variables = (:temperature,)
 
-# ... and specify the function `get_node_variable` for this symbol, 
+# ... and specify the function `get_node_variable` for this symbol,
 # with first argument matching the symbol (turned into a type via `Val`) for dispatching.
 function Trixi.get_node_variable(::Val{:temperature}, u, mesh, equations, dg, cache)
     n_nodes = nnodes(dg)
