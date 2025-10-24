@@ -379,9 +379,9 @@ function analyze(::Val{:linf_divb}, du, u, t,
             divb = zero(eltype(u))
             # Get the contravariant vectors Ja^1 and Ja^2
             Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
-                                                 i, j, element)
+                                                  i, j, element)
             Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
-                                                 i, j, element)
+                                                  i, j, element)
             # Compute the transformed divergence
             for k in eachnode(dg)
                 u_kj = get_node_vars(u, equations, dg, k, j, element)
