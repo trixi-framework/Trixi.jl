@@ -17,7 +17,7 @@ function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::A
     elements = init_elements(mesh, equations, dg.basis, uEltype)
     interfaces = init_interfaces(mesh, equations, dg.basis, elements)
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
-    mortars = init_mortars(mesh, equations, dg.basis, elements)
+    mortars = init_mortars(mesh, equations, dg.basis, elements, dg.mortar)
 
     cache = (; elements, interfaces, boundaries, mortars)
 
@@ -43,7 +43,8 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
                                         elements_parent)
     boundaries_parent = init_boundaries(mesh.parent, equations, dg.basis,
                                         elements_parent)
-    mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements_parent)
+    mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements_parent,
+                                  dg.mortar)
 
     # Extract data for views.
     elements, interfaces, boundaries, mortars = extract_p4est_mesh_view(elements_parent,
@@ -91,4 +92,5 @@ include("dg_3d_parabolic.jl")
 include("dg_parallel.jl")
 
 include("subcell_limiters_2d.jl")
+include("dg_2d_subcell_limiters.jl")
 end # @muladd
