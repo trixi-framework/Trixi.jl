@@ -5,6 +5,31 @@
 @muladd begin
 #! format: noindent
 
+function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
+                              nonconservative_terms, # can be True/False
+                              equations, surface_integral, dg::DG)
+    @unpack surface_flux = surface_integral
+
+    @threaded for element in eachelement(dg, cache)
+        left_element = cache.elements.left_neighbors[1, element]
+        # => `element` is the right element of the interface
+
+        if left_element > 0 # left_element = 0 at boundaries
+            u_ll = get_node_vars(u, equations, dg, nnodes(dg), left_element)
+            u_rr = get_node_vars(u, equations, dg, 1, element)
+
+            f1 = surface_flux(u_ll, u_rr, 1, equations)
+
+            for v in eachvariable(equations)
+                cache.elements.surface_flux_values[v, 2, left_element] = f1[v]
+                cache.elements.surface_flux_values[v, 1, element] = f1[v]
+            end
+        end
+    end
+
+    return nothing
+end
+
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{1}, equations, surface_integral,
                              dg::DG)
