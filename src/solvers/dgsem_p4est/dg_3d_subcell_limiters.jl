@@ -13,32 +13,33 @@ function create_cache(mesh::P4estMesh{3},
                          dg, uEltype)
 
     A4d = Array{uEltype, 4}
-    A5d = Array{uEltype, 5}
 
     fhat1_L_threaded = A4d[A4d(undef, nvariables(equations),
                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
     fhat1_R_threaded = A4d[A4d(undef, nvariables(equations),
                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
     fhat2_L_threaded = A4d[A4d(undef, nvariables(equations),
                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
     fhat2_R_threaded = A4d[A4d(undef, nvariables(equations),
                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
     fhat3_L_threaded = A4d[A4d(undef, nvariables(equations),
                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
     fhat3_R_threaded = A4d[A4d(undef, nvariables(equations),
                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
+
     flux_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                  nnodes(dg), nnodes(dg), nnodes(dg))
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
     fhat_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                  nnodes(dg), nnodes(dg), nnodes(dg))
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
+
     antidiffusive_fluxes = ContainerAntidiffusiveFlux3D{uEltype}(0,
                                                                  nvariables(equations),
                                                                  nnodes(dg))
