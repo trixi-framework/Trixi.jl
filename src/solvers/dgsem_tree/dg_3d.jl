@@ -16,25 +16,25 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
                          dg, uEltype)
 
-    A4 = Array{uEltype, 4}
-    fstar1_L_threaded = A4[A4(undef, nvariables(equations),
-                              nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A4[A4(undef, nvariables(equations),
-                              nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A4[A4(undef, nvariables(equations),
-                              nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A4[A4(undef, nvariables(equations),
-                              nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fstar3_L_threaded = A4[A4(undef, nvariables(equations),
-                              nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
-    fstar3_R_threaded = A4[A4(undef, nvariables(equations),
-                              nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
+    A4d = Array{uEltype, 4}
+    fstar1_L_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar3_L_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
+    fstar3_R_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
 
     return (; cache..., fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded)
@@ -44,25 +44,25 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                   T8codeMesh{3}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
-    A4 = Array{uEltype, 4}
-    fstar1_L_threaded = A4[A4(undef, nvariables(equations), nnodes(dg) + 1,
-                              nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A4[A4(undef, nvariables(equations), nnodes(dg) + 1,
-                              nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A4[A4(undef, nvariables(equations), nnodes(dg),
-                              nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A4[A4(undef, nvariables(equations), nnodes(dg),
-                              nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fstar3_L_threaded = A4[A4(undef, nvariables(equations), nnodes(dg),
-                              nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
-    fstar3_R_threaded = A4[A4(undef, nvariables(equations), nnodes(dg),
-                              nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
+    A4d = Array{uEltype, 4}
+    fstar1_L_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg) + 1,
+                                nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg) + 1,
+                                nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar3_L_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
+    fstar3_R_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
 
     return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
             fstar2_R_threaded,
