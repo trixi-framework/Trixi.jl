@@ -96,6 +96,24 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 8000)
 end
 
+@trixi_testset "elixir_euler_convergence_nonuniform.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_nonuniform.jl"),
+                        l2=[
+                            6.0145954087568086e-5,
+                            4.865396929677369e-5,
+                            0.00012525608158029655
+                        ],
+                        linf=[
+                            0.00014050847320445925,
+                            0.00038307746603916115,
+                            0.0006872324329503243
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[3.67478226e-01, 3.49491179e-01, 8.08910759e-01],
