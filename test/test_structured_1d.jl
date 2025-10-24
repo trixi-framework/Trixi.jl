@@ -33,6 +33,14 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_nonuniform.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonuniform.jl"),
+                        l2=[0.0006665846145698006], linf=[0.00643334347367408])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_shockcapturing.jl"),
                         l2=[0.08015029105233593],

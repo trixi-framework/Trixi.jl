@@ -85,5 +85,4 @@ function apply_jacobian!(du, mesh::StructuredMesh{1},
 
     return nothing
 end
-
 end # @muladd
