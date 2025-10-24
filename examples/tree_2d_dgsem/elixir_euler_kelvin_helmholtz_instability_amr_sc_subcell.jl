@@ -30,25 +30,20 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
-# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
-surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
-                                positivity_variables_nonlinear = [pressure])
+                                positivity_variables_nonlinear = [pressure],
+                                local_twosided_variables_cons = []) # required for testing
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
-solver = DGSEM(basis, surface_flux, volume_integral)
+mortar = MortarIDP(equations, basis; positivity_variables_cons = ["rho"])
+solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
@@ -79,12 +74,27 @@ save_solution = SaveSolutionCallback(interval = 100,
 save_restart = SaveRestartCallback(interval = 1000,
                                    save_final_restart = true)
 
+amr_indicator = IndicatorHennemannGassner(semi,
+                                          alpha_max = 1.0,
+                                          alpha_min = 0.0001,
+                                          alpha_smooth = false,
+                                          variable = Trixi.density)
+amr_controller = ControllerThreeLevel(semi, amr_indicator,
+                                      base_level = 4,
+                                      med_level = 0, med_threshold = 0.0003,
+                                      max_level = 6, max_threshold = 0.003)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 1,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true)
+
 stepsize_callback = StepsizeCallback(cfl = 0.7)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        stepsize_callback,
-                        save_restart, save_solution)
+                        amr_callback,
+                        save_restart, save_solution,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
@@ -95,5 +105,4 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  ode_default_options()...,
                   callback = callbacks);
