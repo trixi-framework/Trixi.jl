@@ -1,6 +1,3 @@
-# The same setup as tree_1d_dgsem/elixir_advection_basic.jl
-# to verify the StructuredMesh implementation against TreeMesh
-
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
@@ -12,9 +9,9 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_godunov)
 
-cells_per_dimension = (32,)
+cells_per_dimension = (24,)
 
-# Create non-uniform mesh with 32 cells
+# This mapping converts [-1, 1] to [1, 9] with a non-uniform distribution of cells
 mapping(xi) = (xi + 2)^2
 
 mesh = StructuredMesh(cells_per_dimension, mapping)
@@ -25,7 +22,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
 ode = semidiscretize(semi, (0.0, 0.5))
 
 summary_callback = SummaryCallback()
