@@ -455,7 +455,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     if :l2_error_primitive in analysis_errors ||
        :linf_error_primitive in analysis_errors
         l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, u_ode, t, analyzer,
-                                           semi, cache_analysis)
+                                                          semi, cache_analysis)
 
         if mpi_isroot()
             print(" Variable:    ")
