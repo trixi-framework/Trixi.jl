@@ -5,64 +5,6 @@
 @muladd begin
 #! format: noindent
 
-@inline function weak_form_kernel!(du, u,
-                                   element,
-                                   mesh::StructuredMesh{1},
-                                   have_nonconservative_terms::False, equations,
-                                   dg::DGSEM, cache, alpha = true)
-    # true * [some floating point value] == [exactly the same floating point value]
-    # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
-    @unpack jacobian_matrix = cache.elements
-
-    for i in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, i, element)
-
-        flux1 = flux(u_node, 1, equations)
-
-        # Compute the contravariant flux by taking the scalar product of the
-        # first contravariant vector Ja^1 and the flux vector
-        #Ja11 = inv(inverse_jacobian[i, element]) # In 1D, the contravariant vector reduces to the inverse Jacobian
-        Ja11 = jacobian_matrix[1, 1, i, element]
-        contravariant_flux1 = Ja11 *flux1
-        for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
-                                       contravariant_flux1, equations, dg,
-                                       ii, element)
-        end
-    end
-
-    return nothing
-end
-
-function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
-                              nonconservative_terms, # can be True/False
-                              equations, surface_integral, dg::DG)
-    @unpack surface_flux = surface_integral
-    @unpack jacobian_matrix, inverse_jacobian = cache.elements
-
-    @threaded for element in eachelement(dg, cache)
-        left_element = cache.elements.left_neighbors[1, element]
-
-        if left_element > 0 # left_element = 0 at boundaries
-            u_ll = get_node_vars(u, equations, dg, nnodes(dg), left_element)
-            u_rr = get_node_vars(u, equations, dg, 1, element)
-
-            sign_jacobian = sign(inverse_jacobian[1, element])
-            normal_direction = SVector(sign_jacobian * jacobian_matrix[1, 1, 1, element])
-
-            f1 = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-            for v in eachvariable(equations)
-                cache.elements.surface_flux_values[v, 2, left_element] = f1[v]
-                cache.elements.surface_flux_values[v, 1, element] = f1[v]
-            end
-        end
-    end
-
-    return nothing
-end
-
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{1}, equations, surface_integral,
                              dg::DG)
