@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -11,7 +10,14 @@ initial_condition = initial_condition_constant
 
 boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but reduced to 2D.
@@ -39,8 +45,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df00
                            joinpath(@__DIR__, "cube_unstructured_2.inp"))
 
 mesh = P4estMesh{3}(mesh_file, polydeg = 3,
-                    mapping = mapping,
-                    initial_refinement_level = 0)
+                    mapping = mapping)
 
 # Refine quadrants in y-direction of each tree at one edge to level 2
 function refine_fn(p8est, which_tree, quadrant)
@@ -96,7 +101,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), #maxiters=1,
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

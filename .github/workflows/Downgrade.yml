@@ -1,6 +1,9 @@
 name: Downgrade
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths-ignore:
       - 'AUTHORS.md'
@@ -27,16 +30,16 @@ jobs:
   downgrade_test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
     # We could also include the Julia version as in
-    # name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    # name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }}
     # to be more specific. However, that requires us updating the required CI tests whenever we update Julia.
-    name: Downgrade ${{ matrix.trixi_test }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    name: Downgrade ${{ matrix.trixi_test }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         version:
-          - '1.9'
-          # - '~1.9.0-0' # including development versions
+          - '1.10'
+          # - '~1.10.0-0' # including development versions
           # - 'nightly'
         os:
           - ubuntu-latest
@@ -53,8 +56,10 @@ jobs:
           # - p4est_part1
           # - p4est_part2
           # - t8code_part1
+          # - t8code_part2
           # - unstructured_dgmulti
-          # - parabolic
+          # - parabolic_part1
+          # - parabolic_part2
           # - paper_self_gravitating_gas_dynamics
           # - misc_part1
           # - misc_part2
@@ -63,24 +68,24 @@ jobs:
           # - mpi
           - threaded
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      - uses: julia-actions/cache@v1
+      - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-downgrade-compat@v1
         with:
-          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DiffEqBase,DelimitedFiles
+          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
           projects: ., test
       - uses: julia-actions/julia-buildpkg@v1
         env:
-          PYTHON: ""
+          PYTHON: ''
       - name: Run tests without coverage
         uses: julia-actions/julia-runtest@v1
         with:
           coverage: false
         env:
-          PYTHON: ""
+          PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}

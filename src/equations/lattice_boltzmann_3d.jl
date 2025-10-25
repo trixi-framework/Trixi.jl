@@ -90,14 +90,14 @@ The corresponding opposite directions are:
 
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
-   nearly incompressible flows**, J Comput Phys 230(1), 2011
+   nearly incompressible flows**, Journal of Computational Physics 230(1), 2011
    [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
 2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
    (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
    Raum**, Master Thesis, University of Cologne, 2018.
 3. Dieter Hänel, **Molekulare Gasdynamik**, Springer-Verlag Berlin Heidelberg, 2004
    [doi:10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
-4. Dieter Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
+4. Timm Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
    [doi:10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
 """
 struct LatticeBoltzmannEquations3D{RealT <: Real, CollisionOp} <:
@@ -141,12 +141,16 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op = collision_bgk,
     # The relation between the isothermal speed of sound `c_s` and the mean thermal molecular velocity
     # `c` depends on the used phase space discretization, and is valid for D3Q27 (and others). For
     # details, see, e.g., [3] in the docstring above.
-    c_s = c / sqrt(3)
+    # c_s = c / sqrt(3)
 
     # Calculate missing quantities
     if isnothing(Ma)
+        RealT = eltype(u0)
+        c_s = c / sqrt(convert(RealT, 3))
         Ma = u0 / c_s
     elseif isnothing(u0)
+        RealT = eltype(Ma)
+        c_s = c / sqrt(convert(RealT, 3))
         u0 = Ma * c_s
     end
     if isnothing(Re)
@@ -159,21 +163,24 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op = collision_bgk,
     Ma, Re, c, L, rho0, u0, nu = promote(Ma, Re, c, L, rho0, u0, nu)
 
     # Source for weights and speeds: [4] in docstring above
-    weights = SVector(2 / 27, 2 / 27, 2 / 27, 2 / 27, 2 / 27, 2 / 27, 1 / 54, 1 / 54,
-                      1 / 54,
-                      1 / 54, 1 / 54, 1 / 54, 1 / 54, 1 / 54, 1 / 54, 1 / 54, 1 / 54,
-                      1 / 54,
-                      1 / 216, 1 / 216, 1 / 216, 1 / 216, 1 / 216, 1 / 216, 1 / 216,
-                      1 / 216, 8 / 27)
-    v_alpha1 = SVector(c, -c, 0, 0, 0, 0, c, -c, c,
-                       -c, 0, 0, c, -c, c, -c, 0, 0,
-                       c, -c, c, -c, c, -c, -c, c, 0)
-    v_alpha2 = SVector(0, 0, c, -c, 0, 0, c, -c, 0,
-                       0, c, -c, -c, c, 0, 0, c, -c,
-                       c, -c, c, -c, -c, c, c, -c, 0)
-    v_alpha3 = SVector(0, 0, 0, 0, c, -c, 0, 0, c,
-                       -c, c, -c, 0, 0, -c, c, -c, c,
-                       c, -c, -c, c, c, -c, c, -c, 0)
+    weights = SVector{27, RealT}(2 / 27, 2 / 27, 2 / 27, 2 / 27, 2 / 27, 2 / 27, 1 / 54,
+                                 1 / 54,
+                                 1 / 54,
+                                 1 / 54, 1 / 54, 1 / 54, 1 / 54, 1 / 54, 1 / 54, 1 / 54,
+                                 1 / 54,
+                                 1 / 54,
+                                 1 / 216, 1 / 216, 1 / 216, 1 / 216, 1 / 216, 1 / 216,
+                                 1 / 216,
+                                 1 / 216, 8 / 27)
+    v_alpha1 = SVector{27, RealT}(c, -c, 0, 0, 0, 0, c, -c, c,
+                                  -c, 0, 0, c, -c, c, -c, 0, 0,
+                                  c, -c, c, -c, c, -c, -c, c, 0)
+    v_alpha2 = SVector{27, RealT}(0, 0, c, -c, 0, 0, c, -c, 0,
+                                  0, c, -c, -c, c, 0, 0, c, -c,
+                                  c, -c, c, -c, -c, c, c, -c, 0)
+    v_alpha3 = SVector{27, RealT}(0, 0, 0, 0, c, -c, 0, 0, c,
+                                  -c, c, -c, 0, 0, -c, c, -c, c,
+                                  c, -c, -c, c, c, -c, c, -c, 0)
 
     LatticeBoltzmannEquations3D(c, c_s, rho0, Ma, u0, Re, L, nu,
                                 weights, v_alpha1, v_alpha2, v_alpha3,
@@ -187,7 +194,12 @@ function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D)
     varnames(cons2cons, equations)
 end
 
-# Convert conservative variables to macroscopic
+"""
+    cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
+
+Convert the conservative variables `u` (the particle distribution functions)
+to the macroscopic variables (density, velocity_1, velocity_2, velocity_3, pressure).
+"""
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
     rho = density(u, equations)
     v1, v2, v3 = velocity(u, equations)
@@ -206,7 +218,9 @@ A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D)
     @unpack u0 = equations
-    rho = pi
+
+    RealT = eltype(x)
+    rho = convert(RealT, pi)
     v1 = u0
     v2 = u0
     v3 = u0
@@ -214,10 +228,7 @@ function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D
     return equilibrium_distribution(rho, v1, v2, v3, equations)
 end
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::LatticeBoltzmannEquations3D)
-
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations3D)
     if orientation == 1 # x-direction
         v_alpha = equations.v_alpha1
@@ -229,11 +240,12 @@ end
     return v_alpha .* u
 end
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-# @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::LatticeBoltzmannEquations3D)
-#   λ_max =
-# end
+"""
+    flux_godunov(u_ll, u_rr, orientation, 
+                 equations::LatticeBoltzmannEquations3D)
 
+Godunov (upwind) flux for the 3D Lattice-Boltzmann equations.
+"""
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer,
                               equations::LatticeBoltzmannEquations3D)
     if orientation == 1 # x-direction
@@ -243,7 +255,7 @@ end
     else # z-direction
         v_alpha = equations.v_alpha3
     end
-    return 0.5 * (v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll))
+    return 0.5f0 * (v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll))
 end
 
 """
@@ -296,7 +308,7 @@ Calculate the macroscopic pressure from the density `rho` or the  particle distr
 `u`.
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations3D)
-    rho * equations.c_s^2
+    return rho * equations.c_s^2
 end
 @inline function pressure(u, equations::LatticeBoltzmannEquations3D)
     pressure(density(u, equations), equations)
@@ -369,7 +381,7 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
 @inline function collision_bgk(u, dt, equations::LatticeBoltzmannEquations3D)
     @unpack c_s, nu = equations
     tau = nu / (c_s^2 * dt)
-    return -(u - equilibrium_distribution(u, equations)) / (tau + 1 / 2)
+    return -(u - equilibrium_distribution(u, equations)) / (tau + 0.5f0)
 end
 
 @inline have_constant_speed(::LatticeBoltzmannEquations3D) = True()
@@ -391,7 +403,7 @@ end
     rho = density(u, equations)
     v1, v2, v3 = velocity(u, equations)
 
-    return 0.5 * (v1^2 + v2^2 + v3^2) / rho / equations.rho0
+    return 0.5f0 * (v1^2 + v2^2 + v3^2) / rho / equations.rho0
 end
 
 # Calculate nondimensionalized kinetic energy for a conservative state `u`

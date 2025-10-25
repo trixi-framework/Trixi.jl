@@ -105,6 +105,8 @@ function calc_node_coordinates!(node_coordinates, element,
         node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx / 2 * nodes[i],
                                                       cell_y_offset + dy / 2 * nodes[j])
     end
+
+    return nothing
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
@@ -116,7 +118,7 @@ function save_mesh_file(mesh::StructuredMeshView, output_directory; system = "",
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
-    filename = joinpath(output_directory, @sprintf("mesh_%s_%06d.h5", system, timestep))
+    filename = joinpath(output_directory, @sprintf("mesh_%s_%09d.h5", system, timestep))
 
     # Open file (clobber existing content)
     h5open(filename, "w") do file

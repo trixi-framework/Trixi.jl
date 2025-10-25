@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Abstract base type for time integration schemes of storage class `3S*`
-abstract type SimpleAlgorithm3Sstar end
+abstract type SimpleAlgorithm3Sstar <: AbstractTimeIntegrationAlgorithm end
 
 """
     HypDiffN3Erk3Sstar52()
@@ -49,9 +49,9 @@ end
 """
     ParsaniKetchesonDeconinck3Sstar94()
 
-Parsani, Ketcheson, Deconinck (2013)
+- Parsani, Ketcheson, Deconinck (2013)
   Optimized explicit RK schemes for the spectral difference method applied to wave propagation problems
-[DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
+  [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
 struct ParsaniKetchesonDeconinck3Sstar94 <: SimpleAlgorithm3Sstar
     gamma1::SVector{9, Float64}
@@ -100,9 +100,9 @@ end
 """
     ParsaniKetchesonDeconinck3Sstar32()
 
-Parsani, Ketcheson, Deconinck (2013)
+- Parsani, Ketcheson, Deconinck (2013)
   Optimized explicit RK schemes for the spectral difference method applied to wave propagation problems
-[DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
+  [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
 struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
     gamma1::SVector{3, Float64}
@@ -130,23 +130,10 @@ struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
     end
 end
 
-mutable struct SimpleIntegrator3SstarOptions{Callback}
-    callback::Callback # callbacks; used in Trixi.jl
-    adaptive::Bool # whether the algorithm is adaptive; ignored
-    dtmax::Float64 # ignored
-    maxiters::Int # maximal number of time steps
-    tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
-end
-
-function SimpleIntegrator3SstarOptions(callback, tspan; maxiters = typemax(Int),
-                                       kwargs...)
-    SimpleIntegrator3SstarOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                                    [last(tspan)])
-end
-
-mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
-                                      SimpleIntegrator3SstarOptions}
-    u::uType #
+mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType <: AbstractVector,
+                                      Params, Sol, F, Alg,
+                                      SimpleIntegratorOptions} <: AbstractTimeIntegrator
+    u::uType
     du::uType
     u_tmp1::uType
     u_tmp2::uType
@@ -156,24 +143,14 @@ mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
     iter::Int # current number of time step (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    f::F
-    alg::Alg
-    opts::SimpleIntegrator3SstarOptions
+    f::F # `rhs!` of the semidiscretization
+    alg::Alg # SimpleAlgorithm3Sstar
+    opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
 end
 
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::SimpleIntegrator3Sstar, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
-end
-
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::T;
-               dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm3Sstar}
+function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
+              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp1 = similar(u)
@@ -183,114 +160,74 @@ function solve(ode::ODEProblem, alg::T;
     integrator = SimpleIntegrator3Sstar(u, du, u_tmp1, u_tmp2, t, dt, zero(dt), iter,
                                         ode.p,
                                         (prob = ode,), ode.f, alg,
-                                        SimpleIntegrator3SstarOptions(callback,
-                                                                      ode.tspan;
-                                                                      kwargs...), false)
+                                        SimpleIntegratorOptions(callback,
+                                                                ode.tspan;
+                                                                kwargs...), false)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            error("unsupported")
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    elseif !isnothing(callback)
-        error("unsupported")
-    end
+    initialize_callbacks!(callback, integrator)
 
-    solve!(integrator)
+    return integrator
 end
 
-function solve!(integrator::SimpleIntegrator3Sstar)
+function step!(integrator::SimpleIntegrator3Sstar)
     @unpack prob = integrator.sol
     @unpack alg = integrator
     t_end = last(prob.tspan)
     callbacks = integrator.opts.callback
 
-    integrator.finalstep = false
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        if isnan(integrator.dt)
-            error("time step size `dt` is NaN")
-        end
-
-        # if the next iteration would push the simulation beyond the end time, set dt accordingly
-        if integrator.t + integrator.dt > t_end ||
-           isapprox(integrator.t + integrator.dt, t_end)
-            integrator.dt = t_end - integrator.t
-            terminate!(integrator)
-        end
-
-        # one time step
-        integrator.u_tmp1 .= zero(eltype(integrator.u_tmp1))
-        integrator.u_tmp2 .= integrator.u
-        for stage in eachindex(alg.c)
-            t_stage = integrator.t + integrator.dt * alg.c[stage]
-            prob.f(integrator.du, integrator.u, prob.p, t_stage)
-
-            delta_stage = alg.delta[stage]
-            gamma1_stage = alg.gamma1[stage]
-            gamma2_stage = alg.gamma2[stage]
-            gamma3_stage = alg.gamma3[stage]
-            beta_stage_dt = alg.beta[stage] * integrator.dt
-            @trixi_timeit timer() "Runge-Kutta step" begin
-                @threaded for i in eachindex(integrator.u)
-                    integrator.u_tmp1[i] += delta_stage * integrator.u[i]
-                    integrator.u[i] = (gamma1_stage * integrator.u[i] +
-                                       gamma2_stage * integrator.u_tmp1[i] +
-                                       gamma3_stage * integrator.u_tmp2[i] +
-                                       beta_stage_dt * integrator.du[i])
-                end
-            end
-        end
-        integrator.iter += 1
-        integrator.t += integrator.dt
-
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-
-        # respect maximum number of iterations
-        if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-            @warn "Interrupted. Larger maxiters is needed."
-            terminate!(integrator)
-        end
+    @assert !integrator.finalstep
+    if isnan(integrator.dt)
+        error("time step size `dt` is NaN")
     end
 
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
+    limit_dt!(integrator, t_end)
+
+    # one time step
+    integrator.u_tmp1 .= zero(eltype(integrator.u_tmp1))
+    integrator.u_tmp2 .= integrator.u
+    for stage in eachindex(alg.c)
+        t_stage = integrator.t + integrator.dt * alg.c[stage]
+        prob.f(integrator.du, integrator.u, prob.p, t_stage)
+
+        delta_stage = alg.delta[stage]
+        gamma1_stage = alg.gamma1[stage]
+        gamma2_stage = alg.gamma2[stage]
+        gamma3_stage = alg.gamma3[stage]
+        beta_stage_dt = alg.beta[stage] * integrator.dt
+        @trixi_timeit timer() "Runge-Kutta step" begin
+            @threaded for i in eachindex(integrator.u)
+                integrator.u_tmp1[i] += delta_stage * integrator.u[i]
+                integrator.u[i] = (gamma1_stage * integrator.u[i] +
+                                   gamma2_stage * integrator.u_tmp1[i] +
+                                   gamma3_stage * integrator.u_tmp2[i] +
+                                   beta_stage_dt * integrator.du[i])
+            end
+        end
+    end
+    integrator.iter += 1
+    integrator.t += integrator.dt
+
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
+
+    check_max_iter!(integrator)
+
+    return nothing
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::SimpleIntegrator3Sstar) = integrator.du
 function get_tmp_cache(integrator::SimpleIntegrator3Sstar)
-    (integrator.u_tmp1, integrator.u_tmp2)
+    return (integrator.u_tmp1, integrator.u_tmp2)
 end
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegrator3Sstar, ::Bool) = false
 
-# used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::SimpleIntegrator3Sstar, dt)
-    integrator.dt = dt
-end
-
-# Required e.g. for `glm_speed_callback` 
-function get_proposed_dt(integrator::SimpleIntegrator3Sstar)
-    return integrator.dt
-end
-
 # stop the time integration
 function terminate!(integrator::SimpleIntegrator3Sstar)
     integrator.finalstep = true
     empty!(integrator.opts.tstops)
+
+    return nothing
 end
 
 # used for AMR
@@ -299,5 +236,7 @@ function Base.resize!(integrator::SimpleIntegrator3Sstar, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp1, new_size)
     resize!(integrator.u_tmp2, new_size)
+
+    return nothing
 end
 end # @muladd

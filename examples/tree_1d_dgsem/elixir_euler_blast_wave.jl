@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -18,7 +17,8 @@ A medium blast wave taken from
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
     # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
     # Set up polar coordinates
-    inicenter = SVector(0.0)
+    RealT = eltype(x)
+    inicenter = SVector(0)
     x_norm = x[1] - inicenter[1]
     r = abs(x_norm)
     # The following code is equivalent to
@@ -28,15 +28,22 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
     cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
 
     # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-    p = r > 0.5 ? 1.0E-3 : 1.245
+    rho = r > 0.5f0 ? one(RealT) : RealT(1.1691)
+    v1 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * cos_phi
+    p = r > 0.5f0 ? RealT(1.0E-3) : RealT(1.245)
 
     return prim2cons(SVector(rho, v1, p), equations)
 end
 initial_condition = initial_condition_blast_wave
 
-surface_flux = flux_lax_friedrichs
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -86,7 +93,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

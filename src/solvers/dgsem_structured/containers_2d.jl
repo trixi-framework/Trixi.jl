@@ -53,6 +53,8 @@ function calc_node_coordinates!(node_coordinates, element,
         node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx / 2 * nodes[i],
                                                       cell_y_offset + dy / 2 * nodes[j])
     end
+
+    return nothing
 end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
@@ -100,7 +102,7 @@ function calc_jacobian_matrix!(jacobian_matrix, element,
     return jacobian_matrix
 end
 
-# Calculate contravarant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
+# Calculate contravariant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
 # Those are called Ja^i in Kopriva's blue book.
 function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any, 5},
                                      element, jacobian_matrix)

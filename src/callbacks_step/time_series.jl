@@ -72,7 +72,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "interval" => time_series_callback.interval,
             "solution_variables" => time_series_callback.solution_variables,
             "output_directory" => time_series_callback.output_directory,
-            "filename" => time_series_callback.filename,
+            "filename" => time_series_callback.filename
         ]
         summary_box(io, "TimeSeriesCallback", setup)
     end

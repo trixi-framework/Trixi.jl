@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -23,14 +22,15 @@ present in the one dimensional MHD equations. It is the second test from Section
 """
 function initial_condition_ryujones_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
     # domain must be set to [0, 1], γ = 5/3, final time = 0.2
-    rho = x[1] <= 0.5 ? 1.08 : 1.0
-    v1 = x[1] <= 0.5 ? 1.2 : 0.0
-    v2 = x[1] <= 0.5 ? 0.01 : 0.0
-    v3 = x[1] <= 0.5 ? 0.5 : 0.0
-    p = x[1] <= 0.5 ? 0.95 : 1.0
-    inv_sqrt4pi = 1.0 / sqrt(4 * pi)
+    RealT = eltype(x)
+    rho = x[1] <= 0.5f0 ? RealT(1.08) : one(RealT)
+    v1 = x[1] <= 0.5f0 ? RealT(1.2) : zero(RealT)
+    v2 = x[1] <= 0.5f0 ? RealT(0.01) : zero(RealT)
+    v3 = x[1] <= 0.5f0 ? 0.5f0 : 0.0f0
+    p = x[1] <= 0.5f0 ? RealT(0.95) : one(RealT)
+    inv_sqrt4pi = 1 / sqrt(4 * convert(RealT, pi))
     B1 = 2 * inv_sqrt4pi
-    B2 = x[1] <= 0.5 ? 3.6 * inv_sqrt4pi : 4.0 * inv_sqrt4pi
+    B2 = x[1] <= 0.5f0 ? RealT(3.6) * inv_sqrt4pi : 4 * inv_sqrt4pi
     B3 = B1
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
@@ -91,7 +91,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

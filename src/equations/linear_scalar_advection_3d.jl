@@ -15,7 +15,7 @@ The linear scalar advection equation
 in three space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation3D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{3, 1}
+       AbstractLinearScalarAdvectionEquation{3}
     advection_velocity::SVector{3, RealT}
 end
 
@@ -37,10 +37,8 @@ varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar",)
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation3D)
-    # Store translated coordinate for easy use of exact solution
-    x_trans = x - equation.advection_velocity * t
-
-    return SVector(2.0)
+    RealT = eltype(x)
+    return SVector(RealT(2))
 end
 
 """
@@ -51,13 +49,14 @@ A smooth initial condition used for convergence tests.
 function initial_condition_convergence_test(x, t,
                                             equation::LinearScalarAdvectionEquation3D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    c = 1.0
-    A = 0.5
+    c = 1
+    A = 0.5f0
     L = 2
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * sum(x_trans))
     return SVector(scalar)
 end
@@ -82,10 +81,10 @@ A sine wave in the conserved variable.
 """
 function initial_condition_sin(x, t, equation::LinearScalarAdvectionEquation3D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2]) *
-             sin(2 * pi * x_trans[3])
+    scalar = sinpi(2 * x_trans[1]) * sinpi(2 * x_trans[2]) * sinpi(2 * x_trans[3])
     return SVector(scalar)
 end
 
@@ -128,7 +127,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equation::LinearScalarAdvectionEquation3D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equation::LinearScalarAdvectionEquation3D)
     a = equation.advection_velocity[orientation]
@@ -138,7 +137,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equation::LinearScalarAdvectionEquation3D)
-    λ_max = abs(equation.advection_velocity[orientation])
+    return abs(equation.advection_velocity[orientation])
 end
 
 # Calculate 1D flux for a single point in the normal direction
@@ -156,8 +155,13 @@ end
     return abs(a)
 end
 
-# Essentially first order upwind, see e.g.
-# https://math.stackexchange.com/a/4355076/805029
+"""
+    flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
+                 equations::LinearScalarAdvectionEquation3D)
+
+Godunov (upwind) flux for the 3D linear scalar advection equation.
+Essentially first order upwind, see e.g. https://math.stackexchange.com/a/4355076/805029 .
+"""
 function flux_godunov(u_ll, u_rr, orientation::Integer,
                       equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
@@ -171,8 +175,6 @@ function flux_godunov(u_ll, u_rr, orientation::Integer,
     end
 end
 
-# Essentially first order upwind, see e.g.
-# https://math.stackexchange.com/a/4355076/805029
 function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
                       equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
@@ -199,11 +201,11 @@ end
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5 * u^2
+@inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation3D) = entropy(u[1], equation)
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5 * u^2
+@inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation3D)
     energy_total(u[1], equation)
 end

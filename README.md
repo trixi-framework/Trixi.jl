@@ -1,10 +1,10 @@
 # Trixi.jl
 
-[![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
-[![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
+[![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/TrixiDocumentation/stable)
+[![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/TrixiDocumentation/dev)
 [![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 [![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/@trixi-framework)
-[![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
+[![Build Status](https://github.com/trixi-framework/Trixi.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
@@ -19,28 +19,6 @@
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
 
-***
-**Trixi.jl at JuliaCon 2024**<br/>
-At this year's JuliaCon in Eindhoven, Netherlands, we will be present with several contributions
-from the Trixi Framework ecosystem:
-
-* [**Julia for Particle-Based Multiphysics with TrixiParticles.jl**](https://pretalx.com/juliacon2024/talk/TPFF8L/),<br/>
-  [*Erik Faulhaber*](https://github.com/efaulhaber/), [*Niklas Neher*](https://github.com/lasnikas/),
-  10th July 2024, 11:30am–12:00pm, Function (4.1)
-* [**Towards Aerodynamic Simulations in Julia with Trixi.jl**](https://pretalx.com/juliacon2024/talk/XH8KBG/),<br/>
-  [*Daniel Doehring*](https://github.com/danieldoehring/),
-  10th July 2024, 15:00pm–15:30pm, While Loop (4.2)
-* [**libtrixi: serving legacy codes in earth system modeling with fresh Julia CFD**](https://pretalx.com/juliacon2024/talk/JBKVGF/),<br/>
-  [*Benedict Geihe*](https://github.com/benegee/),
-  12th July 2024, 14:00pm–17:00pm, Function (4.1)
-
-The last talk is part of the 
-[Julia for High-Performance Computing](https://pretalx.com/juliacon2024/talk/JBKVGF/)
-minisymposium, which this year is hosted by our own [*Hendrik Ranocha*](https://github.com/ranocha/).
-
-We are looking forward to seeing you there ♥️
-***
-
 **Trixi.jl** is a numerical simulation framework for conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
@@ -48,34 +26,43 @@ having an extensible design with a fast implementation, Trixi.jl is
 focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
-* 1D, 2D, and 3D simulations on [line/quad/hex/simplex meshes](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations)
+* 1D, 2D, and 3D simulations on [line/quad/hex/simplex meshes](https://trixi-framework.github.io/TrixiDocumentation/stable/overview/#Semidiscretizations)
   * Cartesian and curvilinear meshes
   * Conforming and non-conforming meshes
   * Structured and unstructured meshes
   * Hierarchical quadtree/octree grid with adaptive mesh refinement
   * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 * High-order accuracy in space and time
+  * Arbitrary floating-point precision
 * Discontinuous Galerkin methods
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
-  * Positivity-preserving limiting
   * [Finite difference summation by parts (SBP) methods](https://github.com/ranocha/SummationByPartsOperators.jl)
+* Advanced limiting strategies
+  * Positivity-preserving limiting
+  * Subcell invariant domain-preserving (IDP) limiting
+  * Entropy-bounded limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
+* Custom explicit time integration schemes
+  * Maximized linear stability via paired explicit Runge-Kutta methods
+  * Relaxation Runge-Kutta methods for entropy-conservative time integration
 * Native support for differentiable programming
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
+  * Automatic Jacobian sparsity detection via [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl)
 * Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
   * Compressible Navier-Stokes equations
   * Magnetohydrodynamics (MHD) equations
   * Multi-component compressible Euler and MHD equations
+  * Multi-ion compressible MHD equations
   * Linearized Euler and acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
-  * Shallow water equations
+  * Shallow water equations via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl)
   * Several scalar conservation laws (e.g., linear advection, Burgers' equation, LWR traffic flow)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
@@ -90,24 +77,26 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi.jl works
-with Julia v1.8 and newer. We recommend using the latest stable release of Julia.
+with Julia v1.10 and newer. We recommend using the latest stable release of Julia.
 
 ### For users
 Trixi.jl and its related tools are registered Julia packages. Hence, you
-can install Trixi.jl, the visualization tool
-[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
+can install Trixi.jl, the visualization tools
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl), and
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+as well as the time integration sub-packages of
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
 by executing the following commands in the Julia REPL:
 ```julia
 julia> using Pkg
 
-julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
+julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEqLowStorageRK",
+                "OrdinaryDiffEqSSPRK", "Plots"])
 ```
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
 The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-provides time integration schemes used by Trixi.jl, while
+and its sub-packages provide time integration schemes used by Trixi.jl, while
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) can be used to directly
 visualize Trixi.jl's results from the REPL.
 
@@ -201,7 +190,7 @@ Additional documentation is available that contains more information on how to
 modify/extend Trixi.jl's implementation, how to visualize output files etc. It
 also includes a section on our preferred development workflow and some tips for
 using Git. The latest documentation can be accessed either
-[online](https://trixi-framework.github.io/Trixi.jl/stable) or under [`docs/src`](docs/src).
+[online](https://trixi-framework.github.io/TrixiDocumentation/stable) or under [`docs/src`](docs/src).
 
 
 ## Referencing
@@ -244,13 +233,13 @@ with the help of Trixi.jl, please cite the following articles:
 
 In addition, you can also refer to Trixi.jl directly as
 ```bibtex
-@misc{schlottkelakemper2020trixi,
+@misc{schlottkelakemper2025trixi,
   title={{T}rixi.jl: {A}daptive high-order numerical simulations
          of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
-          Ranocha, Hendrik and Winters, Andrew R and Chan, Jesse},
-  year={2021},
-  month={09},
+          Ranocha, Hendrik and Winters, Andrew R and Chan, Jesse
+          and Rueda-Ramírez, Andrés},
+  year={2025},
   howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
   doi={10.5281/zenodo.3996439}
 }
@@ -259,12 +248,13 @@ In addition, you can also refer to Trixi.jl directly as
 
 ## Authors
 Trixi.jl was initiated by [Michael
-Schlottke-Lakemper](https://lakemper.eu)
-(RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
+Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
+(University of Augsburg, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
-(Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+(Linköping University, Sweden), [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+and [Andrés Rueda-Ramírez](https://andres.rueda-ramirez.com) (Polytechnic University of Madrid (UPM), Spain),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 
@@ -278,6 +268,27 @@ of our community to adhere to our [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
+
+## Participating research groups
+Participating research groups in alphabetical order:
+
+[Applied and Computational Mathematics, RWTH Aachen University :de:](https://www.acom.rwth-aachen.de)
+
+[Applied Mathematics, Department of Mathematics, University of Hamburg :de:](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
+
+[Department of Applied Mathematics in Aerospace Engineering, Polytechnic University of Madrid (UPM) :es:](https://numath.dmae.upm.es/)
+
+[Division of Applied Mathematics, Department of Mathematics, Linköping University :sweden:](https://liu.se/en/employee/andwi94)
+
+[Computational and Applied Mathematics, Rice University :us:](https://jlchan.github.io/)
+
+[High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) :de:](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
+
+[High-Performance Scientific Computing, University of Augsburg :de:](https://hpsc.math.uni-augsburg.de)
+
+[Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz :de:](https://ranocha.de)
+
+[Numerical Simulation, Department of Mathematics and Computer Science, University of Cologne :de:](https://www.mi.uni-koeln.de/NumSim/)
 
 
 ## Acknowledgments
@@ -297,7 +308,7 @@ Forschungsgemeinschaft](https://www.dfg.de/) (DFG, German Research Foundation)
 through the following grants:
 * Excellence Strategy EXC 2044-390685587, Mathematics Münster: Dynamics-Geometry-Structure.
 * Research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
-  Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
+  Interface Coupling of Heterogeneous Models ([SNuBIC](https://www.snubic.io))" (project number 463312734).
 * Individual grant no. 528753982.
 
 This project has benefited from funding from the [European Research Council](https://erc.europa.eu)
@@ -317,12 +328,21 @@ DMS-1719818 and DMS-1943186.
 
 This project has benefited from funding from the German
 [Federal Ministry of Education and Research](https://www.bmbf.de) (BMBF)
-through the project grant "Adaptive earth system modeling
-with significantly reduced computation time for exascale supercomputers
-(ADAPTEX)" (funding id: 16ME0668K).
+through the following grants:
+* Project grant "Adaptive earth system modeling with significantly reduced computation time for
+  exascale supercomputers (ADAPTEX)" (funding id: 16ME0668K)
+* Project grant "ICON-DG" of the WarmWorld initiative (funding id: 01LK2315B).
 
 This project has benefited from funding by the
 [Daimler und Benz Stiftung](https://www.daimler-benz-stiftung.de) (Daimler and Benz Foundation)
 through grant no. 32-10/22.
+
+This project has benefited from funding by the
+[Klaus Tschira Stiftung](https://klaus-tschira-stiftung.de/) (Klaus Tschira Foundation)
+through the project grant "High-Fidelity Laboratory for the Simulation of Celestial Bodies with their Space Environment (HiFiLab)" (funding id: 00.014.2021).
+
+This project has benefited from funding by the Spanish
+[Ministry of Science, Innovation, and Universities](https://www.ciencia.gob.es/en/)
+through the "Beatriz Galindo" grant no. BG23-00062.
 
 Trixi.jl is supported by [NumFOCUS](https://numfocus.org/) as an Affiliated Project.

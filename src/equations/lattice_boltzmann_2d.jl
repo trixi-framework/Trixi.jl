@@ -51,14 +51,14 @@ The corresponding opposite directions are:
 
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
-   nearly incompressible flows**, J Comput Phys 230(1), 2011
+   nearly incompressible flows**, Journal of Computational Physics 230(1), 2011
    [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
 2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
    (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
    Raum**, Master Thesis, University of Cologne, 2018.
 3. Dieter Hänel, **Molekulare Gasdynamik**, Springer-Verlag Berlin Heidelberg, 2004
    [doi:10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
-4. Dieter Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
+4. Timm Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
    [doi:10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
 """
 struct LatticeBoltzmannEquations2D{RealT <: Real, CollisionOp} <:
@@ -101,12 +101,16 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
     # The relation between the isothermal speed of sound `c_s` and the mean thermal molecular velocity
     # `c` depends on the used phase space discretization, and is valid for D2Q9 (and others). For
     # details, see, e.g., [3] in the docstring above.
-    c_s = c / sqrt(3)
+    # c_s = c / sqrt(3) 
 
     # Calculate missing quantities
     if isnothing(Ma)
+        RealT = eltype(u0)
+        c_s = c / sqrt(convert(RealT, 3))
         Ma = u0 / c_s
     elseif isnothing(u0)
+        RealT = eltype(Ma)
+        c_s = c / sqrt(convert(RealT, 3))
         u0 = Ma * c_s
     end
     if isnothing(Re)
@@ -119,9 +123,10 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
     Ma, Re, c, L, rho0, u0, nu = promote(Ma, Re, c, L, rho0, u0, nu)
 
     # Source for weights and speeds: [4] in the docstring above
-    weights = SVector(1 / 9, 1 / 9, 1 / 9, 1 / 9, 1 / 36, 1 / 36, 1 / 36, 1 / 36, 4 / 9)
-    v_alpha1 = SVector(c, 0, -c, 0, c, -c, -c, c, 0)
-    v_alpha2 = SVector(0, c, 0, -c, c, c, -c, -c, 0)
+    weights = SVector{9, RealT}(1 / 9, 1 / 9, 1 / 9, 1 / 9, 1 / 36, 1 / 36, 1 / 36,
+                                1 / 36, 4 / 9)
+    v_alpha1 = SVector{9, RealT}(c, 0, -c, 0, c, -c, -c, c, 0)
+    v_alpha2 = SVector{9, RealT}(0, c, 0, -c, c, c, -c, -c, 0)
 
     LatticeBoltzmannEquations2D(c, c_s, rho0, Ma, u0, Re, L, nu,
                                 weights, v_alpha1, v_alpha2,
@@ -135,7 +140,12 @@ function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations2D)
     varnames(cons2cons, equations)
 end
 
-# Convert conservative variables to macroscopic
+"""
+    cons2macroscopic(u, equations::LatticeBoltzmannEquations2D)
+
+Convert the conservative variables `u` (the particle distribution functions)
+to the macroscopic variables (density, velocity_1, velocity_2, pressure).
+"""
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations2D)
     rho = density(u, equations)
     v1, v2 = velocity(u, equations)
@@ -154,7 +164,9 @@ A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations2D)
     @unpack u0 = equations
-    rho = pi
+
+    RealT = eltype(x)
+    rho = convert(RealT, pi)
     v1 = u0
     v2 = u0
 
@@ -228,10 +240,7 @@ No-slip wall boundary condition using the bounce-back approach.
     return flux
 end
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::LatticeBoltzmannEquations2D)
-
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations2D)
     if orientation == 1
         v_alpha = equations.v_alpha1
@@ -241,11 +250,12 @@ end
     return v_alpha .* u
 end
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-# @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::LatticeBoltzmannEquations2D)
-#   λ_max =
-# end
+"""
+    flux_godunov(u_ll, u_rr, orientation, 
+                 equations::LatticeBoltzmannEquations2D)
 
+Godunov (upwind) flux for the 2D Lattice-Boltzmann equations.
+"""
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer,
                               equations::LatticeBoltzmannEquations2D)
     if orientation == 1
@@ -253,7 +263,7 @@ end
     else
         v_alpha = equations.v_alpha2
     end
-    return 0.5 * (v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll))
+    return 0.5f0 * (v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll))
 end
 
 """
@@ -303,7 +313,7 @@ Calculate the macroscopic pressure from the density `rho` or the  particle distr
 `u`.
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations2D)
-    rho * equations.c_s^2
+    return rho * equations.c_s^2
 end
 @inline function pressure(u, equations::LatticeBoltzmannEquations2D)
     pressure(density(u, equations), equations)
@@ -358,7 +368,7 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
 @inline function collision_bgk(u, dt, equations::LatticeBoltzmannEquations2D)
     @unpack c_s, nu = equations
     tau = nu / (c_s^2 * dt)
-    return -(u - equilibrium_distribution(u, equations)) / (tau + 1 / 2)
+    return -(u - equilibrium_distribution(u, equations)) / (tau + 0.5f0)
 end
 
 @inline have_constant_speed(::LatticeBoltzmannEquations2D) = True()

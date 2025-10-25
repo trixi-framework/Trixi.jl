@@ -11,7 +11,7 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::TreeMesh{2}, equations,
+function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
                       dg::DG, RealT, uEltype)
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
@@ -34,38 +34,29 @@ function create_cache(mesh::TreeMesh{2}, equations,
     return cache
 end
 
-# The methods below are specialized on the volume integral type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}},
-                      equations, volume_integral::VolumeIntegralFluxDifferencing,
-                      dg::DG, uEltype)
-    NamedTuple()
-end
-
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
-    element_ids_dg = Int[]
-    element_ids_dgfv = Int[]
-
     cache = create_cache(mesh, equations,
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
                          dg, uEltype)
 
-    A3dp1_x = Array{uEltype, 3}
-    A3dp1_y = Array{uEltype, 3}
+    A3d = Array{uEltype, 3}
 
-    fstar1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
-    fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
+    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
 
-    return (; cache..., element_ids_dg, element_ids_dgfv,
+    return (; cache...,
             fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
 end
 
@@ -73,17 +64,20 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
-    A3dp1_x = Array{uEltype, 3}
-    A3dp1_y = Array{uEltype, 3}
+    A3d = Array{uEltype, 3}
 
-    fstar1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
-    fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
+    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
 
     return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
             fstar2_R_threaded)
@@ -91,27 +85,34 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}},
-                      equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
+function create_cache(mesh::TreeMesh{2}, equations,
+                      mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
-    MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
+    MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
+                  uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
-    fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
     # A2d = Array{uEltype, 2}
-    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
-    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
+    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.maxthreadid()]
+    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.maxthreadid()]
 
-    (; fstar_upper_threaded, fstar_lower_threaded)
+    cache = (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+             fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
+
+    return cache
 end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
+              mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},
+                          TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+              equations,
+              boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
@@ -125,8 +126,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
@@ -151,7 +151,7 @@ function rhs!(du, u, t,
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u, mesh, equations,
-                         dg.mortar, dg.surface_integral, dg)
+                         dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
@@ -178,32 +178,16 @@ function rhs!(du, u, t,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           StructuredMeshView{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, T8codeMesh{2}},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel!(du, u, element, mesh,
-                          nonconservative_terms, equations,
-                          dg, cache)
-    end
-
-    return nothing
-end
-
 #=
-`weak_form_kernel!` is only implemented for conserved terms as 
-non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+`weak_form_kernel!` is only implemented for conserved terms as
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
 see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::TreeMesh{2},
-                                   nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -229,26 +213,9 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-# flux differencing volume integral. For curved meshes averaging of the
-# mapping terms, stored in `cache.elements.contravariant_vectors`, is peeled apart
-# from the evaluation of the physical fluxes in each Cartesian direction
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           T8codeMesh{2}},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        flux_differencing_kernel!(du, u, element, mesh,
-                                  nonconservative_terms, equations,
-                                  volume_integral.volume_flux, dg, cache)
-    end
-end
-
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{2},
-                                           nonconservative_terms::False, equations,
+                                           have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -287,7 +254,7 @@ end
 
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{2},
-                                           nonconservative_terms::True, equations,
+                                           have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -323,80 +290,19 @@ end
         end
 
         # The factor 0.5 cancels the factor 2 in the flux differencing form
-        multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations,
+        multiply_add_to_node_vars!(du, alpha * 0.5f0, integral_contribution, equations,
                                    dg, i, j, element)
     end
-end
-
-# TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           T8codeMesh{2}},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralShockCapturingHG,
-                               dg::DGSEM, cache)
-    @unpack element_ids_dg, element_ids_dgfv = cache
-    @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
-
-    # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-    alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
-                                                               cache)
-
-    # Determine element ids for DG-only and blended DG-FV volume integral
-    pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
-
-    # Loop over pure DG elements
-    @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
-        element = element_ids_dg[idx_element]
-        flux_differencing_kernel!(du, u, element, mesh,
-                                  nonconservative_terms, equations,
-                                  volume_flux_dg, dg, cache)
-    end
-
-    # Loop over blended DG-FV elements
-    @trixi_timeit timer() "blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
-        element = element_ids_dgfv[idx_element]
-        alpha_element = alpha[element]
-
-        # Calculate DG volume integral contribution
-        flux_differencing_kernel!(du, u, element, mesh,
-                                  nonconservative_terms, equations,
-                                  volume_flux_dg, dg, cache, 1 - alpha_element)
-
-        # Calculate FV volume integral contribution
-        fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
-                   dg, cache, element, alpha_element)
-    end
-
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{2},
-                               nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
-                               dg::DGSEM, cache)
-    @unpack volume_flux_fv = volume_integral
-
-    # Calculate LGL FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
-                   dg, cache, element, true)
-    end
-
-    return nothing
 end
 
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                         UnstructuredMesh2D, P4estMesh{2},
                                         T8codeMesh{2}},
-                            nonconservative_terms, equations,
+                            have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
@@ -404,7 +310,8 @@ end
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
-                 nonconservative_terms, equations, volume_flux_fv, dg, element, cache)
+                 have_nonconservative_terms, equations, volume_flux_fv, dg, element,
+                 cache)
 
     # Calculate FV volume integral contribution
     for j in eachnode(dg), i in eachnode(dg)
@@ -421,7 +328,7 @@ end
 end
 
 #     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  nonconservative_terms::False, equations,
+#                  have_nonconservative_terms::False, equations,
 #                  volume_flux_fv, dg, element)
 #
 # Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
@@ -433,8 +340,8 @@ end
 # - `fstar2_R::AbstractArray{<:Real, 3}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               u::AbstractArray{<:Any, 4},
-                              mesh::TreeMesh{2}, nonconservative_terms::False,
-                              equations,
+                              mesh::TreeMesh{2},
+                              have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     fstar1_L[:, 1, :] .= zero(eltype(fstar1_L))
     fstar1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_L))
@@ -466,7 +373,7 @@ end
 end
 
 #     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  nonconservative_terms::True, equations,
+#                  have_nonconservative_terms::True, equations,
 #                  volume_flux_fv, dg, element)
 #
 # Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
@@ -479,7 +386,8 @@ end
 # - `u_leftright::AbstractArray{<:Real, 4}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               u::AbstractArray{<:Any, 4},
-                              mesh::TreeMesh{2}, nonconservative_terms::True, equations,
+                              mesh::TreeMesh{2},
+                              have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
@@ -500,8 +408,8 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        f1_L = f1 + 0.5 * nonconservative_flux(u_ll, u_rr, 1, equations)
-        f1_R = f1 + 0.5 * nonconservative_flux(u_rr, u_ll, 1, equations)
+        f1_L = f1 + 0.5f0 * nonconservative_flux(u_ll, u_rr, 1, equations)
+        f1_R = f1 + 0.5f0 * nonconservative_flux(u_rr, u_ll, 1, equations)
 
         # Copy to temporary storage
         set_node_vars!(fstar1_L, f1_L, equations, dg, i, j)
@@ -526,8 +434,8 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        f2_L = f2 + 0.5 * nonconservative_flux(u_ll, u_rr, 2, equations)
-        f2_R = f2 + 0.5 * nonconservative_flux(u_rr, u_ll, 2, equations)
+        f2_L = f2 + 0.5f0 * nonconservative_flux(u_ll, u_rr, 2, equations)
+        f2_R = f2 + 0.5f0 * nonconservative_flux(u_rr, u_ll, 2, equations)
 
         # Copy to temporary storage
         set_node_vars!(fstar2_L, f2_L, equations, dg, i, j)
@@ -614,7 +522,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
-                              nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -648,7 +556,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
-                              nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -680,10 +588,10 @@ function calc_interface_flux!(surface_flux_values,
                 # the interpretation of global SBP operators coupled discontinuously via
                 # central fluxes/SATs
                 surface_flux_values[v, i, left_direction, left_id] = flux[v] +
-                                                                     0.5 *
+                                                                     0.5f0 *
                                                                      noncons_left[v]
                 surface_flux_values[v, i, right_direction, right_id] = flux[v] +
-                                                                       0.5 *
+                                                                       0.5f0 *
                                                                        noncons_right[v]
             end
         end
@@ -731,12 +639,6 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
-    @assert isempty(eachboundary(dg, cache))
-end
-
 function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
@@ -763,12 +665,14 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                                      have_nonconservative_terms(equations),
                                      equations, surface_integral, dg, cache,
                                      4, firsts[4], lasts[4])
+
+    return nothing
 end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 4},
                                           t,
                                           boundary_condition,
-                                          nonconservative_terms::False, equations,
+                                          have_nonconservative_terms::False, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
     @unpack surface_flux = surface_integral
@@ -804,10 +708,9 @@ end
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 4},
                                           t,
                                           boundary_condition,
-                                          nonconservative_terms::True, equations,
+                                          have_nonconservative_terms::True, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
 
     @threaded for boundary in first_boundary:last_boundary
@@ -823,17 +726,15 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                 u_inner = u_rr
             end
             x = get_node_coords(node_coordinates, equations, dg, i, boundary)
-            flux = boundary_condition(u_inner, orientations[boundary], direction, x, t,
-                                      surface_flux,
-                                      equations)
-            noncons_flux = boundary_condition(u_inner, orientations[boundary],
-                                              direction, x, t, nonconservative_flux,
-                                              equations)
+            flux, noncons_flux = boundary_condition(u_inner, orientations[boundary],
+                                                    direction, x, t,
+                                                    surface_integral.surface_flux,
+                                                    equations)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
                 surface_flux_values[v, i, direction, neighbor] = flux[v] +
-                                                                 0.5 * noncons_flux[v]
+                                                                 0.5f0 * noncons_flux[v]
             end
         end
     end
@@ -843,7 +744,7 @@ end
 
 function prolong2mortars!(cache, u,
                           mesh::TreeMesh{2}, equations,
-                          mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                          mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM)
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -943,28 +844,36 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
-                           nonconservative_terms::False, equations,
+                           have_nonconservative_terms::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_upper = fstar_upper_threaded[Threads.threadid()]
-        fstar_lower = fstar_lower_threaded[Threads.threadid()]
+        fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+        fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
+        fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_upper, equations, surface_flux, dg, u_upper, mortar,
+        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
                     orientation)
-        calc_fstar!(fstar_lower, equations, surface_flux, dg, u_lower, mortar,
+        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
+                    orientation)
+        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
+                    orientation)
+        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
                     orientation)
 
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache,
-                                   mortar, fstar_upper, fstar_lower)
+                                   mortar, fstar_primary_upper, fstar_primary_lower,
+                                   fstar_secondary_upper, fstar_secondary_lower)
     end
 
     return nothing
@@ -972,23 +881,30 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
-                           nonconservative_terms::True, equations,
+                           have_nonconservative_terms::True, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u_lower, u_upper, orientations, large_sides = cache.mortars
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_upper = fstar_upper_threaded[Threads.threadid()]
-        fstar_lower = fstar_lower_threaded[Threads.threadid()]
+        fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+        fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
+        fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_upper, equations, surface_flux, dg, u_upper, mortar,
+        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
                     orientation)
-        calc_fstar!(fstar_lower, equations, surface_flux, dg, u_lower, mortar,
+        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
+                    orientation)
+        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
+                    orientation)
+        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
                     orientation)
 
         # Add nonconservative fluxes.
@@ -1006,14 +922,26 @@ function calc_mortar_flux!(surface_flux_values,
                 u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, equations, dg,
                                                                i, mortar)
                 # Call pointwise nonconservative term
-                noncons_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
-                                                     orientation, equations)
-                noncons_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
-                                                     orientation, equations)
+                noncons_primary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
+                                                             orientation, equations)
+                noncons_primary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
+                                                             orientation, equations)
+                noncons_secondary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
+                                                               orientation, equations)
+                noncons_secondary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
+                                                               orientation, equations)
                 # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_upper, 0.5, noncons_upper, equations,
+                multiply_add_to_node_vars!(fstar_primary_upper, 0.5f0,
+                                           noncons_primary_upper, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_lower, 0.5, noncons_lower, equations,
+                multiply_add_to_node_vars!(fstar_primary_lower, 0.5f0,
+                                           noncons_primary_lower, equations,
+                                           dg, i)
+                multiply_add_to_node_vars!(fstar_secondary_upper, 0.5f0,
+                                           noncons_secondary_upper, equations,
+                                           dg, i)
+                multiply_add_to_node_vars!(fstar_secondary_lower, 0.5f0,
+                                           noncons_secondary_lower, equations,
                                            dg, i)
             end
         else # large_sides[mortar] == 2 -> small elements on the left
@@ -1024,21 +952,34 @@ function calc_mortar_flux!(surface_flux_values,
                 u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, equations, dg,
                                                                i, mortar)
                 # Call pointwise nonconservative term
-                noncons_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
-                                                     orientation, equations)
-                noncons_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
-                                                     orientation, equations)
+                noncons_primary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
+                                                             orientation, equations)
+                noncons_primary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
+                                                             orientation, equations)
+                noncons_secondary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
+                                                               orientation, equations)
+                noncons_secondary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
+                                                               orientation, equations)
                 # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_upper, 0.5, noncons_upper, equations,
+                multiply_add_to_node_vars!(fstar_primary_upper, 0.5f0,
+                                           noncons_primary_upper, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_lower, 0.5, noncons_lower, equations,
+                multiply_add_to_node_vars!(fstar_primary_lower, 0.5f0,
+                                           noncons_primary_lower, equations,
+                                           dg, i)
+                multiply_add_to_node_vars!(fstar_secondary_upper, 0.5f0,
+                                           noncons_secondary_upper, equations,
+                                           dg, i)
+                multiply_add_to_node_vars!(fstar_secondary_lower, 0.5f0,
+                                           noncons_secondary_lower, equations,
                                            dg, i)
             end
         end
 
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache,
-                                   mortar, fstar_upper, fstar_lower)
+                                   mortar, fstar_primary_upper, fstar_primary_lower,
+                                   fstar_secondary_upper, fstar_secondary_lower)
     end
 
     return nothing
@@ -1063,7 +1004,10 @@ end
                                             mesh::TreeMesh{2}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache,
-                                            mortar, fstar_upper, fstar_lower)
+                                            mortar, fstar_primary_upper,
+                                            fstar_primary_lower,
+                                            fstar_secondary_upper,
+                                            fstar_secondary_lower)
     large_element = cache.mortars.neighbor_ids[3, mortar]
     upper_element = cache.mortars.neighbor_ids[2, mortar]
     lower_element = cache.mortars.neighbor_ids[1, mortar]
@@ -1086,8 +1030,8 @@ end
             direction = 4
         end
     end
-    surface_flux_values[:, :, direction, upper_element] .= fstar_upper
-    surface_flux_values[:, :, direction, lower_element] .= fstar_lower
+    surface_flux_values[:, :, direction, upper_element] .= fstar_primary_upper
+    surface_flux_values[:, :, direction, lower_element] .= fstar_primary_lower
 
     # Project small fluxes to large element
     if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
@@ -1120,14 +1064,14 @@ end
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
     #               mortar_l2.reverse_upper, fstar_upper[v, :])
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
-    #               mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
+    #               mortar_l2.reverse_lower, fstar_lower[v, :], true, true)
     # end
     # The code above could be replaced by the following code. However, the relative efficiency
     # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
     # Using StaticArrays for both makes the code above faster for common test cases.
     multiply_dimensionwise!(view(surface_flux_values, :, :, direction, large_element),
-                            mortar_l2.reverse_upper, fstar_upper,
-                            mortar_l2.reverse_lower, fstar_lower)
+                            mortar_l2.reverse_upper, fstar_secondary_upper,
+                            mortar_l2.reverse_lower, fstar_secondary_lower)
 
     return nothing
 end
@@ -1237,7 +1181,7 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
     return nothing
 end
 
-# TODO: Taal dimension agnostic
+# Need dimension specific version to avoid error at dispatching
 function calc_sources!(du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{2}, dg::DG, cache)
     return nothing

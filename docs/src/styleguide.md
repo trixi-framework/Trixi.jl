@@ -20,6 +20,7 @@ conventions, we apply and enforce automated source code formatting
     * The main modified argument comes first. For example, if the right-hand side `du` is modified,
       it should come first. If only the `cache` is modified, e.g., in `prolong2interfaces!`
       and its siblings, put the `cache` first.
+    * Some internal functions take a "computational backend" argument, this should always be passed as the first argument.
     * Otherwise, use the order `mesh, equations, solver, cache`.
     * If something needs to be specified in more detail for dispatch, put the additional argument before the general one
       that is specified in more detail. For example, we use `have_nonconservative_terms(equations), equations`
@@ -51,11 +52,11 @@ PRs that verify that running JuliaFormatter.jl again will not change the source 
 To format your contributions before created a PR (or, at least, before requesting a review
 of your PR), you need to install JuliaFormatter.jl first by running
 ```shell
-julia -e 'using Pkg; Pkg.add("JuliaFormatter")'
+julia -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter", version="1.0.60"))'
 ```
 You can then recursively format the core Julia files in the Trixi.jl repo by executing
 ```shell
-julia -e 'using JuliaFormatter; format(["benchmark", "examples", "ext", "src", "test", "utils"])'
+julia -e 'using JuliaFormatter; format(".")'
 ```
 from inside the Trixi.jl repository. For convenience, there is also a script you can
 directly run from your terminal shell, which will automatically install JuliaFormatter in a

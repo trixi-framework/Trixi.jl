@@ -30,7 +30,7 @@
 # Therefore, subcell limiting with the IDP limiter requires the use of a Trixi-intern
 # time integration SSPRK method called with
 # ````julia
-# Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)
+# Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...);
 # ````
 #-
 # Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher)
@@ -51,7 +51,11 @@
 # The Newton-bisection algorithm is an iterative method and requires some parameters.
 # It uses a fixed maximum number of iteration steps (`max_iterations_newton = 10`) and
 # relative/absolute tolerances (`newton_tolerances = (1.0e-12, 1.0e-14)`). The given values are
-# sufficient in most cases and therefore used as default. Additionally, there is the parameter
+# sufficient in most cases and therefore used as default. If the implemented bounds checking
+# functionality indicates problems with the limiting (see [below](@ref subcell_bounds_check))
+# the Newton method with the chosen parameters might not manage to converge. If so, adapting
+# the mentioned parameters helps fix that.
+# Additionally, there is the parameter
 # `gamma_constant_newton`, which can be used to scale the antidiffusive flux for the computation
 # of the blending coefficients of nonlinear variables. The default value is `2 * ndims(equations)`,
 # as it was shown by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) [Section 4.2.2.]
@@ -120,7 +124,6 @@ local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]
 # Since the setup is mostly very similar to a pure DGSEM setup as in
 # `tree_2d_dgsem/elixir_euler_blast_wave.jl`, the equivalent parts are used without any explanation
 # here.
-using OrdinaryDiffEq
 using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -213,8 +216,6 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),)
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
-summary_callback() # print the timer summary
-
 
 # ## Visualization
 # As for a standard simulation in Trixi.jl, it is possible to visualize the solution using the
@@ -226,8 +227,6 @@ plot(sol)
 # approach using the [`SaveSolutionCallback`](@ref), [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
 # and [ParaView](https://www.paraview.org/download/). More details about this procedure
 # can be found in the [visualization documentation](@ref visualization).
-# Unfortunately, the support for subcell limiting data is not yet merged into the main branch
-# of Trixi2Vtk but lies in the branch [`bennibolm/node-variables`](https://github.com/bennibolm/Trixi2Vtk.jl/tree/node-variables).
 #-
 # With that implementation and the standard procedure used for Trixi2Vtk you get the following
 # dropdown menu in ParaView.
@@ -243,8 +242,7 @@ plot(sol)
 # and get the following visualization.
 # ![blast_wave_paraview_reinterpolate=false](https://github.com/trixi-framework/Trixi.jl/assets/74359358/39274f18-0064-469c-b4da-bac4b843e116)
 
-
-# ## Bounds checking
+# ## [Bounds checking](@id subcell_bounds_check)
 # Subcell limiting is based on the fulfillment of target bounds - either global or local.
 # Although the implementation works and has been thoroughly tested, there are some cases where
 # these bounds are not met.

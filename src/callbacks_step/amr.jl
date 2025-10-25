@@ -145,11 +145,23 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
             has_changed = amr_callback(integrator,
                                        only_refine = amr_callback.adapt_initial_condition_only_refine)
             iterations = iterations + 1
-            if iterations > 10
-                @warn "AMR for initial condition did not settle within 10 iterations!\n" *
+            allowed_max_iterations = max(10, max_level(amr_callback.controller))
+            if iterations > allowed_max_iterations
+                @warn "AMR for initial condition did not settle within $(allowed_max_iterations) iterations!\n" *
                       "Consider adjusting thresholds or setting `adapt_initial_condition_only_refine`."
                 break
             end
+        end
+
+        # Update initial state integrals of analysis callback if it exists
+        # See https://github.com/trixi-framework/Trixi.jl/issues/2536 for more information.
+        index = findfirst(cb -> cb.affect! isa AnalysisCallback,
+                          integrator.opts.callback.discrete_callbacks)
+        if !isnothing(index)
+            analysis_callback = integrator.opts.callback.discrete_callbacks[index].affect!
+
+            initial_state_integrals = integrate(integrator.u, semi)
+            analysis_callback.initial_state_integrals = initial_state_integrals
         end
     end
 
@@ -228,7 +240,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
     if mpi_isparallel()
         # Collect lambda for all elements
-        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(mesh, dg, cache))
         # Use parent because n_elements_by_rank is an OffsetArray
         recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
         MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
@@ -243,6 +255,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
+    # Note: This assumes that the entries of `lambda` are sorted with ascending cell ids
     for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
@@ -380,7 +393,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         error("MPI has not been verified yet for parabolic AMR")
 
         # Collect lambda for all elements
-        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(mesh, dg, cache))
         # Use parent because n_elements_by_rank is an OffsetArray
         recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
         MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
@@ -395,6 +408,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
+    # Note: This assumes that the entries of `lambda` are sorted with ascending cell ids
     for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
@@ -621,7 +635,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         end
 
         reinitialize_boundaries!(semi.boundary_conditions, cache)
-        # if the semidiscretization also stores parabolic boundary conditions, 
+        # if the semidiscretization also stores parabolic boundary conditions,
         # reinitialize them after each refinement step as well.
         if hasproperty(semi, :boundary_conditions_parabolic)
             reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
@@ -788,6 +802,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
         reinitialize_boundaries!(semi.boundary_conditions, cache)
     end
 
+    mesh.unsaved_changes |= has_changed
+
     # Return true if there were any cells coarsened or refined, otherwise false.
     return has_changed
 end
@@ -862,6 +878,8 @@ function ControllerThreeLevel(semi, indicator; base_level = 1,
                                                                                   indicator,
                                                                                   cache)
 end
+
+max_level(controller::ControllerThreeLevel) = controller.max_level
 
 function create_cache(indicator_type::Type{ControllerThreeLevel}, semi)
     create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
@@ -1054,6 +1072,8 @@ function ControllerThreeLevelCombined(semi, indicator_primary, indicator_seconda
                                                                              indicator_secondary,
                                                                              cache)
 end
+
+max_level(controller::ControllerThreeLevelCombined) = controller.max_level
 
 function create_cache(indicator_type::Type{ControllerThreeLevelCombined}, semi)
     create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
