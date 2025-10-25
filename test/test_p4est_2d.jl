@@ -560,6 +560,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_eulermulti_shock.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock.jl"),
+                        l2=[
+                            0.09160388140703994,
+                            0.000736779618610053,
+                            0.22564799038297123,
+                            0.09074993408575387,
+                            0.2714279606670099
+                        ],
+                        linf=[
+                            0.7071145839509081,
+                            0.031436413121202246,
+                            1.7750084462888234,
+                            1.1624061471508902,
+                            4.335595275270981
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[1.0513414461545583e-5, 1.0517900957166411e-6,
