@@ -41,8 +41,7 @@ end
 
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{1},
-                               have_nonconservative_terms::False, equations,
+                               mesh::TreeMesh{1}, equations,
                                volume_integral::VolumeIntegralStrongForm,
                                dg::FDSBP, cache)
     D = dg.basis # SBP derivative operator
@@ -88,8 +87,7 @@ end
 # part of the flux splitting f^+ and the D^+ operator acts on the negative part
 # of the flux splitting f^-.
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{1},
-                               have_nonconservative_terms::False, equations,
+                               mesh::TreeMesh{1}, equations,
                                volume_integral::VolumeIntegralUpwind,
                                dg::FDSBP, cache)
     # Assume that
