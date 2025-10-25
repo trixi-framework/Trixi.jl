@@ -694,16 +694,13 @@ end
     gamma_ll = totalgamma(u_ll, equations)
     gamma_rr = totalgamma(u_rr, equations)
 
-    # Normalize the direction vector
-    normal_vector = normal_direction / norm(normal_direction)
-
     # Velocity components
     v_ll_vec = SVector(rho_v1_ll, rho_v2_ll) / rho_ll
     v_rr_vec = SVector(rho_v1_rr, rho_v2_rr) / rho_rr
 
     # Project velocities onto the direction normal_direction.
-    v_ll = dot(v_ll_vec, normal_vector )
-    v_rr = dot(v_rr_vec, normal_vector )
+    v_ll = dot(v_ll_vec, normal_direction)
+    v_rr = dot(v_rr_vec, normal_direction)
 
     # Compute pressures
     p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * dot(v_ll_vec, v_ll_vec) * rho_ll)
@@ -713,7 +710,7 @@ end
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
