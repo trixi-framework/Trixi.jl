@@ -695,8 +695,8 @@ end
     gamma_rr = totalgamma(u_rr, equations)
 
     # Velocity components
-    v_ll_vec = SVector(rho_v1_ll, rho_v2_ll) / rho_ll
-    v_rr_vec = SVector(rho_v1_rr, rho_v2_rr) / rho_rr
+    v_ll_vec = SVector(rho_v1_ll, rho_v2_ll) ./ rho_ll
+    v_rr_vec = SVector(rho_v1_rr, rho_v2_rr) ./ rho_rr
 
     # Project velocities onto the direction normal_direction.
     v_ll = dot(v_ll_vec, normal_direction)
