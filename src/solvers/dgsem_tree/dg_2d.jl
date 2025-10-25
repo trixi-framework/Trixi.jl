@@ -447,7 +447,7 @@ end
 
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{2}, equations,
-                             surface_integral, dg::DG{<:LobattoLegendreBasis})
+                             dg::DG{<:LobattoLegendreBasis})
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -476,7 +476,7 @@ end
 
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{2}, equations,
-                             surface_integral, dg::DG{<:GaussLegendreBasis})
+                             dg::DG{<:GaussLegendreBasis})
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     @unpack boundary_interpolation, weights = dg.basis
