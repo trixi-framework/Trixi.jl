@@ -699,7 +699,7 @@ end
     v_rr_vec = SVector(rho_v1_rr, rho_v2_rr) ./ rho_rr
     # Normalize the direction vector
     norm_ = norm(normal_direction)
-    normal_vector = normal_direction / norm_ 
+    normal_vector = normal_direction / norm_
     # Project velocities onto the direction normal_direction.
     v_ll = dot(v_ll_vec, normal_vector)
     v_rr = dot(v_rr_vec, normal_vector)
