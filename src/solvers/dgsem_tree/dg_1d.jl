@@ -641,7 +641,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     return nothing
 end
 
-function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function apply_jacobian!(du, mesh::TreeMesh{1},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
