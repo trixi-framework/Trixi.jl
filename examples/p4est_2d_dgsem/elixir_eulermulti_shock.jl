@@ -26,7 +26,7 @@ Shock traveling from left to right where it interacts with a Perturbed interface
         rho1 = 1.72
         rho2 = 0.03
         p = 1.57
-    elseif (x[1] <= 30) || (x[1] <= 70 && abs(125 - x[2]) > w/2)
+    elseif (x[1] <= 30) || (x[1] <= 70 && abs(125 - x[2]) > w / 2)
         # Intermediate region.
         v1 = 0.0
         v2 = 0.0
