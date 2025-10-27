@@ -45,6 +45,7 @@ function create_cache(mesh::P4estMesh{3},
                                                                  nnodes(dg))
 
     if have_nonconservative_terms(equations) == true
+        A5d = Array{uEltype, 5}
         # Extract the nonconservative flux as a dispatch argument for `n_nonconservative_terms`
         _, volume_flux_noncons = volume_integral.volume_flux_dg
 
