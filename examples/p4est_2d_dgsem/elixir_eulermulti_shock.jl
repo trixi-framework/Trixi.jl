@@ -84,7 +84,7 @@ boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_conditio
                            :x_pos => boundary_condition_outflow)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions=boundary_conditions)
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
