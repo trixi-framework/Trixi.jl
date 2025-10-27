@@ -22,7 +22,7 @@ boundary_conditions = (x_neg = boundary_condition_poisson_nonperiodic,
                        y_pos = boundary_condition_periodic,
                        z_neg = boundary_condition_periodic,
                        z_pos = boundary_condition_periodic)
-# Alternative assign a single boundary condition to all boundaries
+# Alternatively assign a single boundary condition to all boundaries
 # boundary_condition = boundary_condition_periodic
 # boundary_conditions = boundary_condition_default(mesh, boundary_condition)
 
