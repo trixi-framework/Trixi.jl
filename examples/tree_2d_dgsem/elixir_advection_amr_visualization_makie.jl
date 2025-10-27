@@ -1,6 +1,6 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using GLMakie
+using CairoMakie
 
 ###############################################################################
 # semidiscretization of the linear advection equation
