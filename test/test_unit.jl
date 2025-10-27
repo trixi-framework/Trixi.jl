@@ -452,7 +452,7 @@ end
     @test isnothing(display(c3d))
 end
 
-@timed_testset "TreeBoundaryContainer1D" begin
+@timed_testset "TreeBoundaryContainer1D nnodes" begin
     capacity = 42
     n_variables = 9
     boundary_container = TreeBoundaryContainer1D{Float64, Float64}(capacity,
