@@ -374,7 +374,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     n_nodes = length(mesh.parent.nodes)
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
-        if sum(normal_direction .* (1.0, 0.0)) > 
+        if sum(normal_direction .* (1.0, 0.0)) >
            sum(normal_direction .* (-1.0, 0.0))
             element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
                                                                         :x_pos) .*
