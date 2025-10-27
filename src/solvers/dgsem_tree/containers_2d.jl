@@ -6,7 +6,8 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct ElementContainer2D{RealT <: Real, uEltype <: Real} <: AbstractContainer
+mutable struct TreeElementContainer2D{RealT <: Real, uEltype <: Real} <:
+               AbstractTreeElementContainer
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 4}      # [orientation, i, j, elements]
     surface_flux_values::Array{uEltype, 4} # [variables, i, direction, elements]
@@ -16,16 +17,12 @@ mutable struct ElementContainer2D{RealT <: Real, uEltype <: Real} <: AbstractCon
     _surface_flux_values::Vector{uEltype}
 end
 
-nvariables(elements::ElementContainer2D) = size(elements.surface_flux_values, 1)
-nnodes(elements::ElementContainer2D) = size(elements.node_coordinates, 2)
-Base.eltype(elements::ElementContainer2D) = eltype(elements.surface_flux_values)
-
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(elements::ElementContainer2D, capacity)
+function Base.resize!(elements::TreeElementContainer2D, capacity)
     n_nodes = nnodes(elements)
     n_variables = nvariables(elements)
     @unpack _node_coordinates, _surface_flux_values,
@@ -46,9 +43,9 @@ function Base.resize!(elements::ElementContainer2D, capacity)
     return nothing
 end
 
-function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
-                                            n_nodes) where {RealT <: Real,
-                                                            uEltype <: Real}
+function TreeElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
+                                                n_nodes) where {RealT <: Real,
+                                                                uEltype <: Real}
     nan_RealT = convert(RealT, NaN)
     nan_uEltype = convert(uEltype, NaN)
 
@@ -65,23 +62,11 @@ function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
 
     cell_ids = fill(typemin(Int), capacity)
 
-    return ElementContainer2D{RealT, uEltype}(inverse_jacobian, node_coordinates,
-                                              surface_flux_values, cell_ids,
-                                              _node_coordinates, _surface_flux_values)
+    return TreeElementContainer2D{RealT, uEltype}(inverse_jacobian, node_coordinates,
+                                                  surface_flux_values, cell_ids,
+                                                  _node_coordinates,
+                                                  _surface_flux_values)
 end
-
-# Return number of elements
-@inline nelements(elements::ElementContainer2D) = length(elements.cell_ids)
-# TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
-"""
-    eachelement(elements::ElementContainer2D)
-
-Return an iterator over the indices that specify the location in relevant data structures
-for the elements in `elements`.
-In particular, not the elements themselves are returned.
-"""
-@inline eachelement(elements::ElementContainer2D) = Base.OneTo(nelements(elements))
-@inline Base.real(elements::ElementContainer2D) = eltype(elements.node_coordinates)
 
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh2D,
@@ -90,8 +75,8 @@ function init_elements(cell_ids, mesh::TreeMesh2D,
                        ::Type{uEltype}) where {RealT <: Real, uEltype <: Real}
     # Initialize container
     n_elements = length(cell_ids)
-    elements = ElementContainer2D{RealT, uEltype}(n_elements, nvariables(equations),
-                                                  nnodes(basis))
+    elements = TreeElementContainer2D{RealT, uEltype}(n_elements, nvariables(equations),
+                                                      nnodes(basis))
 
     init_elements!(elements, cell_ids, mesh, basis)
     return elements
@@ -198,7 +183,7 @@ end
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh2D,
-                         elements::ElementContainer2D)
+                         elements::TreeElementContainer2D)
     # Initialize container
     n_interfaces = count_required_interfaces(mesh, cell_ids)
     interfaces = InterfaceContainer2D{eltype(elements)}(n_interfaces,
@@ -380,7 +365,7 @@ end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh2D,
-                         elements::ElementContainer2D)
+                         elements::TreeElementContainer2D)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = BoundaryContainer2D{real(elements), eltype(elements)}(n_boundaries,
@@ -599,7 +584,7 @@ end
 
 # Create mortar container and initialize mortar data in `elements`.
 function init_mortars(cell_ids, mesh::TreeMesh2D,
-                      elements::ElementContainer2D,
+                      elements::TreeElementContainer2D,
                       ::LobattoLegendreMortarL2)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
@@ -826,7 +811,7 @@ end
 
 # Create MPI interface container and initialize MPI interface data in `elements`.
 function init_mpi_interfaces(cell_ids, mesh::TreeMesh2D,
-                             elements::ElementContainer2D)
+                             elements::TreeElementContainer2D)
     # Initialize container
     n_mpi_interfaces = count_required_mpi_interfaces(mesh, cell_ids)
     mpi_interfaces = MPIInterfaceContainer2D{eltype(elements)}(n_mpi_interfaces,
@@ -1017,7 +1002,7 @@ end
 
 # Create MPI mortar container and initialize MPI mortar data in `elements`.
 function init_mpi_mortars(cell_ids, mesh::TreeMesh2D,
-                          elements::ElementContainer2D,
+                          elements::TreeElementContainer2D,
                           ::LobattoLegendreMortarL2)
     # Initialize containers
     n_mpi_mortars = count_required_mpi_mortars(mesh, cell_ids)
