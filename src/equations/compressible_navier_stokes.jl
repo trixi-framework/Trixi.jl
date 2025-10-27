@@ -108,3 +108,6 @@ In all other cases, `equations.mu` is assumed to be a function with arguments
 dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
 dynamic_viscosity(u, mu::Real, equations) = mu
 dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
+
+# Used in (diffusive) CFL condition computation
+@inline have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion) = False()

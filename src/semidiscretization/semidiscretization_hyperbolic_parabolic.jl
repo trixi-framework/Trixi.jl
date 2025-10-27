@@ -361,6 +361,64 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
     return nothing
 end
 
+"""
+    linear_structure(semi::SemidiscretizationHyperbolicParabolic;
+                     t0 = zero(real(semi)))
+
+Wraps the right-hand side operator of the hyperbolic-parabolic semidiscretization `semi`
+at time `t0` as an affine-linear operator given by a linear operator `A`
+and a vector `b`:
+```math
+\\partial_t u(t) = A u(t) - b.
+```
+Works only for linear equations, i.e., equations with `have_constant_speed(equations) == True()`.
+
+This has the benefit of greatly reduced memory consumption compared to constructing
+the full system matrix explicitly, as done for instance in
+[`jacobian_fd`](@ref) and [`jacobian_ad_forward`](@ref).
+
+The returned linear operator `A` is a matrix-free representation which can be
+supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
+"""
+function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
+                          t0 = zero(real(semi)))
+    if have_constant_speed(semi.equations) == False()
+        throw(ArgumentError("`linear_structure` expects linear equations."))
+    end
+
+    # allocate memory
+    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+    du_ode = similar(u_ode)
+
+    # get the right hand side from boundary conditions and optional source terms
+    u_ode .= zero(eltype(u_ode))
+    rhs!(du_ode, u_ode, semi, t0)
+    b = -du_ode
+
+    # Repeat for parabolic part
+    rhs_parabolic!(du_ode, u_ode, semi, t0)
+    @. b -= du_ode
+
+    # Create a copy of `b` used internally to extract the linear part of `semi`.
+    # This is necessary to get everything correct when the user updates the
+    # returned vector `b`.
+    b_tmp = copy(b)
+
+    # additional storage for parabolic part
+    dest_para = similar(du_ode)
+
+    # wrap the linear operator
+    A = LinearMap(length(u_ode), ismutating = true) do dest, src
+        rhs!(dest, src, semi, t0)
+        rhs_parabolic!(dest_para, src, semi, t0)
+
+        @. dest += dest_para + b_tmp
+        return dest
+    end
+
+    return A, b
+end
+
 function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u0_ode,
                               du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
@@ -371,6 +429,47 @@ function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u
         rhs!(du_ode_hyp, u_ode, new_semi, t0)
         rhs_parabolic!(du_ode, u_ode, new_semi, t0)
         du_ode .+= du_ode_hyp
+    end
+
+    return J
+end
+
+"""
+    jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic;
+                                  t0 = zero(real(semi)),
+                                  u0_ode = compute_coefficients(t0, semi))
+
+Uses the *parabolic part* of the right-hand side operator of the [`SemidiscretizationHyperbolicParabolic`](@ref) `semi`
+and forward mode automatic differentiation to compute the Jacobian `J` of the 
+parabolic/diffusive contribution only at time `t0` and state `u0_ode`.
+
+This might be useful for operator-splitting methods, e.g., the construction of optimized 
+time integrators which optimize different methods for the hyperbolic and parabolic part separately.
+"""
+function jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic;
+                                       t0 = zero(real(semi)),
+                                       u0_ode = compute_coefficients(t0, semi))
+    jacobian_ad_forward_parabolic(semi, t0, u0_ode)
+end
+
+# The following version is for plain arrays
+function jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic,
+                                       t0, u0_ode)
+    du_ode = similar(u0_ode)
+    config = ForwardDiff.JacobianConfig(nothing, du_ode, u0_ode)
+
+    # Use a function barrier since the generation of the `config` we use above
+    # is not type-stable
+    _jacobian_ad_forward_parabolic(semi, t0, u0_ode, du_ode, config)
+end
+
+function _jacobian_ad_forward_parabolic(semi, t0, u0_ode, du_ode, config)
+    new_semi = remake(semi, uEltype = eltype(config))
+    # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
+    J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
+        Trixi.rhs_parabolic!(du_ode, u_ode, new_semi, t0)
     end
 
     return J

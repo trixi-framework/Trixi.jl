@@ -39,8 +39,8 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
     alpha_tmp = similar(alpha)
 
     A = Vector{real(basis)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
-    modal_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.maxthreadid()]
+    modal_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.maxthreadid()]
 
     # initialize inverse Vandermonde matrices at Gauss-Legendre nodes
     (; N) = basis
@@ -152,6 +152,8 @@ function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cach
             alpha[element] = max(alpha[element], 0.5 * alpha_neighbor)
         end
     end
+
+    return nothing
 end
 
 function calc_volume_integral!(du, u,
