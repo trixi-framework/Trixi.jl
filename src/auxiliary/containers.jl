@@ -350,6 +350,14 @@ function storage_type(C::Type{<:AbstractContainer})
     return storage_type(Adapt.unwrap_type(C))
 end
 
+abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
+
+nvariables(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 2)
+Base.eltype(boundaries::AbstractTreeBoundaryContainer) = eltype(boundaries.u)
+# Return number of boundaries
+nboundaries(boundaries::AbstractTreeBoundaryContainer) = length(boundaries.orientations)
+nnodes(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 3)
+
 # backend handling
 """
     trixi_backend(x)
