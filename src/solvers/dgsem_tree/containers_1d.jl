@@ -297,6 +297,9 @@ mutable struct TreeBoundaryContainer1D{RealT <: Real, uEltype <: Real} <:
     _node_coordinates::Vector{RealT}
 end
 
+# 1D: Only one boundary node
+nnodes(boundaries::TreeBoundaryContainer1D) = 1
+
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::TreeBoundaryContainer1D, capacity)
     n_variables = nvariables(boundaries)
@@ -320,9 +323,9 @@ function Base.resize!(boundaries::TreeBoundaryContainer1D, capacity)
     return nothing
 end
 
-function TreeBoundaryContainer1D{RealT, uEltype}(capacity::Integer, n_variables,
-                                                 n_nodes) where {RealT <: Real,
-                                                                 uEltype <: Real}
+function TreeBoundaryContainer1D{RealT, uEltype}(capacity::Integer,
+                                                 n_variables) where {RealT <: Real,
+                                                                     uEltype <: Real}
     nan_RealT = convert(RealT, NaN)
     nan_uEltype = convert(uEltype, NaN)
 
@@ -356,8 +359,7 @@ function init_boundaries(cell_ids, mesh::TreeMesh1D,
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer1D{real(elements), eltype(elements)}(n_boundaries,
-                                                                           nvariables(elements),
-                                                                           nnodes(elements))
+                                                                           nvariables(elements))
 
     # Connect elements with boundaries
     init_boundaries!(boundaries, elements, mesh)
