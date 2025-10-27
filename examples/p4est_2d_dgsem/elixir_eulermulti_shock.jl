@@ -75,9 +75,7 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector,
                                     surface_flux_function,
                                     equations)
     # Calculate the boundary flux entirely from the internal solution state
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, normal_direction, equations)
 end
 
 boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
