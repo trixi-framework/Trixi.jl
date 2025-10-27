@@ -80,6 +80,7 @@ end
 function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Identify interfaces that need to be retained
     mask = BitArray(undef, ninterfaces(interfaces_parent))
+    # Loop over all interfaces (index 2).
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
         mask[interface] = (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
                           (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
@@ -125,6 +126,7 @@ function extract_boundaries(mesh::P4estMeshView,
     boundaries.node_indices = boundaries_parent.node_indices[mask]
 
     # Add new boundaries that were interfaces of the parent mesh.
+    # Loop over all interfaces (index 2).
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
         if ((interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) ⊻
             (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids))
