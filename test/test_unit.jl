@@ -2750,14 +2750,12 @@ end
     # Poor-mans rebuild of `SplitODEProblem` from SciML
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
                                        semi::SemidiscretizationHyperbolicParabolic, t)
-        Trixi.@trixi_timeit timer() "rhs_hyperbolic_parabolic!" begin
-            du_para = similar(du_ode) # This obviously allocates, but fine for this test
-            rhs!(du_ode, u_ode, semi, t)
-            rhs_parabolic!(du_para, u_ode, semi, t)
+        du_para = similar(du_ode) # This obviously allocates, but fine for this test
+        rhs!(du_ode, u_ode, semi, t)
+        rhs_parabolic!(du_para, u_ode, semi, t)
 
-            Trixi.@threaded for i in eachindex(du_ode)
-                du_ode[i] = du_ode[i] + du_para[i]
-            end
+        Trixi.@threaded for i in eachindex(du_ode)
+            du_ode[i] = du_ode[i] + du_para[i]
         end
         return nothing
     end
