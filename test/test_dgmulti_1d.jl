@@ -57,17 +57,8 @@ end
 @trixi_testset "elixir_euler_shu_osher_gauss_shock_capturing.jl " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shu_osher_gauss_shock_capturing.jl"),
-                        cells_per_dimension=(64,), tspan=(0.0, 1.0),
-                        l2=[
-                            1.6967151731067875,
-                            6.018445633981826,
-                            21.77425594743242
-                        ],
-                        linf=[
-                            3.2229876650556477,
-                            10.702690533393842,
-                            38.37424900889908
-                        ])
+                        l2=[1.6967163299095107, 6.018450129099115, 21.774272062049693],
+                        linf=[3.2229821729393437, 10.702811890261692, 38.37413018581744])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

@@ -33,6 +33,14 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_nonuniform.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonuniform.jl"),
+                        l2=[0.0006665846145698006], linf=[0.00643334347367408])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_shockcapturing.jl"),
                         l2=[0.08015029105233593],
@@ -81,11 +89,29 @@ end
                         save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8), # Adding a small epsilon to avoid floating-point precision issues
                         callbacks=CallbackSet(summary_callback, save_solution,
                                               analysis_callback, alive_callback),
-                        l2=[5.726144824784944e-7],
-                        linf=[3.43073006914274e-6])
+                        l2=[5.725028892495733e-7],
+                        linf=[3.4292579200734252e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 8000)
+end
+
+@trixi_testset "elixir_euler_convergence_nonuniform.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_nonuniform.jl"),
+                        l2=[
+                            6.0145954087568086e-5,
+                            4.865396929677369e-5,
+                            0.00012525608158029655
+                        ],
+                        linf=[
+                            0.00014050847320445925,
+                            0.00038307746603916115,
+                            0.0006872324329503243
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_sedov.jl" begin

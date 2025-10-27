@@ -246,7 +246,8 @@ function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::Tree
                                              i, element)
 
             # Calculate viscous flux and store each component for later use
-            flux_viscous_node = flux(u_node, gradients_1_node, 1, equations_parabolic)
+            flux_viscous_node = flux(u_node, (gradients_1_node,), 1,
+                                     equations_parabolic)
             set_node_vars!(flux_viscous, flux_viscous_node, equations_parabolic, dg,
                            i, element)
         end
