@@ -33,7 +33,8 @@ Shock traveling from left to right where it interacts with a Perturbed interface
         rho1 = 1.25
         rho2 = 0.03
         p = 1.0
-    else (x[1] <= 70 + d)
+    else
+        (x[1] <= 70 + d)
         # SF_6 region.
         v1 = 0.0
         v2 = 0.0
