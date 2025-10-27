@@ -6,12 +6,6 @@ using Trixi
 equations = HyperbolicDiffusionEquations3D()
 
 initial_condition = initial_condition_poisson_nonperiodic
-boundary_conditions = (x_neg = boundary_condition_poisson_nonperiodic,
-                       x_pos = boundary_condition_poisson_nonperiodic,
-                       y_neg = boundary_condition_periodic,
-                       y_pos = boundary_condition_periodic,
-                       z_neg = boundary_condition_periodic,
-                       z_pos = boundary_condition_periodic)
 
 solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
@@ -22,7 +16,13 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000,
                 periodicity = (false, true, true))
 
-# Alternative to the boundary_conditions defined above if you want to apply the same boundary condition to all faces of the mesh:
+boundary_conditions = (x_neg = boundary_condition_poisson_nonperiodic,
+                       x_pos = boundary_condition_poisson_nonperiodic,
+                       y_neg = boundary_condition_periodic,
+                       y_pos = boundary_condition_periodic,
+                       z_neg = boundary_condition_periodic,
+                       z_pos = boundary_condition_periodic)
+# Alternative assign a single boundary condition to all boundaries
 # boundary_condition = boundary_condition_periodic
 # boundary_conditions = boundary_condition_default(mesh, boundary_condition)
 

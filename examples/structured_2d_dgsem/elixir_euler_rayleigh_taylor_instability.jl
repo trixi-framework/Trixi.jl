@@ -71,14 +71,15 @@ cells_per_dimension = (num_elements_per_dimension, num_elements_per_dimension * 
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
 
 initial_condition = initial_condition_rayleigh_taylor_instability
-boundary_conditions = (x_neg = boundary_condition_slip_wall,
-                       x_pos = boundary_condition_slip_wall,
-                       y_neg = boundary_condition_slip_wall,
-                       y_pos = boundary_condition_slip_wall)
 
-# Alternative to the boundary_conditions defined above:
-# boundary_condition = boundary_condition_slip_wall
-# boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+# Assign a single boundary condition to all boundaries
+boundary_condition = boundary_condition_slip_wall
+boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+# Alternatively, you can use
+# boundary_conditions = (x_neg = boundary_condition_slip_wall,
+#                        x_pos = boundary_condition_slip_wall,
+#                        y_neg = boundary_condition_slip_wall,
+#                        y_pos = boundary_condition_slip_wall)
 
 # # Alternative setup: left/right periodic BCs and Dirichlet BCs on the top/bottom.
 # boundary_conditions = (
