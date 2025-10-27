@@ -230,7 +230,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
-    sol = solve(ode, BS3(); ode_default_options()...)
+    sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
@@ -280,7 +280,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
-    sol = solve(ode, BS3(); ode_default_options()...)
+    sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
@@ -330,9 +330,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # does. This is basically the only part where you need to modify your standard Trixi.jl
 # code to enable automatic differentiation. From there on, the remaining steps
 ode = semidiscretize(semi, (0.0, 1.0))
-sol = solve(ode, BS3(); ode_default_options()...)
+sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
 round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5)
-@test round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5) == 0.24986 #src
+@test round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5) == 0.25 #src
 
 # do not need any modifications since they are sufficiently generic (and enough effort
 # has been spend to allow general types inside these calls).
@@ -495,7 +495,7 @@ sol = solve(ode_jac_sparse, TRBDF2(; autodiff = AutoFiniteDiff()), dt = 0.1,
 # the resulting semidiscretization yields an affine ODE of the form
 
 # ```math
-# \partial_t u(t) = A u(t) + b,
+# \partial_t u(t) = A u(t) - b,
 # ```
 
 # where `A` is a linear operator ("matrix") and `b` is a vector. Trixi.jl allows you
@@ -533,6 +533,18 @@ scatter(real.(λ), imag.(λ))
 relative_maximum = maximum(real, λ) / maximum(abs, λ)
 @test relative_maximum < 1.0e-15 #src
 
+# Since the linear structure defines the action of the linear matrix-alike operator `A`
+# on a vector, Krylov-subspace based iterative solvers can be employed to efficiently solve
+# the resulting linear system. 
+# For instance, one may use the [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl) package to solve
+# e.g. steady-stage problems, i.e., problems where ``\partial_t u(t) = 0``.
+# Note that the present problem does not possess an actual steady state.
+
+# Anyways, to solve the linear system ``A u = b``, one can use for instance the GMRES method:
+using Krylov
+
+u_steady_state, solve_stats = gmres(A, b)
+
 # ## Package versions
 
 # These results were obtained using the following versions.
@@ -541,5 +553,10 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEqLowOrderRK", "Plots", "ForwardDiff"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowOrderRK", "OrdinaryDiffEqSDIRK",
+               "Plots", "LaTeXStrings",
+               "ForwardDiff", "SparseConnectivityTracer", "SparseMatrixColorings",
+               "ADTypes",
+               "Krylov", "LinearAlgebra",
+               "Measurements"],
            mode = PKGMODE_MANIFEST)

@@ -12,44 +12,50 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                          dg, uEltype)
 
-    A3dp1_x = Array{uEltype, 3}
-    A3dp1_y = Array{uEltype, 3}
     A3d = Array{uEltype, 3}
-    A4d = Array{uEltype, 4}
 
-    fhat1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                       nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fhat2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                       nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
-    fhat1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                       nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fhat2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                       nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
-    flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                             for _ in 1:Threads.nthreads()]
-    fhat_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg),
-                                 nnodes(dg))
-                             for _ in 1:Threads.nthreads()]
+    fhat1_L_threaded = A3d[A3d(undef, nvariables(equations),
+                               nnodes(dg) + 1, nnodes(dg))
+                           for _ in 1:Threads.maxthreadid()]
+    fhat2_L_threaded = A3d[A3d(undef, nvariables(equations),
+                               nnodes(dg), nnodes(dg) + 1)
+                           for _ in 1:Threads.maxthreadid()]
+    fhat1_R_threaded = A3d[A3d(undef, nvariables(equations),
+                               nnodes(dg) + 1, nnodes(dg))
+                           for _ in 1:Threads.maxthreadid()]
+    fhat2_R_threaded = A3d[A3d(undef, nvariables(equations),
+                               nnodes(dg), nnodes(dg) + 1)
+                           for _ in 1:Threads.maxthreadid()]
+
+    flux_temp_threaded = A3d[A3d(undef, nvariables(equations),
+                                 nnodes(dg), nnodes(dg))
+                             for _ in 1:Threads.maxthreadid()]
+    fhat_temp_threaded = A3d[A3d(undef, nvariables(equations),
+                                 nnodes(dg), nnodes(dg))
+                             for _ in 1:Threads.maxthreadid()]
+
     antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(0,
                                                                  nvariables(equations),
                                                                  nnodes(dg))
 
     if have_nonconservative_terms(equations) == true
+        A4d = Array{uEltype, 4}
+
         # Extract the nonconservative flux as a dispatch argument for `n_nonconservative_terms`
         _, volume_flux_noncons = volume_integral.volume_flux_dg
 
         flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                                      n_nonconservative_terms(volume_flux_noncons),
                                                      nnodes(dg), nnodes(dg))
-                                                 for _ in 1:Threads.nthreads()]
+                                                 for _ in 1:Threads.maxthreadid()]
         fhat_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                                      n_nonconservative_terms(volume_flux_noncons),
                                                      nnodes(dg), nnodes(dg))
-                                                 for _ in 1:Threads.nthreads()]
+                                                 for _ in 1:Threads.maxthreadid()]
         phi_threaded = A4d[A4d(undef, nvariables(equations),
                                n_nonconservative_terms(volume_flux_noncons),
                                nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
         cache = (; cache..., flux_nonconservative_temp_threaded,
                  fhat_nonconservative_temp_threaded, phi_threaded)
     end
