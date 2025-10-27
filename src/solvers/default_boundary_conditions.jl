@@ -1,7 +1,7 @@
 """
     boundary_condition_default(mesh::P4estMesh{2,2}, boundary_condition)
 
-Create a default boundary condition dictionary for p4est meshes in 2D
+Create a default boundary condition dictionary for [`P4estMesh`](@ref)es in 2D
 that use the standard boundary naming convention.
 
 This function applies the same boundary condition to all standard boundaries:
@@ -17,7 +17,6 @@ This function applies the same boundary condition to all standard boundaries:
 - `Dict{Symbol, Any}`: Dictionary mapping boundary names to the boundary condition
 """
 function  boundary_condition_default(mesh::P4estMesh{2,2}, boundary_condition)
-
      return Dict(:x_neg => boundary_condition,
                  :y_neg => boundary_condition,
                  :y_pos => boundary_condition,
@@ -27,7 +26,7 @@ end
 """
     boundary_condition_default(mesh::P4estMesh{3,3}, boundary_condition)
 
-Create a default boundary condition dictionary for p4est meshes in 3D
+Create a default boundary condition dictionary for [`P4estMesh`](@ref)es in 3D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
 - `:x_neg`: negative x-direction boundary
@@ -42,7 +41,6 @@ This function applies the same boundary condition to all standard boundaries:
 - `Dict{Symbol, Any}`: Dictionary mapping boundary names to the boundary condition
 """
 function boundary_condition_default(mesh::P4estMesh{3,3}, boundary_condition)
-
      return Dict(:x_neg => boundary_condition,
                   :x_pos => boundary_condition,
                   :y_neg => boundary_condition,
@@ -54,7 +52,7 @@ end
 """
     boundary_condition_default(mesh::StructuredMesh1D, boundary_condition)
 
-Create a default boundary condition dictionary for structured meshes in 1D
+Create a default boundary condition dictionary for [`StructuredMesh`](@ref)es in 1D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
 - `:x_neg`: negative x-direction boundary
@@ -65,7 +63,6 @@ This function applies the same boundary condition to all standard boundaries:
 - Named tuple mapping boundary names to the boundary condition
 """
 function boundary_condition_default(mesh::StructuredMesh{1}, boundary_condition)
-
     return (x_neg = boundary_condition,
             x_pos = boundary_condition)
 end
@@ -73,7 +70,7 @@ end
 """
     boundary_condition_default(mesh::StructuredMesh2D, boundary_condition)
 
-Create a default boundary condition dictionary for structured meshes in 2D
+Create a default boundary condition dictionary for [`StructuredMesh`](@ref)es in 2D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
 - `:x_neg`: negative x-direction boundary
@@ -86,7 +83,6 @@ This function applies the same boundary condition to all standard boundaries:
 - Named tuple mapping boundary names to the boundary condition
 """
 function  boundary_condition_default(mesh::StructuredMesh{2}, boundary_condition)
-
     return (x_neg = boundary_condition,
             x_pos = boundary_condition,
             y_neg = boundary_condition,
@@ -96,7 +92,7 @@ end
 """
     boundary_condition_default(mesh::StructuredMesh3D, boundary_condition)
 
-Create a default boundary condition dictionary for structured meshes in 3D
+Create a default boundary condition dictionary for [`StructuredMesh`](@ref)es in 3D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
 - `:x_neg`: negative x-direction boundary
@@ -111,7 +107,6 @@ This function applies the same boundary condition to all standard boundaries:
 - Named tuple mapping boundary names to the boundary condition
 """
 function  boundary_condition_default(mesh::StructuredMesh{3}, boundary_condition)
-
     return (x_neg = boundary_condition,
             x_pos = boundary_condition,
             y_neg = boundary_condition,
@@ -124,7 +119,7 @@ end
 """
     boundary_condition_default(mesh::TreeMesh1D, boundary_condition)
 
-Create a default boundary condition dictionary for tree meshes in 1D
+Create a default boundary condition dictionary for [`TreeMesh`](@ref)es in 1D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
 - `:x_neg`: negative x-direction boundary
@@ -142,7 +137,7 @@ end
 """
     boundary_condition_default(mesh::TreeMesh2D, boundary_condition)
 
-Create a default boundary condition dictionary for tree meshes in 2D
+Create a default boundary condition dictionary for [`TreeMesh`](@ref)es in 2D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
 - `:x_neg`: negative x-direction boundary    
@@ -155,7 +150,6 @@ This function applies the same boundary condition to all standard boundaries:
 - Named tuple mapping boundary names to the boundary condition
 """
 function  boundary_condition_default(mesh::TreeMesh2D, boundary_condition)
-
     return (x_neg = boundary_condition,
             x_pos = boundary_condition,
             y_neg = boundary_condition,
@@ -165,7 +159,7 @@ end
 """
    boundary_condition_default(mesh::TreeMesh3D, boundary_condition)
 
-Create a default boundary condition dictionary for tree meshes in 3D
+Create a default boundary condition dictionary for [`TreeMesh`](@ref)es in 3D
 that use the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
 - `:x_neg`: negative x-direction boundary
@@ -180,7 +174,6 @@ This function applies the same boundary condition to all standard boundaries:
 - Named tuple mapping boundary names to the boundary condition
 """
 function  boundary_condition_default(mesh::TreeMesh3D, boundary_condition)
-
     return (x_neg = boundary_condition,
             x_pos = boundary_condition,
             y_neg = boundary_condition,
