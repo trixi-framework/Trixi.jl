@@ -364,9 +364,6 @@ In particular, not the elements themselves are returned.
 """
 @inline eachelement(elements::AbstractTreeElementContainer) = Base.OneTo(nelements(elements))
 @inline Base.real(elements::AbstractTreeElementContainer) = eltype(elements.node_coordinates)
-
-@inline Base.real(elements::AbstractTreeElementContainer) = eltype(elements.node_coordinates)
-
 nvariables(elements::AbstractTreeElementContainer) = size(elements.surface_flux_values,
                                                           1)
 nnodes(elements::AbstractTreeElementContainer) = size(elements.node_coordinates, 2)
