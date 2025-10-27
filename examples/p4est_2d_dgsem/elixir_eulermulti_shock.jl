@@ -11,7 +11,7 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
 Shock traveling from left to right where it interacts with a Perturbed interface.
 """
 @inline function initial_condition_shock(x, t,
-                                        equations::CompressibleEulerMulticomponentEquations2D)
+                                         equations::CompressibleEulerMulticomponentEquations2D)
     rho_0 = 1.25 # kg/m^3
     p_0 = 101325 # Pa
     T_0 = 293 # K
