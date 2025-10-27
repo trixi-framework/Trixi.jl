@@ -364,10 +364,11 @@ In particular, not the elements themselves are returned.
 """
 @inline eachelement(elements::AbstractTreeElementContainer) = Base.OneTo(nelements(elements))
 @inline Base.real(elements::AbstractTreeElementContainer) = eltype(elements.node_coordinates)
-nvariables(elements::AbstractTreeElementContainer) = size(elements.surface_flux_values,
-                                                          1)
-nnodes(elements::AbstractTreeElementContainer) = size(elements.node_coordinates, 2)
-Base.eltype(elements::AbstractTreeElementContainer) = eltype(elements.surface_flux_values)
+@inline nvariables(elements::AbstractTreeElementContainer) = size(elements.surface_flux_values,
+                                                                  1)
+@inline nnodes(elements::AbstractTreeElementContainer) = size(elements.node_coordinates,
+                                                              2)
+@inline Base.eltype(elements::AbstractTreeElementContainer) = eltype(elements.surface_flux_values)
 
 # backend handling
 """
