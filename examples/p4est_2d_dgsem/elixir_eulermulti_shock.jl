@@ -65,9 +65,9 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (250.0, 250.0)
-mesh = P4estMesh((32, 32), polydeg=3, coordinates_min=(0.0, 0.0),
-                 coordinates_max=(250.0, 250.0), periodicity=(false, true),
-                 initial_refinement_level=0)
+mesh = P4estMesh((32, 32), polydeg = 3, coordinates_min = (0.0, 0.0),
+                 coordinates_max = (250.0, 250.0), periodicity = (false, true),
+                 initial_refinement_level = 0)
 
 # Completely free outflow
 function boundary_condition_outflow(u_inner, normal_direction::AbstractVector,
