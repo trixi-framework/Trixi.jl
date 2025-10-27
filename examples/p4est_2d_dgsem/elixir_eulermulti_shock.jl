@@ -96,7 +96,6 @@ summary_callback = SummaryCallback()
 analysis_interval = 10
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      save_analysis = true)
-#                                      extra_analysis_integrals = (enstrophy_multi_euler,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
