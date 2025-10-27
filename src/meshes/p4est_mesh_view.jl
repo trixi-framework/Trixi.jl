@@ -250,8 +250,6 @@ end
 
 # Convert a global cell id to a local cell id in the mesh view.
 function global_element_id_to_local(id::Int, mesh::P4estMeshView)
-    # Return -1 if the id is not part of the mesh view.
-    local_id = -1
     # Find the index of the cell id in the mesh view
     local_id = findfirst(==(id), mesh.cell_ids)
 
