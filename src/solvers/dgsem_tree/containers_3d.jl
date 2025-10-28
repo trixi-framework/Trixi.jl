@@ -374,7 +374,7 @@ function init_boundaries(cell_ids, mesh::TreeMesh3D,
                          elements::ElementContainer3D)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
-    boundaries = Trixi.TreeBoundaryContainer3D{real(elements), eltype(elements)}(n_boundaries,
+    boundaries = TreeBoundaryContainer3D{real(elements), eltype(elements)}(n_boundaries,
                                                                            nvariables(elements),
                                                                            nnodes(elements))
 
