@@ -369,6 +369,7 @@ In particular, not the elements themselves are returned.
 @inline nnodes(elements::AbstractTreeElementContainer) = size(elements.node_coordinates,
                                                               2)
 @inline Base.eltype(elements::AbstractTreeElementContainer) = eltype(elements.surface_flux_values)
+
 abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
 
 @inline nvariables(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 2)
