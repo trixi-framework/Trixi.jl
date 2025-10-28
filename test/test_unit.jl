@@ -2760,8 +2760,8 @@ end
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
                                        semi::SemidiscretizationHyperbolicParabolic, t)
         du_para = similar(du_ode) # This obviously allocates, but fine for this test
-        rhs!(du_ode, u_ode, semi, t)
-        rhs_parabolic!(du_para, u_ode, semi, t)
+        Trixi.rhs!(du_ode, u_ode, semi, t)
+        Trixi.rhs_parabolic!(du_para, u_ode, semi, t)
 
         Trixi.@threaded for i in eachindex(du_ode)
             du_ode[i] = du_ode[i] + du_para[i]
