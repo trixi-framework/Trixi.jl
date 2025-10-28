@@ -289,14 +289,14 @@ end
                                  "elixir_navierstokes_viscous_shock_imex.jl"),
                         atol_lin_solve=1e-11, rtol_lin_solve=1e-10,
                         l2=[
-                            0.0016637045869069029,
-                            0.001457125436160878,
-                            0.00148437859049957
+                            0.0016637028933384878,
+                            0.0014571255711373966,
+                            0.0014843783212282159
                         ],
                         linf=[
-                            0.005456713664018675,
-                            0.0039504356870454505,
-                            0.0040920844205842855
+                            0.00545660697650141,
+                            0.003950431201790283,
+                            0.004092051414554598
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
