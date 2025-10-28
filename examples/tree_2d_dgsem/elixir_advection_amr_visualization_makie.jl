@@ -52,7 +52,7 @@ save_solution = SaveSolutionCallback(interval = 100,
 # via `using GLMakie` (see above).
 # Additional keyword arguments, such as colorrange, will get passed to the respective
 # plotting command.
-visualization = VisualizationCallback(semi; interval = 100,
+visualization = VisualizationCallback(semi; interval = 100, show_mesh = true,
                                       plot_creator = Trixi.show_plot_makie,
                                       colorrange = (0.0, 1.0))
 
