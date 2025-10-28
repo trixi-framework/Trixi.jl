@@ -248,7 +248,7 @@ struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH, Mortar} <:
     mortar_l2::Mortar
     # LENGTH = `2 * (NDIMS - 1) + 1`
     mortar_weights::Array{RealT, LENGTH}     # [node_i (large), node_j (large), node_i (small), node_j (small), small_element]
-    mortar_weights_sums::Array{RealT, NDIMS} # [node_i, node_j, position]
+    mortar_weights_sums::Array{RealT, NDIMS} # [node_i, node_j, small (1) / large (2) element]
 end
 
 function MortarIDP(equations, basis::LobattoLegendreBasis;
