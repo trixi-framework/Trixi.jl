@@ -242,17 +242,19 @@ end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
 
-struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH, Mortar} <:
        AbstractMortar{RealT}
     positivity_variables_cons::Vector{Int}
     mortar_l2::Mortar
-    mortar_weights::Array{RealT, 3}      # [node (large element), node (small element), small element]
-    mortar_weights_sums::Array{RealT, 2} # [node, left/right/large element]
+    # LENGTH = `2 * (NDIMS - 1) + 1`
+    mortar_weights::Array{RealT, LENGTH}     # [node_i (large), node_j (large), node_i (small), node_j (small), small_element]
+    mortar_weights_sums::Array{RealT, NDIMS} # [node_i, node_j, position]
 end
 
 function MortarIDP(equations, basis::LobattoLegendreBasis;
                    positivity_variables_cons = String[])
     RealT = real(basis)
+    n_dims = ndims(equations)
     nnodes_ = nnodes(basis)
 
     mortar_l2 = MortarL2(basis)
@@ -262,10 +264,11 @@ function MortarIDP(equations, basis::LobattoLegendreBasis;
     positivity_variables_cons_ = get_variable_index.(positivity_variables_cons,
                                                      equations)
 
-    LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(positivity_variables_cons_,
-                                                                mortar_l2,
-                                                                mortar_weights,
-                                                                mortar_weights_sums)
+    LobattoLegendreMortarIDP{RealT, nnodes_, n_dims,
+                             2 * (n_dims - 1) + 1, typeof(mortar_l2)}(positivity_variables_cons_,
+                                                                      mortar_l2,
+                                                                      mortar_weights,
+                                                                      mortar_weights_sums)
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)

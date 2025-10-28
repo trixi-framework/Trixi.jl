@@ -74,11 +74,17 @@ function calc_mortar_weights(equations::AbstractEquations{2},
     calc_mortar_weights!(equations, mortar_weights, n_nodes, RealT)
 
     # Sums of mortar weights for normalization
-    for i in eachnode(basis), j in eachnode(basis)
-        mortar_weights_sums[i, 1] += mortar_weights[j, i, 1] # left element
-        mortar_weights_sums[i, 2] += mortar_weights[j, i, 2] # right element
-        mortar_weights_sums[i, 3] += mortar_weights[i, j, 1] # large element
-        mortar_weights_sums[i, 3] += mortar_weights[i, j, 2] # large element
+    for small_element in 1:2
+        for i in eachnode(basis)
+            for k in eachnode(basis)
+                # Add weights from large element to small element
+                mortar_weights_sums[i, small_element] += mortar_weights[k, i,
+                                                                        small_element]
+                # Add weights from small element to large element
+                mortar_weights_sums[i, 3] += mortar_weights[i, k,
+                                                            small_element]
+            end
+        end
     end
 
     return mortar_weights, mortar_weights_sums
@@ -89,8 +95,8 @@ function calc_mortar_weights!(equations::AbstractEquations{2},
     _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
 
     # Local mortar weights are of the form: `w_ij = int_S psi_i phi_j ds`,
-    # where `phi_i` are the basis functions of the small element and `psi_j` are the basis functions
-    # of the large element. `S` is the face connecting both elements.
+    # where `psi_i` are the basis functions of the large element and `phi_j` are the basis
+    # functions of the small element. `S` is the face connecting both elements.
     # We use piecewise constant basis functions on the LGL subgrid. So, only focus on interval,
     # where both basis functions are non-zero. `interval = [left_bound, right_bound]`.
     # `w_ij = int_S psi_i phi_j ds = int_{left_bound}^{right_bound} ds = right_bound - left_bound`.
@@ -908,8 +914,12 @@ function calc_mortar_flux_low_order!(surface_flux_values,
         for i in eachnode(dg)
             u_lower_local = get_surface_node_vars(u_lower, equations, dg,
                                                   i, mortar)[small_side]
-            for j in eachnode(dg)
-                u_large_local = get_node_vars(u_large, equations, dg, j, mortar)
+            for k in eachnode(dg)
+                factor = mortar_weights[k, i, 1]
+                if isapprox(factor, zero(typeof(factor)))
+                    continue
+                end
+                u_large_local = get_node_vars(u_large, equations, dg, k, mortar)
 
                 if small_side == 2 # -> small elements on right side
                     flux = surface_flux(u_large_local, u_lower_local, orientation,
@@ -919,29 +929,30 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
                 end
 
-                factor = mortar_weights[j, i, 1]
-                if !isapprox(factor, zero(typeof(factor)))
-                    # Lower element
-                    multiply_add_to_node_vars!(surface_flux_values,
-                                               factor /
-                                               mortar_weights_sums[i, 1],
-                                               flux, equations, dg,
-                                               i, direction_small, lower_element)
-                    # Large element
-                    multiply_add_to_node_vars!(surface_flux_values,
-                                               factor /
-                                               mortar_weights_sums[j, 3],
-                                               flux, equations, dg,
-                                               j, direction_large, large_element)
-                end
+                # Lower element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[i, 1],
+                                           flux, equations, dg,
+                                           i, direction_small, lower_element)
+                # Large element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[k, 3],
+                                           flux, equations, dg,
+                                           k, direction_large, large_element)
             end
         end
         # Upper element
         for i in eachnode(dg)
             u_upper_local = get_surface_node_vars(u_upper, equations, dg,
                                                   i, mortar)[small_side]
-            for j in eachnode(dg)
-                u_large_local = get_node_vars(u_large, equations, dg, j, mortar)
+            for k in eachnode(dg)
+                factor = mortar_weights[k, i, 2]
+                if !isapprox(factor, zero(typeof(factor)))
+                    continue
+                end
+                u_large_local = get_node_vars(u_large, equations, dg, k, mortar)
 
                 if small_side == 2 # -> small elements on right side
                     flux = surface_flux(u_large_local, u_upper_local, orientation,
@@ -951,21 +962,18 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                         equations)
                 end
 
-                factor = mortar_weights[j, i, 2]
-                if !isapprox(factor, zero(typeof(factor)))
-                    # Upper element
-                    multiply_add_to_node_vars!(surface_flux_values,
-                                               factor /
-                                               mortar_weights_sums[i, 2],
-                                               flux, equations, dg,
-                                               i, direction_small, upper_element)
-                    # Large element
-                    multiply_add_to_node_vars!(surface_flux_values,
-                                               factor /
-                                               mortar_weights_sums[j, 3],
-                                               flux, equations, dg,
-                                               j, direction_large, large_element)
-                end
+                # Upper element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[i, 2],
+                                           flux, equations, dg,
+                                           i, direction_small, upper_element)
+                # Large element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[k, 3],
+                                           flux, equations, dg,
+                                           k, direction_large, large_element)
             end
         end
     end
