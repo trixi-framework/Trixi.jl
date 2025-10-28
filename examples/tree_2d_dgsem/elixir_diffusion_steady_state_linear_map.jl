@@ -66,12 +66,15 @@ u_ls = A_matrix \ b
 # Iterative solve, works directly on the linear map, no explicit matrix construction required!
 using Krylov
 
+atol = 1e-11
+rtol = 1e-10
+
 # This solves the Laplace equation (i.e., steady-state diffusion/heat equation).
 # Note that we do not use CG since the operator `A_map` itself is only
 # symmetric and positive definite with respect to the inner product induced by
 # the DGSEM quadrature, not the standard Euclidean inner product. Standard CG
 # would require multiplying the result of `A_map * u` (and `b`) by the mass matrix.
-u_ls, stats = gmres(A_map, b)
+u_ls, stats = gmres(A_map, b, atol = atol, rtol = rtol)
 
 ###############################################################################
 
