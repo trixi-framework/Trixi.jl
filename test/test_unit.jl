@@ -455,7 +455,7 @@ end
 @timed_testset "TreeBoundaryContainer1D nnodes" begin
     capacity = 42
     n_variables = 9
-    boundary_container = TreeBoundaryContainer1D{Float64, Float64}(capacity,
+    boundary_container = Trixi.TreeBoundaryContainer1D{Float64, Float64}(capacity,
                                                                    n_variables)
 
     @test nnodes(boundary_container) == 1
