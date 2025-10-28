@@ -290,7 +290,8 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh2D)
 end
 
 # Container data structure (structure-of-arrays style) for DG boundaries
-mutable struct BoundaryContainer2D{RealT <: Real, uEltype <: Real} <: AbstractContainer
+mutable struct TreeBoundaryContainer2D{RealT <: Real, uEltype <: Real} <:
+               AbstractTreeBoundaryContainer
     u::Array{uEltype, 4}              # [leftright, variables, i, boundaries]
     neighbor_ids::Vector{Int}         # [boundaries]
     orientations::Vector{Int}         # [boundaries]
@@ -302,12 +303,8 @@ mutable struct BoundaryContainer2D{RealT <: Real, uEltype <: Real} <: AbstractCo
     _node_coordinates::Vector{RealT}
 end
 
-nvariables(boundaries::BoundaryContainer2D) = size(boundaries.u, 2)
-nnodes(boundaries::BoundaryContainer2D) = size(boundaries.u, 3)
-Base.eltype(boundaries::BoundaryContainer2D) = eltype(boundaries.u)
-
 # See explanation of Base.resize! for the element container
-function Base.resize!(boundaries::BoundaryContainer2D, capacity)
+function Base.resize!(boundaries::TreeBoundaryContainer2D, capacity)
     n_nodes = nnodes(boundaries)
     n_variables = nvariables(boundaries)
     @unpack _u, _node_coordinates,
@@ -330,9 +327,9 @@ function Base.resize!(boundaries::BoundaryContainer2D, capacity)
     return nothing
 end
 
-function BoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
-                                             n_nodes) where {RealT <: Real,
-                                                             uEltype <: Real}
+function TreeBoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
+                                                 n_nodes) where {RealT <: Real,
+                                                                 uEltype <: Real}
     nan_RealT = convert(RealT, NaN)
     nan_uEltype = convert(uEltype, NaN)
 
@@ -353,24 +350,21 @@ function BoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
 
     n_boundaries_per_direction = SVector(0, 0, 0, 0)
 
-    return BoundaryContainer2D{RealT, uEltype}(u, neighbor_ids, orientations,
-                                               neighbor_sides,
-                                               node_coordinates,
-                                               n_boundaries_per_direction,
-                                               _u, _node_coordinates)
+    return TreeBoundaryContainer2D{RealT, uEltype}(u, neighbor_ids, orientations,
+                                                   neighbor_sides,
+                                                   node_coordinates,
+                                                   n_boundaries_per_direction,
+                                                   _u, _node_coordinates)
 end
-
-# Return number of boundaries
-@inline nboundaries(boundaries::BoundaryContainer2D) = length(boundaries.orientations)
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh2D,
                          elements::TreeElementContainer2D)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
-    boundaries = BoundaryContainer2D{real(elements), eltype(elements)}(n_boundaries,
-                                                                       nvariables(elements),
-                                                                       nnodes(elements))
+    boundaries = TreeBoundaryContainer2D{real(elements), eltype(elements)}(n_boundaries,
+                                                                           nvariables(elements),
+                                                                           nnodes(elements))
 
     # Connect elements with boundaries
     init_boundaries!(boundaries, elements, mesh)
