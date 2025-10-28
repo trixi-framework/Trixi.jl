@@ -131,7 +131,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     # to be scaled by a factor of 2 to obtain the flux of the large element.
                     multiply_add_to_node_vars!(surface_flux_values,
                                                -2 * factor /
-                                               mortar_weights_sums[j_mortar, 3],
+                                               mortar_weights_sums[j_mortar, 2],
                                                flux, equations, dg,
                                                j, large_direction, large_element)
                 end
@@ -162,7 +162,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     # Upper element
                     multiply_add_to_node_vars!(surface_flux_values,
                                                factor /
-                                               mortar_weights_sums[i_mortar, 2],
+                                               mortar_weights_sums[i_mortar, 1],
                                                flux, equations, dg,
                                                i, small_direction, upper_element)
                     # Large element
@@ -175,7 +175,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     # to be scaled by a factor of 2 to obtain the flux of the large element.
                     multiply_add_to_node_vars!(surface_flux_values,
                                                -2 * factor /
-                                               mortar_weights_sums[j_mortar, 3],
+                                               mortar_weights_sums[j_mortar, 2],
                                                flux, equations, dg,
                                                j, large_direction, large_element)
                 end
