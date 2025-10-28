@@ -456,7 +456,7 @@ end
     capacity = 42
     n_variables = 9
 
-    interface_container = TreeInterfaceContainer1D{Float64}(capacity, n_variables)
+    interface_container = Trixi.TreeInterfaceContainer1D{Float64}(capacity, n_variables)
     @test nnodes(interface_container) == 1
 
     boundary_container = Trixi.TreeBoundaryContainer1D{Float64, Float64}(capacity,
