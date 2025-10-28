@@ -452,12 +452,15 @@ end
     @test isnothing(display(c3d))
 end
 
-@timed_testset "TreeBoundaryContainer1D nnodes" begin
+@timed_testset "TreeContainer1D nnodes(container)" begin
     capacity = 42
     n_variables = 9
+
+    interface_container = TreeInterfaceContainer1D{Float64}(capacity, n_variables)
+    @test nnodes(interface_container) == 1
+
     boundary_container = Trixi.TreeBoundaryContainer1D{Float64, Float64}(capacity,
                                                                          n_variables)
-
     @test nnodes(boundary_container) == 1
 end
 

@@ -127,7 +127,8 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh2D, basis)
 end
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-mutable struct InterfaceContainer2D{uEltype <: Real} <: AbstractContainer
+mutable struct TreeInterfaceContainer2D{uEltype <: Real} <:
+               AbstractTreeInterfaceContainer
     u::Array{uEltype, 4}        # [leftright, variables, i, interfaces]
     neighbor_ids::Array{Int, 2} # [leftright, interfaces]
     orientations::Vector{Int}   # [interfaces]
@@ -136,12 +137,8 @@ mutable struct InterfaceContainer2D{uEltype <: Real} <: AbstractContainer
     _neighbor_ids::Vector{Int}
 end
 
-nvariables(interfaces::InterfaceContainer2D) = size(interfaces.u, 2)
-nnodes(interfaces::InterfaceContainer2D) = size(interfaces.u, 3)
-Base.eltype(interfaces::InterfaceContainer2D) = eltype(interfaces.u)
-
 # See explanation of Base.resize! for the element container
-function Base.resize!(interfaces::InterfaceContainer2D, capacity)
+function Base.resize!(interfaces::TreeInterfaceContainer2D, capacity)
     n_nodes = nnodes(interfaces)
     n_variables = nvariables(interfaces)
     @unpack _u, _neighbor_ids, orientations = interfaces
@@ -159,8 +156,8 @@ function Base.resize!(interfaces::InterfaceContainer2D, capacity)
     return nothing
 end
 
-function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
-                                       n_nodes) where {uEltype <: Real}
+function TreeInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
+                                           n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -174,21 +171,18 @@ function InterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return InterfaceContainer2D{uEltype}(u, neighbor_ids, orientations,
-                                         _u, _neighbor_ids)
+    return TreeInterfaceContainer2D{uEltype}(u, neighbor_ids, orientations,
+                                             _u, _neighbor_ids)
 end
-
-# Return number of interfaces
-@inline ninterfaces(interfaces::InterfaceContainer2D) = length(interfaces.orientations)
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh2D,
                          elements::TreeElementContainer2D)
     # Initialize container
     n_interfaces = count_required_interfaces(mesh, cell_ids)
-    interfaces = InterfaceContainer2D{eltype(elements)}(n_interfaces,
-                                                        nvariables(elements),
-                                                        nnodes(elements))
+    interfaces = TreeInterfaceContainer2D{eltype(elements)}(n_interfaces,
+                                                            nvariables(elements),
+                                                            nnodes(elements))
 
     # Connect elements with interfaces
     init_interfaces!(interfaces, elements, mesh)
@@ -744,7 +738,8 @@ function init_mortars!(mortars, elements, mesh::TreeMesh2D)
 end
 
 # Container data structure (structure-of-arrays style) for DG MPI interfaces
-mutable struct MPIInterfaceContainer2D{uEltype <: Real} <: AbstractContainer
+mutable struct TreeMPIInterfaceContainer2D{uEltype <: Real} <:
+               AbstractTreeInterfaceContainer
     u::Array{uEltype, 4}            # [leftright, variables, i, interfaces]
     # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
     local_neighbor_ids::Vector{Int} # [interfaces]
@@ -754,12 +749,8 @@ mutable struct MPIInterfaceContainer2D{uEltype <: Real} <: AbstractContainer
     _u::Vector{uEltype}
 end
 
-nvariables(mpi_interfaces::MPIInterfaceContainer2D) = size(mpi_interfaces.u, 2)
-nnodes(mpi_interfaces::MPIInterfaceContainer2D) = size(mpi_interfaces.u, 3)
-Base.eltype(mpi_interfaces::MPIInterfaceContainer2D) = eltype(mpi_interfaces.u)
-
 # See explanation of Base.resize! for the element container
-function Base.resize!(mpi_interfaces::MPIInterfaceContainer2D, capacity)
+function Base.resize!(mpi_interfaces::TreeMPIInterfaceContainer2D, capacity)
     n_nodes = nnodes(mpi_interfaces)
     n_variables = nvariables(mpi_interfaces)
     @unpack _u, local_neighbor_ids, orientations, remote_sides = mpi_interfaces
@@ -777,8 +768,8 @@ function Base.resize!(mpi_interfaces::MPIInterfaceContainer2D, capacity)
     return nothing
 end
 
-function MPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
-                                          n_nodes) where {uEltype <: Real}
+function TreeMPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
+                                              n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -792,14 +783,13 @@ function MPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
 
     remote_sides = fill(typemin(Int), capacity)
 
-    return MPIInterfaceContainer2D{uEltype}(u, local_neighbor_ids, orientations,
-                                            remote_sides,
-                                            _u)
+    return TreeMPIInterfaceContainer2D{uEltype}(u, local_neighbor_ids, orientations,
+                                                remote_sides, _u)
 end
 
 # TODO: Taal, rename to ninterfaces?
 # Return number of interfaces
-function nmpiinterfaces(mpi_interfaces::MPIInterfaceContainer2D)
+function nmpiinterfaces(mpi_interfaces::TreeMPIInterfaceContainer2D)
     length(mpi_interfaces.orientations)
 end
 
@@ -808,9 +798,9 @@ function init_mpi_interfaces(cell_ids, mesh::TreeMesh2D,
                              elements::TreeElementContainer2D)
     # Initialize container
     n_mpi_interfaces = count_required_mpi_interfaces(mesh, cell_ids)
-    mpi_interfaces = MPIInterfaceContainer2D{eltype(elements)}(n_mpi_interfaces,
-                                                               nvariables(elements),
-                                                               nnodes(elements))
+    mpi_interfaces = TreeMPIInterfaceContainer2D{eltype(elements)}(n_mpi_interfaces,
+                                                                   nvariables(elements),
+                                                                   nnodes(elements))
 
     # Connect elements with interfaces
     init_mpi_interfaces!(mpi_interfaces, elements, mesh)

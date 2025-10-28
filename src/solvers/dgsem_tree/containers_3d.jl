@@ -133,7 +133,8 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh3D, basis)
 end
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-mutable struct InterfaceContainer3D{uEltype <: Real} <: AbstractContainer
+mutable struct TreeInterfaceContainer3D{uEltype <: Real} <:
+               AbstractTreeInterfaceContainer
     u::Array{uEltype, 5}      # [leftright, variables, i, j, interfaces]
     neighbor_ids::Matrix{Int} # [leftright, interfaces]
     orientations::Vector{Int} # [interfaces]
@@ -142,12 +143,8 @@ mutable struct InterfaceContainer3D{uEltype <: Real} <: AbstractContainer
     _neighbor_ids::Vector{Int}
 end
 
-nvariables(interfaces::InterfaceContainer3D) = size(interfaces.u, 2)
-nnodes(interfaces::InterfaceContainer3D) = size(interfaces.u, 3)
-Base.eltype(interfaces::InterfaceContainer3D) = eltype(interfaces.u)
-
 # See explanation of Base.resize! for the element container
-function Base.resize!(interfaces::InterfaceContainer3D, capacity)
+function Base.resize!(interfaces::TreeInterfaceContainer3D, capacity)
     n_nodes = nnodes(interfaces)
     n_variables = nvariables(interfaces)
     @unpack _u, _neighbor_ids, orientations = interfaces
@@ -165,8 +162,8 @@ function Base.resize!(interfaces::InterfaceContainer3D, capacity)
     return nothing
 end
 
-function InterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
-                                       n_nodes) where {uEltype <: Real}
+function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
+                                           n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -180,21 +177,18 @@ function InterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return InterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
-                                         _u, _neighbor_ids)
+    return TreeInterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
+                                             _u, _neighbor_ids)
 end
-
-# Return number of interfaces
-ninterfaces(interfaces::InterfaceContainer3D) = length(interfaces.orientations)
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh3D,
                          elements::TreeElementContainer3D)
     # Initialize container
     n_interfaces = count_required_interfaces(mesh, cell_ids)
-    interfaces = InterfaceContainer3D{eltype(elements)}(n_interfaces,
-                                                        nvariables(elements),
-                                                        nnodes(elements))
+    interfaces = TreeInterfaceContainer3D{eltype(elements)}(n_interfaces,
+                                                            nvariables(elements),
+                                                            nnodes(elements))
 
     # Connect elements with interfaces
     init_interfaces!(interfaces, elements, mesh)
