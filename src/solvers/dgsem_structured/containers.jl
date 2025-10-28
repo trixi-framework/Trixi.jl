@@ -63,7 +63,6 @@ end
 
 @inline nelements(elements::StructuredElementContainer) = size(elements.left_neighbors,
                                                                2)
-@inline Base.ndims(::StructuredElementContainer{NDIMS}) where {NDIMS} = NDIMS
 
 function Base.eltype(::StructuredElementContainer{NDIMS, RealT, uEltype}) where {NDIMS,
                                                                                  RealT,
