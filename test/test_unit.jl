@@ -446,9 +446,9 @@ end
 end
 
 @timed_testset "DG L2 mortar container debug output" begin
-    c2d = Trixi.L2MortarContainer2D{Float64}(1, 1, 1)
+    c2d = Trixi.TreeL2MortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
-    c3d = Trixi.L2MortarContainer3D{Float64}(1, 1, 1)
+    c3d = Trixi.TreeL2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
 end
 
