@@ -353,7 +353,6 @@ end
 abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
 
 @inline nvariables(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 2)
-@inline Base.eltype(boundaries::AbstractTreeBoundaryContainer) = eltype(boundaries.u)
 # Return number of boundaries
 @inline nboundaries(boundaries::AbstractTreeBoundaryContainer) = length(boundaries.orientations)
 # For 2D and 3D. 1D Hard-coded to 1
