@@ -356,7 +356,7 @@ abstract type AbstractTreeElementContainer <: AbstractContainer end
 @inline nelements(elements::AbstractTreeElementContainer) = length(elements.cell_ids)
 # TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
 """
-    eachelement(elements::AbstractElementContainer)
+    eachelement(elements::AbstractTreeElementContainer)
 
 Return an iterator over the indices that specify the location in relevant data structures
 for the elements in `elements`. 
