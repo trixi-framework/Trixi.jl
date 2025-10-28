@@ -471,6 +471,15 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
     return boundaries.n_boundaries_per_direction
 end
 
+abstract type AbstractTreeL2MortarContainer2D <: AbstractTreeL2MortarContainer end
+
+# Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
+@inline nnodes(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 3)
+# Return number of equation variables
+@inline nvariables(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 2)
+
+@inline Base.eltype(mortars::AbstractTreeL2MortarContainer2D) = eltype(mortars.u_upper)
+
 # Container data structure (structure-of-arrays style) for DG L2 mortars
 # Positions/directions for orientations = 1, large_sides = 2:
 # mortar is orthogonal to x-axis, large side is in positive coordinate direction wrt mortar
@@ -481,7 +490,8 @@ end
 #           |    |
 # lower = 1 |    |
 #           |    |
-mutable struct L2MortarContainer2D{uEltype <: Real} <: AbstractContainer
+mutable struct TreeL2MortarContainer2D{uEltype <: Real} <:
+               AbstractTreeL2MortarContainer2D
     u_upper::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     neighbor_ids::Array{Int, 2} # [position, mortars]
@@ -494,12 +504,8 @@ mutable struct L2MortarContainer2D{uEltype <: Real} <: AbstractContainer
     _neighbor_ids::Vector{Int}
 end
 
-nvariables(mortars::L2MortarContainer2D) = size(mortars.u_upper, 2)
-nnodes(mortars::L2MortarContainer2D) = size(mortars.u_upper, 3)
-Base.eltype(mortars::L2MortarContainer2D) = eltype(mortars.u_upper)
-
 # See explanation of Base.resize! for the element container
-function Base.resize!(mortars::L2MortarContainer2D, capacity)
+function Base.resize!(mortars::TreeL2MortarContainer2D, capacity)
     n_nodes = nnodes(mortars)
     n_variables = nvariables(mortars)
     @unpack _u_upper, _u_lower, _neighbor_ids,
@@ -524,8 +530,8 @@ function Base.resize!(mortars::L2MortarContainer2D, capacity)
     return nothing
 end
 
-function L2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
-                                      n_nodes) where {uEltype <: Real}
+function TreeL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
+                                          n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -545,16 +551,14 @@ function L2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return L2MortarContainer2D{uEltype}(u_upper, u_lower, neighbor_ids, large_sides,
-                                        orientations,
-                                        _u_upper, _u_lower, _neighbor_ids)
+    return TreeL2MortarContainer2D{uEltype}(u_upper, u_lower,
+                                            neighbor_ids,
+                                            large_sides, orientations,
+                                            _u_upper, _u_lower, _neighbor_ids)
 end
 
-# Return number of L2 mortars
-@inline nmortars(l2mortars::L2MortarContainer2D) = length(l2mortars.orientations)
-
 # Allow printing container contents
-function Base.show(io::IO, ::MIME"text/plain", c::L2MortarContainer2D)
+function Base.show(io::IO, ::MIME"text/plain", c::TreeL2MortarContainer2D)
     @nospecialize c # reduce precompilation time
 
     println(io, '*'^20)
@@ -576,8 +580,8 @@ function init_mortars(cell_ids, mesh::TreeMesh2D,
                       ::LobattoLegendreMortarL2)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
-    mortars = L2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
-                                                    nnodes(elements))
+    mortars = TreeL2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
+                                                        nnodes(elements))
 
     # Connect elements with mortars
     init_mortars!(mortars, elements, mesh)
@@ -789,7 +793,7 @@ end
 
 # TODO: Taal, rename to ninterfaces?
 # Return number of interfaces
-function nmpiinterfaces(mpi_interfaces::TreeMPIInterfaceContainer2D)
+@inline function nmpiinterfaces(mpi_interfaces::TreeMPIInterfaceContainer2D)
     length(mpi_interfaces.orientations)
 end
 
@@ -910,7 +914,8 @@ end
 #           |    |
 # lower = 1 |    |
 #           |    |
-mutable struct MPIL2MortarContainer2D{uEltype <: Real} <: AbstractContainer
+mutable struct TreeMPIL2MortarContainer2D{uEltype <: Real} <:
+               AbstractTreeL2MortarContainer2D
     u_upper::Array{uEltype, 4} # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4} # [leftright, variables, i, mortars]
     # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
@@ -924,12 +929,8 @@ mutable struct MPIL2MortarContainer2D{uEltype <: Real} <: AbstractContainer
     _u_lower::Vector{uEltype}
 end
 
-nvariables(mpi_mortars::MPIL2MortarContainer2D) = size(mpi_mortars.u_upper, 2)
-nnodes(mpi_mortars::MPIL2MortarContainer2D) = size(mpi_mortars.u_upper, 3)
-Base.eltype(mpi_mortars::MPIL2MortarContainer2D) = eltype(mpi_mortars.u_upper)
-
 # See explanation of Base.resize! for the element container
-function Base.resize!(mpi_mortars::MPIL2MortarContainer2D, capacity)
+function Base.resize!(mpi_mortars::TreeMPIL2MortarContainer2D, capacity)
     n_nodes = nnodes(mpi_mortars)
     n_variables = nvariables(mpi_mortars)
     @unpack _u_upper, _u_lower, local_neighbor_ids, local_neighbor_positions,
@@ -953,8 +954,8 @@ function Base.resize!(mpi_mortars::MPIL2MortarContainer2D, capacity)
     return nothing
 end
 
-function MPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
-                                         n_nodes) where {uEltype <: Real}
+function TreeMPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
+                                             n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -973,14 +974,15 @@ function MPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return MPIL2MortarContainer2D{uEltype}(u_upper, u_lower, local_neighbor_ids,
-                                           local_neighbor_positions, large_sides,
-                                           orientations,
-                                           _u_upper, _u_lower)
+    return TreeMPIL2MortarContainer2D{uEltype}(u_upper, u_lower,
+                                               local_neighbor_ids,
+                                               local_neighbor_positions,
+                                               large_sides, orientations,
+                                               _u_upper, _u_lower)
 end
 
 # Return number of L2 mortars
-@inline function nmpimortars(mpi_l2mortars::MPIL2MortarContainer2D)
+@inline function nmpimortars(mpi_l2mortars::TreeMPIL2MortarContainer2D)
     length(mpi_l2mortars.orientations)
 end
 
@@ -990,9 +992,9 @@ function init_mpi_mortars(cell_ids, mesh::TreeMesh2D,
                           ::LobattoLegendreMortarL2)
     # Initialize containers
     n_mpi_mortars = count_required_mpi_mortars(mesh, cell_ids)
-    mpi_mortars = MPIL2MortarContainer2D{eltype(elements)}(n_mpi_mortars,
-                                                           nvariables(elements),
-                                                           nnodes(elements))
+    mpi_mortars = TreeMPIL2MortarContainer2D{eltype(elements)}(n_mpi_mortars,
+                                                               nvariables(elements),
+                                                               nnodes(elements))
 
     # Connect elements with mortars
     init_mpi_mortars!(mpi_mortars, elements, mesh)

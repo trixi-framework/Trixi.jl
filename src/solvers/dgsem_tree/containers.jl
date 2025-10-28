@@ -50,6 +50,11 @@ abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
 # Return number of equation variables
 @inline nvariables(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 2)
 
+abstract type AbstractTreeL2MortarContainer <: AbstractContainer end
+
+# Return number of L2 mortars
+@inline nmortars(l2mortars::AbstractTreeL2MortarContainer) = length(l2mortars.orientations)
+
 function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
