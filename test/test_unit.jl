@@ -457,6 +457,15 @@ end
     @test isnothing(display(c2d))
 end
 
+@timed_testset "TreeBoundaryContainer1D nnodes" begin
+    capacity = 42
+    n_variables = 9
+    boundary_container = Trixi.TreeBoundaryContainer1D{Float64, Float64}(capacity,
+                                                                         n_variables)
+
+    @test nnodes(boundary_container) == 1
+end
+
 @timed_testset "Printing indicators/controllers" begin
     # OBS! Constructing indicators/controllers using the parameters below doesn't make sense. It's
     # just useful to run basic tests of `show` methods.
