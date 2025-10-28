@@ -645,6 +645,186 @@ function init_mortars(cell_ids, mesh::TreeMesh3D,
     return mortars
 end
 
+# Container data structure (structure-of-arrays style) for DG mortars for IDP AMR
+# Positions/directions for orientations = 1, large_sides = 2:
+# mortar is orthogonal to x-axis, large side is in positive coordinate direction wrt mortar
+#   /----------------------------\  /----------------------------\
+#   |             |              |  |                            |
+#   | upper, left | upper, right |  |                            |
+#   |      3      |      4       |  |                            |
+#   |             |              |  |           large            |
+#   |-------------|--------------|  |             5              |
+# z |             |              |  |                            |
+#   | lower, left | lower, right |  |                            |
+# ^ |      1      |      2       |  |                            |
+# | |             |              |  |                            |
+# | \----------------------------/  \----------------------------/
+# |
+# ⋅----> y
+# Left and right are always wrt to a coordinate direction:
+# * left is always the negative direction
+# * right is always the positive direction
+#
+# Left and right are used *both* for the numbering of the mortar faces *and* for the position of the
+# elements with respect to the axis orthogonal to the mortar.
+
+mutable struct IDPMortarContainer3D{uEltype <: Real} <: AbstractContainer
+    u_upper_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
+    u_upper_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
+    u_lower_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
+    u_lower_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
+    u_large::Array{uEltype, 4}  # [variables, i, j, mortars]
+    neighbor_ids::Array{Int, 2} # [position, mortars]
+    # Large sides: left -> 1, right -> 2
+    large_sides::Vector{Int}  # [mortars]
+    orientations::Vector{Int} # [mortars]
+    limiting_factor::Vector{uEltype} # [mortars]
+    # internal `resize!`able storage
+    _u_upper_left::Vector{uEltype}
+    _u_upper_right::Vector{uEltype}
+    _u_lower_left::Vector{uEltype}
+    _u_lower_right::Vector{uEltype}
+    _u_large::Vector{uEltype}
+    _neighbor_ids::Vector{Int}
+end
+
+nvariables(mortars::IDPMortarContainer3D) = size(mortars.u_upper_left, 2)
+nnodes(mortars::IDPMortarContainer3D) = size(mortars.u_upper_left, 3)
+Base.eltype(mortars::IDPMortarContainer3D) = eltype(mortars.u_upper_left)
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(mortars::IDPMortarContainer3D, capacity)
+    n_nodes = nnodes(mortars)
+    n_variables = nvariables(mortars)
+    @unpack _u_upper_left, _u_upper_right, _u_lower_left, _u_lower_right, _u_large, _neighbor_ids,
+    large_sides, orientations, limiting_factor = mortars
+
+    resize!(_u_upper_left, 2 * n_variables * n_nodes * n_nodes * capacity)
+    mortars.u_upper_left = unsafe_wrap(Array, pointer(_u_upper_left),
+                                       (2, n_variables, n_nodes, n_nodes, capacity))
+
+    resize!(_u_upper_right, 2 * n_variables * n_nodes * n_nodes * capacity)
+    mortars.u_upper_right = unsafe_wrap(Array, pointer(_u_upper_right),
+                                        (2, n_variables, n_nodes, n_nodes, capacity))
+
+    resize!(_u_lower_left, 2 * n_variables * n_nodes * n_nodes * capacity)
+    mortars.u_lower_left = unsafe_wrap(Array, pointer(_u_lower_left),
+                                       (2, n_variables, n_nodes, n_nodes, capacity))
+
+    resize!(_u_lower_right, 2 * n_variables * n_nodes * n_nodes * capacity)
+    mortars.u_lower_right = unsafe_wrap(Array, pointer(_u_lower_right),
+                                        (2, n_variables, n_nodes, n_nodes, capacity))
+
+    resize!(_u_large, n_variables * n_nodes * n_nodes * capacity)
+    mortars.u_large = unsafe_wrap(Array, pointer(_u_large),
+                                  (n_variables, n_nodes, n_nodes, capacity))
+
+    resize!(_neighbor_ids, 5 * capacity)
+    mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+                                       (5, capacity))
+
+    resize!(large_sides, capacity)
+
+    resize!(orientations, capacity)
+
+    resize!(limiting_factor, capacity)
+
+    return nothing
+end
+
+function IDPMortarContainer3D{uEltype}(capacity::Integer, n_variables,
+                                       n_nodes) where {uEltype <: Real}
+    nan = convert(uEltype, NaN)
+
+    # Initialize fields with defaults
+    _u_upper_left = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
+    u_upper_left = unsafe_wrap(Array, pointer(_u_upper_left),
+                               (2, n_variables, n_nodes, n_nodes, capacity))
+
+    _u_upper_right = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
+    u_upper_right = unsafe_wrap(Array, pointer(_u_upper_right),
+                                (2, n_variables, n_nodes, n_nodes, capacity))
+
+    _u_lower_left = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
+    u_lower_left = unsafe_wrap(Array, pointer(_u_lower_left),
+                               (2, n_variables, n_nodes, n_nodes, capacity))
+
+    _u_lower_right = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
+    u_lower_right = unsafe_wrap(Array, pointer(_u_lower_right),
+                                (2, n_variables, n_nodes, n_nodes, capacity))
+
+    _u_large = fill(nan, n_variables * n_nodes * n_nodes * capacity)
+    u_large = unsafe_wrap(Array, pointer(_u_large),
+                          (n_variables, n_nodes, n_nodes, capacity))
+
+    _u_large = fill(nan, n_variables * n_nodes * n_nodes * capacity)
+    u_large = unsafe_wrap(Array, pointer(_u_large),
+                          (n_variables, n_nodes, n_nodes, capacity))
+
+    _neighbor_ids = fill(typemin(Int), 5 * capacity)
+    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+                               (5, capacity))
+
+    large_sides = fill(typemin(Int), capacity)
+
+    orientations = fill(typemin(Int), capacity)
+
+    limiting_factor = fill(nan, capacity)
+
+    return IDPMortarContainer3D{uEltype}(u_upper_left, u_upper_right,
+                                         u_lower_left, u_lower_right,
+                                         u_large, neighbor_ids,
+                                         large_sides, orientations, limiting_factor,
+                                         _u_upper_left, _u_upper_right,
+                                         _u_lower_left, _u_lower_right,
+                                         _u_large, _neighbor_ids)
+end
+
+# Return number of IDP mortars
+@inline nmortars(l2mortars::IDPMortarContainer3D) = length(l2mortars.orientations)
+
+# Allow printing container contents
+function Base.show(io::IO, ::MIME"text/plain", c::IDPMortarContainer3D)
+    @nospecialize c # reduce precompilation time
+
+    println(io, '*'^20)
+    for idx in CartesianIndices(c.u_upper_left)
+        println(io, "c.u_upper_left[$idx] = $(c.u_upper_left[idx])")
+    end
+    for idx in CartesianIndices(c.u_upper_right)
+        println(io, "c.u_upper_right[$idx] = $(c.u_upper_right[idx])")
+    end
+    for idx in CartesianIndices(c.u_lower_left)
+        println(io, "c.u_lower_left[$idx] = $(c.u_lower_left[idx])")
+    end
+    for idx in CartesianIndices(c.u_lower_right)
+        println(io, "c.u_lower_right[$idx] = $(c.u_lower_right[idx])")
+    end
+    for idx in CartesianIndices(c.u_large)
+        println(io, "c.u_large[$idx] = $(c.u_large[idx])")
+    end
+    println(io, "transpose(c.neighbor_ids) = $(transpose(c.neighbor_ids))")
+    println(io, "c.large_sides = $(c.large_sides)")
+    println(io, "c.orientations = $(c.orientations)")
+    println(io, "c.limiting_factor = $(c.limiting_factor)")
+    print(io, '*'^20)
+end
+
+# Create mortar container and initialize mortar data in `elements`.
+function init_mortars(cell_ids, mesh::TreeMesh3D,
+                      elements::ElementContainer3D,
+                      mortar::LobattoLegendreMortarIDP)
+    # Initialize containers
+    n_mortars = count_required_mortars(mesh, cell_ids)
+    mortars = IDPMortarContainer3D{eltype(elements)}(n_mortars,
+                                                     nvariables(elements),
+                                                     nnodes(elements))
+
+    # Connect elements with mortars
+    init_mortars!(mortars, elements, mesh)
+    return mortars
+end
+
 # Count the number of mortars that need to be created
 function count_required_mortars(mesh::TreeMesh3D, cell_ids)
     count = 0
@@ -814,6 +994,7 @@ mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real}
     antidiffusive_flux2_R::Array{uEltype, 5} # [variables, i, j, k, elements]
     antidiffusive_flux3_L::Array{uEltype, 5} # [variables, i, j, k, elements]
     antidiffusive_flux3_R::Array{uEltype, 5} # [variables, i, j, k, elements]
+    surface_flux_values_high_order::Array{uEltype, 5} # [variables, i, j, direction, elements]
     # internal `resize!`able storage
     _antidiffusive_flux1_L::Vector{uEltype}
     _antidiffusive_flux1_R::Vector{uEltype}
@@ -821,6 +1002,7 @@ mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real}
     _antidiffusive_flux2_R::Vector{uEltype}
     _antidiffusive_flux3_L::Vector{uEltype}
     _antidiffusive_flux3_R::Vector{uEltype}
+    _surface_flux_values_high_order::Vector{uEltype}
 end
 
 function ContainerAntidiffusiveFlux3D{uEltype}(capacity::Integer, n_variables,
@@ -866,18 +1048,29 @@ function ContainerAntidiffusiveFlux3D{uEltype}(capacity::Integer, n_variables,
     antidiffusive_flux3_R = unsafe_wrap(Array, pointer(_antidiffusive_flux3_R),
                                         (n_variables, n_nodes, n_nodes, n_nodes + 1,
                                          capacity))
+
+    _surface_flux_values_high_order = fill(nan_uEltype,
+                                           n_variables * n_nodes * n_nodes * 2 * 3 *
+                                           capacity)
+    surface_flux_values_high_order = unsafe_wrap(Array,
+                                                 pointer(_surface_flux_values_high_order),
+                                                 (n_variables, n_nodes, n_nodes, 2 * 3,
+                                                  capacity))
+
     return ContainerAntidiffusiveFlux3D{uEltype}(antidiffusive_flux1_L,
                                                  antidiffusive_flux1_R,
                                                  antidiffusive_flux2_L,
                                                  antidiffusive_flux2_R,
                                                  antidiffusive_flux3_L,
                                                  antidiffusive_flux3_R,
+                                                 surface_flux_values_high_order,
                                                  _antidiffusive_flux1_L,
                                                  _antidiffusive_flux1_R,
                                                  _antidiffusive_flux2_L,
                                                  _antidiffusive_flux2_R,
                                                  _antidiffusive_flux3_L,
-                                                 _antidiffusive_flux3_R)
+                                                 _antidiffusive_flux3_R,
+                                                 _surface_flux_values_high_order)
 end
 
 nvariables(fluxes::ContainerAntidiffusiveFlux3D) = size(fluxes.antidiffusive_flux1_L, 1)
@@ -892,7 +1085,7 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
     n_nodes = nnodes(fluxes)
     n_variables = nvariables(fluxes)
 
-    @unpack _antidiffusive_flux1_L, _antidiffusive_flux1_R, _antidiffusive_flux2_L, _antidiffusive_flux2_R, _antidiffusive_flux3_L, _antidiffusive_flux3_R = fluxes
+    @unpack _antidiffusive_flux1_L, _antidiffusive_flux1_R, _antidiffusive_flux2_L, _antidiffusive_flux2_R, _antidiffusive_flux3_L, _antidiffusive_flux3_R, _surface_flux_values_high_order = fluxes
 
     resize!(_antidiffusive_flux1_L,
             n_variables * (n_nodes + 1) * n_nodes * n_nodes * capacity)
@@ -931,6 +1124,13 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
                                                (n_variables,
                                                 n_nodes, n_nodes, n_nodes + 1,
                                                 capacity))
+
+    resize!(_surface_flux_values_high_order,
+            n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
+    fluxes.surface_flux_values_high_order = unsafe_wrap(Array,
+                                                        pointer(_surface_flux_values_high_order),
+                                                        (n_variables, n_nodes, n_nodes,
+                                                         2 * 3, capacity))
 
     uEltype = eltype(fluxes.antidiffusive_flux1_L)
     @threaded for element in axes(fluxes.antidiffusive_flux1_L, 5)

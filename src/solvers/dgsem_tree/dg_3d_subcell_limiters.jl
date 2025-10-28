@@ -5,6 +5,128 @@
 @muladd begin
 #! format: noindent
 
+function calc_mortar_weights(equations::AbstractEquations{3},
+                             basis::LobattoLegendreBasis, RealT;
+                             basis_function = :piecewise_constant)
+    n_nodes = nnodes(basis)
+    mortar_weights = zeros(RealT, n_nodes, n_nodes, n_nodes, n_nodes, 4) # [node_i (large), node_j (large), node_i (small), node_j (small), small element]
+    mortar_weights_sums = zeros(RealT, n_nodes, n_nodes, 5) # [node_i, node_j, position]
+
+    if basis_function == :piecewise_constant
+        calc_mortar_weights_piecewise_constant!(equations, mortar_weights, n_nodes,
+                                                RealT)
+        # elseif basis_function == :piecewise_linear
+        #     calc_mortar_weights_piecewise_linear!(equations, mortar_weights, basis)
+    else
+        error("Unsupported basis function type: $basis_function")
+    end
+
+    # Sums of mortar weights for normalization
+    # TODO: The sums of all small elements are equal. Is that correct? If so, we can simplify the code.
+    for small_element in 1:4
+        for j in eachnode(basis), i in eachnode(basis)
+            for l in eachnode(basis), k in eachnode(basis)
+                # Add weights from large element to small element
+                mortar_weights_sums[i, j, small_element] += mortar_weights[k, l, i, j,
+                                                                           small_element]
+                # Add weights from small element to large element
+                mortar_weights_sums[i, j, 5] += mortar_weights[i, j, k, l,
+                                                               small_element]
+            end
+        end
+    end
+
+    return mortar_weights, mortar_weights_sums
+end
+
+function calc_mortar_weights_piecewise_constant!(equations::AbstractEquations{3},
+                                                 mortar_weights, n_nodes, RealT)
+    _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
+
+    # Local mortar weights are of the form: `w_(ij, kl) = int_S psi_(ij) phi_(kl) ds`,
+    # where `psi_(ij)` are the basis functions of the large element and `phi_(kl)` are the basis
+    # functions of the small element. `S` is the face connecting both elements.
+    # We use piecewise constant basis functions on the LGL subgrid. So, only focus on interval,
+    # where both basis functions are non-zero. `interval = [left_bound_x, right_bound_x] x [left_bound_y, right_bound_y]`.
+    # `w_(ij, kl) = int_S psi_(ij) phi_(kl) ds = int_(interval) ds = (right_bound_x - left_bound_x) * (right_bound_y - left_bound_y)`.
+    # The bounds in each direction are independent and can be computed separately analogously to the 2D case:
+    # `right_bound = min(left_bound_large, left_bound_small)`
+    # `left_bound = max(right_bound_large, right_bound_small)`
+    # If `right_bound <= left_bound`, i.e., both intervals don't overlap, then `w_ij = 0`.
+
+    # Due to the LGL subgrid, the interval bounds are cumulative LGL quadrature weights.
+    cum_weights_large = [zero(RealT); cumsum(weights)] .- 1 # on [-1, 1]
+    cum_weights_lower = 0.5f0 * cum_weights_large .- 0.5f0  # on [-1, 0]
+    cum_weights_upper = cum_weights_lower .+ 1              # on [0, 1]
+    # So, for `w_(ij, kl)` we have
+    # `right_bound_x = min(cum_weights_large[i], cum_weights_small[k])`
+    # `left_bound_x = max(cum_weights_large[i+1], cum_weights_small[k+1])`
+    # `right_bound_y = min(cum_weights_large[j], cum_weights_small[l])`
+    # `left_bound_y = max(cum_weights_large[j+1], cum_weights_small[l+1])`
+
+    # Illustration of the positions in 3D, where ξ and η are the local coordinates
+    # of the mortar element, which are precisely the local coordinates that span
+    # the surface of the smaller side.
+    # Note that the orientation in the physical space is completely irrelevant here.
+    #   ┌─────────────┬─────────────┐  ┌───────────────────────────┐
+    #   │             │             │  │                           │
+    #   │    small    │    small    │  │                           │
+    #   │      3      │      4      │  │                           │
+    #   │             │             │  │           large           │
+    #   ├─────────────┼─────────────┤  │             5             │
+    # η │             │             │  │                           │
+    #   │    small    │    small    │  │                           │
+    # ↑ │      1      │      2      │  │                           │
+    # │ │             │             │  │                           │
+    # │ └─────────────┴─────────────┘  └───────────────────────────┘
+    # │
+    # ⋅────> ξ
+
+    for j in 1:n_nodes, i in 1:n_nodes
+        for l in 1:n_nodes, k in 1:n_nodes
+            # 1st small and large element element
+            left_x = max(cum_weights_large[i], cum_weights_lower[k])
+            right_x = min(cum_weights_large[i + 1], cum_weights_lower[k + 1])
+            left_y = max(cum_weights_large[j], cum_weights_lower[l])
+            right_y = min(cum_weights_large[j + 1], cum_weights_lower[l + 1])
+
+            # Local weight of 0 if intervals do not overlap, i.e., `right <= left`
+            if right_x > left_x && right_y > left_y
+                mortar_weights[i, j, k, l, 1] = (right_x - left_x) * (right_y - left_y)
+            end
+
+            # 2nd small and large element
+            left_x = max(cum_weights_large[i], cum_weights_upper[k])
+            right_x = min(cum_weights_large[i + 1], cum_weights_upper[k + 1])
+            left_y = max(cum_weights_large[j], cum_weights_lower[l])
+            right_y = min(cum_weights_large[j + 1], cum_weights_lower[l + 1])
+            if right_x > left_x && right_y > left_y
+                mortar_weights[i, j, k, l, 2] = (right_x - left_x) * (right_y - left_y)
+            end
+
+            # 3rd small and large element
+            left_x = max(cum_weights_large[i], cum_weights_lower[k])
+            right_x = min(cum_weights_large[i + 1], cum_weights_lower[k + 1])
+            left_y = max(cum_weights_large[j], cum_weights_upper[l])
+            right_y = min(cum_weights_large[j + 1], cum_weights_upper[l + 1])
+            if right_x > left_x && right_y > left_y
+                mortar_weights[i, j, k, l, 3] = (right_x - left_x) * (right_y - left_y)
+            end
+
+            # 4th small and large element
+            left_x = max(cum_weights_large[i], cum_weights_upper[k])
+            right_x = min(cum_weights_large[i + 1], cum_weights_upper[k + 1])
+            left_y = max(cum_weights_large[j], cum_weights_upper[l])
+            right_y = min(cum_weights_large[j + 1], cum_weights_upper[l + 1])
+            if right_x > left_x && right_y > left_y
+                mortar_weights[i, j, k, l, 4] = (right_x - left_x) * (right_y - left_y)
+            end
+        end
+    end
+
+    return mortar_weights
+end
+
 # Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
 # (**without non-conservative terms**).
 #
@@ -745,6 +867,268 @@ end
             end
         end
     end
+    return nothing
+end
+
+function prolong2mortars!(cache, u, mesh::TreeMesh{3}, equations,
+                          mortar_idp::LobattoLegendreMortarIDP, dg::DGSEM)
+    prolong2mortars!(cache, u, mesh, equations, mortar_idp.mortar_l2, dg)
+
+    # The data of both small elements were already copied to the mortar cache
+    @threaded for mortar in eachmortar(dg, cache)
+        large_element = cache.mortars.neighbor_ids[5, mortar]
+
+        # Copy solutions
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if cache.mortars.orientations[mortar] == 1
+                # IDP mortars in x-direction
+                for k in eachnode(dg), j in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_large[v, j, k, mortar] = u[v, nnodes(dg), j, k,
+                                                                   large_element]
+                    end
+                end
+            elseif cache.mortars.orientations[mortar] == 2
+                # IDP mortars in y-direction
+                for k in eachnode(dg), i in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_large[v, i, k, mortar] = u[v, i, nnodes(dg), k,
+                                                                   large_element]
+                    end
+                end
+            else
+                # IDP mortars in z-direction
+                for j in eachnode(dg), i in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_large[v, i, j, mortar] = u[v, i, j, nnodes(dg),
+                                                                   large_element]
+                    end
+                end
+            end
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if cache.mortars.orientations[mortar] == 1
+                # IDP mortars in x-direction
+                for k in eachnode(dg), j in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_large[v, j, k, mortar] = u[v, 1, j, k,
+                                                                   large_element]
+                    end
+                end
+            elseif cache.mortars.orientations[mortar] == 2
+                # IDP mortars in y-direction
+                for k in eachnode(dg), i in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_large[v, i, k, mortar] = u[v, i, 1, k,
+                                                                   large_element]
+                    end
+                end
+            else
+                # IDP mortars in z-direction
+                for j in eachnode(dg), i in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_large[v, i, j, mortar] = u[v, i, j, 1,
+                                                                   large_element]
+                    end
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+function calc_mortar_flux_low_order!(surface_flux_values,
+                                     mesh::TreeMesh{3},
+                                     nonconservative_terms::False, equations,
+                                     mortar_idp::LobattoLegendreMortarIDP,
+                                     surface_integral, dg::DG, cache)
+    @unpack surface_flux = surface_integral
+    @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, u_large, orientations = cache.mortars
+    (; mortar_weights, mortar_weights_sums) = mortar_idp
+
+    @assert mortar_idp.local_factor "Local factor must be true for low-order mortar fluxes."
+
+    @threaded for mortar in eachmortar(dg, cache)
+        lower_left_element = cache.mortars.neighbor_ids[1, mortar]
+        lower_right_element = cache.mortars.neighbor_ids[2, mortar]
+        upper_left_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_right_element = cache.mortars.neighbor_ids[4, mortar]
+        large_element = cache.mortars.neighbor_ids[5, mortar]
+
+        # Calculate fluxes
+        orientation = orientations[mortar]
+
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if orientation == 1
+                # L2 mortars in x-direction
+                direction_small = 1
+                direction_large = 2
+            elseif orientation == 2
+                # L2 mortars in y-direction
+                direction_small = 3
+                direction_large = 4
+            else
+                # L2 mortars in z-direction
+                direction_small = 5
+                direction_large = 6
+            end
+            small_side = 2
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if orientation == 1
+                # L2 mortars in x-direction
+                direction_small = 2
+                direction_large = 1
+            elseif orientation == 2
+                # L2 mortars in y-direction
+                direction_small = 4
+                direction_large = 3
+            else
+                # L2 mortars in z-direction
+                direction_small = 6
+                direction_large = 5
+            end
+            small_side = 1
+        end
+
+        surface_flux_values[:, :, :, direction_small, lower_left_element] .= zero(eltype(surface_flux_values))
+        surface_flux_values[:, :, :, direction_small, lower_right_element] .= zero(eltype(surface_flux_values))
+        surface_flux_values[:, :, :, direction_small, upper_left_element] .= zero(eltype(surface_flux_values))
+        surface_flux_values[:, :, :, direction_small, upper_right_element] .= zero(eltype(surface_flux_values))
+        surface_flux_values[:, :, :, direction_large, large_element] .= zero(eltype(surface_flux_values))
+        # Lower left element
+        for j in eachnode(dg), i in eachnode(dg)
+            u_lower_left_local = get_surface_node_vars(u_lower_left, equations, dg,
+                                                       i, j, mortar)[small_side]
+            for l in eachnode(dg), k in eachnode(dg)
+                factor = mortar_weights[k, l, i, j, 1]
+                if isapprox(factor, zero(typeof(factor)))
+                    continue
+                end
+                u_large_local = get_node_vars(u_large, equations, dg, k, l, mortar)
+
+                if small_side == 2 # -> small elements on right side
+                    flux = surface_flux(u_large_local, u_lower_left_local, orientation,
+                                        equations)
+                else # small_side == 1 -> small elements on left side
+                    flux = surface_flux(u_lower_left_local, u_large_local, orientation,
+                                        equations)
+                end
+
+                # Lower left element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[i, j, 1],
+                                           flux, equations, dg,
+                                           i, j, direction_small, lower_left_element)
+                # Large element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[k, l, 5],
+                                           flux, equations, dg,
+                                           k, l, direction_large, large_element)
+            end
+        end
+        # Lower right element
+        for j in eachnode(dg), i in eachnode(dg)
+            u_lower_right_local = get_surface_node_vars(u_lower_right, equations, dg,
+                                                        i, j, mortar)[small_side]
+            for l in eachnode(dg), k in eachnode(dg)
+                factor = mortar_weights[k, l, i, j, 2]
+                if isapprox(factor, zero(typeof(factor)))
+                    continue
+                end
+                u_large_local = get_node_vars(u_large, equations, dg, k, l, mortar)
+
+                if small_side == 2 # -> small elements on right side
+                    flux = surface_flux(u_large_local, u_lower_right_local, orientation,
+                                        equations)
+                else # small_side == 1 -> small elements on left side
+                    flux = surface_flux(u_lower_right_local, u_large_local, orientation,
+                                        equations)
+                end
+
+                # Lower right element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[i, j, 2],
+                                           flux, equations, dg,
+                                           i, j, direction_small, lower_right_element)
+                # Large element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[k, l, 5],
+                                           flux, equations, dg,
+                                           k, l, direction_large, large_element)
+            end
+        end
+        # Upper left element
+        for j in eachnode(dg), i in eachnode(dg)
+            u_upper_left_local = get_surface_node_vars(u_upper_left, equations, dg,
+                                                       i, j, mortar)[small_side]
+            for l in eachnode(dg), k in eachnode(dg)
+                factor = mortar_weights[k, l, i, j, 3]
+                if isapprox(factor, zero(typeof(factor)))
+                    continue
+                end
+                u_large_local = get_node_vars(u_large, equations, dg, k, l, mortar)
+
+                if small_side == 2 # -> small elements on right side
+                    flux = surface_flux(u_large_local, u_upper_left_local, orientation,
+                                        equations)
+                else # small_side == 1 -> small elements on left side
+                    flux = surface_flux(u_upper_left_local, u_large_local, orientation,
+                                        equations)
+                end
+
+                # Upper left element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[i, j, 3],
+                                           flux, equations, dg,
+                                           i, j, direction_small, upper_left_element)
+                # Large element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[k, l, 5],
+                                           flux, equations, dg,
+                                           k, l, direction_large, large_element)
+            end
+        end
+        # Upper right element
+        for j in eachnode(dg), i in eachnode(dg)
+            u_upper_right_local = get_surface_node_vars(u_upper_right, equations, dg,
+                                                        i, j, mortar)[small_side]
+            for l in eachnode(dg), k in eachnode(dg)
+                factor = mortar_weights[k, l, i, j, 4]
+                if isapprox(factor, zero(typeof(factor)))
+                    continue
+                end
+                u_large_local = get_node_vars(u_large, equations, dg, k, l, mortar)
+
+                if small_side == 2 # -> small elements on right side
+                    flux = surface_flux(u_large_local, u_upper_right_local, orientation,
+                                        equations)
+                else # small_side == 1 -> small elements on left side
+                    flux = surface_flux(u_upper_right_local, u_large_local, orientation,
+                                        equations)
+                end
+
+                # Upper right element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[i, j, 4],
+                                           flux, equations, dg,
+                                           i, j, direction_small, upper_right_element)
+                # Large element
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           factor /
+                                           mortar_weights_sums[k, l, 5],
+                                           flux, equations, dg,
+                                           k, l, direction_large, large_element)
+            end
+        end
+    end
+
     return nothing
 end
 end # @muladd
