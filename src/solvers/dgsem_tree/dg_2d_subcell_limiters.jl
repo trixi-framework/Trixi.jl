@@ -1114,7 +1114,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     # Upper element
                     multiply_add_to_node_vars!(surface_flux_values,
                                                factor /
-                                               mortar_weights_sums[i, 2],
+                                               mortar_weights_sums[i, 1],
                                                flux, equations, dg,
                                                i, direction_small, upper_element)
                     # Large element
