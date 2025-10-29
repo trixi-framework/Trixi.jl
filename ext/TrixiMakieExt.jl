@@ -373,15 +373,7 @@ end
 
 function Makie.plot!(fig, pd::PlotData2DTriangulated;
                      plot_mesh = false, colormap = default_Makie_colormap())
-    # Create layout that is as square as possible, when there are more than 3 subplots.
-    # This is done with a preference for more columns than rows if not.
-    if length(pd) <= 3
-        cols = length(pd)
-        rows = 1
-    else
-        cols = ceil(Int, sqrt(length(pd)))
-        rows = cld(length(pd), cols)
-    end
+    rows, cols = create_layout(length(pd))
 
     axes = [Makie.Axis(fig[i, j], xlabel = "x", ylabel = "y")
             for j in 1:rows, i in 1:cols]
@@ -405,22 +397,6 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
     return FigureAndAxes(fig, axes)
 end
 
-# converts a single int into a tuple of ints, to get a square arrangement
-# example: f(1) = (1,1) f(2) = (2,1) f(3) = (2,2) f(4) = (1,2)
-function makie_layout_helper(n)
-    if n == 1
-        return (1, 1)
-    end
-    t = makie_layout_helper(n - 1)
-    if t[1] == 1
-        return (t[2] + 1, 1)
-    elseif t[1] > t[2]
-        return (t[1], t[2] + 1)
-    elseif t[2] >= t[1]
-        return (t[1] - 1, t[2])
-    end
-end
-
 function Trixi.show_plot_makie(visualization_callback,
                                plot_data::PlotData2DTriangulated, variable_names;
                                show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
@@ -434,14 +410,18 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
     nvars = size(variable_names)[1]
     if visualization_callback.figure_axes.fig === nothing
         @info "Creating new Makie figure"
+        rows, cols = create_layout(nvars + show_mesh)
+        positions = CartesianIndices((rows, cols))
         fig = Makie.Figure()
-        axes = [Makie.Axis(fig[makie_layout_helper(v)...], aspect = Makie.DataAspect(),
+        axes = [Makie.Axis(fig[Tuple(positions[v])...],
+                           aspect = Makie.DataAspect(),
                            title = variable_names[v])
                 for v in 1:nvars]
         if show_mesh
             push!(axes,
-                  Makie.Axis(fig[makie_layout_helper(nvars + 1)...],
-                             aspect = Makie.DataAspect(), title = "mesh"))
+                  Makie.Axis(fig[Tuple(positions[nvars+1])...],
+                             aspect = Makie.DataAspect(),
+                             title = "mesh"))
         end
         visualization_callback.figure_axes = FigureAndAxes(fig, axes)
         Makie.display(visualization_callback.figure_axes.fig)

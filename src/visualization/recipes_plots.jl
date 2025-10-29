@@ -74,18 +74,7 @@ end
 
 # Plot all available variables at once for convenience
 RecipesBase.@recipe function f(pd::AbstractPlotData)
-    # Create layout that is as square as possible, when there are more than 3 subplots.
-    # This is done with a preference for more columns than rows if not.
-
-    if length(pd) <= 3
-        cols = length(pd)
-        rows = 1
-    else
-        cols = ceil(Int, sqrt(length(pd)))
-        rows = ceil(Int, length(pd) / cols)
-    end
-
-    layout := (rows, cols)
+    layout := create_layout(length(pd))
 
     # Plot all existing variables
     for (i, (variable_name, series)) in enumerate(pd)
