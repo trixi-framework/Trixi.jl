@@ -133,7 +133,8 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh3D, basis)
 end
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-mutable struct InterfaceContainer3D{uEltype <: Real} <: AbstractContainer
+mutable struct TreeInterfaceContainer3D{uEltype <: Real} <:
+               AbstractTreeInterfaceContainer
     u::Array{uEltype, 5}      # [leftright, variables, i, j, interfaces]
     neighbor_ids::Matrix{Int} # [leftright, interfaces]
     orientations::Vector{Int} # [interfaces]
@@ -142,12 +143,8 @@ mutable struct InterfaceContainer3D{uEltype <: Real} <: AbstractContainer
     _neighbor_ids::Vector{Int}
 end
 
-nvariables(interfaces::InterfaceContainer3D) = size(interfaces.u, 2)
-nnodes(interfaces::InterfaceContainer3D) = size(interfaces.u, 3)
-Base.eltype(interfaces::InterfaceContainer3D) = eltype(interfaces.u)
-
 # See explanation of Base.resize! for the element container
-function Base.resize!(interfaces::InterfaceContainer3D, capacity)
+function Base.resize!(interfaces::TreeInterfaceContainer3D, capacity)
     n_nodes = nnodes(interfaces)
     n_variables = nvariables(interfaces)
     @unpack _u, _neighbor_ids, orientations = interfaces
@@ -165,8 +162,8 @@ function Base.resize!(interfaces::InterfaceContainer3D, capacity)
     return nothing
 end
 
-function InterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
-                                       n_nodes) where {uEltype <: Real}
+function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
+                                           n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -180,21 +177,18 @@ function InterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return InterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
-                                         _u, _neighbor_ids)
+    return TreeInterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
+                                             _u, _neighbor_ids)
 end
-
-# Return number of interfaces
-ninterfaces(interfaces::InterfaceContainer3D) = length(interfaces.orientations)
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh3D,
                          elements::TreeElementContainer3D)
     # Initialize container
     n_interfaces = count_required_interfaces(mesh, cell_ids)
-    interfaces = InterfaceContainer3D{eltype(elements)}(n_interfaces,
-                                                        nvariables(elements),
-                                                        nnodes(elements))
+    interfaces = TreeInterfaceContainer3D{eltype(elements)}(n_interfaces,
+                                                            nvariables(elements),
+                                                            nnodes(elements))
 
     # Connect elements with interfaces
     init_interfaces!(interfaces, elements, mesh)
@@ -498,7 +492,7 @@ end
 #
 # Left and right are used *both* for the numbering of the mortar faces *and* for the position of the
 # elements with respect to the axis orthogonal to the mortar.
-mutable struct L2MortarContainer3D{uEltype <: Real} <: AbstractContainer
+mutable struct TreeL2MortarContainer3D{uEltype <: Real} <: AbstractTreeL2MortarContainer
     u_upper_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
     u_upper_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
     u_lower_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
@@ -515,12 +509,13 @@ mutable struct L2MortarContainer3D{uEltype <: Real} <: AbstractContainer
     _neighbor_ids::Vector{Int}
 end
 
-nvariables(mortars::L2MortarContainer3D) = size(mortars.u_upper_left, 2)
-nnodes(mortars::L2MortarContainer3D) = size(mortars.u_upper_left, 3)
-Base.eltype(mortars::L2MortarContainer3D) = eltype(mortars.u_upper_left)
+# Return number of equation variables
+nvariables(mortars::TreeL2MortarContainer3D) = size(mortars.u_upper_left, 2)
+# Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
+nnodes(mortars::TreeL2MortarContainer3D) = size(mortars.u_upper_left, 3)
 
 # See explanation of Base.resize! for the element container
-function Base.resize!(mortars::L2MortarContainer3D, capacity)
+function Base.resize!(mortars::TreeL2MortarContainer3D, capacity)
     n_nodes = nnodes(mortars)
     n_variables = nvariables(mortars)
     @unpack _u_upper_left, _u_upper_right, _u_lower_left, _u_lower_right,
@@ -553,8 +548,8 @@ function Base.resize!(mortars::L2MortarContainer3D, capacity)
     return nothing
 end
 
-function L2MortarContainer3D{uEltype}(capacity::Integer, n_variables,
-                                      n_nodes) where {uEltype <: Real}
+function TreeL2MortarContainer3D{uEltype}(capacity::Integer, n_variables,
+                                          n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -582,19 +577,16 @@ function L2MortarContainer3D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return L2MortarContainer3D{uEltype}(u_upper_left, u_upper_right,
-                                        u_lower_left, u_lower_right,
-                                        neighbor_ids, large_sides, orientations,
-                                        _u_upper_left, _u_upper_right,
-                                        _u_lower_left, _u_lower_right,
-                                        _neighbor_ids)
+    return TreeL2MortarContainer3D{uEltype}(u_upper_left, u_upper_right,
+                                            u_lower_left, u_lower_right,
+                                            neighbor_ids, large_sides, orientations,
+                                            _u_upper_left, _u_upper_right,
+                                            _u_lower_left, _u_lower_right,
+                                            _neighbor_ids)
 end
 
-# Return number of L2 mortars
-nmortars(l2mortars::L2MortarContainer3D) = length(l2mortars.orientations)
-
 # Allow printing container contents
-function Base.show(io::IO, ::MIME"text/plain", c::L2MortarContainer3D)
+function Base.show(io::IO, ::MIME"text/plain", c::TreeL2MortarContainer3D)
     @nospecialize c # reduce precompilation time
 
     println(io, '*'^20)
@@ -622,8 +614,8 @@ function init_mortars(cell_ids, mesh::TreeMesh3D,
                       mortar::LobattoLegendreMortarL2)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
-    mortars = L2MortarContainer3D{eltype(elements)}(n_mortars, nvariables(elements),
-                                                    nnodes(elements))
+    mortars = TreeL2MortarContainer3D{eltype(elements)}(n_mortars, nvariables(elements),
+                                                        nnodes(elements))
 
     # Connect elements with mortars
     init_mortars!(mortars, elements, mesh)
