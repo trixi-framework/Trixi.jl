@@ -73,8 +73,7 @@ mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
 initial_condition = initial_condition_rayleigh_taylor_instability
 
 # Assign a single boundary condition to all boundaries
-boundary_condition = boundary_condition_slip_wall
-boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+boundary_conditions = boundary_condition_default(mesh, boundary_condition_slip_wall)
 # Alternatively, you can use
 # boundary_conditions = (x_neg = boundary_condition_slip_wall,
 #                        x_pos = boundary_condition_slip_wall,
