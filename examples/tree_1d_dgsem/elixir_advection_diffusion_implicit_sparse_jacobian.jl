@@ -119,10 +119,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 ### solve the ODE problem ###
 
-time_int_tol = 1.0e-9
-time_abs_tol = 1.0e-9
-
 sol = solve(ode_jac_sparse, SBDF2(; autodiff = AutoFiniteDiff());
             dt = 0.01, save_everystep = false,
-            abstol = time_abs_tol, reltol = time_int_tol,
+            abstol = 1e-9, reltol = 1e-9,
             ode_default_options()..., callback = callbacks)
