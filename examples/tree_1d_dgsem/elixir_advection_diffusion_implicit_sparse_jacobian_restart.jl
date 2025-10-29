@@ -24,4 +24,6 @@ ode_jac_sparse = semidiscretize(semi_float_type, tspan,
 
 sol = solve(ode_jac_sparse,
             SBDF2(; autodiff = AutoFiniteDiff());
-            dt = dt_restart, save_everystep = false, callback = callbacks);
+            dt = dt_restart, save_everystep = false,
+            abstol = 1e-9, reltol = 1e-9,
+            callback = callbacks);
