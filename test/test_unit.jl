@@ -452,6 +452,11 @@ end
     @test isnothing(display(c3d))
 end
 
+@timed_testset "DG IDP mortar container debug output" begin
+    c2d = Trixi.IDPMortarContainer2D{Float64}(1, 1, 1)
+    @test isnothing(display(c2d))
+end
+
 @timed_testset "TreeBoundaryContainer1D nnodes" begin
     capacity = 42
     n_variables = 9
