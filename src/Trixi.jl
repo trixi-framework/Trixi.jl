@@ -141,7 +141,7 @@ include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
-include("solvers/default_boundary_conditions.jl")  
+include("solvers/default_boundary_conditions.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
