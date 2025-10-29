@@ -350,6 +350,34 @@ function storage_type(C::Type{<:AbstractContainer})
     return storage_type(Adapt.unwrap_type(C))
 end
 
+abstract type AbstractTreeElementContainer <: AbstractContainer end
+
+# Return number of elements
+@inline nelements(elements::AbstractTreeElementContainer) = length(elements.cell_ids)
+# TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
+"""
+    eachelement(elements::AbstractTreeElementContainer)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the elements in `elements`. 
+In particular, not the elements themselves are returned.
+"""
+@inline eachelement(elements::AbstractTreeElementContainer) = Base.OneTo(nelements(elements))
+@inline Base.real(elements::AbstractTreeElementContainer) = eltype(elements.node_coordinates)
+@inline nvariables(elements::AbstractTreeElementContainer) = size(elements.surface_flux_values,
+                                                                  1)
+@inline nnodes(elements::AbstractTreeElementContainer) = size(elements.node_coordinates,
+                                                              2)
+@inline Base.eltype(elements::AbstractTreeElementContainer) = eltype(elements.surface_flux_values)
+
+abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
+
+@inline nvariables(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 2)
+# Return number of boundaries
+@inline nboundaries(boundaries::AbstractTreeBoundaryContainer) = length(boundaries.orientations)
+# For 2D and 3D. 1D Hard-coded to 1
+@inline nnodes(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 3)
+
 # backend handling
 """
     trixi_backend(x)

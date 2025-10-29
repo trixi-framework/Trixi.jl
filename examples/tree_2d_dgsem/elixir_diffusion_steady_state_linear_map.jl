@@ -71,7 +71,7 @@ using Krylov
 # symmetric and positive definite with respect to the inner product induced by
 # the DGSEM quadrature, not the standard Euclidean inner product. Standard CG
 # would require multiplying the result of `A_map * u` (and `b`) by the mass matrix.
-u_ls, stats = gmres(A_map, b)
+u_ls, stats = gmres(A_map, b, atol = 1.0e-11, rtol = 1.0e-10)
 
 ###############################################################################
 
