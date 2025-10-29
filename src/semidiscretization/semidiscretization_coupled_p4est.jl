@@ -144,6 +144,7 @@ function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
 
     u_ode = Vector{real(semi)}(undef, u_indices[end][end])
 
+    # Distribute the partial solution vectors onto the global one.
     for i in eachsystem(semi)
         # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
         u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
