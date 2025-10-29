@@ -2817,7 +2817,7 @@ end
     # https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitFunction
     # Although we do sparsity detection on the entire RHS (since semi_jac_type depends on both equations and 
     # equations_parabolic), this is equivalent to doing sparsity detection on the diffusion problem alone
-    # (see next 2 sections for a demonstration of this)
+    # (see next test for a validation of this)
 
     # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
