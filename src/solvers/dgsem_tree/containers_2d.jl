@@ -478,8 +478,6 @@ abstract type AbstractTreeL2MortarContainer2D <: AbstractTreeL2MortarContainer e
 # Return number of equation variables
 @inline nvariables(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 2)
 
-@inline Base.eltype(mortars::AbstractTreeL2MortarContainer2D) = eltype(mortars.u_upper)
-
 # Container data structure (structure-of-arrays style) for DG L2 mortars
 # Positions/directions for orientations = 1, large_sides = 2:
 # mortar is orthogonal to x-axis, large side is in positive coordinate direction wrt mortar
