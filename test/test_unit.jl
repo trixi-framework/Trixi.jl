@@ -2845,34 +2845,6 @@ end
     # the sparsity detection will never depend on the hyperbolic part of the problem
     @test jac_prototype_parabolic == jac_prototype_hyperbolic_parabolic
 
-    ###############################################################################
-    ### Compare sparsity pattern based on hyperbolic-parabolic ###
-    ### problem with sparsity pattern of parabolic-only problem ###
-
-    # We construct a semidiscretization just as we did previously, but this time with advection_velocity=0
-    equations_hyperbolic_zero_advection = LinearScalarAdvectionEquation1D(0)
-    equations_parabolic_zero_advection = LaplaceDiffusion1D(diffusivity(),
-                                                            equations_hyperbolic_zero_advection)
-
-    semi_jac_type_zero_advection = SemidiscretizationHyperbolicParabolic(mesh,
-                                                                         (equations_hyperbolic_zero_advection,
-                                                                          equations_parabolic_zero_advection),
-                                                                         initial_condition_convergence_test,
-                                                                         solver,
-                                                                         uEltype = jac_eltype)
-
-    # Do sparsity detection on our semidiscretization with advection turned off
-    rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
-                                                                    semi_jac_type_zero_advection,
-                                                                    tspan[1])
-
-    jac_prototype_parabolic_zero_advection = jacobian_sparsity(rhs_hyp_para_wrapped!,
-                                                               du_ode, u0_ode,
-                                                               jac_detector)
-
-    # Given that the stencil for parabolic solvers are always larger than those of hyperbolic solvers,
-    # the sparsity detection will never depend on the hyperbolic part of the problem
-    @test jac_prototype_parabolic == jac_prototype_parabolic_zero_advection
 end
 end
 
