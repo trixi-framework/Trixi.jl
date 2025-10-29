@@ -6,7 +6,8 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct ElementContainer1D{RealT <: Real, uEltype <: Real} <: AbstractContainer
+mutable struct TreeElementContainer1D{RealT <: Real, uEltype <: Real} <:
+               AbstractTreeElementContainer
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 3}      # [orientation, i, elements]
     surface_flux_values::Array{uEltype, 3} # [variables, direction, elements]
@@ -16,16 +17,12 @@ mutable struct ElementContainer1D{RealT <: Real, uEltype <: Real} <: AbstractCon
     _surface_flux_values::Vector{uEltype}
 end
 
-nvariables(elements::ElementContainer1D) = size(elements.surface_flux_values, 1)
-nnodes(elements::ElementContainer1D) = size(elements.node_coordinates, 2)
-Base.eltype(elements::ElementContainer1D) = eltype(elements.surface_flux_values)
-
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(elements::ElementContainer1D, capacity)
+function Base.resize!(elements::TreeElementContainer1D, capacity)
     n_nodes = nnodes(elements)
     n_variables = nvariables(elements)
     @unpack _node_coordinates, _surface_flux_values,
@@ -46,9 +43,9 @@ function Base.resize!(elements::ElementContainer1D, capacity)
     return nothing
 end
 
-function ElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables,
-                                            n_nodes) where {RealT <: Real,
-                                                            uEltype <: Real}
+function TreeElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables,
+                                                n_nodes) where {RealT <: Real,
+                                                                uEltype <: Real}
     nan_RealT = convert(RealT, NaN)
     nan_uEltype = convert(uEltype, NaN)
 
@@ -65,23 +62,11 @@ function ElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables,
 
     cell_ids = fill(typemin(Int), capacity)
 
-    return ElementContainer1D{RealT, uEltype}(inverse_jacobian, node_coordinates,
-                                              surface_flux_values, cell_ids,
-                                              _node_coordinates, _surface_flux_values)
+    return TreeElementContainer1D{RealT, uEltype}(inverse_jacobian, node_coordinates,
+                                                  surface_flux_values, cell_ids,
+                                                  _node_coordinates,
+                                                  _surface_flux_values)
 end
-
-# Return number of elements
-@inline nelements(elements::ElementContainer1D) = length(elements.cell_ids)
-# TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
-"""
-    eachelement(elements::ElementContainer1D)
-
-Return an iterator over the indices that specify the location in relevant data structures
-for the elements in `elements`. 
-In particular, not the elements themselves are returned.
-"""
-@inline eachelement(elements::ElementContainer1D) = Base.OneTo(nelements(elements))
-@inline Base.real(elements::ElementContainer1D) = eltype(elements.node_coordinates)
 
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh1D,
@@ -90,8 +75,8 @@ function init_elements(cell_ids, mesh::TreeMesh1D,
                        ::Type{uEltype}) where {RealT <: Real, uEltype <: Real}
     # Initialize container
     n_elements = length(cell_ids)
-    elements = ElementContainer1D{RealT, uEltype}(n_elements, nvariables(equations),
-                                                  nnodes(basis))
+    elements = TreeElementContainer1D{RealT, uEltype}(n_elements, nvariables(equations),
+                                                      nnodes(basis))
 
     init_elements!(elements, cell_ids, mesh, basis)
     return elements
@@ -192,7 +177,7 @@ end
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh1D,
-                         elements::ElementContainer1D)
+                         elements::TreeElementContainer1D)
     # Initialize container
     n_interfaces = count_required_interfaces(mesh, cell_ids)
     interfaces = InterfaceContainer1D{eltype(elements)}(n_interfaces,
@@ -355,7 +340,7 @@ end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh1D,
-                         elements::ElementContainer1D)
+                         elements::TreeElementContainer1D)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer1D{real(elements), eltype(elements)}(n_boundaries,

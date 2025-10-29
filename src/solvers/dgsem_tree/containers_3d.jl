@@ -6,7 +6,8 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct ElementContainer3D{RealT <: Real, uEltype <: Real} <: AbstractContainer
+mutable struct TreeElementContainer3D{RealT <: Real, uEltype <: Real} <:
+               AbstractTreeElementContainer
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 5}      # [orientation, i, j, k, elements]
     surface_flux_values::Array{uEltype, 5} # [variables, i, j, direction, elements]
@@ -16,16 +17,12 @@ mutable struct ElementContainer3D{RealT <: Real, uEltype <: Real} <: AbstractCon
     _surface_flux_values::Vector{uEltype}
 end
 
-nvariables(elements::ElementContainer3D) = size(elements.surface_flux_values, 1)
-nnodes(elements::ElementContainer3D) = size(elements.node_coordinates, 2)
-Base.eltype(elements::ElementContainer3D) = eltype(elements.surface_flux_values)
-
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(elements::ElementContainer3D, capacity)
+function Base.resize!(elements::TreeElementContainer3D, capacity)
     n_nodes = nnodes(elements)
     n_variables = nvariables(elements)
     @unpack _node_coordinates, _surface_flux_values,
@@ -47,9 +44,9 @@ function Base.resize!(elements::ElementContainer3D, capacity)
     return nothing
 end
 
-function ElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
-                                            n_nodes) where {RealT <: Real,
-                                                            uEltype <: Real}
+function TreeElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
+                                                n_nodes) where {RealT <: Real,
+                                                                uEltype <: Real}
     nan_RealT = convert(RealT, NaN)
     nan_uEltype = convert(uEltype, NaN)
 
@@ -67,23 +64,11 @@ function ElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
 
     cell_ids = fill(typemin(Int), capacity)
 
-    return ElementContainer3D{RealT, uEltype}(inverse_jacobian, node_coordinates,
-                                              surface_flux_values, cell_ids,
-                                              _node_coordinates, _surface_flux_values)
+    return TreeElementContainer3D{RealT, uEltype}(inverse_jacobian, node_coordinates,
+                                                  surface_flux_values, cell_ids,
+                                                  _node_coordinates,
+                                                  _surface_flux_values)
 end
-
-# Return number of elements
-nelements(elements::ElementContainer3D) = length(elements.cell_ids)
-# TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
-"""
-    eachelement(elements::ElementContainer3D)
-
-Return an iterator over the indices that specify the location in relevant data structures
-for the elements in `elements`. 
-In particular, not the elements themselves are returned.
-"""
-@inline eachelement(elements::ElementContainer3D) = Base.OneTo(nelements(elements))
-@inline Base.real(elements::ElementContainer3D) = eltype(elements.node_coordinates)
 
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh3D,
@@ -92,8 +77,8 @@ function init_elements(cell_ids, mesh::TreeMesh3D,
                        ::Type{uEltype}) where {RealT <: Real, uEltype <: Real}
     # Initialize container
     n_elements = length(cell_ids)
-    elements = ElementContainer3D{RealT, uEltype}(n_elements, nvariables(equations),
-                                                  nnodes(basis))
+    elements = TreeElementContainer3D{RealT, uEltype}(n_elements, nvariables(equations),
+                                                      nnodes(basis))
 
     init_elements!(elements, cell_ids, mesh, basis)
     return elements
@@ -204,7 +189,7 @@ ninterfaces(interfaces::InterfaceContainer3D) = length(interfaces.orientations)
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh3D,
-                         elements::ElementContainer3D)
+                         elements::TreeElementContainer3D)
     # Initialize container
     n_interfaces = count_required_interfaces(mesh, cell_ids)
     interfaces = InterfaceContainer3D{eltype(elements)}(n_interfaces,
@@ -371,7 +356,7 @@ end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh3D,
-                         elements::ElementContainer3D)
+                         elements::TreeElementContainer3D)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer3D{real(elements), eltype(elements)}(n_boundaries,
@@ -633,7 +618,7 @@ end
 
 # Create mortar container and initialize mortar data in `elements`.
 function init_mortars(cell_ids, mesh::TreeMesh3D,
-                      elements::ElementContainer3D,
+                      elements::TreeElementContainer3D,
                       mortar::LobattoLegendreMortarL2)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
