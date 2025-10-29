@@ -422,7 +422,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     orientation = normal_direction
 
     # Calculate boundary flux
-    if surface_flux_function isa Tuple
+    if have_nonconservative_terms(equations)
         # In case of conservative (index 1) and non-conservative (index 2) fluxes,
         # add the non-conservative one with a factor of 1/2.
         flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
