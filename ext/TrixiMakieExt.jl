@@ -419,7 +419,7 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
                 for v in 1:nvars]
         if show_mesh
             push!(axes,
-                  Makie.Axis(fig[Tuple(positions[nvars+1])...],
+                  Makie.Axis(fig[Tuple(positions[nvars + 1])...],
                              aspect = Makie.DataAspect(),
                              title = "mesh"))
         end
