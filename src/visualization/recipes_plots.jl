@@ -74,7 +74,8 @@ end
 
 # Plot all available variables at once for convenience
 RecipesBase.@recipe function f(pd::AbstractPlotData)
-    layout := create_layout(length(pd))
+    rows, cols = create_layout(length(pd))
+    layout := (rows, cols)
 
     # Plot all existing variables
     for (i, (variable_name, series)) in enumerate(pd)
