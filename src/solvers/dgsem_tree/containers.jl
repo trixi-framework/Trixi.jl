@@ -39,8 +39,6 @@ abstract type AbstractTreeInterfaceContainer <: AbstractContainer end
 # Return number of equation variables
 @inline nvariables(interfaces::AbstractTreeInterfaceContainer) = size(interfaces.u, 2)
 
-@inline Base.eltype(interfaces::AbstractTreeInterfaceContainer) = eltype(interfaces.u)
-
 abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
 
 # Return number of boundaries
