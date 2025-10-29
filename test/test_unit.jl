@@ -2833,9 +2833,10 @@ end
     ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
     ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
 
-    rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
-                                                                    semi_jac_type,
-                                                                    tspan[1])
+    rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
+                                                                          u0_ode,
+                                                                          semi_jac_type,
+                                                                          tspan[1])
 
     jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_hyp_para_wrapped!,
                                                            du_ode, u0_ode, jac_detector)
