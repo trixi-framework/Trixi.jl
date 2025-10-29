@@ -511,7 +511,6 @@ end
 
 nvariables(mortars::TreeL2MortarContainer3D) = size(mortars.u_upper_left, 2)
 nnodes(mortars::TreeL2MortarContainer3D) = size(mortars.u_upper_left, 3)
-Base.eltype(mortars::TreeL2MortarContainer3D) = eltype(mortars.u_upper_left)
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::TreeL2MortarContainer3D, capacity)
