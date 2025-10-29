@@ -446,18 +446,21 @@ end
 end
 
 @timed_testset "DG L2 mortar container debug output" begin
-    c2d = Trixi.L2MortarContainer2D{Float64}(1, 1, 1)
+    c2d = Trixi.TreeL2MortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
-    c3d = Trixi.L2MortarContainer3D{Float64}(1, 1, 1)
+    c3d = Trixi.TreeL2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
 end
 
-@timed_testset "TreeBoundaryContainer1D nnodes" begin
+@timed_testset "TreeContainer1D nnodes(container)" begin
     capacity = 42
     n_variables = 9
+
+    interface_container = Trixi.TreeInterfaceContainer1D{Float64}(capacity, n_variables)
+    @test nnodes(interface_container) == 1
+
     boundary_container = Trixi.TreeBoundaryContainer1D{Float64, Float64}(capacity,
                                                                          n_variables)
-
     @test nnodes(boundary_container) == 1
 end
 
