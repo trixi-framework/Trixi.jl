@@ -109,7 +109,7 @@ This manufactured solution source term is specifically designed for the nozzle w
 as defined in [`initial_condition_convergence_test`](@ref).
 
 References for the method of manufactured solutions (MMS):
-- Kambiz, Salari and Patrick Knupp (2000)
+- Kambiz Salari and Patrick Knupp (2000)
   Code Verification by the Method of Manufactured Solutions
   [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
 - Patrick J. Roache (2002)

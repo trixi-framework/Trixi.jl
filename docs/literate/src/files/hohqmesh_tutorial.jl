@@ -42,7 +42,7 @@ trixi_include(default_example_unstructured())
 # on the curved quadrilateral mesh described in the
 # [Trixi.jl documentation](https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/unstructured_quad_mesh/).
 # For references on the method of manufactured solutions (MMS) see the following publications:
-# - Kambiz, Salari and Patrick Knupp (2000)  
+# - Kambiz Salari and Patrick Knupp (2000)  
 #   Code Verification by the Method of Manufactured Solutions  
 #   [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
 # - Patrick J. Roache (2002)  
