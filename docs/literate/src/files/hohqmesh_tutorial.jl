@@ -41,6 +41,13 @@ trixi_include(default_example_unstructured())
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
 # on the curved quadrilateral mesh described in the
 # [Trixi.jl documentation](https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/unstructured_quad_mesh/).
+# For references on the method of manufactured solutions (MMS) see the following publications:
+# - Kambiz, Salari and Patrick Knupp (2000)  
+#   Code Verification by the Method of Manufactured Solutions  
+#   [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+# - Patrick J. Roache (2002)  
+#   Code Verification by the Method of Manufactured Solutions  
+#   [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 
 # Apart from the usual error and timing output provided by the Trixi.jl run, it is useful to visualize and inspect
 # the solution. One option available in the Trixi.jl framework to visualize the solution on
