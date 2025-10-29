@@ -387,6 +387,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                                         element_index))]
         end
         i_index_g = i_index
+        # Make sure we do not leave the domain.
         if i_index == n_nodes
             i_index_g = 1
         elseif i_index == 1
@@ -406,6 +407,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                                         element_index))]
         end
         j_index_g = j_index
+        # Make sure we do not leave the domain.
         if j_index == n_nodes
             j_index_g = 1
         elseif j_index == 1
