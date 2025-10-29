@@ -25,7 +25,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = false)
 
 # you can either use a single function to impose the BCs weakly in all
-# 1*ndims == 2 directions or you can pass a tuple containing BCs for
+# 2*ndims == 2 directions or you can pass a tuple containing BCs for
 # each direction
 # Assign a single boundary condition to all boundaries
 boundary_condition = BoundaryConditionDirichlet(initial_condition)

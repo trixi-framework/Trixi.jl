@@ -34,8 +34,10 @@ This function applies the same boundary condition to all standard boundaries:
 - `:y_pos`: positive y-direction boundary
 - `:z_neg`: negative z-direction boundary
 - `:z_pos`: positive z-direction boundary
+
 # Arguments
 - `boundary_condition`: The boundary condition function to apply to all boundaries
+
 # Returns
 - `Dict{Symbol, Any}`: Dictionary mapping boundary names to the boundary condition
 """
@@ -56,8 +58,10 @@ that uses the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
 - `:x_neg`: negative x-direction boundary
 - `:x_pos`: positive x-direction boundary   
+
 # Arguments
 - `boundary_condition`: The boundary condition function to apply to all boundaries
+
 # Returns
 - Named tuple mapping boundary names to the boundary condition
 """
@@ -76,8 +80,10 @@ This function applies the same boundary condition to all standard boundaries:
 - `:x_pos`: positive x-direction boundary   
 - `:y_neg`: negative y-direction boundary
 - `:y_pos`: positive y-direction boundary
+
 # Arguments
 - `boundary_condition`: The boundary condition function to apply to all boundaries
+
 # Returns
 - Named tuple mapping boundary names to the boundary condition
 """
@@ -100,8 +106,10 @@ This function applies the same boundary condition to all standard boundaries:
 - `:y_pos`: positive y-direction boundary
 - `:z_neg`: negative z-direction boundary
 - `:z_pos`: positive z-direction boundary 
+
 # Arguments
 - `boundary_condition`: The boundary condition function to apply to all boundaries
+
 # Returns
 - Named tuple mapping boundary names to the boundary condition
 """
@@ -123,8 +131,10 @@ that uses the standard boundary naming convention.
 This function applies the same boundary condition to all standard boundaries:
 - `:x_neg`: negative x-direction boundary
 - `:x_pos`: positive x-direction boundary
+
 # Arguments
 - `boundary_condition`: The boundary condition function to apply to all boundaries
+
 # Returns
 - Named tuple mapping boundary names to the boundary condition
 """
@@ -143,8 +153,10 @@ This function applies the same boundary condition to all standard boundaries:
 - `:x_pos`: positive x-direction boundary
 - `:y_neg`: negative y-direction boundary
 - `:y_pos`: positive y-direction boundary
+
 # Arguments
 - `boundary_condition`: The boundary condition function to apply to all boundaries
+
 # Returns
 - Named tuple mapping boundary names to the boundary condition
 """
@@ -167,8 +179,10 @@ This function applies the same boundary condition to all standard boundaries:
 - `:y_pos`: positive y-direction boundary
 - `:z_neg`: negative z-direction boundary
 - `:z_pos`: positive z-direction boundary
+
 # Arguments
 - `boundary_condition`: The boundary condition function to apply to all boundaries
+
 # Returns
 - Named tuple mapping boundary names to the boundary condition
 """

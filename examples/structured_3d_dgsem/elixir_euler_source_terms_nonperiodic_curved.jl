@@ -48,7 +48,7 @@ cells_per_dimension = (4, 4, 4)
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
 
 # you can either use a single function to impose the BCs weakly in all
-# 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
+# 2*ndims == 6 directions or you can pass a tuple containing BCs for each direction
 # Assign a single boundary condition to all boundaries
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = boundary_condition_default(mesh, boundary_condition)
