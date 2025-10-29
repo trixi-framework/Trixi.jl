@@ -2840,8 +2840,8 @@ end
     jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_hyp_para_wrapped!,
                                                            du_ode, u0_ode, jac_detector)
 
-    # Given that the stencil for the BR1 parabolic solver is for the DGSEM are always larger than those of hyperbolic solvers,
-    # the sparsity pattern of hyperbolic-parabolic problem always includes the hyperbolic only.
+    # Given that the stencil for the BR1 parabolic solver is for the DGSEM always larger than that of a hyperbolic solver,
+    # the sparsity pattern of the parabolic part of a hyperbolic-parabolic problem always includes the hyperbolic one
     @test jac_prototype_parabolic == jac_prototype_hyperbolic_parabolic
 end
 end
