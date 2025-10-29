@@ -48,7 +48,9 @@ end
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg_newton_krylov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_newton_krylov.jl"),
-                        l2=[4.2710445174631516e-6], linf=[2.28491835256861e-5])
+                        atol_lin_solve=1e-11, rtol_lin_solve=1e-10,
+                        atol_ode_solve=1e-10, rtol_ode_solve=1e-9,
+                        l2=[4.14999791227157e-6], linf=[2.424658410971059e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -285,15 +287,16 @@ end
 @trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock_imex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_viscous_shock_imex.jl"),
+                        atol_lin_solve=1e-11, rtol_lin_solve=1e-10,
                         l2=[
-                            0.0016637374421260447,
-                            0.0014571616754917322,
-                            0.0014844170557610763
+                            0.0016637028933384878,
+                            0.0014571255711373966,
+                            0.0014843783212282159
                         ],
                         linf=[
-                            0.0054568179823693,
-                            0.003950567209489719,
-                            0.004092222605649232
+                            0.00545660697650141,
+                            0.003950431201790283,
+                            0.004092051414554598
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
