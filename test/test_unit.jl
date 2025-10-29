@@ -2831,9 +2831,8 @@ end
 
     ###############################################################################
     ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
-    ### sparsity pattern detected on combined hyperbolic and parabolic function ###
+    ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
 
-    # Do sparsity detection on our semidiscretization with advection turned off
     rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode, u0_ode,
                                                                     semi_jac_type,
                                                                     tspan[1])
@@ -2841,10 +2840,9 @@ end
     jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_hyp_para_wrapped!,
                                                            du_ode, u0_ode, jac_detector)
 
-    # Given that the stencil for parabolic solvers are always larger than those of hyperbolic solvers,
-    # the sparsity detection will never depend on the hyperbolic part of the problem
+    # Given that the stencil for the BR1 parabolic solver is for the DGSEM are always larger than those of hyperbolic solvers,
+    # the sparsity pattern of hyperbolic-parabolic problem always includes the hyperbolic only.
     @test jac_prototype_parabolic == jac_prototype_hyperbolic_parabolic
-
 end
 end
 
