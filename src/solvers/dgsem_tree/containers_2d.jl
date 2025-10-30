@@ -471,13 +471,6 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
     return boundaries.n_boundaries_per_direction
 end
 
-abstract type AbstractTreeL2MortarContainer2D <: AbstractTreeL2MortarContainer end
-
-# Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
-@inline nnodes(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 3)
-# Return number of equation variables
-@inline nvariables(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 2)
-
 # Container data structure (structure-of-arrays style) for DG L2 mortars
 # Positions/directions for orientations = 1, large_sides = 2:
 # mortar is orthogonal to x-axis, large side is in positive coordinate direction wrt mortar
@@ -489,7 +482,7 @@ abstract type AbstractTreeL2MortarContainer2D <: AbstractTreeL2MortarContainer e
 # lower = 1 |    |
 #           |    |
 mutable struct TreeL2MortarContainer2D{uEltype <: Real} <:
-               AbstractTreeL2MortarContainer2D
+               AbstractTreeL2MortarContainer
     u_upper::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     neighbor_ids::Array{Int, 2} # [position, mortars]
@@ -501,6 +494,11 @@ mutable struct TreeL2MortarContainer2D{uEltype <: Real} <:
     _u_lower::Vector{uEltype}
     _neighbor_ids::Vector{Int}
 end
+
+# Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
+@inline nnodes(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 3)
+# Return number of equation variables
+@inline nvariables(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 2)
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::TreeL2MortarContainer2D, capacity)
@@ -920,6 +918,11 @@ mutable struct TreeMPIL2MortarContainer2D{uEltype <: Real} <:
     _u_upper::Vector{uEltype}
     _u_lower::Vector{uEltype}
 end
+
+# Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
+@inline nnodes(mortars::TreeMPIL2MortarContainer2D) = size(mortars.u_upper, 3)
+# Return number of equation variables
+@inline nvariables(mortars::TreeMPIL2MortarContainer2D) = size(mortars.u_upper, 2)
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mpi_mortars::TreeMPIL2MortarContainer2D, capacity)
