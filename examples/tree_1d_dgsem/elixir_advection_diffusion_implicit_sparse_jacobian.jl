@@ -89,10 +89,10 @@ coloring_vec_parabolic = column_colors(coloring_result)
 ### sparsity-aware semidiscretization and ODE ###
 
 # Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
-semi= = SemidiscretizationHyperbolicParabolic(mesh,
-                                              (equations_hyperbolic,
-                                               equations_parabolic),
-                                              initial_condition, solver)
+semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                             (equations_hyperbolic,
+                                              equations_parabolic),
+                                             initial_condition, solver)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode = semidiscretize(semi, tspan,
@@ -124,4 +124,3 @@ sol = solve(ode, SBDF2(; autodiff = AutoFiniteDiff());
             dt = 0.01,
             abstol = 1e-9, reltol = 1e-9,
             callback = callbacks)
-

@@ -28,4 +28,3 @@ sol = solve(ode_jac_sparse,
             dt = dt_restart,
             abstol = 1e-9, reltol = 1e-9,
             callback = callbacks);
-
