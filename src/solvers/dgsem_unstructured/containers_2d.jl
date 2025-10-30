@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
-struct UnstructuredElementContainer2D{RealT <: Real, uEltype <: Real}
+struct UnstructuredElementContainer2D{RealT <: Real, uEltype <: Real} <: AbstractElementContainer
     node_coordinates::Array{RealT, 4}      # [ndims, nnodes, nnodes, nelement]
     jacobian_matrix::Array{RealT, 5}       # [ndims, ndims, nnodes, nnodes, nelement]
     inverse_jacobian::Array{RealT, 3}      # [nnodes, nnodes, nelement]
@@ -117,7 +117,7 @@ function init_element!(elements, element, basis::LobattoLegendreBasis,
 end
 
 # generic container for the interior interfaces of an unstructured mesh
-struct UnstructuredInterfaceContainer2D{uEltype <: Real}
+struct UnstructuredInterfaceContainer2D{uEltype <: Real} <: AbstractInterfaceContainer
     u::Array{uEltype, 4} # [primary/secondary, variables, i, interfaces]
     start_index::Vector{Int}       # [interfaces]
     index_increment::Vector{Int}       # [interfaces]
@@ -255,12 +255,12 @@ end
 
 # TODO: Clean-up meshes. Find a better name since it's also used for other meshes
 # generic container for the boundary interfaces of an unstructured mesh
-struct UnstructuredBoundaryContainer2D{RealT <: Real, uEltype <: Real}
-    u::Array{uEltype, 3} # [variables, i, boundaries]
-    element_id::Vector{Int}       # [boundaries]
-    element_side_id::Vector{Int}       # [boundaries]
-    node_coordinates::Array{RealT, 3}   # [ndims, nnodes, boundaries]
-    name::Vector{Symbol}    # [boundaries]
+struct UnstructuredBoundaryContainer2D{RealT <: Real, uEltype <: Real} <: AbstractBoundaryContainer
+    u::Array{uEltype, 3}              # [variables, i, boundaries]
+    element_id::Vector{Int}           # [boundaries]
+    element_side_id::Vector{Int}      # [boundaries]
+    node_coordinates::Array{RealT, 3} # [ndims, nnodes, boundaries]
+    name::Vector{Symbol}              # [boundaries]
 end
 
 # construct an empty curved boundary container to be filled later with neighbour

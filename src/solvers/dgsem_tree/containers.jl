@@ -8,7 +8,7 @@
 # Dimension independent code related to containers of the DG solver
 # with the mesh type TreeMesh
 
-abstract type AbstractTreeElementContainer <: AbstractContainer end
+abstract type AbstractTreeElementContainer <: AbstractElementContainer end
 
 # Return number of elements
 @inline nelements(elements::AbstractTreeElementContainer) = length(elements.cell_ids)
@@ -30,7 +30,7 @@ In particular, not the elements themselves are returned.
 @inline Base.real(elements::AbstractTreeElementContainer) = eltype(elements.node_coordinates)
 @inline Base.eltype(elements::AbstractTreeElementContainer) = eltype(elements.surface_flux_values)
 
-abstract type AbstractTreeInterfaceContainer <: AbstractContainer end
+abstract type AbstractTreeInterfaceContainer <: AbstractInterfaceContainer end
 
 # Return number of interfaces
 @inline ninterfaces(interfaces::AbstractTreeInterfaceContainer) = length(interfaces.orientations)
@@ -39,7 +39,19 @@ abstract type AbstractTreeInterfaceContainer <: AbstractContainer end
 # Return number of equation variables
 @inline nvariables(interfaces::AbstractTreeInterfaceContainer) = size(interfaces.u, 2)
 
-abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
+abstract type AbstractTreeMPIInterfaceContainer <: AbstractMPIInterfaceContainer end
+
+# Return number of interfaces
+@inline function nmpiinterfaces(mpi_interfaces::AbstractTreeMPIInterfaceContainer)
+    # TODO: Taal, rename to ninterfaces?
+    return length(mpi_interfaces.orientations)
+end
+# Return number of interface nodes for 2D and 3D. For 1D hard-coded to 1 interface node.
+@inline nnodes(interfaces::AbstractTreeMPIInterfaceContainer) = size(interfaces.u, 3)
+# Return number of equation variables
+@inline nvariables(interfaces::AbstractTreeMPIInterfaceContainer) = size(interfaces.u, 2)
+
+abstract type AbstractTreeBoundaryContainer <: AbstractBoundaryContainer end
 
 # Return number of boundaries
 @inline nboundaries(boundaries::AbstractTreeBoundaryContainer) = length(boundaries.orientations)
@@ -48,10 +60,15 @@ abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
 # Return number of equation variables
 @inline nvariables(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 2)
 
-abstract type AbstractTreeL2MortarContainer <: AbstractContainer end
+abstract type AbstractTreeL2MortarContainer <: AbstractMortarContainer end
 
 # Return number of L2 mortars
 @inline nmortars(l2mortars::AbstractTreeL2MortarContainer) = length(l2mortars.orientations)
+
+abstract type AbstractTreeL2MPIMortarContainer <: AbstractMPIMortarContainer end
+
+# Return number of L2 mortars
+@inline nmortars(l2mortars::AbstractTreeL2MPIMortarContainer) = length(l2mortars.orientations)
 
 function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     # Get new list of leaf cells

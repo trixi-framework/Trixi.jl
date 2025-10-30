@@ -913,7 +913,7 @@ end
 # lower = 1 |    |
 #           |    |
 mutable struct TreeMPIL2MortarContainer2D{uEltype <: Real} <:
-               AbstractTreeL2MortarContainer2D
+               AbstractTreeL2MPIMortarContainer
     u_upper::Array{uEltype, 4} # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4} # [leftright, variables, i, mortars]
     # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
