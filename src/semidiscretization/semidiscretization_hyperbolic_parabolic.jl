@@ -264,15 +264,28 @@ function get_node_variables!(node_variables, u_ode,
 end
 
 """
-    semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
+    semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
+                   jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
+                   colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
+
+Optional keyword arguments:
+- `jac_prototype_parabolic`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
+  Specifies the sparsity structure of the parabolic function's Jacobian to enable e.g. efficient implicit time stepping.
+  The [`SplitODEProblem`](https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitODEProblem) only expects the Jacobian
+  to be defined on the first function it takes in, which is treated implicitly. This corresponds to the parabolic right-hand side in Trixi.jl.
+  The hyperbolic right-hand side is expected to be treated explicitly, and therefore its Jacobian is irrelevant.
+- `colorvec_parabolic`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
+  Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype_parabolic` is given.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
+                        jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
+                        colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
@@ -286,15 +299,33 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
     iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
-    # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
-    # first function implicitly and the second one explicitly. Thus, we pass the
-    # stiffer parabolic function first.
-    return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+
+    # Check if Jacobian prototype is provided for sparse Jacobian
+    if jac_prototype_parabolic !== nothing
+        # Convert `jac_prototype_parabolic` to real type, as seen here:
+        # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
+        parabolic_ode = SciMLBase.ODEFunction(rhs_parabolic!,
+                                              jac_prototype = convert.(eltype(u0_ode),
+                                                                       jac_prototype_parabolic),
+                                              colorvec = colorvec_parabolic) # coloring vector is optional
+
+        # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
+        # first function implicitly and the second one explicitly. Thus, we pass the
+        # (potentially) stiffer parabolic function first.
+        return SplitODEProblem{iip}(parabolic_ode, rhs!, u0_ode, tspan, semi)
+    else
+        # We could also construct an `ODEFunction` explicitly without the Jacobian here,
+        # but we stick to the lean direct in-place functions `rhs_parabolic!` and
+        # let OrdinaryDiffEq.jl handle the rest
+        return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+    end
 end
 
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
-                   restart_file::AbstractString)
+                   restart_file::AbstractString;
+                   jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
+                   colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
@@ -303,9 +334,20 @@ will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
 
 The initial condition etc. is taken from the `restart_file`.
+
+Optional keyword arguments:
+- `jac_prototype_parabolic`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
+  Specifies the sparsity structure of the parabolic function's Jacobian to enable e.g. efficient implicit time stepping.
+  The [`SplitODEProblem`](https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitODEProblem) only expects the Jacobian
+  to be defined on the first function it takes in, which is treated implicitly. This corresponds to the parabolic right-hand side in Trixi.jl.
+  The hyperbolic right-hand side is expected to be treated explicitly, and therefore its Jacobian is irrelevant.
+- `colorvec_parabolic`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
+  Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype_parabolic` is given.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
                         restart_file::AbstractString;
+                        jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
+                        colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
@@ -319,10 +361,26 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
     iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
-    # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
-    # first function implicitly and the second one explicitly. Thus, we pass the
-    # stiffer parabolic function first.
-    return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+
+    # Check if Jacobian prototype is provided for sparse Jacobian
+    if jac_prototype_parabolic !== nothing
+        # Convert `jac_prototype_parabolic` to real type, as seen here:
+        # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
+        parabolic_ode = SciMLBase.ODEFunction(rhs_parabolic!,
+                                              jac_prototype = convert.(eltype(u0_ode),
+                                                                       jac_prototype_parabolic),
+                                              colorvec = colorvec_parabolic) # coloring vector is optional
+
+        # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
+        # first function implicitly and the second one explicitly. Thus, we pass the
+        # (potentially) stiffer parabolic function first.
+        return SplitODEProblem{iip}(parabolic_ode, rhs!, u0_ode, tspan, semi)
+    else
+        # We could also construct an `ODEFunction` explicitly without the Jacobian here,
+        # but we stick to the lean direct in-place function `rhs_parabolic!` and
+        # let OrdinaryDiffEq.jl handle the rest
+        return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+    end
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
