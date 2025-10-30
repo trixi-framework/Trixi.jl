@@ -789,12 +789,6 @@ function TreeMPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
                                                 remote_sides, _u)
 end
 
-# TODO: Taal, rename to ninterfaces?
-# Return number of interfaces
-@inline function nmpiinterfaces(mpi_interfaces::TreeMPIInterfaceContainer2D)
-    length(mpi_interfaces.orientations)
-end
-
 # Create MPI interface container and initialize MPI interface data in `elements`.
 function init_mpi_interfaces(cell_ids, mesh::TreeMesh2D,
                              elements::TreeElementContainer2D)

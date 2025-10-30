@@ -20,5 +20,4 @@ abstract type AbstractMortarContainer <: AbstractContainer end
 function nmortars end
 abstract type AbstractMPIMortarContainer <: AbstractContainer end
 function nmpimortars end
-
 end # @muladd

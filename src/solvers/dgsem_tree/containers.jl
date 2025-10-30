@@ -43,13 +43,13 @@ abstract type AbstractTreeMPIInterfaceContainer <: AbstractMPIInterfaceContainer
 
 # Return number of interfaces
 @inline function nmpiinterfaces(mpi_interfaces::AbstractTreeMPIInterfaceContainer)
-    # TODO: Taal, rename to ninterfaces?
     return length(mpi_interfaces.orientations)
 end
 # Return number of interface nodes for 2D and 3D. For 1D hard-coded to 1 interface node.
 @inline nnodes(interfaces::AbstractTreeMPIInterfaceContainer) = size(interfaces.u, 3)
 # Return number of equation variables
-@inline nvariables(interfaces::AbstractTreeMPIInterfaceContainer) = size(interfaces.u, 2)
+@inline nvariables(interfaces::AbstractTreeMPIInterfaceContainer) = size(interfaces.u,
+                                                                         2)
 
 abstract type AbstractTreeBoundaryContainer <: AbstractBoundaryContainer end
 
