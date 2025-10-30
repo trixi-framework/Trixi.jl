@@ -2830,7 +2830,8 @@ end
                                                                       semi_jac_type,
                                                                       tspan[1])
 
-    jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_ode,
+    jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!,
+                                                du_ode, u0_ode,
                                                 jac_detector)
 
     ###############################################################################
