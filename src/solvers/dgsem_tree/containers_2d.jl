@@ -741,7 +741,7 @@ end
 
 # Container data structure (structure-of-arrays style) for DG MPI interfaces
 mutable struct TreeMPIInterfaceContainer2D{uEltype <: Real} <:
-               AbstractTreeInterfaceContainer
+               AbstractTreeMPIInterfaceContainer
     u::Array{uEltype, 4}            # [leftright, variables, i, interfaces]
     # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
     local_neighbor_ids::Vector{Int} # [interfaces]
