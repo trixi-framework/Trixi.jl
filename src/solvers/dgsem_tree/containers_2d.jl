@@ -976,11 +976,6 @@ function TreeMPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
                                                _u_upper, _u_lower)
 end
 
-# Return number of L2 mortars
-@inline function nmpimortars(mpi_l2mortars::TreeMPIL2MortarContainer2D)
-    length(mpi_l2mortars.orientations)
-end
-
 # Create MPI mortar container and initialize MPI mortar data in `elements`.
 function init_mpi_mortars(cell_ids, mesh::TreeMesh2D,
                           elements::TreeElementContainer2D,

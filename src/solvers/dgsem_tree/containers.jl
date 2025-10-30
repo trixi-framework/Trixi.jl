@@ -68,7 +68,9 @@ abstract type AbstractTreeL2MortarContainer <: AbstractMortarContainer end
 abstract type AbstractTreeL2MPIMortarContainer <: AbstractMPIMortarContainer end
 
 # Return number of L2 mortars
-@inline nmortars(l2mortars::AbstractTreeL2MPIMortarContainer) = length(l2mortars.orientations)
+@inline function nmpimortars(mpi_l2mortars::TreeMPIL2MortarContainer2D)
+    length(mpi_l2mortars.orientations)
+end
 
 function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     # Get new list of leaf cells
