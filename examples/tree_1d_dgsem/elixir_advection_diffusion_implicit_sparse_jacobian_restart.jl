@@ -14,16 +14,17 @@ restart_filename = joinpath("out", restart_file)
 tspan = (load_time(restart_filename), 2.0)
 dt_restart = load_dt(restart_filename)
 
-ode_jac_sparse = semidiscretize(semi_float_type, tspan,
-                                restart_filename,
-                                jac_prototype_parabolic = jac_prototype_parabolic,
-                                colorvec_parabolic = coloring_vec_parabolic)
+ode = semidiscretize(semi, tspan,
+                     restart_filename,
+                     jac_prototype_parabolic = jac_prototype_parabolic,
+                     colorvec_parabolic = coloring_vec_parabolic)
 
 ###############################################################################
 # run the simulation
 
 sol = solve(ode_jac_sparse,
             SBDF2(; autodiff = AutoFiniteDiff());
-            dt = dt_restart, save_everystep = false,
+            ode_default_options()...,
+            dt = dt_restart,
             abstol = 1e-9, reltol = 1e-9,
             callback = callbacks);

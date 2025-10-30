@@ -75,7 +75,7 @@ jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_o
 # For most efficient solving we also want the coloring vector
 
 # We choose `nonsymmetric` `structure` because we're computing a Jacobian, which
-# is for the Upwind-alike discretization of the advection term nonsymmmetric
+# is for the upwind-alike discretization of the advection term nonsymmmetric
 # We arbitrarily choose a column-based `partitioning`. This means that we will color
 # structurally orthogonal columns the same. `row` partitioning would be equally valid here
 coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
@@ -89,16 +89,16 @@ coloring_vec_parabolic = column_colors(coloring_result)
 ### sparsity-aware semidiscretization and ODE ###
 
 # Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
-semi_float_type = SemidiscretizationHyperbolicParabolic(mesh,
-                                                        (equations_hyperbolic,
-                                                         equations_parabolic),
-                                                        initial_condition, solver)
+semi= = SemidiscretizationHyperbolicParabolic(mesh,
+                                              (equations_hyperbolic,
+                                               equations_parabolic),
+                                              initial_condition, solver)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
-ode_jac_sparse = semidiscretize(semi_float_type, tspan,
-                                jac_prototype_parabolic = jac_prototype_parabolic,
-                                colorvec_parabolic = coloring_vec_parabolic)
-# using "dense" `ode = semidiscretize(semi_float_type, tspan)` is 4-6 times slower!
+ode = semidiscretize(semi, tspan,
+                     jac_prototype_parabolic = jac_prototype_parabolic,
+                     colorvec_parabolic = coloring_vec_parabolic)
+# using "dense" `ode = semidiscretize(semi, tspan)` is 4-6 times slower!
 
 ###############################################################################
 ### callbacks  ###
@@ -106,7 +106,7 @@ ode_jac_sparse = semidiscretize(semi_float_type, tspan,
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi_float_type, interval = analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -119,7 +119,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 ### solve the ODE problem ###
 
-sol = solve(ode_jac_sparse, SBDF2(; autodiff = AutoFiniteDiff());
-            dt = 0.01, save_everystep = false,
+sol = solve(ode, SBDF2(; autodiff = AutoFiniteDiff());
+            ode_default_options()...,
+            dt = 0.01,
             abstol = 1e-9, reltol = 1e-9,
-            ode_default_options()..., callback = callbacks)
+            callback = callbacks)
