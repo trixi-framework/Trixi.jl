@@ -784,7 +784,7 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
                                       "expectations $(nmortars(mortars))")
 end
 
-mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real}
+mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real} <: AbstractContainer
     antidiffusive_flux1_L::Array{uEltype, 5} # [variables, i, j, k, elements]
     antidiffusive_flux1_R::Array{uEltype, 5} # [variables, i, j, k, elements]
     antidiffusive_flux2_L::Array{uEltype, 5} # [variables, i, j, k, elements]
