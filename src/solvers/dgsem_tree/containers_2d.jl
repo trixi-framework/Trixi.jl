@@ -496,9 +496,9 @@ mutable struct TreeL2MortarContainer2D{uEltype <: Real} <:
 end
 
 # Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
-@inline nnodes(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 3)
+@inline nnodes(mortars::TreeL2MortarContainer2D) = size(mortars.u_upper, 3)
 # Return number of equation variables
-@inline nvariables(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 2)
+@inline nvariables(mortars::TreeL2MortarContainer2D) = size(mortars.u_upper, 2)
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::TreeL2MortarContainer2D, capacity)
