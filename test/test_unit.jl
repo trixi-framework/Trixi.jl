@@ -2818,9 +2818,10 @@ end
 
     # Only the parabolic part of the `SplitODEProblem` is treated implicitly so we only need the parabolic Jacobian, see
     # https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitFunction
-    # Although we do sparsity detection on the entire RHS (since semi_jac_type depends on both equations and 
-    # equations_parabolic), this is equivalent to doing sparsity detection on the diffusion problem alone
-    # (see next test for a validation of this)
+    # Thus, we perform sparsity detection on `rhs_parabolic!` only,
+    # which is equivalent to doing sparsity detection on the entire hyperbolic-parabolic problem,
+    # at least for the DGSEM & Bassi-Rebay 1 parabolic solver.
+    # This test validates this.
 
     # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
