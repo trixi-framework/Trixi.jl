@@ -68,7 +68,7 @@ abstract type AbstractTreeL2MortarContainer <: AbstractMortarContainer end
 abstract type AbstractTreeL2MPIMortarContainer <: AbstractMPIMortarContainer end
 
 # Return number of L2 mortars
-@inline function nmpimortars(mpi_l2mortars::TreeMPIL2MortarContainer2D)
+@inline function nmpimortars(mpi_l2mortars::AbstractTreeL2MPIMortarContainer)
     length(mpi_l2mortars.orientations)
 end
 
