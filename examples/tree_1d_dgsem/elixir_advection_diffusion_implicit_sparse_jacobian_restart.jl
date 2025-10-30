@@ -22,8 +22,7 @@ ode = semidiscretize(semi, tspan,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode_jac_sparse,
-            SBDF2(; autodiff = AutoFiniteDiff());
+sol = solve(ode, SBDF2(; autodiff = AutoFiniteDiff());
             ode_default_options()...,
             dt = dt_restart,
             abstol = 1e-9, reltol = 1e-9,
