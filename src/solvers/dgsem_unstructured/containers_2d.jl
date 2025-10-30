@@ -118,12 +118,13 @@ function init_element!(elements, element, basis::LobattoLegendreBasis,
 end
 
 # generic container for the interior interfaces of an unstructured mesh
-struct UnstructuredInterfaceContainer2D{uEltype <: Real} <: AbstractInterfaceContainer
-    u::Array{uEltype, 4} # [primary/secondary, variables, i, interfaces]
-    start_index::Vector{Int}       # [interfaces]
-    index_increment::Vector{Int}       # [interfaces]
-    element_ids::Array{Int, 2}     # [primary/secondary, interfaces]
-    element_side_ids::Array{Int, 2}     # [primary/secondary, interfaces]
+struct UnstructuredInterfaceContainer2D{uEltype <: Real} <:
+       AbstractInterfaceContainer
+    u::Array{uEltype, 4}            # [primary/secondary, variables, i, interfaces]
+    start_index::Vector{Int}        # [interfaces]
+    index_increment::Vector{Int}    # [interfaces]
+    element_ids::Array{Int, 2}      # [primary/secondary, interfaces]
+    element_side_ids::Array{Int, 2} # [primary/secondary, interfaces]
 end
 
 # Construct an empty curved interface container to be filled later with neighbour
