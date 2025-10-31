@@ -7,7 +7,8 @@
 
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
                               nonconservative_terms, # can be True/False
-                              equations, surface_integral, dg::DG)
+                              equations, surface_integral, dg::DG,
+                              element_indices = eachelement(dg, cache))
     @unpack surface_flux = surface_integral
 
     @threaded for element in element_indices
@@ -70,10 +71,11 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
 end
 
 function apply_jacobian!(du, mesh::StructuredMesh{1},
-                         equations, dg::DG, cache)
+                         equations, dg::DG, cache,
+                         element_indices = eachelement(dg, cache))
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in element_indices
         for i in eachnode(dg)
             factor = -inverse_jacobian[i, element]
 
