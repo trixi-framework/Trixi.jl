@@ -432,10 +432,11 @@ end
 function calc_gradient_volume_integral!(gradients, u_transformed,
                                         mesh::TreeMesh{1}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
-                                        dg::DGSEM, cache)
+                                        dg::DGSEM, cache,
+                                        element_indices = eachelement(dg, cache))
     @unpack derivative_dhat = dg.basis
 
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in element_indices
         # Calculate volume terms in one element,
         # corresponds to `kernel` functions for the hyperbolic part of the flux
         for i in eachnode(dg)
