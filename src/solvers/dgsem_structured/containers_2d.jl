@@ -102,7 +102,7 @@ function calc_jacobian_matrix!(jacobian_matrix, element,
     return jacobian_matrix
 end
 
-# Calculate contravarant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
+# Calculate contravariant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
 # Those are called Ja^i in Kopriva's blue book.
 function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any, 5},
                                      element, jacobian_matrix)

@@ -264,6 +264,15 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_diffusion_steady_state_linear_map.jl"),
+                        l2=[2.9029827892716424e-5], linf=[0.0003022506331279151])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
@@ -888,19 +897,21 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_blast_reflective.jl"),
                         l2=[
-                            0.015140702486341239,
-                            0.035675739843665635,
-                            0.035675739843665615,
-                            0.21415725909973524
+                            0.013077652405653456,
+                            0.03267271241679693,
+                            0.03267271241679689,
+                            0.19993587690609887
                         ],
                         linf=[
-                            0.2339198598727935,
-                            0.5951310665112189,
-                            0.5951310665112187,
-                            3.0106576605775333
+                            0.232863088636711,
+                            0.5958991303183211,
+                            0.5958991303183204,
+                            3.0621202120365467
                         ],
                         tspan=(0.0, 0.01),
-                        abstol=1e-11, reltol=1e-11)
+                        sol=solve(ode, ode_alg;
+                                  adaptive = false, dt = 1e-4,
+                                  ode_default_options()..., callback = callbacks))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

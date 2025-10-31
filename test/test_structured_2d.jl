@@ -255,7 +255,30 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi_float_type, sol, 1000)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_convergence_implicit_sparse_jacobian.jl with flux_ranocha" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_implicit_sparse_jacobian.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = surface_flux,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)),
+                        tspan=(0.0, 1.0),
+                        l2=[
+                            0.002488034310310255,
+                            0.002537347299714133,
+                            0.002533529761212216,
+                            0.0030150881617191675
+                        ],
+                        linf=[
+                            0.005844630331331979,
+                            0.005507186931414498,
+                            0.005377359689946237,
+                            0.00631648929531492
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_eulermulti_convergence_ec.jl" begin
@@ -706,6 +729,45 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_eulerpolytropic_convergence.jl sparsity detection" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_eulerpolytropic_convergence.jl"),
+                        surface_flux=flux_lax_friedrichs,
+                        tspan=(0.0, 0.0))
+
+    import SparseConnectivityTracer: TracerSparsityDetector,
+                                     jacobian_eltype,
+                                     jacobian_sparsity
+
+    jac_detector = TracerSparsityDetector()
+    # We need to construct the semidiscretization with the correct
+    # sparsity-detection ready datatype, which is retrieved here
+    jac_eltype = jacobian_eltype(real(solver), jac_detector)
+
+    # Semidiscretization for sparsity pattern detection
+    semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
+                                                 initial_condition,
+                                                 solver,
+                                                 source_terms = source_terms_convergence_test,
+                                                 uEltype = jac_eltype) # Need to supply Jacobian element type
+
+    # Call `semidiscretize` to create the ODE problem to have access to the
+    # initial condition based on which the sparsity pattern is computed
+    ode_jac_type = semidiscretize(semi_jac_type, tspan)
+    u0_ode = ode_jac_type.u0
+    du_ode = similar(u0_ode)
+
+    ###############################################################################
+    ### Compute the Jacobian sparsity pattern ###
+
+    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    rhs_wrapped! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+                                                  tspan[1])
+
+    @test_nowarn jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 end
 
 @trixi_testset "elixir_eulerpolytropic_ec.jl" begin
