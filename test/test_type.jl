@@ -2397,10 +2397,10 @@ isdir(outdir) && rm(outdir, recursive = true)
     @timed_testset "Linear Elasticity 1D" begin
         for RealT in (Float32, Float64)
             rho = RealT(42)
-            c1 = RealT(1)
+            mu = RealT(1)
             lambda = RealT(7)
             equations = @inferred LinearElasticityEquations1D(rho = rho,
-                                                              c1 = c1,
+                                                              mu = mu,
                                                               lambda = lambda)
 
             @test typeof(@inferred typeof(equations.rho)) == RealT
