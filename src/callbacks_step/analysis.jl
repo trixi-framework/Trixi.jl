@@ -9,11 +9,11 @@
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
 """
     AnalysisCallback(semi; interval=0,
-                            save_analysis=false,
-                            output_directory="out",
-                            analysis_filename="analysis.dat",
-                            extra_analysis_errors=Symbol[],
-                            extra_analysis_integrals=())
+                           save_analysis=false,
+                           output_directory="out",
+                           analysis_filename="analysis.dat",
+                           extra_analysis_errors=Symbol[],
+                           extra_analysis_integrals=())
 
 Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in
@@ -163,42 +163,42 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
 
         # write header of output file
         open(joinpath(output_directory, analysis_filename), "w") do io
-            @printf(io, "#%-8s", "timestep")
-            @printf(io, "  %-14s", "time")
-            @printf(io, "  %-14s", "dt")
+            print(io, "#timestep ")
+            print(io, "time ")
+            print(io, "dt ")
             if :l2_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "l2_"*v)
+                    print(io, "l2_" * v * " ")
                 end
             end
             if :linf_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "linf_"*v)
+                    print(io, "linf_" * v * " ")
                 end
             end
             if :conservation_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "cons_"*v)
+                    print(io, "cons_" * v * " ")
                 end
             end
             if :residual in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "res_"*v)
+                    print(io, "res_" * v * " ")
                 end
             end
             if :l2_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    @printf(io, "   %-14s", "l2_"*v)
+                    print(io, "l2_" * v * " ")
                 end
             end
             if :linf_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    @printf(io, "   %-14s", "linf_"*v)
+                    print(io, "linf_" * v * " ")
                 end
             end
 
             for quantity in analysis_integrals
-                @printf(io, "   %-14s", pretty_form_ascii(quantity))
+                print(io, pretty_form_ascii(quantity), " ")
             end
 
             println(io)
@@ -246,16 +246,18 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     # Record performance measurements and compute performance index (PID)
     runtime_since_last_analysis = 1.0e-9 * (time_ns() -
                                    analysis_callback.start_time_last_analysis)
-    # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks)
-    # and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up the time
-    # spent on each MPI rank. Thus, in an ideally parallelized program, the PID should be constant
-    # independent of the number of MPI ranks used, since, e.g., using 4x the number of ranks should
+    # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks
+    # and threads) and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up 
+    # the time spent on each computing unit. Thus, in an ideally parallelized program, the PID should be constant
+    # independent of the number of MPI ranks or threads used, since, e.g., using 4x the number of ranks should
     # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
     # more information.
     ncalls_rhs_since_last_analysis = (ncalls(semi.performance_counter)
                                       -
                                       analysis_callback.ncalls_rhs_last_analysis)
-    performance_index = runtime_since_last_analysis * mpi_nranks() /
+    # This assumes that the same number of threads is used on each MPI rank.
+    performance_index = runtime_since_last_analysis * mpi_nranks() *
+                        Threads.nthreads() /
                         (ndofsglobal(mesh, solver, cache)
                          *
                          ncalls_rhs_since_last_analysis)
@@ -263,11 +265,12 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     # Compute the total runtime since the analysis callback has been initialized, in seconds
     runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
 
-    # Compute the relative runtime as time spent in `rhs!` divided by the number of calls to `rhs!`
-    # and the number of local degrees of freedom
+    # Compute the relative runtime per thread as time spent in `rhs!` divided by the number of calls 
+    # to `rhs!` and the number of local degrees of freedom
     # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
     #      will reset the number of calls to `rhs!`
-    runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
+    runtime_relative = 1.0e-9 * take!(semi.performance_counter) * Threads.nthreads() /
+                       ndofs(semi)
 
     # Compute the total time spent in garbage collection since the analysis callback has been
     # initialized, in seconds
@@ -322,9 +325,9 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         if mpi_isroot() && analysis_callback.save_analysis
             io = open(joinpath(analysis_callback.output_directory,
                                analysis_callback.analysis_filename), "a")
-            @printf(io, "% 9d", iter)
-            @printf(io, "  %10.8e", t)
-            @printf(io, "  %10.8e", dt)
+            print(io, iter)
+            print(io, " ", t)
+            print(io, " ", dt)
         else
             io = devnull
         end
@@ -393,7 +396,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" L2 error:    ")
                 for v in eachvariable(equations)
                     @printf("  % 10.8e", l2_error[v])
-                    @printf(io, "  % 10.8e", l2_error[v])
+                    print(io, " ", l2_error[v])
                 end
                 println()
             end
@@ -403,7 +406,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" Linf error:  ")
                 for v in eachvariable(equations)
                     @printf("  % 10.8e", linf_error[v])
-                    @printf(io, "  % 10.8e", linf_error[v])
+                    print(io, " ", linf_error[v])
                 end
                 println()
             end
@@ -420,7 +423,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
             for v in eachvariable(equations)
                 err = abs(state_integrals[v] - initial_state_integrals[v])
                 @printf("  % 10.8e", err)
-                @printf(io, "  % 10.8e", err)
+                print(io, " ", err)
             end
             println()
         end
@@ -442,7 +445,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
             end
             if mpi_isroot()
                 @printf("  % 10.8e", res)
-                @printf(io, "  % 10.8e", res)
+                print(io, " ", res)
             end
         end
         mpi_println()
@@ -466,7 +469,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" L2 error prim.: ")
                 for v in eachvariable(equations)
                     @printf("%10.8e   ", l2_error_prim[v])
-                    @printf(io, "  % 10.8e", l2_error_prim[v])
+                    print(io, " ", l2_error_prim[v])
                 end
                 println()
             end
@@ -476,7 +479,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" Linf error pri.:")
                 for v in eachvariable(equations)
                     @printf("%10.8e   ", linf_error_prim[v])
-                    @printf(io, "  % 10.8e", linf_error_prim[v])
+                    print(io, " ", linf_error_prim[v])
                 end
                 println()
             end
@@ -581,7 +584,7 @@ function analyze_integrals(analysis_integrals::NTuple{N, Any}, io, du, u, t,
     if mpi_isroot()
         @printf(" %-12s:", pretty_form_utf(quantity))
         @printf("  % 10.8e", res)
-        @printf(io, "  % 10.8e", res)
+        print(io, " ", res)
     end
     mpi_println()
 
@@ -629,6 +632,8 @@ function analyze(quantity::typeof(enstrophy), du, u, t,
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
+    # We do not apply `enstrophy` directly here because we might later have different `quantity`s
+    # that we wish to integrate, which can share this routine.
     analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
             cache_parabolic)
 end
@@ -678,7 +683,7 @@ end # @muladd
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
-include("analysis_surface_integral_2d.jl")
+include("analysis_surface_integral.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")

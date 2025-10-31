@@ -33,14 +33,12 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}, P4estMesh{1}},
-                      equations,
+function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
     NamedTuple()
 end
 
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}, P4estMesh{1}},
-                      equations,
+function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
@@ -55,8 +53,7 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}, P4estMesh{1}},
     return (; cache..., fstar1_L_threaded, fstar1_R_threaded)
 end
 
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}, P4estMesh{1}},
-                      equations,
+function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
     A2dp1_x = Array{uEltype, 2}
@@ -90,8 +87,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg, interface_indices)
+        prolong2interfaces!(cache, u, mesh, equations, dg, interface_indices)
     end
 
     # Calculate interface fluxes
@@ -185,6 +181,8 @@ function calc_volume_integral!(du, u,
                                   equations,
                                   volume_integral.volume_flux, dg, cache)
     end
+
+    return nothing
 end
 
 @inline function flux_differencing_kernel!(du, u,
@@ -390,9 +388,8 @@ end
     return nothing
 end
 
-# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{1}, equations, surface_integral, dg::DG,
+                             mesh::TreeMesh{1}, equations, dg::DG,
                              interface_indices = eachinterface(dg, cache))
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
@@ -442,6 +439,8 @@ function calc_interface_flux!(surface_flux_values,
             surface_flux_values[v, right_direction, right_id] = flux[v]
         end
     end
+
+    return nothing
 end
 
 function calc_interface_flux!(surface_flux_values,
@@ -516,6 +515,8 @@ end
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
+
+    return nothing
 end
 
 function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
@@ -536,6 +537,8 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                                      have_nonconservative_terms(equations), equations,
                                      surface_integral, dg, cache,
                                      2, firsts[2], lasts[2])
+
+    return nothing
 end
 
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 3},
@@ -560,8 +563,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
         end
         x = get_node_coords(node_coordinates, equations, dg, boundary)
         flux = boundary_condition(u_inner, orientations[boundary], direction, x, t,
-                                  surface_flux,
-                                  equations)
+                                  surface_flux, equations)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations)
@@ -578,7 +580,6 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                           nonconservative_terms::True, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
 
     @threaded for boundary in first_boundary:last_boundary
@@ -593,12 +594,11 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
             u_inner = u_rr
         end
         x = get_node_coords(node_coordinates, equations, dg, boundary)
-        flux = boundary_condition(u_inner, orientations[boundary], direction, x, t,
-                                  surface_flux,
-                                  equations)
-        noncons_flux = boundary_condition(u_inner, orientations[boundary], direction, x,
-                                          t, nonconservative_flux,
-                                          equations)
+
+        flux, noncons_flux = boundary_condition(u_inner, orientations[boundary],
+                                                direction, x, t,
+                                                surface_integral.surface_flux,
+                                                equations)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations)

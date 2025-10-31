@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -55,7 +55,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -78,6 +78,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 time_int_tol = 1.0e-11
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-# Print the timer summary
-summary_callback()

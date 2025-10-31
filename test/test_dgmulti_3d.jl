@@ -230,18 +230,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
                         polydeg=3, tspan=(0.0, 1.0), cells_per_dimension=(2, 2, 2),
                         l2=[
-                            0.0003612827827560599,
-                            0.06219350883951729,
-                            0.062193508839503864,
-                            0.08121963221634831,
-                            0.07082703570808184
+                            0.00036128264902931644,
+                            0.06219350570157671,
+                            0.062193505701565316,
+                            0.08121963725209637,
+                            0.0708269605813566
                         ],
                         linf=[
-                            0.0007893509649821162,
-                            0.1481953939988877,
-                            0.14819539399791176,
-                            0.14847291108358926,
-                            0.21313533492212855
+                            0.0007893500666786846,
+                            0.14819541663164099,
+                            0.14819541663231595,
+                            0.148472950090691,
+                            0.2131352319423172
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -258,18 +258,18 @@ end
                         polydeg=3, approximation_type=GaussSBP(), tspan=(0.0, 1.0),
                         cells_per_dimension=(2, 2, 2),
                         l2=[
-                            0.00036128278275524326,
-                            0.062193508839511434,
-                            0.06219350883949677,
-                            0.08121963221635205,
-                            0.07082703570765223
+                            0.0003612826490291416,
+                            0.06219350570157282,
+                            0.06219350570156088,
+                            0.08121963725209767,
+                            0.07082696058040763
                         ],
                         linf=[
-                            0.000789350964946367,
-                            0.14819539399525805,
-                            0.14819539399590542,
-                            0.14847291107658706,
-                            0.21313533492059378
+                            0.0007893500666356079,
+                            0.14819541663140268,
+                            0.14819541663222624,
+                            0.14847295009030398,
+                            0.21313523192395678
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -353,19 +353,20 @@ end
 
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
+                        N=8,
                         l2=[
-                            7.561896970325353e-5,
-                            6.884047859361093e-5,
-                            6.884047859363204e-5,
-                            6.884047859361148e-5,
-                            0.000201107274617457
+                            0.002185087935179595,
+                            0.0021985878136213353,
+                            0.0021985878136213588,
+                            0.002198587813621343,
+                            0.006911667548137964
                         ],
                         linf=[
-                            0.0001337520020225913,
-                            0.00011571467799287305,
-                            0.0001157146779990903,
-                            0.00011571467799376123,
-                            0.0003446082308800058
+                            0.0034358445996525155,
+                            0.003728543352167435,
+                            0.0037285433521714317,
+                            0.0037285433521709876,
+                            0.011530662012638082
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -379,8 +380,8 @@ end
 
 @trixi_testset "elixir_advection_tensor_wedge.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
-                        l2=[2.30487910e-04],
-                        linf=[6.31795281e-04])
+                        l2=[0.00023048791012406786],
+                        linf=[0.0006317952824828055])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -389,6 +390,32 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
+                                         n_cells_max = 0,
+                                         RealT = Float64)
+end
+
+@trixi_testset "elixir_advection_tensor_wedge.jl (scalar polydeg)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
+                        polydeg=3,
+                        l2=[0.0002332063232167919],
+                        linf=[0.0006597931027270132],
+                        atol=1e-10) # MacOS and Ubuntu differ here
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
+                                         n_cells_max = 0,
+                                         RealT = Float64)
 end
 end
 

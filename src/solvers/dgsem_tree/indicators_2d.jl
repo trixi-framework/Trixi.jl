@@ -129,7 +129,7 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
         alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper], alpha[large])
     end
 
-    return alpha
+    return nothing
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -155,6 +155,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
                                    kwargs...)
     @assert nnodes(dg)>=3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
     @unpack alpha, indicator_threaded = löhner.cache
+    @unpack variable = löhner
     resize!(alpha, nelements(dg, cache))
 
     @threaded for element in eachelement(dg, cache)
@@ -163,7 +164,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
         # Calculate indicator variables at Gauss-Lobatto nodes
         for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
-            indicator[i, j] = löhner.variable(u_local, equations)
+            indicator[i, j] = variable(u_local, equations)
         end
 
         estimate = zero(real(dg))

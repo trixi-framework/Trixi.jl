@@ -27,10 +27,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.00016017848135651983],
-                        linf=[0.0014175368788298393],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        linf=[0.0014175368788298393])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -106,9 +103,7 @@ end
 @trixi_testset "elixir_advection_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         l2=[9.773852895157622e-6],
-                        linf=[0.0005853874124926162],
-                        coverage_override=(maxiters = 6, initial_refinement_level = 1,
-                                           base_level = 1, med_level = 1, max_level = 3))
+                        linf=[0.0005853874124926162])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -117,6 +112,22 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_advection_er.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_er.jl"),
+                        l2=[0.005193350046445726], linf=[0.025986449692943836])
+
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15_000
     end
 end
 end

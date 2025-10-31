@@ -83,6 +83,7 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
                              mesh::StructuredMesh{1}, equations, surface_integral,
                              dg::DG)
     @assert isperiodic(mesh)
+    return nothing
 end
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
@@ -120,5 +121,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
     for v in eachvariable(equations)
         surface_flux_values[v, direction, nelements(dg, cache)] = flux[v]
     end
+
+    return nothing
 end
 end # @muladd

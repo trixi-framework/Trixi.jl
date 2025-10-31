@@ -24,6 +24,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
             Trixi.mpi_isroot() &&
                 println("elixir_advection_basic.jl with error-based step size control")
 
+            # Use callbacks without stepsize_callback to test error-based step size control
+            callbacks = CallbackSet(summary_callback, analysis_callback)
             sol = solve(ode, RDPK3SpFSAL35(); abstol = 1.0e-4, reltol = 1.0e-4,
                         ode_default_options()..., callback = callbacks)
             summary_callback()
@@ -80,9 +82,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_solution_independent.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
-                            l2=[4.933027431215839e-5],
-                            linf=[0.00048678461161243136],
-                            coverage_override=(maxiters = 6,))
+                            l2=[4.949660644033807e-5],
+                            linf=[0.0004867846262313763])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -99,8 +100,22 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
                                      "elixir_advection_amr_unstructured_flag.jl"),
                             l2=[0.002019623611753929],
                             linf=[0.03542375961299987],
-                            dynamic_load_balancing=false,
-                            coverage_override=(maxiters = 6,))
+                            dynamic_load_balancing=false,)
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+
+    @trixi_testset "elixir_advection_restart.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+                            l2=[4.507575525876275e-6],
+                            linf=[6.21489667023134e-5])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

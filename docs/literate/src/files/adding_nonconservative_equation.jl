@@ -91,7 +91,7 @@ end
 
 ## Create a simulation setup
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqTsit5
 
 equation = NonconservativeLinearAdvectionEquation()
 
@@ -131,11 +131,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback)
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes
 ## the passed callbacks
-sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
-            save_everystep = false, callback = callbacks)
-
-## Print the timer summary
-summary_callback()
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+            ode_default_options()..., callback = callbacks)
 
 ## Plot the numerical solution at the final time
 using Plots: plot
@@ -164,9 +161,8 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 50)
 callbacks = CallbackSet(summary_callback, analysis_callback);
 
-sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
-            save_everystep = false, callback = callbacks);
-summary_callback()
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+            ode_default_options()..., callback = callbacks);
 
 #nb #-
 error_2 = analysis_callback(sol).l2 |> first
@@ -176,6 +172,9 @@ error_1 / error_2
 @test isapprox(error_1 / error_2, 15.916970234784808, rtol = 0.05) #src
 # As expected, the new error is roughly reduced by a factor of 16, corresponding
 # to an experimental order of convergence of 4 (for polynomials of degree 3).
+
+# For non-trivial boundary conditions involving non-conservative terms,
+# please refer to the section on [Other available example elixirs with non-trivial BC](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/non_periodic_boundaries/#Other-available-example-elixirs-with-non-trivial-BC).
 
 # ## Summary of the code
 
@@ -239,7 +238,7 @@ end # module
 ## Create a simulation setup
 import .NonconservativeLinearAdvection
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqTsit5
 
 equation = NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation()
 
@@ -280,8 +279,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback);
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes
 ## the passed callbacks
-sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
-            save_everystep = false);
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+            ode_default_options()...);
 
 ## Plot the numerical solution at the final time
 using Plots: plot
@@ -295,5 +294,79 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqTsit5", "Plots"],
            mode = PKGMODE_MANIFEST)
+
+# ## Additional modifications
+
+# When one carries auxiliary variable(s) in the solution vector, e.g., for non-constant
+# coefficient advection problems some routines may require modification to avoid adding
+# dissipation to the variable coefficient quantity `a` that is carried as an auxiliary variable in
+# the solution vector. In particular, a specialized [`DissipationLocalLaxFriedrichs`](@ref) term
+# used together with the numerical surface flux [`flux_lax_friedrichs`](@ref) prevents "smearing"
+# the variable coefficient `a` artificially.
+
+## Specialized dissipation term for the Lax-Friedrichs surface flux
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
+                                                              orientation::Integer,
+                                                              equation::NonconservativeLinearAdvectionEquation)
+    λ = dissipation.max_abs_speed(u_ll, u_rr, orientation, equation)
+
+    diss = -0.5 * λ * (u_rr - u_ll)
+    ## do not add dissipation to the variable coefficient a used as last entry of u
+    return SVector(diss[1], zero(u_ll))
+end
+
+# Another modification is necessary if one wishes to use the stage limiter [`PositivityPreservingLimiterZhangShu`](@ref)
+# during the time integration. This limiter takes in a `variable` (or set of variables) to limit and ensure positivity.
+# However, these variables are used to compute the limiter quantities that are then applied to every
+# variable in the solution vector `u`. To avoid artificially limiting (and in turn changing) the variable coefficient
+# quantity that should remain unchanged, a specialized implementation of the `limiter_zhang_shu!` function is required.
+# For the example equation given in this tutorial, this new function for the limiting would take the form
+
+## Specialized positivity limiter that avoids modification of the auxiliary variable `a`
+function Trixi.limiter_zhang_shu!(u, threshold, variable, mesh,
+                                  equations::NonconservativeLinearAdvectionEquation,
+                                  dg, cache)
+    weights = dg.basis
+
+    for element in eachelement(dg, cache)
+        ## determine minimum value
+        value_min = typemax(eltype(u))
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+            value_min = min(value_min, variable(u_node, equations))
+        end
+
+        ## detect if limiting is necessary
+        value_min < threshold || continue
+
+        ## compute mean value
+        u_mean = zero(get_node_vars(u, equations, dg, 1, element))
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+            u_mean += u_node * weights[i]
+        end
+        ## note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
+        u_mean = u_mean / 2^ndims(mesh)
+
+        ## Compute the value directly with the mean values, as we assume that
+        ## Jensen's inequality holds.
+        value_mean = variable(u_mean, equations)
+        theta = (value_mean - threshold) / (value_mean - value_min)
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+
+            _, a_node = u_node
+            scalar_mean, _ = u_mean
+
+            ## mean values of variable coefficient not used as it must not be overwritten
+            u_mean = SVector(scalar_mean, a_node)
+
+            set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,
+                           equations, dg, i, element)
+        end
+    end
+
+    return nothing
+end
