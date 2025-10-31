@@ -33,7 +33,6 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinate_min = -1.0
 coordinate_max = 1.0
 
-# E.g. hammer impact width of 20 cm
 impact_width() = 0.2
 # Refine the impact region to be able to represent the initial condition without oscillations
 refinement_patches = ((type = "box",
