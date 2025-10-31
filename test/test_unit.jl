@@ -1334,6 +1334,25 @@ end
     end
 end
 
+@timed_testset "Flux consistency checks LinearElasticityEquations1D" begin
+    rho = 7800.0 # kg/m³
+    lambda = 9.3288e10
+    mu = lambda
+    equations = LinearElasticityEquations1D(rho = rho, mu = mu, lambda = lambda)
+
+    u = SVector(1.42, 2.666)
+
+    orientation = 1
+    @test flux_central(u, u, orientation, equations) ≈
+          flux(u, orientation, equations)
+
+    @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+          flux(u, orientation, equations)
+
+    @test flux_hll(u, u, orientation, equations) ≈
+          flux(u, orientation, equations)
+end
+
 @testset "Consistency check for `gradient_conservative` routine" begin
     # Set up conservative variables, equations
     u = [
