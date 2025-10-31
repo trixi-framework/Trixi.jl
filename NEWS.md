@@ -6,6 +6,15 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes when updating to v0.14 from v0.13.x
+
+#### Added
+
+- The `VisualizationCallback` now supports using Makie, so far for 2D TreeMesh only.
+  To use it, a Makie backend has to be loaded and the keyword argument `plot_creator`
+  needs to be set to `Trixi.show_plot_makie`.
+
+
 ## Changes when updating to v0.13 from v0.12.x
 
 #### Changed

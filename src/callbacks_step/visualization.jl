@@ -5,6 +5,11 @@
 @muladd begin
 #! format: noindent
 
+struct FigureAndAxes{Figure, Axes}
+    fig::Figure
+    axes::Axes
+end
+
 mutable struct VisualizationCallback{PlotDataCreator, SolutionVariables, VariableNames,
                                      PlotCreator}
     plot_data_creator::PlotDataCreator
@@ -13,6 +18,7 @@ mutable struct VisualizationCallback{PlotDataCreator, SolutionVariables, Variabl
     variable_names::VariableNames
     show_mesh::Bool
     plot_creator::PlotCreator
+    figure_axes::FigureAndAxes
     plot_arguments::Dict{Symbol, Any}
 end
 
@@ -107,19 +113,19 @@ function VisualizationCallback(semi, plot_data_creator = nothing;
                                                    solution_variables, variable_names,
                                                    show_mesh,
                                                    plot_creator,
+                                                   FigureAndAxes(nothing, []),
                                                    Dict{Symbol, Any}(plot_arguments))
 
-    # Warn users if they create a visualization callback without having loaded the Plots package
+    # Warn users if they create a visualization callback without having loaded a plotting
+    # package
     #
-    # Note: This warning is added for convenience, as Plots is the only "officially" supported
-    #       visualization package right now. However, in general nothing prevents anyone from using
-    #       other packages such as Makie, Gadfly etc., given that appropriate `plot_creator`s are
-    #       passed. This is also the reason why the visualization callback is not included via
-    #       Requires.jl only when Plots is present.
-    #       In the future, we should update/remove this warning if other plotting packages are
-    #       starting to be used.
-    if !(:Plots in names(@__MODULE__, all = true))
-        @warn "Package `Plots` not loaded but required by `VisualizationCallback` to visualize results"
+    # Note: This warning is added for convenience, as Plots and Makie are currently the
+    # only "officially" supported visualization packages. However, in general nothing
+    # prevents anyone from using other packages, given that appropriate `plot_creator`s are
+    # passed.
+    if !(:Plots in names(@__MODULE__, all = true)) &&
+       Base.get_extension(Trixi, :TrixiMakieExt) === nothing
+        @warn "Neither `Plots` nor `Makie loaded but required by `VisualizationCallback` to visualize results"
     end
 
     DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
@@ -164,7 +170,7 @@ function (visualization_callback::VisualizationCallback)(integrator)
     end
 
     # Create plot
-    plot_creator(plot_data, variable_names;
+    plot_creator(visualization_callback, plot_data, variable_names;
                  show_mesh = show_mesh, plot_arguments = plot_arguments,
                  time = integrator.t, timestep = integrator.stats.naccept)
 
@@ -174,7 +180,7 @@ function (visualization_callback::VisualizationCallback)(integrator)
 end
 
 """
-    show_plot(plot_data, variable_names;
+    show_plot(visualization_callback, plot_data, variable_names;
               show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
               time=nothing, timestep=nothing)
 
@@ -187,7 +193,7 @@ This function is the default `plot_creator` argument for the [`VisualizationCall
 
 See also: [`VisualizationCallback`](@ref), [`save_plot`](@ref)
 """
-function show_plot(plot_data, variable_names;
+function show_plot(visualization_callback, plot_data, variable_names;
                    show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
                    time = nothing, timestep = nothing)
     # Gather subplots
@@ -199,31 +205,15 @@ function show_plot(plot_data, variable_names;
         push!(plots, Plots.plot(getmesh(plot_data); plot_arguments...))
     end
 
-    # Note, for the visualization callback to work for general equation systems
-    # this layout construction would need to use the if-logic below.
-    # Currently, there is no use case for this so it is left here as a note.
-    #
     # Determine layout
-    # if length(plots) <= 3
-    #   cols = length(plots)
-    #   rows = 1
-    # else
-    #   cols = ceil(Int, sqrt(length(plots)))
-    #   rows = div(length(plots), cols, RoundUp)
-    # end
-    # layout = (rows, cols)
-
-    # Determine layout
-    cols = ceil(Int, sqrt(length(plots)))
-    rows = div(length(plots), cols, RoundUp)
-    layout = (rows, cols)
+    layout = create_layout(length(plots))
 
     # Show plot
     display(Plots.plot(plots..., layout = layout))
 end
 
 """
-    save_plot(plot_data, variable_names;
+    save_plot(visualization_callback, plot_data, variable_names;
               show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
               time=nothing, timestep=nothing)
 
@@ -236,7 +226,7 @@ The `timestep` is used in the filename. `time` is currently unused by this funct
 
 See also: [`VisualizationCallback`](@ref), [`show_plot`](@ref)
 """
-function save_plot(plot_data, variable_names;
+function save_plot(visualization_callback, plot_data, variable_names;
                    show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
                    time = nothing, timestep = nothing)
     # Gather subplots
@@ -249,9 +239,7 @@ function save_plot(plot_data, variable_names;
     end
 
     # Determine layout
-    cols = ceil(Int, sqrt(length(plots)))
-    rows = div(length(plots), cols, RoundUp)
-    layout = (rows, cols)
+    layout = create_layout(length(plots))
 
     # Create plot
     Plots.plot(plots..., layout = layout)
@@ -260,4 +248,8 @@ function save_plot(plot_data, variable_names;
     filename = joinpath("out", @sprintf("solution_%09d.png", timestep))
     Plots.savefig(filename)
 end
+
+# Add definitions of Makie plot functions here such that they can be exported from Trixi.jl
+# and extended in the TrixiMakieExt extension
+function show_plot_makie end
 end # @muladd

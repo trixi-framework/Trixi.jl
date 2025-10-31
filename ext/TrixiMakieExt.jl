@@ -9,7 +9,7 @@ using Trixi
 
 # Use additional symbols that are not exported
 using Trixi: PlotData2DTriangulated, TrixiODESolution, PlotDataSeries, ScalarData, @muladd,
-             wrap_array_native, mesh_equations_solver_cache
+             wrap_array_native, mesh_equations_solver_cache, FigureAndAxes, create_layout
 
 # Import functions such that they can be extended with new methods
 import Trixi: iplot, iplot!
@@ -135,12 +135,6 @@ end
 
 # We set the Makie default colormap to match Plots.jl, which uses `:inferno` by default.
 default_Makie_colormap() = :inferno
-
-# convenience struct for editing Makie plots after they're created.
-struct FigureAndAxes{Axes}
-    fig::Makie.Figure
-    axes::Axes
-end
 
 # for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
 # Makie.plot(::PlotData2DTriangulated)
@@ -379,15 +373,7 @@ end
 
 function Makie.plot!(fig, pd::PlotData2DTriangulated;
                      plot_mesh = false, colormap = default_Makie_colormap())
-    # Create layout that is as square as possible, when there are more than 3 subplots.
-    # This is done with a preference for more columns than rows if not.
-    if length(pd) <= 3
-        cols = length(pd)
-        rows = 1
-    else
-        cols = ceil(Int, sqrt(length(pd)))
-        rows = cld(length(pd), cols)
-    end
+    rows, cols = create_layout(length(pd))
 
     axes = [Makie.Axis(fig[i, j], xlabel = "x", ylabel = "y")
             for j in 1:rows, i in 1:cols]
@@ -410,6 +396,48 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
 
     return FigureAndAxes(fig, axes)
 end
-end # @muladd
 
+function Trixi.show_plot_makie(visualization_callback,
+                               plot_data::PlotData2DTriangulated, variable_names;
+                               show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
+                               time = nothing, timestep = nothing)
+    Makie.plot(plot_data, plot_mesh = show_mesh)
+end
+
+function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names;
+                               show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
+                               time = nothing, timestep = nothing)
+    nvars = size(variable_names)[1]
+    if visualization_callback.figure_axes.fig === nothing
+        @info "Creating new Makie figure"
+        rows, cols = create_layout(nvars + show_mesh)
+        positions = CartesianIndices((rows, cols))
+        fig = Makie.Figure()
+        axes = [Makie.Axis(fig[Tuple(positions[v])...],
+                           aspect = Makie.DataAspect(),
+                           title = variable_names[v])
+                for v in 1:nvars]
+        if show_mesh
+            push!(axes,
+                  Makie.Axis(fig[Tuple(positions[nvars + 1])...],
+                             aspect = Makie.DataAspect(),
+                             title = "mesh"))
+        end
+        visualization_callback.figure_axes = FigureAndAxes(fig, axes)
+        Makie.display(visualization_callback.figure_axes.fig)
+    end
+
+    @unpack axes = visualization_callback.figure_axes
+    for v in 1:nvars
+        Makie.heatmap!(axes[v], plot_data.x, plot_data.y,
+                       permutedims(plot_data.data[v]); plot_arguments...)
+    end
+    if show_mesh
+        empty!(axes[nvars + 1])
+        Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_x,
+                     plot_data.mesh_vertices_y,
+                     color = :black)
+    end
+end
+end # @muladd
 end

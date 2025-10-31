@@ -1786,4 +1786,17 @@ function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
 
     return curve
 end
+
+# Create layout that is as square as possible, when there are more than 3 subplots.
+# This is done with a preference for more columns than rows if not.
+function create_layout(n)
+    if n <= 3
+        cols = n
+        rows = 1
+    else
+        cols = ceil(Int, sqrt(n))
+        rows = cld(n, cols)
+    end
+    return rows, cols
+end
 end # @muladd
