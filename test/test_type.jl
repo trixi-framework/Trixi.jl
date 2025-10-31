@@ -2403,10 +2403,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                               mu = mu,
                                                               lambda = lambda)
 
-            @test typeof(@inferred typeof(equations.rho)) == RealT
-            @test typeof(@inferred typeof(equations.c1)) == RealT
-            @test typeof(@inferred typeof(equations.E)) == RealT
-
             x = SVector(zero(RealT))
             t = zero(RealT)
             u = u_ll = u_rr = SVector(one(RealT), zero(RealT))
@@ -2421,7 +2417,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
             @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation, equations)) ==
                   RealT
-            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
 
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
