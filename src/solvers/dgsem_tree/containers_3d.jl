@@ -784,7 +784,8 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
                                       "expectations $(nmortars(mortars))")
 end
 
-mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real} <: AbstractContainer
+mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real} <:
+               AbstractContainerAntidiffusiveFlux
     antidiffusive_flux1_L::Array{uEltype, 5} # [variables, i, j, k, elements]
     antidiffusive_flux1_R::Array{uEltype, 5} # [variables, i, j, k, elements]
     antidiffusive_flux2_L::Array{uEltype, 5} # [variables, i, j, k, elements]
@@ -856,9 +857,6 @@ function ContainerAntidiffusiveFlux3D{uEltype}(capacity::Integer, n_variables,
                                                  _antidiffusive_flux3_L,
                                                  _antidiffusive_flux3_R)
 end
-
-nvariables(fluxes::ContainerAntidiffusiveFlux3D) = size(fluxes.antidiffusive_flux1_L, 1)
-nnodes(fluxes::ContainerAntidiffusiveFlux3D) = size(fluxes.antidiffusive_flux1_L, 3)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
