@@ -5,62 +5,14 @@
 @muladd begin
 #! format: noindent
 
-function rhs!(du, u, t,
-              mesh::StructuredMesh{1}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache,
-              element_indices = eachelement(dg, cache),
-              interface_indices = nothing,
-              boundary_indices = nothing,
-              mortar_indices = nothing) where {Source}
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache, element_indices)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache, element_indices)
-    end
-
-    # Calculate interface and boundary fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache, u, mesh, equations, dg.surface_integral, dg,
-                             element_indices)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, u, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache,
-                               element_indices)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache,
-                                                     element_indices)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache, element_indices)
-    end
-
-    return nothing
-end
-
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
-                              equations, surface_integral, dg::DG,
-                              element_indices = eachelement(dg, cache))
+                              nonconservative_terms, # can be True/False
+                              equations, surface_integral, dg::DG)
     @unpack surface_flux = surface_integral
 
     @threaded for element in element_indices
         left_element = cache.elements.left_neighbors[1, element]
+        # => `element` is the right element of the interface
 
         if left_element > 0 # left_element = 0 at boundaries
             u_ll = get_node_vars(u, equations, dg, nnodes(dg), left_element)
@@ -75,14 +27,6 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
         end
     end
 
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::StructuredMesh{1}, equations, surface_integral,
-                             dg::DG)
-    @assert isperiodic(mesh)
     return nothing
 end
 
@@ -120,6 +64,23 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
     # Copy flux to left and right element storage
     for v in eachvariable(equations)
         surface_flux_values[v, direction, nelements(dg, cache)] = flux[v]
+    end
+
+    return nothing
+end
+
+function apply_jacobian!(du, mesh::StructuredMesh{1},
+                         equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
+    @threaded for element in eachelement(dg, cache)
+        for i in eachnode(dg)
+            factor = -inverse_jacobian[i, element]
+
+            for v in eachvariable(equations)
+                du[v, i, element] *= factor
+            end
+        end
     end
 
     return nothing

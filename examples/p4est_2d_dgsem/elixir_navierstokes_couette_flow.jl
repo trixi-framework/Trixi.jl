@@ -52,7 +52,7 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x
                                     surface_flux_function,
                                     equations::CompressibleEulerEquations2D)
     # Calculate the boundary flux entirely from the internal solution state
-    return Trixi.flux(u_inner, normal_direction, equations)
+    return flux(u_inner, normal_direction, equations)
 end
 
 ### Hyperbolic boundary conditions ###
@@ -67,9 +67,8 @@ bs_hyperbolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition), # 
 velocity_bc_top_left = NoSlip((x, t, equations) -> SVector(x[2] / height() * v_top(), 0))
 # Use isothermal for inflow - adiabatic should also work
 heat_bc_top_left = Isothermal() do x, t, equations_parabolic
-    Trixi.temperature(initial_condition(x, t,
-                                        equations_parabolic),
-                      equations_parabolic)
+    temperature(initial_condition(x, t, equations_parabolic),
+                equations_parabolic)
 end
 bc_parabolic_top_left = BoundaryConditionNavierStokesWall(velocity_bc_top_left,
                                                           heat_bc_top_left)
