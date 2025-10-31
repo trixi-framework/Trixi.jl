@@ -415,7 +415,7 @@ end
 end
 
 function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations, dg::DG,
-    interface_indices = eachinterface(dg, cache))
+                             interface_indices = eachinterface(dg, cache))
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u

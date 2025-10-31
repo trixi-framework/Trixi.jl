@@ -456,10 +456,11 @@ end
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::TreeMesh{1}, equations_parabolic, dg::DG,
                                        parabolic_scheme,
-                                       cache, cache_parabolic)
+                                       cache, cache_parabolic,
+                                       interface_indices = eachinterface(dg, cache))
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
-    @threaded for interface in eachinterface(dg, cache_parabolic)
+    @threaded for interface in interface_indices
         # Get neighboring elements
         left_id = neighbor_ids[1, interface]
         right_id = neighbor_ids[2, interface]
@@ -489,7 +490,8 @@ end
 function calc_gradient_surface_integral!(gradients,
                                          mesh::TreeMesh{1}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
-                                         dg::DGSEM, cache, cache_parabolic)
+                                         dg::DGSEM, cache, cache_parabolic,
+                                         element_indices = eachelement(dg, cache))
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache_parabolic.elements
 
@@ -499,7 +501,7 @@ function calc_gradient_surface_integral!(gradients,
     # into FMAs (see comment at the top of the file).
     factor_1 = boundary_interpolation[1, 1]
     factor_2 = boundary_interpolation[nnodes(dg), 2]
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in element_indices
         for v in eachvariable(equations_parabolic)
             # surface at -x
             gradients[v, 1, element] = (gradients[v, 1, element] -
@@ -544,32 +546,9 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         @unpack surface_flux_values = cache_parabolic.elements
-        @unpack neighbor_ids, orientations = cache_parabolic.interfaces
-
-        @threaded for interface in interface_indices
-            # Get neighboring elements
-            left_id = neighbor_ids[1, interface]
-            right_id = neighbor_ids[2, interface]
-
-            # Determine interface direction with respect to elements:
-            # orientation = 1: left -> 2, right -> 1
-            left_direction = 2 * orientations[interface]
-            right_direction = 2 * orientations[interface] - 1
-
-            # Call pointwise Riemann solver
-            u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                               equations_parabolic, dg, interface)
-            flux = 0.5f0 * (u_ll + u_rr)
-
-            # Copy flux to left and right element storage
-            for v in eachvariable(equations_parabolic)
-                surface_flux_values[v, left_direction, left_id] = flux[v]
-                surface_flux_values[v, right_direction, right_id] = flux[v]
-            end
-        end
         calc_gradient_interface_flux!(surface_flux_values,
                                       mesh, equations_parabolic, dg, parabolic_scheme,
-                                      cache, cache_parabolic)
+                                      cache, cache_parabolic, interface_indices)
     end
 
     # Prolong solution to boundaries
@@ -592,7 +571,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
-                                        dg, cache, cache_parabolic)
+                                        dg, cache, cache_parabolic, element_indices)
     end
 
     # Apply Jacobian from mapping to reference element
