@@ -2403,9 +2403,9 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                               c1 = c1,
                                                               lambda = lambda)
 
-            @test typeof(@inferred equations.rho) == RealT
-            @test typeof(@inferred equations.c1) == RealT
-            @test typeof(@inferred equations.E) == RealT
+            @test typeof(@inferred typeof(equations.rho)) == RealT
+            @test typeof(@inferred typeof(equations.c1)) == RealT
+            @test typeof(@inferred typeof(equations.E)) == RealT
 
             x = SVector(zero(RealT))
             t = zero(RealT)
