@@ -1242,7 +1242,8 @@ end
 #                          flux2(i, j)
 #                               |
 #                            (i, j-1)
-mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real} <: AbstractContainer
+mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real} <:
+               AbstractContainerAntidiffusiveFlux
     antidiffusive_flux1_L::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux1_R::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux2_L::Array{uEltype, 4} # [variables, i, j, elements]
@@ -1286,9 +1287,6 @@ function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
                                                  _antidiffusive_flux2_L,
                                                  _antidiffusive_flux2_R)
 end
-
-nvariables(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1_L, 1)
-nnodes(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1_L, 3)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`

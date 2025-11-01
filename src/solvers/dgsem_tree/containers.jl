@@ -164,6 +164,12 @@ function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
     return nothing
 end
 
+abstract type AbstractContainerAntidiffusiveFlux <: AbstractContainer end
+nvariables(fluxes::AbstractContainerAntidiffusiveFlux) = size(fluxes.antidiffusive_flux1_L,
+                                                              1)
+nnodes(fluxes::AbstractContainerAntidiffusiveFlux) = size(fluxes.antidiffusive_flux1_L,
+                                                          3)
+
 # Dimension-specific implementations
 include("containers_1d.jl")
 include("containers_2d.jl")
