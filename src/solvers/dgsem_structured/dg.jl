@@ -45,7 +45,7 @@ function rhs!(du, u, t,
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
+                              equations,
                               dg.volume_integral, dg, cache)
     end
 
@@ -73,7 +73,8 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(du, u, t, source_terms, have_aux_node_vars(equations), equations,
+                      dg, cache)
     end
 
     return nothing

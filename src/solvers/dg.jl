@@ -698,6 +698,13 @@ https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
     SVector(ntuple(@inline(v->u[v, indices...]), Val(nvariables(equations))))
 end
 
+# Return the auxiliary variables at a given volume node index
+@inline function get_aux_node_vars(aux_node_vars, equations, ::DG,
+                                   indices...)
+    return SVector(ntuple(@inline(v->aux_node_vars[v, indices...]),
+                          Val(n_aux_node_vars(equations))))
+end
+
 @inline function get_surface_node_vars(u, equations, solver::DG, indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
@@ -709,9 +716,27 @@ end
     return u_ll, u_rr
 end
 
+# Return the auxiliary variables at a given surface node index
+@inline function get_aux_surface_node_vars(aux_surface_node_vars, equations, ::DG,
+                                           indices...)
+    aux_vars_ll = SVector(ntuple(@inline(v->aux_surface_node_vars[1, v, indices...]),
+                                 Val(n_aux_node_vars(equations))))
+    aux_vars_rr = SVector(ntuple(@inline(v->aux_surface_node_vars[2, v, indices...]),
+                                 Val(n_aux_node_vars(equations))))
+    return aux_vars_ll, aux_vars_rr
+end
+
 @inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
+    end
+    return nothing
+end
+
+@inline function set_aux_node_vars!(aux_node_vars, aux_node, equations,
+                                    solver::DG, indices...)
+    for v in 1:n_aux_node_vars(equations)
+        aux_node_vars[v, indices...] = aux_node[v]
     end
     return nothing
 end
