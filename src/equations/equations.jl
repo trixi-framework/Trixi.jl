@@ -562,6 +562,12 @@ function lake_at_rest_error end
     return ForwardDiff.gradient(x -> variable(x, equations), u)
 end
 
+# Compute gradient of pressure with respect to conserved variables.
+# Required for `PositivityPreservingLimiterRuedaRamirezGassner`
+function pressure_gradient(u, equations)
+    return ForwardDiff.gradient(u -> pressure(u, equations), u)
+end
+
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 

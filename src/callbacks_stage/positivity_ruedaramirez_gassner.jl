@@ -1,0 +1,139 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
+"""
+    PositivityPreservingLimiterRuedaRamirezGassner
+
+Positivity-Preserving Limiter for DGSEM Discretizations of the Euler Equations based on
+Finite Volume subcells as proposed in
+
+- Rueda-Ramirez, Gassner (2021),
+  A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations of the Euler Equations
+  [doi: 10.23967/wccm-eccomas.2020.038](https://doi.org/10.23967/wccm-eccomas.2020.038)
+
+Can be seen as a generalization of the [`PositivityPreservingLimiterZhangShu`](@ref) with a
+more sophisticated safe solution state.
+"""
+mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
+                                                              SolverFV <: DGSEM,
+                                                              uType <: AbstractVector,
+                                                              vType <: AbstractVector}
+    ### Limiter parameters ###
+    beta::RealT
+
+    # Newton parameters
+    max_iterations::Int
+    root_tol::RealT
+
+    # FV solver
+    solver_fv::SolverFV
+    alpha_max::RealT
+
+    ### Additional storage ###
+    u_fv_ode::uType
+    u_dg_node::vType # Pure DG solution
+    du_dalpha_node::vType # Derivative of solution w.r.t. alpha
+    dp_du_node::vType # Derivative of pressure w.r.t. conserved variables
+    u_newton_node::vType # Temporary storage for Newton update
+end
+
+function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
+                                                        beta = 0.1,
+                                                        max_iterations = 10,
+                                                        root_tol = 1e-15,
+                                                        surface_flux_fv = semi.solver.surface_integral.surface_flux,
+                                                        # Note: Assume Hennemann-Gassner as default vol integral
+                                                        volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
+                                                        alpha_max = semi.solver.volume_integral.indicator.alpha_max)
+    @unpack basis = semi.solver
+    @unpack equations = semi
+
+    volume_integral = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
+    solver_fv = DGSEM(basis, surface_flux_fv, volume_integral)
+
+    RealT = real(solver_fv)
+
+    # Array for safe FV solution
+    u_fv_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+
+    n_vars = nvariables(equations)
+    u_dg_node = MVector{n_vars, RealT}(undef) # Vector for pure DG solution at a node
+    du_dalpha_node = MVector{n_vars, RealT}(undef) # Vector for derivative of solution w.r.t. alpha at a node
+    dp_du_node = MVector{n_vars, RealT}(undef) # Vector for derivative of pressure w.r.t. conserved variables at a node
+    u_newton_node = MVector{n_vars, RealT}(undef) # Vector for Newton update at a node
+
+    return PositivityPreservingLimiterRuedaRamirezGassner{RealT,
+                                                          typeof(solver_fv),
+                                                          typeof(u_fv_ode),
+                                                          typeof(u_dg_node)}(beta,
+                                                                             max_iterations,
+                                                                             root_tol,
+                                                                             solver_fv,
+                                                                             alpha_max,
+                                                                             u_fv_ode,
+                                                                             u_dg_node,
+                                                                             du_dalpha_node,
+                                                                             dp_du_node,
+                                                                             u_newton_node)
+end
+
+function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
+                                                                    integrator::Trixi.SimpleIntegratorSSP,
+                                                                    stage)
+    semi = integrator.p
+    limiter!(u_ode, integrator, semi, stage)
+end
+
+function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
+                                                                    integrator::Trixi.SimpleIntegratorSSP,
+                                                                    semi::AbstractSemidiscretization,
+                                                                    stage)
+    @unpack alpha = semi.solver.volume_integral.indicator.cache # CARE: This assumes IndicatorHennemannGassner I guess
+    @unpack mesh = semi
+
+    u_dgfv = wrap_array(u_ode, semi)
+    limiter_rueda_gassner!(u_dgfv, alpha, mesh, integrator, semi, limiter!, stage)
+
+    return nothing
+end
+
+init_callback(limiter!::PositivityPreservingLimiterRuedaRamirezGassner, semi) = nothing
+
+finalize_callback(limiter!::PositivityPreservingLimiterRuedaRamirezGassner, semi) = nothing
+
+# Get pure FV solution for the current stage
+function compute_u_fv!(limiter::PositivityPreservingLimiterRuedaRamirezGassner,
+                       integrator::Trixi.SimpleIntegratorSSP, stage)
+    @unpack alg, t, dt, u, du, f = integrator
+
+    semi = integrator.p
+    @unpack mesh, equations, boundary_conditions, source_terms, cache = semi
+
+    @unpack solver_fv, u_fv_ode = limiter
+
+    # TODO: Some `resize!` call required for `u_fv`?
+
+    # Revert the last stage action
+    @threaded for i in eachindex(u_fv_ode)
+        u_fv_ode[i] = u[i] - dt * du[i]
+    end
+
+    # Compute first-order FV update, overwrite `integrator.du` with FV RHS
+    rhs!(wrap_array(du, semi), wrap_array(u_fv_ode, semi),
+         t + dt * alg.c[stage], mesh, equations,
+         boundary_conditions, source_terms, solver_fv, cache)
+
+    # Apply the first-order FV update
+    @threaded for i in eachindex(u_fv_ode)
+        u_fv_ode[i] += dt * du[i]
+    end
+
+    return nothing
+end
+
+include("positivity_ruedaramirez_gassner_1d.jl")
+end # @muladd

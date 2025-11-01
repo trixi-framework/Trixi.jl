@@ -5,8 +5,9 @@
 @muladd begin
 #! format: noindent
 
+include("entropy_bounded_limiter.jl")
+include("positivity_ruedaramirez_gassner.jl")
 include("positivity_zhang_shu.jl")
 include("subcell_limiter_idp_correction.jl")
 include("subcell_bounds_check.jl")
-include("entropy_bounded_limiter.jl")
 end # @muladd
