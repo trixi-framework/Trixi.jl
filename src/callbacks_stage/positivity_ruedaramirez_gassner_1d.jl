@@ -11,9 +11,11 @@ function correct_u!(u_dgfv::AbstractArray{<:Any, 3}, u_fv, u_dg_node,
                     element, semi)
     if delta_alpha > 0
         # TODO: Revisit this, maybe just clip at 1 and do not respect alpha_max?
-        if alpha[element] + delta_alpha > alpha_max
-            delta_alpha = alpha_max - alpha[element]
-            alpha[element] = alpha_max
+        #if alpha[element] + delta_alpha > alpha_max
+        #    delta_alpha = alpha_max - alpha[element]
+        if alpha[element] + delta_alpha > 1
+            delta_alpha = 1 - alpha[element]
+            alpha[element] = 1
         else
             alpha[element] += delta_alpha
         end
