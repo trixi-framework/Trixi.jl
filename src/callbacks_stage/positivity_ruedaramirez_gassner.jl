@@ -5,19 +5,72 @@
 @muladd begin
 #! format: noindent
 
-"""
-    PositivityPreservingLimiterRuedaRamirezGassner
+@doc raw"""
+    PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
+                                                   beta = 0.1,
+                                                   near_zero_tol = 1e-9,
+                                                   max_iterations = 10,
+                                                   root_tol = 1e-13, damping = 0.8,
+                                                   surface_flux_fv = semi.solver.surface_integral.surface_flux,
+                                                   volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
+                                                   alpha_max = semi.solver.volume_integral.indicator.alpha_max)
 
-Positivity-Preserving Limiter for DGSEM Discretizations of the Euler Equations based on
-Finite Volume subcells as proposed in
+Positivity-preserving limiter for density and pressure for finite volume subcell stabilized DGSEM.
+Applicable to every set of equations where density and pressure are the only variables required to be positive.
+These are for instance the [`CompressibleEulerEquations1D`](@ref) or the [`IdealGlmMhdEquations1D`](@ref)
+in any spatial dimension.
 
+!!! note
+    This limiter requires the usage of the [`VolumeIntegralShockCapturingHG`](@ref)
+    volume integral.
+    Furthermore, this limiter is currently only implemented for as a `stage_callback` for
+    [`Trixi.SimpleSSPRK33`](@ref).
+
+This limiter is a generalization of the [`PositivityPreservingLimiterZhangShu`](@ref) with a
+more sophisticated safe solution state.
+In particular, positivity at the DG nodes is not just enforced by limiting towards 
+the average/mean of the entire DG element, but instead by limiting towards a
+first-order finite volume solution on the subcells defined by the DG nodes.
+In particular, if positivity (or more general a relative lower bound) is violated at a DG node ``j``,
+the solution is limited towards the FV solution at that node by increasing the blending coefficient ``\alpha`` 
+in the Hennemann-Gassner shock capturing approach:
+```math
+u_j^\mathrm{DG-FV} = [1 - (\alpha^\mathrm{SC-HG} + \alpha^\mathrm{PP-RRG})] u_j^\mathrm{DG} + 
+(\alpha^\mathrm{SC-HG} + \alpha^\mathrm{PP-RRG}) u_j^\mathrm{FV}
+```
+In addition to the increased accuracy of this limiter, it also comes with the option to
+require limiting if the pure DG solution goes below a certain fraction of the FV solution.
+This is controlled by the parameter ``\beta`` via:
+```math
+\rho^\mathrm{DG} \overset{!}{\geq} \beta \rho^\mathrm{FV}, \quad 
+p^\mathrm{DG} \overset{!}{\geq} \beta p^\mathrm{FV}
+```
+The major computational cost of this limiter is the computation of the pure first-order FV solution
+for every stage of the time integrator.
+In that sense, this limiter causes computational costs to double.
+
+# Arguments
+- `semi::AbstractSemidiscretization`: The semidiscretization to which this limiter is applied.
+- `beta::RealT = 0.1`: Factor that quantifies the permitted DG lower relative deviation from the FV solution,
+                       see formula above. Must be in (0, 1].
+- `near_zero_tol::RealT = 1e-9`: Tolerance to avoid division by close-to-zero denominators.
+- `max_iterations::Int = 10`: Maximum number of Newton iterations to compute the required increase in ``\alpha``.
+- `root_tol::RealT = 1e-13`: Tolerance to determine if correction of the blending parameter ``\alpha``
+                             is needed at all & convergence of Newton iteration.
+- `damping::RealT = 0.8`: Damping factor for the Newton iteration.
+- `surface_flux_fv`: Surface flux function for the finite volume solver.
+                     By default the same flux as for the DGSEM solver.
+- `volume_flux_fv`: Volume flux function for the finite volume solver.
+                    By default the same flux as used for the finite volume subcells in
+                    [`VolumeIntegralShockCapturingHG`](@ref).
+- `alpha_max::RealT`: Maximum allowed value for the blending coefficient ``\alpha``.
+                      By default the same value as used in the [`VolumeIntegralShockCapturingHG`](@ref).
+                      May at most be 1.0 to maintain the convex combination property.
+
+# Reference
 - A. M. Rueda-Ramirez, G. J. Gassner (2021)
   A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations of the Euler Equations
   [DOI: 10.48550/arXiv.2102.06017](https://doi.org/10.48550/arXiv.2102.06017)
-
-Can be seen as a generalization of the [`PositivityPreservingLimiterZhangShu`](@ref) with a
-more sophisticated safe solution state.
-# TODO: explain math and keywords
 """
 mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
                                                               SolverFV <: DGSEM,
@@ -47,11 +100,17 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
                                                         beta = 0.1,
                                                         near_zero_tol = 1e-9,
                                                         max_iterations = 10,
-                                                        root_tol = 1e-15, damping = 0.8,
+                                                        root_tol = 1e-13, damping = 0.8,
                                                         surface_flux_fv = semi.solver.surface_integral.surface_flux,
-                                                        # Note: These default values assume `VolumeIntegralShockCapturingHG`
                                                         volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
                                                         alpha_max = semi.solver.volume_integral.indicator.alpha_max)
+    if beta <= 0 || beta > 1
+        throw(ArgumentError("`beta` must be in (0, 1] to make the limiter work!"))
+    end
+    if alpha_max > 1
+        throw(ArgumentError("`alpha_max` must be less than or equal to 1 to maintain convex combination property!"))
+    end
+
     @unpack basis = semi.solver
     @unpack equations = semi
 
@@ -113,11 +172,11 @@ function compute_u_fv!(limiter::PositivityPreservingLimiterRuedaRamirezGassner,
     end
 
     # Compute first-order FV update, overwrite `integrator.du` with FV RHS
-    rhs!(wrap_array(du, semi), wrap_array(u_fv_ode, semi),
-         t + dt * alg.c[stage],
-         mesh, equations,
-         boundary_conditions, source_terms,
-         solver_fv, cache)
+    @trixi_timeit timer() "rhs!" rhs!(wrap_array(du, semi), wrap_array(u_fv_ode, semi),
+                                      t + dt * alg.c[stage],
+                                      mesh, equations,
+                                      boundary_conditions, source_terms,
+                                      solver_fv, cache)
 
     # Apply the first-order FV update
     @threaded for i in eachindex(u_fv_ode)

@@ -127,7 +127,7 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
 
                         # Derivate follows simply from
                         # u_dgfv = (1 - α) u_dg + α * u_FV
-                        du_dalpha_node[v] = u_fv_node[v] - u_dg_node[v] # TODO: Delta t here?
+                        du_dalpha_node[v] = u_fv_node[v] - u_dg_node[v]
                     end
 
                     # compute ∂p/∂u
