@@ -137,7 +137,7 @@ function limiter_rueda_gassner!(u_dgfv, alpha, mesh::AbstractMesh{1}, semi,
                     dp_du_node[2] = (equations.gamma - 1) * (-v1)
                     dp_du_node[3] = (equations.gamma - 1)
                     =#
-                    dp_du_node = pressure_gradient(u_dgfv_node, equations)
+                    dp_du_node = gradient_conservative(pressure, u_dgfv_node, equations)
 
                     # CARE: Does this maybe allocate?
                     dp_dalpha = dot(dp_du_node, du_dalpha_node)

@@ -556,16 +556,15 @@ Calculate the point-wise error for the lake-at-rest steady state solution.
 """
 function lake_at_rest_error end
 
-# Default implementation of gradient for `variable`. Used for subcell limiting.
+# Default implementation of gradient for `variable`.
+# Used for subcell limiting and positivity preservation.
 # Implementing a gradient function for a specific variable improves the performance.
-@inline function gradient_conservative(variable, u, equations)
+@inline function gradient_conservative(variable, u::SVector{NVARS},
+                                       equations::AbstractEquations{NDIMS, NVARS}) where {
+                                                                                          NDIMS,
+                                                                                          NVARS
+                                                                                          }
     return ForwardDiff.gradient(x -> variable(x, equations), u)
-end
-
-# Compute gradient of pressure with respect to conserved variables.
-# Required for `PositivityPreservingLimiterRuedaRamirezGassner`
-function pressure_gradient(u, equations)
-    return ForwardDiff.gradient(u -> pressure(u, equations), u)
 end
 
 ####################################################################################################
