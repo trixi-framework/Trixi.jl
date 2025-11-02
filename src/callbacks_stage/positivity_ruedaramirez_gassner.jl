@@ -11,12 +11,13 @@
 Positivity-Preserving Limiter for DGSEM Discretizations of the Euler Equations based on
 Finite Volume subcells as proposed in
 
-- Rueda-Ramirez, Gassner (2021),
+- A. M. Rueda-Ramirez, G. J. Gassner (2021)
   A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations of the Euler Equations
-  [doi: 10.23967/wccm-eccomas.2020.038](https://doi.org/10.23967/wccm-eccomas.2020.038)
+  [DOI: 10.48550/arXiv.2102.06017](https://doi.org/10.48550/arXiv.2102.06017)
 
 Can be seen as a generalization of the [`PositivityPreservingLimiterZhangShu`](@ref) with a
 more sophisticated safe solution state.
+# TODO: explain math and keywords
 """
 mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
                                                               SolverFV <: DGSEM,
@@ -129,16 +130,16 @@ end
 function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
                                                                     integrator::Trixi.SimpleIntegratorSSP,
                                                                     stage)
-    semi = integrator.p
+    @trixi_timeit timer() "positivity-preserving limiter RRG" begin
+        semi = integrator.p
+        @unpack mesh = semi
 
-    @unpack alpha = semi.solver.volume_integral.indicator.cache # CARE: This assumes IndicatorHennemannGassner I guess
-    @unpack mesh = semi
+        # pure FV solution for stage s
+        compute_u_fv!(limiter!, integrator, stage)
 
-    # pure FV solution for stage s
-    compute_u_fv!(limiter!, integrator, stage)
-
-    u_dgfv = wrap_array(u_ode, semi)
-    limiter_rueda_gassner!(u_dgfv, alpha, mesh, semi, limiter!)
+        u_dgfv = wrap_array(u_ode, semi)
+        limiter_rueda_gassner!(u_dgfv, mesh, semi, limiter!)
+    end
 
     return nothing
 end

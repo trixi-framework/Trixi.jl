@@ -39,9 +39,9 @@ function correct_u!(u_dgfv::AbstractArray{<:Any, 3}, u_fv, u_dg_node,
 end
 
 # `mesh` passed in only for dispatch
-function limiter_rueda_gassner!(u_dgfv, alpha, mesh::AbstractMesh{1}, semi,
-                                limiter!)
+function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
     @unpack equations, solver, cache = semi
+    @unpack alpha = solver.volume_integral.indicator.cache
 
     @unpack beta, alpha_max, near_zero_tol,
     max_iterations, root_tol, damping,
@@ -108,7 +108,7 @@ function limiter_rueda_gassner!(u_dgfv, alpha, mesh::AbstractMesh{1}, semi,
             p_dgfv = pressure(u_dgfv_node, equations)
 
             a_p = beta * p_fv - p_dgfv # This is -g(alpha_new) in the paper, see eq. (15)
-            #println("p_fv: $p_fv, p_dgfv: $p_dgfv")
+
             if a_p > root_tol # => delta_alpha required
                 # Initial guess for Newton iteration, use value from density correction # TODO: Use 0?
                 delta_alpha_i = delta_alpha_density
@@ -118,12 +118,12 @@ function limiter_rueda_gassner!(u_dgfv, alpha, mesh::AbstractMesh{1}, semi,
                 # ∂p/∂α = ∂p/∂u ⋅ ∂u/∂α
                 for newton_it in 1:max_iterations
                     # Compute corrected alpha
-                    alpha_k = alpha[element] + delta_alpha_i
+                    alpha_n = alpha[element] + delta_alpha_i
                     # compute  ∂u/∂α
                     for v in eachvariable(equations)
                         # Compute pure DG solution
-                        u_dg_node[v] = (u_dgfv_node[v] - alpha_k * u_fv_node[v]) /
-                                       (1 - alpha_k)
+                        u_dg_node[v] = (u_dgfv_node[v] - alpha_n * u_fv_node[v]) /
+                                       (1 - alpha_n)
 
                         # Derivate follows simply from
                         # u_dgfv = (1 - α) u_dg + α * u_FV
@@ -131,15 +131,8 @@ function limiter_rueda_gassner!(u_dgfv, alpha, mesh::AbstractMesh{1}, semi,
                     end
 
                     # compute ∂p/∂u
-                    #=
-                    v1 = velocity(u_dgfv_node, equations)
-                    dp_du_node[1] = (equations.gamma - 1) * (0.5 * v1^2)
-                    dp_du_node[2] = (equations.gamma - 1) * (-v1)
-                    dp_du_node[3] = (equations.gamma - 1)
-                    =#
                     dp_du_node = gradient_conservative(pressure, u_dgfv_node, equations)
-
-                    # CARE: Does this maybe allocate?
+                    # combine with ∂u/∂α to get ∂p/∂α
                     dp_dalpha = dot(dp_du_node, du_dalpha_node)
 
                     # avoid divison by close to zero derivative
@@ -147,7 +140,7 @@ function limiter_rueda_gassner!(u_dgfv, alpha, mesh::AbstractMesh{1}, semi,
                         continue
                     end
 
-                    # Newton update to delta_alpha_p
+                    # Newton update to delta_alpha_i
                     # "+" due "-" of Newton formula and "-" in definition of a_p = beta * p_fv - p_dgfv
                     delta_alpha_i += damping * a_p / dp_dalpha
 

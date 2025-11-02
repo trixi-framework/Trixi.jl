@@ -193,7 +193,7 @@ function step!(integrator::SimpleIntegratorSSP)
         # perform forward Euler step
         @. integrator.u = integrator.u + integrator.dt * integrator.du
 
-        for stage_callback in alg.stage_callbacks
+        @trixi_timeit timer() "Stage-Callbacks" for stage_callback in alg.stage_callbacks
             stage_callback(integrator.u, integrator, stage)
         end
 
