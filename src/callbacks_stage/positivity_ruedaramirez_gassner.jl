@@ -47,7 +47,6 @@ p^\mathrm{DG} \overset{!}{\geq} \beta p^\mathrm{FV}
 ```
 The major computational cost of this limiter is the computation of the pure first-order FV solution
 for every stage of the time integrator.
-In that sense, this limiter causes computational costs to double.
 
 # Arguments
 - `semi::AbstractSemidiscretization`: The semidiscretization to which this limiter is applied.
