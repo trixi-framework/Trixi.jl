@@ -162,55 +162,6 @@ function SemidiscretizationHyperbolicSplit(mesh, equations1, equations2,
                                                       cache2)
 end
 
-# Create a new semidiscretization but change some parameters compared to the input.
-# `Base.similar` follows a related concept but would require us to `copy` the `mesh`,
-# which would impact the performance. Instead, `SciMLBase.remake` has exactly the
-# semantics we want to use here. In particular, it allows us to re-use mutable parts,
-# e.g. `remake(semi).mesh === semi.mesh`.
-function remake(semi::SemidiscretizationHyperbolicSplit;
-                uEltype = real(semi.solver),
-                mesh = semi.mesh,
-                equations1 = semi.equations1,
-                equations2 = semi.equations2,
-                initial_condition = semi.initial_condition,
-                solver1 = semi.solver1,
-                solver2 = semi.solver2,
-                source_terms1 = semi.source_terms1,
-                source_terms2 = semi.source_terms2,
-                boundary_conditions1 = semi.boundary_conditions1,
-                boundary_conditions2 = semi.boundary_conditions2)
-    # TODO: Which parts do we want to `remake`? At least the solver needs some
-    #       special care if shock-capturing volume integrals are used (because of
-    #       the indicators and their own caches...).
-    SemidiscretizationHyperbolicSplit(mesh, equations1, equations2,
-                                      initial_condition, solver1, solver2;
-                                      source_terms1, source_terms2,
-                                      boundary_conditions1, boundary_conditions2,
-                                      uEltype)
-end
-
-function Base.show(io::IO, semi::SemidiscretizationHyperbolicSplit)
-    @nospecialize semi # reduce precompilation time
-
-    print(io, "SemidiscretizationHyperbolicSplit(")
-    print(io, semi.mesh)
-    print(io, ", ", semi.equations1)
-    print(io, ", ", semi.equations2)
-    print(io, ", ", semi.initial_condition)
-    print(io, ", ", semi.boundary_conditions1)
-    print(io, ", ", semi.boundary_conditions2)
-    print(io, ", ", semi.source_terms1)
-    print(io, ", ", semi.source_terms2)
-    print(io, ", ", semi.solver1)
-    print(io, ", ", semi.solver2)
-    print(io, ", cache(")
-    for (idx, key) in enumerate(keys(semi.cache1))
-        idx > 1 && print(io, " ")
-        print(io, key)
-    end
-    print(io, "))")
-end
-
 function Base.show(io::IO, ::MIME"text/plain",
                    semi::SemidiscretizationHyperbolicSplit)
     @nospecialize semi # reduce precompilation time
@@ -226,8 +177,6 @@ function Base.show(io::IO, ::MIME"text/plain",
                      semi.equations2 |> typeof |> nameof)
         summary_line(io, "initial condition", semi.initial_condition)
 
-        # print_boundary_conditions(io, semi)
-
         summary_line(io, "source terms 1", semi.source_terms1)
         summary_line(io, "source terms 2", semi.source_terms2)
         summary_line(io, "solver 1", semi.solver1 |> typeof |> nameof)
@@ -236,14 +185,6 @@ function Base.show(io::IO, ::MIME"text/plain",
         summary_footer(io)
     end
 end
-
-@inline Base.ndims(semi::SemidiscretizationHyperbolicSplit) = ndims(semi.mesh)
-
-@inline function nvariables(semi::SemidiscretizationHyperbolicSplit)
-    nvariables(semi.equations1)
-end
-
-@inline Base.real(semi::SemidiscretizationHyperbolicSplit) = real(semi.solver)
 
 # retain dispatch on hyperbolic equations only
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicSplit)
@@ -254,10 +195,6 @@ end
 function compute_coefficients(t, semi::SemidiscretizationHyperbolicSplit)
     # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
     compute_coefficients(semi.initial_condition, t, semi)
-end
-
-function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolicSplit)
-    compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
 """
