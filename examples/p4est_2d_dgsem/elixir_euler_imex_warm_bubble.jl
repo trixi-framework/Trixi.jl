@@ -1,6 +1,6 @@
 using Trixi
 using OrdinaryDiffEqBDF
-using SparseDiffTools ## This is needed to force 'autodiff = AutoFiniteDiff()' in the ODE solver.
+using ADTypes ## This is needed to force 'autodiff = AutoFiniteDiff()' in the ODE solver.
 
 function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquations2D)
     g = 9.81
