@@ -26,7 +26,7 @@ function initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEqua
     v1 = x[1] <= x_0 ? RealT(5.8846) : zero(RealT)
     v2 = x[1] <= x_0 ? RealT(1.1198) : zero(RealT)
     v3 = 0
-    p = x[1] <= x_0 ? RealT(42.0267) : RealT(0.1)
+    p = x[1] <= x_0 ? RealT(42.0267) : RealT(0.1) # Right state is 1 in reference
     B1 = 1
     B2 = x[1] <= x_0 ? RealT(3.6359) : one(RealT)
     B3 = 0
