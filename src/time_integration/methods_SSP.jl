@@ -177,8 +177,6 @@ function step!(integrator::SimpleIntegratorSSP)
 
     @assert !integrator.finalstep
     if isnan(integrator.dt)
-        println("Current time: ", integrator.t)
-        println("Current iter: ", integrator.iter)
         error("time step size `dt` is NaN")
     end
 
