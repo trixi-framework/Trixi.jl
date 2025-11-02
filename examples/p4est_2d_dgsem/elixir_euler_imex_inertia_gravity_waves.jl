@@ -3,38 +3,39 @@ using OrdinaryDiffEqBDF
 using SparseDiffTools ## This is needed to force 'autodiff = AutoFiniteDiff()' in the ODE solver.
 using OrdinaryDiffEqLowOrderRK
 
-function initial_condition_inertia_gravity_waves(x, t, equations::CompressibleEulerEquations2D)
-	g = 9.81
-	c_p = 1004.0
-	c_v = 717.0
+function initial_condition_inertia_gravity_waves(x, t,
+                                                 equations::CompressibleEulerEquations2D)
+    g = 9.81
+    c_p = 1004.0
+    c_v = 717.0
 
-	A = 5000.0
-	H = 10000
-	b0 = 0.01
-	xc = -150_000 + 100_000
-	binv = (1 + (x[1] - xc)^2 / A^2)
-	potential_temperature_ref = 300 * exp(0.01^2 / g * x[2])
-	potential_temperature_perturbation = b0 * sin(pi * x[2] / H) / binv
+    A = 5000.0
+    H = 10000
+    b0 = 0.01
+    xc = -150_000 + 100_000
+    binv = (1 + (x[1] - xc)^2 / A^2)
+    potential_temperature_ref = 300 * exp(0.01^2 / g * x[2])
+    potential_temperature_perturbation = b0 * sin(pi * x[2] / H) / binv
 
-	potential_temperature = potential_temperature_ref + potential_temperature_perturbation
+    potential_temperature = potential_temperature_ref + potential_temperature_perturbation
 
-	# Exner pressure, solves hydrostatic equation for x[2]
-	exner = 1 + g^2 / (c_p * 300.0 * 0.01^2) * (exp(-0.01^2 / g * x[2]) - 1)
+    # Exner pressure, solves hydrostatic equation for x[2]
+    exner = 1 + g^2 / (c_p * 300.0 * 0.01^2) * (exp(-0.01^2 / g * x[2]) - 1)
 
-	# pressure
-	p_0 = 100_000.0  # reference pressure
-	R = c_p - c_v    # gas constant (dry air)
-	p = p_0 * exner^(c_p / R)
+    # pressure
+    p_0 = 100_000.0  # reference pressure
+    R = c_p - c_v    # gas constant (dry air)
+    p = p_0 * exner^(c_p / R)
 
-	# temperature
-	T = potential_temperature * exner
+    # temperature
+    T = potential_temperature * exner
 
-	# density
-	rho = p / (R * T)
+    # density
+    rho = p / (R * T)
 
-	v1 = 20.0
-	v2 = 0.0
-	return prim2cons(SVector(rho, v1, v2, p), equations)
+    v1 = 20.0
+    v2 = 0.0
+    return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
 @inline function boundary_condition_slip_wall_vel(u_inner, normal_direction::AbstractVector,
@@ -60,7 +61,7 @@ end
 end
 
 @inline function flux_lmars_fast(u_ll, u_rr, normal_direction::AbstractVector,
-    equations::CompressibleEulerEquations2D)
+                                 equations::CompressibleEulerEquations2D)
     a = 340.0
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
@@ -77,19 +78,19 @@ end
     v_interface = 0.5f0 * (v_ll + v_rr) - 1 / (2 * a * rho) * (p_rr - p_ll) * norm_
 
     if (v_interface > 0)
-	f4 = p_ll * v_interface
+        f4 = p_ll * v_interface
     else
-	f4 = p_rr * v_interface
+        f4 = p_rr * v_interface
     end
 
-	return SVector(zero(eltype(u_ll)),
-        p_interface * normal_direction[1],
-        p_interface * normal_direction[2],
-	f4)
+    return SVector(zero(eltype(u_ll)),
+                   p_interface * normal_direction[1],
+                   p_interface * normal_direction[2],
+                   f4)
 end
 
 @inline function flux_lmars_slow(u_ll, u_rr, normal_direction::AbstractVector,
-    equations::CompressibleEulerEquations2D)
+                                 equations::CompressibleEulerEquations2D)
     a = 340.0
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
@@ -112,13 +113,13 @@ end
     end
 
     return SVector(f1,
-        f2, 
-        f3,
-        f4)
+                   f2,
+                   f3,
+                   f4)
 end
 
 @inline function flux_kennedy_gruber_slow(u_ll, u_rr, normal_direction::AbstractVector,
-                                     equations::CompressibleEulerEquations2D)
+                                          equations::CompressibleEulerEquations2D)
     # Unpack left and right state
     rho_e_ll = last(u_ll)
     rho_e_rr = last(u_rr)
@@ -133,18 +134,18 @@ end
     p_avg = 0.5f0 * (p_ll + p_rr)
     e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
 
-    v_dot_n_avg_horizontal = v1_avg * normal_direction[1] 
+    v_dot_n_avg_horizontal = v1_avg * normal_direction[1]
     # Calculate fluxes depending on normal_direction
     f1 = rho_avg * v_dot_n_avg
-    f2 = f1 * v1_avg 
-    f3 = f1 * v2_avg 
-    f4 = f1 * e_avg 
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * e_avg
 
     return SVector(f1, f2, f3, f4)
 end
 
 @inline function flux_kennedy_gruber_fast(u_ll, u_rr, normal_direction::AbstractVector,
-                                     equations::CompressibleEulerEquations2D)
+                                          equations::CompressibleEulerEquations2D)
     # Unpack left and right state
     rho_e_ll = last(u_ll)
     rho_e_rr = last(u_rr)
@@ -162,7 +163,7 @@ end
     f3 = p_avg * normal_direction[2]
     f4 = p_avg * v_dot_n_avg
 
-	return SVector(zero(eltype(u_ll)), f2, f3, f4)
+    return SVector(zero(eltype(u_ll)), f2, f3, f4)
 end
 
 @inline function source_terms_gravity(u, x, t, equations::CompressibleEulerEquations2D)
@@ -188,8 +189,8 @@ coordinates_max = (150_000.0, 10_000.0)
 trees_per_dimension = (40, 5)
 
 mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
-	coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-	periodicity = (true, false), initial_refinement_level = 0)
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 periodicity = (true, false), initial_refinement_level = 0)
 
 boundary_conditions_explicit = Dict(:y_neg => boundary_condition_slip_wall_vel,
                                     :y_pos => boundary_condition_slip_wall_vel)
@@ -226,8 +227,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # run the simulation
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode,
-           SBDF2(autodiff = AutoFiniteDiff());
-          # Euler();
+            SBDF2(autodiff = AutoFiniteDiff());
+            # Euler();
             dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false,
             callback = callbacks,);
