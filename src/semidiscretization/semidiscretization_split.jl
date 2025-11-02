@@ -228,8 +228,8 @@ function Base.show(io::IO, ::MIME"text/plain",
 
         # print_boundary_conditions(io, semi)
 
-        summary_line(io, "source terms1", semi.source_terms1)
-        summary_line(io, "source terms2se", semi.source_terms2)
+        summary_line(io, "source terms 1", semi.source_terms1)
+        summary_line(io, "source terms 2", semi.source_terms2)
         summary_line(io, "solver 1", semi.solver1 |> typeof |> nameof)
         summary_line(io, "solver 2", semi.solver2 |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofs(semi))
@@ -285,10 +285,10 @@ function Trixi.semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
     # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
     # first function implicitly and the second one explicitly. Thus, we pass the
     # stiffer parabolic function first.
-    return SplitODEProblem{iip}(rhs1!, rhs2!, u0_ode, tspan, semi)
+    return SplitODEProblem{iip}(rhs_stiff!, rhs!, u0_ode, tspan, semi)
 end
 
-function rhs1!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
+function rhs_stiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
     @unpack mesh, equations1, initial_condition, boundary_conditions1, source_terms1, solver1, cache1 = semi
 
     u = wrap_array(u_ode, mesh, equations1, solver1, cache1)
@@ -296,17 +296,17 @@ function rhs1!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs! implicit" rhs!(du, u, t, mesh, equations1,
-                                               boundary_conditions1, source_terms1,
-                                               solver1,
-                                               cache1)
+    @trixi_timeit timer() "rhs! stiff" rhs!(du, u, t, mesh, equations1,
+                                            boundary_conditions1, source_terms1,
+                                            solver1,
+                                            cache1)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[1], runtime)
 
     return nothing
 end
 
-function rhs2!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
+function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
     @unpack mesh, equations2, initial_condition, boundary_conditions2, source_terms2, solver2, cache2 = semi
 
     u = wrap_array(u_ode, mesh, equations2, solver2, cache2)
@@ -314,10 +314,10 @@ function rhs2!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs! explicit" rhs!(du, u, t, mesh, equations2,
-                                               boundary_conditions2, source_terms2,
-                                               solver2,
-                                               cache2)
+    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations2,
+                                      boundary_conditions2, source_terms2,
+                                      solver2,
+                                      cache2)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[2], runtime)
 
