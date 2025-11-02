@@ -23,15 +23,16 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
                                                               uType <: AbstractVector,
                                                               vType <: AbstractVector}
     ### Limiter parameters ###
-    beta::RealT
+    beta::RealT # Factor that quantifies the permitted DG lower deviation from the FV solution
+    alpha_max::RealT # Maximum FV-DG blending coefficient
+    near_zero_tol::RealT # Tolerance to avoid division by close-to-zero denominators
 
-    # Newton parameters
-    max_iterations::Int
-    root_tol::RealT
+    # Newton parameters for pressure correction
+    max_iterations::Int # Maximum number iterations
+    root_tol::RealT # Determines if correction is needed at all & convergence of Newton iteration
+    damping::RealT # Damping factor
 
-    # FV solver
-    solver_fv::SolverFV
-    alpha_max::RealT
+    solver_fv::SolverFV # Finite Volume solver
 
     ### Additional storage ###
     u_fv_ode::uType       # Finite-Volume update
@@ -43,10 +44,11 @@ end
 
 function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
                                                         beta = 0.1,
+                                                        near_zero_tol = 1e-9,
                                                         max_iterations = 10,
-                                                        root_tol = 1e-15,
+                                                        root_tol = 1e-15, damping = 0.8,
                                                         surface_flux_fv = semi.solver.surface_integral.surface_flux,
-                                                        # Note: Assume Hennemann-Gassner as default vol integral
+                                                        # Note: These default values assume `VolumeIntegralShockCapturingHG`
                                                         volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
                                                         alpha_max = semi.solver.volume_integral.indicator.alpha_max)
     @unpack basis = semi.solver
@@ -55,12 +57,13 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
     volume_integral = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
     solver_fv = DGSEM(basis, surface_flux_fv, volume_integral)
 
-    RealT = real(solver_fv)
-
     # Array for FV solution
     u_fv_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
 
     n_vars = nvariables(equations)
+    RealT = real(solver_fv)
+
+    # Short vectors for storing temporary solutions and derivatives at a node
     u_dg_node = MVector{n_vars, RealT}(undef)
     du_dalpha_node = MVector{n_vars, RealT}(undef)
     dp_du_node = MVector{n_vars, RealT}(undef)
@@ -70,10 +73,12 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
                                                           typeof(solver_fv),
                                                           typeof(u_fv_ode),
                                                           typeof(u_dg_node)}(beta,
+                                                                             alpha_max,
+                                                                             near_zero_tol,
                                                                              max_iterations,
                                                                              root_tol,
+                                                                             damping,
                                                                              solver_fv,
-                                                                             alpha_max,
                                                                              u_fv_ode,
                                                                              u_dg_node,
                                                                              du_dalpha_node,
@@ -85,13 +90,6 @@ end
 init_callback(limiter!::PositivityPreservingLimiterRuedaRamirezGassner, semi) = nothing
 # Required to be used as `stage_callback` in `Trixi.SimpleIntegratorSSP`
 finalize_callback(limiter!::PositivityPreservingLimiterRuedaRamirezGassner, semi) = nothing
-
-function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
-                                                                    integrator::Trixi.SimpleIntegratorSSP,
-                                                                    stage)
-    semi = integrator.p
-    limiter!(u_ode, integrator, semi, stage)
-end
 
 # Get pure FV solution for the current stage
 function compute_u_fv!(limiter::PositivityPreservingLimiterRuedaRamirezGassner,
@@ -130,8 +128,9 @@ end
 
 function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
                                                                     integrator::Trixi.SimpleIntegratorSSP,
-                                                                    semi::AbstractSemidiscretization,
                                                                     stage)
+    semi = integrator.p
+
     @unpack alpha = semi.solver.volume_integral.indicator.cache # CARE: This assumes IndicatorHennemannGassner I guess
     @unpack mesh = semi
 

@@ -93,7 +93,8 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-stepsize_callback = StepsizeCallback(cfl = 0.3) # 0.6 for Zhang-Shu
+# 0.6 also about maximum for `PositivityPreservingLimiterZhangShu`
+stepsize_callback = StepsizeCallback(cfl = 0.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -103,7 +104,9 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 limiter! = PositivityPreservingLimiterRuedaRamirezGassner(semi;
-                                                          beta = 0.1, root_tol = 1e-6)
+                                                          beta = 0.1, root_tol = 1e-8,
+                                                          alpha_max = 1.0,
+                                                          max_iterations = 25)
 stage_callbacks = (limiter!,)
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
