@@ -569,8 +569,8 @@ end
 include("numerical_fluxes.jl")
 
 # Linear scalar advection
-abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <:
-              AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
+              AbstractEquations{NDIMS, 1} end
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
@@ -724,4 +724,8 @@ include("traffic_flow_lwr_1d.jl")
 abstract type AbstractMaxwellEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("maxwell_1d.jl")
+
+abstract type AbstractLinearElasticityEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("linear_elasticity_1d.jl")
 end # @muladd

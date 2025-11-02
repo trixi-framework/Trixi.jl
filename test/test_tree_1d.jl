@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
@@ -51,6 +51,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Maxwell
     include("test_tree_1d_maxwell.jl")
+
+    # Linear elasticity
+    include("test_tree_1d_linear_elasticity.jl")
 
     # Passive tracers
     include("test_tree_1d_passive_tracers.jl")

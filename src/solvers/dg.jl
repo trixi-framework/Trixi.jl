@@ -90,6 +90,7 @@ create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTupl
 
 """
     VolumeIntegralFluxDifferencing(volume_flux)
+    VolumeIntegralFluxDifferencing(; volume_flux = flux_central)
 
 Volume integral type for DG methods based on SBP operators and flux differencing
 using a symmetric two-point `volume_flux`. This `volume_flux` needs to satisfy
@@ -115,6 +116,10 @@ the interface of numerical fluxes in Trixi.jl.
 """
 struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
     volume_flux::VolumeFlux
+end
+
+function VolumeIntegralFluxDifferencing(; volume_flux = flux_central)
+    return VolumeIntegralFluxDifferencing{typeof(volume_flux)}(volume_flux)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDifferencing)
@@ -185,8 +190,14 @@ function get_element_variables!(element_variables, u, mesh, equations,
                            volume_integral)
 end
 
+# Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
+# second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
+# volume integrals.
+abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegral end
+
 """
     VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
+    VolumeIntegralPureLGLFiniteVolume(; volume_flux_fv = flux_lax_friedrichs)
 
 A volume integral that only uses the subcell finite volume schemes of the
 [`VolumeIntegralShockCapturingHG`](@ref).
@@ -203,10 +214,15 @@ mesh (LGL = Legendre-Gauss-Lobatto).
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
+struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <:
+       AbstractVolumeIntegralPureLGLFiniteVolume
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
 end
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
+
+function VolumeIntegralPureLGLFiniteVolume(; volume_flux_fv = flux_lax_friedrichs)
+    return VolumeIntegralPureLGLFiniteVolume{typeof(volume_flux_fv)}(volume_flux_fv)
+end
 
 function Base.show(io::IO, ::MIME"text/plain",
                    integral::VolumeIntegralPureLGLFiniteVolume)
@@ -223,8 +239,90 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
+    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
+                                        volume_flux_fv = flux_lax_friedrichs,
+                                        reconstruction_mode = reconstruction_O2_full,
+                                        slope_limiter = minmod)
+
+This gives an up to  second order accurate finite volume scheme on an LGL-type subcell
+mesh (LGL = Legendre-Gauss-Lobatto).
+Depending on the `reconstruction_mode` and `slope_limiter`, experimental orders of convergence
+between 1 and 2 can be expected in practice.
+Since this is a volume integral, all reconstructions are purely cell-local, i.e.,
+no neighboring elements are queried at reconstruction stage.
+
+The interface values of the inner DG-subcells are reconstructed using the standard MUSCL-type reconstruction.
+For the DG-subcells at the boundaries, two options are available:
+
+1) The unlimited slope is used on these cells.
+   This gives full second order accuracy, but also does not damp overshoots between cells.
+   The `reconstruction_mode` corresponding to this is `reconstruction_O2_full`.
+2) On boundary subcells, the solution is represented using a constant value, thereby falling back to formally only first order.
+   The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
+   In the reference below, this is the recommended reconstruction mode and is thus used by default.
+
+!!! note "Conservative Systems only"
+    Currently only implemented for systems in conservative form, i.e.,
+    `have_nonconservative_terms(equations) = False()`
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+See especially Sections 3.2, Section 4, and Appendix D of the paper
+
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. 
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+"""
+struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
+                                           Reconstruction, Limiter} <:
+       AbstractVolumeIntegralPureLGLFiniteVolume
+    x_interfaces::Vector{RealT} # x-coordinates of the sub-cell element interfaces
+    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+    reconstruction_mode::Reconstruction # which type of FV reconstruction to use
+    slope_limiter::Limiter # which type of slope limiter function
+end
+
+function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
+                                             volume_flux_fv = flux_lax_friedrichs,
+                                             reconstruction_mode = reconstruction_O2_full,
+                                             slope_limiter = minmod) where {Basis}
+    # Suffices to store only the intermediate boundaries of the sub-cell elements                                             
+    x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
+    VolumeIntegralPureLGLFiniteVolumeO2{eltype(basis.weights),
+                                        typeof(basis),
+                                        typeof(volume_flux_fv),
+                                        typeof(reconstruction_mode),
+                                        typeof(slope_limiter)}(x_interfaces,
+                                                               volume_flux_fv,
+                                                               reconstruction_mode,
+                                                               slope_limiter)
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   integral::VolumeIntegralPureLGLFiniteVolumeO2)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        setup = [
+            "FV flux" => integral.volume_flux_fv,
+            "Reconstruction" => integral.reconstruction_mode,
+            "Slope limiter" => integral.slope_limiter,
+            "Subcell boundaries" => vcat([-1.0], integral.x_interfaces, [1.0])
+        ]
+        summary_box(io, "VolumeIntegralPureLGLFiniteVolumeO2", setup)
+    end
+end
+
+"""
     VolumeIntegralSubcellLimiting(limiter;
-                                  volume_flux_dg, volume_flux_fv)
+                                  volume_flux_dg = flux_central,
+                                  volume_flux_fv = flux_lax_friedrichs)
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
 with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
@@ -242,8 +340,9 @@ struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
     limiter::Limiter
 end
 
-function VolumeIntegralSubcellLimiting(limiter; volume_flux_dg,
-                                       volume_flux_fv)
+function VolumeIntegralSubcellLimiting(limiter;
+                                       volume_flux_dg = flux_central,
+                                       volume_flux_fv = flux_lax_friedrichs)
     VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
                                   typeof(limiter)}(volume_flux_dg, volume_flux_fv,
                                                    limiter)

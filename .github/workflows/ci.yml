@@ -35,6 +35,11 @@ on:
       - 'utils/**'
   workflow_dispatch:
 
+# needed to allow julia-actions/cache to delete old caches that it has created
+permissions:
+  actions: write
+  contents: read
+
 # Cancel redundant CI tests automatically
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -86,8 +91,12 @@ jobs:
             os: ubuntu-latest
             arch: x64
             trixi_test: threaded_legacy
+          - version: '1.12'
+            os: ubuntu-latest
+            arch: x64
+            trixi_test: threaded_legacy
           - version: '1.10'
-            os: macos-13
+            os: macos-15-intel
             arch: x64
             trixi_test: mpi
           - version: '1.10'
@@ -110,6 +119,8 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v2
+        with:
+          include-matrix: false
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
