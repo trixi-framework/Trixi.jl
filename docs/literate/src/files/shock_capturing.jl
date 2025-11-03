@@ -256,8 +256,8 @@ plot(sol)
 # on-the-fly computed first-order FV solution instead of the plain element mean value.
 # The main drawback is the increased computational cost due to the computation of the
 # first-order FV solution at every Runge-Kutta stage.
-# Since we have to embed this computation into the time integration, the RRG limiter
-# is currently only usable with the `Trixi.SimpleSSPRK33` time integration scheme.
+# Since we have to embed this computation of $\boldsymbol{u}^\mathrm{FV}$ into the time integration,
+# the RRG limiter is currently only usable with the `Trixi.SimpleSSPRK33` time integration scheme.
 
 # ## Simulation with shock capturing and RRG-positivity preserving limiter
 
