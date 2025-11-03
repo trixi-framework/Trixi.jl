@@ -13,7 +13,7 @@
                                                    root_tol = 1e-13, damping = 0.8,
                                                    surface_flux_fv = semi.solver.surface_integral.surface_flux,
                                                    volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
-                                                   alpha_max = semi.solver.volume_integral.indicator.alpha_max)
+                                                   alpha_max = semi.solver.volume_integral.indicator.alpha_max + 0.1)
 
 Positivity-preserving limiter for density and pressure for finite volume subcell stabilized DGSEM.
 Applicable to every set of equations where density and pressure are the only variables required to be positive.
@@ -42,16 +42,18 @@ In addition to the increased accuracy of this limiter, it also comes with the op
 require limiting if the pure DG solution goes below a certain fraction of the FV solution.
 This is controlled by the parameter ``\beta`` via:
 ```math
-\rho^\mathrm{DG} \overset{!}{\geq} \beta \rho^\mathrm{FV}, \quad 
-p^\mathrm{DG} \overset{!}{\geq} \beta p^\mathrm{FV}
+\rho^\mathrm{DG} \overset{!}{\geq} \beta_\rho \rho^\mathrm{FV}, \quad 
+p^\mathrm{DG} \overset{!}{\geq} \beta_p p^\mathrm{FV}
 ```
 The major computational cost of this limiter is the computation of the pure first-order FV solution
 for every stage of the time integrator.
 
 # Arguments
 - `semi::AbstractSemidiscretization`: The semidiscretization to which this limiter is applied.
-- `beta::RealT = 0.1`: Factor that quantifies the permitted DG lower relative deviation from the FV solution,
-                       see formula above. Must be in (0, 1].
+- `beta_rho::RealT = 0.1`: Factor that quantifies the permitted DG lower relative density deviation from the FV solution,
+                           see formula above. Must be in (0, 1].
+- `beta_p::RealT = 0.1`: Factor that quantifies the permitted DG lower relative deviation from the FV solution,
+                         see formula above. Must be in (0, 1].
 - `near_zero_tol::RealT = 1e-9`: Tolerance to avoid division by close-to-zero denominators.
 - `max_iterations::Int = 10`: Maximum number of Newton iterations to compute the required increase in ``\alpha``.
 - `root_tol::RealT = 1e-13`: Tolerance to determine if correction of the blending parameter ``\alpha``
@@ -63,11 +65,12 @@ for every stage of the time integrator.
                     By default the same flux as used for the finite volume subcells in
                     [`VolumeIntegralShockCapturingHG`](@ref).
 - `alpha_max::RealT`: Maximum allowed value for the blending coefficient ``\alpha``.
-                      By default the same value as used in the [`VolumeIntegralShockCapturingHG`](@ref).
+                      By default 0.1 larger than the value as used in the [`VolumeIntegralShockCapturingHG`](@ref).
+                      This is required to ensure that the limiter has any room to work in.
                       May at most be 1.0 to maintain the convex combination property.
 
 # Reference
-- A. M. Rueda-Ramirez, G. J. Gassner (2021)
+- A. M. Rueda-Ramírez, G. J. Gassner (2021)
   A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations of the Euler Equations
   [DOI: 10.48550/arXiv.2102.06017](https://doi.org/10.48550/arXiv.2102.06017)
 """
@@ -76,7 +79,8 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
                                                               uType <: AbstractVector,
                                                               vType <: AbstractVector}
     ### Limiter parameters ###
-    beta::RealT # Factor that quantifies the permitted DG lower deviation from the FV solution
+    beta_rho::RealT # Factor that quantifies the permitted DG lower density deviation from the FV value
+    beta_p::RealT # Factor that quantifies the permitted DG lower pressure deviation from the FV value
     alpha_max::RealT # Maximum FV-DG blending coefficient
     near_zero_tol::RealT # Tolerance to avoid division by close-to-zero denominators
 
@@ -89,6 +93,7 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
 
     ### Additional storage ###
     u_fv_ode::uType       # Finite-Volume update
+    # TODO: Make these guys threaded!
     u_dg_node::vType      # Pure DG solution at a node
     du_dalpha_node::vType # Derivative of solution w.r.t. alpha at a node
     dp_du_node::vType     # Derivative of pressure w.r.t. conserved variables at a node
@@ -96,15 +101,19 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
 end
 
 function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
-                                                        beta = 0.1,
+                                                        beta_rho = 0.1, beta_p = 0.1,
                                                         near_zero_tol = 1e-9,
                                                         max_iterations = 10,
                                                         root_tol = 1e-13, damping = 0.8,
                                                         surface_flux_fv = semi.solver.surface_integral.surface_flux,
                                                         volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
-                                                        alpha_max = semi.solver.volume_integral.indicator.alpha_max)
-    if beta <= 0 || beta > 1
-        throw(ArgumentError("`beta` must be in (0, 1] to make the limiter work!"))
+                                                        alpha_max = semi.solver.volume_integral.indicator.alpha_max +
+                                                                    0.1)
+    if beta_rho <= 0 || beta_rho > 1
+        throw(ArgumentError("`beta_rho` must be in (0, 1] to make the limiter work!"))
+    end
+    if beta_p <= 0 || beta_p > 1
+        throw(ArgumentError("`beta_p` must be in (0, 1] to make the limiter work!"))
     end
     if alpha_max > 1
         throw(ArgumentError("`alpha_max` must be less than or equal to 1 to maintain convex combination property!"))
@@ -131,7 +140,8 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
     return PositivityPreservingLimiterRuedaRamirezGassner{RealT,
                                                           typeof(solver_fv),
                                                           typeof(u_fv_ode),
-                                                          typeof(u_dg_node)}(beta,
+                                                          typeof(u_dg_node)}(beta_rho,
+                                                                             beta_p,
                                                                              alpha_max,
                                                                              near_zero_tol,
                                                                              max_iterations,
@@ -203,4 +213,5 @@ function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
 end
 
 include("positivity_ruedaramirez_gassner_1d.jl")
+include("positivity_ruedaramirez_gassner_2d.jl")
 end # @muladd

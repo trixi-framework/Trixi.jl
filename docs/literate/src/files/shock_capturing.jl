@@ -88,8 +88,12 @@
 # or density for the compressible Euler equations. This often results in crashed simulations since
 # the calculation of numerical fluxes or stable time steps uses mathematical operations like roots or
 # logarithms. One option to avoid these cases are a-posteriori positivity preserving limiters.
-# Trixi.jl provides the fully-discrete positivity-preserving limiter of
-# [Zhang, Shu (2011)](https://doi.org/10.1098/rspa.2011.0153).
+# Trixi.jl provides the fully-discrete positivity-preserving limiters of
+# [Zhang, Shu (2011)](https://doi.org/10.1098/rspa.2011.0153) and 
+# [Rueda-Ramírez, Gassner (2021)](https://doi.org/10.48550/arXiv.2102.06017).
+# We employ in the following the former one, as it is conceptually simpler.
+
+# ## Zhang-Shu (ZS) limiter
 
 # It works the following way. For every passed (scalar) variable and for every DG element we calculate
 # the minimal value $value_\text{min}$. If this value falls below the given threshold $\varepsilon$,
@@ -128,7 +132,7 @@
 # SSPRK43(stage_limiter!).
 # ````
 
-# # Simulation with shock capturing and positivity preserving
+# ## Simulation with shock capturing and ZS-positivity preserving limiter
 
 # Now, we can run a simulation using the described methods of shock capturing and positivity
 # preserving limiters. We want to give an example for the 2D compressible Euler equations.
@@ -217,6 +221,68 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
+
+using Plots
+plot(sol)
+
+# ## Rueda-Ramírez-Gassner (RRG) limiter
+
+# We repeat the simulation with the positivity preserving limiter of Rueda-Ramírez and Gassner.
+# This builds inherently on the shock capturing method with flux differencing described above,
+# thus requiring `volume_integral = VolumeIntegralShockCapturingHG`.
+#
+# The limiter works in the following way: For every Runge-Kutta stage, a pure first-order finite volume
+# update $\boldsymbol{u}^\mathrm{FV}$ on the DG subcells is computed.
+# Then, at every DG node $j$ the current DG solution density $\rho_j^\mathrm{DG}$ and 
+# pressure $p_j^\mathrm{DG}$ are compared
+# to the corresponding FV solution values $\rho_j^\mathrm{FV}$ and $p_j^\mathrm{FV}$.
+# If the DG values are below a relative decrease $\beta$ compared to the FV values, i.e.,
+# ```math
+# \rho^\mathrm{DG} \overset{!}{\geq} \beta_\rho \rho^\mathrm{FV}, \quad 
+# p^\mathrm{DG} \overset{!}{\geq} \beta_p p^\mathrm{FV}
+# ```
+# the limiter becomes active.
+# This means to compute a correction to the Hennemann-Gassner DG-FV blending coefficient $\alpha^\mathrm{PP-RRG}$
+# which is then used to update the DG-FV solution as
+# ```math
+# u_j^\mathrm{DG-FV} = [1 - (\alpha^\mathrm{SC-HG} + \alpha^\mathrm{PP-RRG})] u_j^\mathrm{DG} + 
+# (\alpha^\mathrm{SC-HG} + \alpha^\mathrm{PP-RRG}) u_j^\mathrm{FV}
+# ```
+# where $\alpha^\mathrm{SC-HG}$ is the Hennemann-Gassner blending coefficient that stems from the 
+# shock-capturing volume integral.
+# 
+# The main advantage of this limiter is that it preserves more of the high-order DG solution
+# compared to the Zhang-Shu limiter, as the DG solution is limited towards a more accurate
+# on-the-fly computed first-order FV solution instead of the plain element mean value.
+# The main drawback is the increased computational cost due to the computation of the
+# first-order FV solution at every Runge-Kutta stage.
+# Since we have to embed this computation into the time integration, the RRG limiter
+# is currently only usable with the `Trixi.SimpleSSPRK33` time integration scheme.
+
+# ## Simulation with shock capturing and RRG-positivity preserving limiter
+
+# We revisit the previous example with exchanged limiter and time integration scheme.
+# We need to reduce the CFL number slightly for the SSPRK33 scheme.
+stepsize_callback = StepsizeCallback(cfl = 0.6)
+callbacks = CallbackSet(analysis_callback, stepsize_callback);
+
+# Set up limiter with parameters `root_tol` and `alpha_max`.
+# The parameter `root_tol` is used to determine whether a correction
+# to the blending coefficient $\alpha$ is necessary or if the DG density & pressure
+# are already sufficiently close to the FV values.
+# The parameter `alpha_max` sets an upper bound on the combined blending coefficient
+# $\alpha^\mathrm{SC-HG} + \alpha^\mathrm{PP-RRG}$ to avoid excessive dissipation.
+# Note that this needs to be larger than the `alpha_max` parameter of the
+# shock capturing volume integral to have any effect.
+limiter! = PositivityPreservingLimiterRuedaRamirezGassner(semi;
+                                                          root_tol = 1e-8,
+                                                          alpha_max = 0.8)
+
+stage_callbacks = (limiter!,)
+
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  callback = callbacks);
 
 using Plots
 plot(sol)

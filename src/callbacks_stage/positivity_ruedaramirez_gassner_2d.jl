@@ -5,8 +5,8 @@
 @muladd begin
 #! format: noindent
 
-# 1D version
-function correct_u!(u_dgfv::AbstractArray{<:Any, 3}, u_fv, u_dg_node,
+# 2D version
+function correct_u!(u_dgfv::AbstractArray{<:Any, 4}, u_fv, u_dg_node,
                     delta_alpha, alpha, alpha_max,
                     element, semi)
     if delta_alpha > 0
@@ -19,9 +19,9 @@ function correct_u!(u_dgfv::AbstractArray{<:Any, 3}, u_fv, u_dg_node,
 
         @unpack solver, equations = semi
 
-        for i in eachnode(solver)
-            u_fv_node = get_node_vars(u_fv, equations, solver, i, element)
-            u_dgfv_node = get_node_vars(u_dgfv, equations, solver, i, element)
+        for j in eachnode(solver), i in eachnode(solver)
+            u_fv_node = get_node_vars(u_fv, equations, solver, i, j, element)
+            u_dgfv_node = get_node_vars(u_dgfv, equations, solver, i, j, element)
             for v in eachvariable(equations)
                 # Compute pure DG solution given Hennemann-Gassner blending:
                 #     u_dgfv = (1 - α) u_dg + α * u_FV
@@ -29,8 +29,8 @@ function correct_u!(u_dgfv::AbstractArray{<:Any, 3}, u_fv, u_dg_node,
                 u_dg_node[v] = (u_dgfv_node[v] - alpha[element] * u_fv_node[v]) /
                                (1 - alpha[element])
 
-                u_dgfv[v, i, element] = u_dgfv_node[v] +
-                                        delta_alpha * (u_fv_node[v] - u_dg_node[v])
+                u_dgfv[v, i, j, element] = u_dgfv_node[v] +
+                                           delta_alpha * (u_fv_node[v] - u_dg_node[v])
             end
         end
     end
@@ -39,7 +39,7 @@ function correct_u!(u_dgfv::AbstractArray{<:Any, 3}, u_fv, u_dg_node,
 end
 
 # `mesh` passed in only for dispatch
-function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
+function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{2}, semi, limiter!)
     @unpack equations, solver, cache = semi
     @unpack alpha = solver.volume_integral.indicator.cache
 
@@ -52,7 +52,7 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
 
     @threaded for element in eachelement(solver, cache)
         # if alpha is already maximized we are not permitted to correct
-        if abs(alpha[element] - alpha_max) < near_zero_tol
+        if abs(alpha[element] - alpha_max) < root_tol
             continue
         end
 
@@ -60,14 +60,14 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
         delta_alpha = zero(eltype(u_dgfv))
 
         # Density
-        for i in eachnode(solver)
-            u_fv_node = get_node_vars(u_fv, equations, solver, i, element)
+        for j in eachnode(solver), i in eachnode(solver)
+            u_fv_node = get_node_vars(u_fv, equations, solver, i, j, element)
             rho_fv = density(u_fv_node, equations)
             if rho_fv < 0 || isnan(rho_fv) || isinf(rho_fv)
                 error("Finite-Volume solution produces invalid value for density!")
             end
 
-            u_dgfv_node = get_node_vars(u_dgfv, equations, solver, i, element)
+            u_dgfv_node = get_node_vars(u_dgfv, equations, solver, i, j, element)
             rho_dgfv = density(u_dgfv_node, equations)
 
             a_rho = beta_rho * rho_fv - rho_dgfv
@@ -82,10 +82,10 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                     continue
                 end
 
-                delta_alpha_i = a_rho / (rho_fv - rho_dg)
+                delta_alpha_ij = a_rho / (rho_fv - rho_dg)
 
                 # delta_alpha is calculated for each node, use maximum for the entire element
-                delta_alpha = max(delta_alpha, delta_alpha_i)
+                delta_alpha = max(delta_alpha, delta_alpha_ij)
             end
         end
 
@@ -97,28 +97,28 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
         # Pressure
         delta_alpha_density = delta_alpha # Used for Newton init
         delta_alpha = zero(eltype(u_dgfv))
-        for i in eachnode(solver)
-            u_fv_node = get_node_vars(u_fv, equations, solver, i, element)
+        for j in eachnode(solver), i in eachnode(solver)
+            u_fv_node = get_node_vars(u_fv, equations, solver, i, j, element)
             p_fv = pressure(u_fv_node, equations)
             if p_fv < 0 || isnan(p_fv) || isinf(p_fv)
                 error("Finite-Volume solution produces invalid value for pressure!")
             end
 
-            u_dgfv_node = get_node_vars(u_dgfv, equations, solver, i, element)
+            u_dgfv_node = get_node_vars(u_dgfv, equations, solver, i, j, element)
             p_dgfv = pressure(u_dgfv_node, equations)
 
             a_p = beta_p * p_fv - p_dgfv # This is -g(alpha_new) in the paper, see eq. (15)
 
             if a_p > root_tol # => delta_alpha required
                 # Initial guess for Newton iteration, use value from density correction # TODO: Use 0?
-                delta_alpha_i = delta_alpha_density
+                delta_alpha_ij = delta_alpha_density
 
                 # Newton's method to solve for pressure delta_alpha
                 # Calculate ∂p/∂α using the chain rule
                 # ∂p/∂α = ∂p/∂u ⋅ ∂u/∂α
                 for newton_it in 1:max_iterations
                     # Compute corrected alpha
-                    alpha_n = alpha[element] + delta_alpha_i
+                    alpha_n = alpha[element] + delta_alpha_ij
                     # compute  ∂u/∂α
                     for v in eachvariable(equations)
                         # Compute pure DG solution
@@ -140,14 +140,15 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                         continue
                     end
 
-                    # Newton update to delta_alpha_i
+                    # Newton update to delta_alpha_ij
                     # "+" due "-" of Newton formula and "-" in definition of a_p = beta_p * p_fv - p_dgfv
-                    delta_alpha_i += damping * a_p / dp_dalpha
+                    delta_alpha_ij += damping * a_p / dp_dalpha
 
                     # calc corrected u
                     for v in eachvariable(equations)
                         u_newton_node[v] = u_dgfv_node[v] +
-                                           delta_alpha_i * (u_fv_node[v] - u_dg_node[v])
+                                           delta_alpha_ij *
+                                           (u_fv_node[v] - u_dg_node[v])
                     end
 
                     # get new pressure value
@@ -163,7 +164,7 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                         error("Number of iterations ($max_iterations) not enough to correct pressure!")
                     end
                 end
-                delta_alpha = max(delta_alpha, delta_alpha_i)
+                delta_alpha = max(delta_alpha, delta_alpha_ij)
             end
         end
 

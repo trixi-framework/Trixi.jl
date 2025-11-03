@@ -96,7 +96,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 limiter! = PositivityPreservingLimiterRuedaRamirezGassner(semi;
-                                                          beta = 0.1, root_tol = 1e-8,
+                                                          root_tol = 1e-8,
                                                           alpha_max = 0.7)
 stage_callbacks = (limiter!,)
 
