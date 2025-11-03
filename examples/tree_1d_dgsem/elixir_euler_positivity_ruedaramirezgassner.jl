@@ -73,14 +73,13 @@ amr_indicator = IndicatorLöhner(semi,
                                 variable = density_pressure)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 4,
-                                      med_level = 0, med_threshold = 0.1, # med_level = current level
+                                      med_level = 0, med_threshold = 0.1,
                                       max_level = 6, max_threshold = 0.3)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 2,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-# 0.6 also about maximum for `PositivityPreservingLimiterZhangShu`
 stepsize_callback = StepsizeCallback(cfl = 0.6)
 
 callbacks = CallbackSet(summary_callback,
@@ -99,13 +98,3 @@ stage_callbacks = (limiter!,)
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
-
-# Alternatively:
-#=
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
-                                                     variables = (Trixi.density, pressure))
-
-sol = solve(ode, SSPRK33(stage_limiter!);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            ode_default_options()..., callback = callbacks);
-=#

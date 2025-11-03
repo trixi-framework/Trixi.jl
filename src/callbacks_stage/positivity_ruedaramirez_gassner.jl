@@ -77,7 +77,7 @@ for every stage of the time integrator.
 mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
                                                               SolverFV <: DGSEM,
                                                               uType <: AbstractVector,
-                                                              vType <: AbstractVector}
+                                                              vType <: AbstractArray}
     ### Limiter parameters ###
     beta_rho::RealT # Factor that quantifies the permitted DG lower density deviation from the FV value
     beta_p::RealT # Factor that quantifies the permitted DG lower pressure deviation from the FV value
@@ -94,10 +94,10 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
     ### Additional storage ###
     u_fv_ode::uType       # Finite-Volume update
     # TODO: Make these guys threaded!
-    u_dg_node::vType      # Pure DG solution at a node
-    du_dalpha_node::vType # Derivative of solution w.r.t. alpha at a node
-    dp_du_node::vType     # Derivative of pressure w.r.t. conserved variables at a node
-    u_newton_node::vType  # Temporary storage for Newton update at a node
+    u_dg_node_threaded::vType      # Pure DG solution at a node
+    du_dalpha_node_threaded::vType # Derivative of solution w.r.t. alpha at a node
+    dp_du_node_threaded::vType     # Derivative of pressure w.r.t. conserved variables at a node
+    u_newton_node_threaded::vType  # Temporary storage for Newton update at a node
 end
 
 function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
@@ -130,29 +130,30 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
 
     n_vars = nvariables(equations)
     RealT = real(solver_fv)
+    MV1d = MVector{n_vars, RealT}
 
-    # Short vectors for storing temporary solutions and derivatives at a node
-    u_dg_node = MVector{n_vars, RealT}(undef)
-    du_dalpha_node = MVector{n_vars, RealT}(undef)
-    dp_du_node = MVector{n_vars, RealT}(undef)
-    u_newton_node = MVector{n_vars, RealT}(undef)
+    # Short thread-local vectors for storing temporary solutions and derivatives at a node
+    u_dg_node_threaded = MV1d[MV1d(undef) for _ in 1:Threads.maxthreadid()]
+    du_dalpha_node_threaded = MV1d[MV1d(undef) for _ in 1:Threads.maxthreadid()]
+    dp_du_node_threaded = MV1d[MV1d(undef) for _ in 1:Threads.maxthreadid()]
+    u_newton_node_threaded = MV1d[MV1d(undef) for _ in 1:Threads.maxthreadid()]
 
     return PositivityPreservingLimiterRuedaRamirezGassner{RealT,
                                                           typeof(solver_fv),
                                                           typeof(u_fv_ode),
-                                                          typeof(u_dg_node)}(beta_rho,
-                                                                             beta_p,
-                                                                             alpha_max,
-                                                                             near_zero_tol,
-                                                                             max_iterations,
-                                                                             root_tol,
-                                                                             damping,
-                                                                             solver_fv,
-                                                                             u_fv_ode,
-                                                                             u_dg_node,
-                                                                             du_dalpha_node,
-                                                                             dp_du_node,
-                                                                             u_newton_node)
+                                                          typeof(u_dg_node_threaded)}(beta_rho,
+                                                                                      beta_p,
+                                                                                      alpha_max,
+                                                                                      near_zero_tol,
+                                                                                      max_iterations,
+                                                                                      root_tol,
+                                                                                      damping,
+                                                                                      solver_fv,
+                                                                                      u_fv_ode,
+                                                                                      u_dg_node_threaded,
+                                                                                      du_dalpha_node_threaded,
+                                                                                      dp_du_node_threaded,
+                                                                                      u_newton_node_threaded)
 end
 
 # Required to be used as `stage_callback` in `Trixi.SimpleIntegratorSSP`

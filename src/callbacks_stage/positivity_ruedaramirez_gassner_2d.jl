@@ -46,7 +46,7 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{2}, semi, limiter!)
     @unpack beta_rho, beta_p, alpha_max, near_zero_tol,
     max_iterations, root_tol, damping,
     solver_fv, u_fv_ode,
-    u_dg_node, du_dalpha_node, dp_du_node, u_newton_node = limiter!
+    u_dg_node_threaded, du_dalpha_node_threaded, dp_du_node_threaded, u_newton_node_threaded = limiter!
 
     u_fv = wrap_array(u_fv_ode, semi)
 
@@ -88,6 +88,12 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{2}, semi, limiter!)
                 delta_alpha = max(delta_alpha, delta_alpha_ij)
             end
         end
+
+        # Get thread-local storage
+        u_dg_node = u_dg_node_threaded[Threads.threadid()]
+        du_dalpha_node = du_dalpha_node_threaded[Threads.threadid()]
+        dp_du_node = dp_du_node_threaded[Threads.threadid()]
+        u_newton_node = u_newton_node_threaded[Threads.threadid()]
 
         # Correct density
         correct_u!(u_dgfv, u_fv, u_dg_node,
