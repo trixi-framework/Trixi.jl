@@ -40,7 +40,7 @@ u_j^\mathrm{DG-FV} = [1 - (\alpha^\mathrm{SC-HG} + \alpha^\mathrm{PP-RRG})] u_j^
 ```
 In addition to the increased accuracy of this limiter, it also comes with the option to
 require limiting if the pure DG solution goes below a certain fraction of the FV solution.
-This is controlled by the parameter ``\beta`` via:
+This is controlled by the parameters ``\beta_\rho, \beta_p`` via:
 ```math
 \rho^\mathrm{DG} \overset{!}{\geq} \beta_\rho \rho^\mathrm{FV}, \quad 
 p^\mathrm{DG} \overset{!}{\geq} \beta_p p^\mathrm{FV}
@@ -93,11 +93,11 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
 
     ### Additional storage ###
     u_fv_ode::uType       # Finite-Volume update
-    # TODO: Make these guys threaded!
-    u_dg_node_threaded::vType      # Pure DG solution at a node
-    du_dalpha_node_threaded::vType # Derivative of solution w.r.t. alpha at a node
-    dp_du_node_threaded::vType     # Derivative of pressure w.r.t. conserved variables at a node
-    u_newton_node_threaded::vType  # Temporary storage for Newton update at a node
+    # These are thread-local storage for temporary variables at a node
+    u_dg_node_threaded::vType      # Pure DG solution
+    du_dalpha_node_threaded::vType # Derivative of solution w.r.t. alpha
+    dp_du_node_threaded::vType     # Derivative of pressure w.r.t. conserved variables
+    u_newton_node_threaded::vType  # Temporary storage for Newton update
 end
 
 function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
