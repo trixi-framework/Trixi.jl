@@ -559,11 +559,7 @@ function lake_at_rest_error end
 # Default implementation of gradient for `variable`.
 # Used for subcell limiting and positivity preservation.
 # Implementing a gradient function for a specific variable improves the performance.
-@inline function gradient_conservative(variable, u::SVector{NVARS},
-                                       equations::AbstractEquations{NDIMS, NVARS}) where {
-                                                                                          NDIMS,
-                                                                                          NVARS
-                                                                                          }
+@inline function gradient_conservative(variable, u, equations)
     return ForwardDiff.gradient(x -> variable(x, equations), u)
 end
 
