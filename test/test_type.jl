@@ -1185,9 +1185,6 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred energy_magnetic(cons, equations)) == RealT
             @test typeof(@inferred energy_internal(cons, equations)) == RealT
             @test typeof(@inferred cross_helicity(cons, equations)) == RealT
-
-            @test eltype(@inferred Trixi.gradient_conservative(pressure, cons, equations)) ==
-                  RealT
         end
     end
 
@@ -1308,6 +1305,9 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred energy_magnetic(cons, equations)) == RealT
             @test typeof(@inferred energy_internal(cons, equations)) == RealT
             @test typeof(@inferred cross_helicity(cons, equations)) == RealT
+
+            @test eltype(@inferred Trixi.gradient_conservative(pressure, cons, equations)) ==
+                  RealT
         end
     end
 
