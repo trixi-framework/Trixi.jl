@@ -782,4 +782,8 @@ include("traffic_flow_lwr_1d.jl")
 abstract type AbstractMaxwellEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("maxwell_1d.jl")
+
+abstract type AbstractLinearElasticityEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("linear_elasticity_1d.jl")
 end # @muladd

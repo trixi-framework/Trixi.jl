@@ -155,7 +155,7 @@ function flux(u, gradients, orientation::Integer,
     # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, T)
     # either computed directly or reverse engineered from the gradient of the entropy variables
     # by way of the `convert_gradient_variables` function.
-    _, dv1dx, dTdx = convert_derivative_to_primitive(u, gradients, equations)
+    _, dv1dx, dTdx = convert_derivative_to_primitive(u, gradients[1], equations)
 
     # Viscous stress (tensor)
     tau_11 = dv1dx
@@ -280,11 +280,20 @@ end
     prim2cons(u, equations.equations_hyperbolic)
 end
 
+"""
+    temperature(u, equations::CompressibleNavierStokesDiffusion1D)
+
+Compute the temperature from the conservative variables `u`.
+In particular, this assumes a specific gas constant ``R = 1``:
+```math
+T = \\frac{p}{\\rho}
+```
+"""
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion1D)
     rho, rho_v1, rho_e = u
 
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1^2 / rho)
-    T = p / rho
+    T = p / rho # Corresponds to a specific gas constant R = 1
     return T
 end
 

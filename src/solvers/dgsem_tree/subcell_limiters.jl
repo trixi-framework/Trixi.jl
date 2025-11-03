@@ -261,6 +261,39 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
     end
 end
 
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache(limiter::Type{SubcellLimiterIDP},
+                      equations::AbstractEquations{NDIMS},
+                      basis::LobattoLegendreBasis, bound_keys, bar_states) where {NDIMS}
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
+                                                                                        nnodes(basis),
+                                                                                        bound_keys)
+
+    cache = (;)
+    if bar_states
+        if NDIMS != 2
+            error("Bar states are only implemented for 2D problems.")
+        end
+        container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
+                                                                       nvariables(equations),
+                                                                       nnodes(basis))
+        cache = (; cache..., container_bar_states)
+    end
+
+    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # Local variable contains the maximum deviation since the last export.
+    idp_bounds_delta_local = Dict{Symbol, real(basis)}()
+    # Global variable contains the total maximum deviation.
+    idp_bounds_delta_global = Dict{Symbol, real(basis)}()
+    for key in bound_keys
+        idp_bounds_delta_local[key] = zero(real(basis))
+        idp_bounds_delta_global[key] = zero(real(basis))
+    end
+
+    return (; cache..., subcell_limiter_coefficients, idp_bounds_delta_local,
+            idp_bounds_delta_global)
+end
+
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
 # called here to get up-to-date values for IO, this is not easily possible in this case
 # because the calculation is very integrated into the method.
@@ -273,6 +306,37 @@ end
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
     get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
+end
+
+function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
+                                      t, dt;
+                                      kwargs...)
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
+    # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
+    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
+
+    if limiter.smoothness_indicator
+        elements = semi.cache.element_ids_dgfv
+    else
+        elements = eachelement(dg, semi.cache)
+    end
+
+    if limiter.local_twosided
+        @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,
+                                                                   u, t, dt, semi,
+                                                                   elements)
+    end
+    if limiter.positivity
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi,
+                                                           elements)
+    end
+    if limiter.local_onesided
+        @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha, limiter,
+                                                                   u, t, dt, semi,
+                                                                   elements)
+    end
+
+    return nothing
 end
 
 ###############################################################################

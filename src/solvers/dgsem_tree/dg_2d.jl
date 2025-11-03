@@ -11,7 +11,7 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::TreeMesh{2}, equations,
+function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
                       dg::DG, RealT, uEltype)
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
@@ -34,16 +34,6 @@ function create_cache(mesh::TreeMesh{2}, equations,
     return cache
 end
 
-# The methods below are specialized on the volume integral type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
-                                  UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}},
-                      equations, volume_integral::VolumeIntegralFluxDifferencing,
-                      dg::DG, uEltype)
-    NamedTuple()
-end
-
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
@@ -51,17 +41,20 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
                          dg, uEltype)
 
-    A3dp1_x = Array{uEltype, 3}
-    A3dp1_y = Array{uEltype, 3}
+    A3d = Array{uEltype, 3}
 
-    fstar1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
-    fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
+    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
 
     return (; cache...,
             fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
@@ -71,17 +64,20 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
-    A3dp1_x = Array{uEltype, 3}
-    A3dp1_y = Array{uEltype, 3}
+    A3d = Array{uEltype, 3}
 
-    fstar1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                        nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
-    fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                        nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
+    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
 
     return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
             fstar2_R_threaded)
@@ -95,14 +91,14 @@ function create_cache(mesh::TreeMesh{2}, equations,
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
-    fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
     # A2d = Array{uEltype, 2}
-    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
-    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
+    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.maxthreadid()]
+    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.maxthreadid()]
 
     cache = (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
              fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
@@ -113,7 +109,8 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+              mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},
+                          TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
@@ -193,23 +190,6 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           StructuredMeshView{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, P4estMeshView{2},
-                                           T8codeMesh{2}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel!(du, u, element, mesh,
-                          have_nonconservative_terms, equations,
-                          dg, cache)
-    end
-
-    return nothing
-end
-
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -243,24 +223,6 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     end
 
     return nothing
-end
-
-# flux differencing volume integral. For curved meshes averaging of the
-# mapping terms, stored in `cache.elements.contravariant_vectors`, is peeled apart
-# from the evaluation of the physical fluxes in each Cartesian direction
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           StructuredMeshView{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           T8codeMesh{2}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        flux_differencing_kernel!(du, u, element, mesh,
-                                  have_nonconservative_terms, equations,
-                                  volume_integral.volume_flux, dg, cache)
-    end
 end
 
 @inline function flux_differencing_kernel!(du, u,
@@ -345,67 +307,6 @@ end
     end
 end
 
-# TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           T8codeMesh{2}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralShockCapturingHG,
-                               dg::DGSEM, cache)
-    @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
-
-    # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-    alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
-                                                               cache)
-
-    # For `Float64`, this gives 1.8189894035458565e-12
-    # For `Float32`, this gives 1.1920929f-5
-    RealT = eltype(alpha)
-    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
-    @threaded for element in eachelement(dg, cache)
-        alpha_element = alpha[element]
-        # Clip blending factor for values close to zero (-> pure DG)
-        dg_only = isapprox(alpha_element, 0, atol = atol)
-
-        if dg_only
-            flux_differencing_kernel!(du, u, element, mesh,
-                                      have_nonconservative_terms, equations,
-                                      volume_flux_dg, dg, cache)
-        else
-            # Calculate DG volume integral contribution
-            flux_differencing_kernel!(du, u, element, mesh,
-                                      have_nonconservative_terms, equations,
-                                      volume_flux_dg, dg, cache, 1 - alpha_element)
-
-            # Calculate FV volume integral contribution
-            fv_kernel!(du, u, mesh, have_nonconservative_terms, equations,
-                       volume_flux_fv, dg, cache, element, alpha_element)
-        end
-    end
-
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           T8codeMesh{2}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
-                               dg::DGSEM, cache)
-    @unpack volume_flux_fv = volume_integral
-
-    # Calculate LGL FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fv_kernel!(du, u, mesh, have_nonconservative_terms, equations, volume_flux_fv,
-                   dg, cache, element, true)
-    end
-
-    return nothing
-end
-
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                         UnstructuredMesh2D, P4estMesh{2},
@@ -413,7 +314,7 @@ end
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
@@ -700,12 +601,6 @@ function prolong2boundaries!(cache, u,
     end
 
     return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
-    @assert isempty(eachboundary(dg, cache))
 end
 
 function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
@@ -1205,7 +1100,7 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
     return nothing
 end
 
-# TODO: Taal dimension agnostic
+# Need dimension specific version to avoid error at dispatching
 function calc_sources!(du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{2}, dg::DG, cache)
     return nothing
