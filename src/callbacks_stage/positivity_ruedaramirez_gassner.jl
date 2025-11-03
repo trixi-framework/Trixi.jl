@@ -23,7 +23,7 @@ in any spatial dimension.
 !!! note
     This limiter requires the usage of the [`VolumeIntegralShockCapturingHG`](@ref)
     volume integral.
-    Furthermore, this limiter is currently only implemented for as a `stage_callback` for
+    Furthermore, this limiter is currently only implemented as a `stage_callback` for
     [`Trixi.SimpleSSPRK33`](@ref).
 
 This limiter is a generalization of the [`PositivityPreservingLimiterZhangShu`](@ref) with a
