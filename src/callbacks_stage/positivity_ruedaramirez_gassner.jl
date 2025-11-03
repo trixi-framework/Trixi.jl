@@ -203,7 +203,7 @@ function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
         semi = integrator.p
         @unpack mesh = semi
 
-        # pure FV solution for stage s
+        # pure FV solution for current `stage`
         compute_u_fv!(limiter!, integrator, stage)
 
         u_dgfv = wrap_array(u_ode, semi)
