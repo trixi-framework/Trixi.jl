@@ -2118,8 +2118,8 @@ end
 end
 
 # Transformation from conservative variables u to d(p)/d(u)
-@inline function gradient_conservative(::pressure, u,
-                                       equations::CompressibleEulerEquations2D)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
     v1 = rho_v1 / rho
@@ -2179,8 +2179,8 @@ end
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function gradient_conservative(::entropy_math, u,
-                                       equations::CompressibleEulerEquations2D)
+@inline function gradient_conservative(::typeof(entropy_math),
+                                       u, equations::CompressibleEulerEquations2D)
     return cons2entropy(u, equations)
 end
 
@@ -2206,8 +2206,8 @@ Note: This is *not* the "conventional" specific entropy ``s = ln(p / \rho^\gamma
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function gradient_conservative(::entropy_guermond_etal, u,
-                                       equations::CompressibleEulerEquations2D)
+@inline function gradient_conservative(::typeof(entropy_guermond_etal),
+                                       u, equations::CompressibleEulerEquations2D)
     return cons2entropy_guermond_etal(u, equations)
 end
 

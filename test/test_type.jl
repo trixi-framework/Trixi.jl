@@ -358,9 +358,10 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             @test eltype(@inferred Trixi.gradient_conservative(pressure, u, equations)) ==
                   RealT
-            @test eltype(@inferred Trixi.gradient_conservative(entropy_math, u,
+            @test eltype(@inferred Trixi.gradient_conservative(Trixi.entropy_math, u,
                                                                equations)) == RealT
-            @test eltype(@inferred Trixi.gradient_conservative(entropy_guermond_etal, u,
+            @test eltype(@inferred Trixi.gradient_conservative(Trixi.entropy_guermond_etal,
+                                                               u,
                                                                equations)) == RealT
         end
     end
