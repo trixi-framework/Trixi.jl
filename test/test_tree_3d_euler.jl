@@ -192,7 +192,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_euler_mortar_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_mortar_sc_subcell.jl (pure low-order mortars)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mortar_sc_subcell.jl"),
                         pure_low_order=true,
                         l2=[
