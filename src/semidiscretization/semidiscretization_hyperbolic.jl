@@ -11,7 +11,7 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
-mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
+struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
                                             BoundaryConditions,
                                             SourceTerms, Solver, Cache} <:
                AbstractSemidiscretization

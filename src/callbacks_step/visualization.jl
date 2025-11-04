@@ -8,10 +8,10 @@
 mutable struct VisualizationCallback{PlotDataCreator, SolutionVariables, VariableNames,
                                      PlotCreator}
     plot_data_creator::PlotDataCreator
-    interval::Int
-    solution_variables::SolutionVariables
-    variable_names::VariableNames
-    show_mesh::Bool
+    const interval::Int
+    const solution_variables::SolutionVariables
+    const variable_names::VariableNames
+    const show_mesh::Bool
     plot_creator::PlotCreator
     plot_arguments::Dict{Symbol, Any}
 end

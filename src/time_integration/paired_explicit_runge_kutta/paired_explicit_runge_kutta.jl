@@ -17,9 +17,9 @@ abstract type AbstractPairedExplicitRKSingle <: AbstractPairedExplicitRK end
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct PairedExplicitRKOptions{Callback, TStops}
     callback::Callback # callbacks; used in Trixi
-    adaptive::Bool # whether the algorithm is adaptive (false)
-    dtmax::Float64 # ignored
-    maxiters::Int # maximal number of time steps
+    const adaptive::Bool # whether the algorithm is adaptive (false)
+    const dtmax::Float64 # ignored
+    const maxiters::Int # maximal number of time steps
     tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 

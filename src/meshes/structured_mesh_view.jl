@@ -10,7 +10,7 @@
 
 A view on a structured curved mesh.
 """
-mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
+struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     parent::StructuredMesh{NDIMS, RealT}
     cells_per_dimension::NTuple{NDIMS, Int}
     mapping::Any # Not relevant for performance

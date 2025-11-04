@@ -16,7 +16,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     # Stores the quadrature nodes.
     nodes::SVector{NNODES, RealT}
 
-    boundary_names   :: Array{Symbol, 2}      # [face direction, tree]
+    const boundary_names :: Array{Symbol, 2} # [face direction, tree]
     current_filename :: String
 
     ninterfaces :: Int

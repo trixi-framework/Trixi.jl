@@ -27,12 +27,12 @@ Currently this callback is only implemented for [`TreeMesh`](@ref) and [`Unstruc
 """
 mutable struct TimeSeriesCallback{RealT <: Real, uEltype <: Real, SolutionVariables,
                                   VariableNames, Cache}
-    interval::Int
-    solution_variables::SolutionVariables
-    variable_names::VariableNames
-    output_directory::String
-    filename::String
-    point_coordinates::Array{RealT, 2}
+    const interval::Int
+    const solution_variables::SolutionVariables
+    const variable_names::VariableNames
+    const output_directory::String
+    const filename::String
+    const point_coordinates::Array{RealT, 2}
     # Point data is stored as a vector of vectors of the solution data type:
     # * the "outer" `Vector` contains one vector for each point at which a time_series is recorded
     # * the "inner" `Vector` contains the actual time series for a single point,

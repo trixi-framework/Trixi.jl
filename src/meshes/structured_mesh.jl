@@ -13,7 +13,7 @@ A structured curved mesh.
 Different numbers of cells per dimension are possible and arbitrary functions
 can be used as domain faces.
 """
-mutable struct StructuredMesh{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
+struct StructuredMesh{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     cells_per_dimension::NTuple{NDIMS, Int}
     mapping::Any # Not relevant for performance
     mapping_as_string::String
