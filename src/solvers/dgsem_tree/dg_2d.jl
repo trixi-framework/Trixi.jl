@@ -247,22 +247,6 @@ function rhs!(du, u, t, u_global, semis,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           StructuredMeshView{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, P4estMeshView{2},
-                                           T8codeMesh{2}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel!(du, u, element, mesh,
-                          have_nonconservative_terms, equations,
-                          dg, cache)
-    end
-
-    return nothing
-end
 
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
