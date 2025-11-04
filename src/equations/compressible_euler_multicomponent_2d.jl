@@ -93,7 +93,8 @@ end
 @inline function Base.real(::CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP,
                                                                         RealT}) where {NVARS,
                                                                                        NCOMP,
-                                                                                       RealT}
+                                                                                       RealT
+                                                                                       }
     RealT
 end
 
