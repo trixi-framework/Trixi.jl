@@ -113,7 +113,6 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
             p_dgfv = pressure(u_dgfv_node, equations)
 
             a_p = beta_p * p_fv - p_dgfv # This is -g(alpha_new) in the paper, see eq. (15)
-
             if a_p > root_tol # => non-zero `delta_alpha` required
                 # Initial guess for Newton iteration
                 delta_alpha_i = use_density_init ? delta_alpha_density :

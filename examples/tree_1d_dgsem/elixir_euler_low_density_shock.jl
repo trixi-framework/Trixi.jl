@@ -3,40 +3,41 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations1D(1.4)
+equations = CompressibleEulerEquations1D(5/3)
 
 """
-    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
+    initial_condition_near_vacuum_shock(x, t, equations::CompressibleEulerEquations1D)
 
-The Sedov blast wave setup based on Flash
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
+Leblanc shock tube problem inspired initial condition.
+Uses much lower pressure but much higher pressure on the right side.
 """
-function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
-    # Set up polar coordinates
-    RealT = eltype(x)
-    inicenter = SVector(0)
-    x_norm = x[1] - inicenter[1]
-    r = abs(x_norm)
+function initial_condition_near_vacuum_shock(x, t, equations::CompressibleEulerEquations1D)
+    rho = x[1] <= 3 ? 1 : 1e-5
+    rho_v1 = 0
+    rho_e = x[1] <= 3 ? 1e-1 : 1e-4
 
-    # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
-    r0 = 0.21875f0 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-
-    E = 1
-    p0_inner = 6 * (equations.gamma - 1) * E / (3 * convert(RealT, pi) * r0)
-    p0_outer = convert(RealT, 1.0e-5) # = true Sedov setup
-
-    # Calculate primitive variables
-    rho = 1
-    v1 = 0
-    p = r > r0 ? p0_outer : p0_inner
-
-    return prim2cons(SVector(rho, v1, p), equations)
+    return SVector(rho, rho_v1, rho_e)
 end
-initial_condition = initial_condition_sedov_blast_wave
+initial_condition = initial_condition_near_vacuum_shock
 
-surface_flux = flux_lax_friedrichs
+###############################################################################
+# Specify non-periodic boundary conditions
+
+boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition)
+
+function boundary_condition_outflow(u_inner, orientation, direction, x, t,
+                                    surface_flux_function,
+                                    equations::CompressibleEulerEquations1D)
+    # Calculate the boundary flux entirely from the internal solution state
+    return flux(u_inner, orientation, equations)
+end
+
+boundary_conditions = (x_neg = boundary_condition_inflow,
+                       x_pos = boundary_condition_outflow)
+
+surface_flux = flux_hllc
 volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(3)
+basis = LobattoLegendreBasis(4)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 0.5,
                                          alpha_min = 0.001,
@@ -47,18 +48,20 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv = surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-2.0,)
-coordinates_max = (2.0,)
+coordinates_min = (0.0,)
+coordinates_max = (9.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000,
+                periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 4.0)
+tspan = (0.0, 1.2)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -79,7 +82,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-stepsize_callback = StepsizeCallback(cfl = 0.6)
+stepsize_callback = StepsizeCallback(cfl = 0.2)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -91,10 +94,14 @@ callbacks = CallbackSet(summary_callback,
 # Positivity-preserving limiter setup
 # - `alpha_max` is increased above the value used in the volume integral 
 #               to allow room for positivity limiting.
+# - `beta_rho` set to 0.7 to provoke density correction
 # - `root_tol` can be set to this relatively high value while still ensuring positivity
+# - `use_density_init` set to false to use zero initial guess for pressure correction
 limiter! = PositivityPreservingLimiterRuedaRamirezGassner(semi;
+                                                          alpha_max = 0.9,
+                                                          beta_rho = 0.7,
                                                           root_tol = 1e-8,
-                                                          alpha_max = 0.8)
+                                                          use_density_init = false)
 
 stage_callbacks = (limiter!,)
 

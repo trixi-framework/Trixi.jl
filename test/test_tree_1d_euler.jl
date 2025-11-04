@@ -316,11 +316,19 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_positivity_ruedaramirezgassner.jl" begin
+@trixi_testset "elixir_euler_low_density_shock.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_positivity_ruedaramirezgassner.jl"),
-                        l2=[1.6494710182205727, 0.19813535966085205, 0.9783238084062827],
-                        linf=[4.739091512253655, 0.525268991264359, 2.742625905684629])
+                                 "elixir_euler_low_density_shock.jl"),
+                        l2=[
+                            0.0960396325006242,
+                            0.026208748850464012,
+                            0.011209178071581566
+                        ],
+                        linf=[
+                            0.5646898053441078,
+                            0.10459781969779587,
+                            0.06211119112577017
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
