@@ -898,8 +898,7 @@ end
                                                                      (2 * T)) /
                                                                     gas_constants[i] -
                                                                     1)
-                                                                for i in
-                                                                    eachcomponent(equations))
+                                                                for i in eachcomponent(equations))
 
     RealT = eltype(w)
     rho = zero(RealT)
