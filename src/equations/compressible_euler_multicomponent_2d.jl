@@ -1020,8 +1020,7 @@ end
 
 @inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations2D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 3] * v
-                                                            for i in
-                                                                eachcomponent(equations))
+                                                            for i in eachcomponent(equations))
 end
 
 @inline function velocity(u, equations::CompressibleEulerMulticomponentEquations2D)
