@@ -220,5 +220,4 @@ function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
 end
 
 include("positivity_ruedaramirez_gassner_1d.jl")
-include("positivity_ruedaramirez_gassner_2d.jl")
 end # @muladd

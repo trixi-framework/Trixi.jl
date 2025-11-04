@@ -11,7 +11,7 @@ for human readability.
 #### Added
 - Added `LowerBoundPreservingLimiterRuedaRamirezGassner` which allows for more refined
   positivity/lower-bound limiting than `PositivityPreservingLimiterZhangShu`.
-  PRs [#2638] and [#2639].
+  PRs [#2638].
 
 #### Changed
 
