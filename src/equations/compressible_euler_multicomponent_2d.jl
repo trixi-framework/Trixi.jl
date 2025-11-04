@@ -139,8 +139,7 @@ function initial_condition_convergence_test(x, t,
     prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
                                                                 rho / (1 -
                                                                  2^ncomponents(equations))
-                                                                for i in
-                                                                    eachcomponent(equations))
+                                                                for i in eachcomponent(equations))
 
     prim1 = rho * v1
     prim2 = rho * v2
