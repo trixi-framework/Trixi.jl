@@ -872,8 +872,7 @@ end
                                                                    gas_constants[i] *
                                                                    (1 + log(u[i + 3])) -
                                                                    v_square / (2 * T))
-                                                                  for i in
-                                                                      eachcomponent(equations))
+                                                                  for i in eachcomponent(equations))
 
     w1 = gas_constant * v1 * rho_p
     w2 = gas_constant * v2 * rho_p
