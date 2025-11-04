@@ -828,8 +828,7 @@ end
     rho_v1, rho_v2, rho_e = u
 
     prim_rho = SVector{ncomponents(equations), real(equations)}(u[i + 3]
-                                                                for i in
-                                                                    eachcomponent(equations))
+                                                                for i in eachcomponent(equations))
 
     rho = density(u, equations)
     v1 = rho_v1 / rho
