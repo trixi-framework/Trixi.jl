@@ -704,7 +704,8 @@ end
                                      normal_direction::SVector{2, T},
                                      equations::CompressibleEulerMulticomponentEquations2D) where {N,
                                                                                                    T <:
-                                                                                                   AbstractFloat}
+                                                                                                   AbstractFloat
+                                                                                                   }
     # Unpack conservative variables
     rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
     rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
