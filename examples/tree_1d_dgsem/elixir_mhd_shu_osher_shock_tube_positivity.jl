@@ -15,7 +15,7 @@ Taken from Section 4.1 of
   [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 
 with further decreased pressure in the right state to make the test more challenging/
-requiring positivity preservating limiting.
+requiring positivity preservation limiting.
 """
 function initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
     # domain must be set to [-5, 5], γ = 5/3, final time = 0.7
