@@ -16,8 +16,8 @@ All mesh information, neighbour coupling, and boundary curve information is read
 from a mesh file `filename`.
 """
 struct UnstructuredMesh2D{RealT <: Real,
-                                  CurvedSurfaceT <: CurvedSurface{RealT}} <:
-               AbstractMesh{2}
+                          CurvedSurfaceT <: CurvedSurface{RealT}} <:
+       AbstractMesh{2}
     filename              :: String
     n_corners             :: Int
     n_surfaces            :: Int # total number of surfaces
