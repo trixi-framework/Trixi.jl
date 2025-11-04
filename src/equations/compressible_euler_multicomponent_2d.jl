@@ -926,8 +926,7 @@ end
     v1, v2, p = prim
 
     cons_rho = SVector{ncomponents(equations), real(equations)}(prim[i + 3]
-                                                                for i in
-                                                                    eachcomponent(equations))
+                                                                for i in eachcomponent(equations))
     rho = density(prim, equations)
     gamma = totalgamma(prim, equations)
 
