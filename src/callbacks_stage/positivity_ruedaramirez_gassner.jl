@@ -82,18 +82,18 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
                                                               uType <: AbstractVector,
                                                               vType <: AbstractArray}
     ### Limiter parameters ###
-    beta_rho::RealT # Factor that quantifies the permitted DG lower density deviation from the FV value
-    beta_p::RealT # Factor that quantifies the permitted DG lower pressure deviation from the FV value
-    alpha_max::RealT # Maximum FV-DG blending coefficient
-    near_zero_tol::RealT # Tolerance to avoid division by close-to-zero denominators
+    const beta_rho::RealT # Factor that quantifies the permitted DG lower density deviation from the FV value
+    const beta_p::RealT # Factor that quantifies the permitted DG lower pressure deviation from the FV value
+    const alpha_max::RealT # Maximum FV-DG blending coefficient
+    const near_zero_tol::RealT # Tolerance to avoid division by close-to-zero denominators
 
     # Newton parameters for pressure correction
-    max_iterations::Int # Maximum number iterations
-    root_tol::RealT # Determines if correction is needed at all & convergence of Newton iteration
-    damping::RealT # Damping factor
-    use_density_init::Bool # Whether to use the density-based `delta_alpha` as initial guess for pressure correction
+    const max_iterations::Int # Maximum number iterations
+    const root_tol::RealT # Determines if correction is needed at all & convergence of Newton iteration
+    const damping::RealT # Damping factor
+    const use_density_init::Bool # Whether to use the density-based `delta_alpha` as initial guess for pressure correction
 
-    solver_fv::SolverFV # Finite Volume solver
+    const solver_fv::SolverFV # Finite Volume solver
 
     ### Additional storage ###
     u_fv_ode::uType       # Finite-Volume update
