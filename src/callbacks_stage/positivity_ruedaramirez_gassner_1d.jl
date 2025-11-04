@@ -83,7 +83,7 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
 
                 delta_alpha_i = a_rho / (rho_fv - rho_dg)
 
-                # `delta_alpha_ij` is calculated at each node, use maximum for the entire element
+                # `delta_alpha_i` is calculated at each node, use maximum for the entire element
                 delta_alpha = max(delta_alpha, delta_alpha_i)
             end
         end
