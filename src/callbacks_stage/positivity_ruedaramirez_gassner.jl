@@ -7,10 +7,11 @@
 
 @doc raw"""
     PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
-                                                   beta = 0.1,
+                                                   beta_rho = 0.1, beta_p = 0.1,
                                                    near_zero_tol = 1e-9,
                                                    max_iterations = 10,
                                                    root_tol = 1e-13, damping = 0.8,
+                                                   use_density_init = true,
                                                    surface_flux_fv = semi.solver.surface_integral.surface_flux,
                                                    volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
                                                    alpha_max = semi.solver.volume_integral.indicator.alpha_max + 0.1)
@@ -59,6 +60,8 @@ for every stage of the time integrator.
 - `root_tol::RealT = 1e-13`: Tolerance to determine if correction of the blending parameter ``\alpha``
                              is needed at all & convergence of Newton iteration.
 - `damping::RealT = 0.8`: Damping factor for the Newton iteration.
+- `use_density_init::Bool = true`: Whether to use the density-based ``\delta \alpha`` as initial guess
+                                   for the pressure correction Newton iteration.
 - `surface_flux_fv`: Surface flux function for the finite volume solver.
                      By default the same flux as for the DGSEM solver.
 - `volume_flux_fv`: Volume flux function for the finite volume solver.
@@ -88,6 +91,7 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
     max_iterations::Int # Maximum number iterations
     root_tol::RealT # Determines if correction is needed at all & convergence of Newton iteration
     damping::RealT # Damping factor
+    use_density_init::Bool # Whether to use the density-based `delta_alpha` as initial guess for pressure correction
 
     solver_fv::SolverFV # Finite Volume solver
 
@@ -105,6 +109,7 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
                                                         near_zero_tol = 1e-9,
                                                         max_iterations = 10,
                                                         root_tol = 1e-13, damping = 0.8,
+                                                        use_density_init = true,
                                                         surface_flux_fv = semi.solver.surface_integral.surface_flux,
                                                         volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
                                                         alpha_max = semi.solver.volume_integral.indicator.alpha_max +
@@ -148,6 +153,7 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
                                                                                       max_iterations,
                                                                                       root_tol,
                                                                                       damping,
+                                                                                      use_density_init,
                                                                                       solver_fv,
                                                                                       u_fv_ode,
                                                                                       u_dg_node_threaded,
@@ -171,7 +177,7 @@ function compute_u_fv!(limiter::PositivityPreservingLimiterRuedaRamirezGassner,
 
     @unpack solver_fv, u_fv_ode = limiter
 
-    # Since AMRCallback is a stepcallback, it suffices to resize at stage 1 only
+    # Since AMRCallback is a StepCallback, it suffices to resize at stage 1 only
     if stage == 1
         resize!(u_fv_ode, length(u))
     end
