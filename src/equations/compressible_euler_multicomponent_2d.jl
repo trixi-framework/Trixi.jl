@@ -91,7 +91,8 @@ function CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
 end
 
 @inline function Base.real(::CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP,
-                                                                        RealT}) where {NVARS,
+                                                                        RealT}) where {
+                                                                                       NVARS,
                                                                                        NCOMP,
                                                                                        RealT
                                                                                        }
@@ -191,8 +192,7 @@ References for the method of manufactured solutions (MMS):
     du_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
                                                               tmp1 / (1 -
                                                                2^ncomponents(equations))
-                                                              for i in
-                                                                  eachcomponent(equations))
+                                                              for i in eachcomponent(equations))
 
     du1 = tmp5
     du2 = tmp5
@@ -231,8 +231,7 @@ function initial_condition_weak_blast_wave(x, t,
                                                                 RealT(1.1691) /
                                                                 (1 -
                                                                  2^ncomponents(equations))
-                                                                for i in
-                                                                    eachcomponent(equations))
+                                                                for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
     v2 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * sin_phi
