@@ -5,49 +5,6 @@
 @muladd begin
 #! format: noindent
 
-function rhs!(du, u, t,
-              mesh::StructuredMesh{3}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh, equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache, u, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, u, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-
-    return nothing
-end
-
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -175,7 +132,7 @@ end
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
-                                           nonconservative_terms::False,
+                                           have_nonconservative_terms::False,
                                            have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -203,6 +160,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
+            # average mapping terms in first coordinate direction,
+            # used as normal vector in the flux computation
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -219,6 +178,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
+            # average mapping terms in second coordinate direction,
+            # used as normal vector in the flux computation
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -235,6 +196,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
+            # average mapping terms in third coordinate direction,
+            # used as normal vector in the flux computation
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
@@ -253,94 +216,7 @@ end
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
-                                           have_nonconservative_terms::False,
-                                           have_aux_node_vars::True, equations,
-                                           volume_flux, dg::DGSEM, cache, alpha = true)
-    # true * [some floating point value] == [exactly the same floating point value]
-    # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_split = dg.basis
-    @unpack contravariant_vectors = cache.elements
-    @unpack aux_node_vars = cache.aux_vars
-
-    # Calculate volume integral in one element
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, i, j, k, element)
-        aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
-
-        # pull the contravariant vectors in each coordinate direction
-        Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
-        Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
-        Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
-
-        # All diagonal entries of `derivative_split` are zero. Thus, we can skip
-        # the computation of the diagonal terms. In addition, we use the symmetry
-        # of the `volume_flux` to save half of the possible two-point flux
-        # computations.
-
-        # x direction
-        for ii in (i + 1):nnodes(dg)
-            u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
-            aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg, ii, j, k,
-                                            element)
-            # pull the contravariant vectors and compute the average
-            Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
-                                                   ii, j, k, element)
-            Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
-            # compute the contravariant sharp flux in the direction of the
-            # averaged contravariant vector
-            fluxtilde1 = volume_flux(u_node, u_node_ii, aux_node, aux_node_ii, Ja1_avg,
-                                     equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1,
-                                       equations, dg, i, j, k, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1,
-                                       equations, dg, ii, j, k, element)
-        end
-
-        # y direction
-        for jj in (j + 1):nnodes(dg)
-            u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
-            aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg, i, jj, k,
-                                            element)
-            # pull the contravariant vectors and compute the average
-            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
-                                                   i, jj, k, element)
-            Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
-            # compute the contravariant sharp flux in the direction of the
-            # averaged contravariant vector
-            fluxtilde2 = volume_flux(u_node, u_node_jj, aux_node, aux_node_jj, Ja2_avg,
-                                     equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2,
-                                       equations, dg, i, j, k, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2,
-                                       equations, dg, i, jj, k, element)
-        end
-
-        # z direction
-        for kk in (k + 1):nnodes(dg)
-            u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
-            aux_node_kk = get_aux_node_vars(aux_node_vars, equations, dg, i, j, kk,
-                                            element)
-            # pull the contravariant vectors and compute the average
-            Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
-                                                   i, j, kk, element)
-            Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
-            # compute the contravariant sharp flux in the direction of the
-            # averaged contravariant vector
-            fluxtilde3 = volume_flux(u_node, u_node_kk, aux_node, aux_node_kk, Ja3_avg,
-                                     equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3,
-                                       equations, dg, i, j, k, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3,
-                                       equations, dg, i, j, kk, element)
-        end
-    end
-end
-
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}},
-                                           nonconservative_terms::True,
+                                           have_nonconservative_terms::True,
                                            have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
@@ -348,8 +224,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), have_aux_node_vars,
-                              equations,
+    flux_differencing_kernel!(du, u, element, mesh, False(), False(), equations,
                               symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -374,6 +249,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
+            # average mapping terms in first coordinate direction,
+            # used as normal vector in the flux computation
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -389,6 +266,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
+            # average mapping terms in second coordinate direction,
+            # used as normal vector in the flux computation
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -404,6 +283,8 @@ end
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
+            # average mapping terms in third coordinate direction,
+            # used as normal vector in the flux computation
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -522,7 +403,7 @@ end
                               fstar3_R, u,
                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                           T8codeMesh{3}},
-                              nonconservative_terms::False, have_aux_node_vars::False,
+                              have_nonconservative_terms::False, have_aux_node_vars::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -618,7 +499,7 @@ end
                               fstar3_R, u,
                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                           T8codeMesh{3}},
-                              nonconservative_terms::True, have_aux_node_vars::False,
+                              have_nonconservative_terms::True, have_aux_node_vars::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -894,7 +775,7 @@ end
 end
 
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{3},
-                              nonconservative_terms, # can be True/False
+                              have_nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
     @unpack elements = cache
 
@@ -906,21 +787,21 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{3},
         calc_interface_flux!(elements.surface_flux_values,
                              elements.left_neighbors[1, element],
                              element, 1, u, mesh,
-                             nonconservative_terms, equations,
+                             have_nonconservative_terms, equations,
                              surface_integral, dg, cache)
 
         # Interfaces in y-direction (`orientation` = 2)
         calc_interface_flux!(elements.surface_flux_values,
                              elements.left_neighbors[2, element],
                              element, 2, u, mesh,
-                             nonconservative_terms, equations,
+                             have_nonconservative_terms, equations,
                              surface_integral, dg, cache)
 
         # Interfaces in z-direction (`orientation` = 3)
         calc_interface_flux!(elements.surface_flux_values,
                              elements.left_neighbors[3, element],
                              element, 3, u, mesh,
-                             nonconservative_terms, equations,
+                             have_nonconservative_terms, equations,
                              surface_integral, dg, cache)
     end
 
@@ -930,7 +811,7 @@ end
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
                                       mesh::StructuredMesh{3},
-                                      nonconservative_terms::False, equations,
+                                      have_nonconservative_terms::False, equations,
                                       surface_integral, dg::DG, cache)
     # This is slow for LSA, but for some reason faster for Euler (see #519)
     if left_element <= 0 # left_element = 0 at boundaries
@@ -998,9 +879,9 @@ end
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
                                       mesh::StructuredMesh{3},
-                                      nonconservative_terms::True, equations,
+                                      have_nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache)
-    # See comment on `calc_interface_flux!` with `nonconservative_terms::False`
+    # See comment on `calc_interface_flux!` with `have_nonconservative_terms::False`
     if left_element <= 0 # left_element = 0 at boundaries
         return surface_flux_values
     end
@@ -1075,14 +956,6 @@ end
         end
     end
 
-    return nothing
-end
-
-# TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::StructuredMesh{3}, equations, surface_integral,
-                             dg::DG)
-    @assert isperiodic(mesh)
     return nothing
 end
 

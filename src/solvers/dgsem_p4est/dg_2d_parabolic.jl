@@ -247,7 +247,7 @@ function calc_gradient!(gradients, u_transformed, t,
                                       dg)
     end
 
-    # Prolong solution to mortars. This resues the hyperbolic version of `prolong2mortars`
+    # Prolong solution to mortars. This reuses the hyperbolic version of `prolong2mortars`
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg)
@@ -259,6 +259,7 @@ function calc_gradient!(gradients, u_transformed, t,
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
                           mesh, False(), # False() = no nonconservative terms
+                          False(), # False() = no auxiliary variables
                           equations_parabolic,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
@@ -446,7 +447,7 @@ end
 
 # This version is used for parabolic gradient computations
 @inline function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
-                                      nonconservative_terms::False,
+                                      have_nonconservative_terms::False,
                                       equations::AbstractEquationsParabolic,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
@@ -811,7 +812,7 @@ end
 # non-conservative terms are present.
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                   nonconservative_terms::False,
+                                   have_nonconservative_terms::False,
                                    equations::AbstractEquationsParabolic,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,

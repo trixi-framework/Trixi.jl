@@ -5,17 +5,29 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.13 lifecycle
+
+#### Added
+
+- Auxiliary variables ([#2348]).
+  An additional container in `cache` is made available to central functions like flux
+  computations. Possible applications are steady background states, variable velocity
+  fields, geometrical information, or any other pointwise, passive quantity that is
+  required in addition to the unknows in the governing equations. The auxiliary variables
+  are set up by supplying a function to the `SemidiscretizationHyperbolic` constructor via
+  the keyword argument `aux_field`.
+
 
 ## Changes when updating to v0.13 from v0.12.x
 
 #### Changed
 
-- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!` 
+- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!`
   function got renamed to `Trixi.set_threading_backend!` ([#2476]).
 - Default wave-speed estimate used within `flux_lax_friedrichs` changed from `max_abs_speed_naive` to
   `max_abs_speed` which is less diffusive.
   In v0.13, `flux_lax_friedrichs = FluxLaxFriedrichs(max_abs_speed = max_abs_speed)`
-  instead of the previous default 
+  instead of the previous default
   `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)` ([#2458]).
 - The signature of the `VisualizationCallback` constructor changed.
   In the new version, it is mandatory to pass the semidiscretization `semi` to
@@ -80,8 +92,6 @@ for human readability.
   paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 - Passive tracers for arbitrary equations with density and flow variables ([#2364])
-- Auxiliary variables, which can, e.g., be used to store a steady state and solve
-  for perturbations only ([#2348])
 
 #### Deprecated
 
@@ -298,7 +308,7 @@ for human readability.
   `(; a, b) = stuff` instead of `@unpack a, b = stuff`.
 - The constructor `DGMultiMesh(dg; cells_per_dimension, kwargs...)` is deprecated
   and will be removed. The new constructor `DGMultiMesh(dg, cells_per_dimension; kwargs...)`
-  does not have `cells_per_dimesion` as a keyword argument.
+  does not have `cells_per_dimension` as a keyword argument.
 
 #### Removed
 

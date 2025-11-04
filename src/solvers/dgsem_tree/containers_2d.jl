@@ -908,7 +908,7 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
 
             # Create interface between elements
             count += 1
-            # Note: `local_neighbor_ids` stores the MPI-local neighbors, 
+            # Note: `local_neighbor_ids` stores the MPI-local neighbors,
             # but with globally valid index!
             mpi_interfaces.local_neighbor_ids[count] = element
 
@@ -1218,7 +1218,7 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
             # 3 -> large element
             count += 1
 
-            # Note: `local_neighbor_ids` stores the MPI-local neighbors, 
+            # Note: `local_neighbor_ids` stores the MPI-local neighbors,
             # but with globally valid index!
             local_neighbor_ids = Vector{Int}()
             local_neighbor_positions = Vector{Int}()
@@ -1273,7 +1273,7 @@ end
 #                          flux2(i, j)
 #                               |
 #                            (i, j-1)
-mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real}
+mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real} <: AbstractContainer
     antidiffusive_flux1_L::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux1_R::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux2_L::Array{uEltype, 4} # [variables, i, j, elements]
@@ -1349,75 +1349,17 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
                                                (n_variables, n_nodes, n_nodes + 1,
                                                 capacity))
 
-    return nothing
-end
+    uEltype = eltype(fluxes.antidiffusive_flux1_L)
+    @threaded for element in axes(fluxes.antidiffusive_flux1_L, 4)
+        fluxes.antidiffusive_flux1_L[:, 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_L[:, n_nodes + 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_R[:, 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_R[:, n_nodes + 1, :, element] .= zero(uEltype)
 
-# Container data structure (structure-of-arrays style) for variables used for IDP limiting
-mutable struct ContainerSubcellLimiterIDP2D{uEltype <: Real}
-    alpha::Array{uEltype, 3}                  # [i, j, element]
-    alpha1::Array{uEltype, 3}
-    alpha2::Array{uEltype, 3}
-    variable_bounds::Dict{Symbol, Array{uEltype, 3}}
-    # internal `resize!`able storage
-    _alpha::Vector{uEltype}
-    _alpha1::Vector{uEltype}
-    _alpha2::Vector{uEltype}
-    _variable_bounds::Dict{Symbol, Vector{uEltype}}
-end
-
-function ContainerSubcellLimiterIDP2D{uEltype}(capacity::Integer, n_nodes,
-                                               bound_keys) where {uEltype <: Real}
-    nan_uEltype = convert(uEltype, NaN)
-
-    # Initialize fields with defaults
-    _alpha = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-    alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
-    _alpha1 = fill(nan_uEltype, (n_nodes + 1) * n_nodes * capacity)
-    alpha1 = unsafe_wrap(Array, pointer(_alpha1), (n_nodes + 1, n_nodes, capacity))
-    _alpha2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * capacity)
-    alpha2 = unsafe_wrap(Array, pointer(_alpha2), (n_nodes, n_nodes + 1, capacity))
-
-    _variable_bounds = Dict{Symbol, Vector{uEltype}}()
-    variable_bounds = Dict{Symbol, Array{uEltype, 3}}()
-    for key in bound_keys
-        _variable_bounds[key] = fill(nan_uEltype, n_nodes * n_nodes * capacity)
-        variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
-                                           (n_nodes, n_nodes, capacity))
-    end
-
-    return ContainerSubcellLimiterIDP2D{uEltype}(alpha, alpha1, alpha2,
-                                                 variable_bounds,
-                                                 _alpha, _alpha1, _alpha2,
-                                                 _variable_bounds)
-end
-
-nnodes(container::ContainerSubcellLimiterIDP2D) = size(container.alpha, 1)
-
-# Only one-dimensional `Array`s are `resize!`able in Julia.
-# Hence, we use `Vector`s as internal storage and `resize!`
-# them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
-function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
-    n_nodes = nnodes(container)
-
-    (; _alpha, _alpha1, _alpha2) = container
-    resize!(_alpha, n_nodes * n_nodes * capacity)
-    container.alpha = unsafe_wrap(Array, pointer(_alpha), (n_nodes, n_nodes, capacity))
-    container.alpha .= convert(eltype(container.alpha), NaN)
-    resize!(_alpha1, (n_nodes + 1) * n_nodes * capacity)
-    container.alpha1 = unsafe_wrap(Array, pointer(_alpha1),
-                                   (n_nodes + 1, n_nodes, capacity))
-    resize!(_alpha2, n_nodes * (n_nodes + 1) * capacity)
-    container.alpha2 = unsafe_wrap(Array, pointer(_alpha2),
-                                   (n_nodes, n_nodes + 1, capacity))
-
-    (; _variable_bounds) = container
-    for (key, _) in _variable_bounds
-        resize!(_variable_bounds[key], n_nodes * n_nodes * capacity)
-        container.variable_bounds[key] = unsafe_wrap(Array,
-                                                     pointer(_variable_bounds[key]),
-                                                     (n_nodes, n_nodes, capacity))
+        fluxes.antidiffusive_flux2_L[:, :, 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_L[:, :, n_nodes + 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_R[:, :, 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_R[:, :, n_nodes + 1, element] .= zero(uEltype)
     end
 
     return nothing
@@ -1515,11 +1457,11 @@ end
 
 # Initialize auxiliary mortar node variables
 # 2D TreeMesh implementation, similar to prolong2mortars
-# Each mortar has two sides (indentified by first variable of u_upper / u_lower)
+# Each mortar has two sides (identified by first variable of u_upper / u_lower)
 # On the side with two small elements, values can be copied from the aux vars field
 # On the side with one large element, values are usually interpolated to small elements
 # We do this differently here and use the same small element values on both side. This
-# assumes that the aux_field computes a smooth variable field with no jumps
+# assumes that the `aux_field` function computes a field with no jumps.
 function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
                                     cache)
     @unpack aux_node_vars, aux_mortar_node_vars = aux_vars
@@ -1534,24 +1476,24 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solve
                 # L2 mortars in x-direction
                 for l in eachnode(solver)
                     for v in axes(aux_mortar_node_vars, 2)
-                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v, 1,
-                                                                                  l,
-                                                                                  upper_element]
-                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v, 1,
-                                                                                  l,
-                                                                                  lower_element]
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v, 1,
+                                                                                 l,
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v, 1,
+                                                                                 l,
+                                                                                 lower_element]
                     end
                 end
             else
                 # L2 mortars in y-direction
                 for l in eachnode(solver)
                     for v in axes(aux_mortar_node_vars, 2)
-                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v, l,
-                                                                                  1,
-                                                                                  upper_element]
-                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v, l,
-                                                                                  1,
-                                                                                  lower_element]
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v, l,
+                                                                                 1,
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v, l,
+                                                                                 1,
+                                                                                 lower_element]
                     end
                 end
             end
@@ -1560,26 +1502,26 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solve
                 # L2 mortars in x-direction
                 for l in eachnode(solver)
                     for v in axes(aux_mortar_node_vars, 2)
-                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v,
-                                                                                  nnodes(solver),
-                                                                                  l,
-                                                                                  upper_element]
-                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v,
-                                                                                  nnodes(solver),
-                                                                                  l,
-                                                                                  lower_element]
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v,
+                                                                                 nnodes(solver),
+                                                                                 l,
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v,
+                                                                                 nnodes(solver),
+                                                                                 l,
+                                                                                 lower_element]
                     end
                 end
             else
                 # L2 mortars in y-direction
                 for l in eachnode(solver)
                     for v in axes(aux_mortar_node_vars, 2)
-                        aux_mortar_node_vars[:, v, 2, l, mortar] .= aux_node_vars[v, l,
-                                                                                  nnodes(solver),
-                                                                                  upper_element]
-                        aux_mortar_node_vars[:, v, 1, l, mortar] .= aux_node_vars[v, l,
-                                                                                  nnodes(solver),
-                                                                                  lower_element]
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v, l,
+                                                                                 nnodes(solver),
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v, l,
+                                                                                 nnodes(solver),
+                                                                                 lower_element]
                     end
                 end
             end

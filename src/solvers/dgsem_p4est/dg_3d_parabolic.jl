@@ -122,7 +122,9 @@ function calc_gradient!(gradients, u_transformed, t,
     # specialization for AbstractEquationsParabolic.
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
-                             mesh, equations_parabolic, dg.surface_integral, dg,
+                             mesh, False(), # False() = no nonconservative terms
+                             False(), # False() = no auxiliary variablesterms
+                             equations_parabolic, dg.surface_integral, dg,
                              cache_parabolic)
     end
 
@@ -153,6 +155,7 @@ function calc_gradient!(gradients, u_transformed, t,
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
                           mesh, False(), # False() = no nonconservative terms
+                          False(), # False() = no auxiliary variables
                           equations_parabolic,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
@@ -352,7 +355,7 @@ end
 
 # This version is used for parabolic gradient computations
 @inline function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
-                                      nonconservative_terms::False,
+                                      have_nonconservative_terms::False,
                                       have_aux_node_vars::False,
                                       equations::AbstractEquationsParabolic,
                                       surface_integral, dg::DG, cache,
@@ -846,7 +849,7 @@ end
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::P4estMesh{3},
-                                   nonconservative_terms::False,
+                                   have_nonconservative_terms::False,
                                    equations::AbstractEquationsParabolic,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,

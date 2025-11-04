@@ -56,7 +56,8 @@ function prolong2mortars!(cache, u, mesh, equations, mortar::Nothing,
 end
 
 function calc_mortar_flux!(surface_flux_values, mesh,
-                           nonconservative_terms, equations,
+                           have_nonconservative_terms,
+                           have_aux_node_vars, equations,
                            mortar::Nothing,
                            surface_integral, dg::DG, cache)
     @assert isempty(eachmortar(dg, cache))
