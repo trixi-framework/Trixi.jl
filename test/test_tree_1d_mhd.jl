@@ -302,6 +302,35 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_mhd_shu_osher_shock_tube_positivity.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_shu_osher_shock_tube_positivity.jl"),
+                        l2=[
+                            1.9236695330507145,
+                            15.760572097646538,
+                            2.4470251978078266,
+                            0.0,
+                            98.85626803568168,
+                            3.73142596302466e-15,
+                            1.9086692307532853,
+                            0.0
+                        ],
+                        linf=[
+                            3.0382240248462247,
+                            23.992830816497534,
+                            4.158686848075647,
+                            0.0,
+                            140.50424600644303,
+                            1.1435297153639112e-14,
+                            3.207308695504664,
+                            0.0
+                        ],
+                        tspan=(0.0, 0.2),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 end
 
 end # module

@@ -316,6 +316,16 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_positivity_ruedaramirezgassner.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_positivity_ruedaramirezgassner.jl"),
+                        l2=[1.6494710182205727, 0.19813535966085205, 0.9783238084062827],
+                        linf=[4.739091512253655, 0.525268991264359, 2.742625905684629])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         l2=[0.21934822867340323, 0.28131919126002686, 0.554361702716662],
