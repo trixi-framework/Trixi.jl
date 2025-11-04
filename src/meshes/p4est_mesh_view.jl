@@ -139,8 +139,10 @@ function extract_boundaries(mesh::P4estMeshView,
                 view_idx = 2
             end
 
+            # Update the neighbor ids.
             push!(boundaries.neighbor_ids,
                   global_element_id_to_local(neighbor_id, mesh))
+            # Update the boundary names.
             if interfaces_parent.node_indices[view_idx, interface] ==
                (:end, :i_forward)
                 push!(boundaries.name, :x_pos)
@@ -154,6 +156,7 @@ function extract_boundaries(mesh::P4estMeshView,
                 push!(boundaries.name, :y_neg)
             end
 
+            # Update the node indices.
             push!(boundaries.node_indices,
                   interfaces_parent.node_indices[view_idx, interface])
         end
