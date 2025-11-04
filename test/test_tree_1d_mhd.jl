@@ -325,8 +325,7 @@ end
                             1.1435297153639112e-14,
                             3.2073086955046586,
                             0.0
-                        ],
-                        tspan=(0.0, 0.2),)
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
