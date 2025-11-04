@@ -6,19 +6,19 @@ using Trixi
 equations = CompressibleEulerEquations1D(5 / 3)
 
 """
-    initial_condition_low_densityshock(x, t, equations::CompressibleEulerEquations1D)
+    initial_condition_low_density_shock(x, t, equations::CompressibleEulerEquations1D)
 
 Leblanc shock tube problem inspired initial condition.
 Uses much lower pressure but much higher pressure on the right side.
 """
-function initial_condition_low_densityshock(x, t, equations::CompressibleEulerEquations1D)
+function initial_condition_low_density_shock(x, t, equations::CompressibleEulerEquations1D)
     rho = x[1] <= 3 ? 1 : 1e-5
     rho_v1 = 0
     rho_e = x[1] <= 3 ? 1e-1 : 1e-4
 
     return SVector(rho, rho_v1, rho_e)
 end
-initial_condition = initial_condition_low_densityshock
+initial_condition = initial_condition_low_density_shock
 
 ###############################################################################
 # Specify non-periodic boundary conditions
