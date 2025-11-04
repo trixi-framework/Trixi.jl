@@ -702,7 +702,8 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll::SVector{N, T}, u_rr::SVector{N, T},
                                      normal_direction::SVector{2, T},
-                                     equations::CompressibleEulerMulticomponentEquations2D) where {N,
+                                     equations::CompressibleEulerMulticomponentEquations2D) where {
+                                                                                                   N,
                                                                                                    T <:
                                                                                                    AbstractFloat
                                                                                                    }
