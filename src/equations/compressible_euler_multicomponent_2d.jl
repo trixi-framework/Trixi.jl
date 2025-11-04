@@ -61,10 +61,12 @@ struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <
     function CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
                                                                                              RealT},
                                                                              gas_constants::SVector{NCOMP,
-                                                                                                    RealT}) where {NVARS,
+                                                                                                    RealT}) where {
+                                                                                                                   NVARS,
                                                                                                                    NCOMP,
                                                                                                                    RealT <:
-                                                                                                                   Real}
+                                                                                                                   Real
+                                                                                                                   }
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `gas_constants` have to be filled with at least one value"))
 
@@ -424,12 +426,10 @@ Adaption of the entropy conserving two-point flux by
     rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
                                                                          u_rr[i + 3])
-                                                                 for i in
-                                                                     eachcomponent(equations))
+                                                                 for i in eachcomponent(equations))
     rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 3] +
                                                                  u_rr[i + 3])
-                                                                for i in
-                                                                    eachcomponent(equations))
+                                                                for i in eachcomponent(equations))
 
     # Iterating over all partial densities
     rho_ll = density(u_ll, equations)
@@ -467,8 +467,7 @@ Adaption of the entropy conserving two-point flux by
     help2 = zero(RealT)
     if orientation == 1
         f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v1_avg
-                                                                 for i in
-                                                                     eachcomponent(equations))
+                                                                 for i in eachcomponent(equations))
         for i in eachcomponent(equations)
             help1 += f_rho[i] * cv[i]
             help2 += f_rho[i]
@@ -479,8 +478,7 @@ Adaption of the entropy conserving two-point flux by
              v2_avg * f2
     else
         f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v2_avg
-                                                                 for i in
-                                                                     eachcomponent(equations))
+                                                                 for i in eachcomponent(equations))
         for i in eachcomponent(equations)
             help1 += f_rho[i] * cv[i]
             help2 += f_rho[i]
@@ -518,12 +516,10 @@ See also
     rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
                                                                          u_rr[i + 3])
-                                                                 for i in
-                                                                     eachcomponent(equations))
+                                                                 for i in eachcomponent(equations))
     rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 3] +
                                                                  u_rr[i + 3])
-                                                                for i in
-                                                                    eachcomponent(equations))
+                                                                for i in eachcomponent(equations))
 
     # Iterating over all partial densities
     rho_ll = density(u_ll, equations)
@@ -566,8 +562,7 @@ See also
     f_rho_sum = zero(RealT)
     if orientation == 1
         f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v1_avg
-                                                                 for i in
-                                                                     eachcomponent(equations))
+                                                                 for i in eachcomponent(equations))
         for i in eachcomponent(equations)
             f_rho_sum += f_rho[i]
         end
@@ -577,8 +572,7 @@ See also
              0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
     else
         f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v2_avg
-                                                                 for i in
-                                                                     eachcomponent(equations))
+                                                                 for i in eachcomponent(equations))
         for i in eachcomponent(equations)
             f_rho_sum += f_rho[i]
         end
@@ -602,12 +596,10 @@ end
     rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
                                                                          u_rr[i + 3])
-                                                                 for i in
-                                                                     eachcomponent(equations))
+                                                                 for i in eachcomponent(equations))
     rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 3] +
                                                                  u_rr[i + 3])
-                                                                for i in
-                                                                    eachcomponent(equations))
+                                                                for i in eachcomponent(equations))
 
     # Iterating over all partial densities
     rho_ll = density(u_ll, equations)
@@ -652,8 +644,7 @@ end
     f_rho_sum = zero(RealT)
     f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * 0.5f0 *
                                                              (v_dot_n_ll + v_dot_n_rr)
-                                                             for i in
-                                                                 eachcomponent(equations))
+                                                             for i in eachcomponent(equations))
     for i in eachcomponent(equations)
         f_rho_sum += f_rho[i]
     end
