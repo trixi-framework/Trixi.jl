@@ -89,6 +89,10 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+# Positivity-preserving limiter setup
+# - `alpha_max` is increased above the value used in the volume integral 
+#               to allow room for positivity limiting.
+# - `root_tol` can be set to this relatively high value while still ensuring positivity
 limiter! = PositivityPreservingLimiterRuedaRamirezGassner(semi;
                                                           root_tol = 1e-8,
                                                           alpha_max = 0.8)
