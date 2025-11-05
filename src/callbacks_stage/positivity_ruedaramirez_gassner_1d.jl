@@ -76,7 +76,7 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                 # <=>   u_dg = (u_dgfv - α * u_FV) / (1 - α)
                 rho_dg = (rho_dgfv - alpha[element] * rho_fv) / (1 - alpha[element])
 
-                # Avoid division for densities close to each other
+                # Avoid division (and correction due to this node) for densities close to each other
                 if abs(rho_fv - rho_dg) < near_zero_tol
                     continue
                 end
