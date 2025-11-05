@@ -651,12 +651,8 @@ end
 # nonconservative terms
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-<<<<<<< HEAD
                                    have_nonconservative_terms::True,
                                    have_aux_node_vars::False, equations,
-=======
-                                   have_nonconservative_terms::True, equations,
->>>>>>> bg/feature-aux-vars
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
                                    node_index)

@@ -1,9 +1,9 @@
 @muladd begin
 struct LinearVariableScalarAdvectionEquation2D{} <:
-        AbstractLinearScalarAdvectionEquation{2, 1} end
+        AbstractLinearScalarAdvectionEquation{2} end
 
 varnames(::typeof(cons2cons), ::LinearVariableScalarAdvectionEquation2D) = ("scalar",)
-varnames(::typeof(cons2prim), ::LinearVariableScalarAdvectionEquation2D) = ("scalar",)
+varnames(::typeof(cons2prim), ::LinearVariableScalarAdvectionEquation2D) = ("scalar", "v1", "v2")
 varnames(::typeof(cons2aux), ::LinearVariableScalarAdvectionEquation2D) = ("v1", "v2")
 
 have_aux_node_vars(::LinearVariableScalarAdvectionEquation2D) = True()
@@ -19,6 +19,20 @@ end
                         equation::LinearVariableScalarAdvectionEquation2D)
     a = dot(aux_vars, normal_direction) # velocity in normal direction
     return a * u
+end
+
+function flux_godunov(u_ll, u_rr, aux_ll, aux_rr, normal_direction::AbstractVector,
+                      equation::LinearVariableScalarAdvectionEquation2D)
+    # velocity in normal direction
+    v_ll = dot(aux_ll, normal_direction)
+    v_rr = dot(aux_rr, normal_direction)
+
+    a_normal = 0.5f0 * (v_ll + v_rr)
+    if a_normal >= 0
+        return v_ll * u_ll
+    else
+        return v_rr * u_rr
+    end
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
@@ -38,6 +52,6 @@ end
 end
 
 @inline cons2entropy(u, aux, equations::LinearVariableScalarAdvectionEquation2D) = u
-@inline cons2prim(u, aux, equations::LinearVariableScalarAdvectionEquation2D) = u
+@inline cons2prim(u, aux, equations::LinearVariableScalarAdvectionEquation2D) = (u, aux[1], aux[2])
 @inline cons2prim(u, equations::LinearVariableScalarAdvectionEquation2D) = u
 end
