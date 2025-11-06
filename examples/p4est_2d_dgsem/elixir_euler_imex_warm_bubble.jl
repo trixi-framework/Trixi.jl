@@ -42,6 +42,28 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquatio
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
+@inline function boundary_condition_slip_wall_vel(u_inner, normal_direction::AbstractVector,
+                                                  x, t,
+                                                  surface_flux_function,
+                                                  equations::CompressibleEulerEquations2D)
+    # normalize the outward pointing direction
+    normal = normal_direction / Trixi.norm(normal_direction)
+
+    # compute the normal velocity
+    u_normal = normal[1] * u_inner[2] + normal[2] * u_inner[3]
+
+    # create the "external" boundary solution state
+    u_boundary = SVector(u_inner[1],
+                         u_inner[2] - 2 * u_normal * normal[1],
+                         u_inner[3] - 2 * u_normal * normal[2],
+                         u_inner[4])
+
+    # calculate the boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+    return flux
+end
+
 @inline function flux_lmars_fast(u_ll, u_rr, normal_direction::AbstractVector,
                                  equations::CompressibleEulerEquations2D)
     a = 340.0
@@ -85,7 +107,6 @@ end
 
     rho = 0.5f0 * (rho_ll + rho_rr)
 
-    p_interface = 0.5f0 * (p_ll + p_rr) - 0.5f0 * a * rho * (v_rr - v_ll) / norm_
     v_interface = 0.5f0 * (v_ll + v_rr) - 1 / (2 * a * rho) * (p_rr - p_ll) * norm_
 
     if (v_interface > 0)
@@ -116,7 +137,7 @@ end
     p_avg = 0.5f0 * (p_ll + p_rr)
     e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
 
-    v_dot_n_avg_horizontal = v1_avg * normal_direction[1]
+    v_dot_n_avg_horizontal = v1_avg * normal_direction[1] + v2_avg * normal_direction[2]
     # Calculate fluxes depending on normal_direction
     f1 = rho_avg * v_dot_n_avg
     f2 = f1 * v1_avg
@@ -129,8 +150,6 @@ end
 @inline function flux_kennedy_gruber_fast(u_ll, u_rr, normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquations2D)
     # Unpack left and right state
-    rho_e_ll = last(u_ll)
-    rho_e_rr = last(u_rr)
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
@@ -174,8 +193,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (true, false), initial_refinement_level = 0)
 
-boundary_conditions = Dict(:y_neg => boundary_condition_slip_wall,
-                           :y_pos => boundary_condition_slip_wall)
+boundary_conditions = Dict(:y_neg => boundary_condition_slip_wall_vel,
+                           :y_pos => boundary_condition_slip_wall_vel)
 
 initial_condition = initial_condition_warm_bubble
 
@@ -207,6 +226,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode,
             SBDF2(autodiff = AutoFiniteDiff());
+#	    CarpenterKennedy2N54();
             dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false,
             callback = callbacks,);

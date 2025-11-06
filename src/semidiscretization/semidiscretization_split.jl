@@ -11,72 +11,73 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a splitting rhs in time for hyperbolic conservation law.
 """
-struct SemidiscretizationHyperbolicSplit{Mesh, Equations1, Equations2,
+struct SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff,
                                          InitialCondition,
-                                         BoundaryConditions1,
-                                         BoundaryConditions2,
-                                         SourceTerms1, SourceTerms2, Solver1, Solver2,
-                                         Cache1, Cache2} <:
+                                         BoundaryConditionsStiff,
+                                         BoundaryConditionsNonStiff,
+                                         SourceTermsStiff, SourceTermsNonStiff, SolverStiff, SolverNonStiff,
+                                         CacheStiff, CacheNonStiff} <:
        AbstractSemidiscretization
     mesh::Mesh
 
-    equations1::Equations1
-    equations2::Equations2
+    equations_stiff::EquationsStiff
+    equations_nonstiff::EquationsNonStiff
 
     initial_condition::InitialCondition
 
-    boundary_conditions1::BoundaryConditions1
-    boundary_conditions2::BoundaryConditions2
+    boundary_conditions_stiff::BoundaryConditionsStiff
+    boundary_conditions_nonstiff::BoundaryConditionsNonStiff
 
-    source_terms1::SourceTerms1
-    source_terms2::SourceTerms2
+    source_terms_stiff::SourceTermsStiff
+    source_terms_nonstiff::SourceTermsNonStiff
 
-    solver1::Solver1
-    solver2::Solver2
+    solver_stiff::SolverStiff
+    solver_nonstiff::SolverNonStiff
 
-    cache1::Cache1
-    cache2::Cache2
+    cache_stiff::CacheStiff
+    cache_nonstiff::CacheNonStiff
 
     performance_counter::PerformanceCounterList{2}
 
-    function SemidiscretizationHyperbolicSplit{Mesh, Equations1, Equations2,
-                                               InitialCondition, BoundaryConditions1,
-                                               BoundaryConditions2,
-                                               SourceTerms1, SourceTerms2, Solver1,
-                                               Solver2, Cache1,
-                                               Cache2}(mesh::Mesh,
-                                                       equations1::Equations1,
-                                                       equations2::Equations2,
+    function SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff,
+                                               InitialCondition, BoundaryConditionsStiff,
+                                               BoundaryConditionsNonStiff,
+                                               SourceTermsStiff, SourceTermsNonStiff, SolverStiff,
+                                               SolverNonStiff, CacheStiff,
+                                               CacheNonStiff}(mesh::Mesh,
+                                                       equations_stiff::EquationsStiff,
+                                                       equations_nonstiff::EquationsNonStiff,
                                                        initial_condition::InitialCondition,
-                                                       boundary_conditions1::BoundaryConditions1,
-                                                       boundary_conditions2::BoundaryConditions2,
-                                                       source_terms1::SourceTerms1,
-                                                       source_terms2::SourceTerms2,
-                                                       solver1::Solver1,
-                                                       solver2::Solver2,
-                                                       cache1::Cache1,
-                                                       cache2::Cache2) where {
+                                                       boundary_conditions_stiff::BoundaryConditionsStiff,
+                                                       boundary_conditions_nonstiff::BoundaryConditionsNonStiff,
+                                                       source_terms_stiff::SourceTermsStiff,
+                                                       source_terms_nonstiff::SourceTermsNonStiff,
+                                                       solver_stiff::SolverStiff,
+                                                       solver_nonstiff::SolverNonStiff,
+                                                       cache_stiff::CacheStiff,
+                                                       cache_nonstiff::CacheNonStiff) where {
                                                                               Mesh,
-                                                                              Equations1,
-                                                                              Equations2,
+                                                                              EquationsStiff,
+                                                                              EquationsNonStiff,
                                                                               InitialCondition,
-                                                                              BoundaryConditions1,
-                                                                              BoundaryConditions2,
-                                                                              SourceTerms1,
-                                                                              SourceTerms2,
-                                                                              Solver1,
-                                                                              Solver2,
-                                                                              Cache1,
-                                                                              Cache2}
-        @assert ndims(mesh) == ndims(equations1)
+                                                                              BoundaryConditionsStiff,
+                                                                              BoundaryConditionsNonStiff,
+                                                                              SourceTermsStiff,
+                                                                              SourceTermsNonStiff,
+                                                                              SolverStiff,
+                                                                              SolverNonStiff,
+                                                                              CacheStiff,
+                                                                              CacheNonStiff}
+        @assert ndims(mesh) == ndims(equations_stiff)
+        @assert ndims(mesh) == ndims(equations_nonstiff)
 
         # Todo: assert nvariables(equations)==nvariables(equations_parabolic)
 
         performance_counter = PerformanceCounterList{2}(false)
 
-        new(mesh, equations1, equations2, initial_condition,
-            boundary_conditions1, boundary_conditions2,
-            source_terms1, source_terms2, solver1, solver2, cache1, cache2,
+        new(mesh, equations_stiff, equations_nonstiff, initial_condition,
+            boundary_conditions_stiff, boundary_conditions_nonstiff,
+            source_terms_stiff, source_terms_nonstiff, solver_stiff, solver_nonstiff, cache_stiff, cache_nonstiff,
             performance_counter)
     end
 end
@@ -93,73 +94,73 @@ SemidiscretizationHyperbolicParabolic(mesh, both_equations, initial_condition, s
 Construct a semidiscretization of a hyperbolic-parabolic PDE.
 """
 function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
-                                           initial_condition, solver1, solver2;
+                                           initial_condition, solver_stiff, solver_nonstiff;
                                            source_terms = (nothing, nothing),
                                            boundary_conditions = (boundary_condition_periodic,
                                                                   boundary_condition_periodic),
                                            # `RealT` is used as real type for node locations etc.
                                            # while `uEltype` is used as element type of solutions etc.
-                                           RealT = real(solver1), uEltype = RealT,
+                                           RealT = real(solver_nonstiff), uEltype = RealT,
                                            initial_caches = (NamedTuple(),
                                                              NamedTuple()))
-    equations1, equations2 = equations
-    boundary_conditions1, boundary_conditions2 = boundary_conditions
-    initial_hyperbolic_cache1, initial_hyperbolic_cache2 = initial_caches
-    source_terms1, source_terms2 = source_terms
-    return SemidiscretizationHyperbolicSplit(mesh, equations1,
-                                             equations2,
-                                             initial_condition, solver1, solver2;
-                                             source_terms1 = source_terms1,
-                                             source_terms2 = source_terms2,
-                                             boundary_conditions1 = boundary_conditions1,
-                                             boundary_conditions2 = boundary_conditions2,
+    equations_stiff, equations_nonstiff = equations
+    boundary_conditions_stiff, boundary_conditions_nonstiff = boundary_conditions
+    initial_hyperbolic_cache_stiff, initial_hyperbolic_cache_nonstiff = initial_caches
+    source_terms_stiff, source_terms_nonstiff = source_terms
+    return SemidiscretizationHyperbolicSplit(mesh, equations_stiff,
+                                             equations_nonstiff,
+                                             initial_condition, solver_stiff, solver_nonstiff;
+                                             source_terms_stiff = source_terms_stiff,
+                                             source_terms_nonstiff = source_terms_nonstiff,
+                                             boundary_conditions_stiff = boundary_conditions_stiff,
+                                             boundary_conditions_nonstiff = boundary_conditions_nonstiff,
                                              RealT, uEltype,
-                                             initial_cache1 = initial_hyperbolic_cache1,
-                                             initial_cache2 = initial_hyperbolic_cache2)
+                                             initial_cache_stiff = initial_hyperbolic_cache_stiff,
+                                             initial_cache_nonstiff = initial_hyperbolic_cache_nonstiff)
 end
 
-function SemidiscretizationHyperbolicSplit(mesh, equations1, equations2,
-                                           initial_condition, solver1, solver2;
-                                           source_terms1 = nothing,
-                                           source_terms2 = nothing,
-                                           boundary_conditions1 = boundary_condition_periodic,
-                                           boundary_conditions2 = boundary_condition_periodic,
+function SemidiscretizationHyperbolicSplit(mesh, equations_stiff, equations_nonstiff,
+                                           initial_condition, solver_stiff, solver_nonstiff;
+                                           source_terms_stiff = nothing,
+                                           source_terms_nonstiff = nothing,
+                                           boundary_conditions_stiff = boundary_condition_periodic,
+                                           boundary_conditions_nonstiff = boundary_condition_periodic,
                                            # `RealT` is used as real type for node locations etc.
                                            # while `uEltype` is used as element type of solutions etc.
-                                           RealT = real(solver1), uEltype = RealT,
-                                           initial_cache1 = NamedTuple(),
-                                           initial_cache2 = NamedTuple())
-    cache1 = (; create_cache(mesh, equations1, solver1, RealT, uEltype)...,
-              initial_cache1...)
-    cache2 = (; create_cache(mesh, equations2, solver2, RealT, uEltype)...,
-              initial_cache2...)
-    _boundary_conditions1 = digest_boundary_conditions(boundary_conditions1, mesh,
-                                                       solver1,
-                                                       cache1)
-    _boundary_conditions2 = digest_boundary_conditions(boundary_conditions2,
-                                                       mesh, solver2, cache2)
+                                           RealT = real(solver_nonstiff), uEltype = RealT,
+                                           initial_cache_stiff = NamedTuple(),
+                                           initial_cache_nonstiff = NamedTuple())
+    cache_stiff = (; create_cache(mesh, equations_stiff, solver_stiff, RealT, uEltype)...,
+              initial_cache_stiff...)
+    cache_nonstiff = (; create_cache(mesh, equations_nonstiff, solver_nonstiff, RealT, uEltype)...,
+              initial_cache_nonstiff...)
+    _boundary_conditions_stiff = digest_boundary_conditions(boundary_conditions_stiff, mesh,
+                                                       solver_stiff,
+                                                       cache_stiff)
+    _boundary_conditions_nonstiff = digest_boundary_conditions(boundary_conditions_nonstiff,
+                                                       mesh, solver_nonstiff, cache_nonstiff)
 
-    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions1)
+    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions_stiff)
 
-    SemidiscretizationHyperbolicSplit{typeof(mesh), typeof(equations1),
-                                      typeof(equations2),
+    SemidiscretizationHyperbolicSplit{typeof(mesh), typeof(equations_stiff),
+                                      typeof(equations_nonstiff),
                                       typeof(initial_condition),
-                                      typeof(_boundary_conditions1),
-                                      typeof(_boundary_conditions2),
-                                      typeof(source_terms1), typeof(source_terms2),
-                                      typeof(solver1),
-                                      typeof(solver2), typeof(cache1),
-                                      typeof(cache2)}(mesh, equations1,
-                                                      equations2,
+                                      typeof(_boundary_conditions_stiff),
+                                      typeof(_boundary_conditions_nonstiff),
+                                      typeof(source_terms_stiff), typeof(source_terms_nonstiff),
+                                      typeof(solver_stiff),
+                                      typeof(solver_nonstiff), typeof(cache_stiff),
+                                      typeof(cache_nonstiff)}(mesh, equations_stiff,
+                                                      equations_nonstiff,
                                                       initial_condition,
-                                                      _boundary_conditions1,
-                                                      _boundary_conditions2,
-                                                      source_terms1,
-                                                      source_terms2,
-                                                      solver1,
-                                                      solver2,
-                                                      cache1,
-                                                      cache2)
+                                                      _boundary_conditions_stiff,
+                                                      _boundary_conditions_nonstiff,
+                                                      source_terms_stiff,
+                                                      source_terms_nonstiff,
+                                                      solver_stiff,
+                                                      solver_nonstiff,
+                                                      cache_stiff,
+                                                      cache_nonstiff)
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -170,17 +171,17 @@ function Base.show(io::IO, ::MIME"text/plain",
         show(io, semi)
     else
         summary_header(io, "SemidiscretizationHyperbolicSplit")
-        summary_line(io, "#spatial dimensions", ndims(semi.equations1))
+        summary_line(io, "#spatial dimensions", ndims(semi.equations_stiff))
         summary_line(io, "mesh", semi.mesh)
-        summary_line(io, "hyperbolic equations 1", semi.equations1 |> typeof |> nameof)
+        summary_line(io, "hyperbolic equations 1", semi.equations_stiff |> typeof |> nameof)
         summary_line(io, "hyperbolic equations 2",
-                     semi.equations2 |> typeof |> nameof)
+                     semi.equations_nonstiff |> typeof |> nameof)
         summary_line(io, "initial condition", semi.initial_condition)
 
-        summary_line(io, "source terms 1", semi.source_terms1)
-        summary_line(io, "source terms 2", semi.source_terms2)
-        summary_line(io, "solver 1", semi.solver1 |> typeof |> nameof)
-        summary_line(io, "solver 2", semi.solver2 |> typeof |> nameof)
+        summary_line(io, "source terms 1", semi.source_terms_stiff)
+        summary_line(io, "source terms 2", semi.source_terms_nonstiff)
+        summary_line(io, "solver 1", semi.solver_stiff |> typeof |> nameof)
+        summary_line(io, "solver 2", semi.solver_nonstiff |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofs(semi))
         summary_footer(io)
     end
@@ -188,8 +189,8 @@ end
 
 # retain dispatch on hyperbolic equations only
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicSplit)
-    @unpack mesh, equations1, solver1, cache1 = semi
-    return mesh, equations1, solver1, cache1
+    @unpack mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff = semi
+    return mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff
 end
 
 function compute_coefficients(t, semi::SemidiscretizationHyperbolicSplit)
@@ -226,17 +227,17 @@ function Trixi.semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
 end
 
 function rhs_stiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
-    @unpack mesh, equations1, initial_condition, boundary_conditions1, source_terms1, solver1, cache1 = semi
+    @unpack mesh, equations_stiff, initial_condition, boundary_conditions_stiff, source_terms_stiff, solver_stiff, cache_stiff = semi
 
-    u = wrap_array(u_ode, mesh, equations1, solver1, cache1)
-    du = wrap_array(du_ode, mesh, equations1, solver1, cache1)
+    u = wrap_array(u_ode, mesh, equations_stiff, solver_stiff, cache_stiff)
+    du = wrap_array(du_ode, mesh, equations_stiff, solver_stiff, cache_stiff)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs! stiff" rhs!(du, u, t, mesh, equations1,
-                                            boundary_conditions1, source_terms1,
-                                            solver1,
-                                            cache1)
+    @trixi_timeit timer() "rhs! stiff" rhs!(du, u, t, mesh, equations_stiff,
+                                            boundary_conditions_stiff, source_terms_stiff,
+                                            solver_stiff,
+                                            cache_stiff)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[1], runtime)
 
@@ -244,30 +245,31 @@ function rhs_stiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
-    @unpack mesh, equations2, initial_condition, boundary_conditions2, source_terms2, solver2, cache2 = semi
+    @unpack mesh, equations_nonstiff, initial_condition, boundary_conditions_nonstiff, source_terms_nonstiff, solver_nonstiff, cache_nonstiff = semi
 
-    u = wrap_array(u_ode, mesh, equations2, solver2, cache2)
-    du = wrap_array(du_ode, mesh, equations2, solver2, cache2)
+    u = wrap_array(u_ode, mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff)
+    du = wrap_array(du_ode, mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations2,
-                                      boundary_conditions2, source_terms2,
-                                      solver2,
-                                      cache2)
+    @trixi_timeit timer() "rhs! nonstiff" rhs!(du, u, t, mesh, equations_nonstiff,
+                                            boundary_conditions_nonstiff, source_terms_nonstiff,
+                                            solver_nonstiff,
+                                            cache_nonstiff)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[2], runtime)
 
     return nothing
 end
+
 # TODO: eventually to fix.
 function calc_error_norms(func, u_ode, t, analyzer,
                           semi::SemidiscretizationHyperbolicSplit,
                           cache_analysis)
-    @unpack mesh, equations1, initial_condition, solver1, cache1 = semi
-    u = wrap_array(u_ode, mesh, equations1, solver1, cache1)
+    @unpack mesh, equations_nonstiff, initial_condition, solver_nonstiff, cache_nonstiff = semi
+    u = wrap_array(u_ode, mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff)
 
-    calc_error_norms(func, u, t, analyzer, mesh, equations1, initial_condition, solver1,
-                     cache1, cache_analysis)
+    calc_error_norms(func, u, t, analyzer, mesh, equations_nonstiff, initial_condition, solver_nonstiff,
+                     cache_nonstiff, cache_analysis)
 end
 end # @muladd
