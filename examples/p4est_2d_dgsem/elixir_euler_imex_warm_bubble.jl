@@ -42,10 +42,12 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquatio
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
-@inline function boundary_condition_slip_wall_vel(u_inner, normal_direction::AbstractVector,
-                                                  x, t,
-                                                  surface_flux_function,
-                                                  equations::CompressibleEulerEquations2D)
+# The standard Trixi implementation of the slip wall boundary condition is not directly 
+# compatible with this general splitting approach.
+@inline function boundary_condition_slip_wall_2(u_inner, normal_direction::AbstractVector,
+                                                x, t,
+                                                surface_flux_function,
+                                                equations::CompressibleEulerEquations2D)
     # normalize the outward pointing direction
     normal = normal_direction / Trixi.norm(normal_direction)
 
@@ -64,6 +66,10 @@ end
     return flux
 end
 
+# The total flux is split into:
+# - Fast (implicit/stiff) part: Contains all pressure-related terms responsible for acoustic waves.
+#   Uses LMARS for surface fluxes and Kennedy-Gruber for volume fluxes.
+# - Slow (explicit/non-stiff) part: Contains convective terms (advection).
 @inline function flux_lmars_fast(u_ll, u_rr, normal_direction::AbstractVector,
                                  equations::CompressibleEulerEquations2D)
     a = 340.0
@@ -193,8 +199,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (true, false), initial_refinement_level = 0)
 
-boundary_conditions = Dict(:y_neg => boundary_condition_slip_wall_vel,
-                           :y_pos => boundary_condition_slip_wall_vel)
+boundary_conditions = Dict(:y_neg => boundary_condition_slip_wall_2,
+                           :y_pos => boundary_condition_slip_wall_2)
 
 initial_condition = initial_condition_warm_bubble
 
@@ -226,7 +232,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode,
             SBDF2(autodiff = AutoFiniteDiff());
-#	    CarpenterKennedy2N54();
+            #	    CarpenterKennedy2N54();
             dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false,
             callback = callbacks,);
