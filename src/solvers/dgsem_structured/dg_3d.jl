@@ -36,7 +36,11 @@ function calc_volume_integral!(backend::Backend, du, u,
     return nothing
 end
 
-@kernel function weak_form_KAkernel!(du, u, meshT, have_nonconservative_terms,
+@kernel function weak_form_KAkernel!(du, u,
+                                     meshT::Type{<:Union{StructuredMesh{3},
+                                                         P4estMesh{3},
+                                                         T8codeMesh{3}}},
+                                     have_nonconservative_terms,
                                      equations,
                                      dg::DGSEM, contravariant_vectors)
     element = @index(Global)
