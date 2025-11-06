@@ -12,10 +12,10 @@
 dispatchable type. This is intended to store geometric data and connectivities for any type of
 mesh (Cartesian, affine, curved, structured/unstructured).
 """
-struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
-    md::MeshDataT
+mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
+    const md::MeshDataT
 
-    boundary_faces::BoundaryFaceT
+    const boundary_faces::BoundaryFaceT
 
     current_filename :: String
     unsaved_changes  :: Bool
