@@ -167,6 +167,34 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_mhd_briowu_shock_tube_mod_positivity.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_briowu_shock_tube_mod_positivity.jl"),
+                        l2=[
+                            0.17958200783518533,
+                            0.21403217755031365,
+                            0.3528008349880033,
+                            0.0,
+                            0.40156743941762096,
+                            7.603990369710917e-14,
+                            0.34299587882334953,
+                            0.0
+                        ],
+                        linf=[
+                            0.5347779567211823,
+                            0.4651105133406562,
+                            0.9873266889381644,
+                            0.0,
+                            1.000540495846343,
+                            8.615330671091215e-14,
+                            1.4425998855617321,
+                            0.0
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_torrilhon_shock_tube.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_torrilhon_shock_tube.jl"),
                         l2=[
