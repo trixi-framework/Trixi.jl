@@ -10,14 +10,14 @@
 
 A view on a structured curved mesh.
 """
-struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
-    parent::StructuredMesh{NDIMS, RealT}
-    cells_per_dimension::NTuple{NDIMS, Int}
-    mapping::Any # Not relevant for performance
-    mapping_as_string::String
+mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
+    const parent::StructuredMesh{NDIMS, RealT}
+    const cells_per_dimension::NTuple{NDIMS, Int}
+    const mapping::Any # Not relevant for performance
+    const mapping_as_string::String
     current_filename::String
-    indices_min::NTuple{NDIMS, Int}
-    indices_max::NTuple{NDIMS, Int}
+    const indices_min::NTuple{NDIMS, Int}
+    const indices_max::NTuple{NDIMS, Int}
     unsaved_changes::Bool
 end
 
