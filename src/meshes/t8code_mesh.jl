@@ -7,16 +7,16 @@ to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    forest      :: T8code.ForestWrapper
-    is_parallel :: IsParallel
+    forest::T8code.ForestWrapper
+    const is_parallel::IsParallel
 
     # This specifies the geometry interpolation for each tree.
     tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
 
     # Stores the quadrature nodes.
-    nodes::SVector{NNODES, RealT}
+    const nodes::SVector{NNODES, RealT}
 
-    boundary_names::Array{Symbol, 2} # [face direction, tree]
+    const boundary_names::Array{Symbol, 2} # [face direction, tree]
     current_filename::String
 
     ninterfaces :: Int
