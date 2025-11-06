@@ -190,14 +190,14 @@ function Base.show(io::IO, ::MIME"text/plain",
         summary_line(io, "mesh", semi.mesh)
         summary_line(io, "hyperbolic equations stiff",
                      semi.equations_stiff |> typeof |> nameof)
-        summary_line(io, "hyperbolic equations ",
+        summary_line(io, "hyperbolic equations nonstiff",
                      semi.equations_nonstiff |> typeof |> nameof)
         summary_line(io, "initial condition", semi.initial_condition)
 
         summary_line(io, "source terms stiff", semi.source_terms_stiff)
-        summary_line(io, "source terms 2", semi.source_terms_nonstiff)
+        summary_line(io, "source terms nonstiff", semi.source_terms_nonstiff)
         summary_line(io, "solver stiff", semi.solver_stiff |> typeof |> nameof)
-        summary_line(io, "solver 2", semi.solver_nonstiff |> typeof |> nameof)
+        summary_line(io, "solver nonstiff", semi.solver_nonstiff |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofs(semi))
         summary_footer(io)
     end
