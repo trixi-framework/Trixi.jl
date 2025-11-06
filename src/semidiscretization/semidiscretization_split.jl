@@ -88,15 +88,14 @@ struct SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff
 end
 
 """
-SemidiscretizationHyperbolicParabolic(mesh, both_equations, initial_condition, solver;
- solver_parabolic=default_parabolic_solver(),
- source_terms=nothing,
+SemidiscretizationHyperbolicSplit(mesh, both_equations, initial_condition, solver_stiff, solver_nonstiff;
+source_terms=(nothing, nothing),
  both_boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
  RealT=real(solver),
  uEltype=RealT,
  both_initial_caches=(NamedTuple(), NamedTuple()))
 
-Construct a semidiscretization of a hyperbolic-parabolic PDE.
+Construct a semidiscretization of a hyperbolic-split PDE.
 """
 function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                                            initial_condition, solver_stiff,
@@ -189,15 +188,15 @@ function Base.show(io::IO, ::MIME"text/plain",
         summary_header(io, "SemidiscretizationHyperbolicSplit")
         summary_line(io, "#spatial dimensions", ndims(semi.equations_stiff))
         summary_line(io, "mesh", semi.mesh)
-        summary_line(io, "hyperbolic equations 1",
+        summary_line(io, "hyperbolic equations stiff",
                      semi.equations_stiff |> typeof |> nameof)
-        summary_line(io, "hyperbolic equations 2",
+        summary_line(io, "hyperbolic equations ",
                      semi.equations_nonstiff |> typeof |> nameof)
         summary_line(io, "initial condition", semi.initial_condition)
 
-        summary_line(io, "source terms 1", semi.source_terms_stiff)
+        summary_line(io, "source terms stiff", semi.source_terms_stiff)
         summary_line(io, "source terms 2", semi.source_terms_nonstiff)
-        summary_line(io, "solver 1", semi.solver_stiff |> typeof |> nameof)
+        summary_line(io, "solver stiff", semi.solver_stiff |> typeof |> nameof)
         summary_line(io, "solver 2", semi.solver_nonstiff |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofs(semi))
         summary_footer(io)
@@ -216,7 +215,7 @@ function compute_coefficients(t, semi::SemidiscretizationHyperbolicSplit)
 end
 
 """
-semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
+semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).

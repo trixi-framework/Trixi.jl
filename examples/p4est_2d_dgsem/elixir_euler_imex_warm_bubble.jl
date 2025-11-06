@@ -143,7 +143,6 @@ end
     p_avg = 0.5f0 * (p_ll + p_rr)
     e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
 
-    v_dot_n_avg_horizontal = v1_avg * normal_direction[1] + v2_avg * normal_direction[2]
     # Calculate fluxes depending on normal_direction
     f1 = rho_avg * v_dot_n_avg
     f2 = f1 * v1_avg
@@ -232,7 +231,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode,
             SBDF2(autodiff = AutoFiniteDiff());
-            #	    CarpenterKennedy2N54();
             dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false,
             callback = callbacks,);
