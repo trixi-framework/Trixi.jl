@@ -13,10 +13,10 @@ some information such as the current time to the screen every `alive_interval`
 time steps. If `analysis_interval ≂̸ 0`, the output is omitted every
 `analysis_interval` time steps.
 """
-struct AliveCallback
+mutable struct AliveCallback
     start_time::Float64
-    alive_interval::Int
-    analysis_interval::Int
+    const alive_interval::Int
+    const analysis_interval::Int
 end
 
 function AliveCallback(; analysis_interval = 0,

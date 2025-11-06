@@ -13,11 +13,11 @@ It stores a set of global indices for each boundary condition type and name to e
 during the call to `calc_boundary_flux!`. The original dictionary form of the boundary conditions
 set by the user in the elixir file is also stored for printing.
 """
-struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any},
-                                       Vec <: AbstractVector{<:Integer}}
-    boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
+mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any},
+                                               Vec <: AbstractVector{<:Integer}}
+    const boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
     boundary_indices::NTuple{N, Vec} # integer vectors containing global boundary indices
-    boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
+    const boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
     boundary_symbol_indices::Dict{Symbol, Vector{Int}} # integer vectors containing global boundary indices per boundary identifier
 end
 
