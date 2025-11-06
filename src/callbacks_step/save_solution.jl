@@ -42,13 +42,13 @@ function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
 end
 ```
 """
-struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
-    interval_or_dt::IntervalType
+mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
+    const interval_or_dt::IntervalType
     save_initial_solution::Bool
-    save_final_solution::Bool
-    output_directory::String
-    solution_variables::SolutionVariablesType
-    node_variables::Dict{Symbol, Any}
+    const save_final_solution::Bool
+    const output_directory::String
+    const solution_variables::SolutionVariablesType
+    const node_variables::Dict{Symbol, Any}
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
