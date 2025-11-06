@@ -14,7 +14,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
 
     # Stores the quadrature nodes.
-    const nodes::SVector{NNODES, RealT}
+    nodes::SVector{NNODES, RealT}
 
     const boundary_names::Array{Symbol, 2} # [face direction, tree]
     current_filename::String
