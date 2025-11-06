@@ -1,5 +1,6 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
+using Accessors: @reset
 
 ###############################################################################
 # Define time integration algorithm
