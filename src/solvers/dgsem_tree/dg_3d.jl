@@ -46,7 +46,7 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                       uEltype)
     A4d = Array{uEltype, 4}
     fstar1_L_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg) + 1, (dg), nnodes(dg))
+                             nnodes(dg) + 1, nnodes(dg), nnodes(dg))
                          for _ in 1:Threads.maxthreadid()]
     fstar1_R_threaded = [A4d(undef, nvariables(equations),
                              nnodes(dg) + 1, nnodes(dg), nnodes(dg))
