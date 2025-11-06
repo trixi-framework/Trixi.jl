@@ -18,7 +18,7 @@ abstract type AbstractPairedExplicitRKSingle <: AbstractPairedExplicitRK end
 mutable struct PairedExplicitRKOptions{Callback, TStops}
     callback::Callback # callbacks; used in Trixi
     const adaptive::Bool # whether the algorithm is adaptive (false)
-    const dtmax::Float64 # ignored
+    dtmax::Float64 # ignored
     const maxiters::Int # maximal number of time steps
     tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
