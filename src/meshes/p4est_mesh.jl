@@ -31,9 +31,9 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
     # This specifies the geometry interpolation for each tree.
     tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
     const nodes::SVector{NNODES, RealT}
-    const boundary_names::Array{Symbol, 2} # [face direction, tree]
-    const current_filename::String
-    const unsaved_changes::Bool
+    boundary_names::Array{Symbol, 2} # [face direction, tree]
+    current_filename::String
+    unsaved_changes::Bool
     const p4est_partition_allow_for_coarsening::Bool
 
     function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
