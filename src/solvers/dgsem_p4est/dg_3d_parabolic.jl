@@ -57,6 +57,7 @@ function calc_gradient!(gradients, u_transformed, t,
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
                              mesh, False(), # False() = no nonconservative terms
+                             False(), # False() = no auxiliary variablesterms
                              equations_parabolic, dg.surface_integral, dg,
                              cache_parabolic)
     end
@@ -88,6 +89,7 @@ function calc_gradient!(gradients, u_transformed, t,
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
                           mesh, False(), # False() = no nonconservative terms
+                          False(), # False() = no auxiliary variables
                           equations_parabolic,
                           dg.mortar, dg.surface_integral, dg, cache)
     end

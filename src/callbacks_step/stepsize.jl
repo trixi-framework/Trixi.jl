@@ -144,7 +144,8 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_advective(t) * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
+                  have_constant_speed(equations),
+                  have_aux_node_vars(equations), equations,
                   solver, cache)
 end
 
@@ -155,7 +156,8 @@ function calculate_dt(u_ode, t, cfl_advective::Real, cfl_diffusive::Real,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_advective * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
+                  have_constant_speed(equations),
+                  have_aux_node_vars(equations), equations,
                   solver, cache)
 end
 
@@ -168,7 +170,8 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt_advective = cfl_advective(t) * max_dt(u, t, mesh,
-                          have_constant_speed(equations), equations,
+                          have_constant_speed(equations),
+                          have_aux_node_vars(equations), equations,
                           solver, cache)
 
     cfl_diff = cfl_diffusive(t)

@@ -24,6 +24,18 @@ DG method (except floating point errors).
     return 0.5f0 * (f_ll + f_rr)
 end
 
+# central flux for equations with auxiliary variables
+@inline function flux_central(u_ll, u_rr, aux_ll, aux_rr,
+                              orientation_or_normal_direction,
+                              equations::AbstractEquations)
+    # Calculate regular 1D fluxes
+    f_ll = flux(u_ll, aux_ll, orientation_or_normal_direction, equations)
+    f_rr = flux(u_rr, aux_rr, orientation_or_normal_direction, equations)
+
+    # Average regular fluxes
+    return 0.5f0 * (f_ll + f_rr)
+end
+
 """
     FluxPlusDissipation(numerical_flux, dissipation)
 
@@ -42,6 +54,18 @@ end
     return (numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
             +
             dissipation(u_ll, u_rr, orientation_or_normal_direction, equations))
+end
+
+@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, aux_ll, aux_rr,
+                                                orientation_or_normal_direction,
+                                                equations)
+    @unpack numerical_flux, dissipation = numflux
+
+    return (numerical_flux(u_ll, u_rr, aux_ll, aux_rr,
+                           orientation_or_normal_direction, equations)
+            +
+            dissipation(u_ll, u_rr, aux_ll, aux_rr,
+                        orientation_or_normal_direction, equations))
 end
 
 function Base.show(io::IO, f::FluxPlusDissipation)
@@ -172,6 +196,16 @@ DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed)
                                                               equations)
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
+    return -0.5f0 * λ * (u_rr - u_ll)
+end
+
+# same as above for equations with auxiliary variables
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, aux_ll,
+                                                              aux_rr,
+                                                              orientation_or_normal_direction,
+                                                              equations)
+    λ = dissipation.max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                                  orientation_or_normal_direction, equations)
     return -0.5f0 * λ * (u_rr - u_ll)
 end
 

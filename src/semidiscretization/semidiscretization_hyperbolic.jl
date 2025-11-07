@@ -37,16 +37,32 @@ end
                                  uEltype=RealT)
 
 Construct a semidiscretization of a hyperbolic PDE.
+
+`aux_field` is an optional function taking a coordinate vector `x` and the current
+`equations` as arguments. It is used to fill an additional field `aux_vars` in the `cache`,
+which will be available, e.g., in flux computations. The current `equations` need to set
+`have_aux_node_vars to `True()` and `n_aux_node_vars` to the number of auxiliary variables
+per node.
+Currently only TreeMesh in 2D is supported.
+Upon refinement, `aux_field` will be called again to recompute the auxiliary variables.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
                                       boundary_conditions = boundary_condition_periodic,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
-                                      RealT = real(solver), uEltype = RealT)
+                                      RealT = real(solver), uEltype = RealT,
+                                      aux_field = nothing)
     @assert ndims(mesh) == ndims(equations)
 
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
+
+    # Add specialized parts of the cache for auxiliary node variables
+    cache = (; cache...,
+             create_cache_aux(mesh, equations, solver, cache,
+                              have_aux_node_vars(equations),
+                              aux_field)...)
+
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 
@@ -85,6 +101,19 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
     #       the indicators and their own caches...).
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms, boundary_conditions, uEltype)
+end
+
+# If there are auxiliary variables, initialize them
+function create_cache_aux(mesh, equations, solver, cache, have_aux_node_vars::True,
+                          aux_field)
+    aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
+    return (; aux_vars)
+end
+
+# Do nothing if there are no auxiliary variables
+function create_cache_aux(mesh, equations, solver, cache, have_aux_node_vars::False,
+                          aux_field)
+    return NamedTuple()
 end
 
 # general fallback
@@ -300,6 +329,10 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
         print_boundary_conditions(io, semi)
 
         summary_line(io, "source terms", semi.source_terms)
+        if have_aux_node_vars(semi.equations) == Trixi.True()
+            summary_line(io, "auxiliary variables",
+                         semi.cache.aux_vars.aux_field)
+        end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)

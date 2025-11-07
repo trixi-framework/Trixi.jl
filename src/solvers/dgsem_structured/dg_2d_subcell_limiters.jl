@@ -122,7 +122,7 @@ end
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                                nonconservative_terms::True, equations,
+                                have_nonconservative_terms::True, equations,
                                 volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
                                 element,
                                 cache) where {
@@ -336,7 +336,7 @@ end
 # terms that can be written as a product of local and jump contributions.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                                nonconservative_terms::True, equations,
+                                have_nonconservative_terms::True, equations,
                                 volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
                                 element,
                                 cache) where {

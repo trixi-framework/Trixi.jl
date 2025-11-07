@@ -69,14 +69,13 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                            P4estMesh{2}},
-                               have_nonconservative_terms, equations,
+                               equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
     @unpack limiter = volume_integral
 
     @threaded for element in eachelement(dg, cache)
-        subcell_limiting_kernel!(du, u, element, mesh,
-                                 have_nonconservative_terms, equations,
+        subcell_limiting_kernel!(du, u, element, mesh, equations,
                                  volume_integral, limiter,
                                  dg, cache)
     end
@@ -87,7 +86,7 @@ end
 @inline function subcell_limiting_kernel!(du, u, element,
                                           mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                                       P4estMesh{2}},
-                                          have_nonconservative_terms, equations,
+                                          equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -101,8 +100,8 @@ end
     fhat2_L = fhat2_L_threaded[Threads.threadid()]
     fhat2_R = fhat2_R_threaded[Threads.threadid()]
     calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, mesh,
-                   have_nonconservative_terms, equations, volume_flux_dg, dg, element,
-                   cache)
+                   have_nonconservative_terms(equations), equations,
+                   volume_flux_dg, dg, element, cache)
 
     # low-order FV fluxes
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
@@ -112,14 +111,15 @@ end
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
-                 have_nonconservative_terms, equations, volume_flux_fv, dg, element,
-                 cache)
+                 have_nonconservative_terms(equations),
+                 have_aux_node_vars(equations), equations,
+                 volume_flux_fv, dg, element, cache)
 
     # antidiffusive flux
     calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                             fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                            u, mesh, have_nonconservative_terms, equations, limiter, dg,
-                            element, cache)
+                            u, mesh, have_nonconservative_terms(equations), equations,
+                            limiter, dg, element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
     for j in eachnode(dg), i in eachnode(dg)
