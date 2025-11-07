@@ -81,7 +81,6 @@ function max_dt(backend::Nothing, u, t, mesh::ParallelTreeMesh{2},
 
     return dt
 end
-
 function max_dt(backend::Nothing, u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                             T8codeMesh{2}, StructuredMeshView{2}},
@@ -89,69 +88,145 @@ function max_dt(backend::Nothing, u, t,
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
-
-    @unpack contravariant_vectors, inverse_jacobian = cache.elements
-
+    @unpack contravariant_vectors, inverse_jacobian = cache
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda1 = max_lambda2 = zero(max_scaled_speed)
-        for j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(u, equations, dg, i, j, element)
-            lambda1, lambda2 = max_abs_speeds(u_node, equations)
-
-            # Local speeds transformed to the reference element
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
-                                                  i, j, element)
-            lambda1_transformed = abs(Ja11 * lambda1 + Ja12 * lambda2)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
-                                                  i, j, element)
-            lambda2_transformed = abs(Ja21 * lambda1 + Ja22 * lambda2)
-
-            inv_jacobian = abs(inverse_jacobian[i, j, element])
-
-            max_lambda1 = Base.max(max_lambda1, lambda1_transformed * inv_jacobian)
-            max_lambda2 = Base.max(max_lambda2, lambda2_transformed * inv_jacobian)
-        end
-
+        max_lambda = max_scaled_speed_per_element(u, typeof(mesh), equations, dg,
+                                                  contravariant_vectors,
+                                                  inverse_jacobian, element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
-        max_scaled_speed = Base.max(max_scaled_speed, max_lambda1 + max_lambda2)
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
     end
-
     return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+function max_dt(backend::Backend, u, t,
+                mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
+                            T8codeMesh{2}, StructuredMeshView{2}},
+                constant_speed::False, equations, dg::DG, cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    num_elements = nelements(dg,cache)
+    max_scaled_speeds = allocate(backend, eltype(t), num_elements)
+
+    kernel! = max_scaled_speed_KAkernel!(backend)
+    kernel!(max_scaled_speeds, u, typeof(mesh), constant_speed, equations, dg,
+            contravariant_vectors, inverse_jacobian, ndrange = num_elements)
+    # TODO GPU dt on CPU? (time integration happens on CPU)
+    max_scaled_speed = max(nextfloat(zero(t)), maximum(max_scaled_speeds))
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+# works for both constant and non-constant speed
+@kernel function max_scaled_speed_KAkernel!(max_scaled_speeds, u,
+                                            mT::Type{<:Union{StructuredMesh{2},
+                                                             UnstructuredMesh2D,
+                                                             P4estMesh{2},
+                                                             T8codeMesh{2},
+                                                             StructuredMeshView{2}}},
+                                            constant_speed, equations,
+                                            dg::DG, contravariant_vectors,
+                                            inverse_jacobian)
+    element = @index(Global)
+    max_scaled_speeds[element] = max_scaled_speed_per_element(u, mT, constant_speed,
+                                                              equations, dg,
+                                                              contravariant_vectors,
+                                                              inverse_jacobian,
+                                                              element)
+end
+
+function max_scaled_speed_per_element(u,
+                                      mT::Type{<:Union{StructuredMesh{2},
+                                                       UnstructuredMesh2D,
+                                                       P4estMesh{2}, T8codeMesh{2},
+                                                       StructuredMeshView{2}}},
+                                      constant_speed::False, equations, dg::DG,
+                                      contravariant_vectors, inverse_jacobian,
+                                      element)
+    max_lambda1 = max_lambda2 = zero(max_scaled_speed)
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        lambda1, lambda2 = max_abs_speeds(u_node, equations)
+
+        # Local speeds transformed to the reference element
+        Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                              i, j, element)
+        lambda1_transformed = abs(Ja11 * lambda1 + Ja12 * lambda2)
+        Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                              i, j, element)
+        lambda2_transformed = abs(Ja21 * lambda1 + Ja22 * lambda2)
+
+        inv_jacobian = abs(inverse_jacobian[i, j, element])
+
+        max_lambda1 = Base.max(max_lambda1, lambda1_transformed * inv_jacobian)
+        max_lambda2 = Base.max(max_lambda2, lambda2_transformed * inv_jacobian)
+    end
+    return max_lambda1 + max_lambda2
 end
 
 function max_dt(backend::Nothing, u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                             P4estMeshView{2}, T8codeMesh{2}, StructuredMeshView{2}},
                 constant_speed::True, equations, dg::DG, cache)
-    @unpack contravariant_vectors, inverse_jacobian = cache.elements
-
-    # to avoid a division by zero if the speed vanishes everywhere,
-    # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    max_lambda1, max_lambda2 = max_abs_speeds(equations)
-
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            # Local speeds transformed to the reference element
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
-                                                  i, j, element)
-            lambda1_transformed = abs(Ja11 * max_lambda1 + Ja12 * max_lambda2)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
-                                                  i, j, element)
-            lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2)
-
-            inv_jacobian = abs(inverse_jacobian[i, j, element])
-            # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
-            # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
-            max_scaled_speed = Base.max(max_scaled_speed,
-                                        inv_jacobian *
-                                        (lambda1_transformed + lambda2_transformed))
-        end
+        max_lambda = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
+                                                 equations, dg, contravariant_vectors,
+                                                 inverse_jacobian, element)
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+function max_dt(backend::Backend, u, t,
+                mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
+                            P4estMeshView{2}, T8codeMesh{2}, StructuredMeshView{2}},
+                constant_speed::True, equations, dg::DG, cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    num_elements = nelements(dg,cache)
+    max_scaled_speeds = allocate(backend, eltype(t), num_elements)
+
+    kernel! = max_scaled_speed_KAkernel!(backend)
+    kernel!(max_scaled_speeds, u, typeof(mesh), constant_speed, equations, dg,
+            contravariant_vectors, inverse_jacobian, ndrange = num_elements)
+    # TODO GPU dt on CPU? (time integration happens on CPU)
+    max_scaled_speed = max(nextfloat(zero(t)), maximum(max_scaled_speeds))
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+function max_scaled_speed_per_element(u,
+                                      ::Type{<:Union{StructuredMesh{2},
+                                                     UnstructuredMesh2D,
+                                                     P4estMesh{2},
+                                                     P4estMeshView{2},
+                                                     T8codeMesh{2},
+                                                     StructuredMeshView{2}}},
+                                      constant_speed::True, equations, dg::DG,
+                                      contravariant_vectors, inverse_jacobian,
+                                      element)
+
+    max_lambda1_loc = max_lambda2_loc = nextfloat(zero(eltype(u)))
+    max_lambda1, max_lambda2 = max_abs_speeds(equations)
+    for j in eachnode(dg), i in eachnode(dg)
+        # Local speeds transformed to the reference element
+        Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                              i, j, element)
+        lambda1_transformed = abs(Ja11 * max_lambda1 + Ja12 * max_lambda2)
+        Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                              i, j, element)
+        lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2)
+
+        inv_jacobian = abs(inverse_jacobian[i, j, element])
+
+        max_lambda1_loc = max(max_lambda1_loc, inv_jacobian * lambda1_transformed)
+        max_lambda2_loc = max(max_lambda2_loc, inv_jacobian * lambda2_transformed)
+    end
+    
+    return max_lambda1_loc + max_lambda2_loc
 end
 
 function max_dt(backend::Nothing, u, t, mesh::ParallelP4estMesh{2},

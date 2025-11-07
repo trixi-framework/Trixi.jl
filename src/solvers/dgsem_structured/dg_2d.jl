@@ -640,17 +640,48 @@ function apply_jacobian!(backend::Nothing, du,
                                      T8codeMesh{2}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
+    @threaded for element in eachelement(dg,cache)
+        apply_jacobian_per_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
+                                    element)
+    end
+end
 
-    @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            factor = -inverse_jacobian[i, j, element]
+function apply_jacobian!(backend::Backend, du,
+                         mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                     UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
+                                     T8codeMesh{2}},
+                         equations, dg::DG, cache)
+    nelements(dg,cache) == 0 && return nothing
+    @unpack inverse_jacobian = cache.elements
+    kernel! = apply_jacobian_KAkernel!(backend)
+    kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
+            ndrange=nelements(dg,cache))
+end
 
-            for v in eachvariable(equations)
-                du[v, i, j, element] *= factor
-            end
+@kernel function apply_jacobian_KAkernel!(du, mT::Type{<:Union{StructuredMesh{2},
+                                                               StructuredMeshView{2},
+                                                               UnstructuredMesh2D,
+                                                               P4estMesh{2},
+                                                               P4estMeshView{2},
+                                                               T8codeMesh{2}}},
+                                          equations, dg::DG, inverse_jacobian)
+    element = @index(Global)
+    apply_jacobian_per_element!(du, mT, equations, dg, inverse_jacobian, element)
+end
+
+function apply_jacobian_per_element!(du,
+                                     ::Type{<:Union{StructuredMesh{2},
+                                                    StructuredMeshView{2},
+                                                    UnstructuredMesh2D, P4estMesh{2},
+                                                    P4estMeshView{2}, T8codeMesh{2}}},
+                                     equations, dg::DG, inverse_jacobian, element)
+    for j in eachnode(dg), i in eachnode(dg)
+        factor = -inverse_jacobian[i, j, element]
+
+        for v in eachvariable(equations)
+            du[v, i, j, element] *= factor
         end
     end
-
     return nothing
 end
 end # @muladd

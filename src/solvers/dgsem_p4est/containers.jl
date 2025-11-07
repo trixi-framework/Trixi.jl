@@ -933,6 +933,18 @@ end
     end
 end
 
+@inline function indices2direction2d(indices)
+    if indices[1] === :begin
+        return 1
+    elseif indices[1] === :end
+        return 2
+    elseif indices[2] === :begin
+        return 3
+    else # if indices[2] === :end
+        return 4
+    end
+end
+
 include("containers_2d.jl")
 include("containers_3d.jl")
 include("containers_parallel.jl")
