@@ -26,7 +26,7 @@ The ideal compressible multicomponent GLM-MHD equations
 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ \vdots \\ 0
 \end{pmatrix}
 ```
-for calorically perfect gas in one space dimension.
+for calorically perfect gases in one space dimension.
 Here, ``\rho_i`` is the density of component ``i``, ``\rho=\sum_{i=1}^n\rho_i`` the sum of the individual ``\rho_i``,
 ``v_1`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, and
 ```math
@@ -43,7 +43,7 @@ C_{v,i}=\frac{R_i}{\gamma_i-1}
 specific heat capacity at constant volume of component ``i``.
 
 In case of more than one component, the specific heat ratios `gammas` and the gas constants
-`gas_constants` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
+`gas_constants` should be passed as tuples, e.g., `gammas = (1.4, 1.667)`.
 
 The remaining variables like the specific heats at constant volume `cv` or the specific heats at
 constant pressure `cp` are then calculated considering a calorically perfect gas.
