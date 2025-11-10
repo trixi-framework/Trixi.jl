@@ -228,5 +228,5 @@ end
     return (ui_dgfv - alpha * ui_fv) / (1 - alpha)
 end
 
-include("positivity_ruedaramirez_gassner_1d.jl")
+include("lowerbound_ruedaramirez_gassner_1d.jl")
 end # @muladd
