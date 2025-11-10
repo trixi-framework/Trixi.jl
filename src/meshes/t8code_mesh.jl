@@ -37,10 +37,10 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
                                                                                 is_parallel)
 
+        mesh.tree_node_coordinates = tree_node_coordinates
         mesh.nodes = nodes
         mesh.boundary_names = boundary_names
         mesh.current_filename = current_filename
-        mesh.tree_node_coordinates = tree_node_coordinates
         mesh.unsaved_changes = true
 
         finalizer(mesh) do mesh
