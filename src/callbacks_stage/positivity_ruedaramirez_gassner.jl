@@ -135,13 +135,13 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
 
     n_vars = nvariables(equations)
     RealT = real(solver_fv)
-    MV1d = MVector{n_vars, RealT}
+    MV = MVector{n_vars, RealT}
 
     # Short thread-local vectors for storing temporary solutions and derivatives at a node
-    u_dg_node_threaded = [MV1d(undef) for _ in 1:Threads.maxthreadid()]
-    du_dalpha_node_threaded = [MV1d(undef) for _ in 1:Threads.maxthreadid()]
-    dp_du_node_threaded = [MV1d(undef) for _ in 1:Threads.maxthreadid()]
-    u_newton_node_threaded = [MV1d(undef) for _ in 1:Threads.maxthreadid()]
+    u_dg_node_threaded = MV[MV(undef) for _ in 1:Threads.maxthreadid()]
+    du_dalpha_node_threaded = MV[MV(undef) for _ in 1:Threads.maxthreadid()]
+    dp_du_node_threaded = MV[MV(undef) for _ in 1:Threads.maxthreadid()]
+    u_newton_node_threaded = MV[MV(undef) for _ in 1:Threads.maxthreadid()]
 
     return PositivityPreservingLimiterRuedaRamirezGassner{RealT,
                                                           typeof(solver_fv),
