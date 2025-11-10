@@ -54,7 +54,8 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
                                                                             solver, t,
                                                                             dt)
 
-    perform_idp_correction!(u, dt, mesh, equations, solver, cache)
+    perform_idp_correction_new!(u, dt, mesh, equations, solver, cache)
+    # perform_idp_correction!(u, dt, mesh, equations, solver, cache)
 
     return nothing
 end
