@@ -90,8 +90,8 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F # `rhs!` of the semidiscretization
-    alg::Alg # SimpleSSPRK33
+    const f::F # `rhs!` of the semidiscretization
+    const alg::Alg # SimpleSSPRK33
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
     dtchangeable::Bool
