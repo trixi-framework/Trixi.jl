@@ -22,8 +22,8 @@ function create_cache(::Type{IndicatorHennemannGassner},
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations, dg::DGSEM, cache)
+function create_cache(typ::Type{IndicatorHennemannGassner},
+                      mesh, equations::AbstractEquations, dg::DGSEM, cache)
     create_cache(typ, equations, dg.basis)
 end
 
