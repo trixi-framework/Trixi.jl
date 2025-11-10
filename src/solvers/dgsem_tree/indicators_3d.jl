@@ -146,7 +146,7 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Unon{Type{IndicatorLöhner}, Type{IndicatorMax}},
+function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
                       equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
     alpha = Vector{uEltype}()
