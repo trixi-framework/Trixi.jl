@@ -164,7 +164,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           cp ./lcov.info ./lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.info
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
           path: ./lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.info
@@ -188,7 +188,7 @@ jobs:
       # At first, we check out the repository and download all artifacts
       # (and list files for debugging).
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
       - run: ls -R
       # Next, we merge the individual coverage files and upload
       # the combined results to Coveralls.
@@ -211,7 +211,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./lcov.info
       # Upload merged coverage data as artifact for debugging
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: lcov
           path: ./lcov.info
