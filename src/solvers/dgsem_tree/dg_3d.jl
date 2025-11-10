@@ -17,24 +17,24 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                          dg, uEltype)
 
     A4d = Array{uEltype, 4}
-    fstar1_L_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                         for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                         for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                         for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                         for _ in 1:Threads.maxthreadid()]
-    fstar3_L_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                         for _ in 1:Threads.maxthreadid()]
-    fstar3_R_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                         for _ in 1:Threads.maxthreadid()]
+    fstar1_L_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar3_L_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
+    fstar3_R_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
 
     return (; cache..., fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded)
@@ -45,24 +45,24 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
     A4d = Array{uEltype, 4}
-    fstar1_L_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                         for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                         for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                         for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                         for _ in 1:Threads.maxthreadid()]
-    fstar3_L_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                         for _ in 1:Threads.maxthreadid()]
-    fstar3_R_threaded = [A4d(undef, nvariables(equations),
-                             nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                         for _ in 1:Threads.maxthreadid()]
+    fstar1_L_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg) + 1,
+                                nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg) + 1,
+                                nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_L_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar2_R_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
+                                nnodes(dg) + 1, nnodes(dg))
+                            for _ in 1:Threads.maxthreadid()]
+    fstar3_L_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
+    fstar3_R_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
+                                nnodes(dg), nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
 
     return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
             fstar2_R_threaded,
@@ -75,33 +75,39 @@ function create_cache(mesh::TreeMesh{3}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal compare performance of different types
     A3d = Array{uEltype, 3}
-    fstar_primary_upper_left_threaded = [A3d(undef, nvariables(equations),
-                                             nnodes(mortar_l2), nnodes(mortar_l2))
-                                         for _ in 1:Threads.maxthreadid()]
-    fstar_primary_upper_right_threaded = [A3d(undef, nvariables(equations),
-                                              nnodes(mortar_l2), nnodes(mortar_l2))
-                                          for _ in 1:Threads.maxthreadid()]
-    fstar_primary_lower_left_threaded = [A3d(undef, nvariables(equations),
-                                             nnodes(mortar_l2), nnodes(mortar_l2))
-                                         for _ in 1:Threads.maxthreadid()]
-    fstar_primary_lower_right_threaded = [A3d(undef, nvariables(equations),
-                                              nnodes(mortar_l2), nnodes(mortar_l2))
-                                          for _ in 1:Threads.maxthreadid()]
-    fstar_secondary_upper_left_threaded = [A3d(undef, nvariables(equations),
-                                               nnodes(mortar_l2), nnodes(mortar_l2))
-                                           for _ in 1:Threads.maxthreadid()]
-    fstar_secondary_upper_right_threaded = [A3d(undef, nvariables(equations),
-                                                nnodes(mortar_l2), nnodes(mortar_l2))
+    fstar_primary_upper_left_threaded = A3d[A3d(undef, nvariables(equations),
+                                                nnodes(mortar_l2),
+                                                nnodes(mortar_l2))
                                             for _ in 1:Threads.maxthreadid()]
-    fstar_secondary_lower_left_threaded = [A3d(undef, nvariables(equations),
-                                               nnodes(mortar_l2), nnodes(mortar_l2))
-                                           for _ in 1:Threads.maxthreadid()]
-    fstar_secondary_lower_right_threaded = [A3d(undef, nvariables(equations),
-                                                nnodes(mortar_l2), nnodes(mortar_l2))
+    fstar_primary_upper_right_threaded = A3d[A3d(undef, nvariables(equations),
+                                                 nnodes(mortar_l2), nnodes(mortar_l2))
+                                             for _ in 1:Threads.maxthreadid()]
+    fstar_primary_lower_left_threaded = A3d[A3d(undef, nvariables(equations),
+                                                nnodes(mortar_l2),
+                                                nnodes(mortar_l2))
                                             for _ in 1:Threads.maxthreadid()]
-    fstar_tmp1_threaded = [A3d(undef, nvariables(equations),
-                               nnodes(mortar_l2), nnodes(mortar_l2))
-                           for _ in 1:Threads.maxthreadid()]
+    fstar_primary_lower_right_threaded = A3d[A3d(undef, nvariables(equations),
+                                                 nnodes(mortar_l2), nnodes(mortar_l2))
+                                             for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_upper_left_threaded = A3d[A3d(undef, nvariables(equations),
+                                                  nnodes(mortar_l2),
+                                                  nnodes(mortar_l2))
+                                              for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_upper_right_threaded = A3d[A3d(undef, nvariables(equations),
+                                                   nnodes(mortar_l2),
+                                                   nnodes(mortar_l2))
+                                               for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_lower_left_threaded = A3d[A3d(undef, nvariables(equations),
+                                                  nnodes(mortar_l2),
+                                                  nnodes(mortar_l2))
+                                              for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_lower_right_threaded = A3d[A3d(undef, nvariables(equations),
+                                                   nnodes(mortar_l2),
+                                                   nnodes(mortar_l2))
+                                               for _ in 1:Threads.maxthreadid()]
+    fstar_tmp1_threaded = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2),
+                                  nnodes(mortar_l2))
+                              for _ in 1:Threads.maxthreadid()]
 
     cache = (; fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
              fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
