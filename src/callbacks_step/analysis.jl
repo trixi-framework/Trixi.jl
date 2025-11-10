@@ -54,10 +54,10 @@ mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegra
     const output_directory::String
     const analysis_filename::String
     const analyzer::Analyzer
-    analysis_errors::Vector{Symbol}
-    analysis_integrals::AnalysisIntegrals
+    const analysis_errors::Vector{Symbol}
+    const analysis_integrals::AnalysisIntegrals
     initial_state_integrals::InitialStateIntegrals
-    cache::Cache
+    const cache::Cache
 end
 
 # TODO: Taal bikeshedding, implement a method with less information and the signature

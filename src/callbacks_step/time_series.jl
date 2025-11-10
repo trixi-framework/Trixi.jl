@@ -42,7 +42,7 @@ mutable struct TimeSeriesCallback{RealT <: Real, uEltype <: Real, SolutionVariab
     point_data::Vector{Vector{uEltype}}
     time::Vector{RealT}
     step::Vector{Int}
-    time_series_cache::Cache
+    const time_series_cache::Cache
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})

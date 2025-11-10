@@ -24,12 +24,12 @@ mesh for a two-dimensional surface or shell in three-dimensional space.
 mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
                          NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    p4est::P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
+    const p4est::P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
     const is_parallel::IsParallel
     ghost::Ghost # Either PointerWrapper{p4est_ghost_t} or PointerWrapper{p8est_ghost_t}
     # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
     # This specifies the geometry interpolation for each tree.
-    tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
+    const tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
     const nodes::SVector{NNODES, RealT}
     boundary_names::Array{Symbol, 2} # [face direction, tree]
     current_filename::String
