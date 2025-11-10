@@ -120,7 +120,6 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                     alpha_n = alpha[element] + delta_alpha_i
                     # Compute ∂u/∂α
                     for v in eachvariable(equations)
-                        # Compute pure DG solution
                         u_dg_node[v] = compute_pure_dg(u_dgfv_node[v], u_fv_node[v],
                                                        alpha_n)
 
@@ -158,7 +157,7 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                     end
 
                     if newton_it == max_iterations
-                        error("RRG Limiter: ($max_iterations) not enough to correct pressure! Simulation might crash soon!")
+                        error("RRG Limiter: ($max_iterations) not enough to correct pressure!")
                     end
                 end
                 delta_alpha = max(delta_alpha, delta_alpha_i)
