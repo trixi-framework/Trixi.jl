@@ -97,7 +97,7 @@ callbacks = CallbackSet(summary_callback,
 # - `beta_rho` set to 0.7 to provoke density correction
 # - `root_tol` can be set to this relatively high value while still ensuring positivity
 # - `use_density_init` set to false to use zero initial guess for pressure correction
-limiter! = PositivityPreservingLimiterRuedaRamirezGassner(semi;
+limiter! = LowerBoundPreservingLimiterRuedaRamirezGassner(semi;
                                                           alpha_max = 0.9,
                                                           beta_rho = 0.7,
                                                           root_tol = 1e-8,

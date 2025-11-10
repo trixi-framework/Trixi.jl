@@ -102,7 +102,7 @@ callbacks = CallbackSet(summary_callback,
 # - `use_density_init` is set to false since in the modification of the initial condition
 #                      only the pressure is decreased, i.e., density should be non-critical
 #                      and is probably not corrected at all.
-limiter! = PositivityPreservingLimiterRuedaRamirezGassner(semi;
+limiter! = LowerBoundPreservingLimiterRuedaRamirezGassner(semi;
                                                           alpha_max = 0.7,
                                                           root_tol = 1e-8,
                                                           use_density_init = false)

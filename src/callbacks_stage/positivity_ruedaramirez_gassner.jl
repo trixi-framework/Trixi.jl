@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
+    LowerBoundPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
                                                    beta_rho = 0.1, beta_p = 0.1,
                                                    near_zero_tol = 1e-9,
                                                    max_iterations = 10,
@@ -16,8 +16,10 @@
                                                    volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
                                                    alpha_max = semi.solver.volume_integral.indicator.alpha_max + 0.1)
 
-Positivity-preserving limiter for density and pressure for finite volume subcell stabilized DGSEM.
-Applicable to every set of equations where density and pressure are the only variables required to be positive.
+Lower-bound (and thus also positivity-preserving) limiter for density and pressure for
+finite volume (FV) subcell stabilized DGSEM.
+Applicable to every set of equations where density and pressure are the only variables
+required to be bounded from below (i.e., positive)
 These are for instance the [`CompressibleEulerEquations1D`](@ref) or the [`IdealGlmMhdEquations1D`](@ref)
 in any spatial dimension.
 
@@ -77,7 +79,7 @@ for every stage of the time integrator.
   A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations of the Euler Equations
   [DOI: 10.48550/arXiv.2102.06017](https://doi.org/10.48550/arXiv.2102.06017)
 """
-mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
+mutable struct LowerBoundPreservingLimiterRuedaRamirezGassner{RealT <: Real,
                                                               SolverFV <: DGSEM,
                                                               uType <: AbstractVector,
                                                               vType <: AbstractArray}
@@ -96,7 +98,7 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
     const solver_fv::SolverFV # Finite Volume solver
 
     ### Additional storage ###
-    u_fv_ode::uType       # Finite-Volume update
+    u_fv_ode::uType # Finite-Volume update
     # These are thread-local storage for temporary variables at a node
     u_dg_node_threaded::vType      # Pure DG solution
     du_dalpha_node_threaded::vType # Derivative of solution w.r.t. alpha
@@ -104,7 +106,7 @@ mutable struct PositivityPreservingLimiterRuedaRamirezGassner{RealT <: Real,
     u_newton_node_threaded::vType  # Temporary storage for Newton update
 end
 
-function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
+function LowerBoundPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
                                                         beta_rho = 0.1, beta_p = 0.1,
                                                         near_zero_tol = 1e-9,
                                                         max_iterations = 10,
@@ -143,7 +145,7 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
     dp_du_node_threaded = MV[MV(undef) for _ in 1:Threads.maxthreadid()]
     u_newton_node_threaded = MV[MV(undef) for _ in 1:Threads.maxthreadid()]
 
-    return PositivityPreservingLimiterRuedaRamirezGassner{RealT,
+    return LowerBoundPreservingLimiterRuedaRamirezGassner{RealT,
                                                           typeof(solver_fv),
                                                           typeof(u_fv_ode),
                                                           typeof(u_dg_node_threaded)}(beta_rho,
@@ -163,12 +165,12 @@ function PositivityPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscre
 end
 
 # Required to be used as `stage_callback` in `Trixi.SimpleIntegratorSSP`
-init_callback(limiter!::PositivityPreservingLimiterRuedaRamirezGassner, semi) = nothing
+init_callback(limiter!::LowerBoundPreservingLimiterRuedaRamirezGassner, semi) = nothing
 # Required to be used as `stage_callback` in `Trixi.SimpleIntegratorSSP`
-finalize_callback(limiter!::PositivityPreservingLimiterRuedaRamirezGassner, semi) = nothing
+finalize_callback(limiter!::LowerBoundPreservingLimiterRuedaRamirezGassner, semi) = nothing
 
 # Get pure FV solution for the current stage
-function compute_u_fv!(limiter::PositivityPreservingLimiterRuedaRamirezGassner,
+function compute_u_fv!(limiter::LowerBoundPreservingLimiterRuedaRamirezGassner,
                        integrator::Trixi.SimpleIntegratorSSP, stage)
     @unpack alg, t, dt, u, du, f = integrator
 
@@ -202,7 +204,7 @@ function compute_u_fv!(limiter::PositivityPreservingLimiterRuedaRamirezGassner,
     return nothing
 end
 
-function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
+function (limiter!::LowerBoundPreservingLimiterRuedaRamirezGassner)(u_ode,
                                                                     integrator::Trixi.SimpleIntegratorSSP,
                                                                     stage)
     @trixi_timeit timer() "positivity-preserving limiter RRG" begin
@@ -217,6 +219,13 @@ function (limiter!::PositivityPreservingLimiterRuedaRamirezGassner)(u_ode,
     end
 
     return nothing
+end
+
+# Compute pure DG solution given Hennemann-Gassner blending:
+#     u_dgfv = (1 - α) u_dg + α * u_FV
+# <=>   u_dg = (u_dgfv - α * u_FV) / (1 - α)
+@inline function compute_pure_dg(ui_dgfv, ui_fv, alpha)
+    return (ui_dgfv - alpha * ui_fv) / (1 - alpha)
 end
 
 include("positivity_ruedaramirez_gassner_1d.jl")
