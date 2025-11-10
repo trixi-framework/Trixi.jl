@@ -94,8 +94,8 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType,
     const alg::Alg # SimpleSSPRK33
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
-    dtchangeable::Bool
-    force_stepfail::Bool
+    const dtchangeable::Bool
+    const force_stepfail::Bool
 end
 
 """
