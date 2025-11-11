@@ -221,7 +221,7 @@ semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
-The parabolic right-hand side is the first function of the split ODE problem and
+The stiff hyperbolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
 """
@@ -240,7 +240,7 @@ function Trixi.semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
     iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
     # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
     # first function implicitly and the second one explicitly. Thus, we pass the
-    # stiffer parabolic function first.
+    # stiffer function first.
     return SplitODEProblem{iip}(rhs_stiff!, rhs!, u0_ode, tspan, semi)
 end
 
@@ -263,6 +263,7 @@ function rhs_stiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
     return nothing
 end
 
+# nonstiff `rhs!`
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
     @unpack mesh, equations_nonstiff, initial_condition, boundary_conditions_nonstiff, source_terms_nonstiff, solver_nonstiff, cache_nonstiff = semi
 
