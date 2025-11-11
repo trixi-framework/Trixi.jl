@@ -28,7 +28,7 @@ The ideal compressible multicomponent GLM-MHD equations
 ```
 for calorically perfect gases in one space dimension.
 Here, ``\rho_i`` is the density of component ``i``, ``\rho=\sum_{i=1}^n\rho_i`` the sum of the individual ``\rho_i``,
-``v_1`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, and
+``\mathbf{v}`` the velocity, ``\mathbf{B}`` the magnetic field, ``e`` the specific total energy **rather than** specific internal energy, and
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 \right)
 ```
