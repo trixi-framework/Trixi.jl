@@ -290,24 +290,6 @@ end
     end
 end
 
-function calc_volume_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
-                               dg::DGSEM, cache)
-    @unpack x_interfaces, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
-
-    # Calculate LGL second-order FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fvO2_kernel!(du, u, mesh,
-                     have_nonconservative_terms, equations,
-                     volume_flux_fv, dg, cache, element,
-                     x_interfaces, reconstruction_mode, slope_limiter, true)
-    end
-
-    return nothing
-end
-
-
 @inline function fvO2_kernel!(du, u,
                               mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                               have_nonconservative_terms, equations,
@@ -341,6 +323,23 @@ end
     return nothing
 end
 
+function calc_volume_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
+                               dg::DGSEM, cache)
+    @unpack x_interfaces, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
+
+    # Calculate LGL second-order FV volume integral
+    @threaded for element in eachelement(dg, cache)
+        fvO2_kernel!(du, u, mesh,
+                     have_nonconservative_terms, equations,
+                     volume_flux_fv, dg, cache, element,
+                     x_interfaces, reconstruction_mode, slope_limiter, true)
+    end
+
+    return nothing
+end
+
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, 
                                 u::AbstractArray{<:Any, 4},
                                 mesh::Union{TreeMesh{2}, StructuredMesh{2}},
@@ -352,30 +351,10 @@ end
     fstar1_R[:, 1, :] .= zero(eltype(fstar1_R))
     fstar1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_R))
 
-    for j in eachnode(dg), i in 2:nnodes(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
-        #             Reference element:
-        #  -1 ------------------0------------------ 1 -> x
-        # Gauss-Lobatto-Legendre nodes (schematic for k = 3):
-        #   .          .                  .         .
-        #   ^          ^                  ^         ^
-        # Node indices:
-        #   1          2                  3         4
-        # The inner subcell boundaries are governed by the
-        # cumulative sum of the quadrature weights - 1 .
-        #  -1 ------------------0------------------ 1 -> x
-        #        w1-1      (w1+w2)-1   (w1+w2+w3)-1
-        #   |     |             |             |     |
-        # Note that only the inner boundaries are stored.
-        # Subcell interface indices, loop only over 2 -> nnodes(dg) = 4
-        #   1     2             3             4     5
-        #
-        # In general a four-point stencil is required, since we reconstruct the
-        # piecewise linear solution in both subcells next to the subcell interface.
-        # Since these subcell boundaries are not aligned with the DG nodes,
-        # on each neighboring subcell two linear solutions are reconstructed => 4 point stencil.
-        # For the outer interfaces the stencil shrinks since we do not consider values
-        # outside the element (this is a volume integral).
-        #
+    for j in eachnode(dg), i in 2:nnodes(dg) 
+        # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
+        # See `calcflux_fvO2()` in dg_1d.jl for a schematic of how it works
+
         # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
         # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
@@ -412,7 +391,7 @@ end
     fstar2_R[:, :, 1] .= zero(eltype(fstar2_R))
     fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
 
-    for j in 2:nnodes(dg), i in eachnode(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
+    for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
                          equations)
         u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, element),
@@ -429,7 +408,7 @@ end
 
         ## Convert primitive variables back to conservative variables ##
         flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
-                              2, equations) # orientation 1: x direction
+                              2, equations) # orientation 2: y direction
 
         set_node_vars!(fstar2_L, flux, equations, dg, i, j)
         set_node_vars!(fstar2_R, flux, equations, dg, i, j)
