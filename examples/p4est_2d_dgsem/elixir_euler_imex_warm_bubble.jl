@@ -121,10 +121,7 @@ end
         f1, f2, f3, f4 = u_rr * v_interface
     end
 
-    return SVector(f1,
-                   f2,
-                   f3,
-                   f4)
+    return SVector(f1, f2, f3, f4)
 end
 
 @inline function flux_kennedy_gruber_slow(u_ll, u_rr, normal_direction::AbstractVector,
