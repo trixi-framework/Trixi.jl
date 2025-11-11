@@ -178,7 +178,8 @@ end
     return SVector(zero(eltype(u)), zero(eltype(u)), -g * rho, -g * rho_v2)
 end
 
-equations = CompressibleEulerEquations2D(1004 / 717)
+gamma = 1004/717
+equations = CompressibleEulerEquations2D(gamma)
 
 polydeg = 2
 basis = LobattoLegendreBasis(polydeg)
