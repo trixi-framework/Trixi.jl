@@ -124,7 +124,7 @@ end
                                                                         2)...,
                                                                  length(mesh1.cell_ids))
     # Load the mesh file for code coverage.
-    loaded_mesh = Trixi.load_mesh_serial(joinpath(EXAMPLES_DIR, "out", "mesh_1.h5"); n_cells_max = 0,
+    loaded_mesh = Trixi.load_mesh_serial(joinpath(EXAMPLES_DIR, "out", "mesh_1_000000000.h5"); n_cells_max = 0,
                                          RealT = typeof(parent_mesh).parameters[3])
 end
 
