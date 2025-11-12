@@ -76,8 +76,8 @@ function perform_idp_correction_new!(u, dt,
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     @unpack alpha = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
 
-    # The following code implements the IDP correction:
-    # u[v, i, j, element] += dt * inverse_jacobian *
+    # The following code implements the IDP correction in flux-differencing form:
+    # u[v, i, j, element] += -dt * inverse_jacobian *
     #    (inverse_weights[i] *
     #       ((1 - alpha_1_ip1) * antidiffusive_flux1_ip1[v] - (1 - alpha_1) * antidiffusive_flux1[v]) +
     #     inverse_weights[j] *
@@ -89,7 +89,7 @@ function perform_idp_correction_new!(u, dt,
     # interfaces.
 
     @threaded for element in eachelement(dg, cache)
-        # Perform correction in x-direction
+        # Perform correction in 1st/x-direction
         for j in eachnode(dg), i in 2:nnodes(dg)
             # Apply to right node
             alpha1 = max(alpha[i - 1, j, element], alpha[i, j, element])
@@ -99,10 +99,8 @@ function perform_idp_correction_new!(u, dt,
                                                      mesh, i, j, element)
             flux1 = get_node_vars(antidiffusive_flux1_R, equations, dg,
                                   i, j, element)
-            multiply_add_to_node_vars!(u,
-                                       -dt * inverse_jacobian * inverse_weights[i] *
-                                       (1 - alpha1),
-                                       flux1,
+            dg_factor = -dt * inverse_jacobian * inverse_weights[i] * (1 - alpha1)
+            multiply_add_to_node_vars!(u, dg_factor, flux1,
                                        equations, dg, i, j, element)
 
             # Apply to left node
@@ -111,14 +109,12 @@ function perform_idp_correction_new!(u, dt,
                                                      mesh, i - 1, j, element)
             flux1_ip1 = get_node_vars(antidiffusive_flux1_L, equations, dg,
                                       i, j, element)
-            multiply_add_to_node_vars!(u,
-                                       dt * inverse_jacobian * inverse_weights[i - 1] *
-                                       (1 - alpha1),
-                                       flux1_ip1,
+            dg_factor = dt * inverse_jacobian * inverse_weights[i - 1] * (1 - alpha1)
+            multiply_add_to_node_vars!(u, dg_factor, flux1_ip1,
                                        equations, dg, i - 1, j, element)
         end
 
-        # Perform correction in y-direction
+        # Perform correction in 2nd/y-direction
         for j in 2:nnodes(dg), i in eachnode(dg)
             # Apply to right node
             alpha2 = max(alpha[i, j - 1, element], alpha[i, j, element])
@@ -128,10 +124,8 @@ function perform_idp_correction_new!(u, dt,
                                                      mesh, i, j, element)
             flux2 = get_node_vars(antidiffusive_flux2_R, equations, dg,
                                   i, j, element)
-            multiply_add_to_node_vars!(u,
-                                       -dt * inverse_jacobian * inverse_weights[j] *
-                                       (1 - alpha2),
-                                       flux2,
+            dg_factor = -dt * inverse_jacobian * inverse_weights[j] * (1 - alpha2)
+            multiply_add_to_node_vars!(u, dg_factor, flux2,
                                        equations, dg, i, j, element)
 
             # Apply to left node
@@ -140,10 +134,8 @@ function perform_idp_correction_new!(u, dt,
                                                      mesh, i, j - 1, element)
             flux2_jp1 = get_node_vars(antidiffusive_flux2_L, equations, dg,
                                       i, j, element)
-            multiply_add_to_node_vars!(u,
-                                       dt * inverse_jacobian * inverse_weights[j - 1] *
-                                       (1 - alpha2),
-                                       flux2_jp1,
+            dg_factor = dt * inverse_jacobian * inverse_weights[j - 1] * (1 - alpha2)
+            multiply_add_to_node_vars!(u, dg_factor, flux2_jp1,
                                        equations, dg, i, j - 1, element)
         end
     end
