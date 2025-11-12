@@ -74,7 +74,7 @@ struct SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff
         @assert ndims(mesh) == ndims(equations_stiff)
         @assert ndims(mesh) == ndims(equations_nonstiff)
 
-        # Todo: assert nvariables(equations)==nvariables(equations_parabolic)
+        @assert nvariables(equations_stiff) == nvariables(equations_nonstiff)
 
         performance_counter = PerformanceCounterList{2}(false)
 
@@ -282,7 +282,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
     return nothing
 end
 
-# TODO: eventually to fix.
+# Here we only pass the nonstiff solver and cache to the calc_error_norms function,
+# since they are needed only for auxiliary functions, such as get_node_vars, etc.
 function calc_error_norms(func, u_ode, t, analyzer,
                           semi::SemidiscretizationHyperbolicSplit,
                           cache_analysis)

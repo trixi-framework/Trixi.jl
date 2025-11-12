@@ -225,6 +225,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # run the simulation
 sol = solve(ode,
             SBDF2(autodiff = AutoFiniteDiff());
-            dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = dt, 
             save_everystep = false,
             callback = callbacks,);
