@@ -175,7 +175,7 @@ end
     return SVector(zero(eltype(u)), zero(eltype(u)), -g * rho, -g * rho_v2)
 end
 
-gamma = 1004/717
+gamma = 1004 / 717
 equations = CompressibleEulerEquations2D(gamma)
 
 polydeg = 2
@@ -225,6 +225,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # run the simulation
 sol = solve(ode,
             SBDF2(autodiff = AutoFiniteDiff());
-            dt = dt, 
+            dt = dt,
             save_everystep = false,
             callback = callbacks,);
