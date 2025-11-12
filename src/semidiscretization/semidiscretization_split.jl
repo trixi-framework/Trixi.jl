@@ -9,7 +9,7 @@
 	SemidiscretizationHyperbolicSplit
 
 A struct containing everything needed to describe a spatial semidiscretization
-of a splitting rhs in time for hyperbolic conservation law.
+of a split-rhs corresponding to a hyperbolic conservation/balance law.
 """
 struct SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff,
                                          InitialCondition,
