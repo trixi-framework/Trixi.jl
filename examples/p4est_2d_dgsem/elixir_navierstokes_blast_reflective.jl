@@ -98,17 +98,11 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback)
-
 ###############################################################################
 
 # 5th-order RKM optimized for compressible Navier-Stokes equations, see also
 # https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods
 ode_alg = CKLLSRK65_4M_4R()
 
-abstol = 1e-6
-reltol = 1e-4
-sol = solve(ode, ode_alg; abstol = abstol, reltol = reltol,
+sol = solve(ode, ode_alg; abstol = 1e-6, reltol = 1e-4,
             ode_default_options()..., callback = callbacks);

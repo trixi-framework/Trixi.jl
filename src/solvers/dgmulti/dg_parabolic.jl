@@ -38,13 +38,13 @@ function create_cache_parabolic(mesh::DGMultiMesh,
     gradients_face_values = ntuple(_ -> similar(u_face_values), ndims(mesh))
 
     local_u_values_threaded = [similar(u_transformed, dg.basis.Nq)
-                               for _ in 1:Threads.nthreads()]
+                               for _ in 1:Threads.maxthreadid()]
     local_flux_viscous_threaded = [SVector{ndims(mesh)}(ntuple(_ -> similar(u_transformed,
                                                                             dg.basis.Nq),
                                                                ndims(mesh)))
-                                   for _ in 1:Threads.nthreads()]
+                                   for _ in 1:Threads.maxthreadid()]
     local_flux_face_values_threaded = [similar(scalar_flux_face_values[:, 1])
-                                       for _ in 1:Threads.nthreads()]
+                                       for _ in 1:Threads.maxthreadid()]
 
     return (; u_transformed, gradients, flux_viscous,
             weak_differentiation_matrices, strong_differentiation_matrices,
@@ -152,9 +152,9 @@ function calc_gradient_interface_flux!(scalar_flux_face_values,
         idM, idP = mapM[face_node_index], mapP[face_node_index]
         uM = u_face_values[idM]
         uP = u_face_values[idP]
-        # Here, we use the "strong" formulation to compute the gradient. 
-        # This guarantees that the parabolic formulation is symmetric and 
-        # stable on curved meshes with variable geometric terms. 
+        # Here, we use the "strong" formulation to compute the gradient.
+        # This guarantees that the parabolic formulation is symmetric and
+        # stable on curved meshes with variable geometric terms.
         scalar_flux_face_values[idM] = 0.5f0 * (uP - uM)
     end
 

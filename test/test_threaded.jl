@@ -37,12 +37,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_advection_restart.jl with threaded time integration" begin
@@ -63,12 +58,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_advection_amr_coarsen_twice.jl" begin
@@ -79,12 +69,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
@@ -106,11 +91,10 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        if VERSION >= v"1.12"
+            @test_allocations(Trixi.rhs!, semi, sol, 7500)
+        else
+            @test_allocations(Trixi.rhs!, semi, sol, 5000)
         end
     end
 
@@ -132,12 +116,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_positivity.jl" begin
@@ -158,11 +137,10 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
                             tspan=(0.0, 1.0),)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        if VERSION >= v"1.12"
+            @test_allocations(Trixi.rhs!, semi, sol, 7500)
+        else
+            @test_allocations(Trixi.rhs!, semi, sol, 5000)
         end
     end
 
@@ -176,12 +154,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "FDSBP, elixir_advection_extended.jl" begin
@@ -193,12 +166,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "FDSBP, elixir_euler_convergence.jl" begin
@@ -220,11 +188,10 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        if VERSION >= v"1.12"
+            @test_allocations(Trixi.rhs!, semi, sol, 15000)
+        else
+            @test_allocations(Trixi.rhs!, semi, sol, 5000)
         end
     end
 end
@@ -241,12 +208,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_mhd_ec.jl" begin
@@ -266,12 +228,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 end
 
@@ -291,12 +248,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 end
 
@@ -319,11 +271,10 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        if VERSION >= v"1.12"
+            @test_allocations(Trixi.rhs!, semi, sol, 7500)
+        else
+            @test_allocations(Trixi.rhs!, semi, sol, 5000)
         end
     end
 
@@ -406,12 +357,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_curved.jl with threaded time integration" begin
@@ -433,12 +379,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
@@ -459,12 +400,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_fdsbp_periodic.jl (2D)" begin
@@ -485,12 +421,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
     @trixi_testset "elixir_euler_fdsbp_periodic.jl (3D)" begin
@@ -512,12 +443,7 @@ end
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 end

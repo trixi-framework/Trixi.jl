@@ -141,6 +141,7 @@ include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
+include("solvers/boundary_condition_default.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
@@ -151,7 +152,6 @@ include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-
 # Special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
 
@@ -179,6 +179,7 @@ export AcousticPerturbationEquations2D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D,
        MaxwellEquations1D,
+       LinearElasticityEquations1D,
        PassiveTracerEquations
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
@@ -220,6 +221,7 @@ export initial_condition_constant,
        initial_condition_weak_blast_wave
 
 export boundary_condition_do_nothing,
+       boundary_condition_default,
        boundary_condition_periodic,
        BoundaryConditionDirichlet,
        BoundaryConditionNeumann,
@@ -242,8 +244,10 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity, global_mean_vars,
-       equilibrium_distribution, waterheight, waterheight_pressure
+export density, pressure, density_pressure, velocity, temperature,
+       global_mean_vars,
+       equilibrium_distribution,
+       waterheight, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
@@ -251,19 +255,24 @@ export lake_at_rest_error
 export ncomponents, eachcomponent
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
-       P4estMeshView, T8codeMesh
+       P4estMeshView, P4estMeshCubedSphere, T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
        FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
-       VolumeIntegralPureLGLFiniteVolume,
+       VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
+
+export reconstruction_O2_inner, reconstruction_O2_full,
+       reconstruction_constant,
+       minmod, monotonized_central, superbee, vanLeer,
+       central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection

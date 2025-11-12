@@ -12,44 +12,50 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                          dg, uEltype)
 
-    A3dp1_x = Array{uEltype, 3}
-    A3dp1_y = Array{uEltype, 3}
     A3d = Array{uEltype, 3}
-    A4d = Array{uEltype, 4}
 
-    fhat1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                       nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fhat2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                       nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
-    fhat1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg) + 1,
-                                       nnodes(dg)) for _ in 1:Threads.nthreads()]
-    fhat2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg),
-                                       nnodes(dg) + 1) for _ in 1:Threads.nthreads()]
-    flux_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
-                             for _ in 1:Threads.nthreads()]
-    fhat_temp_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg),
-                                 nnodes(dg))
-                             for _ in 1:Threads.nthreads()]
+    fhat1_L_threaded = A3d[A3d(undef, nvariables(equations),
+                               nnodes(dg) + 1, nnodes(dg))
+                           for _ in 1:Threads.maxthreadid()]
+    fhat2_L_threaded = A3d[A3d(undef, nvariables(equations),
+                               nnodes(dg), nnodes(dg) + 1)
+                           for _ in 1:Threads.maxthreadid()]
+    fhat1_R_threaded = A3d[A3d(undef, nvariables(equations),
+                               nnodes(dg) + 1, nnodes(dg))
+                           for _ in 1:Threads.maxthreadid()]
+    fhat2_R_threaded = A3d[A3d(undef, nvariables(equations),
+                               nnodes(dg), nnodes(dg) + 1)
+                           for _ in 1:Threads.maxthreadid()]
+
+    flux_temp_threaded = A3d[A3d(undef, nvariables(equations),
+                                 nnodes(dg), nnodes(dg))
+                             for _ in 1:Threads.maxthreadid()]
+    fhat_temp_threaded = A3d[A3d(undef, nvariables(equations),
+                                 nnodes(dg), nnodes(dg))
+                             for _ in 1:Threads.maxthreadid()]
+
     antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(0,
                                                                  nvariables(equations),
                                                                  nnodes(dg))
 
     if have_nonconservative_terms(equations) == true
+        A4d = Array{uEltype, 4}
+
         # Extract the nonconservative flux as a dispatch argument for `n_nonconservative_terms`
         _, volume_flux_noncons = volume_integral.volume_flux_dg
 
         flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                                      n_nonconservative_terms(volume_flux_noncons),
                                                      nnodes(dg), nnodes(dg))
-                                                 for _ in 1:Threads.nthreads()]
+                                                 for _ in 1:Threads.maxthreadid()]
         fhat_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                                      n_nonconservative_terms(volume_flux_noncons),
                                                      nnodes(dg), nnodes(dg))
-                                                 for _ in 1:Threads.nthreads()]
+                                                 for _ in 1:Threads.maxthreadid()]
         phi_threaded = A4d[A4d(undef, nvariables(equations),
                                n_nonconservative_terms(volume_flux_noncons),
                                nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
         cache = (; cache..., flux_nonconservative_temp_threaded,
                  fhat_nonconservative_temp_threaded, phi_threaded)
     end
@@ -59,17 +65,18 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
             flux_temp_threaded, fhat_temp_threaded)
 end
 
+# Subcell limiting currently only implemented for certain mesh types
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           P4estMesh{2}},
-                               nonconservative_terms, equations,
+                                           P4estMesh{2}, P4estMesh{3}},
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
     @unpack limiter = volume_integral
 
     @threaded for element in eachelement(dg, cache)
         subcell_limiting_kernel!(du, u, element, mesh,
-                                 nonconservative_terms, equations,
+                                 have_nonconservative_terms, equations,
                                  volume_integral, limiter,
                                  dg, cache)
     end
@@ -80,10 +87,10 @@ end
 @inline function subcell_limiting_kernel!(du, u, element,
                                           mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                                       P4estMesh{2}},
-                                          nonconservative_terms, equations,
+                                          have_nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
-    @unpack inverse_weights = dg.basis
+    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
     @unpack volume_flux_dg, volume_flux_fv = volume_integral
 
     # high-order DG fluxes
@@ -94,7 +101,7 @@ end
     fhat2_L = fhat2_L_threaded[Threads.threadid()]
     fhat2_R = fhat2_R_threaded[Threads.threadid()]
     calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, mesh,
-                   nonconservative_terms, equations, volume_flux_dg, dg, element,
+                   have_nonconservative_terms, equations, volume_flux_dg, dg, element,
                    cache)
 
     # low-order FV fluxes
@@ -105,13 +112,13 @@ end
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
-                 nonconservative_terms, equations, volume_flux_fv, dg, element,
+                 have_nonconservative_terms, equations, volume_flux_fv, dg, element,
                  cache)
 
     # antidiffusive flux
     calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                             fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                            u, mesh, nonconservative_terms, equations, limiter, dg,
+                            u, mesh, have_nonconservative_terms, equations, limiter, dg,
                             element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
@@ -132,7 +139,7 @@ end
 #
 # See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::TreeMesh{2}, nonconservative_terms::False,
+                                mesh::TreeMesh{2}, have_nonconservative_terms::False,
                                 equations,
                                 volume_flux, dg::DGSEM, element, cache)
     @unpack weights, derivative_split = dg.basis
@@ -221,7 +228,7 @@ end
 #   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::TreeMesh{2}, nonconservative_terms::True,
+                                mesh::TreeMesh{2}, have_nonconservative_terms::True,
                                 equations,
                                 volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
                                 element,
@@ -661,9 +668,17 @@ end
                                          u,
                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                                      P4estMesh{2}},
-                                         nonconservative_terms::False, equations,
+                                         have_nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+
+    # Due to the use of LGL nodes, the DG staggered fluxes `fhat` and FV fluxes `fstar` are equal
+    # on the element interfaces. So, they are not computed in the volume integral and set to zero
+    # in their respective computation.
+    # The antidiffusive fluxes are therefore zero on the element interfaces and don't need to be
+    # computed either. They are set to zero directly after resizing the container.
+    # This applies to the indices `i=1` and `i=nnodes(dg)+1` for `antidiffusive_flux1_L` and
+    # `antidiffusive_flux1_R` and analogously for the second direction.
 
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)
@@ -682,16 +697,6 @@ end
         end
     end
 
-    antidiffusive_flux1_L[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
-    antidiffusive_flux1_L[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
-    antidiffusive_flux1_R[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
-    antidiffusive_flux1_R[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
-
-    antidiffusive_flux2_L[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_L))
-    antidiffusive_flux2_L[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_L))
-    antidiffusive_flux2_R[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_R))
-    antidiffusive_flux2_R[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_R))
-
     return nothing
 end
 
@@ -701,7 +706,7 @@ end
                                          u,
                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                                      P4estMesh{2}},
-                                         nonconservative_terms::True, equations,
+                                         have_nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
 
@@ -721,16 +726,6 @@ end
                                                       fstar2_R[v, i, j]
         end
     end
-
-    antidiffusive_flux1_L[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
-    antidiffusive_flux1_L[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_L))
-    antidiffusive_flux1_R[:, 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
-    antidiffusive_flux1_R[:, nnodes(dg) + 1, :, element] .= zero(eltype(antidiffusive_flux1_R))
-
-    antidiffusive_flux2_L[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_L))
-    antidiffusive_flux2_L[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_L))
-    antidiffusive_flux2_R[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_R))
-    antidiffusive_flux2_R[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_R))
 
     return nothing
 end
