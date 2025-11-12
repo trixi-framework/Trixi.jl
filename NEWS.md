@@ -12,6 +12,15 @@ for human readability.
 
 - A couple `struct`s have been made completely immutable, or only a couple fields thereof. Most notably, `save_solution.condition.save_initial_solution` where `save_solution isa SavesolutionCallback` can now longer be directly changed. Instead, the `@reset` macro from [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) is used in the elixirs instead.
 
+## Changes in the v0.13 lifecycle
+
+#### Added
+- Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582]).
+  In the new version, IDP positivity limiting for conservative variables (using
+  the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) is supported.
+  `BoundsCheckCallback` is not supported in 3D yet.
+
+
 ## Changes when updating to v0.13 from v0.12.x
 
 #### Changed
