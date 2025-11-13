@@ -40,8 +40,8 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
                          dg, uEltype)
 
-    MA2d = MArray{Tuple{nvariables(equations), nnodes(basis) + 1},
-                  uEltype, 2, nvariables(equations) * (nnodes(basis) + 1)}
+    MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
+                  uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
     fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
     fstar1_R_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
