@@ -15,16 +15,16 @@ function create_cache(::Type{IndicatorHennemannGassner},
     A3d = Array{uEltype, 3}
 
     indicator_threaded = A3d[A3d(undef,
-                                 nnodes(dg), nnodes(dg), nnodes(dg))
+                                 nnodes(basis), nnodes(basis), nnodes(basis))
                              for _ in 1:Threads.maxthreadid()]
     modal_threaded = A3d[A3d(undef,
-                             nnodes(dg), nnodes(dg), nnodes(dg))
+                             nnodes(basis), nnodes(basis), nnodes(basis))
                          for _ in 1:Threads.maxthreadid()]
     modal_tmp1_threaded = A3d[A3d(undef,
-                                  nnodes(dg), nnodes(dg), nnodes(dg))
+                                  nnodes(basis), nnodes(basis), nnodes(basis))
                               for _ in 1:Threads.maxthreadid()]
     modal_tmp2_threaded = A3d[A3d(undef,
-                                  nnodes(dg), nnodes(dg), nnodes(dg))
+                                  nnodes(basis), nnodes(basis), nnodes(basis))
                               for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded,
