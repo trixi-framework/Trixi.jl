@@ -1898,4 +1898,13 @@ end
 @inline function energy_internal(cons, equations::CompressibleEulerEquations3D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
+
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::CompressibleEulerEquations3D)
+    p = pressure(u, equations)
+    if u[1] <= 0 || p <= 0
+        return false
+    end
+    return true
+end
 end # @muladd
