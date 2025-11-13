@@ -74,16 +74,16 @@ end
 @trixi_testset "elixir_euler_convergence_pure_fvO2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fvO2.jl"),
                         l2=[
-                            0.0006561261480057269,
-                            0.00042671189742064325,
-                            0.0004267118974206347,
-                            0.001318936845416527
+                            0.0025035946669334152,
+                            0.0016446683868937965,
+                            0.001644668386893891,
+                            0.005333979740615437
                         ],
                         linf=[
-                            0.0019325492538100342,
-                            0.0013943828718803175,
-                            0.0013943828718807616,
-                            0.003943457408689177
+                            0.0057968192449908695,
+                            0.004564113130849812,
+                            0.00456411313084959,
+                            0.01494308497387209
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

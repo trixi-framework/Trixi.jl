@@ -22,7 +22,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 3,
                 n_cells_max = 10_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
