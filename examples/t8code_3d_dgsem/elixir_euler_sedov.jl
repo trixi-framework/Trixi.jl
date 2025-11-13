@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations3D(1.4)
     initial_condition_medium_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
 
 The Sedov blast wave setup based on Flash
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
+- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node191.html#SECTION010114000000000000000
 with smaller strength of the initial discontinuity.
 """
 function initial_condition_medium_sedov_blast_wave(x, t,
@@ -22,7 +22,7 @@ function initial_condition_medium_sedov_blast_wave(x, t,
     z_norm = x[3] - inicenter[3]
     r = sqrt(x_norm^2 + y_norm^2 + z_norm^2)
 
-    # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
+    # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node191.html#SECTION010114000000000000000
     r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
     E = 1.0
     p0_inner = 3 * (equations.gamma - 1) * E / (4 * pi * r0^2)
@@ -45,7 +45,7 @@ initial_condition = initial_condition_medium_sedov_blast_wave
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
