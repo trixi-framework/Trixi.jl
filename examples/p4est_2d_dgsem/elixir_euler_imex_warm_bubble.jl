@@ -1,3 +1,6 @@
+# This elixir demonstrates how an implicit-explicit (IMEX) time integration scheme can be applied to the stiff and non-stiff parts of a right hand side, respectively.
+# We define separate solvers, boundary conditions, and source terms, and create a `SemidiscretizationHyperbolicSplit`, which will return a `SplitODEProblem` compatible with `OrdinaryDiffEqBDF`, cf. https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/ .
+
 using Trixi
 using OrdinaryDiffEqBDF
 using ADTypes # This is needed to set 'autodiff = AutoFiniteDiff()' in the ODE solver.
