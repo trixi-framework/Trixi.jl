@@ -12,13 +12,20 @@ function create_cache(::Type{IndicatorHennemannGassner},
     alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    MA3d = MArray{Tuple{nnodes(basis), nnodes(basis), nnodes(basis)},
-                  uEltype, 3, nnodes(basis)^ndims(equations)}
+    A3d = Array{uEltype, 3}
 
-    indicator_threaded = MA3d[MA3d(undef) for _ in 1:Threads.maxthreadid()]
-    modal_threaded = MA3d[MA3d(undef) for _ in 1:Threads.maxthreadid()]
-    modal_tmp1_threaded = MA3d[MA3d(undef) for _ in 1:Threads.maxthreadid()]
-    modal_tmp2_threaded = MA3d[MA3d(undef) for _ in 1:Threads.maxthreadid()]
+    indicator_threaded = A3d[A3d(undef,
+                                 nnodes(dg), nnodes(dg), nnodes(dg))
+                             for _ in 1:Threads.maxthreadid()]
+    modal_threaded = A3d[A3d(undef,
+                             nnodes(dg), nnodes(dg), nnodes(dg))
+                         for _ in 1:Threads.maxthreadid()]
+    modal_tmp1_threaded = A3d[A3d(undef,
+                                  nnodes(dg), nnodes(dg), nnodes(dg))
+                              for _ in 1:Threads.maxthreadid()]
+    modal_tmp2_threaded = A3d[A3d(undef,
+                                  nnodes(dg), nnodes(dg), nnodes(dg))
+                              for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded,
             modal_tmp1_threaded, modal_tmp2_threaded)
