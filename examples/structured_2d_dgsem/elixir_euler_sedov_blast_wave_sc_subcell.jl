@@ -8,8 +8,8 @@ equations = CompressibleEulerEquations2D(gamma)
 """
     initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
-The Sedov blast wave setup based on Flash
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node191.html#SECTION010114000000000000000
+The Sedov blast wave setup based on example 35.1.4 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 """
 function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
     # Set up polar coordinates
@@ -18,7 +18,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
 
-    # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node191.html#SECTION010114000000000000000
+    # Setup based on example 35.1.4 in https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
     r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
     # r0 = 0.5 # = more reasonable setup
     E = 1.0
