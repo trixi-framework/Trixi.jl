@@ -48,7 +48,7 @@ function refined_mapping(xi)
     # Slope for the outer region
     a_outer = (x_max - x_boundary) / (1 - fine_fraction)
     if abs(xi) <= fine_fraction
-        x = a_fine_region * xi
+        x = a_fine * xi
     else
         x = x_boundary + a_outer * (abs(xi) - fine_fraction)
         x *= sign(xi)
