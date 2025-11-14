@@ -77,9 +77,9 @@ end
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct SimpleIntegratorOptions{Callback}
     callback::Callback # callbacks; used in Trixi.jl
-    adaptive::Bool # whether the algorithm is adaptive; ignored
+    const adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
-    maxiters::Int # maximal number of time steps
+    const maxiters::Int # maximal number of time steps
     tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
@@ -104,8 +104,8 @@ mutable struct SimpleIntegrator2N{RealT <: Real, uType <: AbstractVector,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    f::F # `rhs!` of the semidiscretization
-    alg::Alg # SimpleAlgorithm2N
+    const f::F # `rhs!` of the semidiscretization
+    const alg::Alg # SimpleAlgorithm2N
     opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
 end
