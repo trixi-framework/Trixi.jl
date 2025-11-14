@@ -86,6 +86,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+# Solve ODE with optimized timestep controller from https://doi.org/10.1007/s42967-021-00159-w
 sol = solve(ode, SSPRK43();
             controller = PIDController(0.55, -0.27, 0.05),
             abstol = 1e-4, reltol = 1e-4,
