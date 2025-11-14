@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations1D(1.4)
 
 # Shu-Osher initial condition for 1D compressible Euler equations
 # Example 8 from Shu, Osher (1989).
-# [https://doi.org/10.1016/0021-9991(89)90222-2](https://doi.org/10.1016/0021-9991(89)90222-2)
+# https://doi.org/10.1016/0021-9991(89)90222-2
 function initial_condition_shu_osher(x, t, equations::CompressibleEulerEquations1D)
     x0 = -4
 
