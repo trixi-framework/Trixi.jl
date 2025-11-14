@@ -23,8 +23,7 @@ function initial_condition_shu_osher(x, t, equations::CompressibleEulerEquations
     v = ifelse(x[1] > x0, v_right, v_left)
     p = ifelse(x[1] > x0, p_right, p_left)
 
-    return prim2cons(SVector(rho, v, p),
-                     equations)
+    return prim2cons(SVector(rho, v, p), equations)
 end
 
 initial_condition = initial_condition_shu_osher
@@ -41,11 +40,11 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 
 function refined_mapping(xi)
     fine_fraction = 0.8
-    a_fine_region = 4.0
+    a_fine = 4.0
     x_max = 5.0
 
     # Compute the value at the boundary for continuity
-    x_boundary = a_fine_region * fine_fraction
+    x_boundary = a_fine * fine_fraction
     # Slope for the outer region
     a_outer = (x_max - x_boundary) / (1 - fine_fraction)
     if abs(xi) <= fine_fraction
