@@ -125,6 +125,16 @@ based on the following rules.
   be used when necessary, e.g., to avoid additional overhead when interfacing
   with external C libraries such as HDF5, MPI, or visualization.
 
+### Usage of statically sized arrays
+
+Trixi.jl employs statically sized vectors and arrays from the
+[StaticArrays.jl](https://github.com/JuliaArrays/StaticArrays.jl) package, i.e., 
+`SVector, SMatrix` for the immutable versions and `MVector, MMatrix` for the mutable variants.
+These types are preferred for "small" (StaticArrays.jl [recommends as a rule of thumb about 100 entries](https://juliaarrays.github.io/StaticArrays.jl/stable/#When-Static-Arrays-may-be-useful)) arrays with a size known at compile time.
+Inspired by this recommendation, Trixi.jl uses the static size `SVector`most notably for numerical fluxes and initial/boundary conditions.
+The mutable statically sized `MArray` type is used for **arrays up to two dimensions** which show up in mortars, indicators, and certain volume integrals.
+For arrays of higher dimensions (mostly three and four) we use standard Julia `Array` types.
+
 ## Numeric types and type stability
 
 In Trixi.jl, we use generic programming to support custom data types to store the numerical simulation data, including standard floating point types and automatic differentiation types.
