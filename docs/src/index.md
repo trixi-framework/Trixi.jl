@@ -36,6 +36,7 @@ installation and postprocessing procedures. Its features include:
   * [Finite difference summation by parts (SBP) methods](https://github.com/ranocha/SummationByPartsOperators.jl)
 * Advanced limiting strategies
   * Positivity-preserving limiting
+  * Lower-bound preserving limiting for positive variables
   * Subcell invariant domain-preserving (IDP) limiting
   * Entropy-bounded limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
