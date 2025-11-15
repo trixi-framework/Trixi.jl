@@ -216,7 +216,7 @@ function compute_coefficients(t, semi::SemidiscretizationHyperbolicSplit)
 end
 
 """
-semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan)
+    semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).

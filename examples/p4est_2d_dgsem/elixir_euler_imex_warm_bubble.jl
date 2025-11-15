@@ -54,7 +54,8 @@ end
     # normalize the outward pointing direction
     normal = normal_direction / Trixi.norm(normal_direction)
 
-    # compute the normal velocity
+    # compute the normal momentum from
+    # u = (rho, rho v1, rho v2, rho e)
     u_normal = normal[1] * u_inner[2] + normal[2] * u_inner[3]
 
     # create the "external" boundary solution state
@@ -192,10 +193,8 @@ solver_implicit = DGSEM(basis, flux_lmars_fast, volume_integral_implicit)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (20_000.0, 10_000.0)
-
 trees_per_dimension = (16, 8)
-
-mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
+mesh = P4estMesh(trees_per_dimension; polydeg = polydeg,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (true, false), initial_refinement_level = 0)
 
