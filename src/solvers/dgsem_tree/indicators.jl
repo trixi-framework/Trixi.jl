@@ -264,9 +264,9 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 @doc raw"""
-    IndicatorEntropyIncrease(threshold=1e-9)
+    IndicatorEntropyIncrease(threshold=1e-3)
 
-This indicator checks the increase in the supplied `entropy_function` (``S``) due to the application
+This indicator checks the increase in the mathematical `entropy` (``S``) due to the application
 of the weak-form volume integral. In particular, the indicator computes
 ```math
 \Delta S = 
@@ -298,7 +298,7 @@ struct IndicatorEntropyIncrease{RealT <: Real} <:
 end
 
 # this method is used when the indicator is constructed as for adaptive volume integrals
-function IndicatorEntropyIncrease(;threshold = 1e-3)
+function IndicatorEntropyIncrease(; threshold = 1e-3)
     IndicatorEntropyIncrease{typeof(threshold)}(threshold)
 end
 

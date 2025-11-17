@@ -119,7 +119,7 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-function integrate_element(func::Func, element, u,
+function integrate_element(func::Func, u, element,
                            mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
                            args...; normalize = true) where {Func}
     @unpack weights = dg.basis

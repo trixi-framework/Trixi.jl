@@ -36,16 +36,22 @@ volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
+volume_integral_weakform = VolumeIntegralWeakForm()
 volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
+
+# `threshold` governs the tolerated entropy increase due to the weak-form
+# volume integral before switching to the stabilized version
 indicator = IndicatorEntropyIncrease(threshold = 1e-1)
+# Adaptive volume integral using the entropy increase indicator to perform the 
+# stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(indicator;
-                                         volume_integral_default = VolumeIntegralWeakForm(),
+                                         volume_integral_default = volume_integral_weakform,
                                          volume_integral_stabilized = volume_integral_fluxdiff)
 
-solver = DGSEM(basis, surface_flux, volume_integral)
+#volume_integral = volume_integral_weakform # Crashes
+#volume_integral = volume_integral_fluxdiff # Runs, but is more expensive
 
-#solver = DGSEM(basis, surface_flux) # crashes
-#solver = DGSEM(basis, surface_flux, volume_integral_fluxdiff)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)

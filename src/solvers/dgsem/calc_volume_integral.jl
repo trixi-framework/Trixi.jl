@@ -89,7 +89,7 @@ end
 # Calculate ∫_el (∂S/∂u ⋅ ∂u/∂t)dΩ_el
 function calc_entropy_delta_element(du, u, element,
                                     mesh::AbstractMesh{1}, equations, dg, cache)
-    return integrate_element(element, u, mesh, equations, dg, cache,
+    return integrate_element(u, element, mesh, equations, dg, cache,
                              du) do u, i, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, element)
         du_node = get_node_vars(du, equations, dg, i, element)
@@ -99,7 +99,7 @@ end
 
 function calc_entropy_delta_element(du, u, element,
                                     mesh::AbstractMesh{2}, equations, dg, cache)
-    return integrate_element(element, u, mesh, equations, dg, cache,
+    return integrate_element(u, element, mesh, equations, dg, cache,
                              du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
@@ -144,8 +144,6 @@ function calc_volume_integral!(du, u, mesh,
 
     return nothing
 end
-
-
 
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
