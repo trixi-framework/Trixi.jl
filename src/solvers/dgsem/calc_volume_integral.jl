@@ -86,6 +86,27 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
+# Calculate ∫_el (∂S/∂u ⋅ ∂u/∂t)dΩ_el
+function calc_entropy_delta_element(du, u, element,
+                                    mesh::AbstractMesh{1}, equations, dg, cache)
+    return integrate_element(element, u, mesh, equations, dg, cache,
+                             du) do u, i, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, element)
+        du_node = get_node_vars(du, equations, dg, i, element)
+        dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
+function calc_entropy_delta_element(du, u, element,
+                                    mesh::AbstractMesh{2}, equations, dg, cache)
+    return integrate_element(element, u, mesh, equations, dg, cache,
+                             du) do u, i, j, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        du_node = get_node_vars(du, equations, dg, i, j, element)
+        dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
@@ -96,30 +117,35 @@ function calc_volume_integral!(du, u, mesh,
                                              VolumeIntegralFD <:
                                              VolumeIntegralFluxDifferencing,
                                              Indicator <: AbstractIndicator}
-    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
-
-    # Calculate decision variable
-    decision = @trixi_timeit timer() "integral selector" indicator(u, mesh, equations,
-                                                                   dg, cache)
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    @unpack threshold = volume_integral.indicator
 
     @threaded for element in eachelement(dg, cache)
-        stabilized_version = decision[element]
+        # Try plain weak form first
+        weak_form_kernel!(du, u, element, mesh,
+                          nonconservative_terms, equations,
+                          dg, cache)
 
-        # TODO: Generalize/Dispatch or introduce yet sub-functions of the volume integrals
-        if stabilized_version
+        # Compute entropy production of this volume integral
+        entropy_delta = calc_entropy_delta_element(du, u, element,
+                                                   mesh, equations, dg, cache)
+
+        if entropy_delta > threshold
+            # Reset bad volume integral 
+            du[.., element] .= zero(eltype(du))
+
+            # Recompute using stabilized version
             flux_differencing_kernel!(du, u, element, mesh,
                                       nonconservative_terms, equations,
                                       volume_integral_stabilized.volume_flux,
                                       dg, cache)
-        else
-            weak_form_kernel!(du, u, element, mesh,
-                              nonconservative_terms, equations,
-                              dg, cache)
         end
     end
 
     return nothing
 end
+
+
 
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,

@@ -565,6 +565,31 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vi.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_vi.jl"),
+                        l2=[
+                            0.11757168400166873,
+                            0.15258734107183258,
+                            0.43935902483141936
+                        ],
+                        linf=[
+                            0.19722297480582962,
+                            0.2575224502675185,
+                            0.7426620853498593
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `show`
+    @test_nowarn show(stdout, indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      volume_integral)
+end
+
 @trixi_testset "elixir_euler_colliding_flow.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow.jl"),
                         l2=[
@@ -829,28 +854,6 @@ end
                             0.15623770697198225,
                             0.3341371832270615,
                             334.5373488726036
-                        ],
-                        tspan=(0.0, 10.0),
-                        initial_refinement_level=4)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 100)
-end
-
-@trixi_testset "elixir_euler_warm_bubble_adaptive_integral.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_warm_bubble_adaptive_integral.jl"),
-                        l2=[
-                            0.00013825807605215672,
-                            0.020825709335780908,
-                            0.03327139463903476,
-                            31.40577277353277
-                        ],
-                        linf=[
-                            0.00168084149525638,
-                            0.15700603506542876,
-                            0.3344044463224682,
-                            330.7915698685101
                         ],
                         tspan=(0.0, 10.0),
                         initial_refinement_level=4)

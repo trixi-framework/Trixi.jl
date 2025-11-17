@@ -73,7 +73,7 @@ end
 Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
 
 # `compute_u_mean` used in:
-# `IndicatorEntropyViolation` and the (stage-) limiters/callbacks
+# `IndicatorEntropyIncrease` and the (stage-) limiters/callbacks
 # `PositivityPreservingLimiterZhangShu` and `EntropyBoundedLimiter`.
 
 # positional arguments `mesh` and `cache` passed in to match signature of 2D/3D functions

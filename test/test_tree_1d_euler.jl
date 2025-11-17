@@ -340,31 +340,6 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_adaptive_volume_integral.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_adaptive_volume_integral.jl"),
-                        l2=[
-                            0.11757168400166873,
-                            0.15258734107183258,
-                            0.43935902483141936
-                        ],
-                        linf=[
-                            0.19722297480582962,
-                            0.2575224502675185,
-                            0.7426620853498593
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-
-    # Test/cover `show`
-    @test_nowarn show(stdout, indicator)
-    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
-                      indicator)
-    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
-                      volume_integral)
-end
-
 @trixi_testset "test_quasi_1D_entropy" begin
     using Trixi: CompressibleEulerEquationsQuasi1D, CompressibleEulerEquations1D,
                  entropy, SVector

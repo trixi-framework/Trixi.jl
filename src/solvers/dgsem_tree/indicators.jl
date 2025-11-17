@@ -264,120 +264,69 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 @doc raw"""
-    IndicatorEntropyViolation(basis;
-                              entropy_function=entropy, threshold=1e-9)
+    IndicatorEntropyIncrease(threshold=1e-9)
 
-This indicator checks the "entropy-violation" observed from timestep ``n \to n+1`` by
-computing the difference in entropy ``\eta`` (determined by the `entropy_function`) as
+This indicator checks the increase in the supplied `entropy_function` (``S``) due to the application
+of the weak-form volume integral. In particular, the indicator computes
 ```math
-\Delta \eta_m^{(n+1)} = \eta^{(n+1)}(\bar{\boldsymbol{u}}_m) - \eta^{(n)}(\bar{\boldsymbol{u}}_m)
+\Delta S = 
+\int_{\Omega_m} 
+\frac{\partial S}{\partial \boldsymbol{u}}
+\cdot 
+(\Delta \boldsymbol u)_\mathrm{WF-VI}
+\mathrm{d} \Omega_m
 ```
-for every cell `m` in the mesh.
-The `entropy_function` is evaluated at the mean state ``\bar{\boldsymbol{u}}`` and defaults
-to [`entropy`](@ref).
+for the currently processed element/cell ``m``, where ``(\Delta \boldsymbol u)_\mathrm{WF-VI}`` is the change 
+in the right-hand-side due to the weak-form volume integral only.
 
-The indicator returns for each cell ``m`` a boolean value indicating
-whether the entropy growth/violation ``\Delta \eta_m^{(n+1)}`` exceeds the `threshold`.
+``\Delta S`` is then compared against `threshold`, and if it exceeds this value, the indicator
+returns `true` for this element/cell, indicating that a more stable volume integral should be
+used there.
 Thus, for the mathematical entropy (default for `entropy`) which should not grow globally(!)
 over the course of a simulation, this can be used to identify troubled cells.
 
 Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
-more advanced/ (entropy) stable volume integral for the troubled cells.
+more advanced/ (entropy) stable volume integral for the troubled cell/element ``m``.
 
 !!! note
     This indicator is not implemented as an AMR indicator, i.e., it is currently not
     possible to employ this as the `indicator` in [`ControllerThreeLevel`](@ref).
 """
-struct IndicatorEntropyViolation{EntropyFunction, RealT <: Real, Cache <: NamedTuple} <:
+struct IndicatorEntropyIncrease{RealT <: Real} <:
        AbstractIndicator
-    entropy_function::EntropyFunction
     threshold::RealT
-    cache::Cache
 end
 
 # this method is used when the indicator is constructed as for adaptive volume integrals
-function IndicatorEntropyViolation(basis; entropy_function = entropy, threshold = 1e-9)
-    cache = create_cache(IndicatorEntropyViolation, basis)
-    IndicatorEntropyViolation{typeof(entropy_function),
-                              typeof(threshold),
-                              typeof(cache)}(entropy_function,
-                                             threshold, cache)
+function IndicatorEntropyIncrease(;threshold = 1e-3)
+    IndicatorEntropyIncrease{typeof(threshold)}(threshold)
 end
 
-# this method is used when the indicator is constructed as for the adaptive volume integral
-function create_cache(::Type{IndicatorEntropyViolation}, basis::LobattoLegendreBasis)
-    entropy_old = Vector{real(basis)}()
-    alpha = Vector{Bool}()
-
-    return (; alpha, entropy_old)
-end
-
-function Base.show(io::IO, indicator::IndicatorEntropyViolation)
+function Base.show(io::IO, indicator::IndicatorEntropyIncrease)
     @nospecialize indicator # reduce precompilation time
 
-    print(io, "IndicatorEntropyViolation(")
-    print(io, "entropy_function=", indicator.entropy_function, ")")
+    print(io, "IndicatorEntropyIncrease(")
     print(io, ", threshold=", indicator.threshold, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyViolation)
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyIncrease)
     @nospecialize indicator # reduce precompilation time
 
     if get(io, :compact, false)
         show(io, indicator)
     else
         setup = [
-            "entropy function" => indicator.entropy_function,
             "threshold" => indicator.threshold
         ]
-        summary_box(io, "IndicatorEntropyViolation", setup)
+        summary_box(io, "IndicatorEntropyIncrease", setup)
     end
 end
 
-function get_element_variables!(element_variables, indicator::IndicatorEntropyViolation,
+# TODO: Would be nice to have something like this for plotting
+#=
+function get_element_variables!(element_variables, indicator::IndicatorEntropyIncrease,
                                 ::VolumeIntegralAdaptive)
-    element_variables[:indicator_integral_stabilized] = Int.(indicator.cache.alpha)
     return nothing
 end
-
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D meshes
-function (indicator_entropy_violation::IndicatorEntropyViolation)(u,
-                                                                  mesh, equations,
-                                                                  dg::DGSEM, cache;
-                                                                  kwargs...)
-    @unpack alpha, entropy_old = indicator_entropy_violation.cache
-    resize!(alpha, nelements(dg, cache))
-    @unpack entropy_function, threshold = indicator_entropy_violation
-
-    # Beginning of simulation or after AMR: Need to compute `entropy_old` for every element
-    if length(entropy_old) != nelements(dg, cache)
-        resize!(entropy_old, nelements(dg, cache))
-
-        @threaded for element in eachelement(dg, cache)
-            u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
-
-            # Compute entropy of the mean state
-            entropy_old[element] = entropy_function(u_mean, equations)
-
-            alpha[element] = true # Be conservative: Use stabilized volume integral everywhere
-        end
-    else
-        @threaded for element in eachelement(dg, cache)
-            u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
-
-            # Compute entropy of the mean state
-            entropy_element = entropy_function(u_mean, equations)
-
-            # Check if entropy growth exceeds threshold
-            if entropy_element - entropy_old[element] > threshold
-                alpha[element] = true
-            else
-                alpha[element] = false
-            end
-            entropy_old[element] = entropy_element # Update `entropy_old`
-        end
-    end
-
-    return alpha
-end
+=#
 end # @muladd
