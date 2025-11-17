@@ -596,8 +596,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                                                refined_original_cells,
                                                limiter!)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
-            @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor,
-                                                           p_mesh,
+            @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh,
                                                            p_equations,
                                                            p_dg, p_cache,
                                                            refined_original_cells,
