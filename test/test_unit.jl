@@ -324,12 +324,12 @@ end
     # Initial condition with simple discontinuity
     @inline function initial_condition_discontinuity(x, t, equations)
         if x[1] < -0.5
-            rho = 1.0e-4
+            scalar = 1.0e-4
         else
-            rho = 1.0
+            scalar = 1.0
         end
 
-        return SVector(rho)
+        return SVector(scalar)
     end
 
     # Set up variables used for 1D, 2D and 3D tests
