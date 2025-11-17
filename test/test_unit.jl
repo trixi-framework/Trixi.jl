@@ -320,6 +320,134 @@ end
     end
 end
 
+@timed_testset "Positivity limiter for AMRCallback" begin
+    # Initial condition with simple discontinuity
+    @inline function initial_condition_discontinuity(x, t, equations)
+        if x[1] < -0.5
+            rho = 1.0e-4
+        else
+            rho = 1.0
+        end
+
+        return SVector(rho)
+    end
+
+    # Set up variables used for 1D, 2D and 3D tests
+    solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+
+    adaptor = Trixi.AdaptorL2(solver.basis)
+    limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
+                                                   variables = (first,))
+
+    @testset "1D" begin
+        equations = LinearScalarAdvectionEquation1D(1.0)
+
+        coordinates_min = (-1.0,)
+        coordinates_max = (1.0,)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        n_cells_max = 1_000)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:2)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+
+    @testset "2D" begin
+        equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
+
+        coordinates_min = (-1.0, -1.0)
+        coordinates_max = (1.0, 1.0)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        n_cells_max = 1_000)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:4)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+
+    @testset "3D" begin
+        equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+        coordinates_min = (-1.0, -1.0, -1.0)
+        coordinates_max = (1.0, 1.0, 1.0)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        n_cells_max = 1_000)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:8)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+end
+
 @testset "containers" begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
