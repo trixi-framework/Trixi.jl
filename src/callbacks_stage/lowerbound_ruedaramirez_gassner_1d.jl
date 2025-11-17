@@ -26,8 +26,10 @@ function correct_u!(u_dgfv::AbstractArray{<:Any, 3}, u_fv, u_dg_node,
                 u_dg_node[v] = compute_pure_dg(u_dgfv_node[v], u_fv_node[v],
                                                alpha[element])
 
-                u_dgfv[v, i, element] = u_dgfv_node[v] +
-                                        delta_alpha * (u_fv_node[v] - u_dg_node[v])
+                u_dgfv[v, i, element] = compute_dgfv_update(u_dgfv_node[v],
+                                                            u_fv_node[v],
+                                                            u_dg_node[v],
+                                                            delta_alpha)
             end
         end
     end
@@ -120,6 +122,7 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                     alpha_n = alpha[element] + delta_alpha_i
                     # Compute ∂u/∂α
                     for v in eachvariable(equations)
+                        # Compute pure DG solution
                         u_dg_node[v] = compute_pure_dg(u_dgfv_node[v], u_fv_node[v],
                                                        alpha_n)
 
@@ -144,8 +147,10 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
 
                     # Calculate corrected u
                     for v in eachvariable(equations)
-                        u_newton_node[v] = u_dgfv_node[v] +
-                                           delta_alpha_i * (u_fv_node[v] - u_dg_node[v])
+                        u_newton_node[v] = compute_dgfv_update(u_dgfv_node[v],
+                                                               u_fv_node[v],
+                                                               u_dg_node[v],
+                                                               delta_alpha_i)
                     end
                     # Compute new pressure value
                     p_newton = pressure(u_newton_node, equations)
@@ -157,7 +162,7 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                     end
 
                     if newton_it == max_iterations
-                        error("RRG Limiter: ($max_iterations) not enough to correct pressure!")
+                        error("RRG Limiter: ($max_iterations) not enough to correct pressure! Simulation might crash soon!")
                     end
                 end
                 delta_alpha = max(delta_alpha, delta_alpha_i)
