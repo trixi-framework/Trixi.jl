@@ -133,5 +133,6 @@ end
     return u_mean / total_volume # normalize with the total volume
 end
 
+include("containers.jl")
 include("calc_volume_integral.jl")
 end # @muladd
