@@ -221,9 +221,17 @@ function (limiter!::LowerBoundPreservingLimiterRuedaRamirezGassner)(u_ode,
     return nothing
 end
 
+# Compute DG-FV solution update given Hennemann-Gassner blending:
+#    u_dgfv_old = (1 - α) u_dg + α * u_fv
+#    u_dgfv_new = (1 - [α + Δα]) u_dg + [α + Δα] * u_fv
+# => u_dgfv_new = u_dgfv_old + Δα * (u_fv - u_dg)
+@inline function compute_dgfv_update(ui_dgfv, ui_fv, ui_dg, delta_alpha)
+    return ui_dgfv + delta_alpha * (ui_fv - ui_dg)
+end
+
 # Compute pure DG solution given Hennemann-Gassner blending:
-#     u_dgfv = (1 - α) u_dg + α * u_FV
-# <=>   u_dg = (u_dgfv - α * u_FV) / (1 - α)
+#     u_dgfv = (1 - α) u_dg + α * u_fv
+# <=>   u_dg = (u_dgfv - α * u_fv) / (1 - α)
 @inline function compute_pure_dg(ui_dgfv, ui_fv, alpha)
     return (ui_dgfv - alpha * ui_fv) / (1 - alpha)
 end
