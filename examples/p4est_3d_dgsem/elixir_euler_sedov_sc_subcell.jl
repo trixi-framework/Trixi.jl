@@ -26,7 +26,6 @@ function initial_condition_sedov_blast_wave(x, t,
     E = 1.0
     p0_inner = 3 * (equations.gamma - 1) * E / (4 * pi * r0^2)
     p0_outer = 1.0e-5 # = true Sedov setup
-    # p0_outer = 1.0e-3 # = more reasonable setup
 
     # Calculate primitive variables
     rho = 1.0

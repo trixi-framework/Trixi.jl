@@ -29,7 +29,7 @@
                                                     mesh, i, j, k, element)
             var = u[variable, i, j, k, element]
             if var < 0
-                throw(ArgumentError("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step."))
+                error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
             end
 
             # Compute bound
@@ -95,7 +95,7 @@ end
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
             var = variable(u_local, equations)
             if var < 0
-                throw(ArgumentError("Safe low-order method produces negative value for variable $variable. Try a smaller time step."))
+                error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
             end
             var_min[i, j, k, element] = positivity_correction_factor * var
 
@@ -120,7 +120,7 @@ end
                                      initial_check, final_check,
                                      inverse_jacobian, dt,
                                      equations, dg, cache, limiter)
-    (; inverse_weights) = dg.basis
+    (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
     (; antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R) = cache.antidiffusive_fluxes
 
     (; gamma_constant_newton) = limiter
