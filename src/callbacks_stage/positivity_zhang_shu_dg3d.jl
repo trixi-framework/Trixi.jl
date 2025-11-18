@@ -45,7 +45,7 @@ end
 #   [doi: 10.1016/j.jcp.2024.113622](https://doi.org/10.1016/j.jcp.2024.113622)
 function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
                             equations, dg::DGSEM, cache,
-                            element_ids_new::Vector{Int}, u_mean_refined_elements)
+                            element_ids_new, u_mean_refined_elements)
     @assert length(element_ids_new)==size(u_mean_refined_elements, 2) "The length of `element_ids_new` must match the second dimension of `u_mean_refined_elements`."
 
     @threaded for idx in eachindex(element_ids_new)
@@ -90,7 +90,7 @@ end
 # the coarsened elements.
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{3}, equations, dg::DGSEM, cache,
-                            element_ids_new::Vector{Int})
+                            element_ids_new)
     @unpack weights = dg.basis
     @unpack inverse_jacobian = cache.elements
 
