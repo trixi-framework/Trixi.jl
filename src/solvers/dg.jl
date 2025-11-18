@@ -233,15 +233,6 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralAdaptive,
-                                dg, cache)
-    # call the indicator to get up-to-date values for IO
-    volume_integral.indicator(u, mesh, equations, dg, cache)
-    get_element_variables!(element_variables, volume_integral.indicator,
-                           volume_integral)
-end
-
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.
