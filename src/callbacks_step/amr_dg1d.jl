@@ -26,9 +26,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         # Compute mean values for the elements to be refined
         # Only if limiter was passed
         if limiter! !== nothing
-            u_mean_refined_elements = Matrix{eltype(u_ode)}(undef,
-                                                            nvariables(equations),
-                                                            length(elements_to_refine))
+            u_mean_refined_elements = Array{eltype(u_ode), 2}(undef,
+                                                              nvariables(equations),
+                                                              length(elements_to_refine))
             for idx in eachindex(elements_to_refine)
                 old_element_id = elements_to_refine[idx]
                 u_mean = compute_u_mean(old_u, old_element_id,
