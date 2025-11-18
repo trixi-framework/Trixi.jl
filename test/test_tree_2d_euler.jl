@@ -568,7 +568,7 @@ end
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_VI.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_adaptive_VI.jl"),
-                        tspan = (0.0, 0.1),
+                        tspan=(0.0, 0.1),
                         l2=[
                             0.02607857802464446,
                             0.020356961534334878,
