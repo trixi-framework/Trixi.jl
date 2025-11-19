@@ -209,6 +209,29 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# used in `calc_entropy_delta_element`
+function integrate_element(func::Func, u, element,
+                           mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
+                           args...; normalize = true) where {Func}
+    @unpack weights = dg.basis
+
+    # Initialize integral with zeros of the right shape
+    integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
+
+    # Use quadrature to numerically integrate over entire domain
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        integral += weights[i] * weights[j] * weights[k] *
+                    func(u, i, j, k, element, equations, dg, args...)
+    end
+
+    # Multiply with element volume if not normalized
+    if !normalize
+        integral = integral * volume_jacobian(element, mesh, cache)
+    end
+
+    return integral
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}

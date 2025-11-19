@@ -107,6 +107,16 @@ function calc_entropy_delta_element(du, u, element,
     end
 end
 
+function calc_entropy_delta_element(du, u, element,
+                                    mesh::AbstractMesh{3}, equations, dg, cache)
+    return integrate_element(u, element, mesh, equations, dg, cache,
+                             du) do u, i, j, k, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        du_node = get_node_vars(du, equations, dg, i, j, k, element)
+        dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
 function calc_volume_integral!(du, u, mesh,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
