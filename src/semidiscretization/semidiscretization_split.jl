@@ -204,7 +204,9 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-# retain dispatch on hyperbolic equations only
+@inline Base.ndims(semi::SemidiscretizationHyperbolicSplit) = ndims(semi.mesh)
+
+# retain dispatch on hyperbolic non-stiff equations only
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicSplit)
     @unpack mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff = semi
     return mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff
