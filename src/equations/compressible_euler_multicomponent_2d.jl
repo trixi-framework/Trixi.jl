@@ -689,6 +689,43 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll::SVector{N, T}, u_rr::SVector{N, T},
+                                     normal_direction::SVector{2, T},
+                                     equations::CompressibleEulerMulticomponentEquations2D) where {
+                                                                                                   N,
+                                                                                                   T <:
+                                                                                                   AbstractFloat
+                                                                                                   }
+    # Unpack conservative variables
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+    # Get densities and gammas
+    rho_ll = T(density(u_ll, equations))
+    rho_rr = T(density(u_rr, equations))
+    gamma_ll = T(totalgamma(u_ll, equations))
+    gamma_rr = T(totalgamma(u_rr, equations))
+
+    # Velocity components
+    v_ll_vec = SVector(rho_v1_ll / rho_ll, rho_v2_ll / rho_ll)
+    v_rr_vec = SVector(rho_v1_rr / rho_rr, rho_v2_rr / rho_rr)
+
+    # Project velocities onto the direction normal_direction.
+    v_ll = dot(v_ll_vec, normal_direction)
+    v_rr = dot(v_rr_vec, normal_direction)
+
+    # Compute pressures
+    p_ll = (gamma_ll - one(T)) * (rho_e_ll - T(0.5) * dot(v_ll_vec, v_ll_vec) * rho_ll)
+    p_rr = (gamma_rr - one(T)) * (rho_e_rr - T(0.5) * dot(v_rr_vec, v_rr_vec) * rho_rr)
+
+    # Sound speeds
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::CompressibleEulerMulticomponentEquations2D)

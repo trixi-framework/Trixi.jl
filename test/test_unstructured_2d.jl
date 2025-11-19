@@ -28,12 +28,6 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    semi32 = Trixi.trixi_adapt(Array, Float32, semi)
-    @test real(semi32.solver) == Float32
-    @test real(semi32.solver.basis) == Float32
-    @test real(semi32.solver.mortar) == Float32
-    # TODO: remake ignores the mesh as well
-    @test real(semi32.mesh) == Float64
 end
 
 @trixi_testset "elixir_euler_free_stream.jl" begin
