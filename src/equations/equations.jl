@@ -327,16 +327,16 @@ combined with certain solvers (e.g., subcell limiting).
 function n_nonconservative_terms end
 
 """
-	is_antisymmetric_flux(flux,equations)
+	has_antisymmetric_flux(flux,equations)
 
-Trait function determining whether the nonconservative flux `flux` is 
-antisymmetric for the given `equations`. Antisymmetric fluxes satisfy the property
+Trait function determining whether the flux `flux` has an 
+antisymmetric nonconservative flux for the given `equations`. Antisymmetric fluxes satisfy the property
 f(u_ll, u_rr) = -f(u_rr, u_ll), which can be exploited for an optimized kernel.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
-is_antisymmetric_flux(flux, ::AbstractEquations) = False()
+has_antisymmetric_flux(flux, ::AbstractEquations) = False()
 
-is_antisymmetric_flux(::Tuple, ::AbstractEquations) = False()
+has_antisymmetric_flux(::Tuple, ::AbstractEquations) = False()
 
 have_constant_speed(::AbstractEquations) = False()
 
