@@ -783,4 +783,148 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
     @assert count==nmortars(mortars) ("Actual mortar count ($count) does not match "*
                                       "expectations $(nmortars(mortars))")
 end
+
+mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real} <:
+               AbstractContainerAntidiffusiveFlux
+    antidiffusive_flux1_L::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux1_R::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux2_L::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux2_R::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux3_L::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux3_R::Array{uEltype, 5} # [variables, i, j, k, elements]
+    # internal `resize!`able storage
+    _antidiffusive_flux1_L::Vector{uEltype}
+    _antidiffusive_flux1_R::Vector{uEltype}
+    _antidiffusive_flux2_L::Vector{uEltype}
+    _antidiffusive_flux2_R::Vector{uEltype}
+    _antidiffusive_flux3_L::Vector{uEltype}
+    _antidiffusive_flux3_R::Vector{uEltype}
+end
+
+function ContainerAntidiffusiveFlux3D{uEltype}(capacity::Integer, n_variables,
+                                               n_nodes) where {uEltype <: Real}
+    nan_uEltype = convert(uEltype, NaN)
+
+    # Initialize fields with defaults
+    _antidiffusive_flux1_L = fill(nan_uEltype,
+                                  n_variables * (n_nodes + 1) * n_nodes * n_nodes *
+                                  capacity)
+    antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
+                                        (n_variables, n_nodes + 1, n_nodes, n_nodes,
+                                         capacity))
+    _antidiffusive_flux1_R = fill(nan_uEltype,
+                                  n_variables * (n_nodes + 1) * n_nodes * n_nodes *
+                                  capacity)
+    antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
+                                        (n_variables, n_nodes + 1, n_nodes, n_nodes,
+                                         capacity))
+
+    _antidiffusive_flux2_L = fill(nan_uEltype,
+                                  n_variables * n_nodes * (n_nodes + 1) * n_nodes *
+                                  capacity)
+    antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
+                                        (n_variables, n_nodes, n_nodes + 1, n_nodes,
+                                         capacity))
+    _antidiffusive_flux2_R = fill(nan_uEltype,
+                                  n_variables * n_nodes * (n_nodes + 1) * n_nodes *
+                                  capacity)
+    antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
+                                        (n_variables, n_nodes, n_nodes + 1, n_nodes,
+                                         capacity))
+
+    _antidiffusive_flux3_L = fill(nan_uEltype,
+                                  n_variables * n_nodes * n_nodes * (n_nodes + 1) *
+                                  capacity)
+    antidiffusive_flux3_L = unsafe_wrap(Array, pointer(_antidiffusive_flux3_L),
+                                        (n_variables, n_nodes, n_nodes, n_nodes + 1,
+                                         capacity))
+    _antidiffusive_flux3_R = fill(nan_uEltype,
+                                  n_variables * n_nodes * n_nodes * (n_nodes + 1) *
+                                  capacity)
+    antidiffusive_flux3_R = unsafe_wrap(Array, pointer(_antidiffusive_flux3_R),
+                                        (n_variables, n_nodes, n_nodes, n_nodes + 1,
+                                         capacity))
+    return ContainerAntidiffusiveFlux3D{uEltype}(antidiffusive_flux1_L,
+                                                 antidiffusive_flux1_R,
+                                                 antidiffusive_flux2_L,
+                                                 antidiffusive_flux2_R,
+                                                 antidiffusive_flux3_L,
+                                                 antidiffusive_flux3_R,
+                                                 _antidiffusive_flux1_L,
+                                                 _antidiffusive_flux1_R,
+                                                 _antidiffusive_flux2_L,
+                                                 _antidiffusive_flux2_R,
+                                                 _antidiffusive_flux3_L,
+                                                 _antidiffusive_flux3_R)
+end
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
+    n_nodes = nnodes(fluxes)
+    n_variables = nvariables(fluxes)
+
+    @unpack _antidiffusive_flux1_L, _antidiffusive_flux1_R, _antidiffusive_flux2_L, _antidiffusive_flux2_R, _antidiffusive_flux3_L, _antidiffusive_flux3_R = fluxes
+
+    resize!(_antidiffusive_flux1_L,
+            n_variables * (n_nodes + 1) * n_nodes * n_nodes * capacity)
+    fluxes.antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
+                                               (n_variables,
+                                                n_nodes + 1, n_nodes, n_nodes,
+                                                capacity))
+    resize!(_antidiffusive_flux1_R,
+            n_variables * (n_nodes + 1) * n_nodes * n_nodes * capacity)
+    fluxes.antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
+                                               (n_variables,
+                                                n_nodes + 1, n_nodes, n_nodes,
+                                                capacity))
+    resize!(_antidiffusive_flux2_L,
+            n_variables * n_nodes * (n_nodes + 1) * n_nodes * capacity)
+    fluxes.antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
+                                               (n_variables,
+                                                n_nodes, n_nodes + 1, n_nodes,
+                                                capacity))
+    resize!(_antidiffusive_flux2_R,
+            n_variables * n_nodes * (n_nodes + 1) * n_nodes * capacity)
+    fluxes.antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
+                                               (n_variables,
+                                                n_nodes, n_nodes + 1, n_nodes,
+                                                capacity))
+
+    resize!(_antidiffusive_flux3_L,
+            n_variables * n_nodes * n_nodes * (n_nodes + 1) * capacity)
+    fluxes.antidiffusive_flux3_L = unsafe_wrap(Array, pointer(_antidiffusive_flux3_L),
+                                               (n_variables,
+                                                n_nodes, n_nodes, n_nodes + 1,
+                                                capacity))
+    resize!(_antidiffusive_flux3_R,
+            n_variables * n_nodes * n_nodes * (n_nodes + 1) * capacity)
+    fluxes.antidiffusive_flux3_R = unsafe_wrap(Array, pointer(_antidiffusive_flux3_R),
+                                               (n_variables,
+                                                n_nodes, n_nodes, n_nodes + 1,
+                                                capacity))
+
+    uEltype = eltype(fluxes.antidiffusive_flux1_L)
+    @threaded for element in axes(fluxes.antidiffusive_flux1_L, 5)
+        fluxes.antidiffusive_flux1_L[:, 1, :, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_L[:, n_nodes + 1, :, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_R[:, 1, :, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux1_R[:, n_nodes + 1, :, :, element] .= zero(uEltype)
+
+        fluxes.antidiffusive_flux2_L[:, :, 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_L[:, :, n_nodes + 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_R[:, :, 1, :, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux2_R[:, :, n_nodes + 1, :, element] .= zero(uEltype)
+
+        fluxes.antidiffusive_flux3_L[:, :, :, 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux3_L[:, :, :, n_nodes + 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux3_R[:, :, :, 1, element] .= zero(uEltype)
+        fluxes.antidiffusive_flux3_R[:, :, :, n_nodes + 1, element] .= zero(uEltype)
+    end
+
+    return nothing
+end
 end # @muladd
