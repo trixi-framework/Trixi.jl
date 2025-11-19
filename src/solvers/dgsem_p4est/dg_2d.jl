@@ -416,8 +416,8 @@ end
                         mesh, have_nonconservative_terms,
                         is_antisymmetric_flux(surface_integral, equations),
                         equations, surface_integral, dg, cache,
-                        i_node, j_node,
-                        node, direction, element, boundary)
+                        i_index, j_index,
+                        node_index, direction_index, element_index, boundary_index)
     return nothing
 end
 
