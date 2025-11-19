@@ -127,7 +127,9 @@ end
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     flux_differencing_kernel!(du, u, element, mesh, True(),
-                              has_antisymmetric_flux(volume_flux, equations), equations,
+                              combine_conservative_and_nonconservative_fluxes(volume_flux,
+                                                                              equations),
+                              equations,
                               volume_flux,
                               dg, cache, alpha)
     return nothing
@@ -140,7 +142,8 @@ end
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
                                            have_nonconservative_terms::True,
-                                           has_antisymmetric_flux::False, equations,
+                                           combine_conservative_and_nonconservative_fluxes::False,
+                                           equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -213,7 +216,8 @@ end
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
                                            have_nonconservative_terms::True,
-                                           has_antisymmetric_flux::True, equations,
+                                           combine_conservative_and_nonconservative_fluxes::True,
+                                           equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -540,8 +544,9 @@ end
                                       surface_integral, dg::DG, cache)
     calc_interface_flux!(surface_flux_values, left_element, right_element, orientation,
                          u, mesh, True(),
-                         has_antisymmetric_flux(surface_integral.surface_flux,
-                                                equations), equations, surface_integral,
+                         combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                         equations),
+                         equations, surface_integral,
                          dg, cache)
     return nothing
 end
@@ -551,7 +556,8 @@ end
                                       mesh::Union{StructuredMesh{2},
                                                   StructuredMeshView{2}},
                                       have_nonconservative_terms::True,
-                                      has_antisymmetric_flux::False, equations,
+                                      combine_conservative_and_nonconservative_fluxes::False,
+                                      equations,
                                       surface_integral, dg::DG, cache)
 
     # See comment on `calc_interface_flux!` with `have_nonconservative_terms::False`
@@ -626,7 +632,8 @@ end
                                       mesh::Union{StructuredMesh{2},
                                                   StructuredMeshView{2}},
                                       have_nonconservative_terms::True,
-                                      has_antisymmetric_flux::True, equations,
+                                      combine_conservative_and_nonconservative_fluxes::True,
+                                      equations,
                                       surface_integral, dg::DG, cache)
 
     # See comment on `calc_interface_flux!` with `have_nonconservative_terms::False`
