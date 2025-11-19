@@ -87,7 +87,7 @@ struct SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff
 end
 
 """
-SemidiscretizationHyperbolicSplit(mesh, equations::Tuple, 
+	SemidiscretizationHyperbolicSplit(mesh, equations::Tuple, 
                                   initial_condition,
                                   solver_stiff, solver_nonstiff;
                                   source_terms=(nothing, nothing),
@@ -98,17 +98,17 @@ SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
 Construct a semidiscretization of a hyperbolic-split PDE.
 """
 function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
-                                           initial_condition, solver_stiff,
-                                           solver_nonstiff;
+                                           initial_condition, solvers::Tuple;
                                            source_terms = (nothing, nothing),
                                            boundary_conditions = (boundary_condition_periodic,
                                                                   boundary_condition_periodic),
                                            # `RealT` is used as real type for node locations etc.
                                            # while `uEltype` is used as element type of solutions etc.
-                                           RealT = real(solver_nonstiff),
+                                           RealT = real(first(solvers)),
                                            uEltype = RealT,
                                            initial_caches = (NamedTuple(),
                                                              NamedTuple()))
+    solver_stiff, solver_nonstiff = solvers
     equations_stiff, equations_nonstiff = equations
     boundary_conditions_stiff, boundary_conditions_nonstiff = boundary_conditions
     initial_hyperbolic_cache_stiff, initial_hyperbolic_cache_nonstiff = initial_caches

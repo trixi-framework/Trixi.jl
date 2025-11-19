@@ -206,8 +206,7 @@ initial_condition = initial_condition_warm_bubble
 semi = SemidiscretizationHyperbolicSplit(mesh,
                                          (equations, equations),
                                          initial_condition,
-                                         solver_implicit,
-                                         solver_explicit;
+                                         (solver_implicit, solver_explicit);
                                          boundary_conditions = (boundary_conditions,
                                                                 boundary_conditions),
                                          source_terms = (nothing, source_terms_gravity),)
