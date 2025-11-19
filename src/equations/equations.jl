@@ -329,14 +329,18 @@ function n_nonconservative_terms end
 """
 	combine_conservative_and_nonconservative_fluxes(flux,equations)
 
-Trait function determining whether the flux `flux` has an 
-antisymmetric nonconservative flux for the given `equations`. Antisymmetric fluxes satisfy the property
-f(u_ll, u_rr) = -f(u_rr, u_ll), which can be exploited for an optimized kernel.
-The return value will be `True()` or `False()` to allow dispatching on the return type.
+Trait function indicating whether the given `flux` and `equations` support
+fusing the computation of conservative fluxes
+with nonconservative fluxes.
+This is purely a performance optimization: for some systems and flux
+implementations it is cheaper to compute
+
+    flux_noncons(u_ll, u_rr) and flux_noncons(u_rr, u_ll)
+
+together, or to compute conservative and nonconservative flux contributions in
+a single fused kernel. 
 """
 combine_conservative_and_nonconservative_fluxes(flux, ::AbstractEquations) = False()
-
-combine_conservative_and_nonconservative_fluxes(::Tuple, ::AbstractEquations) = False()
 
 have_constant_speed(::AbstractEquations) = False()
 
