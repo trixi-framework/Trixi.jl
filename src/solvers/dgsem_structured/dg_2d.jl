@@ -240,7 +240,7 @@ end
             # average mapping terms in first coordinate direction,
             # used as normal vector in the flux computation
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
-            # compute the contravariant sharp flux in the direction of the+ @inline Base.ndims(semi::SemidiscretizationHyperbolicSplit) = ndims(semi.mesh)
+            # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg,
                                                             equations)
@@ -675,9 +675,6 @@ end
         flux_right = flux_right * sign_jacobian
 
         for v in eachvariable(equations)
-            # Note the factor 0.5 necessary for the nonconservative fluxes based on
-            # the interpretation of global SBP operators coupled discontinuously via
-            # central fluxes/SATs
             surface_flux_values[v, i, right_direction, left_element] = flux_left[v]
             surface_flux_values[v, i, left_direction, right_element] = flux_right[v]
         end
