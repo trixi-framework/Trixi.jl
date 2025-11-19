@@ -224,6 +224,29 @@ end
                                       primary_element_index,
                                       secondary_node_index, secondary_direction_index,
                                       secondary_element_index)
+    @unpack surface_flux = surface_integral
+    calc_interface_flux!(surface_flux_values, mesh, have_nonconservative_terms,
+                         is_antisymmetric_flux(surface_flux, equations),
+                         equations,
+                         surface_integral, dg, cache,
+                         interface_index, normal_direction,
+                         primary_node_index, primary_direction_index,
+                         primary_element_index,
+                         secondary_node_index, secondary_direction_index,
+                         secondary_element_index)
+    return nothing
+end
+
+@inline function calc_interface_flux!(surface_flux_values,
+                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                      have_nonconservative_terms::True,
+                                      is_antisymmetric_flux::False, equations,
+                                      surface_integral, dg::DG, cache,
+                                      interface_index, normal_direction,
+                                      primary_node_index, primary_direction_index,
+                                      primary_element_index,
+                                      secondary_node_index, secondary_direction_index,
+                                      secondary_element_index)
     @unpack u = cache.interfaces
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 
@@ -247,6 +270,36 @@ end
         surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -(flux_[v] +
                                                                                                              0.5f0 *
                                                                                                              noncons_secondary[v])
+    end
+
+    return nothing
+end
+
+@inline function calc_interface_flux!(surface_flux_values,
+                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                      have_nonconservative_terms::True,
+                                      is_antisymmetric_flux::True, equations,
+                                      surface_integral, dg::DG, cache,
+                                      interface_index, normal_direction,
+                                      primary_node_index, primary_direction_index,
+                                      primary_element_index,
+                                      secondary_node_index, secondary_direction_index,
+                                      secondary_element_index)
+    @unpack u = cache.interfaces
+    @unpack surface_flux = surface_integral
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index,
+                                       interface_index)
+
+    flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+    # Store the flux with nonconservative terms on the primary and secondary elements
+    for v in eachvariable(equations)
+        # Note the factor 0.5 necessary for the nonconservative fluxes based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
+        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_left[v]
+        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -flux_right[v]
     end
 
     return nothing
@@ -359,6 +412,23 @@ end
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
+    calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                        mesh, have_nonconservative_terms,
+                        is_antisymmetric_flux(surface_integral, equations),
+                        equations, surface_integral, dg, cache,
+                        i_node, j_node,
+                        node, direction, element, boundary)
+    return nothing
+end
+
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     have_nonconservative_terms::True,
+                                     is_antisymmetric_flux::False, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
     @unpack boundaries = cache
     @unpack node_coordinates, contravariant_vectors = cache.elements
 
@@ -386,6 +456,44 @@ end
         surface_flux_values[v, node_index, direction_index, element_index] = flux[v] +
                                                                              0.5f0 *
                                                                              noncons_flux[v]
+    end
+
+    return nothing
+end
+
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     have_nonconservative_terms::True,
+                                     is_antisymmetric_flux::True, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
+    @unpack boundaries = cache
+    @unpack node_coordinates, contravariant_vectors = cache.elements
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    # Coordinates at boundary node
+    x = get_node_coords(node_coordinates, equations, dg,
+                        i_index, j_index, element_index)
+
+    # Call pointwise numerical flux functions for the conservative and nonconservative part
+    # in the normal direction on the boundary
+    flux = boundary_condition(u_inner, normal_direction, x, t,
+                              surface_integral.surface_flux, equations)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        # Note the factor 0.5 necessary for the nonconservative fluxes based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
+        surface_flux_values[v, node_index, direction_index, element_index] = flux[v]
     end
 
     return nothing
