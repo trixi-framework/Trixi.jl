@@ -9,9 +9,10 @@ for human readability.
 ## Changes in the v0.13 lifecycle
 
 #### Added
-- Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582]).
+- Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582] and [#2647]).
   In the new version, IDP positivity limiting for conservative variables (using
-  the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) is supported.
+  the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) and nonlinear
+  variables (using `positivity_variables_nonlinear`) is supported.
   `BoundsCheckCallback` is not supported in 3D yet.
 
 
