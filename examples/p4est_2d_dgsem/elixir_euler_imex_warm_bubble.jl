@@ -210,15 +210,14 @@ semi = SemidiscretizationHyperbolicSplit(mesh,
                                          boundary_conditions = (boundary_conditions,
                                                                 boundary_conditions),
                                          source_terms = (nothing, source_terms_gravity),)
-dt = 0.5
 tspan = (0.0, 1000.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_callback = AnalysisCallback(semi, interval = 1)
+analysis_callback = AnalysisCallback(semi, interval = 1000)
 
-save_solution = SaveSolutionCallback(interval = 100, solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(interval = 1000, solution_variables = cons2prim)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 
@@ -226,6 +225,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # run the simulation
 sol = solve(ode,
             SBDF2(autodiff = AutoFiniteDiff());
-            dt = dt,
+            dt = 0.5,
             save_everystep = false,
             callback = callbacks,);
