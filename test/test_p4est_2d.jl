@@ -600,41 +600,41 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_mhd_coupled.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
-                        l2=[0.009862595305604965,
-                            0.011874205535856063,
-                            5.0185914245237475e-6,
-                            0.0,
-                            0.024657539839658474,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0098589277826056,
-                            0.011870558900297097,
-                            6.882386285170543e-6,
-                            0.024648257743835045
+    @trixi_testset "elixir_euler_mhd_coupled.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
+                            l2=[0.009862595305604965,
+                                0.011874205535856063,
+                                5.0185914245237475e-6,
+                                0.0,
+                                0.024657539839658474,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0098589277826056,
+                                0.011870558900297097,
+                                6.882386285170543e-6,
+                                0.024648257743835045
                             ],
-                        linf=[0.013719847889148373,
-                              0.01678917375613853,
-                              2.933466212909218e-5,
-                              0.0,
-                              0.03429795097747568,
-                              0.0,
-                              0.0,
-                              0.0,
-                              0.0,
-                              0.01368217970493435,
-                              0.016790901855796785,
-                              3.091328454846926e-5,
-                              0.034236712653821444])
-    # Ensure we cover the calculation of the node coordinates
-    node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
-                                                                 ntuple(_ -> length(parent_mesh.nodes),
-                                                                        2)...,
-                                                                 length(mesh1.cell_ids))
-end
+                            linf=[0.013719847889148373,
+                                0.01678917375613853,
+                                2.933466212909218e-5,
+                                0.0,
+                                0.03429795097747568,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.01368217970493435,
+                                0.016790901855796785,
+                                3.091328454846926e-5,
+                                0.034236712653821444])
+        # Ensure we cover the calculation of the node coordinates
+        node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
+                                                                     ntuple(_ -> length(parent_mesh.nodes),
+                                                                            2)...,
+                                                                     length(mesh1.cell_ids))
+    end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
