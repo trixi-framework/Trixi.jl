@@ -128,7 +128,7 @@ function integrate_element(func::Func, u, element,
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, equations, dg, args...))
 
-    # Use quadrature to numerically integrate over entire domain
+    # Use quadrature to numerically integrate element
     for i in eachnode(dg)
         integral += weights[i] *
                     func(u, i, element, equations, dg, args...)

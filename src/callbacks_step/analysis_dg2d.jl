@@ -194,7 +194,7 @@ function integrate_element(func::Func, u, element,
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, 1, equations, dg, args...))
 
-    # Use quadrature to numerically integrate over entire domain
+    # Use quadrature to numerically integrate element
     for j in eachnode(dg), i in eachnode(dg)
         integral += weights[i] * weights[j] *
                     func(u, i, j, element, equations, dg, args...)
@@ -203,6 +203,34 @@ function integrate_element(func::Func, u, element,
     # Multiply with element volume if not normalized
     if !normalize
         integral = integral * volume_jacobian(element, mesh, cache)
+    end
+
+    return integral
+end
+
+function integrate_element(func::Func, u, element,
+                           mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                       UnstructuredMesh2D, P4estMesh{2},
+                                       T8codeMesh{2}},
+                           equations, dg::DGSEM, cache,
+                           args...; normalize = true) where {Func}
+    @unpack weights = dg.basis
+
+    # Initialize integral with zeros of the right shape
+    integral = zero(func(u, 1, 1, 1, equations, dg, args...))
+    total_volume = zero(real(mesh))
+
+    # Use quadrature to numerically integrate element
+    for j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
+        integral += volume_jacobian * weights[i] * weights[j] *
+                    func(u, i, j, element, equations, dg, args...)
+        total_volume += volume_jacobian * weights[i] * weights[j]
+    end
+
+    # Normalize with total volume
+    if normalize
+        integral = integral / total_volume
     end
 
     return integral
@@ -237,8 +265,8 @@ function integrate_via_indices(func::Func, u,
                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                            UnstructuredMesh2D, P4estMesh{2},
                                            T8codeMesh{2}},
-                               equations,
-                               dg::DGSEM, cache, args...; normalize = true) where {Func}
+                               equations, dg::DGSEM, cache,
+                               args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
