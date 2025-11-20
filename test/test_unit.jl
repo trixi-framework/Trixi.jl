@@ -2883,11 +2883,11 @@ end
     polydeg = 2
     basis = LobattoLegendreBasis(polydeg)
 
-    volume_integral_explicit = VolumeIntegralFluxDifferencing(flux_zero)
-    solver_explicit = DGSEM(basis, flux_kennedy_gruber, volume_integral_explicit)
+    volume_integral_explicit = VolumeIntegralFluxDifferencing(flux_ranocha)
+    solver_explicit = DGSEM(basis, flux_ranocha, volume_integral_explicit)
 
-    volume_integral_implicit = VolumeIntegralFluxDifferencing(flux_zero)
-    solver_implicit = DGSEM(basis, flux_zero, volume_integral_implicit)
+    volume_integral_implicit = VolumeIntegralFluxDifferencing(flux_ranocha)
+    solver_implicit = DGSEM(basis, flux_ranocha, volume_integral_implicit)
 
     coordinates_min = (0.0, 0.0)
     coordinates_max = (20_000.0, 10_000.0)
