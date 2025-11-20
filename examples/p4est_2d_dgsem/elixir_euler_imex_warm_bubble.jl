@@ -229,7 +229,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, aliv
 ###############################################################################
 # run the simulation
 sol = solve(ode,
-            ESDIRK436L2SA2(autodiff = AutoFiniteDiff());
+            KenCarp4(autodiff = AutoFiniteDiff());
             dt = 0.5,
             save_everystep = false,
             callback = callbacks,);
