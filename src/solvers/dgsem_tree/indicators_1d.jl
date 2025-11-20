@@ -8,19 +8,21 @@
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.maxthreadid()]
-    modal_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.maxthreadid()]
+    MVec = MVector{nnodes(basis), uEltype}
+
+    indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+    modal_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded)
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations, dg::DGSEM, cache)
+function create_cache(typ::Type{IndicatorHennemannGassner},
+                      mesh, equations::AbstractEquations, dg::DGSEM, cache)
     create_cache(typ, equations, dg.basis)
 end
 
@@ -111,20 +113,22 @@ function apply_smoothing!(mesh::TreeMesh{1}, alpha, alpha_tmp, dg, cache)
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{1},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.maxthreadid()]
+    MVec = MVector{nnodes(basis), uEltype}
+
+    indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations,
-                      dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
+function create_cache(typ::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+                      mesh, equations::AbstractEquations, dg::DGSEM, cache)
+    return create_cache(typ, equations, dg.basis)
 end
 
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 3},
@@ -158,23 +162,6 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 3},
     end
 
     return alpha
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{1},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
-
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.maxthreadid()]
-
-    return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations,
-                      dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
 end
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
