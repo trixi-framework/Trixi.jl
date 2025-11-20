@@ -82,7 +82,7 @@ for every stage of the time integrator.
 mutable struct LowerBoundPreservingLimiterRuedaRamirezGassner{RealT <: Real,
                                                               SolverFV <: DGSEM,
                                                               uType <: AbstractVector,
-                                                              vType <: AbstractArray}
+                                                              vType <: AbstractVector}
     ### Limiter parameters ###
     const beta_rho::RealT # Factor that quantifies the permitted DG lower density deviation from the FV value
     const beta_p::RealT # Factor that quantifies the permitted DG lower pressure deviation from the FV value
