@@ -312,7 +312,7 @@ abstract type FluxNonConservative{STRUCTURE} end
 Trait function determining whether `equations` represent a conservation law
 with or without nonconservative terms. Classical conservation laws such as the
 [`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
-[`IdealGlmMhdEquations2D`] are an example of equations with nonconservative terms.
+[`IdealGlmMhdEquations2D`](@ref) are an example of equations with nonconservative terms.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = False()

@@ -139,6 +139,18 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_shu_osher_nonuniform_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shu_osher_nonuniform_fvO2.jl"),
+                        abstol=1e-11, reltol=1e-11,
+                        l2=[0.5000856244205995, 1.7958065770030094, 6.50409305116869],
+                        linf=[2.981082161129505, 10.10855083991654, 36.26666086388062],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!

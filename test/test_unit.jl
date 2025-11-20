@@ -1978,6 +1978,11 @@ end
                 @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
                       max_abs_speed(u_ll, u_rr, orientation, equations)
             end
+
+            @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed_naive(u_ll, u_rr, SVector(1.0, 0.0), equations)
+            @test max_abs_speed_naive(u_ll, u_rr, 2, equations) ≈
+                  max_abs_speed_naive(u_ll, u_rr, SVector(0.0, 1.0), equations)
         end
     end
 
