@@ -2875,6 +2875,42 @@ end
     # the sparsity pattern of the parabolic part of a hyperbolic-parabolic problem always includes the hyperbolic one
     @test jac_prototype_parabolic == jac_prototype_hyperbolic_parabolic
 end
-end
 
+@testset "ndims function for SemidiscretizaionHyperbolicSplit" begin
+    gamma = 1004 / 717
+    equations = CompressibleEulerEquations2D(gamma)
+
+    polydeg = 2
+    basis = LobattoLegendreBasis(polydeg)
+
+    volume_integral_explicit = VolumeIntegralFluxDifferencing(flux_zero)
+    solver_explicit = DGSEM(basis, flux_kennedy_gruber, volume_integral_explicit)
+
+    volume_integral_implicit = VolumeIntegralFluxDifferencing(flux_zero)
+    solver_implicit = DGSEM(basis, flux_zero, volume_integral_implicit)
+
+    coordinates_min = (0.0, 0.0)
+    coordinates_max = (20_000.0, 10_000.0)
+    trees_per_dimension = (16, 8)
+    mesh = P4estMesh(trees_per_dimension; polydeg = polydeg,
+                     coordinates_min = coordinates_min,
+                     coordinates_max = coordinates_max,
+                     periodicity = (true, false), initial_refinement_level = 0)
+
+    boundary_conditions = Dict(:y_neg => boundary_condition_slip_wall,
+                               :y_pos => boundary_condition_slip_wall)
+
+    initial_condition = initial_condition_convergence_test
+
+    semi = SemidiscretizationHyperbolicSplit(mesh,
+                                             (equations, equations),
+                                             initial_condition,
+                                             (solver_implicit, solver_explicit);
+                                             boundary_conditions = (boundary_conditions,
+                                                                    boundary_conditions),
+                                             source_terms = (nothing, nothing),)
+
+    @test Trixi.ndims(semi) == 2
+end
+end
 end #module

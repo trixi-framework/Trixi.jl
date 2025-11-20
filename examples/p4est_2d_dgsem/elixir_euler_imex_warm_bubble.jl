@@ -46,7 +46,10 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquatio
 end
 
 # The standard Trixi implementation of the slip wall boundary condition is not directly 
-# compatible with this general splitting approach.
+# compatible with this general splitting approach, since it is based on Toro's Riemann solver 
+# which always returns boundary condition values for the entire right-hand side. 
+# This function computes the boundary condition based on the surface flux function of the 
+# explicit and implicit parts, where the splitting has been defined and thus accounts for it.
 @inline function boundary_condition_slip_wall_2(u_inner, normal_direction::AbstractVector,
                                                 x, t,
                                                 surface_flux_function,
@@ -217,14 +220,25 @@ summary_callback = SummaryCallback()
 
 analysis_callback = AnalysisCallback(semi, interval = 1000)
 
+alive_callback = AliveCallback(analysis_interval = 1000)
+
 save_solution = SaveSolutionCallback(interval = 1000, solution_variables = cons2prim)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, alive_callback)
 
 ###############################################################################
 # run the simulation
 sol = solve(ode,
-            SBDF2(autodiff = AutoFiniteDiff());
-            dt = 0.5,
+            #SBDF2(autodiff = AutoFiniteDiff());
+            #KenCarp4(autodiff = AutoFiniteDiff()); # 113
+            #KenCarp58(autodiff = AutoFiniteDiff());
+            #ESDIRK54I8L2SA(autodiff = AutoFiniteDiff());
+            #ESDIRK436L2SA2(autodiff = AutoFiniteDiff());
+            #ESDIRK437L2SA(autodiff = AutoFiniteDiff());
+            #ESDIRK547L2SA2(autodiff = AutoFiniteDiff());
+            #ESDIRK659L2SA(autodiff = AutoFiniteDiff());
+            #Tsit5();
+            CarpenterKennedy2N54();
+            dt = 1.5,
             save_everystep = false,
             callback = callbacks,);
