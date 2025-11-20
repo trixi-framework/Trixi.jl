@@ -714,7 +714,7 @@ end
                  initial_check, final_check, equations, dt, limiter, antidiffusive_flux)
 
     # negative zeta direction
-    antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
+    antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[k] *
                          get_node_vars(antidiffusive_flux3_R, equations, dg,
                                        i, j, k, element)
     newton_loop!(alpha, bound, u, indices, variable, min_or_max,
@@ -722,7 +722,7 @@ end
 
     # positive zeta direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
-                         inverse_weights[j] *
+                         inverse_weights[k] *
                          get_node_vars(antidiffusive_flux3_L, equations, dg,
                                        i, j, k + 1, element)
     newton_loop!(alpha, bound, u, indices, variable, min_or_max,
