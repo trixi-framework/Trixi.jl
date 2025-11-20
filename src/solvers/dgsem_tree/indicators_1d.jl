@@ -12,11 +12,10 @@ function create_cache(::Type{IndicatorHennemannGassner},
     alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    MA1d = MArray{Tuple{nnodes(basis)},
-                  uEltype, 1, nnodes(basis)}
+    MVec = MVector{nnodes(basis), uEltype}
 
-    indicator_threaded = MA1d[MA1d(undef) for _ in 1:Threads.maxthreadid()]
-    modal_threaded = MA1d[MA1d(undef) for _ in 1:Threads.maxthreadid()]
+    indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+    modal_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded)
 end
