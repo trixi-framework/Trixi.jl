@@ -122,7 +122,6 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                     alpha_n = alpha[element] + delta_alpha_i
                     # Compute ∂u/∂α
                     for v in eachvariable(equations)
-                        # Compute pure DG solution
                         u_dg_node[v] = compute_pure_dg(u_dgfv_node[v], u_fv_node[v],
                                                        alpha_n)
 
@@ -147,11 +146,10 @@ function limiter_rueda_gassner!(u_dgfv, mesh::AbstractMesh{1}, semi, limiter!)
                                                                u_dg_node[v],
                                                                delta_alpha_i)
                     end
-                    # Compute new pressure value
-                    p_newton = pressure(u_newton_node, equations)
+                    p_new = pressure(u_newton_node, equations)
 
                     # Check convergence
-                    a_p = beta_p * p_fv - p_newton
+                    a_p = beta_p * p_fv - p_new
                     if a_p <= root_tol
                         break
                     end
