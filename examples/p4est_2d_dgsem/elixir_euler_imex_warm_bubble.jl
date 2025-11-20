@@ -2,7 +2,7 @@
 # We define separate solvers, boundary conditions, and source terms, and create a `SemidiscretizationHyperbolicSplit`, which will return a `SplitODEProblem` compatible with `OrdinaryDiffEqBDF`, cf. https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/ .
 
 using Trixi
-using OrdinaryDiffEqBDF
+using OrdinaryDiffEqSDIRK
 using ADTypes # This is needed to set 'autodiff = AutoFiniteDiff()' in the ODE solver.
 
 function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquations2D)
@@ -229,16 +229,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, aliv
 ###############################################################################
 # run the simulation
 sol = solve(ode,
-            #SBDF2(autodiff = AutoFiniteDiff());
-            #KenCarp4(autodiff = AutoFiniteDiff()); # 113
-            #KenCarp58(autodiff = AutoFiniteDiff());
-            #ESDIRK54I8L2SA(autodiff = AutoFiniteDiff());
-            #ESDIRK436L2SA2(autodiff = AutoFiniteDiff());
-            #ESDIRK437L2SA(autodiff = AutoFiniteDiff());
-            #ESDIRK547L2SA2(autodiff = AutoFiniteDiff());
-            #ESDIRK659L2SA(autodiff = AutoFiniteDiff());
-            #Tsit5();
-            CarpenterKennedy2N54();
-            dt = 1.5,
+            ESDIRK436L2SA2(autodiff = AutoFiniteDiff());
+            dt = 0.5,
             save_everystep = false,
             callback = callbacks,);
