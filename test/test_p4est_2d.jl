@@ -634,6 +634,7 @@ end
                                                                             2)...,
                                                                      length(mesh1.cell_ids))
     end
+end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
