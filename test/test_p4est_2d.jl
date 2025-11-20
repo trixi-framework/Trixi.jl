@@ -114,9 +114,9 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
                         l2=[0., 0.],
                         linf=[0., 0.])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    #     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+#     Ensure that we do not have excessive memory allocations
+#     (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 135553)
 
     # Ensure we cover the calculation of the node coordinates
     node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
@@ -124,7 +124,7 @@ end
                                                                         2)...,
                                                                  length(mesh1.cell_ids))
     # Load the mesh file for code coverage.
-    loaded_mesh = Trixi.load_mesh_serial(joinpath(EXAMPLES_DIR, "out", "mesh_1.h5"); n_cells_max = 0,
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh_1_000000000.h5"); n_cells_max = 0,
                                          RealT = typeof(parent_mesh).parameters[3])
 end
 
@@ -557,6 +557,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_eulermulti_shock.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock.jl"),
+                        l2=[
+                            0.09238286359859513,
+                            0.0006429842672568709,
+                            0.22741647050108965,
+                            0.09129657317724366,
+                            0.2714793219290268
+                        ],
+                        linf=[
+                            0.6949550920191041,
+                            0.027123073012782554,
+                            1.7445063388384803,
+                            1.1616284674760593,
+                            4.340140043930651
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[1.0513414461545583e-5, 1.0517900957166411e-6,
@@ -578,40 +599,41 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 
-@trixi_testset "elixir_euler_mhd_coupled.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
-                        l2=[0.009862595305604965,
-                            0.011874205535856063,
-                            5.0185914245237475e-6,
-                            0.0,
-                            0.024657539839658474,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0098589277826056,
-                            0.011870558900297097,
-                            6.882386285170543e-6,
-                            0.024648257743835045
+    @trixi_testset "elixir_euler_mhd_coupled.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
+                            l2=[0.009862595305604965,
+                                0.011874205535856063,
+                                5.0185914245237475e-6,
+                                0.0,
+                                0.024657539839658474,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0098589277826056,
+                                0.011870558900297097,
+                                6.882386285170543e-6,
+                                0.024648257743835045
                             ],
-                        linf=[0.013719847889148373,
-                              0.01678917375613853,
-                              2.933466212909218e-5,
-                              0.0,
-                              0.03429795097747568,
-                              0.0,
-                              0.0,
-                              0.0,
-                              0.0,
-                              0.01368217970493435,
-                              0.016790901855796785,
-                              3.091328454846926e-5,
-                              0.034236712653821444])
-    # Ensure we cover the calculation of the node coordinates
-    node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
-                                                                 ntuple(_ -> length(parent_mesh.nodes),
-                                                                        2)...,
-                                                                 length(mesh1.cell_ids))
+                            linf=[0.013719847889148373,
+                                0.01678917375613853,
+                                2.933466212909218e-5,
+                                0.0,
+                                0.03429795097747568,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.01368217970493435,
+                                0.016790901855796785,
+                                3.091328454846926e-5,
+                                0.034236712653821444])
+        # Ensure we cover the calculation of the node coordinates
+        node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
+                                                                     ntuple(_ -> length(parent_mesh.nodes),
+                                                                            2)...,
+                                                                     length(mesh1.cell_ids))
+    end
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin

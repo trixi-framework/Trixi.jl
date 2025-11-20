@@ -110,10 +110,6 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
     fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
     fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
-    # A2d = Array{uEltype, 2}
-    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.maxthreadid()]
-    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.maxthreadid()]
-
     cache = (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
              fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
 

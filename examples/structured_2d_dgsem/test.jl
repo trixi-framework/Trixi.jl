@@ -10,12 +10,12 @@ equations = ShallowWaterEquations2D(gravity_constant = 9.81)
 # Define the initial condition
 
 function initial_condition_test(x, t, equations::ShallowWaterEquations2D)
-        x1, x2 = x
-        v1 = 0.0
-        v2 = 0.0
-        b = 0.0
-        H = 1.0
-        return  prim2cons(SVector(H, v1, v2, b), equations)
+    x1, x2 = x
+    v1 = 0.0
+    v2 = 0.0
+    b = 0.0
+    H = 1.0
+    return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
 initial_condition = initial_condition_test
