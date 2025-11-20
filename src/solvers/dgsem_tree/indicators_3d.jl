@@ -155,13 +155,11 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
                       equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
-    uEltype = real(basis)
-    alpha = Vector{uEltype}()
+    alpha = Vector{real(basis)}()
 
-    MA3d = MArray{Tuple{nnodes(basis), nnodes(basis), nnodes(basis)},
-                  uEltype, 3, nnodes(basis)^ndims(equations)}
-
-    indicator_threaded = MA3d[MA3d(undef) for _ in 1:Threads.maxthreadid()]
+    A = Array{real(basis), ndims(equations)}
+    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
+                          for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
 end
