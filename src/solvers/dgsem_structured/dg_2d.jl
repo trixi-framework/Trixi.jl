@@ -542,12 +542,6 @@ end
                                                   StructuredMeshView{2}},
                                       have_nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache)
-    calc_interface_flux!(surface_flux_values, left_element, right_element, orientation,
-                         u, mesh, True(),
-                         combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
-                                                                         equations),
-                         equations, surface_integral,
-                         dg, cache)
     return nothing
 end
 
@@ -621,69 +615,6 @@ end
             surface_flux_values[v, i, left_direction, right_element] = flux[v] +
                                                                        0.5f0 *
                                                                        noncons_right[v]
-        end
-    end
-
-    return nothing
-end
-
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
-                                      orientation, u,
-                                      mesh::Union{StructuredMesh{2},
-                                                  StructuredMeshView{2}},
-                                      have_nonconservative_terms::True,
-                                      combine_conservative_and_nonconservative_fluxes::True,
-                                      equations,
-                                      surface_integral, dg::DG, cache)
-
-    # See comment on `calc_interface_flux!` with `have_nonconservative_terms::False`
-    if left_element <= 0 # left_element = 0 at boundaries
-        return nothing
-    end
-
-    @unpack surface_flux = surface_integral
-    @unpack contravariant_vectors, inverse_jacobian = cache.elements
-
-    right_direction = 2 * orientation
-    left_direction = right_direction - 1
-
-    for i in eachnode(dg)
-        if orientation == 1
-            u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
-            u_rr = get_node_vars(u, equations, dg, 1, i, right_element)
-
-            # If the mapping is orientation-reversing, the contravariant vectors' orientation
-            # is reversed as well. The normal vector must be oriented in the direction
-            # from `left_element` to `right_element`, or the numerical flux will be computed
-            # incorrectly (downwind direction).
-            sign_jacobian = sign(inverse_jacobian[1, i, right_element])
-
-            # First contravariant vector Ja^1 as SVector
-            normal_direction = sign_jacobian *
-                               get_contravariant_vector(1, contravariant_vectors,
-                                                        1, i, right_element)
-        else # orientation == 2
-            u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
-            u_rr = get_node_vars(u, equations, dg, i, 1, right_element)
-
-            # See above
-            sign_jacobian = sign(inverse_jacobian[i, 1, right_element])
-
-            # Second contravariant vector Ja^2 as SVector
-            normal_direction = sign_jacobian *
-                               get_contravariant_vector(2, contravariant_vectors,
-                                                        i, 1, right_element)
-        end
-
-        # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
-        # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
-        flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
-        flux_left = flux_left * sign_jacobian
-        flux_right = flux_right * sign_jacobian
-
-        for v in eachvariable(equations)
-            surface_flux_values[v, i, right_direction, left_element] = flux_left[v]
-            surface_flux_values[v, i, left_direction, right_element] = flux_right[v]
         end
     end
 

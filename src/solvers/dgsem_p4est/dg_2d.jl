@@ -411,9 +411,10 @@ end
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
+    @unpack surface_flux = surface_integral
     calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                         mesh, have_nonconservative_terms,
-                        combine_conservative_and_nonconservative_fluxes(surface_integral,
+                        combine_conservative_and_nonconservative_fluxes(surface_flux,
                                                                         equations),
                         equations, surface_integral, dg, cache,
                         i_index, j_index,
