@@ -23,7 +23,7 @@ end
 function InitialConditionConvergenceTestRotated(alpha)
     sin_alpha, cos_alpha = sincos(alpha)
 
-    InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
+    return InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
 end
 
 function (initial_condition::InitialConditionConvergenceTestRotated)(x, t,
