@@ -350,11 +350,11 @@ a single fused kernel. In this case, you should set this trait to be `Trixi.True
 to take advantage of a more efficient implementation. In this case, you have to
 define a single method that computes
 
-    flux_cons(u_ll, u_rr, n, equations) + flux_noncons(u_ll, u_rr, n, equations)
+    flux_cons(u_ll, u_rr, n, equations) + 0.5f0 * flux_noncons(u_ll, u_rr, n, equations)
   
 and
 
-    flux_cons(u_ll, u_rr, n, equations) + flux_noncons(u_rr, u_ll, n, equations)
+    flux_cons(u_ll, u_rr, n, equations) + 0.5f0 * flux_noncons(u_rr, u_ll, n, equations)
 
 together and returns them as a tuple.
 See also the test section P4estMesh2D with combine_conservative_and_nonconservative_fluxes in
