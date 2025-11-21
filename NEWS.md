@@ -13,7 +13,10 @@ for human readability.
   In the new version, IDP positivity limiting for conservative variables (using
   the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) is supported.
   `BoundsCheckCallback` is not supported in 3D yet.
-
+- Support for user-defined RHS splitting for IMEX methods via `SemidiscretizationHyperbolicSplit` ([#2518]).
+  The splitting follows the form `y_t = f_1(y) + f_2(y)`, allowing users to define separate solvers
+  for the stiff (`f_1`) and non-stiff (`f_2`) parts of the right-hand side. Boundary conditions
+  and source terms can be specified independently for the stiff and non-stiff parts.
 
 ## Changes when updating to v0.13 from v0.12.x
 
