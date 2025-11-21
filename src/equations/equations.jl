@@ -327,18 +327,36 @@ combined with certain solvers (e.g., subcell limiting).
 function n_nonconservative_terms end
 
 """
-	combine_conservative_and_nonconservative_fluxes(flux,equations)
+	Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)
 
 Trait function indicating whether the given `flux` and `equations` support
-fusing the computation of conservative fluxes
-with nonconservative fluxes.
-This is purely a performance optimization: for some systems and flux
-implementations it is cheaper to compute
+fusing the computation of conservative fluxes with nonconservative fluxes.
+This is purely a performance optimization for equations with nonconservative
+terms (i.e., where `have_nonconservative_terms(equations)` is `Trixi.True()`).
+The default value is `Trixi.False()`, i.e., you have to pass a tuple of
+numerical fluxes for the conservative and the nonconservative terms, e.g.,
+to compute surface terms or the [`VolumeIntegralFluxDifferencing`](@ref).
 
-    flux_noncons(u_ll, u_rr) and flux_noncons(u_rr, u_ll)
+For some systems and flux implementations, it is cheaper to compute
+
+    flux_noncons(u_ll, u_rr, orientation_or_normal_direction, equations)
+    
+and 
+
+    flux_noncons(u_rr, u_ll, orientation_or_normal_direction, equations)
 
 together, or to compute conservative and nonconservative flux contributions in
-a single fused kernel. 
+a single fused kernel. In this case, you should set this trait to be `Trixi.True()`
+to take advantage of a more efficient implementation. In this case, you have to
+define a single method that computes
+
+    flux_cons(u_ll, u_rr, n, equations) + flux_noncons(u_ll, u_rr, n, equations)
+  
+and
+
+    flux_cons(u_rr, u_ll, n, equations) + flux_noncons(u_rr, u_ll, n, equations)
+
+together and returns them as a tuple.
 """
 combine_conservative_and_nonconservative_fluxes(flux, ::AbstractEquations) = False()
 
