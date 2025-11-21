@@ -174,7 +174,8 @@ end
 end
 @timed_testset "P4estMesh2D, combine_conservative_and_nonconservative_fluxes" begin
     trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_mhd_rotor.jl"))
+                  joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_mhd_rotor.jl"),
+                  amr_callback = nothing)
     u_ode = copy(sol.u[end])
 
     @muladd @inline function flux_hindenlang_gassner_nonconservative_powell(u_ll, u_rr,
@@ -337,7 +338,8 @@ end
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_mhd_rotor.jl"),
                   surface_flux = flux_lax_friedrichs_nonconservative_powell,
-                  volume_flux = flux_hindenlang_gassner_nonconservative_powell)
+                  volume_flux = flux_hindenlang_gassner_nonconservative_powell,
+                  amr_callback = nothing)
 
     u_ode_specialized = copy(sol.u[end])
     @test u_ode_specialized ≈ u_ode
