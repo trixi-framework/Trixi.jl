@@ -357,6 +357,8 @@ and
     flux_cons(u_ll, u_rr, n, equations) + flux_noncons(u_rr, u_ll, n, equations)
 
 together and returns them as a tuple.
+See also the test section P4estMesh2D with combine_conservative_and_nonconservative_fluxes in
+[Test Performance](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_performance_specializations_2d.jl).
 """
 combine_conservative_and_nonconservative_fluxes(flux, ::AbstractEquations) = False()
 
