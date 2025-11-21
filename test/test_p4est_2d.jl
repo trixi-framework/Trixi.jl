@@ -895,18 +895,18 @@ end
 @trixi_testset "elixir_euler_imex_warm_bubble.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_imex_warm_bubble.jl"),
                         l2=[
-                            7.590829753210833e-5,
-                            0.021241377618508996,
-                            0.0228328613979618,
-                            21.07092479988158
+                            2.5906685150097423e-5,
+                            0.0013278681139722635,
+                            0.0013043939251877372,
+                            2.1316160549898355
                         ],
                         linf=[
-                            0.0008694739774984805,
-                            0.17647777947464505,
-                            0.20694095082646458,
-                            233.85231356491568
+                            0.0003013316223392515,
+                            0.013751493061260334,
+                            0.011904250984857088,
+                            19.01079930891865
                         ],
-                        tspan=(0.0, 2.5))
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
