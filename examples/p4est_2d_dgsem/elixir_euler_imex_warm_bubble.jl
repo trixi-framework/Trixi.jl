@@ -1,9 +1,11 @@
-# This elixir demonstrates how an implicit-explicit (IMEX) time integration scheme can be applied to the stiff and non-stiff parts of a right hand side, respectively.
-# We define separate solvers, boundary conditions, and source terms, and create a `SemidiscretizationHyperbolicSplit`, which will return a `SplitODEProblem` compatible with `OrdinaryDiffEqBDF`, cf. https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/ .
+# This elixir demonstrates how an implicit-explicit (IMEX) time integration scheme can be applied to the stiff and non-stiff parts of a right hand side, respectively. 
+# We define separate solvers, boundary conditions, and source terms, and create a `SemidiscretizationHyperbolicSplit`, which will return a `SplitODEProblem` compatible with `OrdinaryDiffEqBDF`, cf. https://docs.sciml.ai/OrdinaryDiffEq/stable/implicit/SDIRK/#IMEX-DIRK .
+# Note: This is currently more of a proof of concept and not particularly useful in practice, as fully explicit methods are still faster at the moment.
 
 using Trixi
-using OrdinaryDiffEqSDIRK
+using OrdinaryDiffEqBDF
 using ADTypes # This is needed to set 'autodiff = AutoFiniteDiff()' in the ODE solver.
+using LinearSolve
 
 function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquations2D)
     g = 9.81
@@ -228,8 +230,22 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, aliv
 
 ###############################################################################
 # run the simulation
-sol = solve(ode,
-            KenCarp4(autodiff = AutoFiniteDiff());
+
+# Tolerances for GMRES residual, see https://jso.dev/Krylov.jl/stable/solvers/unsymmetric/#Krylov.gmres
+atol_lin_solve = 1e-5
+rtol_lin_solve = 1e-5
+
+# Jacobian-free Newton-Krylov (GMRES) solver, see
+# https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Using-Jacobian-Free-Newton-Krylov
+linsolve = KrylovJL_GMRES(atol = atol_lin_solve, rtol = rtol_lin_solve)
+
+# Use second-order implicit Runge-Kutta BDF, see
+# https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/
+ode_alg = SBDF2(autodiff = AutoFiniteDiff(), linsolve = linsolve)
+
+atol_ode_solve = 1e-4
+rtol_ode_solve = 1e-4
+sol = solve(ode, ode_alg;
             dt = 0.5,
-            save_everystep = false,
-            callback = callbacks,);
+            abstol = atol_ode_solve, reltol = rtol_ode_solve,
+            ode_default_options()..., callback = callbacks);
