@@ -39,8 +39,10 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder = 
         return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $colab_badge\n $raw_notebook_badge\n\n",
                       content)
     end
-    return Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder);
-                             preprocess = preprocess_docs,)
+    Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder);
+                       preprocess = preprocess_docs,)
+                       
+    return nothing
 end
 
 # Create tutorials with Literate.jl
