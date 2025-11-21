@@ -21,7 +21,7 @@ function source_terms_gauss(u, x, t, equations::LinearizedEulerEquations2D)
 end
 
 function initial_condition_zero(x, t, equations::LinearizedEulerEquations2D)
-    SVector(0.0, 0.0, 0.0, 0.0)
+    return SVector(0.0, 0.0, 0.0, 0.0)
 end
 
 ###############################################################################
