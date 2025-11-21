@@ -336,7 +336,7 @@ end
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_mhd_alfven_wave.jl"),
                   surface_flux = flux_central_nonconservative_powell,
-                  volume_flux = flux_hindelang_gassner_nonconservative_powell)
+                  volume_flux = flux_hindenlang_gassner_nonconservative_powell)
 
     u_ode_specialized = copy(sol.u[end])
     @test u_ode_specialized ≈ u_ode
