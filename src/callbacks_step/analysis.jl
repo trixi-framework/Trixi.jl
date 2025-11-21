@@ -49,15 +49,15 @@ mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegra
     start_time_last_analysis::Float64
     ncalls_rhs_last_analysis::Int
     start_gc_time::Float64
-    interval::Int
-    save_analysis::Bool
-    output_directory::String
-    analysis_filename::String
-    analyzer::Analyzer
-    analysis_errors::Vector{Symbol}
-    analysis_integrals::AnalysisIntegrals
+    const interval::Int
+    const save_analysis::Bool
+    const output_directory::String
+    const analysis_filename::String
+    const analyzer::Analyzer
+    const analysis_errors::Vector{Symbol}
+    const analysis_integrals::AnalysisIntegrals
     initial_state_integrals::InitialStateIntegrals
-    cache::Cache
+    const cache::Cache
 end
 
 # TODO: Taal bikeshedding, implement a method with less information and the signature

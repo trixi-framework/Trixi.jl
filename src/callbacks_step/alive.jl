@@ -15,8 +15,8 @@ time steps. If `analysis_interval ≂̸ 0`, the output is omitted every
 """
 mutable struct AliveCallback
     start_time::Float64
-    alive_interval::Int
-    analysis_interval::Int
+    const alive_interval::Int
+    const analysis_interval::Int
 end
 
 function AliveCallback(; analysis_interval = 0,

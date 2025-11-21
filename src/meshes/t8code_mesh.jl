@@ -7,8 +7,8 @@ to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    forest      :: T8code.ForestWrapper
-    is_parallel :: IsParallel
+    forest::T8code.ForestWrapper
+    const is_parallel::IsParallel
 
     # This specifies the geometry interpolation for each tree.
     tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
@@ -16,8 +16,8 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     # Stores the quadrature nodes.
     nodes::SVector{NNODES, RealT}
 
-    boundary_names   :: Array{Symbol, 2}      # [face direction, tree]
-    current_filename :: String
+    boundary_names::Array{Symbol, 2} # [face direction, tree]
+    current_filename::String
 
     ninterfaces :: Int
     nmortars    :: Int
@@ -37,10 +37,10 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
                                                                                 is_parallel)
 
+        mesh.tree_node_coordinates = tree_node_coordinates
         mesh.nodes = nodes
         mesh.boundary_names = boundary_names
         mesh.current_filename = current_filename
-        mesh.tree_node_coordinates = tree_node_coordinates
         mesh.unsaved_changes = true
 
         finalizer(mesh) do mesh
