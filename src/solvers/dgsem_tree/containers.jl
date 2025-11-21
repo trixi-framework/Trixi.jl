@@ -8,6 +8,70 @@
 # Dimension independent code related to containers of the DG solver
 # with the mesh type TreeMesh
 
+abstract type AbstractTreeElementContainer <: AbstractElementContainer end
+
+# Return number of elements
+@inline nelements(elements::AbstractTreeElementContainer) = length(elements.cell_ids)
+# Return number of element nodes
+@inline nnodes(elements::AbstractTreeElementContainer) = size(elements.node_coordinates,
+                                                              2)
+@inline nvariables(elements::AbstractTreeElementContainer) = size(elements.surface_flux_values,
+                                                                  1)
+# TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
+"""
+    eachelement(elements::AbstractTreeElementContainer)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the elements in `elements`. 
+In particular, not the elements themselves are returned.
+"""
+@inline eachelement(elements::AbstractTreeElementContainer) = Base.OneTo(nelements(elements))
+
+@inline Base.real(elements::AbstractTreeElementContainer) = eltype(elements.node_coordinates)
+@inline Base.eltype(elements::AbstractTreeElementContainer) = eltype(elements.surface_flux_values)
+
+abstract type AbstractTreeInterfaceContainer <: AbstractInterfaceContainer end
+
+# Return number of interfaces
+@inline ninterfaces(interfaces::AbstractTreeInterfaceContainer) = length(interfaces.orientations)
+# Return number of interface nodes for 2D and 3D. For 1D hard-coded to 1 interface node.
+@inline nnodes(interfaces::AbstractTreeInterfaceContainer) = size(interfaces.u, 3)
+# Return number of equation variables
+@inline nvariables(interfaces::AbstractTreeInterfaceContainer) = size(interfaces.u, 2)
+
+abstract type AbstractTreeMPIInterfaceContainer <: AbstractMPIInterfaceContainer end
+
+# Return number of interfaces
+@inline function nmpiinterfaces(mpi_interfaces::AbstractTreeMPIInterfaceContainer)
+    return length(mpi_interfaces.orientations)
+end
+# Return number of interface nodes for 2D and 3D. For 1D hard-coded to 1 interface node.
+@inline nnodes(interfaces::AbstractTreeMPIInterfaceContainer) = size(interfaces.u, 3)
+# Return number of equation variables
+@inline nvariables(interfaces::AbstractTreeMPIInterfaceContainer) = size(interfaces.u,
+                                                                         2)
+
+abstract type AbstractTreeBoundaryContainer <: AbstractBoundaryContainer end
+
+# Return number of boundaries
+@inline nboundaries(boundaries::AbstractTreeBoundaryContainer) = length(boundaries.orientations)
+# Return number of boundary nodes for 2D and 3D. For 1D hard-coded to 1 boundary node.
+@inline nnodes(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 3)
+# Return number of equation variables
+@inline nvariables(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 2)
+
+abstract type AbstractTreeL2MortarContainer <: AbstractMortarContainer end
+
+# Return number of L2 mortars
+@inline nmortars(l2mortars::AbstractTreeL2MortarContainer) = length(l2mortars.orientations)
+
+abstract type AbstractTreeL2MPIMortarContainer <: AbstractMPIMortarContainer end
+
+# Return number of L2 mortars
+@inline function nmpimortars(mpi_l2mortars::AbstractTreeL2MPIMortarContainer)
+    length(mpi_l2mortars.orientations)
+end
+
 function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
@@ -50,7 +114,80 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
         init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars,
                         nvariables(equations), nnodes(dg), eltype(elements))
     end
+
+    return nothing
 end
+
+# Container data structure (structure-of-arrays style) for variables used for IDP limiting
+mutable struct ContainerSubcellLimiterIDP{NDIMS, uEltype <: Real, NDIMSP1} <:
+               AbstractContainer
+    alpha::Array{uEltype, NDIMSP1} # [i, j, k, element]
+    variable_bounds::Dict{Symbol, Array{uEltype, NDIMSP1}}
+    # internal `resize!`able storage
+    _alpha::Vector{uEltype}
+    _variable_bounds::Dict{Symbol, Vector{uEltype}}
+end
+
+function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
+                                                    bound_keys) where {NDIMS,
+                                                                       uEltype <: Real}
+    nan_uEltype = convert(uEltype, NaN)
+
+    # Initialize fields with defaults
+    _alpha = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
+    alpha = unsafe_wrap(Array, pointer(_alpha),
+                        (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+
+    _variable_bounds = Dict{Symbol, Vector{uEltype}}()
+    variable_bounds = Dict{Symbol, Array{uEltype, NDIMS + 1}}()
+    for key in bound_keys
+        _variable_bounds[key] = fill(nan_uEltype,
+                                     prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
+        variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
+                                           (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+    end
+
+    return ContainerSubcellLimiterIDP{NDIMS, uEltype, NDIMS + 1}(alpha,
+                                                                 variable_bounds,
+                                                                 _alpha,
+                                                                 _variable_bounds)
+end
+
+@inline nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
+@inline Base.ndims(::ContainerSubcellLimiterIDP{NDIMS}) where {NDIMS} = NDIMS
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
+    n_nodes = nnodes(container)
+    n_dims = ndims(container)
+
+    (; _alpha) = container
+    resize!(_alpha, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+    container.alpha = unsafe_wrap(Array, pointer(_alpha),
+                                  (ntuple(_ -> n_nodes, n_dims)..., capacity))
+    container.alpha .= convert(eltype(container.alpha), NaN)
+
+    (; _variable_bounds) = container
+    for (key, _) in _variable_bounds
+        resize!(_variable_bounds[key], prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+        container.variable_bounds[key] = unsafe_wrap(Array,
+                                                     pointer(_variable_bounds[key]),
+                                                     (ntuple(_ -> n_nodes, n_dims)...,
+                                                      capacity))
+    end
+
+    return nothing
+end
+
+abstract type AbstractContainerAntidiffusiveFlux <: AbstractContainer end
+nvariables(fluxes::AbstractContainerAntidiffusiveFlux) = size(fluxes.antidiffusive_flux1_L,
+                                                              1)
+nnodes(fluxes::AbstractContainerAntidiffusiveFlux) = size(fluxes.antidiffusive_flux1_L,
+                                                          3)
 
 # Dimension-specific implementations
 include("containers_1d.jl")

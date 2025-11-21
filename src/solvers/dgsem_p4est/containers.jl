@@ -5,25 +5,31 @@
 @muladd begin
 #! format: noindent
 
-mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIMSP1,
-                                     NDIMSP2, NDIMSP3,
-                                     ArrayNDIMSP1 <: DenseArray{RealT, NDIMSP1},
-                                     ArrayNDIMSP2 <: DenseArray{RealT, NDIMSP2},
-                                     ArrayNDIMSP3 <: DenseArray{RealT, NDIMSP3},
+mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
+                                     NDIMSP1, NDIMSP2, NDIMSP3,
+                                     ArrayRealTNDIMSP1 <: DenseArray{RealT, NDIMSP1},
+                                     ArrayRealTNDIMSP2 <: DenseArray{RealT, NDIMSP2},
+                                     ArrayRealTNDIMSP3 <: DenseArray{RealT, NDIMSP3},
                                      VectorRealT <: DenseVector{RealT},
+                                     ArrayuEltypeNDIMSP2 <:
+                                     DenseArray{uEltype, NDIMSP2},
                                      VectoruEltype <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractElementContainer
     # Physical coordinates at each node
-    node_coordinates::ArrayNDIMSP2   # [orientation, node_i, node_j, node_k, element]
+    node_coordinates::ArrayRealTNDIMSP2 # [orientation, node_i, node_j, node_k, element]
+
     # Jacobian matrix of the transformation
     # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
-    jacobian_matrix::ArrayNDIMSP3
+    jacobian_matrix::ArrayRealTNDIMSP3
+
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
-    contravariant_vectors::ArrayNDIMSP3   # [dimension, index, node_i, node_j, node_k, element]
+    contravariant_vectors::ArrayRealTNDIMSP3 # [dimension, index, node_i, node_j, node_k, element]
+
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
-    inverse_jacobian::ArrayNDIMSP1   # [node_i, node_j, node_k, element]
+    inverse_jacobian::ArrayRealTNDIMSP1 # [node_i, node_j, node_k, element]
+
     # Buffer for calculated surface flux
-    surface_flux_values::ArrayNDIMSP2 # [variable, i, j, direction, element]
+    surface_flux_values::ArrayuEltypeNDIMSP2 # [variable, i, j, direction, element]
 
     # internal `resize!`able storage
     _node_coordinates::VectorRealT
@@ -132,19 +138,22 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
                                        ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                                        NDIMS * 2, nelements))
 
-    elements = P4estElementContainer{NDIMS, RealT, uEltype, NDIMS + 1, NDIMS + 2,
-                                     NDIMS + 3, Array{RealT, NDIMS + 1},
-                                     Array{RealT, NDIMS + 2}, Array{RealT, NDIMS + 3},
-                                     Vector{RealT}, Vector{uEltype}}(node_coordinates,
-                                                                     jacobian_matrix,
-                                                                     contravariant_vectors,
-                                                                     inverse_jacobian,
-                                                                     surface_flux_values,
-                                                                     _node_coordinates,
-                                                                     _jacobian_matrix,
-                                                                     _contravariant_vectors,
-                                                                     _inverse_jacobian,
-                                                                     _surface_flux_values)
+    elements = P4estElementContainer{NDIMS, RealT, uEltype,
+                                     NDIMS + 1, NDIMS + 2, NDIMS + 3,
+                                     Array{RealT, NDIMS + 1},
+                                     Array{RealT, NDIMS + 2},
+                                     Array{RealT, NDIMS + 3},
+                                     Vector{RealT},
+                                     Array{uEltype, NDIMS + 2}, Vector{uEltype}}(node_coordinates,
+                                                                                 jacobian_matrix,
+                                                                                 contravariant_vectors,
+                                                                                 inverse_jacobian,
+                                                                                 surface_flux_values,
+                                                                                 _node_coordinates,
+                                                                                 _jacobian_matrix,
+                                                                                 _contravariant_vectors,
+                                                                                 _inverse_jacobian,
+                                                                                 _surface_flux_values)
 
     init_elements!(elements, mesh, basis)
     return elements
@@ -186,10 +195,11 @@ function Adapt.adapt_structure(to,
                        NDIMS + 1,
                        NDIMS + 2,
                        NDIMS + 3,
-                       typeof(inverse_jacobian), # ArrayNDIMSP1
-                       typeof(node_coordinates), # ArrayNDIMSP2
-                       typeof(jacobian_matrix), # ArrayNDIMSP3
-                       typeof(_node_coordinates), # VectorRealT
+                       typeof(inverse_jacobian),     # ArrayRealTNDIMSP1
+                       typeof(node_coordinates),     # ArrayRealTNDIMSP2
+                       typeof(jacobian_matrix),      # ArrayRealTNDIMSP3
+                       typeof(_node_coordinates),    # VectorRealT
+                       typeof(surface_flux_values),  # ArrayuEltypeNDIMSP2
                        typeof(_surface_flux_values)) # VectoruEltype
     return P4estElementContainer{new_type_params...}(node_coordinates,
                                                      jacobian_matrix,
@@ -212,7 +222,7 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
-               AbstractContainer
+               AbstractInterfaceContainer
     u::uArray                   # [primary/secondary, variable, i, j, interface]
     neighbor_ids::IdsMatrix     # [primary/secondary, interface]
     node_indices::IndicesMatrix # [primary/secondary, interface]
@@ -334,7 +344,7 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       IndicesVector <:
                                       DenseVector{NTuple{NDIMS, Symbol}},
                                       uVector <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractBoundaryContainer
     u::uArray                   # [variables, i, j, boundary]
     neighbor_ids::IdsVector     # [boundary]
     node_indices::IndicesVector # [boundary]
@@ -500,7 +510,7 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                     IdsVector <: DenseVector{Int},
                                     IndicesVector <:
                                     DenseVector{NTuple{NDIMS, Symbol}}} <:
-               AbstractContainer
+               AbstractMortarContainer
     u::uArray # [small/large side, variable, position, i, j, mortar]
     neighbor_ids::IdsMatrix # [position, mortar]
     node_indices::IndicesMatrix # [small/large, mortar]

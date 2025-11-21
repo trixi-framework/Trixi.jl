@@ -89,6 +89,8 @@ function rebalance_solver!(u_ode::AbstractVector,
             MPI.Waitall(requests, MPI.Status)
         end
     end # GC.@preserve old_u_ode
+
+    return nothing
 end
 
 # Construct cache for ControllerThreeLevel and ControllerThreeLevelCombined.
