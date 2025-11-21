@@ -341,6 +341,131 @@ end
     u_ode_specialized = copy(sol.u[end])
     @test u_ode_specialized ≈ u_ode
 end
+@timed_testset "StructuredMesh2D, combine_conservative_and_nonconservative_fluxes" begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_mhd_alfven_wave.jl"))
+    u_ode = copy(sol.u[end])
+
+    @muladd @inline function flux_lax_friedrichs_nonconservative_powell(u_ll, u_rr,
+                                                                            normal_direction,
+                                                                            equations)
+        f = FluxLaxFriedrichs(max_abs_speed_naive)(u_ll, u_rr, normal_direction, equations)
+
+        rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+        rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+        inv_rho_ll = 1 / rho_ll
+        inv_rho_rr = 1 / rho_rr
+
+        v1_ll = rho_v1_ll * inv_rho_ll
+        v2_ll = rho_v2_ll * inv_rho_ll
+        v3_ll = rho_v3_ll * inv_rho_ll
+        v1_rr = rho_v1_rr * inv_rho_rr
+        v2_rr = rho_v2_rr * inv_rho_rr
+        v3_rr = rho_v3_rr * inv_rho_rr
+        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+        v_dot_B_rr = v1_rr * B1_rr + v2_rr * B2_rr + v3_rr * B3_rr
+
+        v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+        B_dot_n_rr = B1_rr * normal_direction[1] +
+                     B2_rr * normal_direction[2]
+
+        B_dot_n_ll = B1_ll * normal_direction[1] +
+                     B2_ll * normal_direction[2]
+        v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        g_left = SVector(0,
+                         B1_ll * B_dot_n_rr,
+                         B2_ll * B_dot_n_rr,
+                         B3_ll * B_dot_n_rr,
+                         v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
+                         v1_ll * B_dot_n_rr,
+                         v2_ll * B_dot_n_rr,
+                         v3_ll * B_dot_n_rr,
+                         v_dot_n_ll * psi_rr)
+
+        g_right = SVector(0,
+                          B1_rr * B_dot_n_ll,
+                          B2_rr * B_dot_n_ll,
+                          B3_rr * B_dot_n_ll,
+                          v_dot_B_rr * B_dot_n_ll + v_dot_n_rr * psi_rr * psi_ll,
+                          v1_rr * B_dot_n_ll,
+                          v2_rr * B_dot_n_ll,
+                          v3_rr * B_dot_n_ll,
+                          v_dot_n_rr * psi_ll)
+        flux_left = f + 0.5f0 * g_left
+        flux_right = f + 0.5f0 * g_right
+        return flux_left, flux_right
+    end
+
+    @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_lax_friedrichs_nonconservative_powell),
+    equations::IdealGlmMhdEquations2D) = Trixi.True()
+
+    @muladd @inline function flux_central_nonconservative_powell(u_ll, u_rr,
+                                                                 normal_direction,
+                                                                 equations)
+        f = flux_central(u_ll, u_rr, normal_direction, equations)
+
+        rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+        rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+        inv_rho_ll = 1 / rho_ll
+        inv_rho_rr = 1 / rho_rr
+
+        v1_ll = rho_v1_ll * inv_rho_ll
+        v2_ll = rho_v2_ll * inv_rho_ll
+        v3_ll = rho_v3_ll * inv_rho_ll
+        v1_rr = rho_v1_rr * inv_rho_rr
+        v2_rr = rho_v2_rr * inv_rho_rr
+        v3_rr = rho_v3_rr * inv_rho_rr
+        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+        v_dot_B_rr = v1_rr * B1_rr + v2_rr * B2_rr + v3_rr * B3_rr
+
+        v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+        B_dot_n_rr = B1_rr * normal_direction[1] +
+                     B2_rr * normal_direction[2]
+
+        B_dot_n_ll = B1_ll * normal_direction[1] +
+                     B2_ll * normal_direction[2]
+        v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        g_left = SVector(0,
+                         B1_ll * B_dot_n_rr,
+                         B2_ll * B_dot_n_rr,
+                         B3_ll * B_dot_n_rr,
+                         v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
+                         v1_ll * B_dot_n_rr,
+                         v2_ll * B_dot_n_rr,
+                         v3_ll * B_dot_n_rr,
+                         v_dot_n_ll * psi_rr)
+
+        g_right = SVector(0,
+                          B1_rr * B_dot_n_ll,
+                          B2_rr * B_dot_n_ll,
+                          B3_rr * B_dot_n_ll,
+                          v_dot_B_rr * B_dot_n_ll + v_dot_n_rr * psi_rr * psi_ll,
+                          v1_rr * B_dot_n_ll,
+                          v2_rr * B_dot_n_ll,
+                          v3_rr * B_dot_n_ll,
+                          v_dot_n_rr * psi_ll)
+        flux_left = f + 0.5f0 * g_left
+        flux_right = f + 0.5f0 * g_right
+        return flux_left, flux_right
+    end
+
+    @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_central_nonconservative_powell),
+    equations::IdealGlmMhdEquations2D) = Trixi.True()
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_mhd_alfven_wave.jl"),
+                  surface_flux = flux_lax_friedrichs_nonconservative_powell,
+                  volume_flux = flux_central_nonconservative_powell)
+
+    u_ode_specialized = copy(sol.u[end])
+    @test u_ode_specialized ≈ u_ode
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
