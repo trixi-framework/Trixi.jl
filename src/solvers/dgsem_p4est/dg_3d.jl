@@ -26,7 +26,7 @@ function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                          nnodes(mortar_l2), nnodes(mortar_l2))
                      for _ in 1:Threads.maxthreadid()] |> VecOfArrays
 
-    (; fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded, u_threaded)
+    return (; fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded, u_threaded)
 end
 
 #     index_to_start_step_3d(index::Symbol, index_range)
