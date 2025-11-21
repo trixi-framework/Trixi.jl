@@ -343,13 +343,15 @@ end
 end
 @timed_testset "StructuredMesh2D, combine_conservative_and_nonconservative_fluxes" begin
     trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_mhd_alfven_wave.jl"))
+                  joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
+                           "elixir_mhd_alfven_wave.jl"))
     u_ode = copy(sol.u[end])
 
     @muladd @inline function flux_lax_friedrichs_nonconservative_powell(u_ll, u_rr,
-                                                                            normal_direction,
-                                                                            equations)
-        f = FluxLaxFriedrichs(max_abs_speed_naive)(u_ll, u_rr, normal_direction, equations)
+                                                                        normal_direction,
+                                                                        equations)
+        f = FluxLaxFriedrichs(max_abs_speed_naive)(u_ll, u_rr, normal_direction,
+                                                   equations)
 
         rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
         rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
@@ -459,7 +461,8 @@ end
     equations::IdealGlmMhdEquations2D) = Trixi.True()
 
     trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_mhd_alfven_wave.jl"),
+                  joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
+                           "elixir_mhd_alfven_wave.jl"),
                   surface_flux = flux_lax_friedrichs_nonconservative_powell,
                   volume_flux = flux_central_nonconservative_powell)
 
