@@ -337,6 +337,21 @@ end
     @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_lax_friedrichs_nonconservative_powell),
     equations::IdealGlmMhdEquations2D) = Trixi.True()
 
+    @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                      normal_direction::AbstractVector,
+                                                                      x, t,
+                                                                      surface_flux_function::typeof(flux_lax_friedrichs_nonconservative_powell),
+                                                                      equations)
+
+        # get the external value of the solution
+        u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+        # Calculate boundary flux
+        flux, _ = surface_flux_function(u_inner, u_boundary, normal_direction,
+                                        equations)
+        return flux
+    end
+
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_mhd_rotor.jl"),
                   surface_flux = flux_lax_friedrichs_nonconservative_powell,
