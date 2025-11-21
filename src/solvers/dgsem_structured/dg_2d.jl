@@ -126,7 +126,7 @@ end
                                                        T8codeMesh{2}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
-    flux_differencing_kernel!(du, u, element, mesh, True(),
+    flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
                               equations,
@@ -542,6 +542,12 @@ end
                                                   StructuredMeshView{2}},
                                       have_nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache)
+    calc_interface_flux!(surface_flux_values, left_element, right_element, orientation,
+                         u, mesh, have_nonconservative_terms,
+                         combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                         equations),
+                         equations, surface_integral,
+                         dg, cache)
     return nothing
 end
 
