@@ -400,7 +400,7 @@ end
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
                                      mesh::P4estMeshView,
                                      equations, surface_integral, dg::DG, u_global)
-    nothing
+    return nothing
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,

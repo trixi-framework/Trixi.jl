@@ -124,7 +124,7 @@ end
 @inline Base.real(semi::SemidiscretizationCoupledP4est) = promote_type(real.(semi.semis)...)
 
 @inline function ndofs(semi::SemidiscretizationCoupledP4est)
-    sum(ndofs, semi.semis)
+    return sum(ndofs, semi.semis)
 end
 
 """
@@ -136,7 +136,7 @@ parallelized via threads. It will in general be different for simulations
 running in parallel with MPI.
 """
 @inline function ndofsglobal(semi::SemidiscretizationCoupledP4est)
-    sum(ndofsglobal, semi.semis)
+    return sum(ndofsglobal, semi.semis)
 end
 
 function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
@@ -259,7 +259,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
         append!(linf_error_collection, linf_error)
     end
 
-    (; l2 = l2_error_collection, linf = linf_error_collection)
+    return (; l2 = l2_error_collection, linf = linf_error_collection)
 end
 
 ################################################################################
@@ -278,6 +278,7 @@ function save_mesh(semi::SemidiscretizationCoupledP4est, output_directory, times
             mesh.unsaved_changes = false
         end
     end
+    return nothing
 end
 
 @inline function save_solution_file(semi::SemidiscretizationCoupledP4est, u_ode,
@@ -290,6 +291,7 @@ end
         save_solution_file(semis[i], u_ode_slice, solution_callback, integrator,
                            system = i)
     end
+    return nothing
 end
 
 ################################################################################

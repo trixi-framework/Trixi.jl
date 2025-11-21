@@ -381,6 +381,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
             j_node += j_node_step
         end
     end
+    return nothing
 end
 
 # inlined version of the boundary flux calculation along a physical interface
@@ -443,6 +444,7 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
     end
+    return nothing
 end
 
 # inlined version of the boundary flux with nonconservative terms calculation along a physical interface
