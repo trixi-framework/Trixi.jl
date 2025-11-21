@@ -600,7 +600,7 @@ end
 
 # terminate the type-stable iteration over tuples
 function analyze_integrals(analysis_integrals::Tuple{}, io, du, u, t, semi)
-    nothing
+    return nothing
 end
 
 # used for error checks and EOC analysis
