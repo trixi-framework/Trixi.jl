@@ -354,7 +354,7 @@ define a single method that computes
   
 and
 
-    flux_cons(u_rr, u_ll, n, equations) + flux_noncons(u_rr, u_ll, n, equations)
+    flux_cons(u_ll, u_rr, n, equations) + flux_noncons(u_rr, u_ll, n, equations)
 
 together and returns them as a tuple.
 """
