@@ -335,7 +335,7 @@ end
     equations::IdealGlmMhdEquations2D) = Trixi.True()
 
     trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_mhd_alfven_wave.jl"),
+                  joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_mhd_rotor.jl"),
                   surface_flux = flux_lax_friedrichs_nonconservative_powell,
                   volume_flux = flux_hindenlang_gassner_nonconservative_powell)
 
