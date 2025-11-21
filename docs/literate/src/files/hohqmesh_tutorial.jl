@@ -152,6 +152,8 @@ open("out/ice_cream_straight_sides.control", "w") do io
   \end{MODEL}
   \end{FILE}
   """)
+
+    return nothing
 end
 
 # The first three blocks of information are wrapped within a `CONTROL_INPUT` environment block as they define the
@@ -450,6 +452,8 @@ open("out/ice_cream_curved_sides.control", "w") do io
   \end{MODEL}
   \end{FILE}
   """)
+
+    return nothing
 end
 
 # The first alteration is that we have altered the second block of information
