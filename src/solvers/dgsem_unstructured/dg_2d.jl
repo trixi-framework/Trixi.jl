@@ -358,7 +358,7 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
                                      mesh::Union{UnstructuredMesh2D, P4estMesh,
                                                  T8codeMesh},
                                      equations, surface_integral, dg::DG)
-    return nothing
+    nothing
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
