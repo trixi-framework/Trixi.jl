@@ -16,7 +16,7 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
                                             SourceTerms, Solver, Cache} <:
                AbstractSemidiscretization
     mesh::Mesh
-    const equations::Equations
+    equations::Equations
 
     # This guy is a bit messy since we abuse it as some kind of "exact solution"
     # although this doesn't really exist...
