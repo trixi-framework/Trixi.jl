@@ -18,6 +18,15 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     const boundary_names::Array{Symbol, 2} # [face direction, tree]
 
     current_filename::String
+
+    # These guys are set in `fill_mesh_info`
+    ninterfaces :: Int
+    nmortars    :: Int
+    nboundaries :: Int
+
+    nmpiinterfaces :: Int
+    nmpimortars    :: Int
+
     unsaved_changes::Bool
 
     function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
@@ -25,13 +34,17 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                current_filename,
                                RealT = Float64) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
-
         mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
                                                                                 is_parallel,
                                                                                 tree_node_coordinates,
                                                                                 nodes,
                                                                                 boundary_names,
                                                                                 current_filename,
+                                                                                -1, # ninterfaces
+                                                                                -1, # nmortars
+                                                                                -1, # nboundaries
+                                                                                -1, # nmpiinterfaces
+                                                                                -1, # nmpimortars
                                                                                 true)
 
         finalizer(mesh) do mesh
