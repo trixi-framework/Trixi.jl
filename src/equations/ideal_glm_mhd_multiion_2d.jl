@@ -343,9 +343,9 @@ The term is composed of four individual non-conservative terms:
 3. The "multi-ion" term, which vanishes in the limit of one ion species.
 4. The GLM term, which is needed for Galilean invariance.
 """
-@inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
-                                                        orientation::Integer,
-                                                        equations::IdealGlmMhdMultiIonEquations2D)
+@inline function (noncons_flux::FluxNonConservativeRuedaRamirezEtAl)(u_ll, u_rr,
+                                                                     orientation::Integer,
+                                                                     equations::IdealGlmMhdMultiIonEquations2D)
     @unpack charge_to_mass = equations
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
