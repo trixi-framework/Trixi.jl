@@ -5,8 +5,8 @@
 @muladd begin
 #! format: noindent
 
-mutable struct VisualizationCallback{PlotDataCreator, SolutionVariables, VariableNames,
-                                     PlotCreator}
+struct VisualizationCallback{PlotDataCreator, SolutionVariables, VariableNames,
+                             PlotCreator}
     plot_data_creator::PlotDataCreator
     interval::Int
     solution_variables::SolutionVariables

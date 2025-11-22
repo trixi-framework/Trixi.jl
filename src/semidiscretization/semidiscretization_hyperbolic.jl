@@ -20,11 +20,11 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
 
     # This guy is a bit messy since we abuse it as some kind of "exact solution"
     # although this doesn't really exist...
-    initial_condition::InitialCondition
+    const initial_condition::InitialCondition
 
-    boundary_conditions::BoundaryConditions
-    source_terms::SourceTerms
-    solver::Solver
+    const boundary_conditions::BoundaryConditions
+    const source_terms::SourceTerms
+    const solver::Solver
     cache::Cache
     performance_counter::PerformanceCounter
 end
