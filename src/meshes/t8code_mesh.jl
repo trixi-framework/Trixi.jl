@@ -11,10 +11,10 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     const is_parallel::IsParallel
 
     # This specifies the geometry interpolation for each tree.
-    tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
+    const tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
 
     # Stores the quadrature nodes.
-    nodes::SVector{NNODES, RealT}
+    const nodes::SVector{NNODES, RealT}
 
     boundary_names::Array{Symbol, 2} # [face direction, tree]
     current_filename::String
@@ -35,13 +35,17 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         is_parallel = mpi_isparallel() ? True() : False()
 
         mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
-                                                                                is_parallel)
-
-        mesh.tree_node_coordinates = tree_node_coordinates
-        mesh.nodes = nodes
-        mesh.boundary_names = boundary_names
-        mesh.current_filename = current_filename
-        mesh.unsaved_changes = true
+                                                                                is_parallel,
+                                                                                tree_node_coordinates,
+                                                                                nodes,
+                                                                                boundary_names,
+                                                                                current_filename,
+                                                                                -1, # ninterfaces
+                                                                                -1, # nmortars
+                                                                                -1, # nboundaries
+                                                                                -1, # nmpiinterfaces
+                                                                                -1, # nmpimortars
+                                                                                true)
 
         finalizer(mesh) do mesh
             # In serial mode we can finalize the forest right away. In parallel
