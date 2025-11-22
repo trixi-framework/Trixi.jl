@@ -26,7 +26,7 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
                AbstractMesh{NDIMS}
     const p4est::P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
     const is_parallel::IsParallel
-    # Either PointerWrapper{p4est_ghost_t} or PointerWrapper{p8est_ghost_t}.
+    # Either `PointerWrapper{p4est_ghost_t}` or `PointerWrapper{p8est_ghost_t}`.
     # Required for ghost/halo layers in parallel runs, thus mutable.
     ghost::Ghost
     # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).

@@ -257,7 +257,7 @@ end
 function calc_boundary_flux!(flux, u, t, operator_type,
                              boundary_conditions::NamedTuple{(), Tuple{}},
                              mesh, equations, dg::DGMulti, cache, cache_parabolic)
-    nothing
+    return nothing
 end
 
 function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
