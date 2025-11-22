@@ -15,17 +15,9 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
 
     # Stores the quadrature nodes.
     const nodes::SVector{NNODES, RealT}
+    const boundary_names::Array{Symbol, 2} # [face direction, tree]
 
-    boundary_names::Array{Symbol, 2} # [face direction, tree]
     current_filename::String
-
-    ninterfaces :: Int
-    nmortars    :: Int
-    nboundaries :: Int
-
-    nmpiinterfaces :: Int
-    nmpimortars    :: Int
-
     unsaved_changes::Bool
 
     function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
@@ -40,11 +32,6 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                                                                 nodes,
                                                                                 boundary_names,
                                                                                 current_filename,
-                                                                                -1, # ninterfaces
-                                                                                -1, # nmortars
-                                                                                -1, # nboundaries
-                                                                                -1, # nmpiinterfaces
-                                                                                -1, # nmpimortars
                                                                                 true)
 
         finalizer(mesh) do mesh
