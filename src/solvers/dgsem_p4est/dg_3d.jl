@@ -11,20 +11,30 @@ function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal compare performance of different types
     A4d = Array{uEltype, 4}
-    fstar_primary_threaded = A4d[A4d(undef, nvariables(equations),
-                                     nnodes(mortar_l2), nnodes(mortar_l2), 4)
-                                 for _ in 1:Threads.maxthreadid()]
-    fstar_secondary_threaded = A4d[A4d(undef, nvariables(equations),
-                                       nnodes(mortar_l2), nnodes(mortar_l2), 4)
-                                   for _ in 1:Threads.maxthreadid()]
+    fstar_primary_threaded = VectorOfArray([A4d(undef,
+                                                nvariables(equations),
+                                                nnodes(mortar_l2),
+                                                nnodes(mortar_l2),
+                                                4)
+                                            for _ in 1:Threads.maxthreadid()])
+    fstar_secondary_threaded = VectorOfArray([A4d(undef,
+                                                  nvariables(equations),
+                                                  nnodes(mortar_l2),
+                                                  nnodes(mortar_l2),
+                                                  4)
+                                              for _ in 1:Threads.maxthreadid()])
 
     A3d = Array{uEltype, 3}
-    fstar_tmp_threaded = A3d[A3d(undef, nvariables(equations),
-                                 nnodes(mortar_l2), nnodes(mortar_l2))
-                             for _ in 1:Threads.maxthreadid()]
-    u_threaded = A3d[A3d(undef, nvariables(equations),
-                         nnodes(mortar_l2), nnodes(mortar_l2))
-                     for _ in 1:Threads.maxthreadid()]
+    fstar_tmp_threaded = VectorOfArray([A3d(undef,
+                                            nvariables(equations),
+                                            nnodes(mortar_l2),
+                                            nnodes(mortar_l2))
+                                        for _ in 1:Threads.maxthreadid()])
+    u_threaded = VectorOfArray([A3d(undef,
+                                    nvariables(equations),
+                                    nnodes(mortar_l2),
+                                    nnodes(mortar_l2))
+                                for _ in 1:Threads.maxthreadid()])
 
     (; fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded, u_threaded)
 end
