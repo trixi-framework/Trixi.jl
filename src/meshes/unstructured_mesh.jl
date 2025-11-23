@@ -27,11 +27,11 @@ mutable struct UnstructuredMesh2D{RealT <: Real,
     const polydeg               :: Int
     const corners               :: Array{RealT, 2}  # [ndims, n_corners]
     const neighbour_information :: Array{Int, 2}  # [neighbour node/element/edge ids, n_surfaces]
-    boundary_names              :: Array{Symbol, 2} # [local sides, n_elements]
+    const boundary_names        :: Array{Symbol, 2} # [local sides, n_elements]
     const periodicity           :: Bool
-    element_node_ids            :: Array{Int, 2} # [node ids, n_elements]
-    element_is_curved           :: Vector{Bool}
-    surface_curves              :: Array{CurvedSurfaceT, 2} # [local sides, n_elements]
+    const element_node_ids      :: Array{Int, 2} # [node ids, n_elements]
+    const element_is_curved     :: Vector{Bool}
+    const surface_curves        :: Array{CurvedSurfaceT, 2} # [local sides, n_elements]
     current_filename            :: String
     unsaved_changes             :: Bool # if true, the mesh will be saved for plotting
 end
