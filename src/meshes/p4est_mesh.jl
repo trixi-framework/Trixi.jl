@@ -29,7 +29,6 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
     # Either `PointerWrapper{p4est_ghost_t}` or `PointerWrapper{p8est_ghost_t}`.
     # Required for ghost/halo layers in parallel runs, thus mutable.
     ghost::Ghost
-
     # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
     # This specifies the geometry interpolation for each tree.
     const tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
