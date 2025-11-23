@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    IdealGlmMhdMulticomponentEquations2D
+    IdealGlmMhdMulticomponentEquations2D(gammas, gas_constants)
 
 The ideal compressible multicomponent GLM-MHD equations
 ```math
@@ -53,7 +53,7 @@ total heat capacity ratio, ``\gamma_i`` heat capacity ratio of component ``i``,
 ```math
 C_{v,i}=\frac{R_i}{\gamma_i-1}
 ```
-specific heat capacity at constant volume of component ``i`` and ``\underline{I}`` the ``2\times 2`` identity matrix.
+specific heat capacity at constant volume of component ``i`` and ``\underline{I}`` the ``3\times 3`` identity matrix.
 
 In case of more than one component, the specific heat ratios `gammas` and the gas constants
 `gas_constants` should be passed as tuples, e.g., `gammas = (1.4, 1.667)`.
