@@ -14,10 +14,10 @@ Different numbers of cells per dimension are possible and arbitrary functions
 can be used as domain faces.
 """
 mutable struct StructuredMesh{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
-    cells_per_dimension::NTuple{NDIMS, Int}
-    mapping::Any # Not relevant for performance
-    mapping_as_string::String
-    periodicity::NTuple{NDIMS, Bool}
+    const cells_per_dimension::NTuple{NDIMS, Int}
+    const mapping::Any # Not relevant for performance
+    const mapping_as_string::String
+    const periodicity::NTuple{NDIMS, Bool}
     current_filename::String
     unsaved_changes::Bool
 end
