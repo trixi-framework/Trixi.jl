@@ -130,8 +130,8 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabo
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
     cache_parabolic = create_cache_parabolic(mesh, equations, equations_parabolic,
-                                             solver, solver_parabolic, RealT,
-                                             uEltype)
+                                             solver, solver_parabolic,
+                                             cache, RealT, uEltype)
 
     SemidiscretizationHyperbolicParabolic{typeof(mesh), typeof(equations),
                                           typeof(equations_parabolic),
@@ -402,8 +402,8 @@ end
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
     @unpack mesh, equations_parabolic, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
-    u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache_parabolic)
-    du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache_parabolic)
+    u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache)
+    du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()

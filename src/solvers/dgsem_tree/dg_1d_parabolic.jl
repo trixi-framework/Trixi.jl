@@ -23,20 +23,20 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Convert conservative variables to a form more suitable for viscous flux calculations
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache, cache_parabolic)
+                             dg, parabolic_scheme, cache)
     end
 
     # Compute the gradients of the transformed variables
     @trixi_timeit timer() "calculate gradient" begin
         calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
                        boundary_conditions_parabolic, dg, parabolic_scheme,
-                       cache, cache_parabolic)
+                       cache)
     end
 
     # Compute and store the viscous fluxes
     @trixi_timeit timer() "calculate viscous fluxes" begin
         calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh,
-                             equations_parabolic, dg, cache, cache_parabolic)
+                             equations_parabolic, dg, cache)
     end
 
     # The remainder of this function is essentially a regular rhs! for
@@ -44,7 +44,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     #
     # OBS! In `calc_viscous_fluxes!`, the viscous flux values at the volume nodes of each element have
     # been computed and stored in `fluxes_viscous`. In the following, we *reuse* (abuse) the
-    # `interfaces` and `boundaries` containers in `cache_parabolic` to interpolate and store the
+    # `interfaces` and `boundaries` containers in `cache` to interpolate and store the
     # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
     # is done in the hyperbolic operator). That is, `interfaces.u`/`boundaries.u` store *viscous flux values*
     # and *not the solution*.  The advantage is that a) we do not need to allocate more storage, b) we
@@ -63,26 +63,25 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg, cache)
+        prolong2interfaces!(cache, flux_viscous, mesh, equations_parabolic, dg)
     end
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
+        calc_interface_flux!(cache.elements.surface_flux_values,
                              mesh, equations_parabolic, dg, parabolic_scheme,
-                             cache_parabolic)
+                             cache)
     end
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
+        prolong2boundaries!(cache, flux_viscous, mesh, equations_parabolic,
+                            dg.surface_integral, dg)
     end
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache_parabolic, t,
+        calc_boundary_flux_divergence!(cache, t,
                                        boundary_conditions_parabolic, mesh,
                                        equations_parabolic,
                                        dg.surface_integral, dg)
@@ -91,12 +90,12 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations_parabolic,
-                               dg.surface_integral, dg, cache_parabolic)
+                               dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache_parabolic)
+        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
     end
 
     return nothing
@@ -107,7 +106,7 @@ end
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh::TreeMesh{1},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, parabolic_scheme, cache, cache_parabolic)
+                              dg::DG, parabolic_scheme, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
     @threaded for element in eachelement(dg, cache)
@@ -147,11 +146,11 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2interfaces!(cache_parabolic, flux_viscous,
+function prolong2interfaces!(cache, flux_viscous,
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
-                             dg::DG, cache)
-    @unpack interfaces = cache_parabolic
+                             dg::DG)
+    @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
 
@@ -173,11 +172,10 @@ end
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1}, equations_parabolic,
-                              dg::DG, parabolic_scheme,
-                              cache_parabolic)
-    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
+                              dg::DG, parabolic_scheme, cache)
+    @unpack neighbor_ids, orientations = cache.interfaces
 
-    @threaded for interface in eachinterface(dg, cache_parabolic)
+    @threaded for interface in eachinterface(dg, cache)
         # Get neighboring elements
         left_id = neighbor_ids[1, interface]
         right_id = neighbor_ids[2, interface]
@@ -188,7 +186,7 @@ function calc_interface_flux!(surface_flux_values,
         right_direction = 2 * orientations[interface] - 1
 
         # Get precomputed fluxes at interfaces
-        flux_ll, flux_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+        flux_ll, flux_rr = get_surface_node_vars(cache.interfaces.u,
                                                  equations_parabolic,
                                                  dg, interface)
 
@@ -207,15 +205,15 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2boundaries!(cache_parabolic, flux_viscous,
+function prolong2boundaries!(cache, flux_viscous,
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache)
-    @unpack boundaries = cache_parabolic
+                             surface_integral, dg::DG)
+    @unpack boundaries = cache
     @unpack neighbor_sides, neighbor_ids = boundaries
     boundaries_u = boundaries.u
 
-    @threaded for boundary in eachboundary(dg, cache_parabolic)
+    @threaded for boundary in eachboundary(dg, cache)
         element = neighbor_ids[boundary]
 
         if neighbor_sides[boundary] == 1
@@ -237,7 +235,7 @@ end
 
 function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::TreeMesh{1},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, cache, cache_parabolic)
+                              dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
             # Get solution and gradients
@@ -440,11 +438,10 @@ end
 
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::TreeMesh{1}, equations_parabolic, dg::DG,
-                                       parabolic_scheme,
-                                       cache, cache_parabolic)
-    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
+                                       parabolic_scheme, cache)
+    @unpack neighbor_ids, orientations = cache.interfaces
 
-    @threaded for interface in eachinterface(dg, cache_parabolic)
+    @threaded for interface in eachinterface(dg, cache)
         # Get neighboring elements
         left_id = neighbor_ids[1, interface]
         right_id = neighbor_ids[2, interface]
@@ -455,7 +452,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
         right_direction = 2 * orientations[interface] - 1
 
         # Call pointwise Riemann solver
-        u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+        u_ll, u_rr = get_surface_node_vars(cache.interfaces.u,
                                            equations_parabolic, dg, interface)
 
         flux = flux_parabolic(u_ll, u_rr, Gradient(),
@@ -474,9 +471,9 @@ end
 function calc_gradient_surface_integral!(gradients,
                                          mesh::TreeMesh{1}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
-                                         dg::DGSEM, cache, cache_parabolic)
+                                         dg::DGSEM, cache)
     @unpack boundary_interpolation = dg.basis
-    @unpack surface_flux_values = cache_parabolic.elements
+    @unpack surface_flux_values = cache.elements
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # Access the factors only once before beginning the loop to increase performance.
@@ -504,7 +501,7 @@ end
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
                         equations_parabolic, boundary_conditions_parabolic,
-                        dg::DG, parabolic_scheme, cache, cache_parabolic)
+                        dg::DG, parabolic_scheme, cache)
 
     # Reset du
     @trixi_timeit timer() "reset gradients" begin
@@ -518,29 +515,28 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     end
 
     # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache_parabolic,
+    @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache,
                                                                    u_transformed, mesh,
                                                                    equations_parabolic,
                                                                    dg)
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
-        @unpack surface_flux_values = cache_parabolic.elements
+        @unpack surface_flux_values = cache.elements
         calc_gradient_interface_flux!(surface_flux_values,
                                       mesh, equations_parabolic, dg, parabolic_scheme,
-                                      cache, cache_parabolic)
+                                      cache)
     end
 
     # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(cache_parabolic,
+    @trixi_timeit timer() "prolong2boundaries" prolong2boundaries!(cache,
                                                                    u_transformed, mesh,
                                                                    equations_parabolic,
                                                                    dg.surface_integral,
                                                                    dg)
 
     # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" calc_gradient_boundary_flux!(cache_parabolic,
-                                                                       t,
+    @trixi_timeit timer() "boundary flux" calc_gradient_boundary_flux!(cache, t,
                                                                        boundary_conditions_parabolic,
                                                                        mesh,
                                                                        equations_parabolic,
@@ -550,13 +546,13 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
-                                        dg, cache, cache_parabolic)
+                                        dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
-                                  cache_parabolic)
+                                  cache)
     end
 
     return nothing
@@ -568,24 +564,15 @@ end
 function create_cache_parabolic(mesh::TreeMesh{1},
                                 equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
-                                dg::DG, parabolic_scheme, RealT, uEltype)
-    # Get cells for which an element needs to be created (i.e. all leaf cells)
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    elements = init_elements(leaf_cell_ids, mesh, equations_hyperbolic, dg.basis, RealT,
-                             uEltype)
-
-    interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
-
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
-
+                                dg::DG, parabolic_scheme,
+                                cache, RealT, uEltype)
     viscous_container = init_viscous_container_1d(nvariables(equations_hyperbolic),
-                                                  nnodes(elements), nelements(elements),
+                                                  nnodes(dg), nelements(cache.elements),
                                                   uEltype)
 
-    cache = (; elements, interfaces, boundaries, viscous_container)
+    cache_parabolic = (; viscous_container)
 
-    return cache
+    return cache_parabolic
 end
 
 # Needed to *not* flip the sign of the inverse Jacobian.

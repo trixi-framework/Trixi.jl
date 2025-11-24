@@ -981,7 +981,8 @@ end
 function create_cache_parabolic(mesh::TreeMesh{2},
                                 equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
-                                dg::DG, parabolic_scheme, RealT, uEltype)
+                                dg::DG, parabolic_scheme,
+                                cache, RealT, uEltype)
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 

@@ -11,7 +11,8 @@
 function create_cache_parabolic(mesh::P4estMesh{3},
                                 equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
-                                dg::DG, parabolic_scheme, RealT, uEltype)
+                                dg::DG, parabolic_scheme,
+                                cache, RealT, uEltype)
     balance!(mesh)
 
     elements = init_elements(mesh, equations_hyperbolic, dg.basis, uEltype)
@@ -22,9 +23,9 @@ function create_cache_parabolic(mesh::P4estMesh{3},
                                                   nnodes(dg.basis), nelements(elements),
                                                   uEltype)
 
-    cache = (; elements, interfaces, boundaries, viscous_container)
+    cache_parabolic = (; elements, interfaces, boundaries, viscous_container)
 
-    return cache
+    return cache_parabolic
 end
 
 function calc_gradient!(gradients, u_transformed, t,
