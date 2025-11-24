@@ -111,35 +111,8 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
     solver_stiff, solver_nonstiff = solvers
     equations_stiff, equations_nonstiff = equations
     boundary_conditions_stiff, boundary_conditions_nonstiff = boundary_conditions
-    initial_hyperbolic_cache_stiff, initial_hyperbolic_cache_nonstiff = initial_caches
+    initial_cache_stiff, initial_cache_nonstiff = initial_caches
     source_terms_stiff, source_terms_nonstiff = source_terms
-    return SemidiscretizationHyperbolicSplit(mesh, equations_stiff,
-                                             equations_nonstiff,
-                                             initial_condition, solver_stiff,
-                                             solver_nonstiff;
-                                             source_terms_stiff = source_terms_stiff,
-                                             source_terms_nonstiff = source_terms_nonstiff,
-                                             boundary_conditions_stiff = boundary_conditions_stiff,
-                                             boundary_conditions_nonstiff = boundary_conditions_nonstiff,
-                                             RealT, uEltype,
-                                             initial_cache_stiff = initial_hyperbolic_cache_stiff,
-                                             initial_cache_nonstiff = initial_hyperbolic_cache_nonstiff)
-end
-
-function SemidiscretizationHyperbolicSplit(mesh,
-                                           equations_stiff, equations_nonstiff,
-                                           initial_condition,
-                                           solver_stiff, solver_nonstiff;
-                                           source_terms_stiff = nothing,
-                                           source_terms_nonstiff = nothing,
-                                           boundary_conditions_stiff = boundary_condition_periodic,
-                                           boundary_conditions_nonstiff = boundary_condition_periodic,
-                                           # `RealT` is used as real type for node locations etc.
-                                           # while `uEltype` is used as element type of solutions etc.
-                                           RealT = real(solver_nonstiff),
-                                           uEltype = RealT,
-                                           initial_cache_stiff = NamedTuple(),
-                                           initial_cache_nonstiff = NamedTuple())
     cache_stiff = (;
                    create_cache(mesh, equations_stiff, solver_stiff, RealT, uEltype)...,
                    initial_cache_stiff...)
