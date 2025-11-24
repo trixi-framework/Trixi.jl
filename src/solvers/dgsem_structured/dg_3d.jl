@@ -153,15 +153,16 @@ end
     return nothing
 end
 
-
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
-
-    flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms, combine_conservative_and_nonconservative_fluxes(volume_flux, equations), equations, volume_flux, dg, cache, alpha)
+    flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
+                              combine_conservative_and_nonconservative_fluxes(volume_flux,
+                                                                              equations),
+                              equations, volume_flux, dg, cache, alpha)
 
     return nothing
 end
@@ -170,7 +171,9 @@ end
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
-                                           have_nonconservative_terms::True, combine_conservative_and_nonconservative_fluxes::False, equations,
+                                           have_nonconservative_terms::True,
+                                           combine_conservative_and_nonconservative_fluxes::False,
+                                           equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -255,12 +258,13 @@ end
     return nothing
 end
 
-
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
-                                           have_nonconservative_terms::True, combine_conservative_and_nonconservative_fluxes::True, equations,
+                                           have_nonconservative_terms::True,
+                                           combine_conservative_and_nonconservative_fluxes::True,
+                                           equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -290,10 +294,13 @@ end
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1_left,
+            fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg,
+                                                            equations)
+            multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii],
+                                       fluxtilde1_left,
                                        equations, dg, i, j, k, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1_right,
+            multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i],
+                                       fluxtilde1_right,
                                        equations, dg, ii, j, k, element)
         end
 
@@ -308,10 +315,13 @@ end
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2_left,
+            fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, Ja2_avg,
+                                                            equations)
+            multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj],
+                                       fluxtilde2_left,
                                        equations, dg, i, j, k, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2_right,
+            multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j],
+                                       fluxtilde2_right,
                                        equations, dg, i, jj, k, element)
         end
 
@@ -326,16 +336,18 @@ end
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3_left,
+            fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk, Ja3_avg,
+                                                            equations)
+            multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk],
+                                       fluxtilde3_left,
                                        equations, dg, i, j, k, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3_right,
+            multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k],
+                                       fluxtilde3_right,
                                        equations, dg, i, j, kk, element)
         end
     end
     return nothing
 end
-
 
 # Computing the normal vector for the FV method on curvilinear subcells.
 # To fulfill free-stream preservation we use the explicit formula B.53 in Appendix B.4

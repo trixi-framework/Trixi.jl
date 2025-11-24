@@ -291,13 +291,22 @@ end
                                       secondary_i_node_index, secondary_j_node_index,
                                       secondary_direction_index,
                                       secondary_element_index)
-	calc_interface_flux!(surface_flux_values, mesh, have_nonconservative_terms, combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux equations), equations, surface_integral, dg, cache, interface_index, normal_direction, primary_i_node_index, primary_j_node_index, primary_direction_index, primary_element_index, secondary_i_node_index, secondary_j_node_inex, secondary_direction_index, secondary_element_index)
+    calc_interface_flux!(surface_flux_values, mesh, have_nonconservative_terms,
+                         combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                         equations),
+                         equations, surface_integral, dg, cache, interface_index,
+                         normal_direction, primary_i_node_index, primary_j_node_index,
+                         primary_direction_index, primary_element_index,
+                         secondary_i_node_index, secondary_j_node_inex,
+                         secondary_direction_index, secondary_element_index)
     return nothing
 end
 
 @inline function calc_interface_flux!(surface_flux_values,
                                       mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                      have_nonconservative_terms::True, combine_conservative_and_nonconservative_fluxes::False, equations,
+                                      have_nonconservative_terms::True,
+                                      combine_conservative_and_nonconservative_fluxes::False,
+                                      equations,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
                                       primary_i_node_index, primary_j_node_index,
@@ -336,7 +345,9 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values,
                                       mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                      have_nonconservative_terms::True, combine_conservative_and_nonconservative_fluxes::True, equations,
+                                      have_nonconservative_terms::True,
+                                      combine_conservative_and_nonconservative_fluxes::True,
+                                      equations,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
                                       primary_i_node_index, primary_j_node_index,
@@ -358,7 +369,7 @@ end
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
         surface_flux_values[v, primary_i_node_index, primary_j_node_index,
-        primary_direction_index, primary_element_index] = flux_left[v] 
+        primary_direction_index, primary_element_index] = flux_left[v]
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index,
         secondary_direction_index, secondary_element_index] = -flux_right[v]
     end
@@ -498,13 +509,22 @@ end
                                      k_index, i_node_index, j_node_index,
                                      direction_index,
                                      element_index, boundary_index)
-	calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh, nonconservative_terms, combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux, equations), equations, surface_integral, dg, cache, i_index, j_index, k_index, i_node_index, j_node_inedx, direction_index, element_index, boundary_index)
+    calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh,
+                        nonconservative_terms,
+                        combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                        equations),
+                        equations,
+                        surface_integral, dg, cache,
+                        i_index, j_index, k_index, i_node_index, j_node_index,
+                        direction_index, element_index, boundary_index)
     return nothing
 end
 
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                     nonconservative_terms::True, combine_conservative_and_nonconservative_fluxes::False, equations,
+                                     nonconservative_terms::True,
+                                     combine_conservative_and_nonconservative_fluxes::False,
+                                     equations,
                                      surface_integral, dg::DG, cache, i_index, j_index,
                                      k_index, i_node_index, j_node_index,
                                      direction_index,
@@ -545,7 +565,9 @@ end
 
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                     nonconservative_terms::True, combine_conservative_and_nonconservative_fluxes::True, equations,
+                                     nonconservative_terms::True,
+                                     combine_conservative_and_nonconservative_fluxes::True,
+                                     equations,
                                      surface_integral, dg::DG, cache, i_index, j_index,
                                      k_index, i_node_index, j_node_index,
                                      direction_index,
@@ -569,7 +591,7 @@ end
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
     flux = boundary_condition(u_inner, normal_direction, x, t,
-                                            surface_flux, equations)
+                              surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
