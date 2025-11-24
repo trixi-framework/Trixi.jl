@@ -2,6 +2,7 @@ module TestPerformanceSpecializations3D
 
 using Test
 using Trixi
+using Trixi: @muladd
 
 include("test_trixi.jl")
 
@@ -181,9 +182,9 @@ end
                   tspan = (0.0, 0.1))
     u_ode = copy(sol.u[end])
 
-    @inline function flux_hindenlang_gassner_nonconservative_powell(u_ll, u_rr,
-                                                                    normal_direction::AbstractVector,
-                                                                    equations::IdealGlmMhdEquations3D)
+    @muladd @inline function flux_hindenlang_gassner_nonconservative_powell(u_ll, u_rr,
+                                                                            normal_direction::AbstractVector,
+                                                                            equations::IdealGlmMhdEquations3D)
         # Unpack left and right states
         rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll,
                                                                                    equations)
@@ -288,9 +289,9 @@ end
     @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_hindenlang_gassner_nonconservative_powell),
     equations::IdealGlmMhdEquations3D) = Trixi.True()
 
-    @inline function flux_hlle_nonconservative_powell(u_ll, u_rr,
-                                                      normal_direction::AbstractVector,
-                                                      equations::IdealGlmMhdEquations3D)
+    @muladd @inline function flux_hlle_nonconservative_powell(u_ll, u_rr,
+                                                              normal_direction::AbstractVector,
+                                                              equations::IdealGlmMhdEquations3D)
         f = flux_hlle(u_ll, u_rr, normal_direction, equations)
 
         rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll

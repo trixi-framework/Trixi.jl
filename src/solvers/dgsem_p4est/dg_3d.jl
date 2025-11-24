@@ -356,7 +356,7 @@ end
                                       secondary_direction_index,
                                       secondary_element_index)
     @unpack u = cache.interfaces
-
+    @unpack surface_flux = surface_integral
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index,
                                        primary_j_node_index, interface_index)
 
