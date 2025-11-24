@@ -66,7 +66,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
     @assert ndims(mesh) == ndims(equations)
     @assert ndims(mesh) == ndims(equations_parabolic)
 
-    if !nvariables(equations) == nvariables(equations_parabolic)
+    if !(nvariables(equations) == nvariables(equations_parabolic))
         throw(ArgumentError("Current implementation of viscous terms requires the same number of conservative and gradient variables."))
     end
 
