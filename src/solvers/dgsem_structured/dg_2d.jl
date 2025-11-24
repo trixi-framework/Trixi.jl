@@ -542,24 +542,6 @@ end
                                                   StructuredMeshView{2}},
                                       have_nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache)
-    calc_interface_flux!(surface_flux_values, left_element, right_element, orientation,
-                         u, mesh, have_nonconservative_terms,
-                         combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
-                                                                         equations),
-                         equations, surface_integral,
-                         dg, cache)
-    return nothing
-end
-
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
-                                      orientation, u,
-                                      mesh::Union{StructuredMesh{2},
-                                                  StructuredMeshView{2}},
-                                      have_nonconservative_terms::True,
-                                      combine_conservative_and_nonconservative_fluxes::False,
-                                      equations,
-                                      surface_integral, dg::DG, cache)
-
     # See comment on `calc_interface_flux!` with `have_nonconservative_terms::False`
     if left_element <= 0 # left_element = 0 at boundaries
         return nothing
