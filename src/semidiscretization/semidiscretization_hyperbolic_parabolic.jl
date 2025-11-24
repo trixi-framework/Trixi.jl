@@ -70,18 +70,18 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
         throw(ArgumentError("Current implementation of viscous terms requires the same number of conservative and gradient variables."))
     end
 
+    cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
                                                       mesh, solver, cache)
-    _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
-                                                                mesh, solver, cache)
-
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
-    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions_parabolic)
 
-    cache = create_cache(mesh, equations, solver, RealT, uEltype)
     cache_parabolic = create_cache_parabolic(mesh, equations, equations_parabolic,
                                              solver, solver_parabolic,
                                              RealT, uEltype)
+
+    _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
+                                                                mesh, solver, cache)
+    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions_parabolic)
 
     performance_counter = PerformanceCounterList{2}(false)
 
