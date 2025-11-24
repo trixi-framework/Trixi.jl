@@ -200,12 +200,12 @@ end
                      B3_rr * normal_direction[3]
 
         # Compute the necessary mean values needed for either direction
-        rho_mean = ln_mean(rho_ll, rho_rr)
+        rho_mean = Trixi.ln_mean(rho_ll, rho_rr)
         # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
         # in exact arithmetic since
         #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
         #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
-        inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+        inv_rho_p_mean = p_ll * p_rr * Trixi.inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
         v1_avg = 0.5f0 * (v1_ll + v1_rr)
         v2_avg = 0.5f0 * (v2_ll + v2_rr)
         v3_avg = 0.5f0 * (v3_ll + v3_rr)
