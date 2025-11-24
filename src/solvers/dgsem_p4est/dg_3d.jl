@@ -364,9 +364,6 @@ end
 
     # Store the flux with nonconservative terms on the primary and secondary elements
     for v in eachvariable(equations)
-        # Note the factor 0.5 necessary for the nonconservative fluxes based on
-        # the interpretation of global SBP operators coupled discontinuously via
-        # central fluxes/SATs
         surface_flux_values[v, primary_i_node_index, primary_j_node_index,
         primary_direction_index, primary_element_index] = flux_left[v]
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index,
@@ -594,9 +591,6 @@ end
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
-        # Note the factor 0.5 necessary for the nonconservative fluxes based on
-        # the interpretation of global SBP operators coupled discontinuously via
-        # central fluxes/SATs
         surface_flux_values[v, i_node_index, j_node_index,
         direction_index, element_index] = flux[v]
     end
