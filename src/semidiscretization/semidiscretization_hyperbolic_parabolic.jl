@@ -130,10 +130,9 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
     #       the indicators and their own caches...).
     return SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, solver;
-                                                 solver_parabolic,
-                                                 source_terms,
-                                                 both_boundary_conditions = (boundary_conditions,
-                                                                             boundary_conditions_parabolic),
+                                                 solver_parabolic, source_terms,
+                                                 boundary_conditions = (boundary_conditions,
+                                                                        boundary_conditions_parabolic),
                                                  uEltype)
 end
 
