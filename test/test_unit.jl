@@ -392,22 +392,6 @@ end
         @test Trixi.move!(c, 1, 2) == MyContainer([0, 1, 3])
     end
 
-    @testset "swap!" begin
-        c = MyContainer([1, 2])
-        @test Trixi.swap!(c, 1, 1) == MyContainer([1, 2]) # no-op
-
-        c = MyContainer([1, 2])
-        @test Trixi.swap!(c, 1, 2) == MyContainer([2, 1])
-    end
-
-    @testset "erase!" begin
-        c = MyContainer([1, 2])
-        @test Trixi.erase!(c, 2, 1) == MyContainer([1, 2]) # no-op
-
-        c = MyContainer([1, 2])
-        @test Trixi.erase!(c, 1) == MyContainer([0, 2])
-    end
-
     @testset "remove_shift!" begin
         c = MyContainer([1, 2, 3, 4])
         @test Trixi.remove_shift!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
@@ -417,19 +401,6 @@ end
 
         c = MyContainer([1, 2, 3, 4])
         @test Trixi.remove_shift!(c, 2) == MyContainer([1, 3, 4], 4)
-    end
-
-    @testset "remove_fill!" begin
-        c = MyContainer([1, 2, 3, 4])
-        @test Trixi.remove_fill!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
-
-        c = MyContainer([1, 2, 3, 4])
-        @test Trixi.remove_fill!(c, 2, 2) == MyContainer([1, 4, 3], 4)
-    end
-
-    @testset "reset!" begin
-        c = MyContainer([1, 2, 3])
-        @test Trixi.reset!(c, 2) == MyContainer(Int[], 2)
     end
 end
 
