@@ -133,7 +133,7 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
                                                  solver_parabolic,
                                                  source_terms,
                                                  both_boundary_conditions = (boundary_conditions,
-                                                  boundary_conditions_parabolic),
+                                                                             boundary_conditions_parabolic),
                                                  uEltype)
 end
 
