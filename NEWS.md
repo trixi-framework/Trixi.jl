@@ -17,7 +17,7 @@ for human readability.
   The splitting follows the form `y_t = f_1(y) + f_2(y)`, allowing users to define separate solvers
   for the stiff (`f_1`) and non-stiff (`f_2`) parts of the right-hand side. Boundary conditions
   and source terms can be specified independently for the stiff and non-stiff parts.
-- Optimized 2D kernel for nonconservative fluxes with `P4estMesh` was added ([#2653]).
+- Optimized 2D and 3D kernels for nonconservative fluxes with `P4estMesh` were added ([#2653], [#2663]).
   The optimized kernel can be enabled via the trait `Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)`.
   When the trait is set to `Trixi.True()`, a single method has to be defined, that computes and returns the tuple
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_ll, u_rr)` and
