@@ -363,7 +363,7 @@ end
 
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                           "elixir_mhd_alfven_nonperiodic.jl"),
+                           "elixir_mhd_alfven_wave_nonperiodic.jl"),
                   surface_flux = flux_hlle_nonconservative_powell,
                   volume_integral = VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell),
                   tspan = (0.0, 0.1))
