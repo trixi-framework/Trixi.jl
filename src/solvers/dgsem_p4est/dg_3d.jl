@@ -297,7 +297,7 @@ end
                          equations, surface_integral, dg, cache, interface_index,
                          normal_direction, primary_i_node_index, primary_j_node_index,
                          primary_direction_index, primary_element_index,
-                         secondary_i_node_index, secondary_j_node_inex,
+                         secondary_i_node_index, secondary_j_node_index,
                          secondary_direction_index, secondary_element_index)
     return nothing
 end
