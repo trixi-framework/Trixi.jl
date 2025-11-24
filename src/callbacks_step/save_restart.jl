@@ -12,7 +12,7 @@
 
 Save the current numerical solution in a restart file every `interval` time steps.
 """
-mutable struct SaveRestartCallback
+struct SaveRestartCallback
     interval::Int
     save_final_restart::Bool
     output_directory::String
