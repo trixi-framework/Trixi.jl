@@ -172,6 +172,7 @@ end
         @test du_specialized ≈ du_baseline
     end
 end
+
 @timed_testset "P4estMesh2D, combine_conservative_and_nonconservative_fluxes" begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_mhd_rotor.jl"),
