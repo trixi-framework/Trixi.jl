@@ -123,10 +123,10 @@ function transform_variables!(u_transformed, u, mesh::TreeMesh{1},
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function calc_volume_integral!(du, flux_viscous,
+function calc_volume_integral!(du, flux_viscous::Array{uEltype, 3},
                                mesh::TreeMesh{1},
                                equations_parabolic::AbstractEquationsParabolic,
-                               dg::DGSEM, cache)
+                               dg::DGSEM, cache) where {uEltype <: Real}
     @unpack derivative_dhat = dg.basis
 
     @threaded for element in eachelement(dg, cache)
@@ -146,10 +146,10 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2interfaces!(cache, flux_viscous,
+function prolong2interfaces!(cache, flux_viscous::Array{uEltype, 3},
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
-                             dg::DG)
+                             dg::DG) where {uEltype <: Real}
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -205,10 +205,10 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2boundaries!(cache, flux_viscous,
+function prolong2boundaries!(cache, flux_viscous::Array{uEltype, 3},
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG)
+                             surface_integral, dg::DG) where {uEltype <: Real}
     @unpack boundaries = cache
     @unpack neighbor_sides, neighbor_ids = boundaries
     boundaries_u = boundaries.u
@@ -565,9 +565,9 @@ function create_cache_parabolic(mesh::TreeMesh{1},
                                 equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
                                 dg::DG, parabolic_scheme,
-                                cache, RealT, uEltype)
+                                n_elements, RealT, uEltype)
     viscous_container = init_viscous_container_1d(nvariables(equations_hyperbolic),
-                                                  nnodes(dg), nelements(cache.elements),
+                                                  nnodes(dg), n_elements,
                                                   uEltype)
 
     cache_parabolic = (; viscous_container)

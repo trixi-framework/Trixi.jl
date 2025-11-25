@@ -91,7 +91,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 ###############################################################################
 # Setup an ODE problem
-tspan = (0, 100)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 # Callbacks
@@ -163,3 +163,13 @@ sol = solve(ode,
             RDPK3SpFSAL49(thread = Trixi.True());
             abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
+
+
+using BenchmarkTools
+
+u_ode = sol.u[1]
+du_ode = similar(u_ode)
+t0 = sol.t[1]
+
+@benchmark Trixi.rhs_parabolic!(du_ode, u_ode, semi, t0)
+    
