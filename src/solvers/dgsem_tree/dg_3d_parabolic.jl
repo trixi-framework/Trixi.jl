@@ -1166,30 +1166,14 @@ function create_cache_parabolic(mesh::TreeMesh{3},
                                 equations_hyperbolic::AbstractEquations,
                                 equations_parabolic::AbstractEquationsParabolic,
                                 dg::DG, parabolic_scheme,
-                                cache, RealT, uEltype)
-    # Get cells for which an element needs to be created (i.e. all leaf cells)
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    elements = init_elements(leaf_cell_ids, mesh, equations_hyperbolic, dg.basis, RealT,
-                             uEltype)
-
-    interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
-
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
-
-    # mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
-
+                                n_elements, RealT, uEltype)
     viscous_container = init_viscous_container_3d(nvariables(equations_hyperbolic),
-                                                  nnodes(elements), nelements(elements),
+                                                  nnodes(dg), n_elements,
                                                   uEltype)
 
-    # cache = (; elements, interfaces, boundaries, mortars)
-    cache = (; elements, interfaces, boundaries, viscous_container)
+    cache_parabolic = (; viscous_container)
 
-    # Add specialized parts of the cache required to compute the mortars etc.
-    # cache = (;cache..., create_cache(mesh, equations_parabolic, dg.mortar, uEltype)...)
-
-    return cache
+    return cache_parabolic
 end
 
 # Needed to *not* flip the sign of the inverse Jacobian.

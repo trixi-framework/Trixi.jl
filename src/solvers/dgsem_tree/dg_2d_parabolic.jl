@@ -168,10 +168,10 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2interfaces!(cache, flux_viscous::Tuple,
+function prolong2interfaces!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                              mesh::TreeMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
-                             dg::DG)
+                             dg::DG) where {uEltype <: Real}
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -899,7 +899,7 @@ end
 function calc_gradient!(gradients, u_transformed, t,
                         mesh::TreeMesh{2}, equations_parabolic,
                         boundary_conditions_parabolic, dg::DG, parabolic_scheme,
-                        cache, cache_parabolic)
+                        cache)
     gradients_x, gradients_y = gradients
 
     # Reset du
