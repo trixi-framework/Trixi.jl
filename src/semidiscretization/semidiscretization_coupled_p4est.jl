@@ -51,7 +51,15 @@ function SemidiscretizationCoupledP4est(semis...)
     end
 
     # Create correspondence between global (to the parent mesh) cell IDs and local (to the mesh view) cell IDs.
-    global_element_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
+    n_cells = 0
+    for i in 1:length(semis)
+        n_cells += size(semis[i].cache.elements.node_coordinates)[end]
+    end
+    parent_tree_node_coordinates = Array{Real, 2 + 2}(undef, 2, ntuple(_ -> 4, 2)..., n_cells)
+    nodes = semis[1].mesh.parent.nodes
+    Trixi.calc_node_coordinates!(parent_tree_node_coordinates, semis[1].mesh.parent, nodes)
+
+    global_element_ids = 1:size(parent_tree_node_coordinates)[end]
     local_element_ids = zeros(Int, size(global_element_ids))
     element_offset = ones(Int, length(semis))
     mesh_ids = zeros(Int, size(global_element_ids))
