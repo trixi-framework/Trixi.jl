@@ -137,7 +137,7 @@ function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{2}, P4estMe
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function calc_volume_integral!(du, flux_viscous,
+function calc_volume_integral!(du, flux_viscous::Tuple,
                                mesh::TreeMesh{2},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
@@ -247,7 +247,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2boundaries!(cache, flux_viscous,
+function prolong2boundaries!(cache, flux_viscous::Tuple,
                              mesh::TreeMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG)
