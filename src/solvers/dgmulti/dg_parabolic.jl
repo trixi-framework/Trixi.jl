@@ -1,9 +1,7 @@
 # version for standard (e.g., non-entropy stable or flux differencing) schemes
 function create_cache_parabolic(mesh::DGMultiMesh,
                                 equations_hyperbolic::AbstractEquations,
-                                equations_parabolic::AbstractEquationsParabolic,
-                                dg::DGMulti, parabolic_scheme,
-                                n_elements, RealT, uEltype)
+                                dg::DGMulti, n_elements, uEltype)
 
     # default to taking derivatives of all hyperbolic variables
     # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache

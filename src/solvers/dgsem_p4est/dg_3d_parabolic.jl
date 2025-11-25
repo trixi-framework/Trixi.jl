@@ -10,9 +10,7 @@
 # the RHS etc.
 function create_cache_parabolic(mesh::P4estMesh{3},
                                 equations_hyperbolic::AbstractEquations,
-                                equations_parabolic::AbstractEquationsParabolic,
-                                dg::DG, parabolic_scheme,
-                                n_elements, RealT, uEltype)
+                                dg::DG, n_elements, uEltype)
     viscous_container = init_viscous_container_3d(nvariables(equations_hyperbolic),
                                                   nnodes(dg), n_elements,
                                                   uEltype)
