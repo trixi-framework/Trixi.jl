@@ -168,10 +168,10 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2interfaces!(cache, flux_viscous::Vector{Array{uEltype, 4}},
+function prolong2interfaces!(cache, flux_viscous::Tuple,
                              mesh::TreeMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
-                             dg::DG) where {uEltype <: Real}
+                             dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -526,14 +526,14 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     return nothing
 end
 
-# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed to
+# Specialization `flux_viscous::Tuple` needed to
 # avoid amibiguity with the hyperbolic version of `prolong2mortars!` in dg_2d.jl
 # which is for the variables itself, i.e., u::Array{uEltype, 4}`.
-function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
+function prolong2mortars!(cache, flux_viscous::Tuple,
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2,
-                          dg::DGSEM) where {uEltype <: Real}
+                          dg::DGSEM)
     flux_viscous_x, flux_viscous_y = flux_viscous
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]

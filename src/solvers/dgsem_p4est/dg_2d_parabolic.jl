@@ -312,10 +312,10 @@ end
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function calc_volume_integral!(du, flux_viscous::Vector{Array{uEltype, 4}},
+function calc_volume_integral!(du, flux_viscous::Tuple,
                                mesh::P4estMesh{2},
                                equations_parabolic::AbstractEquationsParabolic,
-                               dg::DGSEM, cache) where {uEltype <: Real}
+                               dg::DGSEM, cache)
     (; derivative_dhat) = dg.basis
     (; contravariant_vectors) = cache.elements
     flux_viscous_x, flux_viscous_y = flux_viscous
@@ -356,10 +356,10 @@ function calc_volume_integral!(du, flux_viscous::Vector{Array{uEltype, 4}},
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2interfaces!(cache, flux_viscous::Vector{Array{uEltype, 4}},
+function prolong2interfaces!(cache, flux_viscous::Tuple,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}},
                              equations_parabolic::AbstractEquationsParabolic,
-                             dg::DG) where {uEltype <: Real}
+                             dg::DG)
     (; interfaces) = cache
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
@@ -508,11 +508,11 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 4}},
+function prolong2mortars_divergence!(cache, flux_viscous::Tuple,
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                      equations,
                                      mortar_l2::LobattoLegendreMortarL2,
-                                     dg::DGSEM) where {uEltype <: Real}
+                                     dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
@@ -671,10 +671,10 @@ end
 end
 
 # TODO: parabolic, finish implementing `calc_gradient_boundary_flux!` and `calc_boundary_flux_divergence!`
-function prolong2boundaries!(cache, flux_viscous::Vector{Array{uEltype, 4}},
+function prolong2boundaries!(cache, flux_viscous::Tuple,
                              mesh::P4estMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG) where {uEltype <: Real}
+                             surface_integral, dg::DG)
     (; boundaries) = cache
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)

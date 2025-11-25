@@ -27,10 +27,10 @@ function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{3}, P4estMe
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function calc_volume_integral!(du, flux_viscous::Vector{Array{uEltype, 5}},
+function calc_volume_integral!(du, flux_viscous::Tuple,
                                mesh::TreeMesh{3},
                                equations_parabolic::AbstractEquationsParabolic,
-                               dg::DGSEM, cache) where {uEltype <: Real}
+                               dg::DGSEM, cache)
     @unpack derivative_dhat = dg.basis
     flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
 
@@ -65,10 +65,10 @@ function calc_volume_integral!(du, flux_viscous::Vector{Array{uEltype, 5}},
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2interfaces!(cache, flux_viscous::Vector{Array{uEltype, 5}},
+function prolong2interfaces!(cache, flux_viscous::Tuple,
                              mesh::TreeMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
-                             dg::DG) where {uEltype <: Real}
+                             dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -161,10 +161,10 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2boundaries!(cache, flux_viscous::Vector{Array{uEltype, 5}},
+function prolong2boundaries!(cache, flux_viscous::Tuple,
                              mesh::TreeMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG) where {uEltype <: Real}
+                             surface_integral, dg::DG)
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides, neighbor_ids = boundaries
     boundaries_u = boundaries.u
@@ -517,11 +517,11 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 end
 
 function prolong2mortars!(cache,
-                          flux_viscous::Vector{Array{uEltype, 5}},
+                          flux_viscous::Tuple,
                           mesh::TreeMesh{3},
                           equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2,
-                          dg::DGSEM) where {uEltype <: Real}
+                          dg::DGSEM)
     # temporary buffer for projections
     @unpack fstar_tmp1_threaded = cache
 

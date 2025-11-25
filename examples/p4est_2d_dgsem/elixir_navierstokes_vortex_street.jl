@@ -163,4 +163,3 @@ sol = solve(ode,
             RDPK3SpFSAL49(thread = Trixi.True());
             abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-    
