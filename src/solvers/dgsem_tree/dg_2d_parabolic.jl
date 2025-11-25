@@ -71,7 +71,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values,
                              mesh, equations_parabolic,
-                             dg, parabolic_scheme)
+                             dg, parabolic_scheme, cache)
     end
 
     # Prolong solution to boundaries
@@ -526,11 +526,9 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     return nothing
 end
 
-# `cache` is the hyperbolic cache, i.e., in particular not `cache_parabolic`.
-# This is because mortar handling is done in the (hyperbolic) `cache`.
-# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since
-#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and
-# hyperbolic-parabolic systems.
+# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed to
+# avoid amibiguity with the hyperbolic version of `prolong2mortars!` in dg_2d.jl
+# which is for the variables itself, i.e., u::Array{uEltype, 4}`.
 function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,
@@ -945,7 +943,6 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong solution to mortars
-    # NOTE: This re-uses the implementation for hyperbolic terms in "dg_2d.jl"
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg)
