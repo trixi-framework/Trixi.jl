@@ -86,9 +86,9 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# Calculate ∫_el (∂S/∂u ⋅ ∂u/∂t)dΩ_el
-function calc_entropy_delta_element(du, u, element,
-                                    mesh::AbstractMesh{1}, equations, dg, cache)
+# Calculate ∫_el (∂S/∂u ⋅ ∂u/∂t) dΩ_el
+function calc_entropy_change_element(du, u, element,
+                                     mesh::AbstractMesh{1}, equations, dg, cache)
     return integrate_element(u, element, mesh, equations, dg, cache,
                              du) do u, i, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, element)
@@ -97,8 +97,8 @@ function calc_entropy_delta_element(du, u, element,
     end
 end
 
-function calc_entropy_delta_element(du, u, element,
-                                    mesh::AbstractMesh{2}, equations, dg, cache)
+function calc_entropy_change_element(du, u, element,
+                                     mesh::AbstractMesh{2}, equations, dg, cache)
     return integrate_element(u, element, mesh, equations, dg, cache,
                              du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -107,8 +107,8 @@ function calc_entropy_delta_element(du, u, element,
     end
 end
 
-function calc_entropy_delta_element(du, u, element,
-                                    mesh::AbstractMesh{3}, equations, dg, cache)
+function calc_entropy_change_element(du, u, element,
+                                     mesh::AbstractMesh{3}, equations, dg, cache)
     return integrate_element(u, element, mesh, equations, dg, cache,
                              du) do u, i, j, k, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -137,8 +137,8 @@ function calc_volume_integral!(du, u, mesh,
                           dg, cache)
 
         # Compute entropy production of this volume integral
-        entropy_delta = calc_entropy_delta_element(du, u, element,
-                                                   mesh, equations, dg, cache)
+        entropy_delta = calc_entropy_change_element(du, u, element,
+                                                    mesh, equations, dg, cache)
 
         if entropy_delta > threshold
             # Reset bad volume integral 

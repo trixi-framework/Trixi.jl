@@ -185,7 +185,7 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-# used in `calc_entropy_delta_element`
+# used in `calc_entropy_change_element`
 function integrate_element(func::Func, u, element,
                            mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                            args...; normalize = true) where {Func}
