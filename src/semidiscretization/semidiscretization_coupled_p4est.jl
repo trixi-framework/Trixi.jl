@@ -57,7 +57,8 @@ function SemidiscretizationCoupledP4est(semis...)
     end
     parent_tree_node_coordinates = Array{Real, 2 + 2}(undef, 2, ntuple(_ -> 4, 2)..., n_cells)
     nodes = semis[1].mesh.parent.nodes
-    Trixi.calc_node_coordinates!(parent_tree_node_coordinates, semis[1].mesh.parent, nodes)
+    Trixi.calc_node_coordinates!(parent_tree_node_coordinates, semis[1].mesh.parent,
+                                 nodes)
 
     global_element_ids = 1:size(parent_tree_node_coordinates)[end]
     local_element_ids = zeros(Int, size(global_element_ids))
