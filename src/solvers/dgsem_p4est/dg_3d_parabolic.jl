@@ -35,9 +35,9 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Reset du
     @trixi_timeit timer() "reset gradients" begin
-        reset_du!(gradients_x, dg, cache)
-        reset_du!(gradients_y, dg, cache)
-        reset_du!(gradients_z, dg, cache)
+        set_zero!(gradients_x, dg, cache)
+        set_zero!(gradients_y, dg, cache)
+        set_zero!(gradients_z, dg, cache)
     end
 
     # Calculate volume integral

@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Used by both `dg::DGSEM` and `dg::FDSBP`
-function reset_du!(du, dg, cache)
+function set_zero!(du, dg, cache)
     # du .= zero(eltype(du)) doesn't scale when using multiple threads.
     # See https://github.com/trixi-framework/Trixi.jl/pull/924 for a performance comparison.
     @threaded for element in eachelement(dg, cache)

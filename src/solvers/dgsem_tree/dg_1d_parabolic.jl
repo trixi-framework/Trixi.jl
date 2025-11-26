@@ -54,7 +54,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # TODO: parabolic; reconsider current data structure reuse strategy
 
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
@@ -508,7 +508,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
 
     # Reset du
     @trixi_timeit timer() "reset gradients" begin
-        reset_du!(gradients, dg, cache)
+        set_zero!(gradients, dg, cache)
     end
 
     # Calculate volume integral

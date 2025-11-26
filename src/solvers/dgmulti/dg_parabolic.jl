@@ -166,7 +166,7 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                         boundary_conditions, dg::DGMulti, parabolic_scheme,
                         cache, cache_parabolic)
     for dim in eachindex(gradients)
-        reset_du!(gradients[dim], dg)
+        set_zero!(gradients[dim], dg)
     end
 
     calc_gradient_volume_integral!(gradients, u, mesh, equations, dg, cache,
@@ -303,7 +303,7 @@ function calc_viscous_fluxes!(flux_viscous, u, gradients, mesh::DGMultiMesh,
                               equations::AbstractEquationsParabolic,
                               dg::DGMulti, cache, cache_parabolic)
     for dim in eachdim(mesh)
-        reset_du!(flux_viscous[dim], dg)
+        set_zero!(flux_viscous[dim], dg)
     end
 
     (; local_u_values_threaded) = cache_parabolic
@@ -430,7 +430,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
                           equations::AbstractEquationsParabolic,
                           boundary_conditions, dg::DGMulti, parabolic_scheme, cache,
                           cache_parabolic)
-    reset_du!(du, dg)
+    set_zero!(du, dg)
 
     calc_divergence_volume_integral!(du, u, flux_viscous, mesh, equations, dg, cache,
                                      cache_parabolic)
@@ -474,7 +474,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions, source_terms,
                         dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
-    reset_du!(du, dg)
+    set_zero!(du, dg)
 
     @trixi_timeit timer() "transform variables" begin
         (; u_transformed, gradients, flux_viscous) = cache_parabolic

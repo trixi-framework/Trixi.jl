@@ -154,7 +154,7 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
                                                        nvars))
 end
 
-function reset_du!(du, dg::DGMulti, other_args...)
+function set_zero!(du, dg::DGMulti, other_args...)
     @threaded for i in eachindex(du)
         du[i] = zero(eltype(du))
     end
@@ -665,7 +665,7 @@ end
 function rhs!(du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, u, mesh,
