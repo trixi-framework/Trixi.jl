@@ -1171,7 +1171,7 @@ end
 # This method is called when a `SemidiscretizationHyperbolicParabolic` is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache_parabolic(mesh::TreeMesh{3},
+function get_viscous_container(mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                 equations_hyperbolic::AbstractEquations,
                                 dg::DG, n_elements, uEltype)
     viscous_container = init_viscous_container_3d(nvariables(equations_hyperbolic),
