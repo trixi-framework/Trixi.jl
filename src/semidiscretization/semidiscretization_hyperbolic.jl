@@ -20,11 +20,11 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
 
     # This guy is a bit messy since we abuse it as some kind of "exact solution"
     # although this doesn't really exist...
-    initial_condition::InitialCondition
+    const initial_condition::InitialCondition
 
-    boundary_conditions::BoundaryConditions
-    source_terms::SourceTerms
-    solver::Solver
+    const boundary_conditions::BoundaryConditions
+    const source_terms::SourceTerms
+    const solver::Solver
     cache::Cache
     performance_counter::PerformanceCounter
 end
@@ -83,8 +83,8 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
-    SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                 source_terms, boundary_conditions, uEltype)
+    return SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                        source_terms, boundary_conditions, uEltype)
 end
 
 # general fallback

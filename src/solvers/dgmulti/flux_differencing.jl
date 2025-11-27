@@ -311,11 +311,11 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, Real
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
 
     local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
-                               for _ in 1:Threads.nthreads()]
+                               for _ in 1:Threads.maxthreadid()]
 
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
@@ -356,16 +356,16 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
 
     # local storage for interface fluxes, rhs, and source
     local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
     # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
     # projecting it and storing it into `du`.
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total)
-                               for _ in 1:Threads.nthreads()]
+                               for _ in 1:Threads.maxthreadid()]
     rhs_local_threaded = [allocate_nested_array(uEltype, nvars,
                                                 (num_quad_points_total,), dg)
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
 
     # interpolate geometric terms to both quadrature and face values for curved meshes
     (; Vq, Vf) = dg.basis

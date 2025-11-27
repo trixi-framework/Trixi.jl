@@ -160,6 +160,14 @@ end
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerMulticomponentEquations2D)
@@ -676,6 +684,43 @@ end
     p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
     p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll::SVector{N, T}, u_rr::SVector{N, T},
+                                     normal_direction::SVector{2, T},
+                                     equations::CompressibleEulerMulticomponentEquations2D) where {
+                                                                                                   N,
+                                                                                                   T <:
+                                                                                                   AbstractFloat
+                                                                                                   }
+    # Unpack conservative variables
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+    # Get densities and gammas
+    rho_ll = T(density(u_ll, equations))
+    rho_rr = T(density(u_rr, equations))
+    gamma_ll = T(totalgamma(u_ll, equations))
+    gamma_rr = T(totalgamma(u_rr, equations))
+
+    # Velocity components
+    v_ll_vec = SVector(rho_v1_ll / rho_ll, rho_v2_ll / rho_ll)
+    v_rr_vec = SVector(rho_v1_rr / rho_rr, rho_v2_rr / rho_rr)
+
+    # Project velocities onto the direction normal_direction.
+    v_ll = dot(v_ll_vec, normal_direction)
+    v_rr = dot(v_rr_vec, normal_direction)
+
+    # Compute pressures
+    p_ll = (gamma_ll - one(T)) * (rho_e_ll - T(0.5) * dot(v_ll_vec, v_ll_vec) * rho_ll)
+    p_rr = (gamma_rr - one(T)) * (rho_e_rr - T(0.5) * dot(v_rr_vec, v_rr_vec) * rho_rr)
+
+    # Sound speeds
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)

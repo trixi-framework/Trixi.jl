@@ -14,7 +14,7 @@ function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
     prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
                                                                             ntuple(_ -> nnodes(dg),
                                                                                    ndims(mesh))...)
-    f_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+    f_threaded = [similar(prototype) for _ in 1:Threads.maxthreadid()]
 
     return (; f_threaded)
 end
@@ -25,12 +25,12 @@ function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
                                                             Val{nvariables(equations)}()))
     f = StructArray([(u_node, u_node)])
     f_minus_plus_threaded = [similar(f, ntuple(_ -> nnodes(dg), ndims(mesh))...)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     f_minus, f_plus = StructArrays.components(f_minus_plus_threaded[1])
     f_minus_threaded = [f_minus]
     f_plus_threaded = [f_plus]
-    for i in 2:Threads.nthreads()
+    for i in 2:Threads.maxthreadid()
         f_minus, f_plus = StructArrays.components(f_minus_plus_threaded[i])
         push!(f_minus_threaded, f_minus)
         push!(f_plus_threaded, f_plus)

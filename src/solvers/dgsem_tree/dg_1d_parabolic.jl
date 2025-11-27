@@ -246,7 +246,8 @@ function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::Tree
                                              i, element)
 
             # Calculate viscous flux and store each component for later use
-            flux_viscous_node = flux(u_node, gradients_1_node, 1, equations_parabolic)
+            flux_viscous_node = flux(u_node, (gradients_1_node,), 1,
+                                     equations_parabolic)
             set_node_vars!(flux_viscous, flux_viscous_node, equations_parabolic, dg,
                            i, element)
         end
@@ -255,11 +256,11 @@ function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::Tree
     return nothing
 end
 
-function calc_boundary_flux_gradients!(cache, t,
-                                       boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                       mesh::TreeMesh{1},
-                                       equations_parabolic::AbstractEquationsParabolic,
-                                       surface_integral, dg::DG)
+function calc_gradient_boundary_flux!(cache, t,
+                                      boundary_conditions_parabolic::BoundaryConditionPeriodic,
+                                      mesh::TreeMesh{1},
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
     return nothing
 end
 
@@ -271,11 +272,11 @@ function calc_boundary_flux_divergence!(cache, t,
     return nothing
 end
 
-function calc_boundary_flux_gradients!(cache, t,
-                                       boundary_conditions_parabolic::NamedTuple,
-                                       mesh::TreeMesh{1},
-                                       equations_parabolic::AbstractEquationsParabolic,
-                                       surface_integral, dg::DG)
+function calc_gradient_boundary_flux!(cache, t,
+                                      boundary_conditions_parabolic::NamedTuple,
+                                      mesh::TreeMesh{1}, # for dispatch only
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -284,12 +285,12 @@ function calc_boundary_flux_gradients!(cache, t,
     firsts = lasts - n_boundaries_per_direction .+ 1
 
     # Calc boundary fluxes in each direction
-    calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
+    calc_gradient_boundary_flux_by_direction!(surface_flux_values, t,
                                               boundary_conditions_parabolic[1],
                                               equations_parabolic, surface_integral, dg,
                                               cache,
                                               1, firsts[1], lasts[1])
-    calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
+    calc_gradient_boundary_flux_by_direction!(surface_flux_values, t,
                                               boundary_conditions_parabolic[2],
                                               equations_parabolic, surface_integral, dg,
                                               cache,
@@ -298,7 +299,7 @@ function calc_boundary_flux_gradients!(cache, t,
     return nothing
 end
 
-function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{<:Any,
+function calc_gradient_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,
                                                                                       3},
                                                    t,
                                                    boundary_condition,
@@ -413,6 +414,30 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     return nothing
 end
 
+function calc_gradient_volume_integral!(gradients, u_transformed,
+                                        mesh::TreeMesh{1}, # for dispatch only
+                                        equations_parabolic::AbstractEquationsParabolic,
+                                        dg::DGSEM, cache)
+    @unpack derivative_dhat = dg.basis
+
+    @threaded for element in eachelement(dg, cache)
+        # Calculate volume terms in one element,
+        # corresponds to `kernel` functions for the hyperbolic part of the flux
+        for i in eachnode(dg)
+            u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                   i, element)
+
+            for ii in eachnode(dg)
+                multiply_add_to_node_vars!(gradients, derivative_dhat[ii, i],
+                                           u_node, equations_parabolic, dg,
+                                           ii, element)
+            end
+        end
+    end
+
+    return nothing
+end
+
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::TreeMesh{1}, equations_parabolic, dg::DG,
                                        parabolic_scheme,
@@ -446,6 +471,36 @@ function calc_gradient_interface_flux!(surface_flux_values,
     return nothing
 end
 
+function calc_gradient_surface_integral!(gradients,
+                                         mesh::TreeMesh{1}, # for dispatch only
+                                         equations_parabolic::AbstractEquationsParabolic,
+                                         dg::DGSEM, cache, cache_parabolic)
+    @unpack boundary_interpolation = dg.basis
+    @unpack surface_flux_values = cache_parabolic.elements
+
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # Access the factors only once before beginning the loop to increase performance.
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    @threaded for element in eachelement(dg, cache)
+        for v in eachvariable(equations_parabolic)
+            # surface at -x
+            gradients[v, 1, element] = (gradients[v, 1, element] -
+                                        surface_flux_values[v, 1, element] *
+                                        factor_1)
+
+            # surface at +x
+            gradients[v, nnodes(dg), element] = (gradients[v, nnodes(dg), element] +
+                                                 surface_flux_values[v, 2, element] *
+                                                 factor_2)
+        end
+    end
+
+    return nothing
+end
+
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
                         equations_parabolic, boundary_conditions_parabolic,
@@ -458,21 +513,8 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        @unpack derivative_dhat = dg.basis
-        @threaded for element in eachelement(dg, cache)
-
-            # Calculate volume terms in one element
-            for i in eachnode(dg)
-                u_node = get_node_vars(u_transformed, equations_parabolic, dg,
-                                       i, element)
-
-                for ii in eachnode(dg)
-                    multiply_add_to_node_vars!(gradients, derivative_dhat[ii, i],
-                                               u_node, equations_parabolic, dg,
-                                               ii, element)
-                end
-            end
-        end
+        calc_gradient_volume_integral!(gradients, u_transformed,
+                                       mesh, equations_parabolic, dg, cache)
     end
 
     # Prolong solution to interfaces
@@ -497,39 +539,18 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
                                                                    dg)
 
     # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" calc_boundary_flux_gradients!(cache_parabolic,
-                                                                        t,
-                                                                        boundary_conditions_parabolic,
-                                                                        mesh,
-                                                                        equations_parabolic,
-                                                                        dg.surface_integral,
-                                                                        dg)
+    @trixi_timeit timer() "boundary flux" calc_gradient_boundary_flux!(cache_parabolic,
+                                                                       t,
+                                                                       boundary_conditions_parabolic,
+                                                                       mesh,
+                                                                       equations_parabolic,
+                                                                       dg.surface_integral,
+                                                                       dg)
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        @unpack boundary_interpolation = dg.basis
-        @unpack surface_flux_values = cache_parabolic.elements
-
-        # Note that all fluxes have been computed with outward-pointing normal vectors.
-        # Access the factors only once before beginning the loop to increase performance.
-        # We also use explicit assignments instead of `+=` to let `@muladd` turn these
-        # into FMAs (see comment at the top of the file).
-        factor_1 = boundary_interpolation[1, 1]
-        factor_2 = boundary_interpolation[nnodes(dg), 2]
-        @threaded for element in eachelement(dg, cache)
-            for v in eachvariable(equations_parabolic)
-                # surface at -x
-                gradients[v, 1, element] = (gradients[v, 1, element] -
-                                            surface_flux_values[v, 1, element] *
-                                            factor_1)
-
-                # surface at +x
-                gradients[v, nnodes(dg), element] = (gradients[v, nnodes(dg), element] +
-                                                     surface_flux_values[v, 2,
-                                                                         element] *
-                                                     factor_2)
-            end
-        end
+        calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
+                                        dg, cache, cache_parabolic)
     end
 
     # Apply Jacobian from mapping to reference element
@@ -541,7 +562,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     return nothing
 end
 
-# This method is called when a SemidiscretizationHyperbolic is constructed.
+# This method is called when a `SemidiscretizationHyperbolicParabolic` is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache_parabolic(mesh::TreeMesh{1},

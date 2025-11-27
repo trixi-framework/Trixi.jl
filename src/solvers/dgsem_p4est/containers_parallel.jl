@@ -11,7 +11,7 @@ mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                           IndicesVector <:
                                           DenseVector{NTuple{NDIMS, Symbol}},
                                           uVector <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractMPIInterfaceContainer
     u::uArray                   # [primary/secondary, variable, i, j, interface]
     local_neighbor_ids::VecInt  # [interface]
     node_indices::IndicesVector # [interface]
@@ -124,7 +124,7 @@ mutable struct P4estMPIMortarContainer{NDIMS, uEltype <: Real, RealT <: Real, ND
                                        NDIMSP2, NDIMSP3,
                                        uArray <: DenseArray{uEltype, NDIMSP3},
                                        uVector <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractMPIMortarContainer
     u::uArray                                      # [small/large side, variable, position, i, j, mortar]
     local_neighbor_ids::Vector{Vector{Int}}        # [mortar][ids]
     local_neighbor_positions::Vector{Vector{Int}}  # [mortar][positions]

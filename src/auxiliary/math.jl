@@ -417,10 +417,10 @@ Given ε = 1.0e-4, we use the following algorithm.
   for Intel, AMD, and VIA CPUs.
   [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
-@inline stolarsky_mean(x::Real, y::Real, gamma::Real) = stolarsky_mean(promote(x, y,
-                                                                               gamma)...)
+@inline stolarsky_mean(x::Real, y::Real, gamma::Real) = stolarsky_mean(promote(x, y)...,
+                                                                       gamma)
 
-@inline function stolarsky_mean(x::RealT, y::RealT, gamma::RealT) where {RealT <: Real}
+@inline function stolarsky_mean(x::RealT, y::RealT, gamma::Real) where {RealT <: Real}
     epsilon_f2 = convert(RealT, 1.0e-4)
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
@@ -430,8 +430,14 @@ Given ε = 1.0e-4, we use the following algorithm.
         c3 = convert(RealT, -1 / 21) * (2 * gamma * (gamma - 2) - 9) * c2
         return 0.5f0 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
     else
-        return (gamma - 1) / gamma * (y^gamma - x^gamma) /
-               (y^(gamma - 1) - x^(gamma - 1))
+        if gamma isa Integer
+            yg = y^(gamma - 1)
+            xg = x^(gamma - 1)
+        else
+            yg = exp((gamma - 1) * log(y)) # equivalent to y^(gamma - 1) but faster for non-integers
+            xg = exp((gamma - 1) * log(x)) # equivalent to x^(gamma - 1) but faster for non-integers
+        end
+        return (gamma - 1) * (yg * y - xg * x) / (gamma * (yg - xg))
     end
 end
 

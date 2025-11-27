@@ -8,21 +8,27 @@
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
-    modal_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                      for _ in 1:Threads.nthreads()]
-    modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                           for _ in 1:Threads.nthreads()]
-    modal_tmp2_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                           for _ in 1:Threads.nthreads()]
+    A3d = Array{uEltype, 3}
 
-    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded,
-            modal_tmp2_threaded)
+    indicator_threaded = A3d[A3d(undef,
+                                 nnodes(basis), nnodes(basis), nnodes(basis))
+                             for _ in 1:Threads.maxthreadid()]
+    modal_threaded = A3d[A3d(undef,
+                             nnodes(basis), nnodes(basis), nnodes(basis))
+                         for _ in 1:Threads.maxthreadid()]
+    modal_tmp1_threaded = A3d[A3d(undef,
+                                  nnodes(basis), nnodes(basis), nnodes(basis))
+                              for _ in 1:Threads.maxthreadid()]
+    modal_tmp2_threaded = A3d[A3d(undef,
+                                  nnodes(basis), nnodes(basis), nnodes(basis))
+                              for _ in 1:Threads.maxthreadid()]
+
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded,
+            modal_tmp1_threaded, modal_tmp2_threaded)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -147,13 +153,14 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{3},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+                      equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+    A3d = Array{uEltype, 3}
+    indicator_threaded = A3d[A3d(undef, nnodes(basis), nnodes(basis), nnodes(basis))
+                             for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
 end
@@ -205,18 +212,6 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
     end
 
     return alpha
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{3},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
-
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
-
-    return (; alpha, indicator_threaded)
 end
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
