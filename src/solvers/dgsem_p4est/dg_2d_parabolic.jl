@@ -797,13 +797,6 @@ function calc_boundary_flux_divergence!(cache, t, boundary_conditions, mesh::P4e
     return nothing
 end
 
-# terminate the type-stable iteration over tuples
-function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
-                                     operator_type, mesh::P4estMesh, equations,
-                                     surface_integral, dg::DG)
-    return nothing
-end
-
 # Iterate over tuples of boundary condition types and associated indices
 # in a type-stable way using "lispy tuple programming".
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
@@ -828,6 +821,13 @@ function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
                                 operator_type,
                                 mesh, equations, surface_integral, dg)
 
+    return nothing
+end
+
+# terminate the type-stable iteration over tuples
+function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
+                                     operator_type, mesh::P4estMesh, equations,
+                                     surface_integral, dg::DG)
     return nothing
 end
 
