@@ -1172,8 +1172,8 @@ end
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function get_viscous_container(mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                                equations_hyperbolic::AbstractEquations,
-                                dg::DG, n_elements, uEltype)
+                               equations_hyperbolic::AbstractEquations,
+                               dg::DG, n_elements, uEltype)
     viscous_container = init_viscous_container_3d(nvariables(equations_hyperbolic),
                                                   nnodes(dg), n_elements,
                                                   uEltype)
