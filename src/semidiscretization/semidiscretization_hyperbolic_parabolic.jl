@@ -482,7 +482,7 @@ A_sparse = sparse(A_map)
 which can then be further used to construct for instance a
 [`MatrixOperator`](https://docs.sciml.ai/SciMLOperators/stable/tutorials/getting_started/#Simplest-Operator:-MatrixOperator)
 from [SciMLOperators.jl](https://docs.sciml.ai/SciMLOperators/stable/).
-This is especially useful for IMEX schemes where the parabolic part is implicity,
+This is especially useful for IMEX schemes where the parabolic part is implicitly,
 and for a `MatrixOperator` only factorized once.
 """
 function linear_structure_parabolic(semi::SemidiscretizationHyperbolicParabolic;
