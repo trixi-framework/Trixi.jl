@@ -41,8 +41,7 @@ end
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
 function Base.resize!(viscous_container::ViscousContainer2D, equations, dg, cache)
-    capacity = nvariables(equations) * nnodes(dg) * nnodes(dg) *
-               nelements(dg, cache)
+    capacity = nvariables(equations) * nnodes(dg)^2 * nelements(dg, cache)
     resize!(viscous_container._u_transformed, capacity)
     for dim in 1:2
         resize!(viscous_container._gradients[dim], capacity)
