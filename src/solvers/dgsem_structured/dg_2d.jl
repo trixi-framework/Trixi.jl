@@ -731,7 +731,7 @@ function apply_jacobian!(backend::Nothing, du,
                                      T8codeMesh{2}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
-    @threaded for element in eachelement(dg,cache)
+    @threaded for element in eachelement(dg, cache)
         apply_jacobian_per_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
                                     element)
     end
@@ -742,19 +742,20 @@ function apply_jacobian!(backend::Backend, du,
                                      UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
                                      T8codeMesh{2}},
                          equations, dg::DG, cache)
-    nelements(dg,cache) == 0 && return nothing
+    nelements(dg, cache) == 0 && return nothing
     @unpack inverse_jacobian = cache.elements
     kernel! = apply_jacobian_KAkernel!(backend)
     kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
-            ndrange=nelements(dg,cache))
+            ndrange = nelements(dg, cache))
 end
 
-@kernel function apply_jacobian_KAkernel!(du, mT::Type{<:Union{StructuredMesh{2},
-                                                               StructuredMeshView{2},
-                                                               UnstructuredMesh2D,
-                                                               P4estMesh{2},
-                                                               P4estMeshView{2},
-                                                               T8codeMesh{2}}},
+@kernel function apply_jacobian_KAkernel!(du,
+                                          mT::Type{<:Union{StructuredMesh{2},
+                                                           StructuredMeshView{2},
+                                                           UnstructuredMesh2D,
+                                                           P4estMesh{2},
+                                                           P4estMeshView{2},
+                                                           T8codeMesh{2}}},
                                           equations, dg::DG, inverse_jacobian)
     element = @index(Global)
     apply_jacobian_per_element!(du, mT, equations, dg, inverse_jacobian, element)

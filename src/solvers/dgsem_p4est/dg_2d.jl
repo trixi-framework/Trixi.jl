@@ -72,9 +72,9 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     index_range = eachnode(dg)
 
     @threaded for interface in eachinterface(dg, cache)
-       prolong2interfaces_interface!(interfaces.u, u, interface, typeof(mesh),
-                                     equations, neighbor_ids, node_indices,
-                                     index_range)
+        prolong2interfaces_per_interface!(interfaces.u, u, interface, typeof(mesh),
+                                          equations, neighbor_ids, node_indices,
+                                          index_range)
     end
     return nothing
 end
@@ -159,7 +159,6 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                           T8codeMesh{2}},
                               have_nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
@@ -181,7 +180,6 @@ function calc_interface_flux!(backend::Backend, surface_flux_values,
                                           T8codeMesh{2}},
                               have_nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-
     ninterfaces(cache.interfaces) == 0 && return nothing
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
@@ -191,7 +189,7 @@ function calc_interface_flux!(backend::Backend, surface_flux_values,
     kernel!(surface_flux_values, typeof(mesh), have_nonconservative_terms,
             equations, surface_integral, typeof(dg), cache.interfaces.u,
             neighbor_ids, node_indices, contravariant_vectors, index_range,
-            ndrange=ninterfaces(cache.interfaces))
+            ndrange = ninterfaces(cache.interfaces))
 
     return nothing
 end
@@ -275,7 +273,6 @@ function calc_interface_flux_per_interface!(surface_flux_values,
         # Increment the surface node index along the secondary element
         node_secondary += node_secondary_step
     end
-    
 
     return nothing
 end
@@ -363,8 +360,12 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = Float64(flux_[v] + 0.5f0 * noncons_primary[v])
-        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = Float64(-(flux_[v] + 0.5f0 * noncons_secondary[v]))
+        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = Float64(flux_[v] +
+                                                                                                             0.5f0 *
+                                                                                                             noncons_primary[v])
+        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = Float64(-(flux_[v] +
+                                                                                                                     0.5f0 *
+                                                                                                                     noncons_secondary[v]))
     end
 
     return nothing
@@ -847,7 +848,6 @@ end
     return nothing
 end
 
-
 function calc_surface_integral!(backend::Nothing, du, u,
                                 mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                             T8codeMesh{2}},
@@ -869,12 +869,12 @@ function calc_surface_integral!(backend::Backend, du, u,
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
-    nelements(dg,cache) == 0 && return nothing
+    nelements(dg, cache) == 0 && return nothing
     @unpack surface_flux_values = cache.elements
 
     kernel! = calc_surface_integral_KAkernel!(backend)
     kernel!(du, typeof(mesh), equations, surface_integral, dg,
-            surface_flux_values, ndrange=nelements(dg,cache))
+            surface_flux_values, ndrange = nelements(dg, cache))
     return nothing
 end
 
@@ -891,9 +891,10 @@ end
                                        dg, surface_flux_values, element)
 end
 
-function calc_surface_integral_per_element!(du, ::Type{<:Union{P4estMesh{2},
-                                                               P4estMeshView{2},
-                                                               T8codeMesh{2}}},
+function calc_surface_integral_per_element!(du,
+                                            ::Type{<:Union{P4estMesh{2},
+                                                           P4estMeshView{2},
+                                                           T8codeMesh{2}}},
                                             equations,
                                             surface_integral::SurfaceIntegralWeakForm,
                                             dg::DGSEM, surface_flux_values,
@@ -913,8 +914,8 @@ function calc_surface_integral_per_element!(du, ::Type{<:Union{P4estMesh{2},
 
             # surface at +x
             du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
-                                           surface_flux_values[v, l, 2, element] *
-                                           factor_2)
+                                             surface_flux_values[v, l, 2, element] *
+                                             factor_2)
 
             # surface at -y
             du[v, l, 1, element] = (du[v, l, 1, element] +
@@ -923,8 +924,8 @@ function calc_surface_integral_per_element!(du, ::Type{<:Union{P4estMesh{2},
 
             # surface at +y
             du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
-                                           surface_flux_values[v, l, 4, element] *
-                                           factor_2)
+                                             surface_flux_values[v, l, 4, element] *
+                                             factor_2)
         end
     end
     return nothing

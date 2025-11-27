@@ -88,7 +88,7 @@ function max_dt(backend::Nothing, u, t,
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
-    @unpack contravariant_vectors, inverse_jacobian = cache
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda = max_scaled_speed_per_element(u, typeof(mesh), equations, dg,
                                                   contravariant_vectors,
@@ -105,7 +105,7 @@ function max_dt(backend::Backend, u, t,
                             T8codeMesh{2}, StructuredMeshView{2}},
                 constant_speed::False, equations, dg::DG, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
-    num_elements = nelements(dg,cache)
+    num_elements = nelements(dg, cache)
     max_scaled_speeds = allocate(backend, eltype(t), num_elements)
 
     kernel! = max_scaled_speed_KAkernel!(backend)
@@ -172,8 +172,8 @@ function max_dt(backend::Nothing, u, t,
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
-                                                 equations, dg, contravariant_vectors,
-                                                 inverse_jacobian, element)
+                                                  equations, dg, contravariant_vectors,
+                                                  inverse_jacobian, element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
         max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
@@ -187,7 +187,7 @@ function max_dt(backend::Backend, u, t,
                             P4estMeshView{2}, T8codeMesh{2}, StructuredMeshView{2}},
                 constant_speed::True, equations, dg::DG, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
-    num_elements = nelements(dg,cache)
+    num_elements = nelements(dg, cache)
     max_scaled_speeds = allocate(backend, eltype(t), num_elements)
 
     kernel! = max_scaled_speed_KAkernel!(backend)
@@ -208,7 +208,6 @@ function max_scaled_speed_per_element(u,
                                       constant_speed::True, equations, dg::DG,
                                       contravariant_vectors, inverse_jacobian,
                                       element)
-
     max_lambda1_loc = max_lambda2_loc = nextfloat(zero(eltype(u)))
     max_lambda1, max_lambda2 = max_abs_speeds(equations)
     for j in eachnode(dg), i in eachnode(dg)
@@ -225,7 +224,7 @@ function max_scaled_speed_per_element(u,
         max_lambda1_loc = max(max_lambda1_loc, inv_jacobian * lambda1_transformed)
         max_lambda2_loc = max(max_lambda2_loc, inv_jacobian * lambda2_transformed)
     end
-    
+
     return max_lambda1_loc + max_lambda2_loc
 end
 
