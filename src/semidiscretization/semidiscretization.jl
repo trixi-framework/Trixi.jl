@@ -245,7 +245,8 @@ and a vector `b`:
 ```math
 \\partial_t u(t) = A u(t) - b.
 ```
-Works only for linear equations, i.e., equations with `have_constant_speed(equations) == True()`.
+Works only for linear equations, i.e.,
+equations which `have_constant_speed(equations) == True()`.
 
 This has the benefit of greatly reduced memory consumption compared to constructing
 the full system matrix explicitly, as done for instance in
@@ -268,6 +269,7 @@ function linear_structure(semi::AbstractSemidiscretization;
     u_ode .= zero(eltype(u_ode))
     rhs!(du_ode, u_ode, semi, t0)
     b = -du_ode
+
     # Create a copy of `b` used internally to extract the linear part of `semi`.
     # This is necessary to get everything correct when the user updates the
     # returned vector `b`.
