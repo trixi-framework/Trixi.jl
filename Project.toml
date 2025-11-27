@@ -69,7 +69,7 @@ TrixiNLsolveExt = "NLsolve"
 TrixiSparseConnectivityTracerExt = "SparseConnectivityTracer"
 
 [compat]
-Accessors = "0.1.36"
+Accessors = "0.1.39"
 Adapt = "4"
 CUDA = "5.8"
 CodeTracking = "1.0.5, 2, 3"
