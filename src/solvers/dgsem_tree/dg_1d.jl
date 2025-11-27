@@ -405,7 +405,10 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations, dg::DG)
+# Used for both the purely hyperbolic conserved variables `u`
+# and the viscous flux in x-direction in the 1D parabolic case.
+function prolong2interfaces!(cache, u_or_flux_viscous,
+                             mesh::TreeMesh{1}, equations, dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -416,8 +419,9 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations, dg::DG)
 
         # interface in x-direction
         for v in eachvariable(equations)
-            interfaces_u[1, v, interface] = u[v, nnodes(dg), left_element]
-            interfaces_u[2, v, interface] = u[v, 1, right_element]
+            interfaces_u[1, v, interface] = u_or_flux_viscous[v, nnodes(dg),
+                                                              left_element]
+            interfaces_u[2, v, interface] = u_or_flux_viscous[v, 1, right_element]
         end
     end
 
@@ -497,7 +501,9 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+# Used for both the purely hyperbolic conserved variables `u`
+# and the viscous flux in x-direction in the 1D parabolic case.
+function prolong2boundaries!(cache, u_or_flux_viscous,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
@@ -509,11 +515,11 @@ function prolong2boundaries!(cache, u,
         if neighbor_sides[boundary] == 1
             # element in -x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[1, v, boundary] = u[v, nnodes(dg), element]
+                boundaries.u[1, v, boundary] = u_or_flux_viscous[v, nnodes(dg), element]
             end
         else # Element in +x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[2, v, boundary] = u[v, 1, element]
+                boundaries.u[2, v, boundary] = u_or_flux_viscous[v, 1, element]
             end
         end
     end

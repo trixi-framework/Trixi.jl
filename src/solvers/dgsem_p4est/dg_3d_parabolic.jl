@@ -26,7 +26,7 @@ function calc_gradient!(gradients, u_transformed, t,
                         cache)
     gradients_x, gradients_y, gradients_z = gradients
 
-    # Reset du
+    # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
         reset_du!(gradients_x, dg, cache)
         reset_du!(gradients_y, dg, cache)
@@ -39,21 +39,22 @@ function calc_gradient!(gradients, u_transformed, t,
                                        mesh, equations_parabolic, dg, cache)
     end
 
-    # Prolong solution to interfaces
+    # Prolong solution to interfaces.
+    # This reuses `prolong2interfaces` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 
-    # Calculate interface fluxes for the gradient. This reuses P4est `calc_interface_flux!` along with a
-    # specialization for AbstractEquationsParabolic.
+    # Calculate interface fluxes for the gradients.
+    # This reuses `calc_interface_flux!` for the purely hyperbolic case.
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values,
                              mesh, False(), # False() = no nonconservative terms
                              equations_parabolic, dg.surface_integral, dg, cache)
     end
 
-    # Prolong solution to boundaries
+    # Prolong viscous fluxes to boundaries.
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u_transformed, mesh,
                             equations_parabolic, dg.surface_integral, dg)
@@ -62,11 +63,12 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
         calc_gradient_boundary_flux!(cache, t, boundary_conditions_parabolic,
-                                     mesh, equations_parabolic, dg.surface_integral,
-                                     dg)
+                                     mesh, equations_parabolic,
+                                     dg.surface_integral, dg)
     end
 
-    # Prolong solution to mortars. These should reuse the hyperbolic version of `prolong2mortars`
+    # Prolong solution to mortars.
+    # This reuses `prolong2mortars` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg)
@@ -278,7 +280,10 @@ function calc_volume_integral!(du, flux_viscous,
     return nothing
 end
 
-# This is the version used when calculating the divergence of the viscous fluxes
+# This is the version used when calculating the divergence of the viscous fluxes.
+# Specialization `flux_viscous::Tuple` needed to
+# avoid amibiguity with the hyperbolic version of `prolong2interfaces!` in dg_3d.jl
+# which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
 function prolong2interfaces!(cache, flux_viscous::Tuple,
                              mesh::P4estMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
@@ -476,6 +481,9 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
+# Specialization `flux_viscous::Tuple` needed to
+# avoid amibiguity with the hyperbolic version of `prolong2mortars_divergence!` in dg_3d.jl
+# which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
 function prolong2mortars_divergence!(cache, flux_viscous::Tuple,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                      equations,
@@ -784,7 +792,9 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
     return nothing
 end
 
-# TODO: parabolic, finish implementing `calc_gradient_boundary_flux!` and `calc_boundary_flux_divergence!`
+# Specialization `flux_viscous::Tuple` needed to
+# avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_3d.jl
+# which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
 function prolong2boundaries!(cache, flux_viscous::Tuple,
                              mesh::P4estMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,

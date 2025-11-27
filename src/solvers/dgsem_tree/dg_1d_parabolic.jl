@@ -51,8 +51,6 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # do not need to recreate the existing data structure only with a different name, and c) we do not
     # need to interpolate solutions *and* gradients to the surfaces.
 
-    # TODO: parabolic; reconsider current data structure reuse strategy
-
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
@@ -146,30 +144,6 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function prolong2interfaces!(cache, flux_viscous::Array{uEltype, 3},
-                             mesh::TreeMesh{1},
-                             equations_parabolic::AbstractEquationsParabolic,
-                             dg::DG) where {uEltype <: Real}
-    @unpack interfaces = cache
-    @unpack neighbor_ids = interfaces
-    interfaces_u = interfaces.u
-
-    @threaded for interface in eachinterface(dg, cache)
-        left_element = neighbor_ids[1, interface]
-        right_element = neighbor_ids[2, interface]
-
-        # interface in x-direction
-        for v in eachvariable(equations_parabolic)
-            # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-            interfaces_u[1, v, interface] = flux_viscous[v, nnodes(dg), left_element]
-            interfaces_u[2, v, interface] = flux_viscous[v, 1, right_element]
-        end
-    end
-
-    return nothing
-end
-
-# This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1}, equations_parabolic,
                               dg::DG, parabolic_scheme, cache)
@@ -198,35 +172,6 @@ function calc_interface_flux!(surface_flux_values,
         for v in eachvariable(equations_parabolic)
             surface_flux_values[v, left_direction, left_id] = flux[v]
             surface_flux_values[v, right_direction, right_id] = flux[v]
-        end
-    end
-
-    return nothing
-end
-
-# This is the version used when calculating the divergence of the viscous fluxes
-function prolong2boundaries!(cache, flux_viscous::Array{uEltype, 3},
-                             mesh::TreeMesh{1},
-                             equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG) where {uEltype <: Real}
-    @unpack boundaries = cache
-    @unpack neighbor_sides, neighbor_ids = boundaries
-    boundaries_u = boundaries.u
-
-    @threaded for boundary in eachboundary(dg, cache)
-        element = neighbor_ids[boundary]
-
-        if neighbor_sides[boundary] == 1
-            # element in -x direction of boundary
-            for v in eachvariable(equations_parabolic)
-                # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                boundaries_u[1, v, boundary] = flux_viscous[v, nnodes(dg), element]
-            end
-        else # Element in +x direction of boundary
-            for v in eachvariable(equations_parabolic)
-                # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                boundaries_u[2, v, boundary] = flux_viscous[v, 1, element]
-            end
         end
     end
 
@@ -513,6 +458,8 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
         calc_gradient_volume_integral!(gradients, u_transformed,
                                        mesh, equations_parabolic, dg, cache)
     end
+
+    println(typeof(u_transformed))
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(cache,
