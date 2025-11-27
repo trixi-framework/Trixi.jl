@@ -67,7 +67,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     end
 
     # Calculate interface fluxes.
-    # This calles the specialized version for the viscous flux.
+    # This calls the specialized version for the viscous flux.
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values,
                              mesh, equations_parabolic, dg,
