@@ -22,15 +22,15 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Convert conservative variables to a form more suitable for viscous flux calculations
     @trixi_timeit timer() "transform variables" begin
-        transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache)
+        transform_variables!(u_transformed, u, mesh, equations_parabolic, dg,
+                             parabolic_scheme, cache)
     end
 
     # Compute the gradients of the transformed variables
     @trixi_timeit timer() "calculate gradient" begin
         calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
-                       boundary_conditions_parabolic, dg, parabolic_scheme,
-                       cache)
+                       boundary_conditions_parabolic, dg,
+                       parabolic_scheme, cache)
     end
 
     # Compute and store the viscous fluxes
@@ -67,8 +67,8 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values,
-                             mesh, equations_parabolic, dg, parabolic_scheme,
-                             cache)
+                             mesh, equations_parabolic, dg,
+                             parabolic_scheme, cache)
     end
 
     # Prolong solution to boundaries

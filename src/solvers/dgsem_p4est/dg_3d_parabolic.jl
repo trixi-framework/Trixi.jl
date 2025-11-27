@@ -55,6 +55,7 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong viscous fluxes to boundaries.
+    # This reuses `prolong2boundaries` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u_transformed, mesh,
                             equations_parabolic, dg.surface_integral, dg)
@@ -481,10 +482,7 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-# Specialization `flux_viscous::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2mortars_divergence!` in dg_3d.jl
-# which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
-function prolong2mortars_divergence!(cache, flux_viscous::Tuple,
+function prolong2mortars_divergence!(cache, flux_viscous,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                      equations,
                                      mortar_l2::LobattoLegendreMortarL2,
@@ -1028,6 +1026,10 @@ function calc_gradient_surface_integral!(gradients,
     return nothing
 end
 
+# Needed to *not* flip the sign of the inverse Jacobian.
+# This is because the parabolic fluxes are assumed to be of the form
+#   `du/dt + df/dx = dg/dx + source(x,t)`,
+# where f(u) is the inviscid flux and g(u) is the viscous flux.
 function apply_jacobian_parabolic!(du, mesh::P4estMesh{3},
                                    equations::AbstractEquationsParabolic,
                                    dg::DG, cache)

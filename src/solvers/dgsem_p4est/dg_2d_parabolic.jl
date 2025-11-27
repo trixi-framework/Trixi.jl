@@ -83,6 +83,8 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
     # Calculate volume integral
+    # This calls the specialized version for the viscous fluxes from
+    # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache)
     end
@@ -96,6 +98,8 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
     end
 
     # Calculate interface fluxes
+    # This calls the specialized version for the viscous fluxes from
+    # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
                              equations_parabolic, dg, cache)
@@ -109,7 +113,8 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
                             dg.surface_integral, dg)
     end
 
-    # Calculate boundary fluxes
+    # Calculate boundary fluxes.
+    # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "boundary flux" begin
         calc_boundary_flux_divergence!(cache, t,
                                        boundary_conditions_parabolic, mesh,
@@ -117,21 +122,23 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                        dg.surface_integral, dg)
     end
 
-    # Prolong solution to mortars (specialized for AbstractEquationsParabolic)
-    # !!! NOTE: we reuse the hyperbolic cache here since it contains "mortars" and "u_threaded". See https://github.com/trixi-framework/Trixi.jl/issues/1674 for a discussion
+    # Prolong solution to mortars.
+    # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars_divergence!(cache, flux_viscous, mesh, equations_parabolic,
                                     dg.mortar, dg)
     end
 
-    # Calculate mortar fluxes (specialized for AbstractEquationsParabolic)
+    # Calculate mortar fluxes.
+    # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux_divergence!(cache.elements.surface_flux_values,
                                      mesh, equations_parabolic, dg.mortar,
                                      dg.surface_integral, dg, cache)
     end
 
-    # Calculate surface integrals
+    # Calculate surface integrals.
+    # This reuses `calc_surface_integral!` for the purely hyperbolic case.
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
@@ -151,7 +158,7 @@ function calc_gradient!(gradients, u_transformed, t,
                         cache)
     gradients_x, gradients_y = gradients
 
-    # Reset du
+    # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
         reset_du!(gradients_x, dg, cache)
         reset_du!(gradients_y, dg, cache)
@@ -179,6 +186,7 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong solution to boundaries.
+    # This reuses `prolong2boundaries` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u_transformed, mesh,
                             equations_parabolic, dg.surface_integral, dg)
@@ -512,10 +520,7 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-# Specialization `flux_viscous::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2mortars_divergence!` in dg_2d.jl
-# which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
-function prolong2mortars_divergence!(cache, flux_viscous::Tuple,
+function prolong2mortars_divergence!(cache, flux_viscous,
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                      equations,
                                      mortar_l2::LobattoLegendreMortarL2,
@@ -807,6 +812,13 @@ function calc_boundary_flux_divergence!(cache, t, boundary_conditions, mesh::P4e
     return nothing
 end
 
+# terminate the type-stable iteration over tuples
+function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
+                                     operator_type, mesh::P4estMesh, equations,
+                                     surface_integral, dg::DG)
+    return nothing
+end
+
 # Iterate over tuples of boundary condition types and associated indices
 # in a type-stable way using "lispy tuple programming".
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
@@ -1034,6 +1046,10 @@ function calc_gradient_surface_integral!(gradients,
     return nothing
 end
 
+# Needed to *not* flip the sign of the inverse Jacobian.
+# This is because the parabolic fluxes are assumed to be of the form
+#   `du/dt + df/dx = dg/dx + source(x,t)`,
+# where f(u) is the inviscid flux and g(u) is the viscous flux.
 function apply_jacobian_parabolic!(du, mesh::P4estMesh{2},
                                    equations::AbstractEquationsParabolic,
                                    dg::DG, cache)

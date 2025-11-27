@@ -54,7 +54,9 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
-    # Calculate volume integral
+    # Calculate volume integral.
+    # This calls the specialized version for the viscous fluxes from
+    # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache)
     end
@@ -63,15 +65,16 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # This calls the specialized version for the viscous fluxes from
     # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, flux_viscous, mesh, equations_parabolic,
-                            dg)
+        prolong2interfaces!(cache, flux_viscous, mesh, equations_parabolic, dg)
     end
 
     # Calculate interface fluxes
+    # This calls the specialized version for the viscous fluxes from
+    # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values,
-                             mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache)
+                             mesh, equations_parabolic, dg,
+                             parabolic_scheme, cache)
     end
 
     # Prolong viscous fluxes to boundaries.
@@ -82,7 +85,8 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                             dg.surface_integral, dg)
     end
 
-    # Calculate boundary fluxes
+    # Calculate boundary fluxes.
+    # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "boundary flux" begin
         calc_boundary_flux_divergence!(cache, t,
                                        boundary_conditions_parabolic, mesh,
@@ -98,14 +102,17 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                          dg.mortar, dg)
     end
 
-    # Calculate mortar fluxes
+    # Calculate mortar fluxes.
+    # This calls the specialized version from 
+    # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values,
                           mesh, equations_parabolic, dg.mortar, dg.surface_integral,
                           dg, parabolic_scheme, Divergence(), cache)
     end
 
-    # Calculate surface integrals
+    # Calculate surface integrals.
+    # This reuses `calc_surface_integral!` for the purely hyperbolic case.
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
@@ -216,9 +223,7 @@ end
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
                               equations_parabolic,
-                              dg::DG,
-                              parabolic_scheme,
-                              cache)
+                              dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
     @threaded for interface in eachinterface(dg, cache)
@@ -649,8 +654,7 @@ end
 # NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
 # Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::TreeMesh{2},
+function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
                            equations_parabolic::AbstractEquationsParabolic,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG,
@@ -911,7 +915,7 @@ function calc_gradient!(gradients, u_transformed, t,
                         cache)
     gradients_x, gradients_y = gradients
 
-    # Reset du
+    # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
         reset_du!(gradients_x, dg, cache)
         reset_du!(gradients_y, dg, cache)
@@ -924,6 +928,7 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong solution to interfaces
+    # This reuses `prolong2interfaces!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, u_transformed, mesh,
                             equations_parabolic, dg)
@@ -938,6 +943,7 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     # Prolong solution to boundaries
+    # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u_transformed, mesh, equations_parabolic,
                             dg.surface_integral, dg)
