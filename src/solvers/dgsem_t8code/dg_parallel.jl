@@ -116,17 +116,19 @@ function init_mpi_neighbor_connectivity(mpi_mesh_info, mesh::ParallelT8codeMesh)
     mortar_ids = collect(1:nmpimortars(mpi_mortars))[p]
 
     # For each neighbor rank, init connectivity data structures
-    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
-    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
+    mpi_neighbor_interfaces = VectorOfArray(Vector{Vector{Int}}(undef,
+                                                                length(mpi_neighbor_ranks)))
+    mpi_neighbor_mortars = VectorOfArray(Vector{Vector{Int}}(undef,
+                                                             length(mpi_neighbor_ranks)))
     for (index, rank) in enumerate(mpi_neighbor_ranks)
-        mpi_neighbor_interfaces[index] = interface_ids[findall(==(rank),
-                                                               neighbor_ranks_interface)]
-        mpi_neighbor_mortars[index] = mortar_ids[findall(x -> (rank in x),
-                                                         neighbor_ranks_mortar)]
+        mpi_neighbor_interfaces.u[index] = interface_ids[findall(==(rank),
+                                                                 neighbor_ranks_interface)]
+        mpi_neighbor_mortars.u[index] = mortar_ids[findall(x -> (rank in x),
+                                                           neighbor_ranks_mortar)]
     end
 
     # Check that all interfaces were counted exactly once
-    @assert mapreduce(length, +, mpi_neighbor_interfaces; init = 0) ==
+    @assert mapreduce(length, +, mpi_neighbor_interfaces.u; init = 0) ==
             nmpiinterfaces(mpi_interfaces)
 
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
