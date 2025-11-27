@@ -192,7 +192,7 @@ function calc_gradient!(gradients, u_transformed, t,
                             equations_parabolic, dg.surface_integral, dg)
     end
 
-    # Calculate boundary fluxes.
+    # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
         calc_gradient_boundary_flux!(cache, t, boundary_conditions_parabolic,
                                      mesh, equations_parabolic, dg.surface_integral,
@@ -216,13 +216,13 @@ function calc_gradient!(gradients, u_transformed, t,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
-    # Calculate surface integrals.
+    # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
                                         dg, cache)
     end
 
-    # Apply Jacobian from mapping to reference element.
+    # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg,
                                   cache)
