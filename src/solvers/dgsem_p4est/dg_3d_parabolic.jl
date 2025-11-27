@@ -222,7 +222,7 @@ end
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function calc_volume_integral!(du, flux_viscous::Tuple,
+function calc_volume_integral!(du, flux_viscous,
                                mesh::P4estMesh{3},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
