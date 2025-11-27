@@ -1,7 +1,7 @@
 mutable struct ViscousContainer3D{uEltype <: Real}
     u_transformed::Array{uEltype, 5}
-    gradients::Tuple{Array{uEltype, 5}, Array{uEltype, 5}, Array{uEltype, 5}}
-    flux_viscous::Tuple{Array{uEltype, 5}, Array{uEltype, 5}, Array{uEltype, 5}}
+    gradients::NTuple{3, Array{uEltype, 5}}
+    flux_viscous::NTuple{3, Array{uEltype, 5}}
 
     # internal `resize!`able storage
     _u_transformed::Vector{uEltype}
