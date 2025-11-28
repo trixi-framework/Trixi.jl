@@ -320,7 +320,7 @@ export ode_norm, ode_unstable_check
 
 export convergence_test,
        jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
-       linear_structure
+       linear_structure, linear_structure_parabolic
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 
