@@ -43,7 +43,7 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <:
         @assert semi_acoustics.solver.basis == semi_euler.solver.basis
 
         performance_counter = PerformanceCounter()
-        new(semi_acoustics, semi_euler, performance_counter, cache)
+        return new(semi_acoustics, semi_euler, performance_counter, cache)
     end
 end
 

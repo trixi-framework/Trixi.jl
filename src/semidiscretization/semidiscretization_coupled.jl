@@ -21,6 +21,18 @@ mutable struct SemidiscretizationCoupled{S, Indices, EquationList} <:
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
+
+    function SemidiscretizationCoupled{S, Indices,
+                                       EquationList}(semis,
+                                                     u_indices) where {
+                                                                       S, Indices,
+                                                                       EquationList
+                                                                       }
+        @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
+
+        performance_counter = PerformanceCounter()
+        return new(semis, u_indices, performance_counter)
+    end
 end
 
 """
@@ -29,8 +41,6 @@ end
 Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
 """
 function SemidiscretizationCoupled(semis...)
-    @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
-
     # Number of coefficients for each semidiscretization
     n_coefficients = zeros(Int, length(semis))
     for i in 1:length(semis)
@@ -47,11 +57,7 @@ function SemidiscretizationCoupled(semis...)
         allocate_coupled_boundary_conditions(semis[i])
     end
 
-    performance_counter = PerformanceCounter()
-
-    SemidiscretizationCoupled{typeof(semis), typeof(u_indices),
-                              typeof(performance_counter)}(semis, u_indices,
-                                                           performance_counter)
+    return SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupled)

@@ -27,6 +27,32 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
     const solver::Solver
     cache::Cache
     performance_counter::PerformanceCounter
+
+    function SemidiscretizationHyperbolic{Mesh, Equations,
+                                          InitialCondition, BoundaryConditions,
+                                          SourceTerms, Solver, Cache}(mesh, equations,
+                                                                      initial_condition,
+                                                                      boundary_conditions,
+                                                                      source_terms,
+                                                                      solver,
+                                                                      cache) where {
+                                                                                    Mesh,
+                                                                                    Equations,
+                                                                                    InitialCondition,
+                                                                                    BoundaryConditions,
+                                                                                    SourceTerms,
+                                                                                    Solver,
+                                                                                    Cache
+                                                                                    }
+        @assert ndims(mesh) == ndims(equations)
+
+        performance_counter = PerformanceCounter()
+
+        return new(mesh, equations,
+                   initial_condition, boundary_conditions,
+                   source_terms, solver, cache,
+                   performance_counter)
+    end
 end
 
 """
@@ -44,25 +70,21 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT = real(solver), uEltype = RealT)
-    @assert ndims(mesh) == ndims(equations)
-
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
-    performance_counter = PerformanceCounter()
-
-    SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
-                                 typeof(initial_condition),
-                                 typeof(_boundary_conditions), typeof(source_terms),
-                                 typeof(solver), typeof(cache)}(mesh, equations,
-                                                                initial_condition,
-                                                                _boundary_conditions,
-                                                                source_terms, solver,
-                                                                cache,
-                                                                performance_counter)
+    return SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
+                                        typeof(initial_condition),
+                                        typeof(_boundary_conditions),
+                                        typeof(source_terms),
+                                        typeof(solver), typeof(cache)}(mesh, equations,
+                                                                       initial_condition,
+                                                                       _boundary_conditions,
+                                                                       source_terms,
+                                                                       solver, cache)
 end
 
 # @eval due to @muladd
