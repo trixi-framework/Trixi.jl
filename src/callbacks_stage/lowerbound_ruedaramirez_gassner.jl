@@ -104,64 +104,60 @@ mutable struct LowerBoundPreservingLimiterRuedaRamirezGassner{RealT <: Real,
     du_dalpha_node_threaded::vType # Derivative of solution w.r.t. alpha
     dp_du_node_threaded::vType     # Derivative of pressure w.r.t. conserved variables
     u_newton_node_threaded::vType  # Temporary storage for Newton update
-end
 
-function LowerBoundPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
-                                                        beta_rho = 0.1, beta_p = 0.1,
-                                                        near_zero_tol = 1e-9,
-                                                        max_iterations = 10,
-                                                        root_tol = 1e-13, damping = 0.8,
-                                                        use_density_init = true,
-                                                        surface_flux_fv = semi.solver.surface_integral.surface_flux,
-                                                        volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
-                                                        alpha_max = semi.solver.volume_integral.indicator.alpha_max +
-                                                                    0.1)
-    if beta_rho <= 0 || beta_rho > 1
-        throw(ArgumentError("`beta_rho` must be in (0, 1] to make the limiter work!"))
+    function LowerBoundPreservingLimiterRuedaRamirezGassner(semi::AbstractSemidiscretization;
+                                                            beta_rho = 0.1,
+                                                            beta_p = 0.1,
+                                                            near_zero_tol = 1e-9,
+                                                            max_iterations = 10,
+                                                            root_tol = 1e-13,
+                                                            damping = 0.8,
+                                                            use_density_init = true,
+                                                            surface_flux_fv = semi.solver.surface_integral.surface_flux,
+                                                            volume_flux_fv = semi.solver.volume_integral.volume_flux_fv,
+                                                            alpha_max = semi.solver.volume_integral.indicator.alpha_max +
+                                                                        0.1)
+        if beta_rho <= 0 || beta_rho > 1
+            throw(ArgumentError("`beta_rho` must be in (0, 1] to make the limiter work!"))
+        end
+        if beta_p <= 0 || beta_p > 1
+            throw(ArgumentError("`beta_p` must be in (0, 1] to make the limiter work!"))
+        end
+        if alpha_max > 1
+            throw(ArgumentError("`alpha_max` must be less than or equal to 1 to maintain convex combination property!"))
+        end
+
+        @unpack basis = semi.solver
+        @unpack equations = semi
+
+        volume_integral = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
+        solver_fv = DGSEM(basis, surface_flux_fv, volume_integral)
+
+        # Array for FV solution
+        u_fv_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+
+        n_vars = nvariables(equations)
+        RealT = real(solver_fv)
+        MVec = MVector{n_vars, RealT}
+
+        # Short thread-local vectors for storing temporary solutions and derivatives at a node
+        u_dg_node_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+        du_dalpha_node_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+        dp_du_node_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+        u_newton_node_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+
+        return new{RealT,
+                   typeof(solver_fv),
+                   typeof(u_fv_ode),
+                   typeof(u_dg_node_threaded)}(beta_rho, beta_p, alpha_max,
+                                               near_zero_tol, max_iterations, root_tol,
+                                               damping, use_density_init,
+                                               solver_fv, u_fv_ode,
+                                               u_dg_node_threaded,
+                                               du_dalpha_node_threaded,
+                                               dp_du_node_threaded,
+                                               u_newton_node_threaded)
     end
-    if beta_p <= 0 || beta_p > 1
-        throw(ArgumentError("`beta_p` must be in (0, 1] to make the limiter work!"))
-    end
-    if alpha_max > 1
-        throw(ArgumentError("`alpha_max` must be less than or equal to 1 to maintain convex combination property!"))
-    end
-
-    @unpack basis = semi.solver
-    @unpack equations = semi
-
-    volume_integral = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
-    solver_fv = DGSEM(basis, surface_flux_fv, volume_integral)
-
-    # Array for FV solution
-    u_fv_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
-
-    n_vars = nvariables(equations)
-    RealT = real(solver_fv)
-    MVec = MVector{n_vars, RealT}
-
-    # Short thread-local vectors for storing temporary solutions and derivatives at a node
-    u_dg_node_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
-    du_dalpha_node_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
-    dp_du_node_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
-    u_newton_node_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
-
-    return LowerBoundPreservingLimiterRuedaRamirezGassner{RealT,
-                                                          typeof(solver_fv),
-                                                          typeof(u_fv_ode),
-                                                          typeof(u_dg_node_threaded)}(beta_rho,
-                                                                                      beta_p,
-                                                                                      alpha_max,
-                                                                                      near_zero_tol,
-                                                                                      max_iterations,
-                                                                                      root_tol,
-                                                                                      damping,
-                                                                                      use_density_init,
-                                                                                      solver_fv,
-                                                                                      u_fv_ode,
-                                                                                      u_dg_node_threaded,
-                                                                                      du_dalpha_node_threaded,
-                                                                                      dp_du_node_threaded,
-                                                                                      u_newton_node_threaded)
 end
 
 # Required to be used as `stage_callback` in `Trixi.SimpleIntegratorSSP`
