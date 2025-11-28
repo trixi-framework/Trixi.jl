@@ -25,8 +25,8 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <:
        AbstractSemidiscretization
     semi_acoustics::SemiAcoustics
     semi_euler::SemiEuler
-    performance_counter::PerformanceCounter
     cache::Cache
+    performance_counter::PerformanceCounter
 
     function SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache}(semi_acoustics,
                                                                                semi_euler,
@@ -43,7 +43,7 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <:
         @assert semi_acoustics.solver.basis == semi_euler.solver.basis
 
         performance_counter = PerformanceCounter()
-        return new(semi_acoustics, semi_euler, performance_counter, cache)
+        return new(semi_acoustics, semi_euler, cache, performance_counter)
     end
 end
 
