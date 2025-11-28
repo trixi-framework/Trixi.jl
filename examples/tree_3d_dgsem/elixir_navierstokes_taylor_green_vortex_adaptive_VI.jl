@@ -40,7 +40,7 @@ end
 initial_condition = initial_condition_taylor_green_vortex
 
 surface_flux = flux_hlle
-volume_flux = flux_ranocha
+volume_flux = flux_chandrashekar
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
@@ -49,7 +49,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
 # `threshold` governs the tolerated entropy increase due to the weak-form
 # volume integral before switching to the stabilized version
-indicator = IndicatorEntropyIncrease(threshold = 1e-9)
+indicator = IndicatorEntropyIncrease(threshold = 1e-3)
 # Adaptive volume integral using the entropy increase indicator to perform the 
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(indicator;
@@ -78,18 +78,15 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 10
+analysis_interval = 2
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      save_analysis = true,
                                      analysis_errors = Symbol[],
                                      analysis_integrals = (energy_kinetic,
                                                            enstrophy))
 
-alive_callback = AliveCallback(analysis_interval = analysis_interval)
-
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback)
+                        analysis_callback)
 
 ###############################################################################
 # run the simulation
