@@ -57,12 +57,11 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
     # (not caused by MPI), see
     # https://github.com/JuliaSIMD/LoopVectorization.jl/issues/543
     # Thus, we do not run this test on macOS with ARM processors.
-    ON_APPLE_ARM = Sys.isapple() && (Sys.ARCH === :aarch64)
-    if ON_APPLE_ARM
-        # Show a hint in the test summary that there is a broken test
-        @test_skip false
-    else
-        @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
+    @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
+        if Sys.isapple() && (Sys.ARCH === :aarch64)
+            # Show a hint in the test summary that there is a broken test
+            @test_skip false
+        else
             @test_trixi_include(joinpath(EXAMPLES_DIR,
                                          "elixir_advection_amr_unstructured_curved.jl"),
                                 l2=[1.6163120948209677e-5],
