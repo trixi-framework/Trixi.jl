@@ -82,8 +82,7 @@ jobs:
           - paper_self_gravitating_gas_dynamics
           - misc_part1
           - misc_part2
-          - performance_specializations_part1
-          - performance_specializations_part2
+          - performance_specializations
           - mpi
           - threaded
         include:
