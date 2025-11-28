@@ -168,7 +168,8 @@ export AcousticPerturbationEquations2D,
        CompressibleEulerEquationsQuasi1D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
-       IdealGlmMhdMultiIonEquations2D, IdealGlmMhdMultiIonEquations3D,
+       IdealMhdMultiIonEquations1D, IdealGlmMhdMultiIonEquations2D,
+       IdealGlmMhdMultiIonEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D,
        HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
@@ -253,6 +254,7 @@ export entropy, energy_total, energy_kinetic, energy_internal,
        enstrophy, vorticity
 export lake_at_rest_error
 export ncomponents, eachcomponent
+export get_component
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
        P4estMeshView, P4estMeshCubedSphere, T8codeMesh
