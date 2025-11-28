@@ -8,8 +8,46 @@
 @doc raw"""
     IdealGlmMhdEquations2D(gamma)
 
-The ideal compressible GLM-MHD equations for an ideal gas with ratio of
-specific heats `gamma` in two space dimensions.
+The ideal compressible GLM-MHD equations
+```math
+\frac{\partial}{\partial t}
+\begin{pmatrix}
+\rho \\ \rho \mathbf{v} \\ \rho e \\ \mathbf{B} \\ \psi
+\end{pmatrix}
++
+\nabla \cdot
+\begin{pmatrix}
+\rho \mathbf{v} \\ \rho (\mathbf{v} \otimes \mathbf{v}) + (p + \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2) \underline{I} - \mathbf{B} \otimes \mathbf{B} \\
+\mathbf{v} (\frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 + \frac{\gamma p}{\gamma - 1} + \Vert \mathbf{B} \Vert_2 ^2) - \mathbf{B} (\mathbf{v} \cdot \mathbf{B}) + c_h \psi \mathbf{B} \\
+\mathbf{v} \otimes \mathbf{B} - \mathbf{B} \otimes \mathbf{v} + c_h \psi \underline{I} \\
+c_h \mathbf{B}
+\end{pmatrix}
++
+(\nabla \cdot \mathbf{B})
+\begin{pmatrix}
+0 \\ \mathbf{B} \\ \mathbf{v} \cdot \mathbf{B} \\ \mathbf{v} \\ 0
+\end{pmatrix}
++
+(\nabla \psi) \cdot
+\begin{pmatrix}
+\mathbf{0} \\ 0 \\ \mathbf{v} \cdot \psi \\ 0 \\ \mathbf{v}
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ \mathbf{0} \\ 0 \\ \mathbf{0} \\ 0
+\end{pmatrix}
+```
+for calorically perfect gases in two space dimensions.
+Here, ``\mathbf{v}`` is the velocity, ``\mathbf{B}`` the magnetic field, ``c_h`` the hyperbolic divergence cleaning speed,
+``\psi`` the generalized Lagrangian Multiplier (GLM),
+``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - \frac{1}{2} \psi^2 \right)
+```
+the pressure, ``\gamma`` the total heat capacity ratio and ``\underline{I}`` the ``3\times 3`` identity matrix.
+
+The remaining variables like the specific heats at constant volume `cv` or the specific heats at
+constant pressure `cp` are then calculated considering a calorically perfect gas.
 """
 struct IdealGlmMhdEquations2D{RealT <: Real} <:
        AbstractIdealGlmMhdEquations{2, 9}
