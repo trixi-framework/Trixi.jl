@@ -64,7 +64,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
     else
         @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
             @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                        "elixir_advection_amr_unstructured_curved.jl"),
+                                         "elixir_advection_amr_unstructured_curved.jl"),
                                 l2=[1.6163120948209677e-5],
                                 linf=[0.0010572201890564834],
                                 tspan=(0.0, 1.0),)
