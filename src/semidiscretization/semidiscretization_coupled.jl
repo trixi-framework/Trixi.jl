@@ -22,6 +22,9 @@ mutable struct SemidiscretizationCoupled{S, Indices} <:
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
 
+    # We use an inner constructor to ensure that all semidiscretizations
+    # satisfy some invariants that are assumed throughout the code, e.g.,
+    # that the dimensions match.
     function SemidiscretizationCoupled{S, Indices}(semis,
                                                    u_indices) where {
                                                                      S, Indices

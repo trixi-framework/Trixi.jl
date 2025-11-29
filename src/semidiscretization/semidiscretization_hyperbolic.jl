@@ -28,6 +28,9 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
     cache::Cache
     performance_counter::PerformanceCounter
 
+    # We use an inner constructor to ensure that all semidiscretizations
+    # satisfy some invariants that are assumed throughout the code, e.g.,
+    # that the dimensions of the `mesh` and `equations` match.
     function SemidiscretizationHyperbolic{Mesh, Equations,
                                           InitialCondition, BoundaryConditions,
                                           SourceTerms, Solver, Cache}(mesh, equations,

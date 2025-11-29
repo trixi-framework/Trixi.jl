@@ -40,6 +40,10 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
 
     performance_counter::PerformanceCounterList{2}
 
+    # We use an inner constructor to ensure that all semidiscretizations
+    # satisfy some invariants that are assumed throughout the code, e.g.,
+    # that the dimensions match and that the `performance_counter` is
+    # set up correctly.
     function SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic,
                                                    InitialCondition,
                                                    BoundaryConditions,
