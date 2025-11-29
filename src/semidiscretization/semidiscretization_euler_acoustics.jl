@@ -25,9 +25,12 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <:
        AbstractSemidiscretization
     semi_acoustics::SemiAcoustics
     semi_euler::SemiEuler
-    performance_counter::PerformanceCounter
     cache::Cache
+    performance_counter::PerformanceCounter
 
+    # We use an inner constructor to ensure that all semidiscretizations
+    # satisfy some invariants that are assumed throughout the code, e.g.,
+    # that the meshes and bases match.
     function SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache}(semi_acoustics,
                                                                                semi_euler,
                                                                                cache) where {
@@ -43,7 +46,7 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <:
         @assert semi_acoustics.solver.basis == semi_euler.solver.basis
 
         performance_counter = PerformanceCounter()
-        new(semi_acoustics, semi_euler, performance_counter, cache)
+        return new(semi_acoustics, semi_euler, cache, performance_counter)
     end
 end
 

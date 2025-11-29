@@ -39,6 +39,57 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
     cache_parabolic::CacheParabolic
 
     performance_counter::PerformanceCounterList{2}
+
+    # We use an inner constructor to ensure that all semidiscretizations
+    # satisfy some invariants that are assumed throughout the code, e.g.,
+    # that the dimensions match and that the `performance_counter` is
+    # set up correctly.
+    function SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic,
+                                                   InitialCondition,
+                                                   BoundaryConditions,
+                                                   BoundaryConditionsParabolic,
+                                                   SourceTerms,
+                                                   Solver, SolverParabolic,
+                                                   Cache, CacheParabolic}(mesh,
+                                                                          equations,
+                                                                          equations_parabolic,
+                                                                          initial_condition,
+                                                                          boundary_conditions,
+                                                                          boundary_conditions_parabolic,
+                                                                          source_terms,
+                                                                          solver,
+                                                                          solver_parabolic,
+                                                                          cache,
+                                                                          cache_parabolic) where {
+                                                                                                  Mesh,
+                                                                                                  Equations,
+                                                                                                  EquationsParabolic,
+                                                                                                  InitialCondition,
+                                                                                                  BoundaryConditions,
+                                                                                                  BoundaryConditionsParabolic,
+                                                                                                  SourceTerms,
+                                                                                                  Solver,
+                                                                                                  SolverParabolic,
+                                                                                                  Cache,
+                                                                                                  CacheParabolic
+                                                                                                  }
+        @assert ndims(mesh) == ndims(equations)
+        @assert ndims(mesh) == ndims(equations_parabolic)
+
+        if !(nvariables(equations) == nvariables(equations_parabolic))
+            throw(ArgumentError("Current implementation of viscous terms requires the same number of conservative and gradient variables."))
+        end
+
+        performance_counter = PerformanceCounterList{2}(false)
+
+        return new(mesh, equations, equations_parabolic,
+                   initial_condition,
+                   boundary_conditions, boundary_conditions_parabolic,
+                   source_terms,
+                   solver, solver_parabolic,
+                   cache, cache_parabolic,
+                   performance_counter)
+    end
 end
 
 """
@@ -63,13 +114,6 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
     equations, equations_parabolic = equations
     boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
-    @assert ndims(mesh) == ndims(equations)
-    @assert ndims(mesh) == ndims(equations_parabolic)
-
-    if !(nvariables(equations) == nvariables(equations_parabolic))
-        throw(ArgumentError("Current implementation of viscous terms requires the same number of conservative and gradient variables."))
-    end
-
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
                                                       mesh, solver, cache)
@@ -82,8 +126,6 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
     _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
                                                                 mesh, solver, cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions_parabolic)
-
-    performance_counter = PerformanceCounterList{2}(false)
 
     return SemidiscretizationHyperbolicParabolic{typeof(mesh),
                                                  typeof(equations),
@@ -105,8 +147,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                                           solver,
                                                                           solver_parabolic,
                                                                           cache,
-                                                                          cache_parabolic,
-                                                                          performance_counter)
+                                                                          cache_parabolic)
 end
 
 # Create a new semidiscretization but change some parameters compared to the input.
