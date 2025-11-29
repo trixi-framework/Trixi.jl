@@ -6,3 +6,9 @@ yas_style_nesting = true
 
 # Align struct fields for better readability of large struct definitions
 align_struct_field = true
+
+# Enforce explicit `return` statements at the end of functions.
+# Option: https://domluna.github.io/JuliaFormatter.jl/dev/#always_use_return
+# Motivation: CodeCov seems to profit from this, see e.g.
+# https://github.com/trixi-framework/Trixi.jl/pull/2657
+always_use_return = true

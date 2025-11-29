@@ -40,7 +40,9 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder = 
                       content)
     end
     Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder);
-                      preprocess = preprocess_docs,)
+                       preprocess = preprocess_docs,)
+                       
+    return nothing
 end
 
 # Create tutorials with Literate.jl
