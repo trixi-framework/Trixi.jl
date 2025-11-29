@@ -409,4 +409,25 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 
     return nothing
 end
+
+# `rhs!` for partitioned Runge-Kutta methods, such as the Paired Explicit Runge-Kutta (PERK) methods
+function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t,
+              element_indices, interface_indices, boundary_indices, mortar_indices)
+    @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
+
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
+
+    # TODO: Taal decide, do we need to pass the mesh?
+    time_start = time_ns()
+    @trixi_timeit timer() "rhs! (part.)" rhs!(du, u, t, mesh, equations,
+                                              boundary_conditions, source_terms,
+                                              solver, cache,
+                                              element_indices, interface_indices,
+                                              boundary_indices, mortar_indices)
+    runtime = time_ns() - time_start
+    put!(semi.performance_counter, runtime)
+
+    return nothing
+end
 end # @muladd
