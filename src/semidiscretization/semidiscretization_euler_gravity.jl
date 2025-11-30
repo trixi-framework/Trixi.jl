@@ -166,8 +166,7 @@ function remake(semi::SemidiscretizationEulerGravity;
     return SemidiscretizationEulerGravity{typeof(semi_euler), typeof(semi_gravity),
                                           typeof(parameters), typeof(cache)}(semi_euler,
                                                                              semi_gravity,
-                                                                             parameters,
-                                                                             cache)
+                                                                             parameters)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
