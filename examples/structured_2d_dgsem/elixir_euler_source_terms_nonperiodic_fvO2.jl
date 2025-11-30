@@ -15,7 +15,7 @@ boundary_conditions = (x_neg = boundary_condition,
                        y_neg = boundary_condition,
                        y_pos = boundary_condition)
 
-polydeg = 8
+polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 surface_flux = flux_hll
 
