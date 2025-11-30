@@ -27,25 +27,13 @@ struct SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache} <:
     semi_euler::SemiEuler
     cache::Cache
     performance_counter::PerformanceCounter
-
-    function SemidiscretizationEulerAcoustics{SemiAcoustics, SemiEuler, Cache}(semi_acoustics,
-                                                                               semi_euler,
-                                                                               cache) where {
-                                                                                             SemiAcoustics,
-                                                                                             SemiEuler,
-                                                                                             Cache
-                                                                                             }
-
-        # Currently both semidiscretizations need to use a shared mesh
-        @assert semi_acoustics.mesh == semi_euler.mesh
-
-        # Check if both solvers use the same polynomial basis
-        @assert semi_acoustics.solver.basis == semi_euler.solver.basis
-
-        performance_counter = PerformanceCounter()
-        return new(semi_acoustics, semi_euler, cache, performance_counter)
-    end
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics,
                                           semi_euler::SemiEuler;
@@ -56,12 +44,20 @@ function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics,
           SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
           SemiEuler <:
           SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations}}
+    # Currently both semidiscretizations need to use a shared mesh
+    @assert semi_acoustics.mesh == semi_euler.mesh
+
+    # Check if both solvers use the same polynomial basis
+    @assert semi_acoustics.solver.basis == semi_euler.solver.basis
+
     cache = create_cache(SemidiscretizationEulerAcoustics, source_region, weights,
                          mesh_equations_solver_cache(semi_acoustics)...)
 
+    performance_counter = PerformanceCounter()
+
     return SemidiscretizationEulerAcoustics{typeof(semi_acoustics), typeof(semi_euler),
                                             typeof(cache)}(semi_acoustics, semi_euler,
-                                                           cache)
+                                                           cache, performance_counter)
 end
 
 function create_cache(::Type{SemidiscretizationEulerAcoustics}, source_region, weights,

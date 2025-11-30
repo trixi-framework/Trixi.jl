@@ -21,17 +21,13 @@ mutable struct SemidiscretizationCoupled{S, Indices} <:
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
-
-    function SemidiscretizationCoupled{S, Indices}(semis,
-                                                   u_indices) where {
-                                                                     S, Indices
-                                                                     }
-        @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
-
-        performance_counter = PerformanceCounter()
-        return new(semis, u_indices, performance_counter)
-    end
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationCoupled(semis...)
@@ -39,6 +35,8 @@ end
 Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
 """
 function SemidiscretizationCoupled(semis...)
+    @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
+
     # Number of coefficients for each semidiscretization
     n_coefficients = zeros(Int, length(semis))
     for i in 1:length(semis)
@@ -55,7 +53,10 @@ function SemidiscretizationCoupled(semis...)
         allocate_coupled_boundary_conditions(semis[i])
     end
 
-    return SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices)
+    performance_counter = PerformanceCounter()
+
+    return SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices,
+                                                                       performance_counter)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupled)

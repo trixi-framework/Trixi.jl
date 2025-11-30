@@ -27,33 +27,13 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
     const solver::Solver
     cache::Cache
     performance_counter::PerformanceCounter
-
-    function SemidiscretizationHyperbolic{Mesh, Equations,
-                                          InitialCondition, BoundaryConditions,
-                                          SourceTerms, Solver, Cache}(mesh, equations,
-                                                                      initial_condition,
-                                                                      boundary_conditions,
-                                                                      source_terms,
-                                                                      solver,
-                                                                      cache) where {
-                                                                                    Mesh,
-                                                                                    Equations,
-                                                                                    InitialCondition,
-                                                                                    BoundaryConditions,
-                                                                                    SourceTerms,
-                                                                                    Solver,
-                                                                                    Cache
-                                                                                    }
-        @assert ndims(mesh) == ndims(equations)
-
-        performance_counter = PerformanceCounter()
-
-        return new(mesh, equations,
-                   initial_condition, boundary_conditions,
-                   source_terms, solver, cache,
-                   performance_counter)
-    end
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -70,11 +50,15 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT = real(solver), uEltype = RealT)
+    @assert ndims(mesh) == ndims(equations)
+
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
+
+    performance_counter = PerformanceCounter()
 
     return SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
                                         typeof(initial_condition),
@@ -84,7 +68,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                                                        initial_condition,
                                                                        _boundary_conditions,
                                                                        source_terms,
-                                                                       solver, cache)
+                                                                       solver, cache,
+                                                                       performance_counter)
 end
 
 # @eval due to @muladd
