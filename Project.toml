@@ -71,7 +71,7 @@ TrixiSparseConnectivityTracerExt = "SparseConnectivityTracer"
 [compat]
 Accessors = "0.1.42"
 Adapt = "4.4"
-CUDA = "5.8"
+CUDA = "5.8.2"
 CodeTracking = "2.0.2"
 ConstructionBase = "1.6"
 Convex = "0.16"
