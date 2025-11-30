@@ -163,10 +163,7 @@ function remake(semi::SemidiscretizationEulerGravity;
     u_tmp2_ode = similar(u_ode)
     cache = (; u_ode, du_ode, u_tmp1_ode, u_tmp2_ode)
 
-    return SemidiscretizationEulerGravity{typeof(semi_euler), typeof(semi_gravity),
-                                          typeof(parameters), typeof(cache)}(semi_euler,
-                                                                             semi_gravity,
-                                                                             parameters)
+    return SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
