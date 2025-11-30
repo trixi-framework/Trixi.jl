@@ -38,8 +38,8 @@ end
                         real_type=Float32,
                         RealT=Float32,
                         advection_velocity=(Float32(0.2), Float32(-0.7)),
-                        coordinates_min = (-1.0f0, -1.0f0),
-                        coordinates_max = (1.0f0, 1.0f0))
+                        coordinates_min=(-1.0f0, -1.0f0),
+                        coordinates_max=(1.0f0, 1.0f0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
