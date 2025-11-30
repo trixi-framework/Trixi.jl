@@ -356,6 +356,107 @@ end
     return nothing
 end
 
+@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
+                              mesh::StructuredMesh{2},
+                              have_nonconservative_terms::False, equations,
+                              volume_flux_fv, dg::DGSEM, element, cache,
+                              x_interfaces, reconstruction_mode, slope_limiter)
+    @unpack contravariant_vectors = cache.elements
+    @unpack weights, derivative_matrix = dg.basis
+
+    fstar1_L[:, 1, :] .= zero(eltype(fstar1_L))
+    fstar1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_L))
+    fstar1_R[:, 1, :] .= zero(eltype(fstar1_R))
+    fstar1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_R))
+
+    for j in eachnode(dg)
+        # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
+        # See `calcflux_fvO2()` in `solvers/dgsem_tree/dg_1d.jl`` for a schematic
+
+        # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
+        # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
+
+        normal_direction = get_contravariant_vector(1, contravariant_vectors,
+                                                    1, j, element)
+
+        for i in 2:nnodes(dg)
+            # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
+            # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+            u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
+                         equations)
+            u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
+                            equations)
+            u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
+                         equations)
+            # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
+            # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+            u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
+                                        element), equations)
+
+            ## Reconstruct values at interfaces with limiting ##
+            u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                           x_interfaces, i,
+                                           slope_limiter, dg)
+
+            for m in 1:nnodes(dg)
+                normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
+                                    get_contravariant_vector(1, contravariant_vectors,
+                                                             m, j, element)
+            end
+
+            # Compute the contravariant flux
+            ## Convert primitive variables back to conservative variables ##
+            contravariant_flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+                                                normal_direction, equations)
+
+            set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j)
+            set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j)
+        end
+    end
+
+    fstar2_L[:, :, 1] .= zero(eltype(fstar2_L))
+    fstar2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_L))
+    fstar2_R[:, :, 1] .= zero(eltype(fstar2_R))
+    fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
+
+    for i in eachnode(dg)
+        normal_direction = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, 1, element)
+
+        for j in 2:nnodes(dg)
+            u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
+                         equations)
+            u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, element),
+                            equations)
+            u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
+                            equations)
+            u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
+                                        element), equations)
+
+            ## Reconstruct values at interfaces with limiting ##
+            u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                        x_interfaces, j,
+                                        slope_limiter, dg)
+
+            for m in 1:nnodes(dg)
+                normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
+                                    get_contravariant_vector(2, contravariant_vectors,
+                                                             i, m, element)
+            end
+
+            # Compute the contravariant flux by taking the scalar product of the
+            # normal vector and the flux vector
+            contravariant_flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+                                                normal_direction, equations)
+
+            set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j)
+            set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j)
+        end
+    end
+
+    return nothing
+end
+
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
                               mesh::Union{StructuredMesh{2}, StructuredMesh{2},
                                           UnstructuredMesh2D,
