@@ -36,11 +36,10 @@ end
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
                         real_type=Float32,
+                        RealT=Float32,
                         advection_velocity=(Float32(0.2), Float32(-0.7)),
-                        mesh=P4estMesh(trees_per_dimension, polydeg = 3,
-                                       coordinates_min = (-1.0f0, -1.0f0),
-                                       coordinates_max = (1.0f0, 1.0f0),
-                                       initial_refinement_level = 1, RealT = Float32))
+                        coordinates_min = (-1.0f0, -1.0f0),
+                        coordinates_max = (1.0f0, 1.0f0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
