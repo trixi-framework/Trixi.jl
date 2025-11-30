@@ -488,7 +488,7 @@ and for a `MatrixOperator` only factorized once.
 function linear_structure_parabolic(semi::SemidiscretizationHyperbolicParabolic;
                                     t0 = zero(real(semi)))
     if have_constant_diffusivity(semi.equations_parabolic) == False()
-        throw(ArgumentError("`linear_structure` expects linear equations."))
+        throw(ArgumentError("`linear_structure_parabolic` expects equations with constant diffusive terms."))
     end
 
     # allocate memory
