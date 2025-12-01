@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    IdealGlmMhdMulticomponentEquations2D(gammas, gas_constants)
+    IdealGlmMhdMulticomponentEquations2D(; gammas, gas_constants)
 
 The ideal compressible multicomponent GLM-MHD equations
 ```math
