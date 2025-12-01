@@ -284,7 +284,11 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, u::AbstractArray{<:Any, 3},
+# Compute the normal flux for the FV method on cartesian subcells.
+# See Hennemann, Rueda-Ramirez, Hindenlang, Gassner (2020)
+# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
+# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+@inline function calcflux_fv!(fstar1_L, fstar1_R, u,
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
@@ -304,7 +308,7 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, u::AbstractArray{<:Any, 3},
+@inline function calcflux_fv!(fstar1_L, fstar1_R, u,
                               mesh::TreeMesh{1},
                               have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
@@ -337,7 +341,11 @@ end
     return nothing
 end
 
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, u::AbstractArray{<:Any, 3},
+# Compute the normal flux for the second-order FV method on cartesian subcells.
+# See Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021)
+# "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. Part II: Subcell finite volume shock capturing"
+# [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+@inline function calcflux_fvO2!(fstar1_L, fstar1_R, u,
                                 mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,

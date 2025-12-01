@@ -349,13 +349,13 @@ end
     return nothing
 end
 
-# Computing the normal vector for the FV method on curvilinear subcells.
+# Compute the normal flux for the FV method on curvilinear subcells.
 # To fulfill free-stream preservation we use the explicit formula B.53 in Appendix B.4
 # by Hennemann, Rueda-Ramirez, Hindenlang, Gassner (2020)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
-                              fstar3_R, u,
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                              fstar3_L, fstar3_R, u,
                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                           T8codeMesh{3}},
                               have_nonconservative_terms::False,
@@ -379,7 +379,7 @@ end
             u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
             # Compute subcell volume operator for the finite volume flux,
-            # see (14) from the paper cited above.
+            # see equation (14) from the paper cited above.
             # The `weights` correspond to the matrix M^{-1} and `derivative_matrix` is Δ.
             for m in eachnode(dg)
                 normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
@@ -452,8 +452,8 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
-                              fstar3_R, u,
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                              fstar3_L, fstar3_R, u,
                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                           T8codeMesh{3}},
                               have_nonconservative_terms::True,
@@ -479,7 +479,7 @@ end
             u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
             # Compute subcell volume operator for the finite volume flux,
-            # see (14) from the paper cited above.
+            # see equation (14) from the paper cited above.
             # The `weights` correspond to the matrix M^{-1} and `derivative_matrix` is Δ.
             for m in eachnode(dg)
                 normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
