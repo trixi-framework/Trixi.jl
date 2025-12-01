@@ -323,17 +323,6 @@ end
     return nothing
 end
 
-#     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  have_nonconservative_terms::False, equations,
-#                  volume_flux_fv, dg, element)
-#
-# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
-#
-# # Arguments
-# - `fstar1_L::AbstractArray{<:Real, 3}`
-# - `fstar1_R::AbstractArray{<:Real, 3}`
-# - `fstar2_L::AbstractArray{<:Real, 3}`
-# - `fstar2_R::AbstractArray{<:Real, 3}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               u::AbstractArray{<:Any, 4},
                               mesh::TreeMesh{2},
@@ -368,18 +357,6 @@ end
     return nothing
 end
 
-#     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  have_nonconservative_terms::True, equations,
-#                  volume_flux_fv, dg, element)
-#
-# Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
-#
-# # Arguments
-# - `fstar1_L::AbstractArray{<:Real, 3}`:
-# - `fstar1_R::AbstractArray{<:Real, 3}`:
-# - `fstar2_L::AbstractArray{<:Real, 3}`:
-# - `fstar2_R::AbstractArray{<:Real, 3}`:
-# - `u_leftright::AbstractArray{<:Real, 4}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               u::AbstractArray{<:Any, 4},
                               mesh::TreeMesh{2},

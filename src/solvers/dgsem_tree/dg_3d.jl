@@ -304,7 +304,6 @@ end
     return nothing
 end
 
-# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
                               mesh::TreeMesh{3}, have_nonconservative_terms::False,
@@ -352,7 +351,6 @@ end
     return nothing
 end
 
-# Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
                               mesh::TreeMesh{3},

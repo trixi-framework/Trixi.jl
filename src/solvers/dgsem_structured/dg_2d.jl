@@ -310,7 +310,10 @@ end
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            for m in 1:nnodes(dg)
+            # Compute subcell volume operator for the finite volume flux,
+            # see (14) from the paper cited above.
+            # The `weights` correspond to the matrix M^{-1} and `derivative_matrix` is Δ.
+            for m in eachnode(dg)
                 normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
                                     get_contravariant_vector(1, contravariant_vectors,
                                                              m, j, element)
@@ -337,7 +340,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            for m in 1:nnodes(dg)
+            for m in eachnode(dg)
                 normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
                                     get_contravariant_vector(2, contravariant_vectors,
                                                              i, m, element)
@@ -355,7 +358,6 @@ end
     return nothing
 end
 
-# Calculate the finite volume fluxes inside curvilinear elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               u::AbstractArray{<:Any, 4},
                               mesh::Union{StructuredMesh{2}, StructuredMesh{2},
@@ -382,6 +384,9 @@ end
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
+            # Compute subcell volume operator for the finite volume flux,
+            # see (14) from the paper cited above.
+            # The `weights` correspond to the matrix M^{-1} and `derivative_matrix` is Δ.
             for m in eachnode(dg)
                 normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
                                     get_contravariant_vector(1, contravariant_vectors,
