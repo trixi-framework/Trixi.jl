@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-mutable struct EntropyBoundedLimiter{RealT <: Real}
+struct EntropyBoundedLimiter{RealT <: Real}
     exp_entropy_decrease_max::RealT # < 0
 end
 
