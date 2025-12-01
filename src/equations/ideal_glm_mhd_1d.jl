@@ -26,15 +26,12 @@ The ideal compressible GLM-MHD equations
 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-for calorically perfect gases in one space dimension.
+for an ideal gas in one space dimension.
 Here, ``\mathbf{v}`` is the velocity, ``\mathbf{B}`` the magnetic field, ``e`` the specific total energy **rather than** specific internal energy, and
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 \right)
 ```
 the pressure and ``\gamma`` the heat capacity ratio.
-
-The remaining variables like the specific heats at constant volume `cv` or the specific heats at
-constant pressure `cp` are then calculated considering a calorically perfect gas.
 
 !!! note
     There is no divergence cleaning variable `psi` because the divergence-free constraint

@@ -37,7 +37,7 @@ c_h \mathbf{B}
 0 \\ \mathbf{0} \\ 0 \\ \mathbf{0} \\ 0
 \end{pmatrix}
 ```
-for calorically perfect gases in three space dimensions.
+for an ideal gas in three space dimensions.
 Here, ``\mathbf{v}`` is the velocity, ``\mathbf{B}`` the magnetic field, ``c_h`` the hyperbolic divergence cleaning speed,
 ``\psi`` the generalized Lagrangian Multiplier (GLM),
 ``e`` the specific total energy **rather than** specific internal energy, and
@@ -45,9 +45,6 @@ Here, ``\mathbf{v}`` is the velocity, ``\mathbf{B}`` the magnetic field, ``c_h``
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - \frac{1}{2} \psi^2 \right)
 ```
 the pressure, ``\gamma`` the total heat capacity ratio and ``\underline{I}`` the ``3\times 3`` identity matrix.
-
-The remaining variables like the specific heats at constant volume `cv` or the specific heats at
-constant pressure `cp` are then calculated considering a calorically perfect gas.
 """
 struct IdealGlmMhdEquations3D{RealT <: Real} <:
        AbstractIdealGlmMhdEquations{3, 9}
