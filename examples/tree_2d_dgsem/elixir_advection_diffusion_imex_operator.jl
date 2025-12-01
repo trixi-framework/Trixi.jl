@@ -1,5 +1,5 @@
 using OrdinaryDiffEqSDIRK
-using SciMLBase, SciMLOperators, SparseArrays, SciMLBase
+using SciMLBase, SciMLOperators, SparseArrays
 using Trixi
 
 ###############################################################################
