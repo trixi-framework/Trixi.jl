@@ -246,7 +246,8 @@ function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::Tree
                                              i, element)
 
             # Calculate viscous flux and store each component for later use
-            flux_viscous_node = flux(u_node, gradients_1_node, 1, equations_parabolic)
+            flux_viscous_node = flux(u_node, (gradients_1_node,), 1,
+                                     equations_parabolic)
             set_node_vars!(flux_viscous, flux_viscous_node, equations_parabolic, dg,
                            i, element)
         end
@@ -561,7 +562,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     return nothing
 end
 
-# This method is called when a SemidiscretizationHyperbolic is constructed.
+# This method is called when a `SemidiscretizationHyperbolicParabolic` is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache_parabolic(mesh::TreeMesh{1},

@@ -40,11 +40,10 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
                          dg, uEltype)
 
-    A2dp1_x = Array{uEltype, 2}
-    fstar1_L_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
-                                for _ in 1:Threads.nthreads()]
-    fstar1_R_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
-                                for _ in 1:Threads.nthreads()]
+    MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
+                  uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
+    fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; cache..., fstar1_L_threaded, fstar1_R_threaded)
 end
@@ -52,11 +51,13 @@ end
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::AbstractVolumeIntegralPureLGLFiniteVolume,
                       dg::DG, uEltype)
-    A2dp1_x = Array{uEltype, 2}
-    fstar1_L_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
-                                for _ in 1:Threads.nthreads()]
-    fstar1_R_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
-                                for _ in 1:Threads.nthreads()]
+    A2d = Array{uEltype, 2}
+    fstar1_L_threaded = A2d[A2d(undef, nvariables(equations),
+                                nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = A2d[A2d(undef, nvariables(equations),
+                                nnodes(dg) + 1)
+                            for _ in 1:Threads.maxthreadid()]
 
     return (; fstar1_L_threaded, fstar1_R_threaded)
 end
@@ -347,7 +348,7 @@ end
     fstar1_R[:, nnodes(dg) + 1] .= zero(eltype(fstar1_R))
 
     for i in 2:nnodes(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
-        #             Reference element:             
+        #             Reference element:
         #  -1 ------------------0------------------ 1 -> x
         # Gauss-Lobatto-Legendre nodes (schematic for k = 3):
         #   .          .                  .         .
@@ -367,9 +368,9 @@ end
         # piecewise linear solution in both subcells next to the subcell interface.
         # Since these subcell boundaries are not aligned with the DG nodes,
         # on each neighboring subcell two linear solutions are reconstructed => 4 point stencil.
-        # For the outer interfaces the stencil shrinks since we do not consider values 
+        # For the outer interfaces the stencil shrinks since we do not consider values
         # outside the element (this is a volume integral).
-        # 
+        #
         # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
         # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
@@ -637,7 +638,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     return nothing
 end
 
-function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function apply_jacobian!(du, mesh::TreeMesh{1},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 

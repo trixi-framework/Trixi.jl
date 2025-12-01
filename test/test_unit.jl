@@ -392,22 +392,6 @@ end
         @test Trixi.move!(c, 1, 2) == MyContainer([0, 1, 3])
     end
 
-    @testset "swap!" begin
-        c = MyContainer([1, 2])
-        @test Trixi.swap!(c, 1, 1) == MyContainer([1, 2]) # no-op
-
-        c = MyContainer([1, 2])
-        @test Trixi.swap!(c, 1, 2) == MyContainer([2, 1])
-    end
-
-    @testset "erase!" begin
-        c = MyContainer([1, 2])
-        @test Trixi.erase!(c, 2, 1) == MyContainer([1, 2]) # no-op
-
-        c = MyContainer([1, 2])
-        @test Trixi.erase!(c, 1) == MyContainer([0, 2])
-    end
-
     @testset "remove_shift!" begin
         c = MyContainer([1, 2, 3, 4])
         @test Trixi.remove_shift!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
@@ -417,19 +401,6 @@ end
 
         c = MyContainer([1, 2, 3, 4])
         @test Trixi.remove_shift!(c, 2) == MyContainer([1, 3, 4], 4)
-    end
-
-    @testset "remove_fill!" begin
-        c = MyContainer([1, 2, 3, 4])
-        @test Trixi.remove_fill!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
-
-        c = MyContainer([1, 2, 3, 4])
-        @test Trixi.remove_fill!(c, 2, 2) == MyContainer([1, 4, 3], 4)
-    end
-
-    @testset "reset!" begin
-        c = MyContainer([1, 2, 3])
-        @test Trixi.reset!(c, 2) == MyContainer(Int[], 2)
     end
 end
 
@@ -446,10 +417,22 @@ end
 end
 
 @timed_testset "DG L2 mortar container debug output" begin
-    c2d = Trixi.L2MortarContainer2D{Float64}(1, 1, 1)
+    c2d = Trixi.TreeL2MortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
-    c3d = Trixi.L2MortarContainer3D{Float64}(1, 1, 1)
+    c3d = Trixi.TreeL2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
+end
+
+@timed_testset "TreeContainer1D nnodes(container)" begin
+    capacity = 42
+    n_variables = 9
+
+    interface_container = Trixi.TreeInterfaceContainer1D{Float64}(capacity, n_variables)
+    @test nnodes(interface_container) == 1
+
+    boundary_container = Trixi.TreeBoundaryContainer1D{Float64, Float64}(capacity,
+                                                                         n_variables)
+    @test nnodes(boundary_container) == 1
 end
 
 @timed_testset "Printing indicators/controllers" begin
@@ -1322,6 +1305,25 @@ end
     end
 end
 
+@timed_testset "Flux consistency checks LinearElasticityEquations1D" begin
+    rho = 7800.0 # kg/m³
+    lambda = 9.3288e10
+    mu = lambda
+    equations = LinearElasticityEquations1D(rho = rho, mu = mu, lambda = lambda)
+
+    u = SVector(1.42, 2.666)
+
+    orientation = 1
+    @test flux_central(u, u, orientation, equations) ≈
+          flux(u, orientation, equations)
+
+    @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+          flux(u, orientation, equations)
+
+    @test flux_hll(u, u, orientation, equations) ≈
+          flux(u, orientation, equations)
+end
+
 @testset "Consistency check for `gradient_conservative` routine" begin
     # Set up conservative variables, equations
     u = [
@@ -1947,6 +1949,11 @@ end
                 @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
                       max_abs_speed(u_ll, u_rr, orientation, equations)
             end
+
+            @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed_naive(u_ll, u_rr, SVector(1.0, 0.0), equations)
+            @test max_abs_speed_naive(u_ll, u_rr, 2, equations) ≈
+                  max_abs_speed_naive(u_ll, u_rr, SVector(0.0, 1.0), equations)
         end
     end
 
@@ -2743,6 +2750,101 @@ end
     @test isapprox(jac_finite_diff, jac_sparse_finite_diff; rtol = 5e-8)
     @test isapprox(jac_finite_diff, Matrix(jac_sparse_finite_diff); rtol = 5e-8)
     @test isapprox(sparse(jac_finite_diff), jac_sparse_finite_diff; rtol = 5e-8)
+end
+
+@testset "Parabolic-Hyperbolic Problem Sparsity Pattern" begin
+
+    # Poor-mans rebuild of `SplitODEProblem` from SciML
+    function rhs_hyperbolic_parabolic!(du_ode, u_ode,
+                                       semi::SemidiscretizationHyperbolicParabolic, t)
+        du_para = similar(du_ode) # This obviously allocates, but fine for this test
+        Trixi.rhs!(du_ode, u_ode, semi, t)
+        Trixi.rhs_parabolic!(du_para, u_ode, semi, t)
+
+        Trixi.@threaded for i in eachindex(du_ode)
+            du_ode[i] = du_ode[i] + du_para[i]
+        end
+        return nothing
+    end
+
+    ###############################################################################
+    ### equations, solver, mesh ###
+
+    advection_velocity = 1.5
+    equations_hyperbolic = LinearScalarAdvectionEquation1D(advection_velocity)
+    diffusivity() = 5.0e-2
+    equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations_hyperbolic)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    coordinates_min = -1.0
+    coordinates_max = 1.0
+
+    mesh = TreeMesh(coordinates_min, coordinates_max,
+                    initial_refinement_level = 4,
+                    n_cells_max = 30_000)
+
+    ###############################################################################
+    ### semidiscretization for sparsity detection ###
+
+    jac_detector = TracerSparsityDetector()
+    # We need to construct the semidiscretization with the correct
+    # sparsity-detection ready datatype, which is retrieved here
+    jac_eltype = jacobian_eltype(real(solver), jac_detector)
+
+    # Semidiscretization for sparsity pattern detection
+    semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
+                                                          (equations_hyperbolic,
+                                                           equations_parabolic),
+                                                          initial_condition_convergence_test,
+                                                          solver,
+                                                          uEltype = jac_eltype) # Need to supply Jacobian element type
+
+    tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
+
+    # Call `semidiscretize` to create the ODE problem to have access to the
+    # initial condition based on which the sparsity pattern is computed
+    ode_jac_type = semidiscretize(semi_jac_type, tspan)
+    u0_ode = ode_jac_type.u0
+    du_ode = similar(u0_ode)
+
+    ###############################################################################
+    ### Compute the Jacobian sparsity pattern ###
+
+    # Only the parabolic part of the `SplitODEProblem` is treated implicitly so we only need the parabolic Jacobian, see
+    # https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitFunction
+    # Thus, we perform sparsity detection on `rhs_parabolic!` only,
+    # which is equivalent to doing sparsity detection on the entire hyperbolic-parabolic problem,
+    # at least for the DGSEM & Bassi-Rebay 1 parabolic solver.
+    # This test validates this.
+
+    # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
+    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode,
+                                                                      u0_ode,
+                                                                      semi_jac_type,
+                                                                      tspan[1])
+
+    jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!,
+                                                du_ode, u0_ode,
+                                                jac_detector)
+
+    ###############################################################################
+    ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
+    ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
+
+    rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
+                                                                          u0_ode,
+                                                                          semi_jac_type,
+                                                                          tspan[1])
+
+    jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_hyp_para_wrapped!,
+                                                           du_ode, u0_ode,
+                                                           jac_detector)
+
+    # Given that the stencil for the BR1 parabolic solver is for the DGSEM always larger than that of a hyperbolic solver,
+    # the sparsity pattern of the parabolic part of a hyperbolic-parabolic problem always includes the hyperbolic one
+    @test jac_prototype_parabolic == jac_prototype_hyperbolic_parabolic
 end
 end
 
