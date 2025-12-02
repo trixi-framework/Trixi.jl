@@ -9,7 +9,7 @@ equations = CompressibleEulerEquations1D(5 / 3)
     initial_condition_low_density_shock(x, t, equations::CompressibleEulerEquations1D)
 
 Leblanc shock tube problem inspired initial condition.
-Uses much lower pressure but much higher pressure on the right side.
+Uses (much) lower density and higher pressure on the right side.
 """
 function initial_condition_low_density_shock(x, t, equations::CompressibleEulerEquations1D)
     rho = x[1] <= 3 ? 1 : 1e-5
