@@ -35,7 +35,7 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
-                        RealT=Float32,
+                        RealT_for_test_tolerances=Float32,
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -278,7 +278,7 @@ end
                         ],
                         tspan=(0.0f0, 1.0f0),
                         rtol=10 * sqrt(eps(Float32)), # to make CI pass
-                        RealT=Float32)
+                        RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

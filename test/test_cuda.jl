@@ -41,7 +41,7 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=nothing,   # TODO: GPU. [Float32(8.311947673061856e-6)],
                         linf=nothing, # TODO: GPU. [Float32(6.627000273229378e-5)],
-                        RealT=Float32,
+                        RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray,
                         sol=nothing,) # TODO: GPU. Remove this once we can run the simulation on the GPU
