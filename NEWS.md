@@ -21,11 +21,6 @@ for human readability.
 
 ## Changes when updating to v0.13 from v0.12.x
 
-#### Added
-- Added `LowerBoundPreservingLimiterRuedaRamirezGassner` which allows for more refined
-  positivity/lower-bound limiting than `PositivityPreservingLimiterZhangShu`.
-  PRs [#2638].
-
 #### Changed
 
 - The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!`
