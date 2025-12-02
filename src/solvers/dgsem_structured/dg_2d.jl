@@ -371,7 +371,7 @@ end
 
     for j in eachnode(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
-        # See `calcflux_fvO2()` in `solvers/dgsem_tree/dg_1d.jl`` for a schematic
+        # See `calcflux_fvO2!` in solvers/dgsem_tree/dg_1d.jl for a schematic
 
         # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
         # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
@@ -380,8 +380,11 @@ end
                                                     1, j, element)
 
         for i in 2:nnodes(dg)
+            ## Obtain unlimited values in primitive variables ##
+            
             # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
-            # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+            # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+            # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
             u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
                          equations)
             u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
@@ -389,7 +392,8 @@ end
             u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
                          equations)
             # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
-            # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+            # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+            # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
             u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
                                         element), equations)
 
@@ -398,13 +402,15 @@ end
                                            x_interfaces, i,
                                            slope_limiter, dg)
 
-            for m in 1:nnodes(dg)
+            # Compute freestream-preserving normal vector for the finite volume flux.
+            for m in eachnode(dg)
                 normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
                                     get_contravariant_vector(1, contravariant_vectors,
                                                              m, j, element)
             end
 
-            # Compute the contravariant flux
+            # Compute the contravariant flux by taking the scalar product of the
+            # normal vector and the flux vector
             ## Convert primitive variables back to conservative variables ##
             contravariant_flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
                                                 normal_direction, equations)
@@ -438,14 +444,15 @@ end
                                         x_interfaces, j,
                                         slope_limiter, dg)
 
-            for m in 1:nnodes(dg)
+            for m in eachnode(dg)
                 normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
                                     get_contravariant_vector(2, contravariant_vectors,
                                                              i, m, element)
             end
 
             # Compute the contravariant flux by taking the scalar product of the
-            # normal vector and the flux vector
+            # normal vector and the flux vector.
+            ## Convert primitive variables back to conservative variables ##
             contravariant_flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
                                                 normal_direction, equations)
 

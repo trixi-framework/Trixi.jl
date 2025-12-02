@@ -353,7 +353,7 @@ end
 
     for j in eachnode(dg), i in 2:nnodes(dg) 
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
-        # See `calcflux_fvO2()` in dg_1d.jl for a schematic of how it works
+        # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
 
         # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
         # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
@@ -361,7 +361,8 @@ end
         ## Obtain unlimited values in primitive variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
         u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
                          equations)
         u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
@@ -369,7 +370,8 @@ end
         u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
                          equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
         u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
                                        element), equations)
 

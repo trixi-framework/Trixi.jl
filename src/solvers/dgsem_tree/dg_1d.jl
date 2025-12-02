@@ -384,15 +384,17 @@ end
         ## Obtain unlimited values in primitive variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
-        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
+            u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
                          equations)
         u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, element),
                          equations)
         u_rl = cons2prim(get_node_vars(u, equations, dg, i, element),
                          equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
         u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1),
                                        element), equations)
 
