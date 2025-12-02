@@ -11,5 +11,5 @@ updates:
         patterns:
           - "*"
     ignore:
-      - dependency-name: "julia-downgrade-compat"
+      - dependency-name: "julia-actions/julia-downgrade-compat"
         versions: [ ">=2.0.0" ]
