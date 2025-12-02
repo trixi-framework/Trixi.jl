@@ -10,3 +10,6 @@ updates:
       all-github-actions:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "julia-downgrade-compat"
+        versions: [ ">=2.0.0" ]
