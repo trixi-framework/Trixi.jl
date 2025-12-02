@@ -26,8 +26,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test real(semi32.solver) == Float32
     @test real(semi32.solver.basis) == Float32
     @test real(semi32.solver.mortar) == Float32
-    # TODO: remake ignores the mesh itself as well
-    @test real(semi32.mesh) == Float64
+    @test real(semi32.mesh) == Float32
 end
 
 @trixi_testset "elixir_advection_basic.jl (Float32)" begin
