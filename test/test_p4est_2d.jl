@@ -48,6 +48,7 @@ end
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
+    @test real(ode.p.mesh) == Float32
 end
 
 @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
