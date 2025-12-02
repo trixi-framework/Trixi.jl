@@ -14,7 +14,7 @@
 
 @inline function idp_positivity_conservative!(alpha, limiter,
                                               u::AbstractArray{<:Real, 5}, dt, semi,
-                                              variable)
+                                              elements, variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis # Plays role of DG subcell sizes
@@ -23,7 +23,7 @@
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    @threaded for element in eachelement(dg, semi.cache)
+    @threaded for element in elements
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
