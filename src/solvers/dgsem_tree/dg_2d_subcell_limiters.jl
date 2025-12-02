@@ -919,8 +919,8 @@ end
 end
 
 @inline function calc_lambdas_bar_states!(u, t, mesh::TreeMesh{2},
-                                          nonconservative_terms, equations, limiter,
-                                          dg, cache, boundary_conditions;
+                                          have_nonconservative_terms, equations,
+                                          limiter, dg, cache, boundary_conditions;
                                           calc_bar_states = true)
     if limiter isa SubcellLimiterIDP && !limiter.bar_states
         return nothing
