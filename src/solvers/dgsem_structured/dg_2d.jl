@@ -309,7 +309,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            # Compute freestream-preserving metric terms for the finite volume flux.
+            # Compute freestream-preserving normal vector for the finite volume flux.
             # This is the first equation in (B.53).
             for m in eachnode(dg)
                 normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
