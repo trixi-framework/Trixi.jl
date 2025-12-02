@@ -341,7 +341,7 @@ end
     return nothing
 end
 
-# Compute the normal flux for the second-order FV method on cartesian subcells, see
+# Compute the normal flux for the second-order FV method on subcells of the LGL subgrid, see
 # Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021)
 # "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. Part II: Subcell finite volume shock capturing"
 # [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
