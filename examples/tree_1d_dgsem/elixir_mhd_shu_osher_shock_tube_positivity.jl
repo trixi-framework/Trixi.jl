@@ -11,7 +11,7 @@ equations = IdealGlmMhdEquations1D(gamma)
 Extended version of the test of Shu and Osher for one dimensional ideal MHD equations.
 Taken from Section 4.1 of
 - Derigs et al. (2016)
-  A Novel High-Order, Entropy Stable, 3D AMR MHD Solver withGuaranteed Positive Pressure
+  A Novel High-Order, Entropy Stable, 3D AMR MHD Solver with Guaranteed Positive Pressure
   [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 
 with further decreased pressure in the right state to make the test more challenging/
