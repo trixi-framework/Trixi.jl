@@ -412,7 +412,7 @@ end
             end
 
             # Compute the contravariant flux by taking the scalar product of the
-            # normal vector and the flux vector
+            # normal vector and the flux vector.
             ## Convert primitive variables back to conservative variables ##
             contravariant_flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
                                                 normal_direction, equations)
