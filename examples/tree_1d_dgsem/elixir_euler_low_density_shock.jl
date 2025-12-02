@@ -8,8 +8,12 @@ equations = CompressibleEulerEquations1D(5 / 3)
 """
     initial_condition_low_density_shock(x, t, equations::CompressibleEulerEquations1D)
 
-Leblanc shock tube problem inspired initial condition.
-Uses (much) lower density and higher pressure on the right side.
+Leblanc shock tube problem inspired initial condition, see eq. (37) from
+- Reisner, J., Serencsa, J., and Shkoller, S. (2013).
+  A space–time smooth artificial viscosity method for nonlinear conservation laws.
+  [DOI: 10.1016/j.jcp.2012.08.027](https://doi.org/10.1016/j.jcp.2012.08.027).
+
+Uses (much) lower density and (much) higher pressure on the right side.
 """
 function initial_condition_low_density_shock(x, t, equations::CompressibleEulerEquations1D)
     rho = x[1] <= 3 ? 1 : 1e-5
