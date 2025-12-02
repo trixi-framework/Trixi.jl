@@ -98,7 +98,7 @@ callbacks = CallbackSet(summary_callback,
 # Positivity-preserving limiter setup
 # - `alpha_max` is increased above the value used in the volume integral 
 #               to allow room for positivity limiting.
-# - `beta_rho` set to 0.7 to provoke density correction
+# - `beta_rho` set to 0.7 to provoke density correction (for coverage & testing)
 # - `root_tol` can be set to this relatively high value while still ensuring positivity
 # - `use_density_init` set to false to use zero initial guess for pressure correction
 limiter! = LowerBoundPreservingLimiterRuedaRamirezGassner(semi;
