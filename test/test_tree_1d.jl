@@ -37,6 +37,9 @@ isdir(outdir) && rm(outdir, recursive = true)
     # MHD Multicomponent
     include("test_tree_1d_mhdmulti.jl")
 
+    # MHD Multi-ion
+    include("test_tree_1d_mhdmultiion.jl")
+
     # Compressible Euler with self-gravity
     include("test_tree_1d_eulergravity.jl")
 
