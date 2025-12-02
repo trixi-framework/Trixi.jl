@@ -66,6 +66,12 @@ indicator values <= `threshold_smoothness_indicator`.
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
     Without the callback, no correction takes place, leading to a standard low-order FV scheme.
 
+Implementation in 3D:
+In 3D, only the positivity limiter for conservative variables using
+(`positivity_variables_cons`) is implemented and merged for `P4estMesh`.
+`BoundsCheckCallback` is not supported in 3D yet.
+More features will follow soon.
+
 ## References
 
 - Rueda-Ramírez, Pazner, Gassner (2022)

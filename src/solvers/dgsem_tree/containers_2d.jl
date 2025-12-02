@@ -471,13 +471,6 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
     return boundaries.n_boundaries_per_direction
 end
 
-abstract type AbstractTreeL2MortarContainer2D <: AbstractTreeL2MortarContainer end
-
-# Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
-@inline nnodes(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 3)
-# Return number of equation variables
-@inline nvariables(mortars::AbstractTreeL2MortarContainer2D) = size(mortars.u_upper, 2)
-
 # Container data structure (structure-of-arrays style) for DG L2 mortars
 # Positions/directions for orientations = 1, large_sides = 2:
 # mortar is orthogonal to x-axis, large side is in positive coordinate direction wrt mortar
@@ -489,7 +482,7 @@ abstract type AbstractTreeL2MortarContainer2D <: AbstractTreeL2MortarContainer e
 # lower = 1 |    |
 #           |    |
 mutable struct TreeL2MortarContainer2D{uEltype <: Real} <:
-               AbstractTreeL2MortarContainer2D
+               AbstractTreeL2MortarContainer
     u_upper::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     neighbor_ids::Array{Int, 2} # [position, mortars]
@@ -501,6 +494,11 @@ mutable struct TreeL2MortarContainer2D{uEltype <: Real} <:
     _u_lower::Vector{uEltype}
     _neighbor_ids::Vector{Int}
 end
+
+# Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
+@inline nnodes(mortars::TreeL2MortarContainer2D) = size(mortars.u_upper, 3)
+# Return number of equation variables
+@inline nvariables(mortars::TreeL2MortarContainer2D) = size(mortars.u_upper, 2)
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::TreeL2MortarContainer2D, capacity)
@@ -741,7 +739,7 @@ end
 
 # Container data structure (structure-of-arrays style) for DG MPI interfaces
 mutable struct TreeMPIInterfaceContainer2D{uEltype <: Real} <:
-               AbstractTreeInterfaceContainer
+               AbstractTreeMPIInterfaceContainer
     u::Array{uEltype, 4}            # [leftright, variables, i, interfaces]
     # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
     local_neighbor_ids::Vector{Int} # [interfaces]
@@ -787,12 +785,6 @@ function TreeMPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
 
     return TreeMPIInterfaceContainer2D{uEltype}(u, local_neighbor_ids, orientations,
                                                 remote_sides, _u)
-end
-
-# TODO: Taal, rename to ninterfaces?
-# Return number of interfaces
-@inline function nmpiinterfaces(mpi_interfaces::TreeMPIInterfaceContainer2D)
-    length(mpi_interfaces.orientations)
 end
 
 # Create MPI interface container and initialize MPI interface data in `elements`.
@@ -913,7 +905,7 @@ end
 # lower = 1 |    |
 #           |    |
 mutable struct TreeMPIL2MortarContainer2D{uEltype <: Real} <:
-               AbstractTreeL2MortarContainer2D
+               AbstractTreeL2MPIMortarContainer
     u_upper::Array{uEltype, 4} # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4} # [leftright, variables, i, mortars]
     # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
@@ -926,6 +918,11 @@ mutable struct TreeMPIL2MortarContainer2D{uEltype <: Real} <:
     _u_upper::Vector{uEltype}
     _u_lower::Vector{uEltype}
 end
+
+# Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
+@inline nnodes(mortars::TreeMPIL2MortarContainer2D) = size(mortars.u_upper, 3)
+# Return number of equation variables
+@inline nvariables(mortars::TreeMPIL2MortarContainer2D) = size(mortars.u_upper, 2)
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mpi_mortars::TreeMPIL2MortarContainer2D, capacity)
@@ -977,11 +974,6 @@ function TreeMPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
                                                local_neighbor_positions,
                                                large_sides, orientations,
                                                _u_upper, _u_lower)
-end
-
-# Return number of L2 mortars
-@inline function nmpimortars(mpi_l2mortars::TreeMPIL2MortarContainer2D)
-    length(mpi_l2mortars.orientations)
 end
 
 # Create MPI mortar container and initialize MPI mortar data in `elements`.
@@ -1242,7 +1234,8 @@ end
 #                          flux2(i, j)
 #                               |
 #                            (i, j-1)
-mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real} <: AbstractContainer
+mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real} <:
+               AbstractContainerAntidiffusiveFlux
     antidiffusive_flux1_L::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux1_R::Array{uEltype, 4} # [variables, i, j, elements]
     antidiffusive_flux2_L::Array{uEltype, 4} # [variables, i, j, elements]
@@ -1286,9 +1279,6 @@ function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
                                                  _antidiffusive_flux2_L,
                                                  _antidiffusive_flux2_R)
 end
-
-nvariables(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1_L, 1)
-nnodes(fluxes::ContainerAntidiffusiveFlux2D) = size(fluxes.antidiffusive_flux1_L, 3)
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`

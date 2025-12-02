@@ -82,9 +82,9 @@ References:
     In case of more than one ion species, the multi-ion GLM-MHD equations should ALWAYS be used
     with [`source_terms_lorentz`](@ref).
 """
-mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
-                                              ElectronPressure, ElectronTemperature} <:
-               AbstractIdealGlmMhdMultiIonEquations{2, NVARS, NCOMP}
+struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
+                                      ElectronPressure, ElectronTemperature} <:
+       AbstractIdealGlmMhdMultiIonEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
     gas_constants::SVector{NCOMP, RealT} # Specific gas constants

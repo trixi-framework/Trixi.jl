@@ -27,7 +27,7 @@ diffusive CFL number, or a function of time `t` returning a `Real` number.
 By default, the timestep will be adjusted at every step.
 For different values of `interval`, the timestep will be adjusted every `interval` steps.
 """
-mutable struct StepsizeCallback{CflAdvectiveType, CflDiffusiveType}
+struct StepsizeCallback{CflAdvectiveType, CflDiffusiveType}
     cfl_advective::CflAdvectiveType
     cfl_diffusive::CflDiffusiveType
     interval::Int

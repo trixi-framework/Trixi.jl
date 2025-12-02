@@ -346,8 +346,8 @@ end
 
             # Compute bound
             if limiter.local_twosided &&
-               variable in limiter.local_twosided_variables_cons &&
-               var_min[i, j, element] >= positivity_correction_factor * var
+               (variable in limiter.local_twosided_variables_cons) &&
+               (var_min[i, j, element] >= positivity_correction_factor * var)
                 # Local limiting is more restrictive that positivity limiting
                 # => Skip positivity limiting for this node
                 continue
