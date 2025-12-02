@@ -28,8 +28,8 @@ end
     # Expected errors are taken from elixir_advection_basic.jl
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_float32.jl"),
                         # Expected errors are taken from elixir_advection_basic.jl
-                        l2=[Float32(8.311947673061856e-6)],
-                        linf=[Float32(6.627000273229378e-5)],
+                        l2=8.477608f-6,
+                        linf=7.224083f-5,
                         RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
