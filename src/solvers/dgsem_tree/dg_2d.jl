@@ -291,7 +291,9 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                              mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                        UnstructuredMesh2D, P4estMesh{2},
+                                        T8codeMesh{2}},
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               x_interfaces, reconstruction_mode, slope_limiter,
@@ -323,7 +325,7 @@ end
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+function calc_volume_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}, UnstructuredMesh2D, T8codeMesh{2}},
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                dg::DGSEM, cache)

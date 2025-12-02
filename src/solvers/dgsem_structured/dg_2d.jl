@@ -357,7 +357,9 @@ end
 end
 
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              mesh::StructuredMesh{2},
+                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                          UnstructuredMesh2D,
+                                          P4estMesh{2}, T8codeMesh{2}},
                               have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache,
                               x_interfaces, reconstruction_mode, slope_limiter)
