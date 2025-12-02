@@ -284,8 +284,8 @@ end
     return nothing
 end
 
-# Compute the normal flux for the FV method on cartesian subcells.
-# See Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# Compute the normal flux for the FV method on cartesian subcells, see
+# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
