@@ -167,7 +167,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
         calc_interface_flux_per_interface!(surface_flux_values, typeof(mesh),
                                            have_nonconservative_terms,
                                            equations, surface_integral, typeof(dg),
-                                           interface, cache.interfaces.u,
+                                           cache.interfaces.u, interface,
                                            neighbor_ids, node_indices,
                                            contravariant_vectors, index_range)
     end
@@ -857,9 +857,9 @@ function calc_surface_integral!(backend::Nothing, du, u,
     @unpack surface_flux_values = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-        calc_surface_integral_per_element(du, typeof(mesh), equations,
-                                          surface_integral, dg,
-                                          surface_flux_values, element)
+        calc_surface_integral_per_element!(du, typeof(mesh), equations,
+                                           surface_integral, dg,
+                                           surface_flux_values, element)
     end
 end
 
