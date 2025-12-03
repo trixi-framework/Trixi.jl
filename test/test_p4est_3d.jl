@@ -215,11 +215,11 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_free_stream_boundaries_float32.jl"),
                         l2=[
-                            3.8734996f-7,
-                            1.2929888f-6,
-                            2.4713074f-6,
-                            2.9541036f-6,
-                            3.292966f-6
+                            Float32(6.530157034651212e-16),
+                            Float32(1.6057829680004379e-15),
+                            Float32(3.31107455378537e-15),
+                            Float32(3.908829498281281e-15),
+                            Float32(5.048390610424672e-15)
                         ],
                         linf=[
                             Float32(4.884981308350689e-15),
