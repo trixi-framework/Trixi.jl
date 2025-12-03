@@ -5,3 +5,11 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
+    groups:
+      # Group all GitHub Actions PRs into a single PR:
+      all-github-actions:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "julia-actions/julia-downgrade-compat"
+        versions: [ ">=2.0.0" ]
