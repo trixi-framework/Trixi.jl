@@ -40,50 +40,6 @@ struct SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff
 
     performance_counter::PerformanceCounterList{2}
 
-    function SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff,
-                                               InitialCondition,
-                                               BoundaryConditionsStiff,
-                                               BoundaryConditionsNonStiff,
-                                               SourceTermsStiff, SourceTermsNonStiff,
-                                               SolverStiff, SolverNonStiff,
-                                               CacheStiff, CacheNonStiff}(mesh::Mesh,
-                                                                          equations_stiff::EquationsStiff,
-                                                                          equations_nonstiff::EquationsNonStiff,
-                                                                          initial_condition::InitialCondition,
-                                                                          boundary_conditions_stiff::BoundaryConditionsStiff,
-                                                                          boundary_conditions_nonstiff::BoundaryConditionsNonStiff,
-                                                                          source_terms_stiff::SourceTermsStiff,
-                                                                          source_terms_nonstiff::SourceTermsNonStiff,
-                                                                          solver_stiff::SolverStiff,
-                                                                          solver_nonstiff::SolverNonStiff,
-                                                                          cache_stiff::CacheStiff,
-                                                                          cache_nonstiff::CacheNonStiff) where {
-                                                                                                                Mesh,
-                                                                                                                EquationsStiff,
-                                                                                                                EquationsNonStiff,
-                                                                                                                InitialCondition,
-                                                                                                                BoundaryConditionsStiff,
-                                                                                                                BoundaryConditionsNonStiff,
-                                                                                                                SourceTermsStiff,
-                                                                                                                SourceTermsNonStiff,
-                                                                                                                SolverStiff,
-                                                                                                                SolverNonStiff,
-                                                                                                                CacheStiff,
-                                                                                                                CacheNonStiff
-                                                                                                                }
-        @assert ndims(mesh) == ndims(equations_stiff)
-        @assert ndims(mesh) == ndims(equations_nonstiff)
-
-        @assert nvariables(equations_stiff) == nvariables(equations_nonstiff)
-
-        performance_counter = PerformanceCounterList{2}(false)
-
-        new(mesh, equations_stiff, equations_nonstiff, initial_condition,
-            boundary_conditions_stiff, boundary_conditions_nonstiff,
-            source_terms_stiff, source_terms_nonstiff, solver_stiff, solver_nonstiff,
-            cache_stiff, cache_nonstiff,
-            performance_counter)
-    end
 end
 
 """
