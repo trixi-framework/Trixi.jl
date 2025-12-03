@@ -280,8 +280,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                                    T8codeMesh{2}},
                                        equations_parabolic::AbstractEquationsParabolic,
-                                       dg::DG,
-                                       parabolic_scheme, cache)
+                                       dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
@@ -363,7 +362,7 @@ end
                                        interface_index)
 
     flux_ = flux_parabolic(u_ll, u_rr, Gradient(),
-                           mesh, equations_parabolic, parabolic_scheme)
+                           equations_parabolic, parabolic_scheme)
 
     # Note that we don't flip the sign on the secondary flux. This is because for parabolic terms,
     # the normals are not embedded in `flux_` for the parabolic gradient computations.
@@ -560,7 +559,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
             #flux = 0.5f0 * (viscous_flux_normal_ll + viscous_flux_normal_rr)
             flux = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
                                   Divergence(),
-                                  mesh, equations_parabolic, parabolic_scheme)
+                                  equations_parabolic, parabolic_scheme)
 
             for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, node, primary_direction_index, primary_element] = flux[v]
@@ -859,7 +858,8 @@ function calc_gradient_boundary_flux!(cache, t, boundary_conditions, mesh::P4est
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
     calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
-                                Gradient(), mesh, equations, surface_integral, dg)
+                                Gradient(), mesh, equations_parabolic, surface_integral,
+                                dg)
     return nothing
 end
 

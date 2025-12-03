@@ -172,7 +172,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
 
         # compute interface flux for the DG divergence 
         flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
-                              mesh, equations_parabolic, parabolic_scheme)
+                              equations_parabolic, parabolic_scheme)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
@@ -389,8 +389,7 @@ end
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::TreeMesh{1},
                                        equations_parabolic::AbstractEquationsParabolic,
-                                       dg::DG,
-                                       parabolic_scheme, cache)
+                                       dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
     @threaded for interface in eachinterface(dg, cache)
@@ -408,7 +407,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
                                            equations_parabolic, dg, interface)
 
         flux = flux_parabolic(u_ll, u_rr, Gradient(),
-                              mesh, equations_parabolic, parabolic_scheme)
+                              equations_parabolic, parabolic_scheme)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)

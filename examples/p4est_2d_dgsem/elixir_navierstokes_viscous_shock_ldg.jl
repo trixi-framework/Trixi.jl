@@ -98,13 +98,23 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu_dev
 solver = DGSEM(polydeg = 3, surface_flux = flux_hlle)
 solver_parabolic = ViscousFormulationLocalDG()
 
-coordinates_min = (-domain_length / 2, -domain_length / 2)
-coordinates_max = (domain_length / 2, domain_length / 2)
+# This maps the reference domain [-1, 1]^2 to the physical domain
+# [-domain_length/2, domain_length/2]^2 while also introducing a curved warping
+function mapping(xi, eta)
+    # Apply warping in reference space
+    xi_warped = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
+    eta_warped = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
+    
+    # Map from [-1, 1]^2 to [-domain_length/2, domain_length/2]^2
+    x = domain_length / 2 * xi_warped
+    y = domain_length / 2 * eta_warped
+    
+    return SVector(x, y)
+end
 
-trees_per_dimension = (8, 2)
+trees_per_dimension = (8, 3)
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 periodicity = (false, true))
+                 mapping = mapping, periodicity = (false, true))
 
 ### Inviscid boundary conditions ###
 
