@@ -811,7 +811,7 @@ end
 
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::TreeMesh{2},
-                                       equations_parabolic::AbstractEquationsParabolic,
+                                       equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 

@@ -279,7 +279,7 @@ end
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                                    T8codeMesh{2}},
-                                       equations_parabolic::AbstractEquationsParabolic,
+                                       equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     index_range = eachnode(dg)
