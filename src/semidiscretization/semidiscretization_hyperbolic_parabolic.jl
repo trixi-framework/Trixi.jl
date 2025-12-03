@@ -40,6 +40,12 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
 
     performance_counter::PerformanceCounterList{2}
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationHyperbolicParabolic(mesh, both_equations, initial_condition, solver;
@@ -61,7 +67,6 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                # while `uEltype` is used as element type of solutions etc.
                                                RealT = real(solver), uEltype = RealT)
     equations, equations_parabolic = equations
-    boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
     @assert ndims(mesh) == ndims(equations)
     @assert ndims(mesh) == ndims(equations_parabolic)
@@ -69,6 +74,8 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
     if !(nvariables(equations) == nvariables(equations_parabolic))
         throw(ArgumentError("Current implementation of viscous terms requires the same number of conservative and gradient variables."))
     end
+
+    boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
