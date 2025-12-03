@@ -74,6 +74,7 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
     boundary_conditions_stiff, boundary_conditions_nonstiff = boundary_conditions
     initial_cache_stiff, initial_cache_nonstiff = initial_caches
     source_terms_stiff, source_terms_nonstiff = source_terms
+
     cache_stiff = (;
                    create_cache(mesh, equations_stiff, solver_stiff, RealT, uEltype)...,
                    initial_cache_stiff...)
@@ -81,6 +82,7 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                       create_cache(mesh, equations_nonstiff, solver_nonstiff, RealT,
                                    uEltype)...,
                       initial_cache_nonstiff...)
+
     _boundary_conditions_stiff = digest_boundary_conditions(boundary_conditions_stiff,
                                                             mesh,
                                                             solver_stiff,
@@ -100,8 +102,8 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                                       typeof(_boundary_conditions_nonstiff),
                                       typeof(source_terms_stiff),
                                       typeof(source_terms_nonstiff),
-                                      typeof(solver_stiff),
-                                      typeof(solver_nonstiff), typeof(cache_stiff),
+                                      typeof(solver_stiff), typeof(solver_nonstiff),
+                                      typeof(cache_stiff),
                                       typeof(cache_nonstiff)}(mesh, equations_stiff,
                                                               equations_nonstiff,
                                                               initial_condition,
