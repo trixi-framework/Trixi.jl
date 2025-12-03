@@ -45,23 +45,23 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
     A4d = Array{uEltype, 4}
-    fstar1_L_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg) + 1,
-                                nnodes(dg), nnodes(dg))
+    fstar1_L_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
                             for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg) + 1,
-                                nnodes(dg), nnodes(dg))
+    fstar1_R_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
                             for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
-                                nnodes(dg) + 1, nnodes(dg))
+    fstar2_L_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
                             for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
-                                nnodes(dg) + 1, nnodes(dg))
+    fstar2_R_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
                             for _ in 1:Threads.maxthreadid()]
-    fstar3_L_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
-                                nnodes(dg), nnodes(dg) + 1)
+    fstar3_L_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
                             for _ in 1:Threads.maxthreadid()]
-    fstar3_R_threaded = A4d[A4d(undef, nvariables(equations), nnodes(dg),
-                                nnodes(dg), nnodes(dg) + 1)
+    fstar3_R_threaded = A4d[A4d(undef, nvariables(equations),
+                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
                             for _ in 1:Threads.maxthreadid()]
 
     return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
@@ -80,14 +80,16 @@ function create_cache(mesh::TreeMesh{3}, equations,
                                                 nnodes(mortar_l2))
                                             for _ in 1:Threads.maxthreadid()]
     fstar_primary_upper_right_threaded = A3d[A3d(undef, nvariables(equations),
-                                                 nnodes(mortar_l2), nnodes(mortar_l2))
+                                                 nnodes(mortar_l2),
+                                                 nnodes(mortar_l2))
                                              for _ in 1:Threads.maxthreadid()]
     fstar_primary_lower_left_threaded = A3d[A3d(undef, nvariables(equations),
                                                 nnodes(mortar_l2),
                                                 nnodes(mortar_l2))
                                             for _ in 1:Threads.maxthreadid()]
     fstar_primary_lower_right_threaded = A3d[A3d(undef, nvariables(equations),
-                                                 nnodes(mortar_l2), nnodes(mortar_l2))
+                                                 nnodes(mortar_l2),
+                                                 nnodes(mortar_l2))
                                              for _ in 1:Threads.maxthreadid()]
     fstar_secondary_upper_left_threaded = A3d[A3d(undef, nvariables(equations),
                                                   nnodes(mortar_l2),
@@ -105,7 +107,8 @@ function create_cache(mesh::TreeMesh{3}, equations,
                                                    nnodes(mortar_l2),
                                                    nnodes(mortar_l2))
                                                for _ in 1:Threads.maxthreadid()]
-    fstar_tmp1_threaded = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2),
+    fstar_tmp1_threaded = A3d[A3d(undef, nvariables(equations),
+                                  nnodes(mortar_l2),
                                   nnodes(mortar_l2))
                               for _ in 1:Threads.maxthreadid()]
 
@@ -301,9 +304,12 @@ end
     return nothing
 end
 
-# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
-                              fstar3_R, u,
+# Compute the normal flux for the FV method on cartesian subcells, see
+# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
+# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                              fstar3_L, fstar3_R, u,
                               mesh::TreeMesh{3}, have_nonconservative_terms::False,
                               equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
@@ -349,9 +355,8 @@ end
     return nothing
 end
 
-# Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
-                              fstar3_R, u,
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                              fstar3_L, fstar3_R, u,
                               mesh::TreeMesh{3},
                               have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)

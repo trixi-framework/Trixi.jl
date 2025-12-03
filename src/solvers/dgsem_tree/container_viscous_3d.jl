@@ -1,12 +1,7 @@
 mutable struct ViscousContainer3D{uEltype <: Real}
     u_transformed::Array{uEltype, 5}
-    # Using an outer fixed-size datastructure leads to nasty implementations,
-    # see https://github.com/trixi-framework/Trixi.jl/pull/1629#discussion_r1355293953.
-    # Also: This does not result in speed up compared to using tuples for the internal 
-    # datastructures, see 
-    # https://github.com/trixi-framework/Trixi.jl/pull/1629#discussion_r1363352188.
-    gradients::Vector{Array{uEltype, 5}}
-    flux_viscous::Vector{Array{uEltype, 5}}
+    gradients::NTuple{3, Array{uEltype, 5}}
+    flux_viscous::NTuple{3, Array{uEltype, 5}}
 
     # internal `resize!`able storage
     _u_transformed::Vector{uEltype}
@@ -16,15 +11,22 @@ mutable struct ViscousContainer3D{uEltype <: Real}
 
     function ViscousContainer3D{uEltype}(n_vars::Integer, n_nodes::Integer,
                                          n_elements::Integer) where {uEltype <: Real}
-        new(Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
-            [Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
-             for _ in 1:3],
-            [Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
-             for _ in 1:3],
+        new(Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements), # `u_transformed`
+            # `gradients`
+            (Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
+             Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
+             Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)),
+            # `flux_viscous`
+            (Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
+             Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
+             Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)),
+            # `u_transformed`
             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+            # `_gradients`
             (Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
              Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
              Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements)),
+            # `_flux_viscous`
             (Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
              Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
              Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements)))
@@ -43,8 +45,7 @@ end
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
 function Base.resize!(viscous_container::ViscousContainer3D, equations, dg, cache)
-    capacity = nvariables(equations) * nnodes(dg) * nnodes(dg) * nnodes(dg) *
-               nelements(dg, cache)
+    capacity = nvariables(equations) * nnodes(dg)^3 * nelements(dg, cache)
     resize!(viscous_container._u_transformed, capacity)
     for dim in 1:3
         resize!(viscous_container._gradients[dim], capacity)
@@ -57,19 +58,41 @@ function Base.resize!(viscous_container::ViscousContainer3D, equations, dg, cach
                                                    nnodes(dg), nnodes(dg), nnodes(dg),
                                                    nelements(dg, cache)))
 
-    for dim in 1:3
-        viscous_container.gradients[dim] = unsafe_wrap(Array,
-                                                       pointer(viscous_container._gradients[dim]),
-                                                       (nvariables(equations),
-                                                        nnodes(dg), nnodes(dg), nnodes(dg),
-                                                        nelements(dg, cache)))
+    gradients_1 = unsafe_wrap(Array,
+                              pointer(viscous_container._gradients[1]),
+                              (nvariables(equations),
+                               nnodes(dg), nnodes(dg), nnodes(dg),
+                               nelements(dg, cache)))
+    gradients_2 = unsafe_wrap(Array,
+                              pointer(viscous_container._gradients[2]),
+                              (nvariables(equations),
+                               nnodes(dg), nnodes(dg), nnodes(dg),
+                               nelements(dg, cache)))
+    gradients_3 = unsafe_wrap(Array,
+                              pointer(viscous_container._gradients[3]),
+                              (nvariables(equations),
+                               nnodes(dg), nnodes(dg), nnodes(dg),
+                               nelements(dg, cache)))
 
-        viscous_container.flux_viscous[dim] = unsafe_wrap(Array,
-                                                          pointer(viscous_container._flux_viscous[dim]),
-                                                          (nvariables(equations),
-                                                           nnodes(dg), nnodes(dg),
-                                                           nnodes(dg),
-                                                           nelements(dg, cache)))
-    end
+    viscous_container.gradients = (gradients_1, gradients_2, gradients_3)
+
+    flux_viscous_1 = unsafe_wrap(Array,
+                                 pointer(viscous_container._flux_viscous[1]),
+                                 (nvariables(equations),
+                                  nnodes(dg), nnodes(dg), nnodes(dg),
+                                  nelements(dg, cache)))
+    flux_viscous_2 = unsafe_wrap(Array,
+                                 pointer(viscous_container._flux_viscous[2]),
+                                 (nvariables(equations),
+                                  nnodes(dg), nnodes(dg), nnodes(dg),
+                                  nelements(dg, cache)))
+    flux_viscous_3 = unsafe_wrap(Array,
+                                 pointer(viscous_container._flux_viscous[3]),
+                                 (nvariables(equations),
+                                  nnodes(dg), nnodes(dg), nnodes(dg),
+                                  nelements(dg, cache)))
+
+    viscous_container.flux_viscous = (flux_viscous_1, flux_viscous_2, flux_viscous_3)
+
     return nothing
 end

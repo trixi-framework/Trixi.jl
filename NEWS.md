@@ -14,7 +14,11 @@ for human readability.
   the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) and nonlinear
   variables (using `positivity_variables_nonlinear`) is supported.
   `BoundsCheckCallback` is not supported in 3D yet.
-
+- Optimized 2D and 3D kernels for nonconservative fluxes with `P4estMesh` were added ([#2653], [#2663]).
+  The optimized kernel can be enabled via the trait `Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)`.
+  When the trait is set to `Trixi.True()`, a single method has to be defined, that computes and returns the tuple
+  `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_ll, u_rr)` and
+  `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_rr, u_ll)`.
 
 ## Changes when updating to v0.13 from v0.12.x
 
