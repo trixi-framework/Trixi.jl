@@ -23,7 +23,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Convert conservative variables to a form more suitable for viscous flux calculations
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic, dg,
-                             parabolic_scheme, cache)
+                             cache)
     end
 
     # Compute the gradients of the transformed variables
@@ -110,7 +110,7 @@ end
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh::TreeMesh{1},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, parabolic_scheme, cache)
+                              dg::DG, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
     @threaded for element in eachelement(dg, cache)
@@ -150,9 +150,9 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function calc_interface_flux!(surface_flux_values,
-                              mesh::TreeMesh{1}, equations_parabolic,
-                              dg::DG, parabolic_scheme, cache)
+function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
+                              equations_parabolic, dg::DG, parabolic_scheme,
+                              cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
     @threaded for interface in eachinterface(dg, cache)

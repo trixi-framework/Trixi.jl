@@ -77,7 +77,7 @@ local DG method. The local DG method uses an "upwind/downwind" flux for the
 gradient and divergence (i.e., if the gradient is upwinded, the divergence
 must be downwinded in order to preserve symmetry and positive definiteness). 
 """
-function flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations,
+function flux_parabolic(u_ll, u_rr, ::Gradient, mesh, equations,
                         parabolic_scheme::ViscousFormulationLocalDG)
     # The LDG flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
     # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
@@ -87,7 +87,7 @@ function flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations,
     return u_ll # Use the upwind value for the gradient interface flux
 end
 
-function flux_parabolic(u_ll, u_rr, ::Divergence, mesh::TreeMesh, equations,
+function flux_parabolic(u_ll, u_rr, ::Divergence, mesh, equations,
                         parabolic_scheme::ViscousFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux
 end

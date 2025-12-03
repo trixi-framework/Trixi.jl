@@ -10,7 +10,7 @@
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{3}, P4estMesh{3}},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, parabolic_scheme, cache)
+                              dg::DG, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
     @threaded for element in eachelement(dg, cache)
@@ -126,8 +126,7 @@ end
 
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
-                              equations_parabolic,
-                              dg::DG, parabolic_scheme,
+                              equations_parabolic, dg::DG, parabolic_scheme,
                               cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
@@ -1086,10 +1085,9 @@ function calc_gradient_surface_integral!(gradients,
 end
 
 # Calculate the gradient of the transformed variables
-function calc_gradient!(gradients, u_transformed, t,
-                        mesh::TreeMesh{3}, equations_parabolic,
-                        boundary_conditions_parabolic, dg::DG, parabolic_scheme,
-                        cache)
+function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{3},
+                        equations_parabolic, boundary_conditions_parabolic,
+                        dg::DG, parabolic_scheme, cache)
     gradients_x, gradients_y, gradients_z = gradients
 
     # Reset gradients
@@ -1145,8 +1143,7 @@ function calc_gradient!(gradients, u_transformed, t,
         calc_mortar_flux!(surface_flux_values,
                           mesh, equations_parabolic,
                           dg.mortar, dg.surface_integral, dg,
-                          parabolic_scheme, Gradient(),
-                          cache)
+                          parabolic_scheme, Gradient(), cache)
     end
 
     # Calculate surface integrals

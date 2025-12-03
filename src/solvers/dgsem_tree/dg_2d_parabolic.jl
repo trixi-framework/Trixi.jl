@@ -23,7 +23,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # Convert conservative variables to a form more suitable for viscous flux calculations
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache)
+                             dg, cache)
     end
 
     # Compute the gradients of the transformed variables
@@ -131,7 +131,7 @@ end
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{2}, P4estMesh{2}},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, parabolic_scheme, cache)
+                              dg::DG, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
     @threaded for element in eachelement(dg, cache)
@@ -222,8 +222,8 @@ end
 
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
-                              equations_parabolic,
-                              dg::DG, parabolic_scheme, cache)
+                              equations_parabolic, dg::DG, parabolic_scheme,
+                              cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
     @threaded for interface in eachinterface(dg, cache)
@@ -243,7 +243,6 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
                                                      equations_parabolic,
                                                      dg, i, interface)
 
-            # Compute interface flux as mean of left and right viscous fluxes
             flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
                                   mesh, equations_parabolic, parabolic_scheme)
 
@@ -812,7 +811,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
 end
 
 function calc_gradient_interface_flux!(surface_flux_values,
-                                       mesh::TreeMesh{2}, equations, dg::DG,
+                                       mesh::TreeMesh{2}, equations_parabolic, dg::DG,
                                        parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
@@ -909,10 +908,9 @@ function calc_gradient_surface_integral!(gradients,
 end
 
 # Calculate the gradient of the transformed variables
-function calc_gradient!(gradients, u_transformed, t,
-                        mesh::TreeMesh{2}, equations_parabolic,
-                        boundary_conditions_parabolic, dg::DG, parabolic_scheme,
-                        cache)
+function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{2},
+                        equations_parabolic, boundary_conditions_parabolic,
+                        dg::DG, parabolic_scheme, cache)
     gradients_x, gradients_y = gradients
 
     # Reset gradients

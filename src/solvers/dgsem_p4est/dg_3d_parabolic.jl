@@ -5,10 +5,9 @@
 @muladd begin
 #! format: noindent
 
-function calc_gradient!(gradients, u_transformed, t,
-                        mesh::P4estMesh{3}, equations_parabolic,
-                        boundary_conditions_parabolic, dg::DG,
-                        cache)
+function calc_gradient!(gradients, u_transformed, t, mesh::P4estMesh{3},
+                        equations_parabolic, boundary_conditions_parabolic,
+                        dg::DG, cache)
     gradients_x, gradients_y, gradients_z = gradients
 
     # Reset gradients
@@ -386,9 +385,8 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
 end
 
 # This version is used for divergence flux computations
-function calc_interface_flux!(surface_flux_values,
-                              mesh::P4estMesh{3}, equations_parabolic,
-                              dg::DG, cache)
+function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
+                              equations_parabolic, dg::DG, cache)
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
