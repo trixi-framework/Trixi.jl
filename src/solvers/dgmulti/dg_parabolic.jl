@@ -1,8 +1,7 @@
 # version for standard (e.g., non-entropy stable or flux differencing) schemes
 function create_cache_parabolic(mesh::DGMultiMesh,
                                 equations_hyperbolic::AbstractEquations,
-                                equations_parabolic::AbstractEquationsParabolic,
-                                dg::DGMulti, parabolic_scheme, RealT, uEltype)
+                                dg::DGMulti, n_elements, uEltype)
 
     # default to taking derivatives of all hyperbolic variables
     # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
@@ -61,7 +60,7 @@ end
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh,
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
+                              dg::DGMulti, parabolic_scheme, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
     @threaded for i in eachindex(u)
@@ -479,7 +478,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
     @trixi_timeit timer() "transform variables" begin
         (; u_transformed, gradients, flux_viscous) = cache_parabolic
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache, cache_parabolic)
+                             dg, parabolic_scheme, cache)
     end
 
     @trixi_timeit timer() "calc gradient" begin
