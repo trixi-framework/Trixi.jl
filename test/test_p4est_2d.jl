@@ -48,7 +48,7 @@ end
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
-    # TODO: remake ignores the mesh itself as well
+    # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
 end
 

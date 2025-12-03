@@ -22,7 +22,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
-    # TODO: remake ignores the mesh itself as well
+    # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
 
     @test ode.u0 isa Array
@@ -51,7 +51,7 @@ end
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
-    # TODO: remake ignores the mesh itself as well
+    # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
 
     @test ode.u0 isa CuArray
