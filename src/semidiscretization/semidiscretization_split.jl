@@ -67,8 +67,8 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
     equations_stiff, equations_nonstiff = equations
     @assert ndims(mesh) == ndims(equations_stiff)
     @assert ndims(mesh) == ndims(equations_nonstiff)
-
     @assert nvariables(equations_stiff) == nvariables(equations_nonstiff)
+
     boundary_conditions_stiff, boundary_conditions_nonstiff = boundary_conditions
     initial_cache_stiff, initial_cache_nonstiff = initial_caches
     source_terms_stiff, source_terms_nonstiff = source_terms
