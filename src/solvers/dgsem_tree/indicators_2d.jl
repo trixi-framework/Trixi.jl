@@ -50,7 +50,7 @@ end
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = zero(eltype(modal))
-    for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    for j in eachnode(dg), i in eachnode(dg)
         total_energy += modal[i, j]^2
     end
     total_energy_clip1 = zero(eltype(modal))
