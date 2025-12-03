@@ -231,7 +231,6 @@ function calc_error_norms(func, u_ode, t, analyzer,
     u = wrap_array(u_ode, mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff)
 
     calc_error_norms(func, u, t, analyzer, mesh, equations_nonstiff, initial_condition,
-                     solver_nonstiff,
-                     cache_nonstiff, cache_analysis)
+                     solver_nonstiff, cache_nonstiff, cache_analysis)
 end
 end # @muladd
