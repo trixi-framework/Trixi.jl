@@ -93,7 +93,8 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
 
     performance_counter = PerformanceCounterList{2}(false)
 
-    SemidiscretizationHyperbolicSplit{typeof(mesh), typeof(equations_stiff),
+    SemidiscretizationHyperbolicSplit{typeof(mesh),
+                                      typeof(equations_stiff),
                                       typeof(equations_nonstiff),
                                       typeof(initial_condition),
                                       typeof(_boundary_conditions_stiff),
