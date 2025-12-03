@@ -379,8 +379,7 @@ end
 
 function calc_gradient_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,
                                                                                       5},
-                                                   t,
-                                                   boundary_condition,
+                                                   t, boundary_condition,
                                                    equations_parabolic::AbstractEquationsParabolic,
                                                    surface_integral, dg::DG, cache,
                                                    direction, first_boundary,
@@ -946,7 +945,9 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
 end
 
 function calc_gradient_interface_flux!(surface_flux_values,
-                                       mesh::TreeMesh{3}, equations, dg::DG,
+                                       mesh::TreeMesh{3},
+                                       equations_parabolic::AbstractEquationsParabolic,
+                                       dg::DG,
                                        parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
@@ -965,14 +966,14 @@ function calc_gradient_interface_flux!(surface_flux_values,
         for j in eachnode(dg), i in eachnode(dg)
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(cache.interfaces.u,
-                                               equations, dg,
+                                               equations_parabolic, dg,
                                                i, j, interface)
 
             flux = flux_parabolic(u_ll, u_rr, Gradient(),
-                                  mesh, equations, parabolic_scheme)
+                                  mesh, equations_parabolic, parabolic_scheme)
 
             # Copy flux to left and right element storage
-            for v in eachvariable(equations)
+            for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
                 surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
             end

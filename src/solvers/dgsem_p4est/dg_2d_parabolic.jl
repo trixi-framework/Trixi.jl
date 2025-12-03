@@ -279,7 +279,8 @@ end
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                                    T8codeMesh{2}},
-                                       equations_parabolic, dg::DG,
+                                       equations_parabolic::AbstractEquationsParabolic,
+                                       dg::DG,
                                        parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
@@ -361,7 +362,6 @@ end
     u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, primary_node_index,
                                        interface_index)
 
-    #flux_ = 0.5f0 * (u_ll + u_rr) # we assume that the gradient computations utilize a central flux
     flux_ = flux_parabolic(u_ll, u_rr, Gradient(),
                            mesh, equations_parabolic, parabolic_scheme)
 
@@ -846,14 +846,16 @@ end
 function calc_gradient_boundary_flux!(cache, t,
                                       boundary_condition::Union{BoundaryConditionPeriodic,
                                                                 BoundaryConditionDoNothing},
-                                      mesh::P4estMesh, equations, surface_integral,
-                                      dg::DG)
+                                      mesh::P4estMesh,
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
 end
 
 # Function barrier for type stability
 function calc_gradient_boundary_flux!(cache, t, boundary_conditions, mesh::P4estMesh,
-                                      equations, surface_integral, dg::DG)
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
     calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
@@ -862,11 +864,13 @@ function calc_gradient_boundary_flux!(cache, t, boundary_conditions, mesh::P4est
 end
 
 function calc_boundary_flux_divergence!(cache, t, boundary_conditions, mesh::P4estMesh,
-                                        equations, surface_integral, dg::DG)
+                                        equations_parabolic::AbstractEquationsParabolic,
+                                        surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
     calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
-                                Divergence(), mesh, equations, surface_integral, dg)
+                                Divergence(), mesh, equations_parabolic,
+                                surface_integral, dg)
     return nothing
 end
 

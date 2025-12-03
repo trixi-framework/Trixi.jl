@@ -250,8 +250,7 @@ end
 
 function calc_gradient_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,
                                                                                       3},
-                                                   t,
-                                                   boundary_condition,
+                                                   t, boundary_condition,
                                                    equations_parabolic::AbstractEquationsParabolic,
                                                    surface_integral, dg::DG, cache,
                                                    direction, first_boundary,
@@ -388,7 +387,9 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
 end
 
 function calc_gradient_interface_flux!(surface_flux_values,
-                                       mesh::TreeMesh{1}, equations_parabolic, dg::DG,
+                                       mesh::TreeMesh{1},
+                                       equations_parabolic::AbstractEquationsParabolic,
+                                       dg::DG,
                                        parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
