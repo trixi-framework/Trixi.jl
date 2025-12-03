@@ -110,6 +110,12 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                                                              NamedTuple()))
     solver_stiff, solver_nonstiff = solvers
     equations_stiff, equations_nonstiff = equations
+        
+    @assert ndims(mesh) == ndims(equations_stiff)
+    @assert ndims(mesh) == ndims(equations_nonstiff)
+
+    @assert nvariables(equations_stiff) == nvariables(equations_nonstiff)
+        
     boundary_conditions_stiff, boundary_conditions_nonstiff = boundary_conditions
     initial_cache_stiff, initial_cache_nonstiff = initial_caches
     source_terms_stiff, source_terms_nonstiff = source_terms
@@ -130,6 +136,8 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
 
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions_stiff)
 
+    performance_counter = PerformanceCounterList{2}(false)
+
     SemidiscretizationHyperbolicSplit{typeof(mesh), typeof(equations_stiff),
                                       typeof(equations_nonstiff),
                                       typeof(initial_condition),
@@ -149,7 +157,8 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                                                               solver_stiff,
                                                               solver_nonstiff,
                                                               cache_stiff,
-                                                              cache_nonstiff)
+                                                              cache_nonstiff,
+                                                              performance_counter)
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
