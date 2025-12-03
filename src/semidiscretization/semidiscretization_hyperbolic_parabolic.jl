@@ -39,47 +39,13 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
     cache_parabolic::CacheParabolic
 
     performance_counter::PerformanceCounterList{2}
-
-    function SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic,
-                                                   InitialCondition, BoundaryConditions,
-                                                   BoundaryConditionsParabolic,
-                                                   SourceTerms, Solver,
-                                                   SolverParabolic, Cache,
-                                                   CacheParabolic}(mesh::Mesh,
-                                                                   equations::Equations,
-                                                                   equations_parabolic::EquationsParabolic,
-                                                                   initial_condition::InitialCondition,
-                                                                   boundary_conditions::BoundaryConditions,
-                                                                   boundary_conditions_parabolic::BoundaryConditionsParabolic,
-                                                                   source_terms::SourceTerms,
-                                                                   solver::Solver,
-                                                                   solver_parabolic::SolverParabolic,
-                                                                   cache::Cache,
-                                                                   cache_parabolic::CacheParabolic) where {
-                                                                                                           Mesh,
-                                                                                                           Equations,
-                                                                                                           EquationsParabolic,
-                                                                                                           InitialCondition,
-                                                                                                           BoundaryConditions,
-                                                                                                           BoundaryConditionsParabolic,
-                                                                                                           SourceTerms,
-                                                                                                           Solver,
-                                                                                                           SolverParabolic,
-                                                                                                           Cache,
-                                                                                                           CacheParabolic
-                                                                                                           }
-        @assert ndims(mesh) == ndims(equations)
-
-        # Todo: assert nvariables(equations)==nvariables(equations_parabolic)
-
-        performance_counter = PerformanceCounterList{2}(false)
-
-        new(mesh, equations, equations_parabolic, initial_condition,
-            boundary_conditions, boundary_conditions_parabolic,
-            source_terms, solver, solver_parabolic, cache, cache_parabolic,
-            performance_counter)
-    end
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationHyperbolicParabolic(mesh, both_equations, initial_condition, solver;
@@ -100,56 +66,53 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                # `RealT` is used as real type for node locations etc.
                                                # while `uEltype` is used as element type of solutions etc.
                                                RealT = real(solver), uEltype = RealT)
-    equations_hyperbolic, equations_parabolic = equations
-    boundary_conditions_hyperbolic, boundary_conditions_parabolic = boundary_conditions
+    equations, equations_parabolic = equations
 
-    return SemidiscretizationHyperbolicParabolic(mesh, equations_hyperbolic,
-                                                 equations_parabolic,
-                                                 initial_condition, solver;
-                                                 solver_parabolic, source_terms,
-                                                 boundary_conditions = boundary_conditions_hyperbolic,
-                                                 boundary_conditions_parabolic = boundary_conditions_parabolic,
-                                                 RealT, uEltype)
-end
+    @assert ndims(mesh) == ndims(equations)
+    @assert ndims(mesh) == ndims(equations_parabolic)
 
-function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
-                                               initial_condition, solver;
-                                               solver_parabolic = default_parabolic_solver(),
-                                               source_terms = nothing,
-                                               boundary_conditions = boundary_condition_periodic,
-                                               boundary_conditions_parabolic = boundary_condition_periodic,
-                                               # `RealT` is used as real type for node locations etc.
-                                               # while `uEltype` is used as element type of solutions etc.
-                                               RealT = real(solver), uEltype = RealT)
+    if !(nvariables(equations) == nvariables(equations_parabolic))
+        throw(ArgumentError("Current implementation of viscous terms requires the same number of conservative and gradient variables."))
+    end
+
+    boundary_conditions, boundary_conditions_parabolic = boundary_conditions
+
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
-    _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
-                                                      cache)
-    _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
-                                                                mesh, solver, cache)
-
+    _boundary_conditions = digest_boundary_conditions(boundary_conditions,
+                                                      mesh, solver, cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
-    cache_parabolic = create_cache_parabolic(mesh, equations, equations_parabolic,
-                                             solver, solver_parabolic, RealT,
-                                             uEltype)
+    cache_parabolic = create_cache_parabolic(mesh, equations, solver,
+                                             nelements(solver, cache), uEltype)
 
-    SemidiscretizationHyperbolicParabolic{typeof(mesh), typeof(equations),
-                                          typeof(equations_parabolic),
-                                          typeof(initial_condition),
-                                          typeof(_boundary_conditions),
-                                          typeof(_boundary_conditions_parabolic),
-                                          typeof(source_terms), typeof(solver),
-                                          typeof(solver_parabolic), typeof(cache),
-                                          typeof(cache_parabolic)}(mesh, equations,
-                                                                   equations_parabolic,
-                                                                   initial_condition,
-                                                                   _boundary_conditions,
-                                                                   _boundary_conditions_parabolic,
-                                                                   source_terms,
-                                                                   solver,
-                                                                   solver_parabolic,
-                                                                   cache,
-                                                                   cache_parabolic)
+    _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
+                                                                mesh, solver, cache)
+    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions_parabolic)
+
+    performance_counter = PerformanceCounterList{2}(false)
+
+    return SemidiscretizationHyperbolicParabolic{typeof(mesh),
+                                                 typeof(equations),
+                                                 typeof(equations_parabolic),
+                                                 typeof(initial_condition),
+                                                 typeof(_boundary_conditions),
+                                                 typeof(_boundary_conditions_parabolic),
+                                                 typeof(source_terms),
+                                                 typeof(solver),
+                                                 typeof(solver_parabolic),
+                                                 typeof(cache),
+                                                 typeof(cache_parabolic)}(mesh,
+                                                                          equations,
+                                                                          equations_parabolic,
+                                                                          initial_condition,
+                                                                          _boundary_conditions,
+                                                                          _boundary_conditions_parabolic,
+                                                                          source_terms,
+                                                                          solver,
+                                                                          solver_parabolic,
+                                                                          cache,
+                                                                          cache_parabolic,
+                                                                          performance_counter)
 end
 
 # Create a new semidiscretization but change some parameters compared to the input.
@@ -171,10 +134,12 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
-    SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
-                                          initial_condition, solver; solver_parabolic,
-                                          source_terms, boundary_conditions,
-                                          boundary_conditions_parabolic, uEltype)
+    return SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                                 initial_condition, solver;
+                                                 solver_parabolic, source_terms,
+                                                 boundary_conditions = (boundary_conditions,
+                                                                        boundary_conditions_parabolic),
+                                                 uEltype)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolicParabolic)
@@ -402,8 +367,8 @@ end
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
     @unpack mesh, equations_parabolic, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
-    u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache_parabolic)
-    du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache_parabolic)
+    u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache)
+    du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()

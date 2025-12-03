@@ -29,7 +29,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
     equations_parabolic = LaplaceDiffusion2D(1.0, equations)
 
-    semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
+    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, dg)
     @trixi_test_nowarn show(stdout, semi)
     @trixi_test_nowarn show(stdout, MIME"text/plain"(), semi)

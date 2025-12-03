@@ -99,10 +99,8 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_aqua.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part1"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations"
         include("test_performance_specializations_2d.jl")
-    end
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part2"
         include("test_performance_specializations_3d.jl")
     end
 

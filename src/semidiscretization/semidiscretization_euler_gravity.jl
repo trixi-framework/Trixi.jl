@@ -100,31 +100,16 @@ struct SemidiscretizationEulerGravity{SemiEuler, SemiGravity,
     semi_euler          :: SemiEuler
     semi_gravity        :: SemiGravity
     parameters          :: Parameters
+    cache               :: Cache
     performance_counter :: PerformanceCounter
     gravity_counter     :: PerformanceCounter
-    cache               :: Cache
-
-    function SemidiscretizationEulerGravity{SemiEuler, SemiGravity, Parameters, Cache}(semi_euler::SemiEuler,
-                                                                                       semi_gravity::SemiGravity,
-                                                                                       parameters::Parameters,
-                                                                                       cache::Cache) where {
-                                                                                                            SemiEuler,
-                                                                                                            SemiGravity,
-                                                                                                            Parameters <:
-                                                                                                            ParametersEulerGravity,
-                                                                                                            Cache
-                                                                                                            }
-        @assert ndims(semi_euler) == ndims(semi_gravity)
-        @assert typeof(semi_euler.mesh) == typeof(semi_gravity.mesh)
-        @assert polydeg(semi_euler.solver) == polydeg(semi_gravity.solver)
-
-        performance_counter = PerformanceCounter()
-        gravity_counter = PerformanceCounter()
-
-        new(semi_euler, semi_gravity, parameters, performance_counter, gravity_counter,
-            cache)
-    end
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::SemiGravity, parameters)
@@ -140,6 +125,10 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler,
           SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
           SemiGravity <:
           SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
+    @assert ndims(semi_euler) == ndims(semi_gravity)
+    @assert typeof(semi_euler.mesh) == typeof(semi_gravity.mesh)
+    @assert polydeg(semi_euler.solver) == polydeg(semi_gravity.solver)
+
     u_ode = compute_coefficients(zero(real(semi_gravity)), semi_gravity)
     du_ode = similar(u_ode)
     # Registers for gravity solver, tailored to the 2N and 3S* methods implemented below
@@ -147,10 +136,16 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler,
     u_tmp2_ode = similar(u_ode)
     cache = (; u_ode, du_ode, u_tmp1_ode, u_tmp2_ode)
 
-    SemidiscretizationEulerGravity{typeof(semi_euler), typeof(semi_gravity),
-                                   typeof(parameters), typeof(cache)}(semi_euler,
-                                                                      semi_gravity,
-                                                                      parameters, cache)
+    performance_counter = PerformanceCounter()
+    gravity_counter = PerformanceCounter()
+
+    return SemidiscretizationEulerGravity{typeof(semi_euler), typeof(semi_gravity),
+                                          typeof(parameters), typeof(cache)}(semi_euler,
+                                                                             semi_gravity,
+                                                                             parameters,
+                                                                             cache,
+                                                                             performance_counter,
+                                                                             gravity_counter)
 end
 
 function remake(semi::SemidiscretizationEulerGravity;
@@ -168,10 +163,7 @@ function remake(semi::SemidiscretizationEulerGravity;
     u_tmp2_ode = similar(u_ode)
     cache = (; u_ode, du_ode, u_tmp1_ode, u_tmp2_ode)
 
-    SemidiscretizationEulerGravity{typeof(semi_euler), typeof(semi_gravity),
-                                   typeof(parameters), typeof(cache)}(semi_euler,
-                                                                      semi_gravity,
-                                                                      parameters, cache)
+    return SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
