@@ -30,8 +30,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::P4estMesh{3},
                             equations_parabolic, dg)
     end
 
-    # Calculate interface fluxes for the gradients.
-    # This reuses `calc_interface_flux!` for the purely hyperbolic case.
+    # Calculate interface fluxes for the gradients
     @trixi_timeit timer() "interface flux" begin
         @unpack surface_flux_values = cache.elements
         calc_gradient_interface_flux!(surface_flux_values, mesh, equations_parabolic,
