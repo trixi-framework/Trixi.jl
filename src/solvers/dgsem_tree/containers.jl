@@ -92,11 +92,9 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     init_boundaries!(boundaries, elements, mesh)
 
     # re-initialize mortars container
-    if hasproperty(cache, :mortars) # cache_parabolic does not carry mortars
-        @unpack mortars = cache
-        resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
-        init_mortars!(mortars, elements, mesh)
-    end
+    @unpack mortars = cache
+    resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
+    init_mortars!(mortars, elements, mesh)
 
     if mpi_isparallel()
         # re-initialize mpi_interfaces container
