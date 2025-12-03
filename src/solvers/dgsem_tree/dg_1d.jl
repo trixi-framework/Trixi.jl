@@ -40,13 +40,10 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                          VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
                          dg, uEltype)
 
-    A2d = Array{uEltype, 2}
-    fstar1_L_threaded = A2d[A2d(undef, nvariables(equations),
-                                nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A2d[A2d(undef, nvariables(equations),
-                                nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
+    MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
+                  uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
+    fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar1_R_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; cache..., fstar1_L_threaded, fstar1_R_threaded)
 end
@@ -287,7 +284,11 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, u::AbstractArray{<:Any, 3},
+# Compute the normal flux for the FV method on subcells of the LGL subgrid, see
+# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
+# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+@inline function calcflux_fv!(fstar1_L, fstar1_R, u,
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
@@ -307,7 +308,7 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, u::AbstractArray{<:Any, 3},
+@inline function calcflux_fv!(fstar1_L, fstar1_R, u,
                               mesh::TreeMesh{1},
                               have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
@@ -340,7 +341,11 @@ end
     return nothing
 end
 
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, u::AbstractArray{<:Any, 3},
+# Compute the normal flux for the second-order FV method on subcells of the LGL subgrid, see
+# Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021)
+# "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. Part II: Subcell finite volume shock capturing"
+# [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+@inline function calcflux_fvO2!(fstar1_L, fstar1_R, u,
                                 mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
@@ -408,7 +413,10 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations, dg::DG)
+# Used for both the purely hyperbolic conserved variables `u`
+# and the viscous flux in x-direction in the 1D parabolic case.
+function prolong2interfaces!(cache, u_or_flux_viscous,
+                             mesh::TreeMesh{1}, equations, dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -419,8 +427,9 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{1}, equations, dg::DG)
 
         # interface in x-direction
         for v in eachvariable(equations)
-            interfaces_u[1, v, interface] = u[v, nnodes(dg), left_element]
-            interfaces_u[2, v, interface] = u[v, 1, right_element]
+            interfaces_u[1, v, interface] = u_or_flux_viscous[v, nnodes(dg),
+                                                              left_element]
+            interfaces_u[2, v, interface] = u_or_flux_viscous[v, 1, right_element]
         end
     end
 
@@ -500,7 +509,9 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+# Used for both the purely hyperbolic conserved variables `u`
+# and the viscous flux in x-direction in the 1D parabolic case.
+function prolong2boundaries!(cache, u_or_flux_viscous,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
@@ -512,11 +523,11 @@ function prolong2boundaries!(cache, u,
         if neighbor_sides[boundary] == 1
             # element in -x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[1, v, boundary] = u[v, nnodes(dg), element]
+                boundaries.u[1, v, boundary] = u_or_flux_viscous[v, nnodes(dg), element]
             end
         else # Element in +x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[2, v, boundary] = u[v, 1, element]
+                boundaries.u[2, v, boundary] = u_or_flux_viscous[v, 1, element]
             end
         end
     end

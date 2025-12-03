@@ -68,7 +68,7 @@ end
 # Subcell limiting currently only implemented for certain mesh types
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           P4estMesh{2}},
+                                           P4estMesh{2}, P4estMesh{3}},
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
@@ -671,6 +671,14 @@ end
                                          have_nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+
+    # Due to the use of LGL nodes, the DG staggered fluxes `fhat` and FV fluxes `fstar` are equal
+    # on the element interfaces. So, they are not computed in the volume integral and set to zero
+    # in their respective computation.
+    # The antidiffusive fluxes are therefore zero on the element interfaces and don't need to be
+    # computed either. They are set to zero directly after resizing the container.
+    # This applies to the indices `i=1` and `i=nnodes(dg)+1` for `antidiffusive_flux1_L` and
+    # `antidiffusive_flux1_R` and analogously for the second direction.
 
     for j in eachnode(dg), i in 2:nnodes(dg)
         for v in eachvariable(equations)

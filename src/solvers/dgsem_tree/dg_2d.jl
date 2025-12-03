@@ -96,10 +96,6 @@ function create_cache(mesh::TreeMesh{2}, equations,
     fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
     fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
-    # A2d = Array{uEltype, 2}
-    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.maxthreadid()]
-    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.maxthreadid()]
-
     cache = (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
              fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
 
@@ -327,19 +323,11 @@ end
     return nothing
 end
 
-#     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  have_nonconservative_terms::False, equations,
-#                  volume_flux_fv, dg, element)
-#
-# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
-#
-# # Arguments
-# - `fstar1_L::AbstractArray{<:Real, 3}`
-# - `fstar1_R::AbstractArray{<:Real, 3}`
-# - `fstar2_L::AbstractArray{<:Real, 3}`
-# - `fstar2_R::AbstractArray{<:Real, 3}`
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                              u::AbstractArray{<:Any, 4},
+# Compute the normal flux for the FV method on cartesian subcells, see
+# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
+# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
                               mesh::TreeMesh{2},
                               have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
@@ -372,20 +360,7 @@ end
     return nothing
 end
 
-#     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
-#                  have_nonconservative_terms::True, equations,
-#                  volume_flux_fv, dg, element)
-#
-# Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
-#
-# # Arguments
-# - `fstar1_L::AbstractArray{<:Real, 3}`:
-# - `fstar1_R::AbstractArray{<:Real, 3}`:
-# - `fstar2_L::AbstractArray{<:Real, 3}`:
-# - `fstar2_R::AbstractArray{<:Real, 3}`:
-# - `u_leftright::AbstractArray{<:Real, 4}`
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                              u::AbstractArray{<:Any, 4},
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
                               mesh::TreeMesh{2},
                               have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)

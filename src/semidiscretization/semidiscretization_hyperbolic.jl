@@ -20,14 +20,20 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
 
     # This guy is a bit messy since we abuse it as some kind of "exact solution"
     # although this doesn't really exist...
-    initial_condition::InitialCondition
+    const initial_condition::InitialCondition
 
-    boundary_conditions::BoundaryConditions
-    source_terms::SourceTerms
-    solver::Solver
+    const boundary_conditions::BoundaryConditions
+    const source_terms::SourceTerms
+    const solver::Solver
     cache::Cache
     performance_counter::PerformanceCounter
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -54,15 +60,16 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
 
     performance_counter = PerformanceCounter()
 
-    SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
-                                 typeof(initial_condition),
-                                 typeof(_boundary_conditions), typeof(source_terms),
-                                 typeof(solver), typeof(cache)}(mesh, equations,
-                                                                initial_condition,
-                                                                _boundary_conditions,
-                                                                source_terms, solver,
-                                                                cache,
-                                                                performance_counter)
+    return SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
+                                        typeof(initial_condition),
+                                        typeof(_boundary_conditions),
+                                        typeof(source_terms),
+                                        typeof(solver), typeof(cache)}(mesh, equations,
+                                                                       initial_condition,
+                                                                       _boundary_conditions,
+                                                                       source_terms,
+                                                                       solver, cache,
+                                                                       performance_counter)
 end
 
 # @eval due to @muladd
@@ -83,8 +90,8 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
-    SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                 source_terms, boundary_conditions, uEltype)
+    return SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                        source_terms, boundary_conditions, uEltype)
 end
 
 # general fallback

@@ -26,47 +26,42 @@
 # way. Also, depth-first ordering *might* not be guaranteed during
 # refinement/coarsening operations.
 mutable struct ParallelTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
+    const capacity::Int
+    length::Int
+
     parent_ids::Vector{Int}
     child_ids::Matrix{Int}
     neighbor_ids::Matrix{Int}
     levels::Vector{Int}
     coordinates::Matrix{RealT}
     original_cell_ids::Vector{Int}
-    mpi_ranks::Vector{Int}
-
-    capacity::Int
-    length::Int
-    dummy::Int
 
     center_level_0::SVector{NDIMS, RealT}
     length_level_0::RealT
     periodicity::NTuple{NDIMS, Bool}
 
+    mpi_ranks::Vector{Int} # Addition compared to `SerialTree`
+
     function ParallelTree{NDIMS, RealT}(capacity::Integer) where {NDIMS, RealT <: Real}
-        # Verify that NDIMS is an integer
         @assert NDIMS isa Integer
 
-        # Create instance
-        t = new()
+        parent_ids = fill(typemin(Int), capacity + 1)
+        child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
+        neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
+        levels = fill(typemin(Int), capacity + 1)
+        coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1)
+        original_cell_ids = fill(typemin(Int), capacity + 1)
+        mpi_ranks = fill(typemin(Int), capacity + 1)
 
-        # Initialize fields with defaults
-        # Note: length as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
-        t.parent_ids = fill(typemin(Int), capacity + 1)
-        t.child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
-        t.neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
-        t.levels = fill(typemin(Int), capacity + 1)
-        t.coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1) # `NaN` is of type Float64
-        t.original_cell_ids = fill(typemin(Int), capacity + 1)
-        t.mpi_ranks = fill(typemin(Int), capacity + 1)
+        center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
+        length_level_0 = convert(RealT, NaN)
+        periodicity = ntuple(_ -> false, NDIMS)
 
-        t.capacity = capacity
-        t.length = 0
-        t.dummy = capacity + 1
-
-        t.center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
-        t.length_level_0 = convert(RealT, NaN)
-
-        return t
+        return new(capacity, 0, # length
+                   parent_ids, child_ids, neighbor_ids,
+                   levels, coordinates, original_cell_ids,
+                   center_level_0, length_level_0,
+                   periodicity, mpi_ranks)
     end
 end
 
@@ -156,7 +151,6 @@ function Base.show(io::IO, ::MIME"text/plain", t::ParallelTree)
     println(io, "t.mpi_ranks[1:l] = $(t.mpi_ranks[1:l])")
     println(io, "t.capacity = $(t.capacity)")
     println(io, "t.length = $(t.length)")
-    println(io, "t.dummy = $(t.dummy)")
     println(io, "t.center_level_0 = $(t.center_level_0)")
     println(io, "t.length_level_0 = $(t.length_level_0)")
     println(io, '*'^20)

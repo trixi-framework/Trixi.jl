@@ -8,7 +8,7 @@
 # Dimension independent code related to containers of the DG solver
 # with the mesh type TreeMesh
 
-abstract type AbstractTreeElementContainer <: AbstractContainer end
+abstract type AbstractTreeElementContainer <: AbstractElementContainer end
 
 # Return number of elements
 @inline nelements(elements::AbstractTreeElementContainer) = length(elements.cell_ids)
@@ -30,7 +30,7 @@ In particular, not the elements themselves are returned.
 @inline Base.real(elements::AbstractTreeElementContainer) = eltype(elements.node_coordinates)
 @inline Base.eltype(elements::AbstractTreeElementContainer) = eltype(elements.surface_flux_values)
 
-abstract type AbstractTreeInterfaceContainer <: AbstractContainer end
+abstract type AbstractTreeInterfaceContainer <: AbstractInterfaceContainer end
 
 # Return number of interfaces
 @inline ninterfaces(interfaces::AbstractTreeInterfaceContainer) = length(interfaces.orientations)
@@ -39,7 +39,19 @@ abstract type AbstractTreeInterfaceContainer <: AbstractContainer end
 # Return number of equation variables
 @inline nvariables(interfaces::AbstractTreeInterfaceContainer) = size(interfaces.u, 2)
 
-abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
+abstract type AbstractTreeMPIInterfaceContainer <: AbstractMPIInterfaceContainer end
+
+# Return number of interfaces
+@inline function nmpiinterfaces(mpi_interfaces::AbstractTreeMPIInterfaceContainer)
+    return length(mpi_interfaces.orientations)
+end
+# Return number of interface nodes for 2D and 3D. For 1D hard-coded to 1 interface node.
+@inline nnodes(interfaces::AbstractTreeMPIInterfaceContainer) = size(interfaces.u, 3)
+# Return number of equation variables
+@inline nvariables(interfaces::AbstractTreeMPIInterfaceContainer) = size(interfaces.u,
+                                                                         2)
+
+abstract type AbstractTreeBoundaryContainer <: AbstractBoundaryContainer end
 
 # Return number of boundaries
 @inline nboundaries(boundaries::AbstractTreeBoundaryContainer) = length(boundaries.orientations)
@@ -48,10 +60,17 @@ abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
 # Return number of equation variables
 @inline nvariables(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 2)
 
-abstract type AbstractTreeL2MortarContainer <: AbstractContainer end
+abstract type AbstractTreeL2MortarContainer <: AbstractMortarContainer end
 
 # Return number of L2 mortars
 @inline nmortars(l2mortars::AbstractTreeL2MortarContainer) = length(l2mortars.orientations)
+
+abstract type AbstractTreeL2MPIMortarContainer <: AbstractMPIMortarContainer end
+
+# Return number of L2 mortars
+@inline function nmpimortars(mpi_l2mortars::AbstractTreeL2MPIMortarContainer)
+    length(mpi_l2mortars.orientations)
+end
 
 function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     # Get new list of leaf cells
@@ -73,11 +92,9 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     init_boundaries!(boundaries, elements, mesh)
 
     # re-initialize mortars container
-    if hasproperty(cache, :mortars) # cache_parabolic does not carry mortars
-        @unpack mortars = cache
-        resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
-        init_mortars!(mortars, elements, mesh)
-    end
+    @unpack mortars = cache
+    resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
+    init_mortars!(mortars, elements, mesh)
 
     if mpi_isparallel()
         # re-initialize mpi_interfaces container
@@ -163,6 +180,12 @@ function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
 
     return nothing
 end
+
+abstract type AbstractContainerAntidiffusiveFlux <: AbstractContainer end
+nvariables(fluxes::AbstractContainerAntidiffusiveFlux) = size(fluxes.antidiffusive_flux1_L,
+                                                              1)
+nnodes(fluxes::AbstractContainerAntidiffusiveFlux) = size(fluxes.antidiffusive_flux1_L,
+                                                          3)
 
 # Dimension-specific implementations
 include("containers_1d.jl")
