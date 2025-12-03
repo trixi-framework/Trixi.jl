@@ -1323,4 +1323,274 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
 
     return nothing
 end
+
+# Container data structure (structure-of-arrays style) for variables used for MCL limiting
+mutable struct ContainerSubcellLimiterMCL2D{uEltype <: Real}
+    var_min::Array{uEltype, 4}                # [variable, i, j, element]
+    var_max::Array{uEltype, 4}                # [variable, i, j, element]
+    alpha::Array{uEltype, 4}                  # [variable, i, j, element]
+    alpha_pressure::Array{uEltype, 3}         # [i, j, element]
+    alpha_entropy::Array{uEltype, 3}          # [i, j, element]
+    alpha_mean::Array{uEltype, 4}             # [variable, i, j, element]
+    alpha_mean_pressure::Array{uEltype, 3}    # [i, j, element]
+    alpha_mean_entropy::Array{uEltype, 3}     # [i, j, element]
+    # internal `resize!`able storage
+    _var_min::Vector{uEltype}
+    _var_max::Vector{uEltype}
+    _alpha::Vector{uEltype}
+    _alpha_pressure::Vector{uEltype}
+    _alpha_entropy::Vector{uEltype}
+    _alpha_mean::Vector{uEltype}
+    _alpha_mean_pressure::Vector{uEltype}
+    _alpha_mean_entropy::Vector{uEltype}
+end
+
+function ContainerSubcellLimiterMCL2D{uEltype}(capacity::Integer, n_variables,
+                                               n_nodes) where {uEltype <: Real}
+    nan_uEltype = convert(uEltype, NaN)
+
+    _var_min = Vector{uEltype}(undef, n_variables * n_nodes^2 * capacity)
+    var_min = unsafe_wrap(Array, pointer(_var_min),
+                          (n_variables, n_nodes, n_nodes, capacity))
+
+    _var_max = Vector{uEltype}(undef, n_variables * n_nodes^2 * capacity)
+    var_max = unsafe_wrap(Array, pointer(_var_max),
+                          (n_variables, n_nodes, n_nodes, capacity))
+
+    _alpha = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
+    alpha = unsafe_wrap(Array, pointer(_alpha),
+                        (n_variables, n_nodes, n_nodes, capacity))
+
+    _alpha_pressure = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+    alpha_pressure = unsafe_wrap(Array, pointer(_alpha_pressure),
+                                 (n_nodes, n_nodes, capacity))
+
+    _alpha_entropy = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+    alpha_entropy = unsafe_wrap(Array, pointer(_alpha_entropy),
+                                (n_nodes, n_nodes, capacity))
+
+    _alpha_mean = fill(nan_uEltype, n_variables * n_nodes * n_nodes * capacity)
+    alpha_mean = unsafe_wrap(Array, pointer(_alpha_mean),
+                             (n_variables, n_nodes, n_nodes, capacity))
+
+    _alpha_mean_pressure = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+    alpha_mean_pressure = unsafe_wrap(Array, pointer(_alpha_mean_pressure),
+                                      (n_nodes, n_nodes, capacity))
+
+    _alpha_mean_entropy = fill(nan_uEltype, n_nodes * n_nodes * capacity)
+    alpha_mean_entropy = unsafe_wrap(Array, pointer(_alpha_mean_entropy),
+                                     (n_nodes, n_nodes, capacity))
+
+    return ContainerSubcellLimiterMCL2D{uEltype}(var_min, var_max, alpha,
+                                                 alpha_pressure, alpha_entropy,
+                                                 alpha_mean,
+                                                 alpha_mean_pressure,
+                                                 alpha_mean_entropy,
+                                                 _var_min, _var_max, _alpha,
+                                                 _alpha_pressure,
+                                                 _alpha_entropy,
+                                                 _alpha_mean,
+                                                 _alpha_mean_pressure,
+                                                 _alpha_mean_entropy)
+end
+
+function nvariables(container::ContainerSubcellLimiterMCL2D)
+    size(container.var_min, 1)
+end
+nnodes(container::ContainerSubcellLimiterMCL2D) = size(container.var_min, 2)
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(container::ContainerSubcellLimiterMCL2D, capacity)
+    n_variables = nvariables(container)
+    n_nodes = nnodes(container)
+
+    @unpack _var_min, _var_max = container
+    resize!(_var_min, n_variables * n_nodes * n_nodes * capacity)
+    container.var_min = unsafe_wrap(Array, pointer(_var_min),
+                                    (n_variables, n_nodes, n_nodes, capacity))
+    resize!(_var_max, n_variables * n_nodes * n_nodes * capacity)
+    container.var_max = unsafe_wrap(Array, pointer(_var_max),
+                                    (n_variables, n_nodes, n_nodes, capacity))
+
+    @unpack _alpha = container
+    resize!(_alpha, n_variables * n_nodes * n_nodes * capacity)
+    container.alpha = unsafe_wrap(Array, pointer(_alpha),
+                                  (n_variables, n_nodes, n_nodes, capacity))
+
+    @unpack _alpha_pressure = container
+    resize!(_alpha_pressure, n_nodes * n_nodes * capacity)
+    container.alpha_pressure = unsafe_wrap(Array, pointer(_alpha_pressure),
+                                           (n_nodes, n_nodes, capacity))
+
+    @unpack _alpha_entropy = container
+    resize!(_alpha_entropy, n_nodes * n_nodes * capacity)
+    container.alpha_entropy = unsafe_wrap(Array, pointer(_alpha_entropy),
+                                          (n_nodes, n_nodes, capacity))
+
+    @unpack _alpha_mean = container
+    resize!(_alpha_mean, n_variables * n_nodes * n_nodes * capacity)
+    container.alpha_mean = unsafe_wrap(Array, pointer(_alpha_mean),
+                                       (n_variables, n_nodes, n_nodes, capacity))
+
+    @unpack _alpha_mean_pressure = container
+    resize!(_alpha_mean_pressure, n_nodes * n_nodes * capacity)
+    container.alpha_mean_pressure = unsafe_wrap(Array, pointer(_alpha_mean_pressure),
+                                                (n_nodes, n_nodes, capacity))
+
+    @unpack _alpha_mean_entropy = container
+    resize!(_alpha_mean_entropy, n_nodes * n_nodes * capacity)
+    container.alpha_mean_entropy = unsafe_wrap(Array, pointer(_alpha_mean_entropy),
+                                               (n_nodes, n_nodes, capacity))
+
+    return nothing
+end
+
+# Container data structure (structure-of-arrays style) for variables used for subcell limiting using bar states
+# TODO: Use NDIMS for dimension independence
+mutable struct ContainerBarStates2D{uEltype <: Real}
+    bar_states1::Array{uEltype, 4}            # [variable, i, j, element]
+    bar_states2::Array{uEltype, 4}            # [variable, i, j, element]
+    lambda1::Array{uEltype, 3}                # [i, j, element]
+    lambda2::Array{uEltype, 3}
+    normal_direction_xi::Array{uEltype, 4}    # [index, i, j, elements]
+    normal_direction_eta::Array{uEltype, 4}   # [index, i, j, elements]
+    # internal `resize!`able storage
+    _bar_states1::Vector{uEltype}
+    _bar_states2::Vector{uEltype}
+    _lambda1::Vector{uEltype}
+    _lambda2::Vector{uEltype}
+    _normal_direction_xi::Vector{uEltype}
+    _normal_direction_eta::Vector{uEltype}
+end
+
+function ContainerBarStates2D{uEltype}(capacity::Integer, n_variables,
+                                       n_nodes) where {uEltype <: Real}
+    nan_uEltype = convert(uEltype, NaN)
+    n_dims = 2
+
+    # Initialize fields with defaults
+    _bar_states1 = fill(nan_uEltype, n_variables * (n_nodes + 1) * n_nodes * capacity)
+    bar_states1 = unsafe_wrap(Array, pointer(_bar_states1),
+                              (n_variables, n_nodes + 1, n_nodes, capacity))
+    _bar_states2 = fill(nan_uEltype, n_variables * n_nodes * (n_nodes + 1) * capacity)
+    bar_states2 = unsafe_wrap(Array, pointer(_bar_states2),
+                              (n_variables, n_nodes, n_nodes + 1, capacity))
+
+    _lambda1 = fill(nan_uEltype, (n_nodes + 1) * n_nodes * capacity)
+    lambda1 = unsafe_wrap(Array, pointer(_lambda1), (n_nodes + 1, n_nodes, capacity))
+    _lambda2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * capacity)
+    lambda2 = unsafe_wrap(Array, pointer(_lambda2), (n_nodes, n_nodes + 1, capacity))
+
+    _normal_direction_xi = fill(nan_uEltype,
+                                n_dims * (n_nodes - 1) * n_nodes * capacity)
+    normal_direction_xi = unsafe_wrap(Array, pointer(_normal_direction_xi),
+                                      (n_dims, n_nodes - 1, n_nodes, capacity))
+
+    _normal_direction_eta = fill(nan_uEltype,
+                                 n_dims * n_nodes * (n_nodes - 1) * capacity)
+    normal_direction_eta = unsafe_wrap(Array, pointer(_normal_direction_eta),
+                                       (n_dims, n_nodes, n_nodes - 1,
+                                        capacity))
+
+    return ContainerBarStates2D{uEltype}(bar_states1, bar_states2, lambda1, lambda2,
+                                         normal_direction_xi, normal_direction_eta,
+                                         _bar_states1, _bar_states2, _lambda1, _lambda2,
+                                         _normal_direction_xi, _normal_direction_eta)
+end
+
+nvariables(container::ContainerBarStates2D) = size(container.bar_states1, 1)
+nnodes(container::ContainerBarStates2D) = size(container.bar_states1, 3)
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(container::ContainerBarStates2D, capacity)
+    n_variables = nvariables(container)
+    n_nodes = nnodes(container)
+    n_dims = size(container.normal_direction_xi, 1)
+
+    @unpack _bar_states1, _bar_states2 = container
+    resize!(_bar_states1, n_variables * (n_nodes + 1) * n_nodes * capacity)
+    container.bar_states1 = unsafe_wrap(Array, pointer(_bar_states1),
+                                        (n_variables, n_nodes + 1, n_nodes, capacity))
+    resize!(_bar_states2, n_variables * n_nodes * (n_nodes + 1) * capacity)
+    container.bar_states2 = unsafe_wrap(Array, pointer(_bar_states2),
+                                        (n_variables, n_nodes, n_nodes + 1, capacity))
+
+    @unpack _lambda1, _lambda2 = container
+    resize!(_lambda1, (n_nodes + 1) * n_nodes * capacity)
+    container.lambda1 = unsafe_wrap(Array, pointer(_lambda1),
+                                    (n_nodes + 1, n_nodes, capacity))
+    resize!(_lambda2, n_nodes * (n_nodes + 1) * capacity)
+    container.lambda2 = unsafe_wrap(Array, pointer(_lambda2),
+                                    (n_nodes, n_nodes + 1, capacity))
+
+    @unpack _normal_direction_xi, _normal_direction_eta = container
+    resize!(_normal_direction_xi,
+            n_dims * (n_nodes - 1) * n_nodes * capacity)
+    container.normal_direction_xi = unsafe_wrap(Array, pointer(_normal_direction_xi),
+                                                (n_dims, n_nodes - 1, n_nodes,
+                                                 capacity))
+    resize!(_normal_direction_eta,
+            n_dims * n_nodes * (n_nodes - 1) * capacity)
+    container.normal_direction_eta = unsafe_wrap(Array, pointer(_normal_direction_eta),
+                                                 (n_dims, n_nodes, n_nodes - 1,
+                                                  capacity))
+
+    return nothing
+end
+
+function calc_normal_directions!(container_bar_states, mesh::TreeMesh, equations, dg,
+                                 cache)
+    nothing
+end
+
+function calc_normal_directions!(container_bar_states,
+                                 mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                                 equations, dg, cache)
+    (; weights, derivative_matrix) = dg.basis
+    (; contravariant_vectors) = cache.elements
+
+    (; normal_direction_xi, normal_direction_eta) = container_bar_states
+    @threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg)
+            normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j,
+                                                        element)
+            for i in 2:nnodes(dg)
+                for m in eachnode(dg)
+                    normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
+                                        get_contravariant_vector(1,
+                                                                 contravariant_vectors,
+                                                                 m, j, element)
+                end
+                for v in axes(normal_direction_xi, 1)
+                    normal_direction_xi[v, i - 1, j, element] = normal_direction[v]
+                end
+            end
+        end
+        for i in eachnode(dg)
+            normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1,
+                                                        element)
+            for j in 2:nnodes(dg)
+                for m in eachnode(dg)
+                    normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
+                                        get_contravariant_vector(2,
+                                                                 contravariant_vectors,
+                                                                 i, m, element)
+                end
+                for v in axes(normal_direction_eta, 1)
+                    normal_direction_eta[v, i, j - 1, element] = normal_direction[v]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
 end # @muladd
