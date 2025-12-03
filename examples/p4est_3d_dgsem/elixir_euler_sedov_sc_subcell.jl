@@ -25,7 +25,7 @@ function initial_condition_sedov_blast_wave(x, t,
     r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
     E = 1.0
     p0_inner = 3 * (equations.gamma - 1) * E / (4 * pi * r0^2)
-    p0_outer = 1.0e-1 # "simpler" setup since positivity limiter for pressure is not yet supported in 3D
+    p0_outer = 1.0e-5 # = true Sedov setup
 
     # Calculate primitive variables
     rho = 1.0
@@ -36,7 +36,6 @@ function initial_condition_sedov_blast_wave(x, t,
 
     return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
-
 initial_condition = initial_condition_sedov_blast_wave
 
 surface_flux = flux_lax_friedrichs
@@ -44,7 +43,8 @@ volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                positivity_variables_cons = ["rho"])
+                                positivity_variables_cons = ["rho"],
+                                positivity_variables_nonlinear = [pressure])
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
