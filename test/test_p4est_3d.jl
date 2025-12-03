@@ -222,11 +222,11 @@ end
                             3.292966f-6
                         ],
                         linf=[
-                            2.8014183f-6,
-                            9.417534f-6,
-                            1.1667609f-5,
-                            1.692772f-5,
-                            3.33786f-5
+                            Float32(4.884981308350689e-15),
+                            Float32(1.1921019726912618e-14),
+                            Float32(1.5432100042289676e-14),
+                            Float32(2.298161660974074e-14),
+                            Float32(6.039613253960852e-14)
                         ],
                         RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
