@@ -282,7 +282,6 @@ function calc_gradient_interface_flux!(surface_flux_values,
                                        equations_parabolic::AbstractEquationsParabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
-    @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
     index_end = last(index_range)
 
@@ -318,21 +317,14 @@ function calc_gradient_interface_flux!(surface_flux_values,
         end
 
         for node in eachnode(dg)
-            # Get the normal direction on the primary element.
-            # Contravariant vectors at interfaces in negative coordinate direction
-            # are pointing inwards. This is handled by `get_normal_direction`.
-            normal_direction = get_normal_direction(primary_direction,
-                                                    contravariant_vectors,
-                                                    i_primary, j_primary,
-                                                    primary_element)
-
             calc_gradient_interface_flux!(surface_flux_values, mesh,
                                           equations_parabolic,
                                           dg, parabolic_scheme, cache,
-                                          interface, normal_direction,
-                                          node, primary_direction, primary_element,
-                                          node_secondary, secondary_direction,
-                                          secondary_element)
+                                          interface,
+                                          node,
+                                          primary_direction, primary_element,
+                                          node_secondary,
+                                          secondary_direction, secondary_element)
 
             # Increment primary element indices to pull the normal direction
             i_primary += i_primary_step
@@ -349,7 +341,7 @@ end
 @inline function calc_gradient_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
                                                equations_parabolic::AbstractEquationsParabolic,
                                                dg::DG, parabolic_scheme, cache,
-                                               interface_index, normal_direction,
+                                               interface_index,
                                                primary_node_index,
                                                primary_direction_index,
                                                primary_element_index,
