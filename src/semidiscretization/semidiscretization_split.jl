@@ -39,7 +39,6 @@ struct SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff
     cache_nonstiff::CacheNonStiff
 
     performance_counter::PerformanceCounterList{2}
-
 end
 
 """
