@@ -30,6 +30,26 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_periodic.jl (O2 inner reconstruction)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
+                        solver=DGSEM(polydeg = 6, surface_flux = FluxRotated(flux_hll), 
+                                    volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(6),
+                                                                            volume_flux_fv=FluxRotated(flux_hll),
+                                                                            reconstruction_mode = reconstruction_O2_inner,
+                                                                            slope_limiter = vanLeer)),
+                        l2=[
+                            0.005880232650481141, 0.004052961929767396,
+                            0.004052961929767276, 0.010484942040224163
+                        ],
+                        linf=[
+                            0.015735983423449618, 0.011413826186377207,
+                            0.01141382618637854, 0.028639280744277684
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         l2=[
