@@ -112,7 +112,7 @@ function mapping(xi, eta)
     return SVector(x, y)
 end
 
-trees_per_dimension = (8, 3)
+trees_per_dimension = (6, 3)
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  mapping = mapping, periodicity = (false, true))
 
