@@ -7,7 +7,7 @@
 
 function calc_gradient!(gradients, u_transformed, t, mesh::P4estMesh{3},
                         equations_parabolic, boundary_conditions_parabolic,
-                        dg::DG, cache)
+                        dg::DG, parabolic_scheme, cache)
     gradients_x, gradients_y, gradients_z = gradients
 
     # Reset gradients
@@ -33,9 +33,9 @@ function calc_gradient!(gradients, u_transformed, t, mesh::P4estMesh{3},
     # Calculate interface fluxes for the gradients.
     # This reuses `calc_interface_flux!` for the purely hyperbolic case.
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values,
-                             mesh, False(), # False() = no nonconservative terms
-                             equations_parabolic, dg.surface_integral, dg, cache)
+        @unpack surface_flux_values = cache.elements
+        calc_gradient_interface_flux!(surface_flux_values, mesh, equations_parabolic,
+                                      dg, parabolic_scheme, cache)
     end
 
     # Prolong viscous fluxes to boundaries.
@@ -178,29 +178,103 @@ end
     return nothing
 end
 
-# This version is used for parabolic gradient computations
-@inline function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
-                                      have_nonconservative_terms::False,
-                                      equations::AbstractEquationsParabolic,
-                                      surface_integral, dg::DG, cache,
-                                      interface_index, normal_direction,
-                                      primary_i_node_index, primary_j_node_index,
-                                      primary_direction_index, primary_element_index,
-                                      secondary_i_node_index, secondary_j_node_index,
-                                      secondary_direction_index,
-                                      secondary_element_index)
-    @unpack u = cache.interfaces
-    @unpack surface_flux = surface_integral
+function calc_gradient_interface_flux!(surface_flux_values,
+                                       mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                       equations_parabolic,
+                                       dg::DG, parabolic_scheme, cache)
+    @unpack neighbor_ids, node_indices = cache.interfaces
+    index_range = eachnode(dg)
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index,
-                                       primary_j_node_index,
+    @threaded for interface in eachinterface(dg, cache)
+        # Get element and side information on the primary element
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
+        primary_direction = indices2direction(primary_indices)
+
+        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                     index_range)
+        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                     index_range)
+        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                     index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        k_primary = k_primary_start
+
+        # Get element and side information on the secondary element
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
+        secondary_direction = indices2direction(secondary_indices)
+        secondary_surface_indices = surface_indices(secondary_indices)
+
+        # Get the surface indexing on the secondary element.
+        # Note that the indices of the primary side will always run forward but
+        # the secondary indices might need to run backwards for flipped sides.
+        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1],
+                                                                                           index_range)
+        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2],
+                                                                                           index_range)
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+
+        for j in eachnode(dg)
+            for i in eachnode(dg)
+                calc_gradient_interface_flux!(surface_flux_values, mesh,
+                                              equations_parabolic,
+                                              dg, parabolic_scheme, cache,
+                                              interface,
+                                              i, j,
+                                              primary_direction, primary_element,
+                                              i_secondary, j_secondary,
+                                              secondary_direction, secondary_element)
+
+                # Increment the primary element indices
+                i_primary += i_primary_step_i
+                j_primary += j_primary_step_i
+                k_primary += k_primary_step_i
+                # Increment the secondary element surface indices
+                i_secondary += i_secondary_step_i
+                j_secondary += j_secondary_step_i
+            end
+            # Increment the primary element indices
+            i_primary += i_primary_step_j
+            j_primary += j_primary_step_j
+            k_primary += k_primary_step_j
+            # Increment the secondary element surface indices
+            i_secondary += i_secondary_step_j
+            j_secondary += j_secondary_step_j
+        end
+    end
+
+    return nothing
+end
+
+# This version is used for parabolic gradient computations
+@inline function calc_gradient_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
+                                               equations_parabolic,
+                                               dg::DG, parabolic_scheme, cache,
+                                               interface_index,
+                                               primary_i_node_index,
+                                               primary_j_node_index,
+                                               primary_direction_index,
+                                               primary_element_index,
+                                               secondary_i_node_index,
+                                               secondary_j_node_index,
+                                               secondary_direction_index,
+                                               secondary_element_index)
+    @unpack u = cache.interfaces
+
+    u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
+                                       primary_i_node_index, primary_j_node_index,
                                        interface_index)
 
-    flux_ = 0.5f0 * (u_ll + u_rr) # we assume that the gradient computations utilize a central flux
+    flux_ = flux_parabolic(u_ll, u_rr, Gradient(),
+                           equations_parabolic, parabolic_scheme)
 
     # Note that we don't flip the sign on the secondondary flux. This is because for parabolic terms,
     # the normals are not embedded in `flux_` for the parabolic gradient computations.
-    for v in eachvariable(equations)
+    for v in eachvariable(equations_parabolic)
         surface_flux_values[v, primary_i_node_index, primary_j_node_index, primary_direction_index, primary_element_index] = flux_[v]
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
     end
@@ -386,7 +460,8 @@ end
 
 # This version is used for divergence flux computations
 function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
-                              equations_parabolic, dg::DG, cache)
+                              equations_parabolic, dg::DG, parabolic_scheme,
+                              cache)
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
@@ -429,7 +504,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
         for j in eachnode(dg)
             for i in eachnode(dg)
                 # We prolong the viscous flux dotted with respect the outward normal on the
-                # primary element. We assume a BR-1 type of flux.
+                # primary element.
                 viscous_flux_normal_ll, viscous_flux_normal_rr = get_surface_node_vars(cache.interfaces.u,
                                                                                        equations_parabolic,
                                                                                        dg,
@@ -437,7 +512,9 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
                                                                                        j,
                                                                                        interface)
 
-                flux = 0.5f0 * (viscous_flux_normal_ll + viscous_flux_normal_rr)
+                flux = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
+                                      Divergence(),
+                                      equations_parabolic, parabolic_scheme)
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i, j, primary_direction_index, primary_element] = flux[v]

@@ -339,7 +339,7 @@ end
 
 # This is the version used when calculating the gradient of the viscous fluxes (called from above)
 @inline function calc_gradient_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
-                                               equations_parabolic::AbstractEquationsParabolic,
+                                               equations_parabolic,
                                                dg::DG, parabolic_scheme, cache,
                                                interface_index,
                                                primary_node_index,
@@ -541,14 +541,13 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
 
         for node in eachnode(dg)
             # We prolong the viscous flux dotted with respect the outward normal on the
-            # primary element. We assume a BR-1 type of flux.
+            # primary element.
             viscous_flux_normal_ll, viscous_flux_normal_rr = get_surface_node_vars(cache.interfaces.u,
                                                                                    equations_parabolic,
                                                                                    dg,
                                                                                    node,
                                                                                    interface)
 
-            #flux = 0.5f0 * (viscous_flux_normal_ll + viscous_flux_normal_rr)
             flux = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
                                   Divergence(),
                                   equations_parabolic, parabolic_scheme)

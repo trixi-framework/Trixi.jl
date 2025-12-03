@@ -54,50 +54,50 @@ function initial_condition_viscous_shock(x, t, equations)
     u = v() * (1 - w)
     p = p_0() * 1 / w * (1 + (gamma() - 1) / 2 * Ma()^2 * (1 - w^2))
 
-    return prim2cons(SVector(rho, u, 0, p), equations)
+    return prim2cons(SVector(rho, u, 0, 0, p), equations)
 end
 initial_condition = initial_condition_viscous_shock
 
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
-equations = CompressibleEulerEquations2D(gamma())
+equations = CompressibleEulerEquations3D(gamma())
 
 # Trixi implements the stress tensor in deviatoric form, thus we need to
 # convert the "isotropic viscosity" to the "deviatoric viscosity"
 mu_deviatoric() = mu_bar() * 3 / 4
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu_deviatoric(),
+equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu_deviatoric(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_hlle)
-solver_parabolic = ViscousFormulationLocalDG()
 
-# This maps the reference domain [-1, 1]^2 to the physical domain
-# [-domain_length/2, domain_length/2]^2 while also introducing a curved warping
-function mapping(xi, eta)
-    # Apply warping in reference space
-    xi_warped = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
-    eta_warped = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
+# Affine type mapping to take the [-1,1]^3 domain
+# and warp it as described in https://arxiv.org/abs/2012.12040
+function mapping(xi, eta, zeta)
+    y_ = eta + 1 / 6 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta))
+    x_ = xi + 1 / 6 * (cos(0.5 * pi * xi) * cos(2 * pi * y_) * cos(0.5 * pi * zeta))
+    z_ = zeta + 1 / 6 * (cos(0.5 * pi * x_) * cos(pi * y_) * cos(0.5 * pi * zeta))
 
-    # Map from [-1, 1]^2 to [-domain_length/2, domain_length/2]^2
-    x = domain_length / 2 * xi_warped
-    y = domain_length / 2 * eta_warped
+    # Map from [-1, 1]^3 to [-domain_length/2, domain_length/2]^3
+    x = domain_length / 2 * x_
+    y = domain_length / 2 * y_
+    z = domain_length / 2 * z_
 
-    return SVector(x, y)
+    return SVector(x, y, z)
 end
 
-trees_per_dimension = (6, 3)
+trees_per_dimension = (5, 3, 3)
 mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
-                 mapping = mapping, periodicity = (false, true))
+                 mapping = mapping, periodicity = (false, true, true))
 
 ### Inviscid boundary conditions ###
 
 # Prescribe pure influx based on initial conditions
 function boundary_condition_inflow(u_inner, normal_direction::AbstractVector, x, t,
                                    surface_flux_function,
-                                   equations::CompressibleEulerEquations2D)
+                                   equations::CompressibleEulerEquations3D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
     return flux(u_cons, normal_direction, equations)
 end
@@ -105,7 +105,7 @@ end
 # Completely free outflow
 function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
                                     surface_flux_function,
-                                    equations::CompressibleEulerEquations2D)
+                                    equations::CompressibleEulerEquations3D)
     # Calculate the boundary flux entirely from the internal solution state
     return flux(u_inner, normal_direction, equations)
 end
@@ -131,7 +131,7 @@ boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_parabolic,
                                      :x_pos => boundary_condition_parabolic)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver; solver_parabolic,
+                                             initial_condition, solver;
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
