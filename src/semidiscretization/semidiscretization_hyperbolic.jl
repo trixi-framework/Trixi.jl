@@ -28,6 +28,12 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
     cache::Cache
     performance_counter::PerformanceCounter
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -54,15 +60,16 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
 
     performance_counter = PerformanceCounter()
 
-    SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
-                                 typeof(initial_condition),
-                                 typeof(_boundary_conditions), typeof(source_terms),
-                                 typeof(solver), typeof(cache)}(mesh, equations,
-                                                                initial_condition,
-                                                                _boundary_conditions,
-                                                                source_terms, solver,
-                                                                cache,
-                                                                performance_counter)
+    return SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
+                                        typeof(initial_condition),
+                                        typeof(_boundary_conditions),
+                                        typeof(source_terms),
+                                        typeof(solver), typeof(cache)}(mesh, equations,
+                                                                       initial_condition,
+                                                                       _boundary_conditions,
+                                                                       source_terms,
+                                                                       solver, cache,
+                                                                       performance_counter)
 end
 
 # @eval due to @muladd
