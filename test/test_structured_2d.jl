@@ -30,7 +30,7 @@ end
                         # Expected errors are taken from elixir_advection_basic.jl
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
-                        RealT=Float32)
+                        RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
