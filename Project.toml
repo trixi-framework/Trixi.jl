@@ -1,6 +1,6 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
-version = "0.13.19-DEV"
+version = "0.13.20-DEV"
 authors = ["Michael Schlottke-Lakemper <michael.schlottke-lakemper@uni-a.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>", "Jesse Chan <jesse.chan@rice.edu>", "Andrés Rueda-Ramírez <am.rueda@upm.es>"]
 
 [deps]
