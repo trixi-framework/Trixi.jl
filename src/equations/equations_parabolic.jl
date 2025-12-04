@@ -19,7 +19,7 @@ independent of the solution and their gradients.
 Used in the diffusive CFL condition computation, see [`StepsizeCallback`](@ref).
 
 # Returns
-- `False()`
+- `True()`
 """
 @inline have_constant_diffusivity(::AbstractLaplaceDiffusion) = True()
 
