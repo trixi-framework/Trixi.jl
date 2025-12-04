@@ -11,7 +11,7 @@ equations = InviscidBurgersEquation1D()
 
 function initial_condition_linear_stability(x, t, equation::InviscidBurgersEquation1D)
     k = 1
-    2 + sinpi(k * (x[1] - 0.7)) |> SVector
+    return 2 + sinpi(k * (x[1] - 0.7)) |> SVector
 end
 
 D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,

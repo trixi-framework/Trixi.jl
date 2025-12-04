@@ -135,10 +135,10 @@ velocity_bc_left_right = NoSlip() do x, t, equations_parabolic
 end
 
 heat_bc_left = Isothermal() do x, t, equations_parabolic
-    temperature(initial_condition_navier_stokes_convergence_test(x,
-                                                                 t,
-                                                                 equations_parabolic),
-                equations_parabolic)
+    return temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                        t,
+                                                                        equations_parabolic),
+                       equations_parabolic)
 end
 
 heat_bc_right = Adiabatic((x, t, equations_parabolic) -> 0.0)
