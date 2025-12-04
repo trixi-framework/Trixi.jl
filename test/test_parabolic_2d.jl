@@ -719,6 +719,26 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_ldg.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_viscous_shock_ldg.jl"),
+                        l2=[
+                            0.0009809358811592615,
+                            0.0008819289745655943,
+                            0.00016660280248999678,
+                            0.0008678419379298417
+                        ],
+                        linf=[
+                            0.009019776357813036,
+                            0.009225027262614982,
+                            0.0014153505627050977,
+                            0.008867642121940467
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
