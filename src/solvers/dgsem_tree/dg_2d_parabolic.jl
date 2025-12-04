@@ -5,21 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# This method is called when a `SemidiscretizationHyperbolicParabolic` is constructed.
-# It constructs the basic `cache` used throughout the simulation to compute
-# the RHS etc.
-function create_cache_parabolic(mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                                equations_hyperbolic::AbstractEquations,
-                                dg::DG, n_elements, uEltype)
-    viscous_container = init_viscous_container_2d(nvariables(equations_hyperbolic),
-                                                  nnodes(dg), n_elements,
-                                                  uEltype)
-
-    cache_parabolic = (; viscous_container)
-
-    return cache_parabolic
-end
-
 # This file collects all methods that have been updated to work with parabolic systems of equations
 #
 # assumptions: parabolic terms are of the form div(f(u, grad(u))) and
@@ -998,6 +983,21 @@ function calc_gradient!(gradients, u_transformed, t,
     end
 
     return nothing
+end
+
+# This method is called when a `SemidiscretizationHyperbolicParabolic` is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
+function create_cache_parabolic(mesh::Union{TreeMesh{2}, P4estMesh{2}},
+                                equations_hyperbolic::AbstractEquations,
+                                dg::DG, n_elements, uEltype)
+    viscous_container = init_viscous_container_2d(nvariables(equations_hyperbolic),
+                                                  nnodes(dg), n_elements,
+                                                  uEltype)
+
+    cache_parabolic = (; viscous_container)
+
+    return cache_parabolic
 end
 
 # Needed to *not* flip the sign of the inverse Jacobian.
