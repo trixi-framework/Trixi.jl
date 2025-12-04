@@ -90,6 +90,7 @@ end
 
 trees_per_dimension = (6, 3)
 mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
+                 initial_refinement_level = 0, # enables convergence study
                  mapping = mapping, periodicity = (false, true))
 
 ### Inviscid boundary conditions ###
