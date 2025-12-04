@@ -91,7 +91,7 @@ end
                                               analysis_callback, alive_callback),
                         l2=[5.725028892495733e-7],
                         linf=[3.4292579200734252e-6],
-                        atol = 1e-7)
+                        atol=1e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 8000)
