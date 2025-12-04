@@ -109,5 +109,14 @@ dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
 dynamic_viscosity(u, mu::Real, equations) = mu
 dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
 
-# Used in (diffusive) CFL condition computation
+"""
+    have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion)
+
+Indicates whether the diffusivity is constant, i.e.,
+independent of the solution and their gradients.
+Used in the diffusive CFL condition computation, see [`StepsizeCallback`](@ref).
+
+# Returns
+- `False()`
+"""
 @inline have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion) = False()

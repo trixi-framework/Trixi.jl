@@ -362,6 +362,17 @@ See also the test section P4estMesh2D with combine_conservative_and_nonconservat
 """
 combine_conservative_and_nonconservative_fluxes(flux, ::AbstractEquations) = False()
 
+"""
+    have_constant_speed(::AbstractEquations)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Used in the CFL condition computation, see [`StepsizeCallback`](@ref).
+
+This is the default fallback for nonlinear equations.
+
+# Returns
+- `False()`
+"""
 have_constant_speed(::AbstractEquations) = False()
 
 """

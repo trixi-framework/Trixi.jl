@@ -170,6 +170,15 @@ function flux_engquist_osher(u_ll, u_rr, orientation::Int,
                     abs(equation.advection_velocity[orientation]) * (u_R - u_L)))
 end
 
+"""
+    have_constant_speed(::LinearScalarAdvectionEquation1D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Used in the CFL condition computation, see [`StepsizeCallback`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearScalarAdvectionEquation1D) = True()
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation1D)

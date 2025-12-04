@@ -399,6 +399,15 @@ end
     return SVector(diss[1], diss[2], diss[3], z, z, z, z)
 end
 
+"""
+    have_constant_speed(::AcousticPerturbationEquations2D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Used in the CFL condition computation, see [`StepsizeCallback`](@ref).
+
+# Returns
+- `False()`
+"""
 @inline have_constant_speed(::AcousticPerturbationEquations2D) = False()
 
 @inline function max_abs_speeds(u, equations::AcousticPerturbationEquations2D)

@@ -11,7 +11,16 @@ struct GradientVariablesConservative end
 abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
 
-# Used in (diffusive) CFL condition computation
+"""
+    have_constant_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
+
+Indicates whether the diffusivity is constant, i.e.,
+independent of the solution and their gradients.
+Used in the diffusive CFL condition computation, see [`StepsizeCallback`](@ref).
+
+# Returns
+- `False()`
+"""
 @inline have_constant_diffusivity(::AbstractLaplaceDiffusion) = True()
 
 @inline function max_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)

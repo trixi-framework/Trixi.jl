@@ -253,6 +253,7 @@ export entropy, energy_total, energy_kinetic, energy_internal,
        enstrophy, vorticity
 export lake_at_rest_error
 export ncomponents, eachcomponent
+export have_constant_speed, have_constant_diffusivity
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
        P4estMeshView, P4estMeshCubedSphere, T8codeMesh

@@ -384,6 +384,15 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
     return -(u - equilibrium_distribution(u, equations)) / (tau + 0.5f0)
 end
 
+"""
+    have_constant_speed(::LatticeBoltzmannEquations3D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Used in the CFL condition computation, see [`StepsizeCallback`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LatticeBoltzmannEquations3D) = True()
 
 @inline function max_abs_speeds(equations::LatticeBoltzmannEquations3D)

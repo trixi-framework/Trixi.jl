@@ -188,6 +188,15 @@ function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
     end
 end
 
+"""
+    have_constant_speed(::LinearScalarAdvectionEquation3D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Used in the CFL condition computation, see [`StepsizeCallback`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = True()
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation3D)

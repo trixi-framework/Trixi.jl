@@ -254,6 +254,14 @@ the full system matrix explicitly, as done for instance in
 
 The returned linear operator `A` is a matrix-free operator which can be
 supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
+
+It is also possible to use this to construct a sparse matrix without the detour of constructing
+first the full Jacobian by calling
+```julia
+using SparseArrays
+A_map, b = linear_structure(semi, t0 = t0)
+A_sparse = sparse(A_map)
+```
 """
 function linear_structure(semi::AbstractSemidiscretization;
                           t0 = zero(real(semi)))
