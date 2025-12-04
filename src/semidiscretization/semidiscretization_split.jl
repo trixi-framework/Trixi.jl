@@ -11,7 +11,8 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a split-rhs corresponding to a hyperbolic conservation/balance law.
 """
-struct SemidiscretizationHyperbolicSplit{Mesh, EquationsStiff, EquationsNonStiff,
+struct SemidiscretizationHyperbolicSplit{Mesh,
+                                         EquationsStiff, EquationsNonStiff,
                                          InitialCondition,
                                          BoundaryConditionsStiff,
                                          BoundaryConditionsNonStiff,
@@ -103,7 +104,8 @@ function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                                       typeof(source_terms_nonstiff),
                                       typeof(solver_stiff), typeof(solver_nonstiff),
                                       typeof(cache_stiff),
-                                      typeof(cache_nonstiff)}(mesh, equations_stiff,
+                                      typeof(cache_nonstiff)}(mesh,
+                                                              equations_stiff,
                                                               equations_nonstiff,
                                                               initial_condition,
                                                               _boundary_conditions_stiff,
