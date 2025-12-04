@@ -84,7 +84,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Calculate boundary fluxes.
     # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache, t,
+        calc_divergence_boundary_flux!(cache, t,
                                        boundary_conditions_parabolic, mesh,
                                        equations_parabolic,
                                        dg.surface_integral, dg)
@@ -213,7 +213,7 @@ function calc_gradient_boundary_flux!(cache, t,
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t,
+function calc_divergence_boundary_flux!(cache, t,
                                         boundary_conditions_parabolic::BoundaryConditionPeriodic,
                                         mesh::TreeMesh{1},
                                         equations_parabolic::AbstractEquationsParabolic,
@@ -289,7 +289,7 @@ function calc_gradient_boundary_flux_by_direction!(surface_flux_values::Abstract
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t,
+function calc_divergence_boundary_flux!(cache, t,
                                         boundary_conditions_parabolic::NamedTuple,
                                         mesh::TreeMesh{1},
                                         equations_parabolic::AbstractEquationsParabolic,
