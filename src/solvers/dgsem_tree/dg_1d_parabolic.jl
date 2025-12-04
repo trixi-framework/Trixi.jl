@@ -5,6 +5,21 @@
 @muladd begin
 #! format: noindent
 
+# This method is called when a `SemidiscretizationHyperbolicParabolic` is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
+function create_cache_parabolic(mesh::TreeMesh{1},
+                                equations_hyperbolic::AbstractEquations,
+                                dg::DG, n_elements, uEltype)
+    viscous_container = init_viscous_container_1d(nvariables(equations_hyperbolic),
+                                                  nnodes(dg), n_elements,
+                                                  uEltype)
+
+    cache_parabolic = (; viscous_container)
+
+    return cache_parabolic
+end
+
 # This file collects all methods that have been updated to work with parabolic systems of equations
 #
 # assumptions: parabolic terms are of the form div(f(u, grad(u))) and
@@ -77,8 +92,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg)
+        prolong2boundaries!(cache, flux_viscous, mesh, equations_parabolic, dg)
     end
 
     # Calculate boundary fluxes.
@@ -482,8 +496,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh, equations_parabolic,
-                            dg.surface_integral, dg)
+        prolong2boundaries!(cache, u_transformed, mesh, equations_parabolic, dg)
     end
 
     # Calculate boundary fluxes
@@ -507,21 +520,6 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     end
 
     return nothing
-end
-
-# This method is called when a `SemidiscretizationHyperbolicParabolic` is constructed.
-# It constructs the basic `cache` used throughout the simulation to compute
-# the RHS etc.
-function create_cache_parabolic(mesh::TreeMesh{1},
-                                equations_hyperbolic::AbstractEquations,
-                                dg::DG, n_elements, uEltype)
-    viscous_container = init_viscous_container_1d(nvariables(equations_hyperbolic),
-                                                  nnodes(dg), n_elements,
-                                                  uEltype)
-
-    cache_parabolic = (; viscous_container)
-
-    return cache_parabolic
 end
 
 # Needed to *not* flip the sign of the inverse Jacobian.
