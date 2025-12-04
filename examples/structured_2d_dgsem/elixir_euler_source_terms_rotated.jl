@@ -84,14 +84,13 @@ sin_ = initial_condition_source_terms.sin_alpha
 cos_ = initial_condition_source_terms.cos_alpha
 T = [cos_ -sin_; sin_ cos_]
 
-# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
-# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs()`.
+# `const flux_lax_friedrichs = flux_lax_friedrichs, i.e., `flux_lax_friedrichs`.
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs()`.
+# To ensure that every example still runs we specify explicitly `flux_lax_friedrichs`.
 # We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
-solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs())
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 mapping(xi, eta) = T * SVector(xi, eta)
 

@@ -45,14 +45,13 @@ end
 
 initial_condition = initial_condition_mach08_flow
 
-# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
-# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs()`.
+# `const flux_lax_friedrichs = flux_lax_friedrichs, i.e., `flux_lax_friedrichs`.
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs()`.
+# To ensure that every example still runs we specify explicitly `flux_lax_friedrichs`.
 # We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
-surface_flux = FluxLaxFriedrichs()
+surface_flux = flux_lax_friedrichs
 
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux)
