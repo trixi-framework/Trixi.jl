@@ -213,6 +213,12 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     @unpack boundary_symbol_indices = semi.boundary_conditions
     boundary_indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
+    # Restore boundary values for parabolic equations
+    # which overwrite the solution boundary values with the gradients
+    if semi isa SemidiscretizationHyperbolicParabolic
+        prolong2boundaries!(cache, u, mesh, equations, dg)
+    end
+
     surface_integral = zero(eltype(u))
     index_range = eachnode(dg)
     for boundary in boundary_indices
@@ -269,6 +275,10 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
     @unpack variable, boundary_symbols = surface_variable
     @unpack boundary_symbol_indices = semi.boundary_conditions
     boundary_indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
+
+    # Restore boundary values for parabolic equations
+    # which overwrite the solution boundary values with the gradients
+    prolong2boundaries!(cache, u, mesh, equations, dg)
 
     # Additions for parabolic
     @unpack viscous_container = cache_parabolic

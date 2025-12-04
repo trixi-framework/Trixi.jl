@@ -86,6 +86,12 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     @unpack boundary_symbol_indices = semi.boundary_conditions
     boundary_indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
+    # Restore boundary values for parabolic equations
+    # which overwrite the solution boundary values with the gradients
+    if semi isa SemidiscretizationHyperbolicParabolic
+        prolong2boundaries!(cache, u, mesh, equations, dg)
+    end
+
     surface_integral = zero(eltype(u))
     index_range = eachnode(dg)
     for boundary in boundary_indices
