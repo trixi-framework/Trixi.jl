@@ -331,19 +331,19 @@ end
 @trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock_imex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_viscous_shock_imex.jl"),
-                        atol_lin_solve=1e-11, rtol_lin_solve=1e-10)
-    # Relax error tols to avoid stochastic CI failures
-    errors = analysis_callback(sol)
-    @test errors[1]≈[
-        0.0016637028933384878,
-        0.0014571255711373966,
-        0.0014843783212282159
-    ] atol=1e-8
-    @test errors[2]≈[
-        0.00545660697650141,
-        0.003950431201790283,
-        0.004092051414554598
-    ] atol=1e-7
+                        atol_lin_solve=1e-11, rtol_lin_solve=1e-10,
+                        l2=[
+                            0.0016637028933384878,
+                            0.0014571255711373966,
+                            0.0014843783212282159
+                        ],
+                        linf=[
+                            0.00545660697650141,
+                            0.003950431201790283,
+                            0.004092051414554598
+                        ],
+                        # Relax error tols to avoid stochastic CI failures
+                        atol=1e-7)
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
