@@ -228,7 +228,7 @@ end
                             Float32(2.298161660974074e-14),
                             Float32(6.039613253960852e-14)
                         ],
-                        RealT=Float32)
+                        RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
