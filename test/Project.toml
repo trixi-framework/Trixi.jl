@@ -40,7 +40,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TrixiTest = "0a316866-cbd0-4425-8bcb-08103b2c1f26"
 
 [compat]
-ADTypes = "1.11"
+ADTypes = "1.20"
 Adapt = "4.4"
 Aqua = "0.8"
 CUDA = "5.9"
