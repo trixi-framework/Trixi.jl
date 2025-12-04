@@ -44,7 +44,7 @@ function max_dt(u, t, mesh::TreeMesh{3},
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
             # Note: For the currently supported parabolic equations
             # Diffusion & Navier-Stokes, we only have one diffusivity,
-            # so there is no `lambda2` here.
+            # so there is are no `lambda2, lambda3` here.
             lambda1 = max_diffusivity(u_node, equations_parabolic)
             max_lambda1 = max(max_lambda1, lambda1)
         end
