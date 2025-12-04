@@ -206,7 +206,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                  mesh::P4estMesh{2},
                  equations, dg::DGSEM, cache, semi)
     @unpack boundaries = cache
-    @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
+    @unpack node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
     @unpack variable, boundary_symbols = surface_variable
@@ -263,7 +263,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
                  dg::DGSEM, cache, semi,
                  cache_parabolic) where {Variable <: VariableViscous}
     @unpack boundaries = cache
-    @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
+    @unpack node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
     @unpack variable, boundary_symbols = surface_variable
