@@ -375,7 +375,7 @@ end
 
 function prolong2boundaries!(cache, u,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack boundaries = cache
     index_range = eachnode(dg)
 
