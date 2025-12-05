@@ -878,17 +878,18 @@ end
 @trixi_testset "elixir_navierstokes_freestream_ldg.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_ldg.jl"),
+                        tspan=(0.0, 0.2),
                         l2=[
-                            9.587878778370543e-17,
-                            3.891058108221213e-15,
-                            5.3783550074699205e-15,
-                            3.2547532352442653e-13
+                            8.668726846249131e-17,
+                            2.416388325422573e-15,
+                            3.584461857125925e-15,
+                            1.0830109761664596e-13
                         ],
                         linf=[
-                            1.7763568394002505e-15,
-                            1.3739009929736312e-13,
-                            2.376709939966304e-13,
-                            2.346389749163791e-11
+                            1.3322676295501878e-15,
+                            1.4481471577454386e-13,
+                            2.7375324229694797e-13,
+                            5.119460411151522e-12
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
