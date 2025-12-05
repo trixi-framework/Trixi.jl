@@ -179,7 +179,8 @@ plot(sol)
 
 # In the example above, we used an adaptive timestep based on truncation error estimates.
 # Alternatively, we can also use a CFL-based timestep control, cf. [`StepsizeCallback`](@ref).
-# To be able to do so, we need to define [`max_diffusivity`](@ref) for the new parabolic terms.
+# To be able to do so, we need to define [`max_diffusivity`](@ref) and 
+# [`have_constant_diffusivity`](@ref) for the new parabolic terms.
 # In Trixi.jl, currently only the standard Laplace Diffusion and Compressible Navier-Stokes-Fourier 
 # viscous terms are implemented.
 # Since these equations have **isotropic** diffusivity, i.e., direction-independent coefficients,
@@ -192,7 +193,7 @@ using LinearAlgebra: eigvals
 lambda_max() = maximum(abs.(eigvals(diffusivity)))
 
 # This function indicates that the diffusivity is constant, i.e.,
-# does not depend on the solution `u` and thus needs not to be recomputed in every element.
+# does not depend on the solution `u` and thus needs not to be recomputed at every node.
 @inline function Trixi.have_constant_diffusivity(::ConstantAnisotropicDiffusion2D)
     return Trixi.True()
 end
