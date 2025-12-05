@@ -356,6 +356,10 @@ end
     return nothing
 end
 
+# Compute the normal flux for the FV method on curvilinear subcells, see
+# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
+# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
                                 mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                             UnstructuredMesh2D,
@@ -405,6 +409,7 @@ end
                                            slope_limiter, dg)
 
             # Compute freestream-preserving normal vector for the finite volume flux.
+            # This is the first equation in (B.53).
             for m in eachnode(dg)
                 normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
                                     get_contravariant_vector(1, contravariant_vectors,
@@ -442,7 +447,6 @@ end
             u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
                                            element), equations)
 
-            ## Reconstruct values at interfaces with limiting ##
             u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                            x_interfaces, j,
                                            slope_limiter, dg)
@@ -453,9 +457,6 @@ end
                                                              i, m, element)
             end
 
-            # Compute the contravariant flux by taking the scalar product of the
-            # normal vector and the flux vector.
-            ## Convert primitive variables back to conservative variables ##
             contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
                                                 prim2cons(u_r, equations),
                                                 normal_direction, equations)

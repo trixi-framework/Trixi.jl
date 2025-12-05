@@ -63,8 +63,7 @@ end
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::AbstractVolumeIntegralPureLGLFiniteVolume,
-                      dg::DG,
-                      uEltype)
+                      dg::DG, uEltype)
     A3d = Array{uEltype, 3}
 
     fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
@@ -326,27 +325,7 @@ end
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2},
-                                           UnstructuredMesh2D, T8codeMesh{2}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
-                               dg::DGSEM, cache)
-    @unpack x_interfaces, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
-
-    # Calculate LGL second-order FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fvO2_kernel!(du, u, mesh,
-                     have_nonconservative_terms, equations,
-                     volume_flux_fv, dg, cache, element,
-                     x_interfaces, reconstruction_mode, slope_limiter, true)
-    end
-
-    return nothing
-end
-
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                u::AbstractArray{<:Any, 4},
+@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
                                 mesh::TreeMesh{2},
                                 have_nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
@@ -408,12 +387,10 @@ end
         u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
                                        element), equations)
 
-        ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        x_interfaces, j,
                                        slope_limiter, dg)
 
-        ## Convert primitive variables back to conservative variables ##
         flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
                               2, equations) # orientation 2: y direction
 
