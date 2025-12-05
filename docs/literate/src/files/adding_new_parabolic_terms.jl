@@ -215,7 +215,7 @@ callbacks = CallbackSet(SummaryCallback(), stepsize_callback);
 sol = solve(ode, RDPK3SpFSAL49();
             # Turn off adaptive time stepping based on error estimates
             adaptive = false, dt = stepsize_callback(ode),
-            ode_default_options()..., callback = callbacks);
+            ode_default_options()..., callback = callbacks)
 println("Number of timesteps: ", sol.destats.naccept)
 
 plot(sol)
