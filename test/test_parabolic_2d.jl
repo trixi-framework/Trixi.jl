@@ -721,26 +721,6 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_ldg.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                                 "elixir_navierstokes_viscous_shock_ldg.jl"),
-                        l2=[
-                            0.0009809358811592615,
-                            0.0008819289745655943,
-                            0.00016660280248999678,
-                            0.0008678419379298417
-                        ],
-                        linf=[
-                            0.009019776357813036,
-                            0.009225027262614982,
-                            0.0014153505627050977,
-                            0.008867642121940467
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
@@ -889,6 +869,26 @@ end
                             3.8367543336926215e-15,
                             4.9960036108132044e-14,
                             6.705747068735946e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_navierstokes_couette_flow.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_couette_flow.jl"),
+                        l2=[
+                            9.587878778370543e-17,
+                            3.891058108221213e-15,
+                            5.3783550074699205e-15,
+                            3.2547532352442653e-13
+                        ],
+                        linf=[
+                            1.7763568394002505e-15,
+                            1.3739009929736312e-13,
+                            2.376709939966304e-13,
+                            2.346389749163791e-11
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
