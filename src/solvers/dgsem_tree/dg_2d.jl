@@ -62,7 +62,8 @@ end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
-                      volume_integral::AbstractVolumeIntegralPureLGLFiniteVolume, dg::DG,
+                      volume_integral::AbstractVolumeIntegralPureLGLFiniteVolume,
+                      dg::DG,
                       uEltype)
     A3d = Array{uEltype, 3}
 
@@ -292,8 +293,8 @@ end
 
 @inline function fvO2_kernel!(du, u,
                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                        UnstructuredMesh2D, P4estMesh{2},
-                                        T8codeMesh{2}},
+                                          UnstructuredMesh2D, P4estMesh{2},
+                                          T8codeMesh{2}},
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               x_interfaces, reconstruction_mode, slope_limiter,
@@ -306,7 +307,7 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh, 
+    calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
                    have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
                    x_interfaces, reconstruction_mode, slope_limiter)
@@ -325,7 +326,9 @@ end
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}, UnstructuredMesh2D, T8codeMesh{2}},
+function calc_volume_integral!(du, u,
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2},
+                                           UnstructuredMesh2D, T8codeMesh{2}},
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                dg::DGSEM, cache)
@@ -342,7 +345,7 @@ function calc_volume_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}
     return nothing
 end
 
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, 
+@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                                 u::AbstractArray{<:Any, 4},
                                 mesh::TreeMesh{2},
                                 have_nonconservative_terms::False,
@@ -353,7 +356,7 @@ end
     fstar1_R[:, 1, :] .= zero(eltype(fstar1_R))
     fstar1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_R))
 
-    for j in eachnode(dg), i in 2:nnodes(dg) 
+    for j in eachnode(dg), i in 2:nnodes(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
 

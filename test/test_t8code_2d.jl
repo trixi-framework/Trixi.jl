@@ -168,12 +168,11 @@ end
 @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl (O2 inner reconstruction)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        solver=DGSEM(polydeg = 3, surface_flux = flux_hll, 
-                                volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
-                                                volume_flux_fv=flux_hll,
-                                                reconstruction_mode = reconstruction_O2_inner,
-                                                slope_limiter = vanLeer)),
-
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_hll,
+                                     volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
+                                                                                           volume_flux_fv = flux_hll,
+                                                                                           reconstruction_mode = reconstruction_O2_inner,
+                                                                                           slope_limiter = vanLeer)),
                         l2=[
                             0.01872951597687948,
                             0.01146844899089883,

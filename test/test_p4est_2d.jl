@@ -201,11 +201,11 @@ end
 
 @trixi_testset "elixir_euler_free_stream.jl (O2 full reconstruction)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
-                        solver=DGSEM(polydeg = 3, surface_flux = flux_hllc, 
-                                    volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
-                                                                            volume_flux_fv=flux_hllc,
-                                                                            reconstruction_mode = reconstruction_O2_full,
-                                                                            slope_limiter = vanLeer)),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_hllc,
+                                     volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
+                                                                                           volume_flux_fv = flux_hllc,
+                                                                                           reconstruction_mode = reconstruction_O2_full,
+                                                                                           slope_limiter = vanLeer)),
                         l2=[
                             2.063350241405049e-15,
                             1.8571016296925367e-14,
@@ -218,7 +218,6 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-
 
 @trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,

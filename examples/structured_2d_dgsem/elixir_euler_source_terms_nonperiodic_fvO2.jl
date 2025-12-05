@@ -24,12 +24,14 @@ volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                       reconstruction_mode = reconstruction_O2_full,
                                                       slope_limiter = vanLeer)
 
-solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux, volume_integral = volume_integral)
+solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
+               volume_integral = volume_integral)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
 cells_per_dimension = (8, 8)
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max, periodicity = false)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms,

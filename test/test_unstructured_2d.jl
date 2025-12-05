@@ -32,11 +32,11 @@ end
 
 @trixi_testset "elixir_euler_periodic.jl (O2 inner reconstruction)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
-                        solver=DGSEM(polydeg = 6, surface_flux = FluxRotated(flux_hll), 
-                                    volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(6),
-                                                                            volume_flux_fv=FluxRotated(flux_hll),
-                                                                            reconstruction_mode = reconstruction_O2_inner,
-                                                                            slope_limiter = vanLeer)),
+                        solver=DGSEM(polydeg = 6, surface_flux = FluxRotated(flux_hll),
+                                     volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(6),
+                                                                                           volume_flux_fv = FluxRotated(flux_hll),
+                                                                                           reconstruction_mode = reconstruction_O2_inner,
+                                                                                           slope_limiter = vanLeer)),
                         l2=[
                             0.005880232650481141, 0.004052961929767396,
                             0.004052961929767276, 0.010484942040224163

@@ -386,7 +386,7 @@ end
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-            u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
+        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
                          equations)
         u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, element),
                          equations)
