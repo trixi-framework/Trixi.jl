@@ -52,7 +52,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

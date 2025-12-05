@@ -875,9 +875,9 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_couette_flow.jl" begin
+@trixi_testset "elixir_navierstokes_freestream_ldg.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                                 "elixir_navierstokes_couette_flow.jl"),
+                                 "elixir_navierstokes_freestream_ldg.jl"),
                         l2=[
                             9.587878778370543e-17,
                             3.891058108221213e-15,

@@ -418,6 +418,29 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "P4estMesh3D: elixir_navierstokes_freestream_boundaries.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_freestream_boundaries.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            1.050376383380673e-16,
+                            1.0175313793753473e-16,
+                            1.158489273890016e-16,
+                            2.0654608507933775e-16,
+                            3.3590256030698164e-15
+                        ],
+                        linf=[
+                            1.7763568394002505e-15,
+                            1.0130785099704553e-15,
+                            1.3322676295501878e-15,
+                            2.4424906541753444e-15,
+                            4.263256414560601e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_amr.jl"),
