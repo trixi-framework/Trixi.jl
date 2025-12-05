@@ -150,10 +150,10 @@ boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, he
 
 boundary_conditions_parabolic = (x_neg = boundary_condition_parabolic,
                                  x_pos = boundary_condition_parabolic,
-                                 y_neg = boundary_condition_parabolic,
-                                 y_pos = boundary_condition_parabolic,
-                                 z_neg = boundary_condition_parabolic,
-                                 z_pos = boundary_condition_parabolic)
+                                 y_neg = boundary_condition_periodic,
+                                 y_pos = boundary_condition_periodic,
+                                 z_neg = boundary_condition_periodic,
+                                 z_pos = boundary_condition_periodic)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
