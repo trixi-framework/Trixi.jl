@@ -79,8 +79,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                                 nnodes(dg), nnodes(dg) + 1)
                             for _ in 1:Threads.maxthreadid()]
 
-    return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
-            fstar2_R_threaded)
+    return (; fstar1_L_threaded, fstar1_R_threaded,
+            fstar2_L_threaded, fstar2_R_threaded)
 end
 
 # The methods below are specialized on the mortar type
