@@ -109,5 +109,14 @@ dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
 dynamic_viscosity(u, mu::Real, equations) = mu
 dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
 
-# Used in (diffusive) CFL condition computation
+"""
+    max_diffusivity(::AbstractCompressibleNavierStokesDiffusion)
+
+# Returns
+- `False()`
+
+Used in diffusive CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
+diffusivity is not constant in space and that [`max_diffusivity`](@ref) needs to be computed
+at every node in every element.
+"""
 @inline have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion) = False()
