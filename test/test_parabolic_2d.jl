@@ -888,8 +888,8 @@ end
                         linf=[
                             1.3322676295501878e-15,
                             1.4481471577454386e-13,
-                            2.7375324229694797e-13,
-                            5.119460411151522e-12
+                            9.936496070395151e-14,
+                            1.042543829044007e-11
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
