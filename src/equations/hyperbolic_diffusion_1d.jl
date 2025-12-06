@@ -176,7 +176,7 @@ end
     have_constant_speed(::HyperbolicDiffusionEquations1D)
 
 Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
-Used in the CFL condition computation, see [`StepsizeCallback`](@ref).
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
 
 # Returns
 - `True()`

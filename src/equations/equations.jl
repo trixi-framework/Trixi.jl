@@ -366,7 +366,7 @@ combine_conservative_and_nonconservative_fluxes(flux, ::AbstractEquations) = Fal
     have_constant_speed(::AbstractEquations)
 
 Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
-Used in the CFL condition computation, see [`StepsizeCallback`](@ref).
+Queried in the timestep computation [`StepsizeCallback`](@ref).
 
 This is the default fallback for nonlinear equations.
 
