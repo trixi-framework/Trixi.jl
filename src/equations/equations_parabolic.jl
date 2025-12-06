@@ -20,6 +20,9 @@ abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
 Used in diffusive CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
 diffusivity is constant in space and that [`max_diffusivity`](@ref) needs **not** to be re-computed
 at every node in every element.
+
+Also employed in [`linear_structure`](@ref) and [`linear_structure_parabolic`](@ref) to check
+if the diffusion term is linear in the variables/constant.
 """
 @inline have_constant_diffusivity(::AbstractLaplaceDiffusion) = True()
 
