@@ -284,6 +284,7 @@ export nelements, nnodes, nvariables,
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
 export SemidiscretizationHyperbolicParabolic
+export have_constant_diffusivity, max_diffusivity
 
 export SemidiscretizationEulerAcoustics
 
