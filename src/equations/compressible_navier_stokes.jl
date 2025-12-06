@@ -110,13 +110,16 @@ dynamic_viscosity(u, mu::Real, equations) = mu
 dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
 
 """
-    have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion)
-
-Indicates whether the diffusivity is constant, i.e.,
-independent of the solution and their gradients.
-Used in the diffusive CFL condition computation, see [`StepsizeCallback`](@ref).
+    max_diffusivity(::AbstractCompressibleNavierStokesDiffusion)
 
 # Returns
 - `False()`
+
+Used in diffusive CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
+diffusivity is not constant in space and that [`max_diffusivity`](@ref) needs to be computed
+at every node in every element.
+
+Also employed in [`linear_structure_parabolic`](@ref) to check if the diffusion term is 
+linear in the variables/constant.
 """
 @inline have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion) = False()

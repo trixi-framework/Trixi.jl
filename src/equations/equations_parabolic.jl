@@ -12,17 +12,29 @@ abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
 
 """
-    have_constant_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
-
-Indicates whether the diffusivity is constant, i.e.,
-independent of the solution and their gradients.
-Used in the diffusive CFL condition computation, see [`StepsizeCallback`](@ref).
+    max_diffusivity(::AbstractLaplaceDiffusion)
 
 # Returns
 - `True()`
+
+Used in diffusive CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
+diffusivity is constant in space and that [`max_diffusivity`](@ref) needs **not** to be re-computed
+at every node in every element.
+
+Also employed in [`linear_structure_parabolic`](@ref) to check if the diffusion term is 
+linear in the variables/constant.
 """
 @inline have_constant_diffusivity(::AbstractLaplaceDiffusion) = True()
 
+"""
+    max_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
+
+# Returns
+- `equations_parabolic.diffusivity`
+
+Returns isotropic diffusion coefficient for use in diffusive CFL condition computation,
+see [`StepsizeCallback`](@ref).
+"""
 @inline function max_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
     return equations_parabolic.diffusivity
 end
