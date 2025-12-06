@@ -10,7 +10,7 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 ###############################################################################
 #  setup the GSBP DG discretization that uses the Gauss operators from Chan et al.
 
-surface_flux = FluxLaxFriedrichs()
+surface_flux = flux_lax_friedrichs
 dg = DGMulti(polydeg = 3,
              element_type = Line(),
              approximation_type = GaussSBP(),
@@ -56,11 +56,8 @@ save_solution = SaveSolutionCallback(interval = 100,
 
 # handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 0.75)
-
 # collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback)
-
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,stepsize_callback)
 ###############################################################################
 # run the simulation
 
