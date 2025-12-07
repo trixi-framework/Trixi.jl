@@ -212,7 +212,12 @@ end
                             3.1769447886391905e-14,
                             1.4104095258528071e-14
                         ],
-                        linf=[1.9539925233402755e-14, 2e-12, 1.3e-12, 9.3e-13],
+                        linf=[
+                            1.9539925233402755e-14, 
+                            1.1951967193724045e-12, 
+                            1.3014866961924554e-12, 
+                            9.272582701669307e-13
+                        ],
                         atol=2.0e-12,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
