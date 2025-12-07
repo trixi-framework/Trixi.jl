@@ -297,7 +297,6 @@ struct IndicatorEntropyIncrease{RealT <: Real} <:
     threshold::RealT
 end
 
-# this method is used when the indicator is constructed as for adaptive volume integrals
 function IndicatorEntropyIncrease(; threshold = 1e-3)
     IndicatorEntropyIncrease{typeof(threshold)}(threshold)
 end
