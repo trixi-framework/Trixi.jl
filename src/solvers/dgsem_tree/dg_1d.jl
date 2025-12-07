@@ -92,8 +92,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2boundaries!(cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
@@ -512,7 +511,7 @@ end
 # Used for both the purely hyperbolic conserved variables `u`
 # and the viscous flux in x-direction in the 1D parabolic case.
 function prolong2boundaries!(cache, u_or_flux_viscous,
-                             mesh::TreeMesh{1}, equations, surface_integral, dg::DG)
+                             mesh::TreeMesh{1}, equations, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
 
