@@ -170,8 +170,54 @@ callbacks = CallbackSet(SummaryCallback())
 time_int_tol = 1.0e-6
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks);
+println("Number of timesteps: ", sol.destats.naccept)
 
 using Plots
+plot(sol)
+
+# ### Enabling CFL-based timestepping
+
+# In the example above, we used an adaptive timestep based on truncation error estimates.
+# Alternatively, we can also use a CFL-based timestep control, cf. [`StepsizeCallback`](@ref).
+# To be able to do so, we need to define [`max_diffusivity`](@ref) and 
+# [`have_constant_diffusivity`](@ref) for the new parabolic terms.
+# In Trixi.jl, currently only the standard Laplace Diffusion and Compressible Navier-Stokes-Fourier 
+# viscous terms are implemented.
+# Since these equations have **isotropic** diffusivity, i.e., direction-independent coefficients,
+# [`max_diffusivity`](@ref) is expected to return a scalar value.
+#
+# To comply with the existing code, we thus also return a scalar value for our anisotropic diffusion,
+# estimated by the spectral radius (largest in magnitude eigenvalue) of the diffusivity matrix.
+# Since diffusivity is constant, we do not need to repeatedly compute the spectral radius.
+using LinearAlgebra: eigvals
+lambda_max() = maximum(abs.(eigvals(diffusivity)))
+
+# This function indicates that the diffusivity is constant, i.e.,
+# does not depend on the solution `u` and thus needs not to be recomputed at every node.
+@inline function Trixi.have_constant_diffusivity(::ConstantAnisotropicDiffusion2D)
+    return Trixi.True()
+end
+
+# Return the estimated maximum diffusivity for CFL calculations based on 
+# the spectral radius of the diffusivity matrix computed above
+@inline function Trixi.max_diffusivity(equations_parabolic::ConstantAnisotropicDiffusion2D)
+    return lambda_max()
+end
+
+# We supply now the advective(hyperbolic) and diffusive(parabolic) CFL numbers
+cfl_advective = 2.0 # Not restrictive for this example
+cfl_diffusive = 0.21 # Restricts the timestep
+stepsize_callback = StepsizeCallback(cfl = cfl_advective,
+                                     cfl_diffusive = cfl_diffusive)
+
+# Add the stepsize callback to the existing callbacks
+callbacks = CallbackSet(SummaryCallback(), stepsize_callback);
+# Turn off adaptive time stepping based on error estimates
+sol = solve(ode, RDPK3SpFSAL49();
+            adaptive = false, dt = stepsize_callback(ode),
+            ode_default_options()..., callback = callbacks);
+println("Number of timesteps: ", sol.destats.naccept)
+
 plot(sol)
 
 # ## Package versions

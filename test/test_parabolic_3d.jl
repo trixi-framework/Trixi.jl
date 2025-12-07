@@ -434,6 +434,25 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh3D: elixir_navierstokes_viscous_shock.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        l2=[
+                            0.0002576235757916208,
+                            0.00014336914033937938,
+                            3.361746364570895e-17,
+                            3.1399702631471645e-17,
+                            0.00017369856897561295
+                        ],
+                        linf=[
+                            0.0016731997562187129,
+                            0.0010638567566626511,
+                            1.733671234158084e-16,
+                            1.9060786274399122e-16,
+                            0.001149518946967798
+                        ])
+end
+
 @trixi_testset "P4estMesh3D: elixir_navierstokes_blast_wave_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_blast_wave_amr.jl"),
