@@ -72,7 +72,7 @@ end
 # terminate the type-stable iteration over tuples
 function limiter_zhang_shu!(u, thresholds::Tuple{}, variables::Tuple{},
                             mesh, equations, solver, cache, args...)
-    nothing
+    return nothing
 end
 
 include("positivity_zhang_shu_dg1d.jl")

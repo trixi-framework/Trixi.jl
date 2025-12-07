@@ -434,6 +434,25 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh3D: elixir_navierstokes_viscous_shock.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        l2=[
+                            0.0002576235757916208,
+                            0.00014336914033937938,
+                            3.361746364570895e-17,
+                            3.1399702631471645e-17,
+                            0.00017369856897561295
+                        ],
+                        linf=[
+                            0.0016731997562187129,
+                            0.0010638567566626511,
+                            1.733671234158084e-16,
+                            1.9060786274399122e-16,
+                            0.001149518946967798
+                        ])
+end
+
 @trixi_testset "P4estMesh3D: elixir_navierstokes_blast_wave_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_blast_wave_amr.jl"),
@@ -501,17 +520,17 @@ end
                                  "elixir_navierstokes_crm.jl"),
                         l2=[
                             2.2353998537135728e-10,
-                            6.438639847871375e-8,
-                            4.8159768090963756e-8,
-                            6.287534321002294e-8,
-                            7.596958320246443e-5
+                            6.438248564149087e-8,
+                            4.8158393932278836e-8,
+                            6.287149707414103e-8,
+                            7.591822518308327e-5
                         ],
                         linf=[
                             0.36753460935979454,
                             209.1460932734352,
-                            51.3036359192352,
-                            41.461135962058904,
-                            113004.3158457772
+                            51.303610073892436,
+                            41.45867326162659,
+                            113004.34493505303
                         ],
                         tspan=(0.0, 1e-10))
     # Ensure that we do not have excessive memory allocations

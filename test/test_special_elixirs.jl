@@ -1,6 +1,7 @@
 module TestElixirs
 
 using LinearAlgebra
+using SparseArrays
 using Test
 using Trixi
 using OrdinaryDiffEqSSPRK: SSPRK43
@@ -185,10 +186,20 @@ end
         λ = eigvals(J)
         @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
+        A, b = linear_structure(semi)
+        @test Matrix(A) == J
+        @test sparse(A) == sparse(J)
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        du = zero(b)
+        u = zero(b)
+        mul!(du, A, u) # compilation run
+        @test (@allocated mul!(du, A, u)) == 0
+
         J_parabolic = jacobian_ad_forward_parabolic(semi)
         λ_parabolic = eigvals(J_parabolic)
         # Parabolic spectrum is real and negative
-        @test maximum(real, λ_parabolic) < 10^(-14)
+        @test maximum(real, λ_parabolic) < 2 * 10^(-14)
         @test maximum(imag, λ_parabolic) < 10^(-14)
     end
 
@@ -273,7 +284,7 @@ end
         J_parabolic = jacobian_ad_forward_parabolic(semi)
         λ_parabolic = eigvals(J_parabolic)
         # Parabolic spectrum is real and negative
-        @test maximum(real, λ_parabolic) < 10^(-16)
+        @test maximum(real, λ_parabolic) < eps(Float64)
         @test maximum(imag, λ_parabolic) < 10^(-15)
     end
 

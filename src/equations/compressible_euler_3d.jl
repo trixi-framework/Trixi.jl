@@ -106,6 +106,14 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquations3D)
@@ -1889,5 +1897,13 @@ end
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleEulerEquations3D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
+end
+
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::CompressibleEulerEquations3D)
+    if u[1] <= 0 || pressure(u, equations) <= 0
+        return false
+    end
+    return true
 end
 end # @muladd

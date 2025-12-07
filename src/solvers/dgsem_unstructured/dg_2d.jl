@@ -62,8 +62,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2boundaries!(cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
@@ -156,7 +155,7 @@ end
 # quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
-                              nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -210,7 +209,7 @@ end
 # on an unstructured quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
-                              nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -277,7 +276,7 @@ end
 # move the approximate solution onto physical boundaries within a "right-handed" element
 function prolong2boundaries!(cache, u,
                              mesh::UnstructuredMesh2D,
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack boundaries = cache
     @unpack element_id, element_side_id = boundaries
     boundaries_u = boundaries.u
@@ -308,7 +307,6 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-# TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
                                          T8codeMesh},
@@ -359,7 +357,7 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
                                      mesh::Union{UnstructuredMesh2D, P4estMesh,
                                                  T8codeMesh},
                                      equations, surface_integral, dg::DG)
-    nothing
+    return nothing
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
@@ -392,7 +390,7 @@ end
 # boundary flux values are set according to a particular `boundary_condition` function
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::UnstructuredMesh2D,
-                                     nonconservative_terms::False, equations,
+                                     have_nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
                                      boundary_index)
@@ -428,7 +426,7 @@ end
 # `derivative_split` from `dg.basis` in [`flux_differencing_kernel!`](@ref)
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::UnstructuredMesh2D,
-                                     nonconservative_terms::True, equations,
+                                     have_nonconservative_terms::True, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
                                      boundary_index)
@@ -504,7 +502,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
 end
 
 # This routine computes the maximum value of the discrete metric identities necessary to ensure
-# that the approxmiation will be free-stream preserving (i.e. a constant solution remains constant)
+# that the approximation will be free-stream preserving (i.e. a constant solution remains constant)
 # on a curvilinear mesh.
 #   Note! Independent of the equation system and is only a check on the discrete mapping terms.
 #         Can be used for a metric identities check on StructuredMesh{2} or UnstructuredMesh2D

@@ -216,14 +216,6 @@ function refine!(u_ode::AbstractVector, adaptor,
     # Resize parabolic helper variables
     @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
-       !mpi_isparallel()
-        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
-                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
-    end
 
     return nothing
 end
@@ -426,14 +418,6 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     # Resize parabolic helper variables
     @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
-       !mpi_isparallel()
-        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
-                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
-    end
 
     return nothing
 end

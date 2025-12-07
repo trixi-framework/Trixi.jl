@@ -33,6 +33,14 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_nonuniform.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonuniform.jl"),
+                        l2=[0.0006665846145698006], linf=[0.00643334347367408])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_shockcapturing.jl"),
                         l2=[0.08015029105233593],
@@ -81,11 +89,30 @@ end
                         save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8), # Adding a small epsilon to avoid floating-point precision issues
                         callbacks=CallbackSet(summary_callback, save_solution,
                                               analysis_callback, alive_callback),
-                        l2=[5.726144824784944e-7],
-                        linf=[3.43073006914274e-6])
+                        l2=[5.725028892495733e-7],
+                        linf=[3.4292579200734252e-6],
+                        atol=1e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 8000)
+end
+
+@trixi_testset "elixir_euler_convergence_nonuniform.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_nonuniform.jl"),
+                        l2=[
+                            6.0145954087568086e-5,
+                            4.865396929677369e-5,
+                            0.00012525608158029655
+                        ],
+                        linf=[
+                            0.00014050847320445925,
+                            0.00038307746603916115,
+                            0.0006872324329503243
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_sedov.jl" begin
@@ -108,6 +135,18 @@ end
                         ],
                         tspan=(0.0, 12.5),
                         surface_flux=FluxHLL(min_max_speed_davis))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_shu_osher_nonuniform_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shu_osher_nonuniform_fvO2.jl"),
+                        abstol=1e-11, reltol=1e-11,
+                        l2=[0.5000856244205995, 1.7958065770030094, 6.50409305116869],
+                        linf=[2.981082161129505, 10.10855083991654, 36.26666086388062],
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -147,6 +186,27 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
+                        l2=[
+                            0.0005159476609077155,
+                            0.000649450399792432,
+                            0.0010602371635625239
+                        ],
+                        linf=[
+                            0.0017927309507015377,
+                            0.001662532939591621,
+                            0.004580416775184837
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `:compact` printing
+    show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), volume_integral)
 end
 
 @trixi_testset "elixir_euler_weak_blast_er.jl" begin

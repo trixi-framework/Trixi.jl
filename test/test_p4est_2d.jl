@@ -26,7 +26,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test real(semi32.solver) == Float32
     @test real(semi32.solver.basis) == Float32
     @test real(semi32.solver.mortar) == Float32
-    # TODO: remake ignores the mesh itself as well
+    # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(semi32.mesh) == Float64
 end
 
@@ -35,7 +35,7 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
-                        RealT=Float32,
+                        RealT_for_test_tolerances=Float32,
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -48,7 +48,7 @@ end
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
-    # TODO: remake ignores the mesh itself as well
+    # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
 end
 
@@ -278,7 +278,7 @@ end
                         ],
                         tspan=(0.0f0, 1.0f0),
                         rtol=10 * sqrt(eps(Float32)), # to make CI pass
-                        RealT=Float32)
+                        RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -558,6 +558,27 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_eulermulti_shock.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock.jl"),
+                        l2=[
+                            0.09238286359859513,
+                            0.0006429842672568709,
+                            0.22741647050108965,
+                            0.09129657317724366,
+                            0.2714793219290268
+                        ],
+                        linf=[
+                            0.6949550920191041,
+                            0.027123073012782554,
+                            1.7445063388384803,
+                            1.1616284674760593,
+                            4.340140043930651
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin

@@ -55,6 +55,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_convergence_pure_fv.jl (O2, constant reconstruction)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
+                        volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
+                                                                            volume_flux_fv = flux_hllc,
+                                                                            reconstruction_mode = reconstruction_constant,
+                                                                            slope_limiter = central_slope),
+                        l2=[
+                            0.019355699748523896,
+                            0.022326984561234497,
+                            0.02523665947241734
+                        ],
+                        linf=[
+                            0.02895961127645519,
+                            0.03293442484199227,
+                            0.04246098278632804
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         l2=[
@@ -425,6 +446,23 @@ end
                             0.3752709888964313,
                             0.84477102402413,
                             8.881784197001252e-16
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_convergence_pure_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fvO2.jl"),
+                        l2=[
+                            0.0004651066144227485,
+                            0.0005058715155540577,
+                            0.0007705686813156139
+                        ],
+                        linf=[
+                            0.0014354711538595577,
+                            0.0014154880871579678,
+                            0.0027044481967184453
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

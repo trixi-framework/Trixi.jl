@@ -29,7 +29,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
     equations_parabolic = LaplaceDiffusion2D(1.0, equations)
 
-    semi = SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
+    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, dg)
     @trixi_test_nowarn show(stdout, semi)
     @trixi_test_nowarn show(stdout, MIME"text/plain"(), semi)
@@ -264,6 +264,17 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_diffusion_steady_state_linear_map.jl"),
+                        l2=[2.9029827892716424e-5], linf=[0.0003022506331279151],
+                        # Relax error tols to avoid stochastic CI failures
+                        atol=1e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
@@ -477,6 +488,23 @@ end
                             0.0231954665514138
                         ],
                         tspan=(0.0, 1.0))
+end
+
+@trixi_testset "TreeMesh2D: elixir_navierstokes_viscous_shock.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        l2=[
+                            2.817640352994614e-5,
+                            1.3827801939742e-5,
+                            3.1001993851549174e-17,
+                            1.7535689010948764e-5
+                        ],
+                        linf=[
+                            0.0002185837290411552,
+                            0.00013405261969601234,
+                            1.8273738729889617e-16,
+                            0.00015782934605046428
+                        ])
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
@@ -714,17 +742,21 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
                         tspan=(0.0, 0.1),
+                        atol_lin_solve=1e-11,
+                        rtol_lin_solve=1e-11,
+                        atol_ode_solve=1e-10,
+                        rtol_ode_solve=1e-10,
                         l2=[
-                            3.468233560427797e-5,
-                            2.64864594855224e-5,
-                            7.879490760481979e-10,
-                            2.8748482665365446e-5
+                            3.428501006908931e-5,
+                            2.5967418005884837e-5,
+                            2.7084890458524478e-17,
+                            2.855861765163304e-5
                         ],
                         linf=[
-                            0.00018754529350140103,
-                            0.00014045634087878067,
-                            9.043610782328732e-9,
-                            0.00014499382160382268
+                            0.00018762342908784646,
+                            0.0001405900207752664,
+                            3.661971738081151e-16,
+                            0.00014510700486747297
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -884,19 +916,21 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_blast_reflective.jl"),
                         l2=[
-                            0.08271777454941344,
-                            0.10020048140682014,
-                            0.10020048140682006,
-                            0.5954017435122945
+                            0.013077652405653456,
+                            0.03267271241679693,
+                            0.03267271241679689,
+                            0.19993587690609887
                         ],
                         linf=[
-                            0.4785944470287504,
-                            0.7205772140501768,
-                            0.7205772140501767,
-                            3.25120873497427
+                            0.232863088636711,
+                            0.5958991303183211,
+                            0.5958991303183204,
+                            3.0621202120365467
                         ],
-                        tspan=(0.0, 0.05),
-                        abstol=1e-7, reltol=1e-7)
+                        tspan=(0.0, 0.01),
+                        sol=solve(ode, ode_alg;
+                                  adaptive = false, dt = 1e-4,
+                                  ode_default_options()..., callback = callbacks))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

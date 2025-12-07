@@ -5,28 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# This method is called when a SemidiscretizationHyperbolicParabolic is constructed.
-# It constructs the basic `cache` used throughout the simulation to compute
-# the RHS etc.
-function create_cache_parabolic(mesh::P4estMesh{2},
-                                equations_hyperbolic::AbstractEquations,
-                                equations_parabolic::AbstractEquationsParabolic,
-                                dg::DG, parabolic_scheme, RealT, uEltype)
-    balance!(mesh)
-
-    elements = init_elements(mesh, equations_hyperbolic, dg.basis, uEltype)
-    interfaces = init_interfaces(mesh, equations_hyperbolic, dg.basis, elements)
-    boundaries = init_boundaries(mesh, equations_hyperbolic, dg.basis, elements)
-
-    viscous_container = init_viscous_container_2d(nvariables(equations_hyperbolic),
-                                                  nnodes(dg.basis), nelements(elements),
-                                                  uEltype)
-
-    cache = (; elements, interfaces, boundaries, viscous_container)
-
-    return cache
-end
-
 #=
 Reusing `rhs_parabolic!` for `TreeMesh`es is not easily possible as
 for `P4estMesh`es we call
@@ -59,19 +37,19 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
     # Convert conservative variables to a form more suitable for viscous flux calculations
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache, cache_parabolic)
+                             dg, parabolic_scheme, cache)
     end
 
     # Compute the gradients of the transformed variables
     @trixi_timeit timer() "calculate gradient" begin
         calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
-                       boundary_conditions_parabolic, dg, cache, cache_parabolic)
+                       boundary_conditions_parabolic, dg, cache)
     end
 
     # Compute and store the viscous fluxes
     @trixi_timeit timer() "calculate viscous fluxes" begin
         calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh,
-                             equations_parabolic, dg, cache, cache_parabolic)
+                             equations_parabolic, dg, cache)
     end
 
     # The remainder of this function is essentially a regular rhs! for parabolic
@@ -79,72 +57,80 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
     #
     # OBS! In `calc_viscous_fluxes!`, the viscous flux values at the volume nodes of each element have
     # been computed and stored in `fluxes_viscous`. In the following, we *reuse* (abuse) the
-    # `interfaces` and `boundaries` containers in `cache_parabolic` to interpolate and store the
+    # `interfaces` and `boundaries` containers in `cache` to interpolate and store the
     # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
     # is done in the hyperbolic operator). That is, `interfaces.u`/`boundaries.u` store *viscous flux values*
     # and *not the solution*.  The advantage is that a) we do not need to allocate more storage, b) we
     # do not need to recreate the existing data structure only with a different name, and c) we do not
     # need to interpolate solutions *and* gradients to the surfaces.
 
-    # TODO: parabolic; reconsider current data structure reuse strategy
-
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
     # Calculate volume integral
+    # This calls the specialized version for the viscous fluxes from
+    # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache)
     end
 
-    # Prolong solution to interfaces
+    # Prolong solution to interfaces.
+    # This calls the specialized version for the viscous fluxes from
+    # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg, cache)
+        prolong2interfaces!(cache, flux_viscous, mesh, equations_parabolic,
+                            dg)
     end
 
     # Calculate interface fluxes
+    # This calls the specialized version for the viscous fluxes from
+    # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                             equations_parabolic, dg, cache_parabolic)
+        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+                             equations_parabolic, dg, cache)
     end
 
-    # Prolong solution to boundaries
+    # Prolong viscous fluxes to boundaries.
+    # This calls the specialized version for the viscous fluxes from
+    # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
+        prolong2boundaries!(cache, flux_viscous, mesh, equations_parabolic, dg)
     end
 
-    # Calculate boundary fluxes
+    # Calculate boundary fluxes.
+    # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache_parabolic, t,
+        calc_boundary_flux_divergence!(cache, t,
                                        boundary_conditions_parabolic, mesh,
                                        equations_parabolic,
                                        dg.surface_integral, dg)
     end
 
-    # Prolong solution to mortars (specialized for AbstractEquationsParabolic)
-    # !!! NOTE: we reuse the hyperbolic cache here since it contains "mortars" and "u_threaded". See https://github.com/trixi-framework/Trixi.jl/issues/1674 for a discussion
+    # Prolong solution to mortars.
+    # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars_divergence!(cache, flux_viscous, mesh, equations_parabolic,
                                     dg.mortar, dg)
     end
 
-    # Calculate mortar fluxes (specialized for AbstractEquationsParabolic)
+    # Calculate mortar fluxes.
+    # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux_divergence!(cache_parabolic.elements.surface_flux_values,
+        calc_mortar_flux_divergence!(cache.elements.surface_flux_values,
                                      mesh, equations_parabolic, dg.mortar,
                                      dg.surface_integral, dg, cache)
     end
 
-    # Calculate surface integrals
+    # Calculate surface integrals.
+    # This reuses `calc_surface_integral!` for the purely hyperbolic case.
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations_parabolic,
-                               dg.surface_integral, dg, cache_parabolic)
+                               dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache_parabolic)
+        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
     end
 
     return nothing
@@ -153,10 +139,10 @@ end
 function calc_gradient!(gradients, u_transformed, t,
                         mesh::P4estMesh{2}, equations_parabolic,
                         boundary_conditions_parabolic, dg::DG,
-                        cache, cache_parabolic)
+                        cache)
     gradients_x, gradients_y = gradients
 
-    # Reset du
+    # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
         reset_du!(gradients_x, dg, cache)
         reset_du!(gradients_y, dg, cache)
@@ -164,89 +150,41 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        (; derivative_dhat) = dg.basis
-        (; contravariant_vectors) = cache.elements
-
-        @threaded for element in eachelement(dg, cache)
-
-            # Calculate gradients with respect to reference coordinates in one element
-            for j in eachnode(dg), i in eachnode(dg)
-                u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j,
-                                       element)
-
-                for ii in eachnode(dg)
-                    multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
-                                               u_node, equations_parabolic, dg,
-                                               ii, j, element)
-                end
-
-                for jj in eachnode(dg)
-                    multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
-                                               u_node, equations_parabolic, dg,
-                                               i, jj, element)
-                end
-            end
-
-            # now that the reference coordinate gradients are computed, transform them node-by-node to physical gradients
-            # using the contravariant vectors
-            for j in eachnode(dg), i in eachnode(dg)
-                Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
-                                                      i, j, element)
-                Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
-                                                      i, j, element)
-
-                gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic,
-                                                      dg, i, j, element)
-                gradients_reference_2 = get_node_vars(gradients_y, equations_parabolic,
-                                                      dg, i, j, element)
-
-                # note that the contravariant vectors are transposed compared with computations of flux
-                # divergences in `calc_volume_integral!`. See
-                # https://github.com/trixi-framework/Trixi.jl/pull/1490#discussion_r1213345190
-                # for a more detailed discussion.
-                gradient_x_node = Ja11 * gradients_reference_1 +
-                                  Ja21 * gradients_reference_2
-                gradient_y_node = Ja12 * gradients_reference_1 +
-                                  Ja22 * gradients_reference_2
-
-                set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
-                               i, j, element)
-                set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
-                               i, j, element)
-            end
-        end
+        calc_gradient_volume_integral!(gradients, u_transformed,
+                                       mesh, equations_parabolic, dg, cache)
     end
 
     # Prolong solution to interfaces.
     # This reuses `prolong2interfaces` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, u_transformed, mesh,
+        prolong2interfaces!(cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 
     # Calculate interface fluxes for the gradient.
     # This reuses `calc_interface_flux!` for the purely hyperbolic case.
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
+        calc_interface_flux!(cache.elements.surface_flux_values,
                              mesh, False(), # False() = no nonconservative terms
-                             equations_parabolic, dg.surface_integral, dg,
-                             cache_parabolic)
+                             equations_parabolic, dg.surface_integral, dg, cache)
     end
 
-    # Prolong solution to boundaries
+    # Prolong solution to boundaries.
+    # This reuses `prolong2boundaries` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache_parabolic, u_transformed, mesh,
-                            equations_parabolic, dg.surface_integral, dg)
+        prolong2boundaries!(cache, u_transformed, mesh,
+                            equations_parabolic, dg)
     end
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_gradients!(cache_parabolic, t, boundary_conditions_parabolic,
-                                      mesh, equations_parabolic, dg.surface_integral,
-                                      dg)
+        calc_gradient_boundary_flux!(cache, t, boundary_conditions_parabolic,
+                                     mesh, equations_parabolic, dg.surface_integral,
+                                     dg)
     end
 
-    # Prolong solution to mortars. This resues the hyperbolic version of `prolong2mortars`
+    # Prolong solution to mortars.
+    # This reuses `prolong2mortars` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg)
@@ -256,7 +194,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # along with a specialization on `calc_mortar_flux!(fstar, ...)` and `mortar_fluxes_to_elements!` for
     # AbstractEquationsParabolic.
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
+        calc_mortar_flux!(cache.elements.surface_flux_values,
                           mesh, False(), # False() = no nonconservative terms
                           equations_parabolic,
                           dg.mortar, dg.surface_integral, dg, cache)
@@ -264,121 +202,16 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        (; boundary_interpolation) = dg.basis
-        (; surface_flux_values) = cache_parabolic.elements
-        (; contravariant_vectors) = cache.elements
-
-        # Access the factors only once before beginning the loop to increase performance.
-        # We also use explicit assignments instead of `+=` to let `@muladd` turn these
-        # into FMAs (see comment at the top of the file).
-        factor_1 = boundary_interpolation[1, 1]
-        factor_2 = boundary_interpolation[nnodes(dg), 2]
-        @threaded for element in eachelement(dg, cache)
-            for l in eachnode(dg)
-                for v in eachvariable(equations_parabolic)
-
-                    # Compute x-component of gradients
-
-                    # surface at -x
-                    normal_direction_x, _ = get_normal_direction(1,
-                                                                 contravariant_vectors,
-                                                                 1, l, element)
-                    gradients_x[v, 1, l, element] = (gradients_x[v, 1, l, element] +
-                                                     surface_flux_values[v, l, 1,
-                                                                         element] *
-                                                     factor_1 * normal_direction_x)
-
-                    # surface at +x
-                    normal_direction_x, _ = get_normal_direction(2,
-                                                                 contravariant_vectors,
-                                                                 nnodes(dg), l, element)
-                    gradients_x[v, nnodes(dg), l, element] = (gradients_x[v, nnodes(dg),
-                                                                          l,
-                                                                          element] +
-                                                              surface_flux_values[v, l,
-                                                                                  2,
-                                                                                  element] *
-                                                              factor_2 *
-                                                              normal_direction_x)
-
-                    # surface at -y
-                    normal_direction_x, _ = get_normal_direction(3,
-                                                                 contravariant_vectors,
-                                                                 l, 1, element)
-                    gradients_x[v, l, 1, element] = (gradients_x[v, l, 1, element] +
-                                                     surface_flux_values[v, l, 3,
-                                                                         element] *
-                                                     factor_1 * normal_direction_x)
-
-                    # surface at +y
-                    normal_direction_x, _ = get_normal_direction(4,
-                                                                 contravariant_vectors,
-                                                                 l, nnodes(dg), element)
-                    gradients_x[v, l, nnodes(dg), element] = (gradients_x[v, l,
-                                                                          nnodes(dg),
-                                                                          element] +
-                                                              surface_flux_values[v, l,
-                                                                                  4,
-                                                                                  element] *
-                                                              factor_2 *
-                                                              normal_direction_x)
-
-                    # Compute y-component of gradients
-
-                    # surface at -x
-                    _, normal_direction_y = get_normal_direction(1,
-                                                                 contravariant_vectors,
-                                                                 1, l, element)
-                    gradients_y[v, 1, l, element] = (gradients_y[v, 1, l, element] +
-                                                     surface_flux_values[v, l, 1,
-                                                                         element] *
-                                                     factor_1 * normal_direction_y)
-
-                    # surface at +x
-                    _, normal_direction_y = get_normal_direction(2,
-                                                                 contravariant_vectors,
-                                                                 nnodes(dg), l, element)
-                    gradients_y[v, nnodes(dg), l, element] = (gradients_y[v, nnodes(dg),
-                                                                          l,
-                                                                          element] +
-                                                              surface_flux_values[v, l,
-                                                                                  2,
-                                                                                  element] *
-                                                              factor_2 *
-                                                              normal_direction_y)
-
-                    # surface at -y
-                    _, normal_direction_y = get_normal_direction(3,
-                                                                 contravariant_vectors,
-                                                                 l, 1, element)
-                    gradients_y[v, l, 1, element] = (gradients_y[v, l, 1, element] +
-                                                     surface_flux_values[v, l, 3,
-                                                                         element] *
-                                                     factor_1 * normal_direction_y)
-
-                    # surface at +y
-                    _, normal_direction_y = get_normal_direction(4,
-                                                                 contravariant_vectors,
-                                                                 l, nnodes(dg), element)
-                    gradients_y[v, l, nnodes(dg), element] = (gradients_y[v, l,
-                                                                          nnodes(dg),
-                                                                          element] +
-                                                              surface_flux_values[v, l,
-                                                                                  4,
-                                                                                  element] *
-                                                              factor_2 *
-                                                              normal_direction_y)
-                end
-            end
-        end
+        calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
+                                        dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg,
-                                  cache_parabolic)
+                                  cache)
         apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg,
-                                  cache_parabolic)
+                                  cache)
     end
 
     return nothing
@@ -445,7 +278,7 @@ end
 
 # This version is used for parabolic gradient computations
 @inline function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
-                                      nonconservative_terms::False,
+                                      have_nonconservative_terms::False,
                                       equations::AbstractEquationsParabolic,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
@@ -515,13 +348,16 @@ function calc_volume_integral!(du, flux_viscous,
     return nothing
 end
 
-# This is the version used when calculating the divergence of the viscous fluxes
-function prolong2interfaces!(cache_parabolic, flux_viscous,
+# This is the version used when calculating the divergence of the viscous fluxes.
+# Specialization `flux_viscous::Tuple` needed to
+# avoid amibiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
+# which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
+function prolong2interfaces!(cache, flux_viscous::Tuple,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}},
                              equations_parabolic::AbstractEquationsParabolic,
-                             dg::DG, cache)
-    (; interfaces) = cache_parabolic
-    (; contravariant_vectors) = cache_parabolic.elements
+                             dg::DG)
+    (; interfaces) = cache
+    (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
     flux_viscous_x, flux_viscous_y = flux_viscous
 
@@ -605,13 +441,12 @@ end
 # This version is used for divergence flux computations
 function calc_interface_flux!(surface_flux_values,
                               mesh::P4estMesh{2}, equations_parabolic,
-                              dg::DG, cache_parabolic)
-    (; neighbor_ids, node_indices) = cache_parabolic.interfaces
-    (; contravariant_vectors) = cache_parabolic.elements
+                              dg::DG, cache)
+    (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
     index_end = last(index_range)
 
-    @threaded for interface in eachinterface(dg, cache_parabolic)
+    @threaded for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
         primary_element = neighbor_ids[1, interface]
         primary_indices = node_indices[1, interface]
@@ -645,7 +480,7 @@ function calc_interface_flux!(surface_flux_values,
         for node in eachnode(dg)
             # We prolong the viscous flux dotted with respect the outward normal on the
             # primary element. We assume a BR-1 type of flux.
-            viscous_flux_normal_ll, viscous_flux_normal_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+            viscous_flux_normal_ll, viscous_flux_normal_rr = get_surface_node_vars(cache.interfaces.u,
                                                                                    equations_parabolic,
                                                                                    dg,
                                                                                    node,
@@ -669,11 +504,11 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 4}},
+function prolong2mortars_divergence!(cache, flux_viscous,
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                      equations,
                                      mortar_l2::LobattoLegendreMortarL2,
-                                     dg::DGSEM) where {uEltype <: Real}
+                                     dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
@@ -810,7 +645,7 @@ end
 # non-conservative terms are present.
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                   nonconservative_terms::False,
+                                   have_nonconservative_terms::False,
                                    equations::AbstractEquationsParabolic,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
@@ -831,18 +666,20 @@ end
     return nothing
 end
 
-# TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
-function prolong2boundaries!(cache_parabolic, flux_viscous,
+# Specialization `flux_viscous::Tuple` needed to
+# avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_2d.jl
+# which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
+function prolong2boundaries!(cache, flux_viscous::Tuple,
                              mesh::P4estMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache)
-    (; boundaries) = cache_parabolic
-    (; contravariant_vectors) = cache_parabolic.elements
+                             dg::DG)
+    (; boundaries) = cache
+    (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
 
     flux_viscous_x, flux_viscous_y = flux_viscous
 
-    @threaded for boundary in eachboundary(dg, cache_parabolic)
+    @threaded for boundary in eachboundary(dg, cache)
         # Copy solution data from the element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.
         element = boundaries.neighbor_ids[boundary]
@@ -872,17 +709,77 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
     return nothing
 end
 
-function calc_boundary_flux_gradients!(cache, t,
-                                       boundary_condition::Union{BoundaryConditionPeriodic,
-                                                                 BoundaryConditionDoNothing},
-                                       mesh::P4estMesh, equations, surface_integral,
-                                       dg::DG)
+function calc_gradient_volume_integral!(gradients, u_transformed,
+                                        mesh::P4estMesh{2}, # for dispatch only
+                                        equations_parabolic::AbstractEquationsParabolic,
+                                        dg::DG, cache)
+    @unpack derivative_dhat = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    gradients_x, gradients_y = gradients
+
+    @threaded for element in eachelement(dg, cache)
+        # Calculate volume terms in one element,
+        # corresponds to `kernel` functions for the hyperbolic part of the flux
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                   i, j, element)
+
+            for ii in eachnode(dg)
+                multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
+                                           u_node, equations_parabolic, dg,
+                                           ii, j, element)
+            end
+
+            for jj in eachnode(dg)
+                multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
+                                           u_node, equations_parabolic, dg,
+                                           i, jj, element)
+            end
+        end
+
+        # now that the reference coordinate gradients are computed, transform them node-by-node to physical gradients
+        # using the contravariant vectors
+        for j in eachnode(dg), i in eachnode(dg)
+            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                  i, j, element)
+            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                  i, j, element)
+
+            gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic, dg,
+                                                  i, j, element)
+            gradients_reference_2 = get_node_vars(gradients_y, equations_parabolic, dg,
+                                                  i, j, element)
+
+            # note that the contravariant vectors are transposed compared with computations of flux
+            # divergences in `calc_volume_integral!`. See
+            # https://github.com/trixi-framework/Trixi.jl/pull/1490#discussion_r1213345190
+            # for a more detailed discussion.
+            gradient_x_node = Ja11 * gradients_reference_1 +
+                              Ja21 * gradients_reference_2
+            gradient_y_node = Ja12 * gradients_reference_1 +
+                              Ja22 * gradients_reference_2
+
+            set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
+                           i, j, element)
+            set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
+                           i, j, element)
+        end
+    end
+
+    return nothing
+end
+
+function calc_gradient_boundary_flux!(cache, t,
+                                      boundary_condition::Union{BoundaryConditionPeriodic,
+                                                                BoundaryConditionDoNothing},
+                                      mesh::P4estMesh, equations, surface_integral,
+                                      dg::DG)
     @assert isempty(eachboundary(dg, cache))
 end
 
 # Function barrier for type stability
-function calc_boundary_flux_gradients!(cache, t, boundary_conditions, mesh::P4estMesh,
-                                       equations, surface_integral, dg::DG)
+function calc_gradient_boundary_flux!(cache, t, boundary_conditions, mesh::P4estMesh,
+                                      equations, surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
     calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
@@ -996,6 +893,147 @@ function calc_boundary_flux!(cache, t,
     return nothing
 end
 
+function calc_gradient_surface_integral!(gradients,
+                                         mesh::P4estMesh{2}, # for dispatch only
+                                         equations_parabolic::AbstractEquationsParabolic,
+                                         dg::DGSEM, cache)
+    @unpack boundary_interpolation = dg.basis
+    @unpack surface_flux_values = cache.elements
+    @unpack contravariant_vectors = cache.elements
+
+    gradients_x, gradients_y = gradients
+
+    # Access the factors only once before beginning the loop to increase performance.
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg)
+            for v in eachvariable(equations_parabolic)
+
+                # Compute x-component of gradients
+
+                # surface at -x
+                normal_direction_x, _ = get_normal_direction(1,
+                                                             contravariant_vectors,
+                                                             1, l,
+                                                             element)
+                gradients_x[v, 1, l, element] = (gradients_x[v,
+                                                             1, l,
+                                                             element] +
+                                                 surface_flux_values[v,
+                                                                     l, 1,
+                                                                     element] *
+                                                 factor_1 * normal_direction_x)
+
+                # surface at +x
+                normal_direction_x, _ = get_normal_direction(2,
+                                                             contravariant_vectors,
+                                                             nnodes(dg), l,
+                                                             element)
+                gradients_x[v, nnodes(dg), l, element] = (gradients_x[v,
+                                                                      nnodes(dg), l,
+                                                                      element] +
+                                                          surface_flux_values[v,
+                                                                              l, 2,
+                                                                              element] *
+                                                          factor_2 *
+                                                          normal_direction_x)
+
+                # surface at -y
+                normal_direction_x, _ = get_normal_direction(3,
+                                                             contravariant_vectors,
+                                                             l, 1,
+                                                             element)
+                gradients_x[v, l, 1, element] = (gradients_x[v,
+                                                             l, 1,
+                                                             element] +
+                                                 surface_flux_values[v,
+                                                                     l, 3,
+                                                                     element] *
+                                                 factor_1 * normal_direction_x)
+
+                # surface at +y
+                normal_direction_x, _ = get_normal_direction(4,
+                                                             contravariant_vectors,
+                                                             l, nnodes(dg),
+                                                             element)
+                gradients_x[v, l, nnodes(dg), element] = (gradients_x[v,
+                                                                      l, nnodes(dg),
+                                                                      element] +
+                                                          surface_flux_values[v,
+                                                                              l, 4,
+                                                                              element] *
+                                                          factor_2 *
+                                                          normal_direction_x)
+
+                # Compute y-component of gradients
+
+                # surface at -x
+                _, normal_direction_y = get_normal_direction(1,
+                                                             contravariant_vectors,
+                                                             1, l,
+                                                             element)
+                gradients_y[v, 1, l, element] = (gradients_y[v,
+                                                             1, l,
+                                                             element] +
+                                                 surface_flux_values[v,
+                                                                     l, 1,
+                                                                     element] *
+                                                 factor_1 * normal_direction_y)
+
+                # surface at +x
+                _, normal_direction_y = get_normal_direction(2,
+                                                             contravariant_vectors,
+                                                             nnodes(dg), l,
+                                                             element)
+                gradients_y[v, nnodes(dg), l, element] = (gradients_y[v,
+                                                                      nnodes(dg), l,
+                                                                      element] +
+                                                          surface_flux_values[v,
+                                                                              l, 2,
+                                                                              element] *
+                                                          factor_2 *
+                                                          normal_direction_y)
+
+                # surface at -y
+                _, normal_direction_y = get_normal_direction(3,
+                                                             contravariant_vectors,
+                                                             l, 1,
+                                                             element)
+                gradients_y[v, l, 1, element] = (gradients_y[v,
+                                                             l, 1,
+                                                             element] +
+                                                 surface_flux_values[v,
+                                                                     l, 3,
+                                                                     element] *
+                                                 factor_1 * normal_direction_y)
+
+                # surface at +y
+                _, normal_direction_y = get_normal_direction(4,
+                                                             contravariant_vectors,
+                                                             l, nnodes(dg),
+                                                             element)
+                gradients_y[v, l, nnodes(dg), element] = (gradients_y[v,
+                                                                      l, nnodes(dg),
+                                                                      element] +
+                                                          surface_flux_values[v,
+                                                                              l, 4,
+                                                                              element] *
+                                                          factor_2 *
+                                                          normal_direction_y)
+            end
+        end
+    end
+
+    return nothing
+end
+
+# Needed to *not* flip the sign of the inverse Jacobian.
+# This is because the parabolic fluxes are assumed to be of the form
+#   `du/dt + df/dx = dg/dx + source(x,t)`,
+# where f(u) is the inviscid flux and g(u) is the viscous flux.
 function apply_jacobian_parabolic!(du, mesh::P4estMesh{2},
                                    equations::AbstractEquationsParabolic,
                                    dg::DG, cache)
