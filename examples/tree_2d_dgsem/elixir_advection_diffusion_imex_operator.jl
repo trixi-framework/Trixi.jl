@@ -7,7 +7,7 @@ using Trixi
 
 advection_velocity = (1.5, 1.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
-diffusivity() = 5.0e-1
+diffusivity() = 0.5f0
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
