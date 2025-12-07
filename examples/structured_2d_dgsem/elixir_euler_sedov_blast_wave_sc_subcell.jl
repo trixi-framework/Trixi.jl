@@ -8,8 +8,8 @@ equations = CompressibleEulerEquations2D(gamma)
 """
     initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
-The Sedov blast wave setup based on Flash
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
+The Sedov blast wave setup based on example 35.1.4 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 """
 function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
     # Set up polar coordinates
@@ -18,7 +18,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
 
-    # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
+    # Setup based on example 35.1.4 in https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
     r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
     # r0 = 0.5 # = more reasonable setup
     E = 1.0
@@ -42,7 +42,14 @@ boundary_conditions = (x_neg = boundary_condition,
                        y_neg = boundary_condition,
                        y_pos = boundary_condition)
 
-surface_flux = flux_lax_friedrichs
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -95,7 +102,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:limiting_coefficient,))
 
 stepsize_callback = StepsizeCallback(cfl = 0.6)
 

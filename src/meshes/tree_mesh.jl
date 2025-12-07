@@ -29,6 +29,7 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
     tree::TreeType
     current_filename::String
     unsaved_changes::Bool
+    # These are needed for distributed memory (i.e., MPI) parallelization
     first_cell_by_rank::OffsetVector{Int, Vector{Int}}
     n_cells_by_rank::OffsetVector{Int, Vector{Int}}
 
@@ -37,15 +38,14 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
                                                                            AbstractTree{NDIMS},
                                                                            RealT <:
                                                                            Real}
-        # Create mesh
-        m = new()
-        m.tree = TreeType(n_cells_max)
-        m.current_filename = ""
-        m.unsaved_changes = true
-        m.first_cell_by_rank = OffsetVector(Int[], 0)
-        m.n_cells_by_rank = OffsetVector(Int[], 0)
+        tree = TreeType(n_cells_max)
+        current_filename = ""
+        unsaved_changes = true
+        first_cell_by_rank = OffsetVector(Int[], 0)
+        n_cells_by_rank = OffsetVector(Int[], 0)
 
-        return m
+        return new(tree, current_filename, unsaved_changes,
+                   first_cell_by_rank, n_cells_by_rank)
     end
 
     # TODO: Taal refactor, order of important arguments, use of n_cells_max?
@@ -56,17 +56,14 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
                                                                          TreeType <:
                                                                          AbstractTree{NDIMS},
                                                                          RealT <: Real}
-        @assert NDIMS isa Integer && NDIMS > 0
+        tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
+        current_filename = ""
+        unsaved_changes = true
+        first_cell_by_rank = OffsetVector(Int[], 0)
+        n_cells_by_rank = OffsetVector(Int[], 0)
 
-        # Create mesh
-        m = new()
-        m.tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
-        m.current_filename = ""
-        m.unsaved_changes = true
-        m.first_cell_by_rank = OffsetVector(Int[], 0)
-        m.n_cells_by_rank = OffsetVector(Int[], 0)
-
-        return m
+        return new(tree, current_filename, unsaved_changes,
+                   first_cell_by_rank, n_cells_by_rank)
     end
 end
 
@@ -251,6 +248,8 @@ end
 
 isperiodic(mesh::TreeMesh) = isperiodic(mesh.tree)
 isperiodic(mesh::TreeMesh, dimension) = isperiodic(mesh.tree, dimension)
+
+Base.real(::TreeMesh{NDIMS, TreeType, RealT}) where {NDIMS, TreeType, RealT} = RealT
 
 include("parallel_tree_mesh.jl")
 end # @muladd

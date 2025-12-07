@@ -16,15 +16,41 @@ function max_dt(u, t, mesh::TreeMesh{2},
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
             lambda1, lambda2 = max_abs_speeds(u_node, equations)
-            max_lambda1 = max(max_lambda1, lambda1)
-            max_lambda2 = max(max_lambda2, lambda2)
+            max_lambda1 = Base.max(max_lambda1, lambda1)
+            max_lambda2 = Base.max(max_lambda2, lambda2)
         end
         inv_jacobian = cache.elements.inverse_jacobian[element]
-        max_scaled_speed = max(max_scaled_speed,
-                               inv_jacobian * (max_lambda1 + max_lambda2))
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian * (max_lambda1 + max_lambda2))
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+function max_dt(u, t, mesh::TreeMesh{2},
+                constant_diffusivity::False, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DG, cache)
+    # to avoid a division by zero if the diffusivity vanishes everywhere
+    max_scaled_speed = nextfloat(zero(t))
+
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+        max_diffusivity_ = zero(max_scaled_speed)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            # Note: For the currently supported parabolic equations
+            # Diffusion & Navier-Stokes, we only have one diffusivity.
+            diffusivity = max_diffusivity(u_node, equations_parabolic)
+            max_diffusivity_ = max(max_diffusivity_, diffusivity)
+        end
+        inv_jacobian = cache.elements.inverse_jacobian[element] # 2 / Δx
+        max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * max_diffusivity_)
+    end
+
+    # Factor 4 cancels with 2^2 from `inv_jacobian^2`, resulting in Δx^2
+    return 4 / (nnodes(dg) * max_scaled_speed)
 end
 
 function max_dt(u, t, mesh::TreeMesh{2},
@@ -33,11 +59,14 @@ function max_dt(u, t, mesh::TreeMesh{2},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
+    max_lambda1, max_lambda2 = max_abs_speeds(equations)
+
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda1, max_lambda2 = max_abs_speeds(equations)
         inv_jacobian = cache.elements.inverse_jacobian[element]
-        max_scaled_speed = max(max_scaled_speed,
-                               inv_jacobian * (max_lambda1 + max_lambda2))
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian * (max_lambda1 + max_lambda2))
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
@@ -76,6 +105,10 @@ function max_dt(u, t, mesh::ParallelTreeMesh{2},
 
     return dt
 end
+
+# Hyperbolic-parabolic simulations are not yet supported on MPI-parallel meshes.
+# Thus, there is no `max_dt` function for `ParallelTreeMesh{2}` and
+# `equations_parabolic::AbstractEquationsParabolic` implemented.
 
 function max_dt(u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
@@ -94,20 +127,22 @@ function max_dt(u, t,
             lambda1, lambda2 = max_abs_speeds(u_node, equations)
 
             # Local speeds transformed to the reference element
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j,
-                                                  element)
+            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                  i, j, element)
             lambda1_transformed = abs(Ja11 * lambda1 + Ja12 * lambda2)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                  element)
+            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                  i, j, element)
             lambda2_transformed = abs(Ja21 * lambda1 + Ja22 * lambda2)
 
             inv_jacobian = abs(inverse_jacobian[i, j, element])
 
-            max_lambda1 = max(max_lambda1, lambda1_transformed * inv_jacobian)
-            max_lambda2 = max(max_lambda2, lambda2_transformed * inv_jacobian)
+            max_lambda1 = Base.max(max_lambda1, lambda1_transformed * inv_jacobian)
+            max_lambda2 = Base.max(max_lambda2, lambda2_transformed * inv_jacobian)
         end
 
-        max_scaled_speed = max(max_scaled_speed, max_lambda1 + max_lambda2)
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda1 + max_lambda2)
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
@@ -128,17 +163,19 @@ function max_dt(u, t,
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             # Local speeds transformed to the reference element
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j,
-                                                  element)
+            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                  i, j, element)
             lambda1_transformed = abs(Ja11 * max_lambda1 + Ja12 * max_lambda2)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                  element)
+            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                  i, j, element)
             lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2)
 
             inv_jacobian = abs(inverse_jacobian[i, j, element])
-            max_scaled_speed = max(max_scaled_speed,
-                                   inv_jacobian *
-                                   (lambda1_transformed + lambda2_transformed))
+            # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+            # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+            max_scaled_speed = Base.max(max_scaled_speed,
+                                        inv_jacobian *
+                                        (lambda1_transformed + lambda2_transformed))
         end
     end
 

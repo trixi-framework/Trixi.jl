@@ -8,8 +8,30 @@
 @doc raw"""
     IdealGlmMhdEquations1D(gamma)
 
-The ideal compressible GLM-MHD equations for an ideal gas with ratio of
-specific heats `gamma` in one space dimension.
+The ideal compressible GLM-MHD equations
+```math
+\frac{\partial}{\partial t}
+\begin{pmatrix}
+\rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\ \rho e \\ B_1 \\ B_2 \\ B_3
+\end{pmatrix}
++
+\frac{\partial}{\partial x}
+\begin{pmatrix}
+\rho v_1 \\ \rho v_1^2 + p + \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - B_1^2 \\ \rho v_1 v_2 - B_1 B_2 \\ \rho v_1 v_3 - B_1 B_3
+\\ (\frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 + \frac{\gamma p}{\gamma - 1} + \Vert \mathbf{B} \Vert_2 ^2) v_1 - B_1 (\mathbf{v} \cdot \mathbf{B})
+\\ 0 \\ v_1 B_2 - v_2 B_1 \\ v_1 B_3 - v_3 B_1
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0
+\end{pmatrix}
+```
+for an ideal gas in one space dimension.
+Here, ``\mathbf{v}`` is the velocity, ``\mathbf{B}`` the magnetic field, ``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 \right)
+```
+the pressure and ``\gamma`` the heat capacity ratio.
 
 !!! note
     There is no divergence cleaning variable `psi` because the divergence-free constraint
@@ -69,7 +91,7 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
     RealT = eltype(x)
     rho = 1
     v1 = 0
-    si, co = sincospi(2 * x[1])
+    si, co = sincospi(2 * (x[1] + t)) # Adding `t` makes non-integer time valid
     v2 = convert(RealT, 0.1) * si
     v3 = convert(RealT, 0.1) * co
     p = convert(RealT, 0.1)
@@ -105,7 +127,7 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
     return prim2cons(SVector(rho, v1, 0, 0, p, 1, 1, 1, 0), equations)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations1D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
     v1 = rho_v1 / rho

@@ -203,7 +203,7 @@ end
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal,
                                      equations)
-        noncons_flux = nonconservative_flux_function(u_boundary, u_inner,
+        noncons_flux = nonconservative_flux_function(u_inner, u_boundary,
                                                      orientation_or_normal,
                                                      equations)
     end
@@ -285,6 +285,26 @@ the function returns the symmetric part of the non-conservative term.
 """
 struct NonConservativeSymmetric end
 
+"""
+    NonConservativeJump()
+
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * jump".
+When the argument `nonconservative_type` is of type `NonConservativeJump`,
+the function returns the jump part of the non-conservative term.
+"""
+struct NonConservativeJump end
+
+"""
+    FluxNonConservative{STRUCTURE}
+
+Abstract type for non-conservative fluxes that are composed of a local term and a structured two-point
+term. The `STRUCTURE` type parameter should be set to [`NonConservativeSymmetric`](@ref) or 
+[`NonConservativeJump`](@ref), depending on the structure of the non-conservative term.
+The abstract type is required for dispatch on the non-conservative type (symmetric / jump) 
+for the staggered volume flux computation in `calcflux_fhat!`.
+"""
+abstract type FluxNonConservative{STRUCTURE} end
+
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)
@@ -292,19 +312,56 @@ struct NonConservativeSymmetric end
 Trait function determining whether `equations` represent a conservation law
 with or without nonconservative terms. Classical conservation laws such as the
 [`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
-[`ShallowWaterEquations2D`](@ref) with non-constant bottom topography are an
-example of equations with nonconservative terms.
+[`IdealGlmMhdEquations2D`](@ref) are an example of equations with nonconservative terms.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = False()
 """
-    n_nonconservative_terms(equations)
+    n_nonconservative_terms(volume_flux_noncons)
 
-Number of nonconservative terms in the form local * symmetric for a particular equation.
+Number of nonconservative terms for a particular nonconservative flux. Even for a specific equation,
+this number may vary between different nonconservative fluxes.
 This function needs to be specialized only if equations with nonconservative terms are
 combined with certain solvers (e.g., subcell limiting).
 """
 function n_nonconservative_terms end
+
+"""
+	Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)
+
+Trait function indicating whether the given `flux` and `equations` support
+fusing the computation of conservative fluxes with nonconservative fluxes.
+This is purely a performance optimization for equations with nonconservative
+terms (i.e., where `have_nonconservative_terms(equations)` is `Trixi.True()`).
+The default value is `Trixi.False()`, i.e., you have to pass a tuple of
+numerical fluxes for the conservative and the nonconservative terms, e.g.,
+to compute surface terms or the [`VolumeIntegralFluxDifferencing`](@ref).
+
+For some systems and flux implementations, it is cheaper to compute
+
+    flux_noncons(u_ll, u_rr, orientation_or_normal_direction, equations)
+    
+and 
+
+    flux_noncons(u_rr, u_ll, orientation_or_normal_direction, equations)
+
+together, or to compute conservative and nonconservative flux contributions in
+a single fused kernel. In this case, you should set this trait to be `Trixi.True()`
+to take advantage of a more efficient implementation. In this case, you have to
+define a single method that computes
+
+    flux_cons(u_ll, u_rr, n, equations) + 0.5f0 * flux_noncons(u_ll, u_rr, n, equations)
+  
+and
+
+    flux_cons(u_ll, u_rr, n, equations) + 0.5f0 * flux_noncons(u_rr, u_ll, n, equations)
+
+together and returns them as a tuple.
+See also the test section P4estMesh2D with combine_conservative_and_nonconservative_fluxes in
+[Test Performance](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_performance_specializations_2d.jl).
+"""
+combine_conservative_and_nonconservative_fluxes(flux, ::AbstractEquations) = False()
+
 have_constant_speed(::AbstractEquations) = False()
 
 """
@@ -494,10 +551,15 @@ function density_pressure end
     waterheight(u, equations)
 
 Return the water height associated to the conserved variables `u` for a given set of
-`equations`, e.g., the [`ShallowWaterEquations2D`](@ref).
+`equations`.
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
+
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight end
 
@@ -506,12 +568,29 @@ function waterheight end
 
 Return the product of the [`waterheight`](@ref) and the [`pressure`](@ref)
 associated to the conserved variables `u` for a given set of
-`equations`, e.g., the [`ShallowWaterEquations2D`](@ref).
+`equations`.
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
+
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight_pressure end
+
+"""
+    lake_at_rest_error(u, equations)
+    
+Calculate the point-wise error for the lake-at-rest steady state solution.
+
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
+"""
+function lake_at_rest_error end
 
 # Default implementation of gradient for `variable`. Used for subcell limiting.
 # Implementing a gradient function for a specific variable improves the performance.
@@ -526,8 +605,8 @@ end
 include("numerical_fluxes.jl")
 
 # Linear scalar advection
-abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <:
-              AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
+              AbstractEquations{NDIMS, 1} end
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
@@ -540,9 +619,6 @@ include("inviscid_burgers_1d.jl")
 # Shallow water equations
 abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
-include("shallow_water_1d.jl")
-include("shallow_water_2d.jl")
-include("shallow_water_quasi_1d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
@@ -684,4 +760,8 @@ include("traffic_flow_lwr_1d.jl")
 abstract type AbstractMaxwellEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("maxwell_1d.jl")
+
+abstract type AbstractLinearElasticityEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("linear_elasticity_1d.jl")
 end # @muladd

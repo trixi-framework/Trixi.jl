@@ -190,7 +190,8 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
-mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
+mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType <: AbstractVector,
+                                           Params, Sol, F,
                                            PairedExplicitRKOptions} <:
                AbstractPairedExplicitRKSingleIntegrator
     u::uType
@@ -203,12 +204,12 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F # `rhs!` of the semidiscretization
-    alg::PairedExplicitRK2
+    const f::F # `rhs!` of the semidiscretization
+    const alg::PairedExplicitRK2
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
-    dtchangeable::Bool
-    force_stepfail::Bool
+    const dtchangeable::Bool
+    const force_stepfail::Bool
     # Additional PERK register
     k1::uType
 end
@@ -234,15 +235,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
                                              false, true, false,
                                              k1)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        for cb in callback.continuous_callbacks
-            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-Kutta methods."))
-        end
-        for cb in callback.discrete_callbacks
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
 end
@@ -260,12 +253,7 @@ function step!(integrator::PairedExplicitRK2Integrator)
 
     modify_dt_for_tstops!(integrator)
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
         # First and second stage are identical across all single/standalone PERK methods
@@ -287,22 +275,10 @@ function step!(integrator::PairedExplicitRK2Integrator)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 end # @muladd

@@ -99,6 +99,14 @@ end
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquations2D)
@@ -354,7 +362,7 @@ Should be used together with [`TreeMesh`](@ref).
         normal_direction = SVector(zero(RealT), one(RealT))
     end
 
-    # compute and return the flux using `boundary_condition_slip_wall` routine above
+    # compute and return the flux using `boundary_condition_slip_wall` routine below
     return boundary_condition_slip_wall(u_inner, normal_direction, direction,
                                         x, t, surface_flux_function, equations)
 end
@@ -384,7 +392,7 @@ Should be used together with [`StructuredMesh`](@ref).
     return boundary_flux
 end
 
-# Calculate 2D flux for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
     v1 = rho_v1 / rho
@@ -404,7 +412,7 @@ end
     return SVector(f1, f2, f3, f4)
 end
 
-# Calculate 2D flux for a single point in the normal direction
+# Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::CompressibleEulerEquations2D)
@@ -2224,8 +2232,7 @@ end
 
 # State validation for Newton-bisection method of subcell IDP limiting
 @inline function Base.isvalid(u, equations::CompressibleEulerEquations2D)
-    p = pressure(u, equations)
-    if u[1] <= 0 || p <= 0
+    if u[1] <= 0 || pressure(u, equations) <= 0
         return false
     end
     return true

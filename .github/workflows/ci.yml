@@ -35,6 +35,11 @@ on:
       - 'utils/**'
   workflow_dispatch:
 
+# needed to allow julia-actions/cache to delete old caches that it has created
+permissions:
+  actions: write
+  contents: read
+
 # Cancel redundant CI tests automatically
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -72,12 +77,12 @@ jobs:
           - t8code_part1
           - t8code_part2
           - unstructured_dgmulti
-          - parabolic
+          - parabolic_part1
+          - parabolic_part2
           - paper_self_gravitating_gas_dynamics
           - misc_part1
           - misc_part2
-          - performance_specializations_part1
-          - performance_specializations_part2
+          - performance_specializations
           - mpi
           - threaded
         include:
@@ -85,9 +90,13 @@ jobs:
             os: ubuntu-latest
             arch: x64
             trixi_test: threaded_legacy
-          - version: '1.10'
-            os: macos-13
+          - version: '1.12'
+            os: ubuntu-latest
             arch: x64
+            trixi_test: threaded_legacy
+          - version: '1.10'
+            os: macos-latest
+            arch: aarch64
             trixi_test: mpi
           - version: '1.10'
             os: macos-latest
@@ -102,13 +111,15 @@ jobs:
             arch: x64
             trixi_test: threaded
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v2
+        with:
+          include-matrix: false
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
@@ -119,6 +130,7 @@ jobs:
         env:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # for authenticated downloads without strict rate limits
       - uses: julia-actions/julia-processcoverage@v1
         if: ${{ !cancelled() }}
         with:
@@ -151,7 +163,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           cp ./lcov.info ./lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.info
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
           path: ./lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.info
@@ -174,8 +186,8 @@ jobs:
       # Instead, we use the more tedious approach described above.
       # At first, we check out the repository and download all artifacts
       # (and list files for debugging).
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v6
       - run: ls -R
       # Next, we merge the individual coverage files and upload
       # the combined results to Coveralls.
@@ -198,7 +210,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./lcov.info
       # Upload merged coverage data as artifact for debugging
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: lcov
           path: ./lcov.info

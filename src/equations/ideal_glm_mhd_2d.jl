@@ -8,8 +8,43 @@
 @doc raw"""
     IdealGlmMhdEquations2D(gamma)
 
-The ideal compressible GLM-MHD equations for an ideal gas with ratio of
-specific heats `gamma` in two space dimensions.
+The ideal compressible GLM-MHD equations
+```math
+\frac{\partial}{\partial t}
+\begin{pmatrix}
+\rho \\ \rho \mathbf{v} \\ \rho e \\ \mathbf{B} \\ \psi
+\end{pmatrix}
++
+\nabla \cdot
+\begin{pmatrix}
+\rho \mathbf{v} \\ \rho (\mathbf{v} \otimes \mathbf{v}) + (p + \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2) \underline{I} - \mathbf{B} \otimes \mathbf{B} \\
+\mathbf{v} (\frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 + \frac{\gamma p}{\gamma - 1} + \Vert \mathbf{B} \Vert_2 ^2) - \mathbf{B} (\mathbf{v} \cdot \mathbf{B}) + c_h \psi \mathbf{B} \\
+\mathbf{v} \otimes \mathbf{B} - \mathbf{B} \otimes \mathbf{v} + c_h \psi \underline{I} \\
+c_h \mathbf{B}
+\end{pmatrix}
++
+(\nabla \cdot \mathbf{B})
+\begin{pmatrix}
+0 \\ \mathbf{B} \\ \mathbf{v} \cdot \mathbf{B} \\ \mathbf{v} \\ 0
+\end{pmatrix}
++
+(\nabla \psi) \cdot
+\begin{pmatrix}
+\mathbf{0} \\ 0 \\ \mathbf{v} \cdot \psi \\ 0 \\ \mathbf{v}
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ \mathbf{0} \\ 0 \\ \mathbf{0} \\ 0
+\end{pmatrix}
+```
+for an ideal gas in two space dimensions.
+Here, ``\mathbf{v}`` is the velocity, ``\mathbf{B}`` the magnetic field, ``c_h`` the hyperbolic divergence cleaning speed,
+``\psi`` the generalized Lagrangian Multiplier (GLM),
+``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - \frac{1}{2} \psi^2 \right)
+```
+the pressure, ``\gamma`` the total heat capacity ratio and ``\underline{I}`` the ``3\times 3`` identity matrix.
 """
 struct IdealGlmMhdEquations2D{RealT <: Real} <:
        AbstractIdealGlmMhdEquations{2, 9}
@@ -34,7 +69,6 @@ function IdealGlmMhdEquations2D(gamma, inv_gamma_minus_one, c_h)
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
-n_nonconservative_terms(::IdealGlmMhdEquations2D) = 2
 
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)
     ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
@@ -84,11 +118,11 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
     RealT = eltype(x)
     alpha = 0.25f0 * convert(RealT, pi)
     x_perp = x[1] * cos(alpha) + x[2] * sin(alpha)
-    B_perp = convert(RealT, 0.1) * sinpi(2 * x_perp)
+    B_perp = convert(RealT, 0.1) * sinpi(2 * (x_perp + t))
     rho = 1
     v1 = -B_perp * sin(alpha)
     v2 = B_perp * cos(alpha)
-    v3 = convert(RealT, 0.1) * cospi(2 * x_perp)
+    v3 = convert(RealT, 0.1) * cospi(2 * (x_perp + t))
     p = convert(RealT, 0.1)
     B1 = cos(alpha) + v1
     B2 = sin(alpha) + v2
@@ -128,7 +162,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::IdealGlmMhdEquations2D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
     v1 = rho_v1 / rho
@@ -287,9 +321,22 @@ end
     return f
 end
 
+# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
+# enable dispatch on the type of the nonconservative term (symmetric / jump).
+struct FluxNonConservativePowellLocalSymmetric <:
+       FluxNonConservative{NonConservativeSymmetric()}
+end
+
+n_nonconservative_terms(::FluxNonConservativePowellLocalSymmetric) = 2
+
+const flux_nonconservative_powell_local_symmetric = FluxNonConservativePowellLocalSymmetric()
+
 """
     flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
                                                 orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D)
+    flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
+                                                normal_direction::AbstractVector,
                                                 equations::IdealGlmMhdEquations2D)
 
 Non-symmetric two-point flux discretizing the nonconservative (source) term of
@@ -311,9 +358,9 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 """
-@inline function flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
-                                                             orientation::Integer,
-                                                             equations::IdealGlmMhdEquations2D)
+@inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
+                                                                         orientation::Integer,
+                                                                         equations::IdealGlmMhdEquations2D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -352,8 +399,47 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
     return f
 end
 
+@inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
+                                                                         normal_direction::AbstractVector,
+                                                                         equations::IdealGlmMhdEquations2D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # The factor 0.5 of the averages can be omitted since it is already applied when this
+    # function is called.
+    psi_avg = (psi_ll + psi_rr)
+    B1_avg = (B1_ll + B1_rr)
+    B2_avg = (B2_ll + B2_rr)
+
+    B_dot_n_avg = B1_avg * normal_direction[1] + B2_avg * normal_direction[2]
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    f = SVector(0,
+                B1_ll * B_dot_n_avg,
+                B2_ll * B_dot_n_avg,
+                B3_ll * B_dot_n_avg,
+                v_dot_B_ll * B_dot_n_avg + v_dot_n_ll * psi_ll * psi_avg,
+                v1_ll * B_dot_n_avg,
+                v2_ll * B_dot_n_avg,
+                v3_ll * B_dot_n_avg,
+                v_dot_n_ll * psi_avg)
+
+    return f
+end
+
 """
     flux_nonconservative_powell_local_symmetric(u_ll, orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D,
+                                                nonconservative_type::NonConservativeLocal,
+                                                nonconservative_term::Integer)
+    flux_nonconservative_powell_local_symmetric(u_ll, normal_direction_ll::AbstractVector,
                                                 equations::IdealGlmMhdEquations2D,
                                                 nonconservative_type::NonConservativeLocal,
                                                 nonconservative_term::Integer)
@@ -364,10 +450,11 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
-@inline function flux_nonconservative_powell_local_symmetric(u_ll, orientation::Integer,
-                                                             equations::IdealGlmMhdEquations2D,
-                                                             nonconservative_type::NonConservativeLocal,
-                                                             nonconservative_term::Integer)
+@inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll,
+                                                                         orientation::Integer,
+                                                                         equations::IdealGlmMhdEquations2D,
+                                                                         nonconservative_type::NonConservativeLocal,
+                                                                         nonconservative_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
 
     if nonconservative_term == 1
@@ -414,8 +501,54 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
     return f
 end
 
+@inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll,
+                                                                         normal_direction_ll::AbstractVector,
+                                                                         equations::IdealGlmMhdEquations2D,
+                                                                         nonconservative_type::NonConservativeLocal,
+                                                                         nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+
+    if nonconservative_term == 1
+        # Powell nonconservative term: (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        v1_ll = rho_v1_ll / rho_ll
+        v2_ll = rho_v2_ll / rho_ll
+        v3_ll = rho_v3_ll / rho_ll
+        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+        f = SVector(0,
+                    B1_ll,
+                    B2_ll,
+                    B3_ll,
+                    v_dot_B_ll,
+                    v1_ll,
+                    v2_ll,
+                    v3_ll,
+                    0)
+    else # nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        v1_ll = rho_v1_ll / rho_ll
+        v2_ll = rho_v2_ll / rho_ll
+        v_dot_n_ll = v1_ll * normal_direction_ll[1] + v2_ll * normal_direction_ll[2]
+
+        f = SVector(0,
+                    0,
+                    0,
+                    0,
+                    v_dot_n_ll * psi_ll,
+                    0,
+                    0,
+                    0,
+                    v_dot_n_ll)
+    end
+    return f
+end
+
 """
     flux_nonconservative_powell_local_symmetric(u_ll, orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D,
+                                                nonconservative_type::NonConservativeSymmetric,
+                                                nonconservative_term::Integer)
+    flux_nonconservative_powell_local_symmetric(u_ll, normal_direction_avg::AbstractVector,
                                                 equations::IdealGlmMhdEquations2D,
                                                 nonconservative_type::NonConservativeSymmetric,
                                                 nonconservative_term::Integer)
@@ -426,11 +559,11 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
-@inline function flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
-                                                             orientation::Integer,
-                                                             equations::IdealGlmMhdEquations2D,
-                                                             nonconservative_type::NonConservativeSymmetric,
-                                                             nonconservative_term::Integer)
+@inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
+                                                                         orientation::Integer,
+                                                                         equations::IdealGlmMhdEquations2D,
+                                                                         nonconservative_type::NonConservativeSymmetric,
+                                                                         nonconservative_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -471,6 +604,374 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                     0,
                     0,
                     psi_avg)
+    end
+
+    return f
+end
+
+@inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
+                                                                         normal_direction_avg::AbstractVector,
+                                                                         equations::IdealGlmMhdEquations2D,
+                                                                         nonconservative_type::NonConservativeSymmetric,
+                                                                         nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    if nonconservative_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        # The factor 0.5 of the average can be omitted since it is already applied when this
+        # function is called.
+        B_dot_n_avg = (B1_ll + B1_rr) * normal_direction_avg[1] +
+                      (B2_ll + B2_rr) * normal_direction_avg[2]
+        f = SVector(0,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    0)
+    else # nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        # The factor 0.5 of the average can be omitted since it is already applied when this
+        # function is called.
+        psi_avg = (psi_ll + psi_rr)
+        f = SVector(0,
+                    0,
+                    0,
+                    0,
+                    psi_avg,
+                    0,
+                    0,
+                    0,
+                    psi_avg)
+    end
+
+    return f
+end
+
+# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
+# enable dispatch on the type of the nonconservative term (symmetric / jump).
+struct FluxNonConservativePowellLocalJump <:
+       FluxNonConservative{NonConservativeJump()}
+end
+
+n_nonconservative_terms(::FluxNonConservativePowellLocalJump) = 2
+
+const flux_nonconservative_powell_local_jump = FluxNonConservativePowellLocalJump()
+
+"""
+    flux_nonconservative_powell_local_jump(u_ll, u_rr,
+                                           orientation::Integer,
+                                           equations::IdealGlmMhdEquations2D)
+    flux_nonconservative_powell_local_jump(u_ll, u_rr,
+                                           normal_direction::AbstractVector,
+                                           equations::IdealGlmMhdEquations2D)
+
+Non-symmetric two-point flux discretizing the nonconservative (source) term of
+Powell and the Galilean nonconservative term associated with the GLM multiplier
+of the [`IdealGlmMhdEquations2D`](@ref).
+
+This implementation uses a non-conservative term that can be written as the product
+of local and jump parts. 
+
+The two other flux functions with the same name return either the local
+or jump portion of the non-conservative flux based on the type of the
+nonconservative_type argument, employing multiple dispatch. They are used to
+compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+
+## References
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+"""
+@inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
+                                                                    orientation::Integer,
+                                                                    equations::IdealGlmMhdEquations2D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    psi_jump = psi_rr - psi_ll
+    if orientation == 1
+        B1_jump = B1_rr - B1_ll # The flux is already multiplied by 0.5 wherever it is used in the code
+        f = SVector(0,
+                    B1_ll * B1_jump,
+                    B2_ll * B1_jump,
+                    B3_ll * B1_jump,
+                    v_dot_B_ll * B1_jump + v1_ll * psi_ll * psi_jump,
+                    v1_ll * B1_jump,
+                    v2_ll * B1_jump,
+                    v3_ll * B1_jump,
+                    v1_ll * psi_jump)
+    else # orientation == 2
+        B2_jump = B2_rr - B2_ll # The flux is already multiplied by 0.5 wherever it is used in the code
+        f = SVector(0,
+                    B1_ll * B2_jump,
+                    B2_ll * B2_jump,
+                    B3_ll * B2_jump,
+                    v_dot_B_ll * B2_jump + v2_ll * psi_ll * psi_jump,
+                    v1_ll * B2_jump,
+                    v2_ll * B2_jump,
+                    v3_ll * B2_jump,
+                    v2_ll * psi_jump)
+    end
+
+    return f
+end
+
+@inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
+                                                                    normal_direction::AbstractVector,
+                                                                    equations::IdealGlmMhdEquations2D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    psi_jump = psi_rr - psi_ll
+    B1_jump = B1_rr - B1_ll
+    B2_jump = B2_rr - B2_ll
+
+    B_dot_n_jump = B1_jump * normal_direction[1] + B2_jump * normal_direction[2]
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    f = SVector(0,
+                B1_ll * B_dot_n_jump,
+                B2_ll * B_dot_n_jump,
+                B3_ll * B_dot_n_jump,
+                v_dot_B_ll * B_dot_n_jump + v_dot_n_ll * psi_ll * psi_jump,
+                v1_ll * B_dot_n_jump,
+                v2_ll * B_dot_n_jump,
+                v3_ll * B_dot_n_jump,
+                v_dot_n_ll * psi_jump)
+
+    return f
+end
+
+"""
+    flux_nonconservative_powell_local_jump(u_ll, orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D,
+                                                nonconservative_type::NonConservativeLocal,
+                                                nonconservative_term::Integer)
+    flux_nonconservative_powell_local_jump(u_ll, normal_direction_ll::AbstractVector,
+                                            equations::IdealGlmMhdEquations2D,
+                                            nonconservative_type::NonConservativeLocal,
+                                            nonconservative_term::Integer)
+
+Local part of the Powell and GLM non-conservative terms. Needed for the calculation of
+the non-conservative staggered "fluxes" for subcell limiting. 
+This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+
+## References
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+"""
+@inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll,
+                                                                    orientation::Integer,
+                                                                    equations::IdealGlmMhdEquations2D,
+                                                                    nonconservative_type::NonConservativeLocal,
+                                                                    nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    if nonconservative_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        v1_ll = rho_v1_ll / rho_ll
+        v2_ll = rho_v2_ll / rho_ll
+        v3_ll = rho_v3_ll / rho_ll
+        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+        f = SVector(0,
+                    B1_ll,
+                    B2_ll,
+                    B3_ll,
+                    v_dot_B_ll,
+                    v1_ll,
+                    v2_ll,
+                    v3_ll,
+                    0)
+    else #nonconservative_term ==2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        if orientation == 1
+            v1_ll = rho_v1_ll / rho_ll
+            f = SVector(0,
+                        0,
+                        0,
+                        0,
+                        v1_ll * psi_ll,
+                        0,
+                        0,
+                        0,
+                        v1_ll)
+        else #orientation == 2
+            v2_ll = rho_v2_ll / rho_ll
+            f = SVector(0,
+                        0,
+                        0,
+                        0,
+                        v2_ll * psi_ll,
+                        0,
+                        0,
+                        0,
+                        v2_ll)
+        end
+    end
+    return f
+end
+
+@inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll,
+                                                                    normal_direction_ll::AbstractVector,
+                                                                    equations::IdealGlmMhdEquations2D,
+                                                                    nonconservative_type::NonConservativeLocal,
+                                                                    nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+
+    if nonconservative_term == 1
+        # Powell nonconservative term: (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        v1_ll = rho_v1_ll / rho_ll
+        v2_ll = rho_v2_ll / rho_ll
+        v3_ll = rho_v3_ll / rho_ll
+        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+        f = SVector(0,
+                    B1_ll,
+                    B2_ll,
+                    B3_ll,
+                    v_dot_B_ll,
+                    v1_ll,
+                    v2_ll,
+                    v3_ll,
+                    0)
+    else # nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        v1_ll = rho_v1_ll / rho_ll
+        v2_ll = rho_v2_ll / rho_ll
+        v_dot_n_ll = v1_ll * normal_direction_ll[1] + v2_ll * normal_direction_ll[2]
+
+        f = SVector(0,
+                    0,
+                    0,
+                    0,
+                    v_dot_n_ll * psi_ll,
+                    0,
+                    0,
+                    0,
+                    v_dot_n_ll)
+    end
+    return f
+end
+
+"""
+    flux_nonconservative_powell_local_jump(u_ll, orientation::Integer,
+                                           equations::IdealGlmMhdEquations2D,
+                                           nonconservative_type::NonConservativeJump,
+                                           nonconservative_term::Integer)
+    flux_nonconservative_powell_local_jump(u_ll, normal_direction_avg::AbstractVector,
+                                           equations::IdealGlmMhdEquations2D,
+                                           nonconservative_type::NonConservativeJump,
+                                           nonconservative_term::Integer)
+
+Jump part of the Powell and GLM non-conservative terms. Needed for the calculation of
+the non-conservative staggered "fluxes" for subcell limiting. 
+This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+
+## References
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+"""
+@inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
+                                                                    orientation::Integer,
+                                                                    equations::IdealGlmMhdEquations2D,
+                                                                    nonconservative_type::NonConservativeJump,
+                                                                    nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    if nonconservative_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        if orientation == 1
+            B1_jump = B1_rr - B1_ll # The flux is already multiplied by 0.5 wherever it is used in the code
+            f = SVector(0,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        0)
+        else # orientation == 2
+            B2_jump = B2_rr - B2_ll # The flux is already multiplied by 0.5 wherever it is used in the code
+            f = SVector(0,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        0)
+        end
+    else #nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        psi_jump = psi_rr - psi_ll # The flux is already multiplied by 0.5 wherever it is used in the code
+        f = SVector(0,
+                    0,
+                    0,
+                    0,
+                    psi_jump,
+                    0,
+                    0,
+                    0,
+                    psi_jump)
+    end
+
+    return f
+end
+
+@inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
+                                                                    normal_direction_avg::AbstractVector,
+                                                                    equations::IdealGlmMhdEquations2D,
+                                                                    nonconservative_type::NonConservativeJump,
+                                                                    nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    if nonconservative_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        B1_jump = B1_rr - B1_ll
+        B2_jump = B2_rr - B2_ll
+        B_dot_n_jump = B1_jump * normal_direction_avg[1] +
+                       B2_jump * normal_direction_avg[2]
+        f = SVector(0,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    0)
+    else # nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        psi_jump = (psi_rr - psi_ll)
+        f = SVector(0,
+                    0,
+                    0,
+                    0,
+                    psi_jump,
+                    0,
+                    0,
+                    0,
+                    psi_jump)
     end
 
     return f

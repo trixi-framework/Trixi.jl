@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -8,15 +8,14 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:x_neg => boundary_condition,
-                           :x_pos => boundary_condition,
-                           :y_neg => boundary_condition,
-                           :y_pos => boundary_condition,
-                           :z_neg => boundary_condition,
-                           :z_pos => boundary_condition)
-
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
 coordinates_min = (0.0, 0.0, 0.0)
@@ -27,6 +26,17 @@ trees_per_dimension = (2, 2, 2)
 mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = false, initial_refinement_level = 1)
+
+# Assign a single boundary condition to all boundaries
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+# Alternatively, you can use
+# boundary_conditions = Dict(:x_neg => boundary_condition,
+#                            :x_pos => boundary_condition,
+#                            :y_neg => boundary_condition,
+#                            :y_pos => boundary_condition,
+#                            :z_neg => boundary_condition,
+#                            :z_pos => boundary_condition)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test,

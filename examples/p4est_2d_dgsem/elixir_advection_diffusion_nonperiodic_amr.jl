@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -45,10 +45,14 @@ boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_conditio
                            :y_pos => BoundaryConditionDirichlet(initial_condition),
                            :x_pos => boundary_condition_do_nothing)
 
-boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :x_pos => BoundaryConditionDirichlet(initial_condition),
-                                     :y_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :y_pos => BoundaryConditionDirichlet(initial_condition))
+# Assign a single boundary condition to all boundaries
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions_parabolic = boundary_condition_default(mesh, boundary_condition)
+# Alternatively, you can use
+# boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
+#                                      :x_pos => BoundaryConditionDirichlet(initial_condition),
+#                                      :y_neg => BoundaryConditionDirichlet(initial_condition),
+#                                      :y_pos => BoundaryConditionDirichlet(initial_condition))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh,

@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -16,8 +16,13 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(:inside => boundary_condition,
                            :outside => boundary_condition)
 
-mesh = Trixi.P4estMeshCubedSphere(5, 3, 0.5, 0.5,
-                                  polydeg = 3, initial_refinement_level = 0)
+trees_per_face_dim = 5 # number of trees in the first two local dimensions of each face
+sphere_layers = 3 # number of trees in the third local dimension of each face
+inner_radius = 0.5 # inner radius of the sphere
+thickness = 0.5 # thickness of the spherical shell, outer radius is `inner_radius + thickness`
+mesh = P4estMeshCubedSphere(trees_per_face_dim, sphere_layers,
+                            inner_radius, thickness,
+                            polydeg = 3)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

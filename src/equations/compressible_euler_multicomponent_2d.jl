@@ -160,6 +160,14 @@ end
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerMulticomponentEquations2D)
@@ -234,6 +242,120 @@ function initial_condition_weak_blast_wave(x, t,
     prim_other = SVector(v1, v2, p)
 
     return prim2cons(vcat(prim_other, prim_rho), equations)
+end
+
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::CompressibleEulerMulticomponentEquations2D)
+
+Determine the boundary numerical surface flux for a slip wall condition.
+Imposes a zero normal velocity at the wall.
+Density is taken from the internal solution state and pressure is computed as an
+exact solution of a 1D Riemann problem. Further details about this boundary state
+are available in the paper:
+- J. J. W. van der Vegt and H. van der Ven (2002)
+  Slip flow boundary conditions in discontinuous Galerkin discretizations of
+  the Euler equations of gas dynamics
+  [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
+
+Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of the book
+- Eleuterio F. Toro (2009)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
+  3rd edition
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+
+Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), or [`T8codeMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerMulticomponentEquations2D)
+    norm_ = norm(normal_direction)
+    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+    normal = normal_direction / norm_
+
+    # rotate the internal solution state
+    u_local = rotate_to_x(u_inner, normal, equations)
+
+    # compute the primitive variables
+    (v_normal, v_tangent, p_local, rhos_local...) = cons2prim(u_local, equations)
+
+    rho_local = sum(rhos_local)
+    gamma = totalgamma(u_inner, equations)
+
+    # Get the solution of the pressure Riemann problem
+    # See Section 6.3.3 of
+    # Eleuterio F. Toro (2009)
+    # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
+    # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+    if v_normal <= 0
+        sound_speed = sqrt(gamma * p_local / rho_local) # local sound speed
+        p_star = p_local *
+                 (1 + 0.5f0 * (gamma - 1) * v_normal / sound_speed)^(2 *
+                                                                     gamma /
+                                                                     (gamma - 1.0f0))
+    else # v_normal > 0
+        A = 2 / ((gamma + 1) * rho_local)
+        B = p_local * (gamma - 1) / (gamma + 1)
+        p_star = p_local +
+                 0.5f0 * v_normal / A *
+                 (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
+    end
+
+    # For the slip wall we directly set the flux as the normal velocity is zero
+    return vcat(SVector(p_star * normal_direction[1],
+                        p_star * normal_direction[2],
+                        0.0f0),
+                zero(SVector{ncomponents(equations), eltype(u_inner)}))
+end
+
+"""
+    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                 surface_flux_function, equations::CompressibleEulerMulticomponentEquations2D)
+
+Should be used together with [`TreeMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, orientation,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerMulticomponentEquations2D)
+    # get the appropriate normal vector from the orientation
+    RealT = eltype(u_inner)
+    if orientation == 1
+        normal_direction = SVector(one(RealT), zero(RealT))
+    else # orientation == 2
+        normal_direction = SVector(zero(RealT), one(RealT))
+    end
+
+    # compute and return the flux using `boundary_condition_slip_wall` routine below
+    return boundary_condition_slip_wall(u_inner, normal_direction, direction,
+                                        x, t, surface_flux_function, equations)
+end
+
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                 direction, x, t,
+                                 surface_flux_function, equations::CompressibleEulerMulticomponentEquations2D)
+
+Should be used together with [`StructuredMesh`](@ref).
+"""
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerMulticomponentEquations2D)
+    # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
+    # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
+    if isodd(direction)
+        boundary_flux = -boundary_condition_slip_wall(u_inner, -normal_direction,
+                                                      x, t, surface_flux_function,
+                                                      equations)
+    else
+        boundary_flux = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                     x, t, surface_flux_function,
+                                                     equations)
+    end
+
+    return boundary_flux
 end
 
 # Calculate 1D flux for a single point
@@ -562,6 +684,43 @@ end
     p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
     p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll::SVector{N, T}, u_rr::SVector{N, T},
+                                     normal_direction::SVector{2, T},
+                                     equations::CompressibleEulerMulticomponentEquations2D) where {
+                                                                                                   N,
+                                                                                                   T <:
+                                                                                                   AbstractFloat
+                                                                                                   }
+    # Unpack conservative variables
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+    # Get densities and gammas
+    rho_ll = T(density(u_ll, equations))
+    rho_rr = T(density(u_rr, equations))
+    gamma_ll = T(totalgamma(u_ll, equations))
+    gamma_rr = T(totalgamma(u_rr, equations))
+
+    # Velocity components
+    v_ll_vec = SVector(rho_v1_ll / rho_ll, rho_v2_ll / rho_ll)
+    v_rr_vec = SVector(rho_v1_rr / rho_rr, rho_v2_rr / rho_rr)
+
+    # Project velocities onto the direction normal_direction.
+    v_ll = dot(v_ll_vec, normal_direction)
+    v_rr = dot(v_rr_vec, normal_direction)
+
+    # Compute pressures
+    p_ll = (gamma_ll - one(T)) * (rho_e_ll - T(0.5) * dot(v_ll_vec, v_ll_vec) * rho_ll)
+    p_rr = (gamma_rr - one(T)) * (rho_e_rr - T(0.5) * dot(v_rr_vec, v_rr_vec) * rho_rr)
+
+    # Sound speeds
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)

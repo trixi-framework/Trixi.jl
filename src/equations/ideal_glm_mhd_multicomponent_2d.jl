@@ -6,9 +6,60 @@
 #! format: noindent
 
 @doc raw"""
-    IdealGlmMhdMulticomponentEquations2D
+    IdealGlmMhdMulticomponentEquations2D(; gammas, gas_constants)
 
-The ideal compressible multicomponent GLM-MHD equations in two space dimensions.
+The ideal compressible multicomponent GLM-MHD equations
+```math
+\frac{\partial}{\partial t}
+\begin{pmatrix}
+\rho \mathbf{v} \\ \rho e \\ \mathbf{B} \\ \psi \\ \rho_1 \\ \vdots \\ \rho_{n}
+\end{pmatrix}
++
+\nabla \cdot
+\begin{pmatrix}
+\rho (\mathbf{v} \otimes \mathbf{v}) + (p + \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2) \underline{I} - \mathbf{B} \otimes \mathbf{B} \\
+\mathbf{v} (\frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 + \frac{\gamma p}{\gamma - 1} + \Vert \mathbf{B} \Vert_2 ^2) - \mathbf{B} (\mathbf{v} \cdot \mathbf{B}) + c_h \psi \mathbf{B} \\
+\mathbf{v} \otimes \mathbf{B} - \mathbf{B} \otimes \mathbf{v} + c_h \psi \underline{I} \\
+c_h \mathbf{B} \\ \rho_1 \mathbf{v} \\ \vdots \\ \rho_{n} \mathbf{v}
+\end{pmatrix}
++
+(\nabla \cdot \mathbf{B})
+\begin{pmatrix}
+\mathbf{B} \\ \mathbf{v} \cdot \mathbf{B} \\ \mathbf{v} \\ 0 \\ 0 \\ \vdots \\ 0
+\end{pmatrix}
++
+(\nabla \psi) \cdot
+\begin{pmatrix}
+0 \\ \mathbf{v} \cdot \psi \\ 0 \\ \mathbf{v} \\ \mathbf{0} \\ \vdots \\ \mathbf{0}
+\end{pmatrix}
+=
+\begin{pmatrix}
+\mathbf{0} \\ 0 \\ \mathbf{0} \\ 0 \\ 0 \\ \vdots \\ 0
+\end{pmatrix}
+```
+for calorically perfect gases in two space dimensions.
+Here, ``\rho_i`` is the density of component ``i``, ``\rho=\sum_{i=1}^n\rho_i`` the sum of the individual ``\rho_i``,
+``\mathbf{v}`` the velocity, ``\mathbf{B}`` the magnetic field, ``c_h`` the hyperbolic divergence cleaning speed,
+``\psi`` the generalized Lagrangian Multiplier (GLM),
+``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - \frac{1}{2} \psi^2 \right)
+```
+the pressure,
+```math
+\gamma=\frac{\sum_{i=1}^n\rho_i C_{v,i}\gamma_i}{\sum_{i=1}^n\rho_i C_{v,i}}
+```
+total heat capacity ratio, ``\gamma_i`` heat capacity ratio of component ``i``,
+```math
+C_{v,i}=\frac{R_i}{\gamma_i-1}
+```
+specific heat capacity at constant volume of component ``i`` and ``\underline{I}`` the ``3\times 3`` identity matrix.
+
+In case of more than one component, the specific heat ratios `gammas` and the gas constants
+`gas_constants` should be passed as tuples, e.g., `gammas = (1.4, 1.667)`.
+
+The remaining variables like the specific heats at constant volume `cv` or the specific heats at
+constant pressure `cp` are then calculated considering a calorically perfect gas.
 """
 struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
        AbstractIdealGlmMhdMulticomponentEquations{2, NVARS, NCOMP}
@@ -178,7 +229,7 @@ function initial_condition_weak_blast_wave(x, t,
     return prim2cons(vcat(prim_other, prim_rho), equations)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::IdealGlmMhdMulticomponentEquations2D)
     rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u

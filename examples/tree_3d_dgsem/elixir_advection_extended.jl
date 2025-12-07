@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -8,13 +8,6 @@ advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
-
-# you can either use a single function to impose the BCs weakly in all
-# 1*ndims == 2 directions or you can pass a tuple containing BCs for
-# each direction
-# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
-#       fully periodic domains. Here, however, it is included to allow easy override during testing
-boundary_conditions = boundary_condition_periodic
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -27,6 +20,17 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
+
+# you can either use a single function to impose the BCs weakly in all
+# 2*ndims == 6 directions or you can pass a tuple containing BCs for
+# each direction
+# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
+#       fully periodic domains. Here, however, it is included to allow easy override during testing
+# Assign a single boundary condition to all boundaries
+boundary_condition = boundary_condition_periodic
+boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+# Alternatively, you can use
+# boundary_conditions = boundary_condition_periodic
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

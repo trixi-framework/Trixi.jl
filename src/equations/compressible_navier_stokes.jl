@@ -27,6 +27,28 @@ struct NoSlip{F}
 end
 
 """
+    struct Slip
+
+Creates a symmetric velocity boundary condition which eliminates any normal velocity gradients across the boundary, i.e., 
+allows only the tangential velocity gradients to be non-zero.
+When combined with the heat boundary condition [`Adiabatic`](@ref), this creates a truly symmetric boundary condition.
+Any boundary on which this combined boundary condition is applied thus acts as a symmetry plane for the flow.
+In contrast to the [`NoSlip`](@ref) boundary condition, `Slip` does not require a function to be supplied.
+
+The (purely) hyperbolic equivalent boundary condition is [`boundary_condition_slip_wall`](@ref) which 
+permits only tangential velocities.
+
+This boundary condition can also be employed as a reflective wall.
+
+Note that in 1D this degenerates to the [`NoSlip`](@ref) boundary condition which must be used instead.
+
+!!! note
+    Currently this (velocity) boundary condition is only implemented for 
+    [`P4estMesh`](@ref) and [`GradientVariablesPrimitive`](@ref).
+"""
+struct Slip end
+
+"""
     struct Isothermal
 
 Used to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref).
@@ -51,10 +73,19 @@ struct Adiabatic{F}
 end
 
 """
-`GradientVariablesPrimitive` and `GradientVariablesEntropy` are gradient variable type parameters
-for `CompressibleNavierStokesDiffusion1D`. By default, the gradient variables are set to be
-`GradientVariablesPrimitive`. Specifying `GradientVariablesEntropy` instead uses the entropy variable
-formulation from
+`GradientVariablesPrimitive` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref), 
+[`CompressibleNavierStokesDiffusion2D`](@ref), and [`CompressibleNavierStokesDiffusion3D`](@ref).
+The other available gradient variable type parameter is [`GradientVariablesEntropy`](@ref).
+By default, the gradient variables are set to be `GradientVariablesPrimitive`.
+"""
+struct GradientVariablesPrimitive end
+
+"""
+`GradientVariablesEntropy` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref), 
+[`CompressibleNavierStokesDiffusion2D`](@ref), and [`CompressibleNavierStokesDiffusion3D`](@ref).
+The other available gradient variable type parameter is [`GradientVariablesPrimitive`](@ref).
+
+Specifying `GradientVariablesEntropy` uses the entropy variable formulation from
 - Hughes, Mallet, Franca (1986)
   A new finite element formulation for computational fluid dynamics: I. Symmetric forms of the
   compressible Euler and Navier-Stokes equations and the second law of thermodynamics.
@@ -62,7 +93,6 @@ formulation from
 
 Under `GradientVariablesEntropy`, the Navier-Stokes discretization is provably entropy stable.
 """
-struct GradientVariablesPrimitive end
 struct GradientVariablesEntropy end
 
 """
@@ -78,3 +108,15 @@ In all other cases, `equations.mu` is assumed to be a function with arguments
 dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
 dynamic_viscosity(u, mu::Real, equations) = mu
 dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
+
+"""
+    max_diffusivity(::AbstractCompressibleNavierStokesDiffusion)
+
+# Returns
+- `False()`
+
+Used in diffusive CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
+diffusivity is not constant in space and that [`max_diffusivity`](@ref) needs to be computed
+at every node in every element.
+"""
+@inline have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion) = False()

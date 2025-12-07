@@ -86,13 +86,6 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Resize parabolic helper variables
     @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    @unpack interfaces = cache_parabolic
-    if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
-    end
 
     return nothing
 end
@@ -232,13 +225,6 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Resize parabolic helper variables
     @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    @unpack interfaces = cache_parabolic
-    if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
-    end
 
     return nothing
 end
@@ -282,5 +268,7 @@ function coarsen_elements!(u::AbstractArray{<:Any, 3}, element_id,
         # Update value
         set_node_vars!(u, acc, equations, dg, i, element_id)
     end
+
+    return nothing
 end
 end # @muladd

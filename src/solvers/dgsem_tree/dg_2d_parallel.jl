@@ -484,8 +484,7 @@ function rhs!(du, u, t,
     # Prolong solution to interfaces
     # TODO: Taal decide order of arguments, consistent vs. modified cache first?
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
@@ -497,8 +496,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2boundaries!(cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
@@ -723,7 +721,7 @@ end
 
 function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
-                                  nonconservative_terms::False, equations,
+                                  have_nonconservative_terms::False, equations,
                                   surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
@@ -764,7 +762,7 @@ end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
                                mesh::ParallelTreeMesh{2},
-                               nonconservative_terms::False, equations,
+                               have_nonconservative_terms::False, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -778,7 +776,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
         fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
-        # Because `nonconservative_terms` is `False` the primary and secondary fluxes
+        # Because `have_nonconservative_terms` is `False` the primary and secondary fluxes
         # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
         calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,

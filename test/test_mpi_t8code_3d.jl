@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
 
 @testset "T8codeMesh MPI 3D" begin
 #! format: noindent
@@ -20,8 +20,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
                             linf=[0.0014537194925779984])
 
         @testset "error-based step size control" begin
-            Trixi.mpi_isroot() && println("-"^100)
-            Trixi.mpi_isroot() &&
+            mpi_isroot() && println("-"^100)
+            mpi_isroot() &&
                 println("elixir_advection_basic.jl with error-based step size control")
 
             # Use callbacks without stepsize_callback to test error-based step size control
@@ -31,7 +31,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
                         ode_default_options()..., callback = callbacks)
             summary_callback()
             errors = analysis_callback(sol)
-            if Trixi.mpi_isroot()
+            if mpi_isroot()
                 @test errors.l2≈[0.00016800412839949264] rtol=1.0e-4
                 @test errors.linf≈[0.0014548839020096516] rtol=1.0e-4
             end
@@ -39,60 +39,49 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_advection_amr.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[1.1302812803902801e-5],
-                            linf=[0.0007889950196294793],)
+                            linf=[0.0007889950196294793])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
+    # There is an issue with the LoopVectorization.jl ecosystem for this setup
+    # (not caused by MPI), see
+    # https://github.com/JuliaSIMD/LoopVectorization.jl/issues/543
+    # Thus, we do not run this test on macOS with ARM processors.
     @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_amr_unstructured_curved.jl"),
-                            l2=[2.0535121347526814e-5],
-                            linf=[0.0010586603797777504],
-                            tspan=(0.0, 1.0),)
+        if Sys.isapple() && (Sys.ARCH === :aarch64)
+            # Show a hint in the test summary that there is a broken test
+            @test_skip false
+        else
+            @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                         "elixir_advection_amr_unstructured_curved.jl"),
+                                l2=[2.0535121347526814e-5],
+                                linf=[0.0010586603797777504],
+                                tspan=(0.0, 1.0),)
 
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            @test_allocations(Trixi.rhs!, semi, sol, 1000)
         end
     end
 
     @trixi_testset "elixir_advection_restart.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                             l2=[0.002590388934758452],
-                            linf=[0.01840757696885409],)
+                            linf=[0.01840757696885409])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # Compressible Euler
@@ -117,12 +106,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
@@ -146,12 +130,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_ec.jl" begin
@@ -174,12 +153,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 end # T8codeMesh MPI

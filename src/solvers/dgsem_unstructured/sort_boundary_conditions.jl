@@ -8,15 +8,16 @@
 """
     UnstructuredSortedBoundaryTypes
 
-General container to sort the boundary conditions by type and name for some unstructured meshes/solvers.
+General struct to sort the boundary conditions by type and name for some unstructured meshes/solvers.
 It stores a set of global indices for each boundary condition type and name to expedite computation
 during the call to `calc_boundary_flux!`. The original dictionary form of the boundary conditions
 set by the user in the elixir file is also stored for printing.
 """
-mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any}}
-    boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
-    boundary_indices::NTuple{N, Vector{Int}} # integer vectors containing global boundary indices
-    boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
+mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any},
+                                               Vec <: AbstractVector{<:Integer}}
+    const boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
+    boundary_indices::NTuple{N, Vec} # integer vectors containing global boundary indices
+    const boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
     boundary_symbol_indices::Dict{Symbol, Vector{Int}} # integer vectors containing global boundary indices per boundary identifier
 end
 
@@ -33,10 +34,11 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::Dict, cache)
     boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
 
     container = UnstructuredSortedBoundaryTypes{n_boundary_types,
-                                                typeof(boundary_condition_types)}(boundary_condition_types,
-                                                                                  boundary_indices,
-                                                                                  boundary_conditions,
-                                                                                  boundary_symbol_indices)
+                                                typeof(boundary_condition_types),
+                                                Vector{Int}}(boundary_condition_types,
+                                                             boundary_indices,
+                                                             boundary_conditions,
+                                                             boundary_symbol_indices)
 
     initialize!(container, cache)
 end
@@ -119,4 +121,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
     return boundary_types_container
 end
+
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(UnstructuredSortedBoundaryTypes)
 end # @muladd

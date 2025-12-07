@@ -7,18 +7,19 @@ to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    forest      :: T8code.ForestWrapper
-    is_parallel :: IsParallel
+    forest::T8code.ForestWrapper
+    const is_parallel::IsParallel
 
     # This specifies the geometry interpolation for each tree.
-    tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
+    const tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
 
     # Stores the quadrature nodes.
-    nodes::SVector{NNODES, RealT}
+    const nodes::SVector{NNODES, RealT}
+    const boundary_names::Array{Symbol, 2} # [face direction, tree]
 
-    boundary_names   :: Array{Symbol, 2}      # [face direction, tree]
-    current_filename :: String
+    current_filename::String
 
+    # These guys are set in `fill_mesh_info`
     ninterfaces :: Int
     nmortars    :: Int
     nboundaries :: Int
@@ -33,15 +34,18 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                current_filename,
                                RealT = Float64) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
-
         mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
-                                                                                is_parallel)
-
-        mesh.nodes = nodes
-        mesh.boundary_names = boundary_names
-        mesh.current_filename = current_filename
-        mesh.tree_node_coordinates = tree_node_coordinates
-        mesh.unsaved_changes = true
+                                                                                is_parallel,
+                                                                                tree_node_coordinates,
+                                                                                nodes,
+                                                                                boundary_names,
+                                                                                current_filename,
+                                                                                -1, # ninterfaces
+                                                                                -1, # nmortars
+                                                                                -1, # nboundaries
+                                                                                -1, # nmpiinterfaces
+                                                                                -1, # nmpimortars
+                                                                                true)
 
         finalizer(mesh) do mesh
             # In serial mode we can finalize the forest right away. In parallel
@@ -111,12 +115,12 @@ end
                boundary_names, treeIDs, neighIDs, faces, duals,
                orientations, levels, num_elements_per_tree)
 
-Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine. 
+Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine.
 
 # Arguments
-- `ndims`: Dimension of the mesh. 
-- `ntrees`: Global number of trees. 
-- `nelements`: Global number of elements. 
+- `ndims`: Dimension of the mesh.
+- `ntrees`: Global number of trees.
+- `nelements`: Global number of elements.
 - `tree_node_coordinates`: Node coordinates for each tree: [dimension, i, j, k, tree]
 - `nodes`: Array of interpolation nodes.
 - `boundary_names`: List of boundary names.
@@ -796,8 +800,8 @@ Construct a cubed spherical shell of given inner radius and thickness as `T8code
                                        and latitudinal direction.
 - `layers::Integer`: the number of trees in the third local dimension of each face, i.e.,
                      the number of layers of the shell.
-- `inner_radius::Float64`: Radius of the inner side of the shell.
-- `thickness::Float64`: Thickness of the shell. The outer radius will be
+- `inner_radius::RealT`: Radius of the inner side of the shell.
+- `thickness::RealT`: Thickness of the spherical shell. The outer radius will be
                         `inner_radius + thickness`.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
@@ -1578,10 +1582,3 @@ function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
 
     return treeIDs, neighIDs, faces, duals, orientations
 end
-
-#! format: off
-@deprecate T8codeMesh{2}(conn::Ptr{p4est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
-@deprecate T8codeMesh{3}(conn::Ptr{p8est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
-@deprecate T8codeMesh{2}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 2; kwargs...)
-@deprecate T8codeMesh{3}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 3; kwargs...)
-#! format: on

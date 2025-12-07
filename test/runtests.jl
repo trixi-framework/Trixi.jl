@@ -6,7 +6,9 @@ using MPI: mpiexec
 # By default, we just run the threaded tests since they are relatively cheap
 # and test a good amount of different functionality.
 const TRIXI_TEST = get(ENV, "TRIXI_TEST", "threaded")
-const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
+# Some GitHub CI runners may have not much RAM and just 3 virtual CPU cores.
+# In this case, we do not want to use all of the cores to speed-up CI.
+const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS - 1, 2, 3)
 const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 
 @time @testset "Trixi.jl tests" begin
@@ -38,23 +40,18 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_tree_1d.jl")
         include("test_tree_2d_part1.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part2"
         include("test_tree_2d_part2.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part3"
         include("test_tree_2d_part3.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part4"
         include("test_tree_3d_part1.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part5"
         include("test_tree_3d_part2.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part6"
         include("test_tree_3d_part3.jl")
     end
@@ -68,7 +65,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "p4est_part1"
         include("test_p4est_2d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "p4est_part2"
         include("test_p4est_3d.jl")
     end
@@ -76,7 +72,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "t8code_part1"
         include("test_t8code_2d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "t8code_part2"
         include("test_t8code_3d.jl")
     end
@@ -88,9 +83,11 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_dgmulti_3d.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part1"
         include("test_parabolic_1d.jl")
         include("test_parabolic_2d.jl")
+    end
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part2"
         include("test_parabolic_3d.jl")
     end
 
@@ -99,21 +96,26 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_type.jl")
         include("test_visualization.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part2"
         include("test_special_elixirs.jl")
         include("test_aqua.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part1"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations"
         include("test_performance_specializations_2d.jl")
-    end
-
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part2"
         include("test_performance_specializations_3d.jl")
     end
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "paper_self_gravitating_gas_dynamics"
         include("test_paper_self_gravitating_gas_dynamics.jl")
+    end
+
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "CUDA"
+        import CUDA
+        if CUDA.functional()
+            include("test_cuda.jl")
+        else
+            @warn "Unable to run CUDA tests on this machine"
+        end
     end
 end

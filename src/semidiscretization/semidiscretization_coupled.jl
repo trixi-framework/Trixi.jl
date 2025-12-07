@@ -16,12 +16,18 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupled{S, Indices, EquationList} <:
+mutable struct SemidiscretizationCoupled{S, Indices} <:
                AbstractSemidiscretization
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationCoupled(semis...)
@@ -49,9 +55,8 @@ function SemidiscretizationCoupled(semis...)
 
     performance_counter = PerformanceCounter()
 
-    SemidiscretizationCoupled{typeof(semis), typeof(u_indices),
-                              typeof(performance_counter)}(semis, u_indices,
-                                                           performance_counter)
+    return SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices,
+                                                                       performance_counter)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupled)
@@ -349,24 +354,15 @@ end
 ################################################################################
 ### StepsizeCallback
 ################################################################################
-
 # In case of coupled system, use minimum timestep over all systems
-# Case for constant `cfl_number`.
-function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCoupled)
+function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+                      semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
+        calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
     end
 
     return dt
-end
-# Case for `cfl_number` as a function of time `t`.
-function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
-    cfl_number_ = cfl_number(t)
-    dt = minimum(eachsystem(semi)) do i
-        u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_number_, semi.semis[i])
-    end
 end
 
 function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
@@ -385,18 +381,12 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
         end
     end
 
-    if cfl isa Real # Case for constant CFL
-        cfl_number = cfl
-    else # Variable CFL
-        cfl_number = cfl(t)
-    end
-
     for semi_index in semi_indices
         semi = semi_coupled.semis[semi_index]
         mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number,
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl(t),
                                                 mesh, equations, solver, cache)
 
         # c_h is proportional to its own time step divided by the complete MHD time step
@@ -458,10 +448,10 @@ mutable struct BoundaryConditionCoupled{NDIMS,
                                         uEltype <: Real, Indices, CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
-    u_boundary         :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-    other_orientation  :: Int
-    indices            :: Indices
-    coupling_converter :: CouplingConverter
+    u_boundary               :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
+    const other_orientation  :: Int
+    const indices            :: Indices
+    const coupling_converter :: CouplingConverter
 
     function BoundaryConditionCoupled(other_semi_index, indices, uEltype,
                                       coupling_converter)
@@ -644,6 +634,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
             j_node += j_node_step
         end
     end
+
+    return nothing
 end
 
 ################################################################################
@@ -655,7 +647,7 @@ end
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms::False,
+                                                  have_nonconservative_terms::False,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
@@ -686,6 +678,8 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
     end
+
+    return nothing
 end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
@@ -693,7 +687,7 @@ end
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms::True,
+                                                  have_nonconservative_terms::True,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
@@ -728,6 +722,8 @@ end
                                                                                0.5f0 *
                                                                                noncons_flux[v])
     end
+
+    return nothing
 end
 
 function get_boundary_indices(element, orientation,

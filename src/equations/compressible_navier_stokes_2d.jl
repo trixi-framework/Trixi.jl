@@ -17,7 +17,8 @@ the [`CompressibleEulerEquations2D`](@ref).
 - `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
 - `gradient_variables`: which variables the gradients are taken with respect to.
-                        Defaults to `GradientVariablesPrimitive()`.
+                        Defaults to [`GradientVariablesPrimitive()`](@ref).
+                        For an entropy stable formulation, use [`GradientVariablesEntropy()`](@ref).
 
 Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
 [``\mu``] = kg m⁻¹ s⁻¹.
@@ -95,6 +96,7 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, Mu,
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
+    max_4over3_kappa::RealT    # max(4/3, kappa) used for diffusive CFL => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations2D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -117,6 +119,7 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
                                         typeof(mu),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
                                                            mu, Prandtl, kappa,
+                                                           max(4 / 3, kappa),
                                                            equations,
                                                            gradient_variables)
 end
@@ -158,12 +161,12 @@ function flux(u, gradients, orientation::Integer,
     # Components of viscous stress tensor
 
     # (4 * (v1)_x / 3 - 2 * (v2)_y / 3)
-    tau_11 = 4 * dv1dx / 3 - 2 * dv2dy / 3
+    tau_11 = (4 * dv1dx - 2 * dv2dy) / 3
     # ((v1)_y + (v2)_x)
     # stress tensor is symmetric
     tau_12 = dv1dy + dv2dx # = tau_21
     # (4/3 * (v2)_y - 2/3 * (v1)_x)
-    tau_22 = 4 * dv2dy / 3 - 2 * dv1dx / 3
+    tau_22 = (4 * dv2dy - 2 * dv1dx) / 3
 
     # Fick's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
@@ -197,6 +200,42 @@ function flux(u, gradients, orientation::Integer,
 
         return SVector(g1, g2, g3, g4)
     end
+end
+
+@doc raw"""
+    max_diffusivity(u, equations_parabolic::CompressibleNavierStokesDiffusion2D)
+
+# Returns
+- `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_4over3_kappa`
+where `max_4over3_kappa = max(4/3, kappa)` is computed in the constructor.
+
+For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
+as suggested in Section 3.5 of 
+- Krais et. al (2021)
+  FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
+  [DOI: 10.1016/j.camwa.2020.05.004](https://doi.org/10.1016/j.camwa.2020.05.004)
+
+For details on the derivation of eigenvalues of the diffusivity matrix
+for the compressible Navier-Stokes equations see for instance
+- Richard P. Dwight (2006)
+  Efficiency improvements of RANS-based analysis and optimization using implicit and adjoint methods on unstructured grids
+  PhD Thesis, University of Manchester
+  https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
+  See especially equations (2.79), (3.24), and (3.25) from Chapter 3.2.3
+
+The eigenvalues of the diffusivity matrix in 2D are
+``-\frac{\mu}{\rho} \{0, 4/3, 1, \kappa\}``
+and thus the largest absolute eigenvalue is
+``\frac{\mu}{\rho} \max(4/3, \kappa)``.
+"""
+@inline function max_diffusivity(u,
+                                 equations_parabolic::CompressibleNavierStokesDiffusion2D)
+    # See for instance also the computation in FLUXO:
+    # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
+    #
+    # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
+    return dynamic_viscosity(u, equations_parabolic) / u[1] *
+           equations_parabolic.max_4over3_kappa
 end
 
 # Convert conservative variables to primitive
@@ -273,11 +312,20 @@ end
     prim2cons(u, equations.equations_hyperbolic)
 end
 
+"""
+    temperature(u, equations::CompressibleNavierStokesDiffusion2D)
+
+Compute the temperature from the conservative variables `u`.
+In particular, this assumes a specific gas constant ``R = 1``:
+```math
+T = \\frac{p}{\\rho}
+```
+"""
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, rho_e = u
 
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
-    T = p / rho
+    T = p / rho # Corresponds to a specific gas constant R = 1
     return T
 end
 
@@ -288,6 +336,16 @@ end
     return SVector(v1, v2)
 end
 
+@doc raw"""
+    enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+
+Computes the (node-wise) enstrophy, defined as
+```math
+    \mathcal{E} = \frac{1}{2} \rho \omega \cdot \omega
+```
+where ``\omega = \nabla \times \boldsymbol{v}`` is the [`vorticity`](@ref).
+In 2D, ``\omega`` is just a scalar.
+"""
 @inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
@@ -295,10 +353,18 @@ end
     return 0.5f0 * u[1] * omega^2
 end
 
+@doc raw"""
+    vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+
+Computes the (node-wise) vorticity, defined in 2D as
+```math
+    \omega = \nabla \times \boldsymbol{v} = \frac{\partial v_2}{\partial x_1} - \frac{\partial v_1}{\partial x_2}
+```
+"""
 @inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
     # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
-    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
-    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+    _, _, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, dv1dy, _, _ = convert_derivative_to_primitive(u, gradients[2], equations)
 
     return dv2dx - dv1dy
 end
@@ -435,6 +501,60 @@ end
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
+end
+
+# Computes the mirror velocity across a symmetry plane which enforces
+# a tangential velocity that is aligned with the symmetry plane, i.e.,
+# which is normal to the `normal_direction`.
+# See also `boundary_condition_slip_wall` and `rotate_to_x`.
+@inline function velocity_symmetry_plane(normal_direction::AbstractVector, v1, v2)
+    norm_ = norm(normal_direction)
+    normal = normal_direction / norm_
+
+    # Compute alignment of velocity with normal direction
+    v_normal = v1 * normal[1] + v2 * normal[2]
+
+    v1_outer = v1 - 2 * v_normal * normal[1]
+    v2_outer = v2 - 2 * v_normal * normal[2]
+
+    return v1_outer, v2_outer
+end
+
+# Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Gradient,
+                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+    v1_outer, v2_outer = velocity_symmetry_plane(normal,
+                                                 u_inner[2],
+                                                 u_inner[3])
+
+    return SVector(u_inner[1], v1_outer, v2_outer, u_inner[4])
+end
+
+# Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Divergence,
+                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
+                                                                                                           t,
+                                                                                                           equations)
+
+    # Normal stresses should be 0. This implies also that `normal_energy_flux = normal_heat_flux`.
+    # For details, see Section 4.2 of 
+    # "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions
+    #  for the compressible Navier-Stokes equations" by Chan, Lin, Warburton 2022.
+    # DOI: 10.1016/j.jcp.2021.110723
+    return SVector(flux_inner[1], 0, 0, normal_heat_flux)
 end
 
 # Dirichlet Boundary Condition for e.g. P4est mesh

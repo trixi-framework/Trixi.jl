@@ -36,6 +36,8 @@ function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator,
         limiter_zhang_shu!(u, limiter!.thresholds, limiter!.variables,
                            mesh_equations_solver_cache(semi)...)
     end
+
+    return nothing
 end
 
 # Iterate over tuples in a type-stable way using "lispy tuple programming",
@@ -62,7 +64,7 @@ end
 # terminate the type-stable iteration over tuples
 function limiter_zhang_shu!(u, thresholds::Tuple{}, variables::Tuple{},
                             mesh, equations, solver, cache)
-    nothing
+    return nothing
 end
 
 include("positivity_zhang_shu_dg1d.jl")

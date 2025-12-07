@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # define new structs inside a module to allow re-evaluating the file
@@ -15,7 +15,7 @@ function IndicatorVortex(semi)
     alpha = Vector{real(basis)}()
     A = Array{real(basis), 2}
     indicator_threaded = [A(undef, nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
     cache = (; semi.mesh, alpha, indicator_threaded)
 
     return IndicatorVortex{typeof(cache)}(cache)
@@ -114,7 +114,14 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 initial_condition = initial_condition_isentropic_vortex
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
@@ -143,10 +150,39 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+# Add `:temperature` to `extra_node_variables` tuple ...
+extra_node_variables = (:temperature,)
+
+# ... and specify the function `get_node_variable` for this symbol,
+# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
+function Trixi.get_node_variable(::Val{:temperature}, u, mesh, equations, dg, cache)
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, the variable must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    temp_array = zeros(eltype(cache.elements),
+                       n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                       n_elements)
+
+    # We can accelerate the computation by thread-parallelizing the loop over elements
+    # by using the `@threaded` macro.
+    Trixi.@threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            rho, _, _, p = prim2cons(u_node, equations)
+            temp = p / rho # ideal gas equation with R = 1
+
+            temp_array[i, j, element] = temp
+        end
+    end
+
+    return temp_array
+end
 save_solution = SaveSolutionCallback(interval = 50,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = extra_node_variables) # Supply the additional `extra_node_variables` here
 
 amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorVortex(semi),
                                       base_level = 3,
