@@ -414,11 +414,6 @@ end
         set_node_vars!(fstar1_R, flux, equations, dg, i, j)
     end
 
-    fstar2_L[:, :, 1] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
-
     for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
