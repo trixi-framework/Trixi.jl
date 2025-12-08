@@ -222,23 +222,6 @@ end
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
-                               dg::DGSEM, cache)
-    @unpack x_interfaces, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
-
-    # Calculate LGL second-order FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fvO2_kernel!(du, u, mesh,
-                     have_nonconservative_terms, equations,
-                     volume_flux_fv, dg, cache, element,
-                     x_interfaces, reconstruction_mode, slope_limiter, true)
-    end
-
-    return nothing
-end
-
 @inline function fvO2_kernel!(du, u,
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               nonconservative_terms, equations,
@@ -352,7 +335,8 @@ end
         ## Obtain unlimited values in primitive variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
         u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
                          equations)
         u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, element),
@@ -360,7 +344,8 @@ end
         u_rl = cons2prim(get_node_vars(u, equations, dg, i, element),
                          equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
         u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1),
                                        element), equations)
 
