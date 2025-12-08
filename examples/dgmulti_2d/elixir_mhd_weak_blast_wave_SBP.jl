@@ -12,12 +12,6 @@ equations = IdealGlmMhdEquations2D(1.4, c_h)
 
 initial_condition = initial_condition_weak_blast_wave
 
-# `const flux_lax_friedrichs = flux_lax_friedrichs, i.e., `flux_lax_friedrichs`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `flux_lax_friedrichs`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = SBP(),
@@ -44,7 +38,6 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # See comment above and https://github.com/trixi-framework/Trixi.jl/issues/881
 # DGMulti uses a conservative timestep estimate, so we can use a large CFL here.
 # cfl = 1.0
-# stepsize_callback = StepsizeCallback(cfl=cfl)
 #
 # glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
 

@@ -80,12 +80,6 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 # semidiscretization of the hyperbolic diffusion equations
 equations_gravity = HyperbolicDiffusionEquations2D()
 
-# `const flux_lax_friedrichs = flux_lax_friedrichs, i.e., `flux_lax_friedrichs`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `flux_lax_friedrichs`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition,

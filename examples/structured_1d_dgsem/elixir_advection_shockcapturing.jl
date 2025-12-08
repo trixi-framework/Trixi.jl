@@ -88,7 +88,6 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100, solution_variables = cons2prim)
 
-# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver

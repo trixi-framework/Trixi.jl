@@ -56,7 +56,6 @@ save_solution = SaveSolutionCallback(interval = 100,
 save_restart = SaveRestartCallback(interval = 100,
                                    save_final_restart = true)
 
-# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 2.0)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver

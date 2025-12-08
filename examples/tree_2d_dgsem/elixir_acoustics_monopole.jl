@@ -9,12 +9,6 @@ equations = AcousticPerturbationEquations2D(v_mean_global = (0.0, 0.0), c_mean_g
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 
-# `const flux_lax_friedrichs = flux_lax_friedrichs, i.e., `flux_lax_friedrichs`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `flux_lax_friedrichs`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (-20.6, 0.0) # minimum coordinates (min(x), min(y))
@@ -140,7 +134,6 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100, solution_variables = cons2prim)
 
-# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver

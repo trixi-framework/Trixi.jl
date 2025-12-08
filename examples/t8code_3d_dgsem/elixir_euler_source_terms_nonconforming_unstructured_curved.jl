@@ -15,12 +15,6 @@ boundary_conditions = Dict(:all => boundary_condition)
 # The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
 # See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
 
-# `const flux_lax_friedrichs = flux_lax_friedrichs, i.e., `flux_lax_friedrichs`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `flux_lax_friedrichs`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs,
                volume_integral = VolumeIntegralWeakForm())
 

@@ -38,12 +38,6 @@ initial_condition = initial_condition_sedov_blast_wave
 
 # Get the DG approximation space
 
-# `const flux_lax_friedrichs = flux_lax_friedrichs, i.e., `flux_lax_friedrichs`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `flux_lax_friedrichs`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 polydeg = 4
