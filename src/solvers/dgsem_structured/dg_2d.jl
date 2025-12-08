@@ -5,54 +5,53 @@
 @muladd begin
 #! format: noindent
 
-# Compute the normal flux for the FV method on curvilinear subcells, see
+# Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
 # equation (B.53) in:
-# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
-# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
-# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
-function compute_normaldirections_subcell_fv(mesh::Union{StructuredMesh{2},
-                                                         UnstructuredMesh2D,
-                                                         P4estMesh{2}, T8codeMesh{2}},
-                                             dg, cache_containers)
+# - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+#   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
+#   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+function calc_normaldirs_subcell_fv(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                                                P4estMesh{2}, T8codeMesh{2}},
+                                    dg, cache_containers)
     @unpack contravariant_vectors = cache_containers.elements
     @unpack weights, derivative_matrix = dg.basis
 
     RealT = eltype(contravariant_vectors)
-    normal_direction_1 = Array{RealT, 3}(undef, 2, nnodes(dg.basis),
-                                         nelements(dg, cache_containers))
-    normal_direction_2 = Array{RealT, 3}(undef, 2, nnodes(dg.basis),
-                                         nelements(dg, cache_containers))
+    normal_dir_1 = Array{RealT, 3}(undef, 2, nnodes(dg.basis),
+                                   nelements(dg, cache_containers))
+    normal_dir_2 = Array{RealT, 3}(undef, 2, nnodes(dg.basis),
+                                   nelements(dg, cache_containers))
 
     for element in eachelement(dg, cache_containers)
         for i in eachnode(dg)
-            normal_direction_1[:, i, element] = get_contravariant_vector(1,
-                                                                         contravariant_vectors,
-                                                                         1, i, element)
+            normal_dir_1[:, i, element] = get_contravariant_vector(1,
+                                                                   contravariant_vectors,
+                                                                   1, i, element)
 
-            normal_direction_2[:, i, element] = get_contravariant_vector(2,
-                                                                         contravariant_vectors,
-                                                                         i, 1, element)
+            normal_dir_2[:, i, element] = get_contravariant_vector(2,
+                                                                   contravariant_vectors,
+                                                                   i, 1, element)
 
             for j in 2:nnodes(dg)
                 for m in eachnode(dg)
-                    wD_j = weights[j - 1] * derivative_matrix[j - 1, m]
-                    normal_direction_1[:, i, element] += wD_j *
-                                                         get_contravariant_vector(1,
-                                                                                  contravariant_vectors,
-                                                                                  m, i,
-                                                                                  element)
+                    wD_jm = weights[j - 1] * derivative_matrix[j - 1, m]
+                    normal_dir_1[:, i, element] += wD_jm *
+                                                   get_contravariant_vector(1,
+                                                                            contravariant_vectors,
+                                                                            m, i,
+                                                                            element)
 
-                    normal_direction_2[:, i, element] += wD_j *
-                                                         get_contravariant_vector(2,
-                                                                                  contravariant_vectors,
-                                                                                  i, m,
-                                                                                  element)
+                    normal_dir_2[:, i, element] += wD_jm *
+                                                   get_contravariant_vector(2,
+                                                                            contravariant_vectors,
+                                                                            i, m,
+                                                                            element)
                 end
             end
         end
     end
 
-    return (normal_direction_1, normal_direction_2)
+    return (normal_dir_1, normal_dir_2)
 end
 
 function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
@@ -75,13 +74,24 @@ function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
                                 nnodes(dg), nnodes(dg) + 1)
                             for _ in 1:Threads.maxthreadid()]
 
-    normal_direction_1, normal_direction_2 = compute_normaldirections_subcell_fv(mesh,
-                                                                                 dg,
-                                                                                 cache_containers)
+    @threaded for t in eachindex(fstar1_L_threaded)
+        fstar1_L_threaded[t][:, 1, :] .= zero(uEltype)
+        fstar1_R_threaded[t][:, 1, :] .= zero(uEltype)
+        fstar1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+        fstar1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+
+        fstar2_L_threaded[t][:, :, 1] .= zero(uEltype)
+        fstar2_R_threaded[t][:, :, 1] .= zero(uEltype)
+        fstar2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+        fstar2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+    end
+
+    normal_dir_1, normal_dir_2 = calc_normaldirs_subcell_fv(mesh, dg,
+                                                            cache_containers)
 
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded,
-            normal_direction_1, normal_direction_2)
+            normal_dir_1, normal_dir_2)
 end
 
 #=
@@ -435,7 +445,7 @@ end
                                 x_interfaces, reconstruction_mode, slope_limiter)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
-    @unpack normal_direction_1, normal_direction_2 = cache
+    @unpack normal_dir_1, normal_dir_2 = cache
 
     for j in eachnode(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
@@ -444,8 +454,7 @@ end
         # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
         # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
-        @views normal_direction = normal_direction_1[:, j, element]
-
+        @views normal_direction = normal_dir_1[:, j, element]
         for i in 2:nnodes(dg)
             ## Obtain unlimited values in primitive variables ##
 
@@ -482,8 +491,7 @@ end
     end
 
     for i in eachnode(dg)
-        @views normal_direction = normal_direction_2[:, i, element]
-
+        @views normal_direction = normal_dir_2[:, i, element]
         for j in 2:nnodes(dg)
             u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
                              equations)
