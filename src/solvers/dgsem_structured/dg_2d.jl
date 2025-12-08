@@ -385,27 +385,15 @@ end
                                           P4estMesh{2}, T8codeMesh{2}},
                               have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-    @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
-
-    # TODO: Performance gain if the metric terms of the subcell FV method are computed
-    # only once at the beginning of the simulation (e.g. in `create_cache`)!
+    @unpack normal_vectors_1, normal_vectors_2 = cache
 
     for j in eachnode(dg)
-        normal_direction = get_contravariant_vector(1, contravariant_vectors,
-                                                    1, j, element)
-
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            # Compute freestream-preserving normal vector for the finite volume flux.
-            # This is the first equation in (B.53).
-            for m in eachnode(dg)
-                normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
-                                    get_contravariant_vector(1, contravariant_vectors,
-                                                             m, j, element)
-            end
+            @views normal_direction = normal_vectors_1[:, j, i, element]
 
             # Compute the contravariant flux
             contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
@@ -416,18 +404,11 @@ end
     end
 
     for i in eachnode(dg)
-        normal_direction = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, 1, element)
-
         for j in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
-                                    get_contravariant_vector(2, contravariant_vectors,
-                                                             i, m, element)
-            end
+            @views normal_direction = normal_vectors_2[:, i, j, element]
 
             # Compute the contravariant flux by taking the scalar product of the
             # normal vector and the flux vector
