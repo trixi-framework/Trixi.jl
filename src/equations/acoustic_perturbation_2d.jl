@@ -405,15 +405,19 @@ end
 Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
 Queried in the timestep computation [`StepsizeCallback`](@ref).
 
-The acoustic perturbation equations are in principle linear for constant mean flow fields.
-When coupled to the [`CompressibleEulerEquations2D`](@ref) equations via 
-[`SemidiscretizationEulerAcoustics`](@ref), however, the mean field variables are updated
+The acoustic perturbation equations are in principle linear for **constant** mean flow fields.
+However, the mean flow variables are part of the solution vector in
+[`AcousticPerturbationEquations2D`](@ref) and only the **global** mean flow variables are constant,
+similar to the [`LinearizedEulerEquations2D`](@ref).
+
+Moreover, when coupling to the [`CompressibleEulerEquations2D`](@ref) equations via 
+[`SemidiscretizationEulerAcoustics`](@ref), the mean field variables are updated
 on the fly, see [`EulerAcousticsCouplingCallback`](@ref).
 
 # Returns
-- `True()`
+- `False()`
 """
-@inline have_constant_speed(::AcousticPerturbationEquations2D) = True()
+@inline have_constant_speed(::AcousticPerturbationEquations2D) = False()
 
 @inline function max_abs_speeds(u, equations::AcousticPerturbationEquations2D)
     v1_mean = u[4]
