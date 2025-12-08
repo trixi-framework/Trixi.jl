@@ -13,9 +13,10 @@ function create_cache(mesh::Union{StructuredMesh, StructuredMeshView},
                       ::Type{uEltype}) where {uEltype <: Real}
     elements = init_elements(mesh, equations, dg.basis, uEltype)
 
+    # Container cache
     cache = (; elements)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Volume-Integral cache
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
 

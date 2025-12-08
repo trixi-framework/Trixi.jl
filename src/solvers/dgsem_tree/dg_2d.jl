@@ -24,11 +24,14 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
+    # Container cache
     cache = (; elements, interfaces, boundaries, mortars)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Volume-Integral cache
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+    # Mortar cache
+    # Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache

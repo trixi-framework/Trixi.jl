@@ -22,9 +22,10 @@ function create_cache(mesh::TreeMesh{1}, equations,
 
     boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
 
+    # Container cache
     cache = (; elements, interfaces, boundaries)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Volume-Integral cache
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
 
