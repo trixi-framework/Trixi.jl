@@ -10,48 +10,53 @@
 # - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
 #   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
 #   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
-function calc_normaldirs_subcell_fv(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                                P4estMesh{2}, T8codeMesh{2}},
-                                    dg, cache_containers)
+# TODO: Implement resizable versions for p4est and t8code
+function calc_normalvectors_subcell_fv(mesh::Union{StructuredMesh{2},
+                                                   UnstructuredMesh2D,
+                                                   P4estMesh{2}, T8codeMesh{2}},
+                                       dg, cache_containers)
     @unpack contravariant_vectors = cache_containers.elements
     @unpack weights, derivative_matrix = dg.basis
 
     RealT = eltype(contravariant_vectors)
-    normal_dir_1 = Array{RealT, 3}(undef, 2, nnodes(dg.basis),
-                                   nelements(dg, cache_containers))
-    normal_dir_2 = Array{RealT, 3}(undef, 2, nnodes(dg.basis),
-                                   nelements(dg, cache_containers))
+    normal_vectors_1 = Array{RealT, 4}(undef, 2, nnodes(dg.basis), nnodes(dg.basis),
+                                       nelements(dg, cache_containers))
+    normal_vectors_2 = Array{RealT, 4}(undef, 2, nnodes(dg.basis), nnodes(dg.basis),
+                                       nelements(dg, cache_containers))
 
     for element in eachelement(dg, cache_containers)
         for i in eachnode(dg)
-            normal_dir_1[:, i, element] = get_contravariant_vector(1,
-                                                                   contravariant_vectors,
-                                                                   1, i, element)
-
-            normal_dir_2[:, i, element] = get_contravariant_vector(2,
-                                                                   contravariant_vectors,
-                                                                   i, 1, element)
-
+            # j = 1
+            normal_vectors_1[:, i, 1, element] = get_contravariant_vector(1,
+                                                                          contravariant_vectors,
+                                                                          1, i, element)
+            normal_vectors_2[:, i, 1, element] = get_contravariant_vector(2,
+                                                                          contravariant_vectors,
+                                                                          i, 1, element)
             for j in 2:nnodes(dg)
+                normal_vectors_1[:, i, j, element] = normal_vectors_1[:, i, j - 1,
+                                                                      element]
+                normal_vectors_2[:, i, j, element] = normal_vectors_2[:, i, j - 1,
+                                                                      element]
                 for m in eachnode(dg)
                     wD_jm = weights[j - 1] * derivative_matrix[j - 1, m]
-                    normal_dir_1[:, i, element] += wD_jm *
-                                                   get_contravariant_vector(1,
-                                                                            contravariant_vectors,
-                                                                            m, i,
-                                                                            element)
+                    normal_vectors_1[:, i, j, element] += wD_jm *
+                                                          get_contravariant_vector(1,
+                                                                                   contravariant_vectors,
+                                                                                   m, i,
+                                                                                   element)
 
-                    normal_dir_2[:, i, element] += wD_jm *
-                                                   get_contravariant_vector(2,
-                                                                            contravariant_vectors,
-                                                                            i, m,
-                                                                            element)
+                    normal_vectors_2[:, i, j, element] += wD_jm *
+                                                          get_contravariant_vector(2,
+                                                                                   contravariant_vectors,
+                                                                                   i, m,
+                                                                                   element)
                 end
             end
         end
     end
 
-    return (normal_dir_1, normal_dir_2)
+    return (normal_vectors_1, normal_vectors_2)
 end
 
 function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
@@ -86,12 +91,12 @@ function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
         fstar2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
     end
 
-    normal_dir_1, normal_dir_2 = calc_normaldirs_subcell_fv(mesh, dg,
-                                                            cache_containers)
+    normal_vectors_1, normal_vectors_2 = calc_normalvectors_subcell_fv(mesh, dg,
+                                                                       cache_containers)
 
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded,
-            normal_dir_1, normal_dir_2)
+            normal_vectors_1, normal_vectors_2)
 end
 
 #=
@@ -443,9 +448,8 @@ end
                                 have_nonconservative_terms::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
                                 x_interfaces, reconstruction_mode, slope_limiter)
-    @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
-    @unpack normal_dir_1, normal_dir_2 = cache
+    @unpack normal_vectors_1, normal_vectors_2 = cache
 
     for j in eachnode(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
@@ -453,8 +457,6 @@ end
 
         # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
         # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
-
-        @views normal_direction = normal_dir_1[:, j, element]
         for i in 2:nnodes(dg)
             ## Obtain unlimited values in primitive variables ##
 
@@ -478,6 +480,9 @@ end
                                            x_interfaces, i,
                                            slope_limiter, dg)
 
+            # Fetch precomputed freestream-preserving normal vector for the finite volume flux
+            @views normal_direction = normal_vectors_1[:, j, i, element]
+
             # Compute the contravariant flux by taking the scalar product of the
             # normal vector and the flux vector.
             ## Convert primitive variables back to conservative variables ##
@@ -491,7 +496,6 @@ end
     end
 
     for i in eachnode(dg)
-        @views normal_direction = normal_dir_2[:, i, element]
         for j in 2:nnodes(dg)
             u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
                              equations)
@@ -505,6 +509,8 @@ end
             u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                            x_interfaces, j,
                                            slope_limiter, dg)
+
+            @views normal_direction = normal_vectors_2[:, i, j, element]
 
             contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
                                                 prim2cons(u_r, equations),
