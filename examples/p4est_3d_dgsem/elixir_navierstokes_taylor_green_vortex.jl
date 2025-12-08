@@ -69,7 +69,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
-alive_callback = AliveCallback(analysis_interval = analysis_interval)
+alive_callback = AliveCallback(alive_interval = 1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -78,6 +78,10 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+ode_alg = RDPK3SpFSAL49()
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, ode_alg;
+            # not necessary, added for overwriting in tests
+            adaptive = true, dt = 3.913e-3,
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

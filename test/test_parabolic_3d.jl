@@ -313,6 +313,15 @@ end
     @test_allocations(Trixi.Trixi.rhs_parabolic!, semi, sol, 100)
 end
 
+@trixi_testset "P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        l2=[0.006421164728264022], linf=[0.41638021060047015])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh3D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
@@ -354,6 +363,37 @@ end
                             0.03442565722577423,
                             0.06295407168705314,
                             0.032857472756916195
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.25),
+                        surface_flux=FluxHLL(min_max_speed_naive),
+                        mu=0.5, # render flow diffusion-dominated
+                        callbacks=CallbackSet(summary_callback, analysis_callback,
+                                              alive_callback,
+                                              StepsizeCallback(cfl = 2.3,
+                                                               cfl_diffusive = 0.4)),
+                        adaptive=false, # respect CFL
+                        ode_alg=CKLLSRK95_4S(),
+                        l2=[
+                            0.00013361138825044455,
+                            0.1110290325891525,
+                            0.11102903258915098,
+                            0.009310736674102591,
+                            0.18713598964308234
+                        ],
+                        linf=[
+                            0.0005501488385279973,
+                            0.3151241675791191,
+                            0.3151241709442578,
+                            0.026332750964829052,
+                            0.5712639505309198
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

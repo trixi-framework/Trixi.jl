@@ -8,8 +8,7 @@
 function max_dt(u, t, mesh::TreeMesh{1},
                 constant_speed::False, equations,
                 dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
-    # e.g. for steady-state linear advection
+    # Avoid division by zero if the speed vanishes everywhere
     max_scaled_speed = nextfloat(zero(t))
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
@@ -33,28 +32,31 @@ function max_dt(u, t, mesh::TreeMesh{1},
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
-    # to avoid a division by zero if the diffusivity vanishes everywhere
-    max_scaled_speed = nextfloat(zero(t))
+    # Avoid division by zero if the diffusivity vanishes everywhere
+    max_scaled_diffusivity = nextfloat(zero(t))
 
-    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
         max_diffusivity_ = zero(max_scaled_speed)
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, element)
             diffusivity = max_diffusivity(u_node, equations_parabolic)
-            max_diffusivity_ = max(max_diffusivity_, diffusivity)
+            max_diffusivity_ = Base.max(max_diffusivity_, diffusivity)
         end
         inv_jacobian = cache.elements.inverse_jacobian[element] # 2 / Δx
-        max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * max_diffusivity_)
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_diffusivity = Base.max(max_scaled_diffusivity,
+                                          inv_jacobian^2 * max_diffusivity_)
     end
 
     # Factor 4 cancels with 2^2 from `inv_jacobian^2`, resulting in Δx^2
-    return 4 / (nnodes(dg) * max_scaled_speed)
+    return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
 function max_dt(u, t, mesh::TreeMesh{1},
                 constant_speed::True, equations,
                 dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
+    # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
@@ -71,32 +73,32 @@ function max_dt(u, t, mesh::TreeMesh{1},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::TreeMesh,
+function max_dt(u, t, mesh::TreeMesh, # for all dimensions
                 constant_diffusivity::True, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
-    # to avoid a division by zero if the diffusivity vanishes everywhere
-    max_scaled_speed = nextfloat(zero(t))
+    # Avoid division by zero if the diffusivity vanishes everywhere
+    max_scaled_diffusivity = nextfloat(zero(t))
 
     diffusivity = max_diffusivity(equations_parabolic)
 
-    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
         inv_jacobian = cache.elements.inverse_jacobian[element] # 2 / Δx
         # Note: For the currently supported parabolic equations
-        # Diffusion & Navier-Stokes, we only have one diffusivity,
+        # Diffusion & Navier-Stokes, we only have one isotropic diffusivity,
         # so this is valid for 1D, 2D and 3D.
-        max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * diffusivity)
+        max_scaled_diffusivity = Base.max(max_scaled_diffusivity,
+                                          inv_jacobian^2 * diffusivity)
     end
 
     # Factor 4 cancels with 2^2 from `inv_jacobian^2`, resulting in Δx^2
-    return 4 / (nnodes(dg) * max_scaled_speed)
+    return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
 function max_dt(u, t, mesh::StructuredMesh{1},
                 constant_speed::False, equations,
                 dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
-    # e.g. for steady-state linear advection
+    # Avoid division by zero if the speed vanishes everywhere
     max_scaled_speed = nextfloat(zero(t))
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
@@ -123,7 +125,7 @@ end
 function max_dt(u, t, mesh::StructuredMesh{1},
                 constant_speed::True, equations,
                 dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
+    # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
