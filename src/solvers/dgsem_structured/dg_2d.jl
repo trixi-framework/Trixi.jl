@@ -11,10 +11,10 @@
 #   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
 #   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 # TODO: Implement resizable versions for p4est and t8code
-function calc_normalvectors_subcell_fv(mesh::Union{StructuredMesh{2},
-                                                   UnstructuredMesh2D,
-                                                   P4estMesh{2}, T8codeMesh{2}},
-                                       dg, cache_containers)
+function normalvectors_subcell_fv(mesh::Union{StructuredMesh{2},
+                                              UnstructuredMesh2D,
+                                              P4estMesh{2}, T8codeMesh{2}},
+                                  dg, cache_containers)
     @unpack contravariant_vectors = cache_containers.elements
     @unpack weights, derivative_matrix = dg.basis
 
@@ -91,8 +91,8 @@ function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
         fstar2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
     end
 
-    normal_vectors_1, normal_vectors_2 = calc_normalvectors_subcell_fv(mesh, dg,
-                                                                       cache_containers)
+    normal_vectors_1, normal_vectors_2 = normalvectors_subcell_fv(mesh, dg,
+                                                                  cache_containers)
 
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded,
@@ -511,29 +511,18 @@ end
                                           P4estMesh{2}, T8codeMesh{2}},
                               have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-    @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
+    @unpack normal_vectors_1, normal_vectors_2 = cache
 
     volume_flux, nonconservative_flux = volume_flux_fv
 
-    # TODO: Performance gain if the metric terms of the subcell FV method are computed
-    # only once at the beginning of the simulation (e.g. in `create_cache`)!
-
     # Fluxes in x-direction
     for j in eachnode(dg)
-        normal_direction = get_contravariant_vector(1, contravariant_vectors,
-                                                    1, j, element)
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            # Compute freestream-preserving normal vector for the finite volume flux.
-            # This is the first equation in (B.53).
-            for m in eachnode(dg)
-                normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
-                                    get_contravariant_vector(1, contravariant_vectors,
-                                                             m, j, element)
-            end
+            @views normal_direction = normal_vectors_1[:, j, i, element]
 
             # Compute the conservative part of the contravariant flux
             ftilde1 = volume_flux(u_ll, u_rr, normal_direction, equations)
@@ -556,18 +545,11 @@ end
 
     # Fluxes in y-direction
     for i in eachnode(dg)
-        normal_direction = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, 1, element)
-
         for j in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
-                                    get_contravariant_vector(2, contravariant_vectors,
-                                                             i, m, element)
-            end
+            @views normal_direction = normal_vectors_2[:, i, j, element]
 
             # Compute the conservative part of the contravariant flux
             ftilde2 = volume_flux(u_ll, u_rr, normal_direction, equations)
