@@ -55,6 +55,18 @@ function create_cache(mesh::TreeMesh{2}, equations,
                                 nnodes(dg), nnodes(dg) + 1)
                             for _ in 1:Threads.maxthreadid()]
 
+    @threaded for t in eachindex(fstar1_L_threaded)
+        fstar1_L_threaded[t][:, 1, :] .= zero(uEltype)
+        fstar1_R_threaded[t][:, 1, :] .= zero(uEltype)
+        fstar1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+        fstar1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+
+        fstar2_L_threaded[t][:, :, 1] .= zero(uEltype)
+        fstar2_R_threaded[t][:, :, 1] .= zero(uEltype)
+        fstar2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+        fstar2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+    end
+
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded)
 end
@@ -414,11 +426,6 @@ end
         set_node_vars!(fstar1_L, flux, equations, dg, i, j)
         set_node_vars!(fstar1_R, flux, equations, dg, i, j)
     end
-
-    fstar2_L[:, :, 1] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
 
     for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
