@@ -291,11 +291,6 @@ end
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
-    fstar1_L[:, 1] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1] .= zero(eltype(fstar1_R))
-
     for i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, element)
@@ -312,12 +307,6 @@ end
                               have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
-
-    fstar1_L[:, 1] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1] .= zero(eltype(fstar1_R))
-
     for i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, element)
@@ -349,11 +338,6 @@ end
                                 nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
                                 x_interfaces, reconstruction_mode, slope_limiter)
-    fstar1_L[:, 1] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1] .= zero(eltype(fstar1_R))
-
     for i in 2:nnodes(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         #             Reference element:
         #  -1 ------------------0------------------ 1 -> x

@@ -313,11 +313,6 @@ end
                               mesh::TreeMesh{3}, have_nonconservative_terms::False,
                               equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-    fstar1_L[:, 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_R))
-
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
@@ -326,11 +321,6 @@ end
         set_node_vars!(fstar1_R, flux, equations, dg, i, j, k)
     end
 
-    fstar2_L[:, :, 1, :] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1, :] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_R))
-
     for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
@@ -338,11 +328,6 @@ end
         set_node_vars!(fstar2_L, flux, equations, dg, i, j, k)
         set_node_vars!(fstar2_R, flux, equations, dg, i, j, k)
     end
-
-    fstar3_L[:, :, :, 1] .= zero(eltype(fstar3_L))
-    fstar3_L[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_L))
-    fstar3_R[:, :, :, 1] .= zero(eltype(fstar3_R))
-    fstar3_R[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_R))
 
     for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)

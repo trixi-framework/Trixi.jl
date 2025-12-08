@@ -296,11 +296,6 @@ end
 
     # Performance improvement if the metric terms of the subcell FV method are only computed
     # once at the beginning of the simulation, instead of at every Runge-Kutta stage
-    fstar1_L[:, 1, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_R))
-
     for j in eachnode(dg)
         normal_direction = get_contravariant_vector(1, contravariant_vectors,
                                                     1, j, element)
@@ -324,11 +319,6 @@ end
             set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j)
         end
     end
-
-    fstar2_L[:, :, 1] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
 
     for i in eachnode(dg)
         normal_direction = get_contravariant_vector(2, contravariant_vectors,
@@ -367,13 +357,10 @@ end
 
     volume_flux, nonconservative_flux = volume_flux_fv
 
-    # Performance improvement if the metric terms of the subcell FV method are only computed
-    # once at the beginning of the simulation, instead of at every Runge-Kutta stage
-    fstar1_L[:, 1, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_R))
+    # TODO: Performance gain if the metric terms of the subcell FV method are computed
+    # only once at the beginning of the simulation (e.g. in `create_cache`)!
 
+    # Fluxes in x-direction
     for j in eachnode(dg)
         normal_direction = get_contravariant_vector(1, contravariant_vectors,
                                                     1, j, element)
@@ -408,13 +395,7 @@ end
         end
     end
 
-    # Fluxes in y
-    fstar2_L[:, :, 1] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
-
-    # Compute inner fluxes
+    # Fluxes in y-direction
     for i in eachnode(dg)
         normal_direction = get_contravariant_vector(2, contravariant_vectors,
                                                     i, 1, element)
