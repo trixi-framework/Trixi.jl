@@ -57,7 +57,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
     @threaded for t in eachindex(fstar1_L_threaded)
         fstar1_L_threaded[t][:, 1, :] .= zero(uEltype)
         fstar1_R_threaded[t][:, 1, :] .= zero(uEltype)
-        fstar1_L_threaded[t][[:, nnodes(dg) + 1, :] .= zero(uEltype)
+        fstar1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
         fstar1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
 
         fstar2_L_threaded[t][:, :, 1] .= zero(uEltype)
