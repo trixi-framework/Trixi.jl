@@ -369,7 +369,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
+@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl (Diffusive CFL)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.25),
@@ -382,18 +382,18 @@ end
                         adaptive=false, # respect CFL
                         ode_alg=CKLLSRK95_4S(),
                         l2=[
-                            0.00013361138825044455,
+                            0.0001336113719363628,
                             0.1110290325891525,
                             0.11102903258915098,
                             0.009310736674102591,
-                            0.18713598964308234
+                            0.18713598666809547
                         ],
                         linf=[
-                            0.0005501488385279973,
-                            0.3151241675791191,
-                            0.3151241709442578,
-                            0.026332750964829052,
-                            0.5712639505309198
+                            0.0005497560773632948,
+                            0.3151224994649052,
+                            0.3151225081914104,
+                            0.02632750316461941,
+                            0.570941570440084
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
