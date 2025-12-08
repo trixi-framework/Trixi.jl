@@ -294,8 +294,9 @@ end
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
 
-    # Performance improvement if the metric terms of the subcell FV method are only computed
-    # once at the beginning of the simulation, instead of at every Runge-Kutta stage
+    # TODO: Performance gain if the metric terms of the subcell FV method are computed
+    # only once at the beginning of the simulation (e.g. in `create_cache`)!
+
     for j in eachnode(dg)
         normal_direction = get_contravariant_vector(1, contravariant_vectors,
                                                     1, j, element)
