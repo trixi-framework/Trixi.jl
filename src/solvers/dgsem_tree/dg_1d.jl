@@ -43,11 +43,11 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
     fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
     fstar1_R_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
-    @threaded for i in eachindex(fstar1_L_threaded)
-        fstar1_L_threaded[i][:, 1] .= zero(uEltype)
-        fstar1_R_threaded[i][:, 1] .= zero(uEltype)
-        fstar1_L_threaded[i][:, nnodes(dg) + 1] .= zero(uEltype)
-        fstar1_R_threaded[i][:, nnodes(dg) + 1] .= zero(uEltype)
+    @threaded for t in eachindex(fstar1_L_threaded)
+        fstar1_L_threaded[t][:, 1] .= zero(uEltype)
+        fstar1_R_threaded[t][:, 1] .= zero(uEltype)
+        fstar1_L_threaded[t][:, nnodes(dg) + 1] .= zero(uEltype)
+        fstar1_R_threaded[t][:, nnodes(dg) + 1] .= zero(uEltype)
     end
 
     return (; fstar1_L_threaded, fstar1_R_threaded)
