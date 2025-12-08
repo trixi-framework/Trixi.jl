@@ -90,14 +90,14 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan)
 
-# Write output of SummaryCallback and AnalysisCallback to a file
+# Write output of SummaryCallback, AnalysisCallback, and AliveCallback to a file
 io = open(joinpath("out", "elixir_euler_NACA6412airfoil_mach2_analysis.txt"), "w")
-summary_callback = SummaryCallback(; io = io)
+summary_callback = SummaryCallback(io = io)
 
 analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, io = io)
 
-alive_callback = AliveCallback(analysis_interval = analysis_interval)
+alive_callback = AliveCallback(analysis_interval = analysis_interval, io = io)
 
 stepsize_callback = StepsizeCallback(cfl = 4.0)
 
@@ -108,7 +108,6 @@ callbacks = CallbackSet(summary_callback,
 
 # Run the simulation
 ###############################################################################
-println("Starting simulation...")
 sol = solve(ode, SSPRK104(; thread = Trixi.True());
             dt = 1.0, # overwritten by the `stepsize_callback`
             ode_default_options()...,
