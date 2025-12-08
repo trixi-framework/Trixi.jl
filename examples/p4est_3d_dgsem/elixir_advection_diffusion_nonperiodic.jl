@@ -10,7 +10,8 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
 
 polydeg = 3
-solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs,
+               volume_integral = VolumeIntegralFluxDifferencing(flux_central))
 solver_parabolic = ViscousFormulationLocalDG()
 
 coordinates_min = (-1.0, -0.5, -0.5)

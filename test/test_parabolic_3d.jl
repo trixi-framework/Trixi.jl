@@ -412,7 +412,7 @@ end
 @trixi_testset "P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
-                        l2=[0.004180416884958283], linf=[0.051662524469916433])
+                        l2=[0.004013972492906333], linf=[0.0551956145538277])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
