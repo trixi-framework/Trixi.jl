@@ -302,23 +302,29 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         mpi_println(io, " Simulation running '", get_name(equations), "' with ",
                     summary(solver))
         mpi_println(io, "─"^100)
-        mpi_println(io, " #timesteps:     " * @sprintf("% 14d", iter) *
+        mpi_println(io,
+                    " #timesteps:     " * @sprintf("% 14d", iter) *
                     "               " *
                     " run time:       " * @sprintf("%10.8e s", runtime_absolute))
-        mpi_println(io, " Δt:             " * @sprintf("%10.8e", dt) *
+        mpi_println(io,
+                    " Δt:             " * @sprintf("%10.8e", dt) *
                     "               " *
                     " └── GC time:    " *
                     @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
-        mpi_println(io, rpad(" sim. time:      " *
+        mpi_println(io,
+                    rpad(" sim. time:      " *
                          @sprintf("%10.8e (%5.3f%%)", t, sim_time_percentage), 46) *
                     " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
-        mpi_println(io, "                 " * "              " *
+        mpi_println(io,
+                    "                 " * "              " *
                     "               " *
                     " PID:            " * @sprintf("%10.8e s", performance_index))
-        mpi_println(io, " #DOFs per field:" * @sprintf("% 14d", ndofsglobal(semi)) *
+        mpi_println(io,
+                    " #DOFs per field:" * @sprintf("% 14d", ndofsglobal(semi)) *
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
-        mpi_println(io, " #elements:      " *
+        mpi_println(io,
+                    " #elements:      " *
                     @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
         # Level information (only for AMR and/or non-uniform `TreeMesh`es)
         print_level_information(io, integrator.opts.callback, mesh, solver, cache)
@@ -327,7 +333,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         # Open file for appending and store time step and time information
         if mpi_isroot() && analysis_callback.save_analysis
             io_file = open(joinpath(analysis_callback.output_directory,
-                               analysis_callback.analysis_filename), "a")
+                                    analysis_callback.analysis_filename), "a")
             print(io_file, iter)
             print(io_file, " ", t)
             print(io_file, " ", dt)
@@ -396,7 +402,7 @@ function (analysis_callback::AnalysisCallback)(io, io_file, du, u, u_ode, t, sem
         if mpi_isroot()
             # L2 error
             if :l2_error in analysis_errors
-                print(io," L2 error:    ")
+                print(io, " L2 error:    ")
                 for v in eachvariable(equations)
                     @printf(io, "  % 10.8e", l2_error[v])
                     print(io_file, " ", l2_error[v])
@@ -505,10 +511,12 @@ function print_level_information(io, mesh, solver, cache, min_level, max_level)
 
     # Print
     for level in max_level:-1:(min_level + 1)
-        mpi_println(io, " ├── level $level:    " *
+        mpi_println(io,
+                    " ├── level $level:    " *
                     @sprintf("% 14d", elements_per_level[level + 1 - min_level]))
     end
-    mpi_println(io, " └── level $min_level:    " *
+    mpi_println(io,
+                " └── level $min_level:    " *
                 @sprintf("% 14d", elements_per_level[1]))
 
     return nothing
