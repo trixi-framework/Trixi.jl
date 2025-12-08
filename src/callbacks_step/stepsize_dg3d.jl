@@ -55,11 +55,11 @@ function max_dt(u, t, mesh::TreeMesh{3},
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
-    # to avoid a division by zero if the diffusivity vanishes everywhere
-    max_scaled_speed = nextfloat(zero(t))
+    # Avoid division by zero if the diffusivity vanishes everywhere
+    max_scaled_diffusivity = nextfloat(zero(t))
 
-    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_diffusivity_ = zero(max_scaled_speed)
+    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+        max_diffusivity_ = zero(max_scaled_diffusivity)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
             # Note: For the currently supported parabolic equations
@@ -68,11 +68,12 @@ function max_dt(u, t, mesh::TreeMesh{3},
             max_diffusivity_ = max(max_diffusivity_, diffusivity)
         end
         inv_jacobian = cache.elements.inverse_jacobian[element] # 2 / Δx
-        max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * max_diffusivity_)
+        max_scaled_diffusivity = max(max_scaled_diffusivity,
+                                     inv_jacobian^2 * max_diffusivity_)
     end
 
     # Factor 4 cancels with 2^2 from `inv_jacobian^2`, resulting in Δx^2
-    return 4 / (nnodes(dg) * max_scaled_speed)
+    return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
