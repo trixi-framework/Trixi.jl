@@ -31,14 +31,12 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
     # Mortar cache
-    # Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}}, equations,
+function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
                                              VolumeIntegralShockCapturingHG}, dg::DG,
                       uEltype)

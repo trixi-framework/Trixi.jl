@@ -21,7 +21,7 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, dg::DG, ::
 
     # Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
     # Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
