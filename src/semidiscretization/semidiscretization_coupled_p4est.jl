@@ -172,7 +172,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         system_ode = get_system_u_ode(u_ode, i, semi)
         system_ode_reshape = reshape(system_ode,
                                      (n_nodes, n_nodes,
-                                      Int(length(system_ode) / n_nodes^ndims(semi_.mesh))))
+                                      Int(length(system_ode) /
+                                          n_nodes^ndims(semi_.mesh))))
         u_ode_reformatted_reshape[:, :, semi.mesh_ids .== i] .= system_ode_reshape
     end
 
