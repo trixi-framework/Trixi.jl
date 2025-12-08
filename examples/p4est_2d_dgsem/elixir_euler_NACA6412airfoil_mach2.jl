@@ -49,7 +49,7 @@ polydeg = 3
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
@@ -90,20 +90,29 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan)
 
-summary_callback = SummaryCallback()
+# Write output of SummaryCallback and AnalysisCallback to a file
+io = open(joinpath("out", "elixir_euler_NACA6412airfoil_mach2_analysis.txt"), "w")
+summary_callback = SummaryCallback(; io = io)
 
 analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval, io = io)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 stepsize_callback = StepsizeCallback(cfl = 4.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
+                        alive_callback,
                         stepsize_callback)
 
 # Run the simulation
 ###############################################################################
+println("Starting simulation...")
 sol = solve(ode, SSPRK104(; thread = Trixi.True());
             dt = 1.0, # overwritten by the `stepsize_callback`
             ode_default_options()...,
             callback = callbacks);
+
+# Close the analysis output file
+close(io)
