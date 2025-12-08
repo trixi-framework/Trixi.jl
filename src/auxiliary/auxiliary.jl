@@ -154,7 +154,7 @@ function ode_default_options()
 end
 
 # Print informative message at startup
-function print_startup_message()
+function print_startup_message(io = stdout)
     s = """
 
       ████████╗██████╗ ██╗██╗  ██╗██╗
@@ -164,7 +164,7 @@ function print_startup_message()
          ██║   ██║  ██║██║██╔╝ ██╗██║
          ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
       """
-    mpi_println(s)
+    mpi_println(io, s)
 end
 
 """
