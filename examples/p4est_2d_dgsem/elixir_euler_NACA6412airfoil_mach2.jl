@@ -91,7 +91,7 @@ tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan)
 
 # Write output of SummaryCallback, AnalysisCallback, and AliveCallback to a file
-io = open(joinpath("out", "elixir_euler_NACA6412airfoil_mach2_analysis.txt"), "w")
+io = open(joinpath("out", "elixir_euler_NACA6412airfoil_mach2_out.txt"), "w")
 summary_callback = SummaryCallback(io = io)
 
 analysis_interval = 1000
