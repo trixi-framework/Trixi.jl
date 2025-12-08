@@ -33,19 +33,18 @@ function max_dt(u, t, mesh::TreeMesh{1},
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
-    # e.g. for steady-state linear advection
+    # to avoid a division by zero if the diffusivity vanishes everywhere
     max_scaled_speed = nextfloat(zero(t))
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda1 = zero(max_scaled_speed)
+        max_diffusivity_ = zero(max_scaled_speed)
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, element)
-            lambda1, = max_diffusivity(u_node, equations_parabolic)
-            max_lambda1 = max(max_lambda1, lambda1)
+            diffusivity = max_diffusivity(u_node, equations_parabolic)
+            max_diffusivity_ = max(max_diffusivity_, diffusivity)
         end
         inv_jacobian = cache.elements.inverse_jacobian[element] # 2 / Δx
-        max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * max_lambda1)
+        max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * max_diffusivity_)
     end
 
     # Factor 4 cancels with 2^2 from `inv_jacobian^2`, resulting in Δx^2
@@ -72,19 +71,21 @@ function max_dt(u, t, mesh::TreeMesh{1},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::TreeMesh{1},
+function max_dt(u, t, mesh::TreeMesh,
                 constant_diffusivity::True, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
-    # e.g. for steady-state linear advection
+    # to avoid a division by zero if the diffusivity vanishes everywhere
     max_scaled_speed = nextfloat(zero(t))
 
-    max_lambda1, = max_diffusivity(equations_parabolic)
+    diffusivity = max_diffusivity(equations_parabolic)
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         inv_jacobian = cache.elements.inverse_jacobian[element] # 2 / Δx
-        max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * max_lambda1)
+        # Note: For the currently supported parabolic equations
+        # Diffusion & Navier-Stokes, we only have one diffusivity,
+        # so this is valid for 1D, 2D and 3D.
+        max_scaled_speed = max(max_scaled_speed, inv_jacobian^2 * diffusivity)
     end
 
     # Factor 4 cancels with 2^2 from `inv_jacobian^2`, resulting in Δx^2
