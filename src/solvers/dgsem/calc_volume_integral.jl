@@ -5,12 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
-function create_cache(mesh, equations,
-                      volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
-    return NamedTuple()
-end
-
 # The following `calc_volume_integral!` functions are
 # dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
 

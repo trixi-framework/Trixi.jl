@@ -35,29 +35,13 @@ end
 # and called from the basic `create_cache` method at the top.
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
-    cache = create_cache(mesh, equations,
-                         VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
-                         dg, uEltype)
-
+                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralShockCapturingHG}, dg::DG,
+                      uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
                   uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
     fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
     fstar1_R_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
-
-    return (; cache..., fstar1_L_threaded, fstar1_R_threaded)
-end
-
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::AbstractVolumeIntegralPureLGLFiniteVolume,
-                      dg::DG, uEltype)
-    A2d = Array{uEltype, 2}
-    fstar1_L_threaded = A2d[A2d(undef, nvariables(equations),
-                                nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A2d[A2d(undef, nvariables(equations),
-                                nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
 
     return (; fstar1_L_threaded, fstar1_R_threaded)
 end
