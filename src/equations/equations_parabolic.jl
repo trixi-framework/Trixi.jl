@@ -12,7 +12,7 @@ abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
 
 """
-    max_diffusivity(::AbstractLaplaceDiffusion)
+    have_constant_diffusivity(::AbstractLaplaceDiffusion)
 
 # Returns
 - `True()`

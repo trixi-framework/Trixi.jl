@@ -110,7 +110,7 @@ dynamic_viscosity(u, mu::Real, equations) = mu
 dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
 
 """
-    max_diffusivity(::AbstractCompressibleNavierStokesDiffusion)
+    have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion)
 
 # Returns
 - `False()`
