@@ -36,7 +36,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
     max_scaled_diffusivity = nextfloat(zero(t))
 
     @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
-        max_diffusivity_ = zero(max_scaled_speed)
+        max_diffusivity_ = zero(max_scaled_diffusivity)
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, element)
             diffusivity = max_diffusivity(u_node, equations_parabolic)
