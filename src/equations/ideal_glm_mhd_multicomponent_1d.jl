@@ -552,14 +552,23 @@ end
     return vcat(cons_other, cons_rho)
 end
 
+"""
+    density_pressure(u, equations::IdealGlmMhdMulticomponentEquations1D)
+
+Computes ``\\rho \\cdot p`` from the conserved variables `u` for an ideal
+equation of state with isentropic exponent/adiabatic index ``\\gamma``.
+
+This is a useful function since it combines two variables which need to 
+stay positive into a single one.
+"""
 @inline function density_pressure(u, equations::IdealGlmMhdMulticomponentEquations1D)
     rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
     rho = density(u, equations)
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2))
-    return rho * p
+    rho_times_p = (gamma - 1) * (rho * rho_e -
+                   0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2 +
+                    rho * (B1^2 + B2^2 + B3^2)))
+    return rho_times_p
 end
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue

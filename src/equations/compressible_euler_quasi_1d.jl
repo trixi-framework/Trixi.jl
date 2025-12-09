@@ -386,12 +386,42 @@ end
     return rho
 end
 
+@doc raw"""
+    pressure(u, equations::CompressibleEulerEquationsQuasi1D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2}\rho \Vert v \Vert_2^2 \right)
+\end{aligned}
+```
+To obtain ``\rho``, ``\rho v``, and ``\rho e`` from the quasi-1d conserved variables,
+one has to divide by the nozzle width ``a``.
+"""
 @inline function pressure(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     return pressure(SVector(a_rho, a_rho_v1, a_e) / a,
                     CompressibleEulerEquations1D(equations.gamma))
 end
 
+"""
+    density_pressure(u, equations::CompressibleEulerEquationsQuasi1D)
+
+Computes ``\\rho \\cdot p`` from the conserved variables `u` for an ideal
+equation of state with isentropic exponent/adiabatic index ``\\gamma``.
+
+To obtain ``\rho``, ``\rho v``, and ``\rho e`` from the quasi-1d conserved variables,
+one has to divide by the nozzle width ``a``.
+
+This is a useful function since it combines two variables which need to 
+stay positive into a single one.
+
+Furthermore, the implementation is slightly more efficient than
+computing [`pressure(u, equations::CompressibleEulerEquationsQuasi1D)`](@ref) first and 
+then multiplying with the density.
+"""
 @inline function density_pressure(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     return density_pressure(SVector(a_rho, a_rho_v1, a_e) / a,

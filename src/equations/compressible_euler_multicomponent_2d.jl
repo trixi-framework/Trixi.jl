@@ -984,6 +984,15 @@ partial density fractions as well as the partial specific heats at constant volu
     return help1 / help2
 end
 
+"""
+    density_pressure(u, equations::CompressibleEulerMulticomponentEquations2D)
+
+Computes ``\\rho \\cdot p`` from the conserved variables `u` for an ideal
+equation of state with isentropic exponent/adiabatic index ``\\gamma``.
+
+This is a useful function since it combines two variables which need to 
+stay positive into a single one.
+"""
 @inline function density_pressure(u,
                                   equations::CompressibleEulerMulticomponentEquations2D)
     rho_v1, rho_v2, rho_e = u

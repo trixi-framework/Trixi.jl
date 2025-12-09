@@ -620,6 +620,18 @@ partial density fractions as well as the partial specific heats at constant volu
     return help1 / help2
 end
 
+@doc raw"""
+    pressure(u, equations::CompressibleEulerMulticomponentEquations1D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2}\rho \Vert v \Vert_2^2 \right)
+\end{aligned}
+```
+"""
 @inline function pressure(u, equations::CompressibleEulerMulticomponentEquations1D)
     rho_v1, rho_e = u
 
