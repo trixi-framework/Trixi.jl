@@ -34,21 +34,21 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                 nnodes(dg), nnodes(dg), nnodes(dg) + 1)
                             for _ in 1:Threads.maxthreadid()]
 
-    for i in eachindex(fstar1_L_threaded)
-        fstar1_L_threaded[i][:, 1, :, :] .= zero(uEltype)
-        fstar1_R_threaded[i][:, 1, :, :] .= zero(uEltype)
-        fstar1_L_threaded[i][:, nnodes(dg) + 1, :, :] .= zero(uEltype)
-        fstar1_R_threaded[i][:, nnodes(dg) + 1, :, :] .= zero(uEltype)
+    @threaded for t in eachindex(fstar1_L_threaded)
+        fstar1_L_threaded[t][:, 1, :, :] .= zero(uEltype)
+        fstar1_R_threaded[t][:, 1, :, :] .= zero(uEltype)
+        fstar1_L_threaded[t][:, nnodes(dg) + 1, :, :] .= zero(uEltype)
+        fstar1_R_threaded[t][:, nnodes(dg) + 1, :, :] .= zero(uEltype)
 
-        fstar2_L_threaded[i][:, :, 1, :] .= zero(uEltype)
-        fstar2_R_threaded[i][:, :, 1, :] .= zero(uEltype)
-        fstar2_L_threaded[i][:, :, nnodes(dg) + 1, :] .= zero(uEltype)
-        fstar2_R_threaded[i][:, :, nnodes(dg) + 1, :] .= zero(uEltype)
+        fstar2_L_threaded[t][:, :, 1, :] .= zero(uEltype)
+        fstar2_R_threaded[t][:, :, 1, :] .= zero(uEltype)
+        fstar2_L_threaded[t][:, :, nnodes(dg) + 1, :] .= zero(uEltype)
+        fstar2_R_threaded[t][:, :, nnodes(dg) + 1, :] .= zero(uEltype)
 
-        fstar3_L_threaded[i][:, :, :, 1] .= zero(uEltype)
-        fstar3_R_threaded[i][:, :, :, 1] .= zero(uEltype)
-        fstar3_L_threaded[i][:, :, :, nnodes(dg) + 1] .= zero(uEltype)
-        fstar3_R_threaded[i][:, :, :, nnodes(dg) + 1] .= zero(uEltype)
+        fstar3_L_threaded[t][:, :, :, 1] .= zero(uEltype)
+        fstar3_R_threaded[t][:, :, :, 1] .= zero(uEltype)
+        fstar3_L_threaded[t][:, :, :, nnodes(dg) + 1] .= zero(uEltype)
+        fstar3_R_threaded[t][:, :, :, nnodes(dg) + 1] .= zero(uEltype)
     end
 
     return (; fstar1_L_threaded, fstar1_R_threaded,
