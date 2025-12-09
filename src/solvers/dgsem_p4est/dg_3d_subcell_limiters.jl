@@ -40,6 +40,23 @@ function create_cache(mesh::P4estMesh{3},
                                  nnodes(dg), nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
 
+    @threaded for t in eachindex(fhat1_L_threaded)
+        fhat1_L_threaded[t][:, 1, :, :] .= zero(uEltype)
+        fhat1_R_threaded[t][:, 1, :, :] .= zero(uEltype)
+        fhat1_L_threaded[t][:, nnodes(dg) + 1, :, :] .= zero(uEltype)
+        fhat1_R_threaded[t][:, nnodes(dg) + 1, :, :] .= zero(uEltype)
+
+        fhat2_L_threaded[t][:, :, 1, :] .= zero(uEltype)
+        fhat2_R_threaded[t][:, :, 1, :] .= zero(uEltype)
+        fhat2_L_threaded[t][:, :, nnodes(dg) + 1, :] .= zero(uEltype)
+        fhat2_R_threaded[t][:, :, nnodes(dg) + 1, :] .= zero(uEltype)
+
+        fhat3_L_threaded[t][:, :, :, 1] .= zero(uEltype)
+        fhat3_R_threaded[t][:, :, :, 1] .= zero(uEltype)
+        fhat3_L_threaded[t][:, :, :, nnodes(dg) + 1] .= zero(uEltype)
+        fhat3_R_threaded[t][:, :, :, nnodes(dg) + 1] .= zero(uEltype)
+    end
+
     antidiffusive_fluxes = ContainerAntidiffusiveFlux3D{uEltype}(0,
                                                                  nvariables(equations),
                                                                  nnodes(dg))
@@ -185,11 +202,6 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    fhat1_L[:, 1, :, :] .= zero(eltype(fhat1_L))
-    fhat1_L[:, nnodes(dg) + 1, :, :] .= zero(eltype(fhat1_L))
-    fhat1_R[:, 1, :, :] .= zero(eltype(fhat1_R))
-    fhat1_R[:, nnodes(dg) + 1, :, :] .= zero(eltype(fhat1_R))
-
     for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1),
         v in eachvariable(equations)
 
@@ -225,11 +237,6 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    fhat2_L[:, :, 1, :] .= zero(eltype(fhat2_L))
-    fhat2_L[:, :, nnodes(dg) + 1, :] .= zero(eltype(fhat2_L))
-    fhat2_R[:, :, 1, :] .= zero(eltype(fhat2_R))
-    fhat2_R[:, :, nnodes(dg) + 1, :] .= zero(eltype(fhat2_R))
-
     for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg),
         v in eachvariable(equations)
 
@@ -265,11 +272,6 @@ end
     end
 
     # FV-form flux `fhat` in z direction
-    fhat3_L[:, :, :, 1] .= zero(eltype(fhat3_L))
-    fhat3_L[:, :, :, nnodes(dg) + 1] .= zero(eltype(fhat3_L))
-    fhat3_R[:, :, :, 1] .= zero(eltype(fhat3_R))
-    fhat3_R[:, :, :, nnodes(dg) + 1] .= zero(eltype(fhat3_R))
-
     for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg),
         v in eachvariable(equations)
 
