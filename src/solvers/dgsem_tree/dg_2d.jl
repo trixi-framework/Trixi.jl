@@ -36,11 +36,9 @@ end
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
-    cache = create_cache(mesh, equations,
-                         VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
-                         dg, uEltype)
-
+                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralShockCapturingHG}, dg::DG,
+                      uEltype)
     A3d = Array{uEltype, 3}
 
     fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
@@ -56,28 +54,17 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                                 nnodes(dg), nnodes(dg) + 1)
                             for _ in 1:Threads.maxthreadid()]
 
-    return (; cache...,
-            fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
-end
+    @threaded for t in eachindex(fstar1_L_threaded)
+        fstar1_L_threaded[t][:, 1, :] .= zero(uEltype)
+        fstar1_R_threaded[t][:, 1, :] .= zero(uEltype)
+        fstar1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+        fstar1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}}, equations,
-                      volume_integral::AbstractVolumeIntegralPureLGLFiniteVolume,
-                      dg::DG, uEltype)
-    A3d = Array{uEltype, 3}
-
-    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
+        fstar2_L_threaded[t][:, :, 1] .= zero(uEltype)
+        fstar2_R_threaded[t][:, :, 1] .= zero(uEltype)
+        fstar2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+        fstar2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+    end
 
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded)
@@ -330,11 +317,6 @@ end
                                 have_nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
                                 x_interfaces, reconstruction_mode, slope_limiter)
-    fstar1_L[:, 1, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_R))
-
     for j in eachnode(dg), i in 2:nnodes(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
@@ -371,11 +353,6 @@ end
         set_node_vars!(fstar1_L, flux, equations, dg, i, j)
         set_node_vars!(fstar1_R, flux, equations, dg, i, j)
     end
-
-    fstar2_L[:, :, 1] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
 
     for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
@@ -441,11 +418,6 @@ end
                               mesh::TreeMesh{2},
                               have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-    fstar1_L[:, 1, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_R))
-
     for j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
@@ -453,11 +425,6 @@ end
         set_node_vars!(fstar1_L, flux, equations, dg, i, j)
         set_node_vars!(fstar1_R, flux, equations, dg, i, j)
     end
-
-    fstar2_L[:, :, 1] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
 
     for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
@@ -476,12 +443,7 @@ end
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
-    # Fluxes in x
-    fstar1_L[:, 1, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_R))
-
+    # Fluxes in x-direction
     for j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
@@ -501,13 +463,7 @@ end
         set_node_vars!(fstar1_R, f1_R, equations, dg, i, j)
     end
 
-    # Fluxes in y
-    fstar2_L[:, :, 1] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fstar2_R))
-
-    # Compute inner fluxes
+    # Fluxes in y-direction
     for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
