@@ -19,10 +19,10 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, dg::DG, ::
     # Container cache
     cache = (; elements, interfaces, boundaries, mortars)
 
-    # Volume-Integral cache
+    # Add Volume-Integral cache
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
-    # Mortar cache
+    # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache

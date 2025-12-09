@@ -19,7 +19,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations, dg::FDSBP, RealT, uEl
     # Container cache
     cache = (; elements, interfaces, boundaries)
 
-    # Volume-Integral cache
+    # Add Volume-Integral cache
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 

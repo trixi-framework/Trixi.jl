@@ -28,7 +28,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
         error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
     end
 
-    # Volume-Integral cache
+    # Add Volume-Integral cache
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 

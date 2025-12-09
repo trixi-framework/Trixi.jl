@@ -27,10 +27,10 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
     # Container cache
     cache = (; elements, interfaces, boundaries, mortars)
 
-    # Volume-Integral cache
+    # Add Volume-Integral cache
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
-    # Mortar cache
+    # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
