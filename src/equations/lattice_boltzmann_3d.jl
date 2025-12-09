@@ -307,7 +307,7 @@ end
 Calculate the macroscopic pressure from the density `rho` or the  particle distribution functions
 `u` as
 ```math
-p = \rho c_s^2
+p = \\rho c_s^2
 ```
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations3D)

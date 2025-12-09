@@ -643,6 +643,8 @@ p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
     return p
 end
 
+# TODO: Function density_pressure
+
 @inline function density(u, equations::CompressibleEulerMulticomponentEquations1D)
     RealT = eltype(u)
     rho = zero(RealT)
