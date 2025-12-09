@@ -167,45 +167,45 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
 
         # write header of output file
         open(joinpath(output_directory, analysis_filename), "w") do io_file
-            _print(io_file, "#timestep ")
-            _print(io_file, "time ")
-            _print(io_file, "dt ")
+            print(io_file, "#timestep ")
+            print(io_file, "time ")
+            print(io_file, "dt ")
             if :l2_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    _print(io_file, "l2_" * v * " ")
+                    print(io_file, "l2_" * v * " ")
                 end
             end
             if :linf_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    _print(io_file, "linf_" * v * " ")
+                    print(io_file, "linf_" * v * " ")
                 end
             end
             if :conservation_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    _print(io_file, "cons_" * v * " ")
+                    print(io_file, "cons_" * v * " ")
                 end
             end
             if :residual in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    _print(io_file, "res_" * v * " ")
+                    print(io_file, "res_" * v * " ")
                 end
             end
             if :l2_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    _print(io_file, "l2_" * v * " ")
+                    print(io_file, "l2_" * v * " ")
                 end
             end
             if :linf_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    _print(io_file, "linf_" * v * " ")
+                    print(io_file, "linf_" * v * " ")
                 end
             end
 
             for quantity in analysis_integrals
-                _print(io_file, pretty_form_ascii(quantity), " ")
+                print(io_file, pretty_form_ascii(quantity), " ")
             end
 
-            _println(io_file)
+            println(io_file)
         end
     end
 
@@ -334,9 +334,9 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         if mpi_isroot() && analysis_callback.save_analysis
             io_file = open(joinpath(analysis_callback.output_directory,
                                     analysis_callback.analysis_filename), "a")
-            _print(io_file, iter)
-            _print(io_file, " ", t)
-            _print(io_file, " ", dt)
+            print(io_file, iter)
+            print(io_file, " ", t)
+            print(io_file, " ", dt)
         else
             io_file = devnull
         end
@@ -360,7 +360,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
             # This resolves a possible type instability introduced above, since `io`
             # can either be an `IOStream` or `devnull`, but we know that it must be
             # an `IOStream here`.
-            _println(io_file::IOStream)
+            println(io_file::IOStream)
             close(io_file::IOStream)
         end
     end
@@ -387,11 +387,11 @@ function (analysis_callback::AnalysisCallback)(io, io_file, du, u, u_ode, t, sem
     if any(q in analysis_errors
            for q in (:l2_error, :linf_error, :conservation_error, :residual)) &&
        mpi_isroot()
-        _print(io, " Variable:    ")
+        print(io, " Variable:    ")
         for v in eachvariable(equations)
             @printf(io, "   %-14s", varnames(cons2cons, equations)[v])
         end
-        _println(io)
+        println(io)
     end
 
     if :l2_error in analysis_errors || :linf_error in analysis_errors
@@ -402,22 +402,22 @@ function (analysis_callback::AnalysisCallback)(io, io_file, du, u, u_ode, t, sem
         if mpi_isroot()
             # L2 error
             if :l2_error in analysis_errors
-                _print(io, " L2 error:    ")
+                print(io, " L2 error:    ")
                 for v in eachvariable(equations)
                     @printf(io, "  % 10.8e", l2_error[v])
-                    _print(io_file, " ", l2_error[v])
+                    print(io_file, " ", l2_error[v])
                 end
-                _println(io)
+                println(io)
             end
 
             # Linf error
             if :linf_error in analysis_errors
-                _print(io, " Linf error:  ")
+                print(io, " Linf error:  ")
                 for v in eachvariable(equations)
                     @printf(io, "  % 10.8e", linf_error[v])
-                    _print(io_file, " ", linf_error[v])
+                    print(io_file, " ", linf_error[v])
                 end
-                _println(io)
+                println(io)
             end
         end
     end
@@ -428,13 +428,13 @@ function (analysis_callback::AnalysisCallback)(io, io_file, du, u, u_ode, t, sem
         state_integrals = integrate(u_ode, semi)
 
         if mpi_isroot()
-            _print(io, " |∑U - ∑U₀|:  ")
+            print(io, " |∑U - ∑U₀|:  ")
             for v in eachvariable(equations)
                 err = abs(state_integrals[v] - initial_state_integrals[v])
                 @printf(io, "  % 10.8e", err)
-                _print(io_file, " ", err)
+                print(io_file, " ", err)
             end
-            _println(io)
+            println(io)
         end
     end
 
@@ -454,7 +454,7 @@ function (analysis_callback::AnalysisCallback)(io, io_file, du, u, u_ode, t, sem
             end
             if mpi_isroot()
                 @printf(io, "  % 10.8e", res)
-                _print(io_file, " ", res)
+                print(io_file, " ", res)
             end
         end
         mpi_println(io)
@@ -467,30 +467,30 @@ function (analysis_callback::AnalysisCallback)(io, io_file, du, u, u_ode, t, sem
                                                           semi, cache_analysis)
 
         if mpi_isroot()
-            _print(io, " Variable:    ")
+            print(io, " Variable:    ")
             for v in eachvariable(equations)
                 @printf(io, "   %-14s", varnames(cons2prim, equations)[v])
             end
-            _println(io)
+            println(io)
 
             # L2 error
             if :l2_error_primitive in analysis_errors
-                _print(io, " L2 error prim.: ")
+                print(io, " L2 error prim.: ")
                 for v in eachvariable(equations)
                     @printf(io, "%10.8e   ", l2_error_prim[v])
-                    _print(io_file, " ", l2_error_prim[v])
+                    print(io_file, " ", l2_error_prim[v])
                 end
-                _println(io)
+                println(io)
             end
 
             # L∞ error
             if :linf_error_primitive in analysis_errors
-                _print(io, " Linf error pri.:")
+                print(io, " Linf error pri.:")
                 for v in eachvariable(equations)
                     @printf(io, "%10.8e   ", linf_error_prim[v])
-                    _print(io_file, " ", linf_error_prim[v])
+                    print(io_file, " ", linf_error_prim[v])
                 end
-                _println(io)
+                println(io)
             end
         end
     end
@@ -595,7 +595,7 @@ function analyze_integrals(analysis_integrals::NTuple{N, Any}, io, io_file, du, 
     if mpi_isroot()
         @printf(io, " %-12s:", pretty_form_utf(quantity))
         @printf(io, "  % 10.8e", res)
-        _print(io_file, " ", res)
+        print(io_file, " ", res)
     end
     mpi_println(io)
 

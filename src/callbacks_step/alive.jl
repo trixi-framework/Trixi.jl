@@ -80,23 +80,23 @@ function (alive_callback::AliveCallback)(integrator)
     # sets the time exactly to the final time in the last iteration
     @unpack io = alive_callback
     if isfinished(integrator) && mpi_isroot()
-        _println(io, "─"^100)
-        _println(io, "Trixi.jl simulation finished.  Final time: ", integrator.t,
-                 "  Time steps: ", integrator.stats.naccept, " (accepted), ",
-                 integrator.iter, " (total)")
-        _println(io, "─"^100)
-        _println(io)
+        println(io, "─"^100)
+        println(io, "Trixi.jl simulation finished.  Final time: ", integrator.t,
+                "  Time steps: ", integrator.stats.naccept, " (accepted), ",
+                integrator.iter, " (total)")
+        println(io, "─"^100)
+        println(io)
     elseif mpi_isroot()
         t = integrator.t
         t_initial = first(integrator.sol.prob.tspan)
         t_final = last(integrator.sol.prob.tspan)
         sim_time_percentage = (t - t_initial) / (t_final - t_initial) * 100
         runtime_absolute = 1.0e-9 * (time_ns() - alive_callback.start_time)
-        _println(io,
-                 rpad(@sprintf("#timesteps: %6d │ Δt: %.4e │ sim. time: %.4e (%5.3f%%)",
-                               integrator.stats.naccept, integrator.dt, t,
-                               sim_time_percentage), 71) *
-                 @sprintf("│ run time: %.4e s", runtime_absolute))
+        println(io,
+                rpad(@sprintf("#timesteps: %6d │ Δt: %.4e │ sim. time: %.4e (%5.3f%%)",
+                              integrator.stats.naccept, integrator.dt, t,
+                              sim_time_percentage), 71) *
+                @sprintf("│ run time: %.4e s", runtime_absolute))
     end
 
     # avoid re-evaluating possible FSAL stages
