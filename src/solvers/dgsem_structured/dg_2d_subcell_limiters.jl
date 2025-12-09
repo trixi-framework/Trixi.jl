@@ -60,11 +60,6 @@
     end
 
     # FV-form flux `fhat` in x direction
-    fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
-    fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))
-    fhat1_R[:, 1, :] .= zero(eltype(fhat1_R))
-    fhat1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_R))
-
     for j in eachnode(dg), i in 1:(nnodes(dg) - 1), v in eachvariable(equations)
         fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
         fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
@@ -96,11 +91,6 @@
     end
 
     # FV-form flux `fhat` in y direction
-    fhat2_L[:, :, 1] .= zero(eltype(fhat2_L))
-    fhat2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_L))
-    fhat2_R[:, :, 1] .= zero(eltype(fhat2_R))
-    fhat2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_R))
-
     for j in 1:(nnodes(dg) - 1), i in eachnode(dg), v in eachvariable(equations)
         fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
         fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
@@ -198,11 +188,6 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
-    fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))
-    fhat1_R[:, 1, :] .= zero(eltype(fhat1_R))
-    fhat1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_R))
-
     fhat_temp[:, 1, :] .= zero(eltype(fhat1_L))
     fhat_noncons_temp[:, :, 1, :] .= zero(eltype(fhat1_L))
 
@@ -281,11 +266,6 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    fhat2_L[:, :, 1] .= zero(eltype(fhat2_L))
-    fhat2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_L))
-    fhat2_R[:, :, 1] .= zero(eltype(fhat2_R))
-    fhat2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_R))
-
     fhat_temp[:, :, 1] .= zero(eltype(fhat1_L))
     fhat_noncons_temp[:, :, :, 1] .= zero(eltype(fhat1_L))
 
@@ -412,11 +392,6 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
-    fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))
-    fhat1_R[:, 1, :] .= zero(eltype(fhat1_R))
-    fhat1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_R))
-
     fhat_temp[:, 1, :] .= zero(eltype(fhat1_L))
     fhat_noncons_temp[:, :, 1, :] .= zero(eltype(fhat1_L))
 
@@ -534,11 +509,6 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    fhat2_L[:, :, 1] .= zero(eltype(fhat2_L))
-    fhat2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_L))
-    fhat2_R[:, :, 1] .= zero(eltype(fhat2_R))
-    fhat2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_R))
-
     fhat_temp[:, :, 1] .= zero(eltype(fhat1_L))
     fhat_noncons_temp[:, :, :, 1] .= zero(eltype(fhat1_L))
 
