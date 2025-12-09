@@ -648,15 +648,12 @@ end
                                 0.0,
                                 0.0,
                                 0.0,
-                                0.01368217970493435,
-                                0.016790901855796785,
-                                3.091328454846926e-5,
-                                0.034236712653821444])
-        # Ensure we cover the calculation of the node coordinates
-        node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
-                                                                     ntuple(_ -> length(parent_mesh.nodes),
-                                                                            2)...,
-                                                                     length(mesh1.cell_ids))
+                                0.001651262488701531
+                            ],
+                            tspan=(0.0, 0.02))
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 
