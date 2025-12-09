@@ -27,26 +27,27 @@ function normalvectors_subcell_fv(mesh::Union{StructuredMesh{2},
     for element in eachelement(dg, cache_containers)
         for i in eachnode(dg)
             # j = 1
-            normal_vectors_1[:, i, 1, element] = get_contravariant_vector(1,
+            # Optimize indexing: j to second position, i to third
+            normal_vectors_1[:, 1, i, element] = get_contravariant_vector(1,
                                                                           contravariant_vectors,
                                                                           1, i, element)
-            normal_vectors_2[:, i, 1, element] = get_contravariant_vector(2,
+            normal_vectors_2[:, 1, i, element] = get_contravariant_vector(2,
                                                                           contravariant_vectors,
                                                                           i, 1, element)
             for j in 2:nnodes(dg)
-                normal_vectors_1[:, i, j, element] = normal_vectors_1[:, i, j - 1,
+                normal_vectors_1[:, j, i, element] = normal_vectors_1[:, j - 1, i,
                                                                       element]
-                normal_vectors_2[:, i, j, element] = normal_vectors_2[:, i, j - 1,
+                normal_vectors_2[:, j, i, element] = normal_vectors_2[:, j - 1, i,
                                                                       element]
                 for m in eachnode(dg)
                     wD_jm = weights[j - 1] * derivative_matrix[j - 1, m]
-                    normal_vectors_1[:, i, j, element] += wD_jm *
+                    normal_vectors_1[:, j, i, element] += wD_jm *
                                                           get_contravariant_vector(1,
                                                                                    contravariant_vectors,
                                                                                    m, i,
                                                                                    element)
 
-                    normal_vectors_2[:, i, j, element] += wD_jm *
+                    normal_vectors_2[:, j, i, element] += wD_jm *
                                                           get_contravariant_vector(2,
                                                                                    contravariant_vectors,
                                                                                    i, m,
@@ -393,7 +394,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            @views normal_direction = normal_vectors_1[:, j, i, element]
+            @views normal_direction = normal_vectors_1[:, i, j, element]
 
             # Compute the contravariant flux
             contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
@@ -408,7 +409,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            @views normal_direction = normal_vectors_2[:, i, j, element]
+            @views normal_direction = normal_vectors_2[:, j, i, element]
 
             # Compute the contravariant flux by taking the scalar product of the
             # normal vector and the flux vector
