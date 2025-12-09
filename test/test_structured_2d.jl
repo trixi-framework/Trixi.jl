@@ -540,6 +540,26 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
+                        l2=[
+                            0.0027535201954222072,
+                            0.0017808463145373606,
+                            0.0017808463145373874,
+                            0.005589356782700206
+                        ],
+                        linf=[
+                            0.010801198634897702,
+                            0.00787469718577416,
+                            0.007874697185775936,
+                            0.02417877751394304
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_vortex_perk4.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_perk4.jl"),
                         l2=[
