@@ -49,13 +49,13 @@ const MPI_IS_ROOT = Ref(true)
 
 @inline function mpi_println(args...)
     if mpi_isroot()
-        println(args...)
+        _println(args...)
     end
     return nothing
 end
 @inline function mpi_print(args...)
     if mpi_isroot()
-        print(args...)
+        _print(args...)
     end
     return nothing
 end

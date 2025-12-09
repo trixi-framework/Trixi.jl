@@ -167,6 +167,24 @@ function print_startup_message(io = stdout)
     mpi_println(io, s)
 end
 
+# Workaround for bug in Documenter.jl that causes issues when printing to stdout
+# See https://github.com/trixi-framework/Trixi.jl/pull/2698#issuecomment-3628772990
+function _println(io, args...)
+    if io === stdout
+        println(args...)
+    else
+        println(io, args...)
+    end
+end
+
+function _print(io, args...)
+    if io === stdout
+        print(args...)
+    else
+        print(io, args...)
+    end
+end
+
 """
     get_name(x)
 

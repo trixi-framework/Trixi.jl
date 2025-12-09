@@ -105,10 +105,11 @@ function summary_header(io, heading; total_width = 100, indentation_level = 0)
     indentation_level > 0 && return
 
     # Print header
-    println(io, "┌" * "─"^(total_width - 2) * "┐")
-    println(io, "│ " * heading * " "^(total_width - length(heading) - 4) * " │")
-    println(io,
-            "│ " * "═"^length(heading) * " "^(total_width - length(heading) - 4) * " │")
+    _println(io, "┌" * "─"^(total_width - 2) * "┐")
+    _println(io, "│ " * heading * " "^(total_width - length(heading) - 4) * " │")
+    _println(io,
+             "│ " * "═"^length(heading) * " "^(total_width - length(heading) - 4) *
+             " │")
 end
 
 function summary_line(io, key, value; key_width = 30, total_width = 100,
@@ -123,7 +124,7 @@ function summary_line(io, key, value; key_width = 30, total_width = 100,
     s = format_key_value_line(key, value, key_width, total_width,
                               indentation_level = indentation_level)
 
-    println(io, s)
+    _println(io, s)
 end
 
 function summary_footer(io; total_width = 100, indentation_level = 0)
@@ -136,7 +137,7 @@ function summary_footer(io; total_width = 100, indentation_level = 0)
         s = ""
     end
 
-    print(io, s)
+    _print(io, s)
 end
 
 @inline function increment_indent(io)
@@ -177,19 +178,19 @@ function initialize_summary_callback(io, cb::DiscreteCallback, u, t, integrator;
     if callbacks isa CallbackSet
         foreach(callbacks.continuous_callbacks) do cb
             show(io_context, MIME"text/plain"(), cb)
-            println(io, "\n")
+            _println(io, "\n")
         end
         foreach(callbacks.discrete_callbacks) do cb
             # Do not show ourselves
             cb.affect! === summary_callback && return nothing
 
             show(io_context, MIME"text/plain"(), cb)
-            println(io, "\n")
+            _println(io, "\n")
             return nothing
         end
     else
         show(io_context, MIME"text/plain"(), callbacks)
-        println(io, "\n")
+        _println(io, "\n")
     end
 
     # time integration
@@ -204,7 +205,7 @@ function initialize_summary_callback(io, cb::DiscreteCallback, u, t, integrator;
               "controller" => integrator.opts.controller)
     end
     summary_box(io, "Time integration", setup)
-    println(io)
+    _println(io)
 
     # technical details
     setup = Pair{String, Any}["#threads" => Threads.nthreads()]
@@ -217,7 +218,7 @@ function initialize_summary_callback(io, cb::DiscreteCallback, u, t, integrator;
               "#MPI ranks" => mpi_nranks())
     end
     summary_box(io, "Environment information", setup)
-    println(io)
+    _println(io)
 
     reset_timer!(timer())
 
@@ -228,14 +229,14 @@ finalize_summary_callback(cb, u, t, integrator) = cb()
 
 function print_summary_semidiscretization(io::IO, semi::AbstractSemidiscretization)
     show(io, MIME"text/plain"(), semi)
-    println(io, "\n")
+    _println(io, "\n")
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
     show(io, MIME"text/plain"(), mesh)
-    println(io, "\n")
+    _println(io, "\n")
     show(io, MIME"text/plain"(), equations)
-    println(io, "\n")
+    _println(io, "\n")
     show(io, MIME"text/plain"(), solver)
-    println(io, "\n")
+    _println(io, "\n")
 end
 
 function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Condition,
@@ -247,7 +248,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Cond
     TimerOutputs.complement!(timer())
     print_timer(io, timer(), title = "Trixi.jl",
                 allocations = true, linechars = :unicode, compact = false)
-    println(io)
+    _println(io)
     return nothing
 end
 end # @muladd
