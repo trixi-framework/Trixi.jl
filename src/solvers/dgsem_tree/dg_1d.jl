@@ -35,29 +35,20 @@ end
 # and called from the basic `create_cache` method at the top.
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
-    cache = create_cache(mesh, equations,
-                         VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
-                         dg, uEltype)
-
+                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralShockCapturingHG}, dg::DG,
+                      uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
                   uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
     fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
     fstar1_R_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
-    return (; cache..., fstar1_L_threaded, fstar1_R_threaded)
-end
-
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::AbstractVolumeIntegralPureLGLFiniteVolume,
-                      dg::DG, uEltype)
-    A2d = Array{uEltype, 2}
-    fstar1_L_threaded = A2d[A2d(undef, nvariables(equations),
-                                nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A2d[A2d(undef, nvariables(equations),
-                                nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
+    @threaded for t in eachindex(fstar1_L_threaded)
+        fstar1_L_threaded[t][:, 1] .= zero(uEltype)
+        fstar1_R_threaded[t][:, 1] .= zero(uEltype)
+        fstar1_L_threaded[t][:, nnodes(dg) + 1] .= zero(uEltype)
+        fstar1_R_threaded[t][:, nnodes(dg) + 1] .= zero(uEltype)
+    end
 
     return (; fstar1_L_threaded, fstar1_R_threaded)
 end
@@ -238,23 +229,6 @@ end
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
-                               dg::DGSEM, cache)
-    @unpack x_interfaces, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
-
-    # Calculate LGL second-order FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fvO2_kernel!(du, u, mesh,
-                     have_nonconservative_terms, equations,
-                     volume_flux_fv, dg, cache, element,
-                     x_interfaces, reconstruction_mode, slope_limiter, true)
-    end
-
-    return nothing
-end
-
 @inline function fvO2_kernel!(du, u,
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               nonconservative_terms, equations,
@@ -291,11 +265,6 @@ end
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
-    fstar1_L[:, 1] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1] .= zero(eltype(fstar1_R))
-
     for i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, element)
@@ -312,12 +281,6 @@ end
                               have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
-
-    fstar1_L[:, 1] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1] .= zero(eltype(fstar1_R))
-
     for i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, element)
@@ -349,11 +312,6 @@ end
                                 nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
                                 x_interfaces, reconstruction_mode, slope_limiter)
-    fstar1_L[:, 1] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1] .= zero(eltype(fstar1_R))
-
     for i in 2:nnodes(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         #             Reference element:
         #  -1 ------------------0------------------ 1 -> x
@@ -384,7 +342,8 @@ end
         ## Obtain unlimited values in primitive variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
         u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
                          equations)
         u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, element),
@@ -392,7 +351,8 @@ end
         u_rl = cons2prim(get_node_vars(u, equations, dg, i, element),
                          equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
-        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
         u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1),
                                        element), equations)
 
