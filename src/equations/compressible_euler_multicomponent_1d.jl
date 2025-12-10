@@ -620,6 +620,18 @@ partial density fractions as well as the partial specific heats at constant volu
     return help1 / help2
 end
 
+@doc raw"""
+    pressure(u, equations::AbstractCompressibleEulerMulticomponentEquations)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2}\rho \Vert v \Vert_2^2 \right)
+\end{aligned}
+```
+"""
 @inline function pressure(u, equations::CompressibleEulerMulticomponentEquations1D)
     rho_v1, rho_e = u
 
@@ -631,6 +643,22 @@ end
     return p
 end
 
+@inline function density_pressure(u,
+                                  equations::CompressibleEulerMulticomponentEquations1D)
+    rho_v1, rho_e = u
+
+    rho = density(u, equations)
+    gamma = totalgamma(u, equations)
+    rho_times_p = (gamma - 1) * (rho * rho_e - 0.5f0 * rho_v1^2)
+
+    return rho_times_p
+end
+
+@doc raw"""
+    density(u, equations::AbstractCompressibleEulerMulticomponentEquations)
+
+Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`.
+"""
 @inline function density(u, equations::CompressibleEulerMulticomponentEquations1D)
     RealT = eltype(u)
     rho = zero(RealT)
