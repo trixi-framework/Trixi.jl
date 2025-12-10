@@ -668,7 +668,7 @@ then multiplying with the density.
 end
 
 @doc raw"""
-    density(u, equations::CompressibleEulerMulticomponentEquations1D)
+    density(u, equations::AbstractCompressibleEulerMulticomponentEquations)
 
 Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`.
 """

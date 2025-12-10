@@ -1006,11 +1006,6 @@ end
     return rho_times_p
 end
 
-@doc raw"""
-    density(u, equations::CompressibleEulerMulticomponentEquations2D)
-
-Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`.
-"""
 @inline function density(u, equations::CompressibleEulerMulticomponentEquations2D)
     RealT = eltype(u)
     rho = zero(RealT)

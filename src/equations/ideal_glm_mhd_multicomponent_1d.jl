@@ -623,7 +623,7 @@ end
 end
 
 @doc raw"""
-    density(u, equations::IdealGlmMhdMulticomponentEquations1D)
+    density(u, equations::AbstractIdealGlmMhdMulticomponentEquations)
 
 Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`.
 """

@@ -822,11 +822,6 @@ end
     return c_f
 end
 
-@doc raw"""
-    density(u, equations::IdealGlmMhdMulticomponentEquations2D)
-
-Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`.
-"""
 @inline function density(u, equations::IdealGlmMhdMulticomponentEquations2D)
     RealT = eltype(u)
     rho = zero(RealT)
