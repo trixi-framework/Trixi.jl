@@ -108,23 +108,31 @@ function calc_error_norms(func, u, t, analyzer,
     # same as in the parallel case to ensure exact equality. This facilitates easier parallel
     # development and debugging (see
     # https://github.com/trixi-framework/Trixi.jl/pull/850#pullrequestreview-757463943 for details).
-    for element in eachelement(dg, cache)
+
+    # Pre-allocate storage space for each thread
+    thread_caches = [(similar(u_local), similar(u_tmp1), similar(x_local), similar(x_tmp1))
+                     for i in 1:Threads.nthreads()]
+
+    @batch reduction=((+, l2_error), (max, linf_error)) for element in eachelement(dg, cache)
         # Set up data structures for local element L2 error
         l2_error_local = zero(l2_error)
 
+        # Retrieve pre-allocated variables for the current thread
+        u_local_, u_tmp1_, x_local_, x_tmp1_ = thread_caches[Threads.threadid()]
+
         # Interpolate solution and node locations to analysis nodes
-        multiply_dimensionwise!(u_local, vandermonde, view(u, :, :, :, element), u_tmp1)
-        multiply_dimensionwise!(x_local, vandermonde,
-                                view(node_coordinates, :, :, :, element), x_tmp1)
+        multiply_dimensionwise!(u_local_, vandermonde, view(u, :, :, :, element), u_tmp1_)
+        multiply_dimensionwise!(x_local_, vandermonde,
+                                view(node_coordinates, :, :, :, element), x_tmp1_)
 
         # Calculate errors at each analysis node
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
         for j in eachnode(analyzer), i in eachnode(analyzer)
-            u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j),
+            u_exact = initial_condition(get_node_coords(x_local_, equations, dg, i, j),
                                         t, equations)
             diff = func(u_exact, equations) -
-                   func(get_node_vars(u_local, equations, dg, i, j), equations)
+                   func(get_node_vars(u_local_, equations, dg, i, j), equations)
             l2_error_local += diff .^ 2 * (weights[i] * weights[j] * volume_jacobian_)
             linf_error = @. max(linf_error, abs(diff))
         end
@@ -154,24 +162,31 @@ function calc_error_norms(func, u, t, analyzer,
     linf_error = copy(l2_error)
     total_volume = zero(real(mesh))
 
+    # Pre-allocate storage space for each thread
+    thread_caches = [(similar(u_local), similar(u_tmp1), similar(x_local), similar(x_tmp1),
+                      similar(jacobian_local), similar(jacobian_tmp1)) for i in 1:Threads.nthreads()]
+
     # Iterate over all elements for error calculations
-    for element in eachelement(dg, cache)
+    @batch reduction=((+, l2_error), (max, linf_error), (+, total_volume)) for element in eachelement(dg, cache)
+        # Retrieve pre-allocated variables for the current thread
+        u_local_, u_tmp1_, x_local_, x_tmp1_, jacobian_local_, jacobian_tmp1_ = thread_caches[Threads.threadid()]
+
         # Interpolate solution and node locations to analysis nodes
-        multiply_dimensionwise!(u_local, vandermonde, view(u, :, :, :, element), u_tmp1)
-        multiply_dimensionwise!(x_local, vandermonde,
-                                view(node_coordinates, :, :, :, element), x_tmp1)
-        multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
+        multiply_dimensionwise!(u_local_, vandermonde, view(u, :, :, :, element), u_tmp1_)
+        multiply_dimensionwise!(x_local_, vandermonde,
+                                view(node_coordinates, :, :, :, element), x_tmp1_)
+        multiply_scalar_dimensionwise!(jacobian_local_, vandermonde,
                                        inv.(view(inverse_jacobian, :, :, element)),
-                                       jacobian_tmp1)
+                                       jacobian_tmp1_)
 
         # Calculate errors at each analysis node
         for j in eachnode(analyzer), i in eachnode(analyzer)
-            u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j),
+            u_exact = initial_condition(get_node_coords(x_local_, equations, dg, i, j),
                                         t, equations)
             diff = func(u_exact, equations) -
-                   func(get_node_vars(u_local, equations, dg, i, j), equations)
+                   func(get_node_vars(u_local_, equations, dg, i, j), equations)
             # We take absolute value as we need the Jacobian here for the volume calculation
-            abs_jacobian_local_ij = abs(jacobian_local[i, j])
+            abs_jacobian_local_ij = abs(jacobian_local_[i, j])
 
             l2_error += diff .^ 2 * (weights[i] * weights[j] * abs_jacobian_local_ij)
             linf_error = @. max(linf_error, abs(diff))

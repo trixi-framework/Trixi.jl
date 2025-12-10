@@ -712,3 +712,7 @@ function analyze(quantity::AnalysisSurfaceIntegral{Variable},
     analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, semi,
             cache_parabolic)
 end
+
+# Overload `typemin` from Base to support `SVector`
+# This is necessary for batch reductions for the max operation on SVectors 
+Base.typemin(::Type{SVector{N, T}}) where {N, T} = fill(typemin(T), SVector{N, T})
