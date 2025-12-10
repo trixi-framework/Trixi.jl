@@ -1130,19 +1130,6 @@ p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} - \fra
     return p
 end
 
-@doc raw"""
-    density_pressure(u, equations::IdealGlmMhdEquations3D)
-
-Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
-equation of state with isentropic exponent/adiabatic index ``\gamma``.
-
-This is a useful function since it combines two variables which need to 
-stay positive into a single one.
-
-Furthermore, the implementation is slightly more efficient than
-computing [`pressure(u, equations::IdealGlmMhdEquations3D)`](@ref) first and 
-then multiplying with the density.
-"""
 @inline function density_pressure(u, equations::IdealGlmMhdEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
     rho_times_p = (equations.gamma - 1) * (rho * rho_e -

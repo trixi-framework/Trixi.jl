@@ -1060,7 +1060,7 @@ end
 end
 
 @doc raw"""
-    pressure(u, equations::CompressibleEulerEquations1D)
+    pressure(u, equations::AbstractCompressibleEulerEquations)
 
 Computes the pressure for an ideal equation of state with
 isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
@@ -1078,7 +1078,7 @@ p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
 end
 
 @doc raw"""
-    density_pressure(u, equations::CompressibleEulerEquations1D)
+    density_pressure(u, equations::AbstractCompressibleEulerEquations)
 
 Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
 equation of state with isentropic exponent/adiabatic index ``\gamma``.
@@ -1087,7 +1087,7 @@ This is a useful function since it combines two variables which need to
 stay positive into a single one.
 
 Furthermore, the implementation is slightly more efficient than
-computing [`pressure(u, equations::CompressibleEulerEquations1D)`](@ref) first and 
+computing [`pressure(u, equations::AbstractCompressibleEulerEquations)`](@ref) first and 
 then multiplying with the density.
 """
 @inline function density_pressure(u, equations::CompressibleEulerEquations1D)

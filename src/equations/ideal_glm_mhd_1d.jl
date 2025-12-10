@@ -634,7 +634,7 @@ p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} \right
 end
 
 @doc raw"""
-    density_pressure(u, equations::IdealGlmMhdEquations1D)
+    density_pressure(u, equations::AbstractIdealGlmMhdEquations)
 
 Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
 equation of state with isentropic exponent/adiabatic index ``\gamma``.
