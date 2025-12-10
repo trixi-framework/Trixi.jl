@@ -390,13 +390,9 @@ end
     pressure(u, equations::CompressibleEulerEquationsQuasi1D)
 
 Computes the pressure for an ideal equation of state with
-isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
-```math
-\begin{aligned}
-p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
-  &= (\gamma - 1) \left( \rho e - \frac{1}{2}\rho \Vert v \Vert_2^2 \right)
-\end{aligned}
-```
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`,
+see [`pressure(u, equations::CompressibleEulerEquations1D)`](@ref).
+
 To obtain ``\rho``, ``\rho v``, and ``\rho e`` from the quasi-1d conserved variables,
 one has to divide by the nozzle width ``a``.
 """
@@ -406,11 +402,11 @@ one has to divide by the nozzle width ``a``.
                     CompressibleEulerEquations1D(equations.gamma))
 end
 
-"""
+@doc raw"""
     density_pressure(u, equations::CompressibleEulerEquationsQuasi1D)
 
-Computes ``\\rho \\cdot p`` from the conserved variables `u` for an ideal
-equation of state with isentropic exponent/adiabatic index ``\\gamma``.
+Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
+equation of state with isentropic exponent/adiabatic index ``\gamma``.
 
 To obtain ``\rho``, ``\rho v``, and ``\rho e`` from the quasi-1d conserved variables,
 one has to divide by the nozzle width ``a``.

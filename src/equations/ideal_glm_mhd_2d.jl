@@ -1662,7 +1662,7 @@ end
 end
 
 @inline function density(u, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho = u[1]
     return rho
 end
 
@@ -1716,11 +1716,11 @@ end
            SVector(0.5f0 * v_square, -v1, -v2, -v3, 1, -B1, -B2, -B3, -psi)
 end
 
-"""
+@doc raw"""
     density_pressure(u, equations::IdealGlmMhdEquations2D)
 
-Computes ``\\rho \\cdot p`` from the conserved variables `u` for an ideal
-equation of state with isentropic exponent/adiabatic index ``\\gamma``.
+Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
+equation of state with isentropic exponent/adiabatic index ``\gamma``.
 
 This is a useful function since it combines two variables which need to 
 stay positive into a single one.

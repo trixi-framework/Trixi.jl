@@ -174,7 +174,12 @@ magnetic_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = SVector(u[1
 # Extract GLM divergence-cleaning field from solution vector
 divergence_cleaning_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = u[end]
 
-# Get total density as the sum of the individual densities of the ion species
+@doc raw"""
+    density(u, equations::AbstractIdealGlmMhdMultiIonEquations)
+
+Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`,
+where ``i`` is the index of **ion** species.
+"""
 @inline function density(u, equations::AbstractIdealGlmMhdMultiIonEquations)
     rho = zero(real(equations))
     for k in eachcomponent(equations)

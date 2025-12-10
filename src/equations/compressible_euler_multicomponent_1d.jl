@@ -643,8 +643,35 @@ p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
     return p
 end
 
-# TODO: Function density_pressure
+@doc raw"""
+    density_pressure(u, equations::CompressibleEulerMulticomponentEquations1D)
 
+Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
+equation of state with isentropic exponent/adiabatic index ``\gamma``.
+
+This is a useful function since it combines two variables which need to 
+stay positive into a single one.
+
+Furthermore, the implementation is slightly more efficient than
+computing [`pressure(u, equations::CompressibleEulerMulticomponentEquations1D)`](@ref) first and 
+then multiplying with the density.
+"""
+@inline function density_pressure(u,
+                                  equations::CompressibleEulerMulticomponentEquations1D)
+    rho_v1, rho_e = u
+
+    rho = density(u, equations)
+    gamma = totalgamma(u, equations)
+    rho_times_p = (gamma - 1) * (rho * rho_e - 0.5f0 * rho_v1^2)
+
+    return rho_times_p
+end
+
+@doc raw"""
+    density(u, equations::CompressibleEulerMulticomponentEquations1D)
+
+Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`.
+"""
 @inline function density(u, equations::CompressibleEulerMulticomponentEquations1D)
     RealT = eltype(u)
     rho = zero(RealT)

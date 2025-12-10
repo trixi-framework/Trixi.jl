@@ -2141,11 +2141,11 @@ end
     return (equations.gamma - 1) * SVector(0.5f0 * v_square, -v1, -v2, 1)
 end
 
-"""
+@doc raw"""
     density_pressure(u, equations::CompressibleEulerEquations2D)
 
-Computes ``\\rho \\cdot p`` from the conserved variables `u` for an ideal
-equation of state with isentropic exponent/adiabatic index ``\\gamma``.
+Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
+equation of state with isentropic exponent/adiabatic index ``\gamma``.
 
 This is a useful function since it combines two variables which need to 
 stay positive into a single one.

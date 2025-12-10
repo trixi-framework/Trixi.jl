@@ -1077,11 +1077,11 @@ p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
     return p
 end
 
-"""
+@doc raw"""
     density_pressure(u, equations::CompressibleEulerEquations1D)
 
-Computes ``\\rho \\cdot p`` from the conserved variables `u` for an ideal
-equation of state with isentropic exponent/adiabatic index ``\\gamma``.
+Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
+equation of state with isentropic exponent/adiabatic index ``\gamma``.
 
 This is a useful function since it combines two variables which need to 
 stay positive into a single one.
