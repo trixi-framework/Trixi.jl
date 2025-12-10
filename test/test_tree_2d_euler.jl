@@ -72,6 +72,48 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_convergence_pure_fv.jl (O2, constant reconstruction)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
+                        volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
+                                                                            volume_flux_fv = flux_hllc,
+                                                                            reconstruction_mode = reconstruction_constant,
+                                                                            slope_limiter = central_slope),
+                        l2=[
+                            0.026440292358506527,
+                            0.013245905852168414,
+                            0.013245905852168479,
+                            0.03912520302609374
+                        ],
+                        linf=[
+                            0.042130817806361964,
+                            0.022685499230187034,
+                            0.022685499230187922,
+                            0.06999771202145322
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_convergence_pure_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fvO2.jl"),
+                        l2=[
+                            0.0025035946669334152,
+                            0.0016446683868937965,
+                            0.001644668386893891,
+                            0.005333979740615437
+                        ],
+                        linf=[
+                            0.0057968192449908695,
+                            0.004564113130849812,
+                            0.00456411313084959,
+                            0.01494308497387209
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_convergence_IDP.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_IDP.jl"),
                         l2=[

@@ -30,7 +30,7 @@ end
                         # Expected errors are taken from elixir_advection_basic.jl
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
-                        RealT=Float32)
+                        RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -785,6 +785,26 @@ end
                             1.918201192063762e-5,
                             1.918201192019353e-5,
                             6.052671713430158e-5
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
+                        l2=[
+                            0.0027535201954222072,
+                            0.0017808463145373606,
+                            0.0017808463145373874,
+                            0.005589356782700206
+                        ],
+                        linf=[
+                            0.010801198634897702,
+                            0.00787469718577416,
+                            0.007874697185775936,
+                            0.02417877751394304
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
