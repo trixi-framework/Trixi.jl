@@ -57,6 +57,9 @@ function normalvectors_subcell_fv(mesh::Union{StructuredMesh{2},
         end
     end
 
+    # TODO: Make this threaded!
+    normal_vector = MVector{2, RealT}(0, 0)
+
     return (normal_vectors_1, normal_vectors_2)
 end
 
@@ -389,12 +392,17 @@ end
     @unpack weights, derivative_matrix = dg.basis
     @unpack normal_vectors_1, normal_vectors_2 = cache
 
+    # TODO: Move into `cache`
+    normal_direction = MVector{2, eltype(u)}(0.0, 0.0)
+
     for j in eachnode(dg)
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            @views normal_direction = normal_vectors_1[:, i, j, element]
+            #@views normal_direction = normal_vectors_1[:, i, j, element]
+            normal_direction[1] = normal_vectors_1[1, i, j, element]
+            normal_direction[2] = normal_vectors_1[2, i, j, element]
 
             # Compute the contravariant flux
             contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
@@ -409,7 +417,9 @@ end
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            @views normal_direction = normal_vectors_2[:, j, i, element]
+            #@views normal_direction = normal_vectors_2[:, j, i, element]
+            normal_direction[1] = normal_vectors_2[1, j, i, element]
+            normal_direction[2] = normal_vectors_2[2, j, i, element]
 
             # Compute the contravariant flux by taking the scalar product of the
             # normal vector and the flux vector
