@@ -174,7 +174,12 @@ magnetic_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = SVector(u[1
 # Extract GLM divergence-cleaning field from solution vector
 divergence_cleaning_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = u[end]
 
-# Get total density as the sum of the individual densities of the ion species
+@doc raw"""
+    density(u, equations::AbstractIdealGlmMhdMultiIonEquations)
+
+Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`,
+where ``i`` is the index of **ion** species.
+"""
 @inline function density(u, equations::AbstractIdealGlmMhdMultiIonEquations)
     rho = zero(real(equations))
     for k in eachcomponent(equations)
@@ -183,6 +188,12 @@ divergence_cleaning_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = 
     return rho
 end
 
+@doc raw"""
+    pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
+
+Computes the pressure of every component ``k`` analogouos to 
+[`pressure(u, equations::IdealGlmMhdEquations1D)`](@ref).
+"""
 @inline function pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
     B1, B2, B3, _ = u
     p = zero(MVector{ncomponents(equations), real(equations)})
@@ -192,9 +203,8 @@ end
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         gamma = equations.gammas[k]
-        p[k] = (gamma - 1) *
-               (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) -
-                0.5f0 * (B1^2 + B2^2 + B3^2))
+        p[k] = (gamma - 1) * (rho_e - 0.5f0 *
+                        (rho * (v1^2 + v2^2 + v3^2) + B1^2 + B2^2 + B3^2))
     end
     return SVector{ncomponents(equations), real(equations)}(p)
 end
