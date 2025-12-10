@@ -392,9 +392,6 @@ end
 Computes the pressure for an ideal equation of state with
 isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`,
 see [`pressure(u, equations::CompressibleEulerEquations1D)`](@ref).
-
-To obtain ``\rho``, ``\rho v``, and ``\rho e`` from the quasi-1d conserved variables,
-one has to divide by the nozzle width ``a``.
 """
 @inline function pressure(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
