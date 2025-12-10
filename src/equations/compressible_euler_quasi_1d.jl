@@ -402,22 +402,6 @@ one has to divide by the nozzle width ``a``.
                     CompressibleEulerEquations1D(equations.gamma))
 end
 
-@doc raw"""
-    density_pressure(u, equations::CompressibleEulerEquationsQuasi1D)
-
-Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
-equation of state with isentropic exponent/adiabatic index ``\gamma``.
-
-To obtain ``\rho``, ``\rho v``, and ``\rho e`` from the quasi-1d conserved variables,
-one has to divide by the nozzle width ``a``.
-
-This is a useful function since it combines two variables which must 
-stay positive into a single one.
-
-Furthermore, the implementation is slightly more efficient than
-computing [`pressure(u, equations::CompressibleEulerEquationsQuasi1D)`](@ref) first and 
-then multiplying with the density.
-"""
 @inline function density_pressure(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     return density_pressure(SVector(a_rho, a_rho_v1, a_e) / a,

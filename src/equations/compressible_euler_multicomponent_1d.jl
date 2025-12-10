@@ -643,19 +643,6 @@ p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
     return p
 end
 
-@doc raw"""
-    density_pressure(u, equations::AbstractCompressibleEulerMulticomponentEquations)
-
-Computes ``\rho \cdot p`` from the conserved variables `u` for an ideal
-equation of state with isentropic exponent/adiabatic index ``\gamma``.
-
-This is a useful function since it combines two variables which must 
-stay positive into a single one.
-
-Furthermore, the implementation is slightly more efficient than
-computing [`pressure(u, equations::AbstractCompressibleEulerMulticomponentEquations)`](@ref) first and 
-then multiplying with the density.
-"""
 @inline function density_pressure(u,
                                   equations::CompressibleEulerMulticomponentEquations1D)
     rho_v1, rho_e = u
