@@ -606,7 +606,7 @@ end
     end
 end
 
-# It is for many equations possible to compute ρ ⋅ p more efficient 
+# It is for many equations possible to compute ρ ⋅ p more efficiently
 # than computing the pressure (and density if needed) separately and then multiplying. 
 # This is due to the computation of the kinetic energy term, which usually involves
 # dividing the squared momenta by the density, an operation that can be avoided
