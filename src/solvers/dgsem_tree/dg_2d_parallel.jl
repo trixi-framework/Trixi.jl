@@ -267,7 +267,7 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
     # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 

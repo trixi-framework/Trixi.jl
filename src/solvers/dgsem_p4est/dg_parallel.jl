@@ -254,7 +254,7 @@ function create_cache(mesh::ParallelP4estMesh, equations::AbstractEquations, dg:
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
     # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
