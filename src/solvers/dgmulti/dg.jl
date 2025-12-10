@@ -479,7 +479,7 @@ end
 # do nothing for periodic (default) boundary conditions
 function calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic,
                              mesh, have_nonconservative_terms, equations, dg::DGMulti)
-    nothing
+    return nothing
 end
 
 function calc_boundary_flux!(cache, t, boundary_conditions, mesh,

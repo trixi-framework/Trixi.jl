@@ -313,6 +313,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
                                          T8codeMesh},
                              equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
+
+    return nothing
 end
 
 # Function barrier for type stability
