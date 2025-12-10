@@ -19,8 +19,10 @@ function normalvectors_subcell_fv(mesh::Union{StructuredMesh{2},
     @unpack weights, derivative_matrix = dg.basis
 
     RealT = eltype(contravariant_vectors)
+    # For first contravariant vector
     normal_vectors_1 = Array{RealT, 4}(undef, 2, nnodes(dg.basis), nnodes(dg.basis),
                                        nelements(dg, cache_containers))
+    # For second contravariant vector
     normal_vectors_2 = Array{RealT, 4}(undef, 2, nnodes(dg.basis), nnodes(dg.basis),
                                        nelements(dg, cache_containers))
 
@@ -61,6 +63,12 @@ function normalvectors_subcell_fv(mesh::Union{StructuredMesh{2},
     normal_vector = MVector{2, RealT}(0, 0)
 
     return (normal_vectors_1, normal_vectors_2)
+end
+
+# Similar to `get_contravariant_vector`
+@inline function get_normal_vector(normal_vectors, indices...)
+    SVector(ntuple(@inline(dim->normal_vectors[dim, indices...]),
+                   Val(ndims(normal_vectors) - 2)))
 end
 
 function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
@@ -393,7 +401,7 @@ end
     @unpack normal_vectors_1, normal_vectors_2 = cache
 
     # TODO: Move into `cache`
-    normal_direction = MVector{2, eltype(u)}(0.0, 0.0)
+    #normal_direction = MVector{2, eltype(u)}(0.0, 0.0)
 
     for j in eachnode(dg)
         for i in 2:nnodes(dg)
@@ -401,8 +409,9 @@ end
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
             #@views normal_direction = normal_vectors_1[:, i, j, element]
-            normal_direction[1] = normal_vectors_1[1, i, j, element]
-            normal_direction[2] = normal_vectors_1[2, i, j, element]
+            #normal_direction[1] = normal_vectors_1[1, i, j, element]
+            #normal_direction[2] = normal_vectors_1[2, i, j, element]
+            normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
 
             # Compute the contravariant flux
             contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
@@ -418,8 +427,9 @@ end
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
             #@views normal_direction = normal_vectors_2[:, j, i, element]
-            normal_direction[1] = normal_vectors_2[1, j, i, element]
-            normal_direction[2] = normal_vectors_2[2, j, i, element]
+            #normal_direction[1] = normal_vectors_2[1, j, i, element]
+            #normal_direction[2] = normal_vectors_2[2, j, i, element]
+            normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
 
             # Compute the contravariant flux by taking the scalar product of the
             # normal vector and the flux vector
@@ -473,7 +483,10 @@ end
                                            slope_limiter, dg)
 
             # Fetch precomputed freestream-preserving normal vector for the finite volume flux
-            @views normal_direction = normal_vectors_1[:, i, j, element]
+            #@views normal_direction = normal_vectors_2[:, j, i, element]
+            #normal_direction[1] = normal_vectors_2[1, j, i, element]
+            #normal_direction[2] = normal_vectors_2[2, j, i, element]
+            normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
 
             # Compute the contravariant flux by taking the scalar product of the
             # normal vector and the flux vector.
