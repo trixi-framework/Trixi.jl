@@ -40,6 +40,12 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
 
     performance_counter::PerformanceCounterList{2}
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationHyperbolicParabolic(mesh, both_equations, initial_condition, solver;
@@ -61,7 +67,6 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                # while `uEltype` is used as element type of solutions etc.
                                                RealT = real(solver), uEltype = RealT)
     equations, equations_parabolic = equations
-    boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
     @assert ndims(mesh) == ndims(equations)
     @assert ndims(mesh) == ndims(equations_parabolic)
@@ -70,14 +75,15 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
         throw(ArgumentError("Current implementation of viscous terms requires the same number of conservative and gradient variables."))
     end
 
+    boundary_conditions, boundary_conditions_parabolic = boundary_conditions
+
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
                                                       mesh, solver, cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
-    cache_parabolic = create_cache_parabolic(mesh, equations, equations_parabolic,
-                                             solver, solver_parabolic,
-                                             RealT, uEltype)
+    cache_parabolic = create_cache_parabolic(mesh, equations, solver,
+                                             nelements(solver, cache), uEltype)
 
     _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
                                                                 mesh, solver, cache)
@@ -361,8 +367,8 @@ end
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
     @unpack mesh, equations_parabolic, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
-    u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache_parabolic)
-    du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache_parabolic)
+    u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache)
+    du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
@@ -388,7 +394,8 @@ and a vector `b`:
 ```math
 \\partial_t u(t) = A u(t) - b.
 ```
-Works only for linear equations, i.e., equations with `have_constant_speed(equations) == True()`.
+Works only for linear equations, i.e.,
+equations which `have_constant_speed(equations) == True()` and `have_constant_diffusivity(equations_parabolic) == True()`
 
 This has the benefit of greatly reduced memory consumption compared to constructing
 the full system matrix explicitly, as done for instance in
@@ -399,7 +406,8 @@ supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSm
 """
 function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
                           t0 = zero(real(semi)))
-    if have_constant_speed(semi.equations) == False()
+    if (have_constant_speed(semi.equations) == False() ||
+        have_constant_diffusivity(semi.equations_parabolic) == False())
         throw(ArgumentError("`linear_structure` expects linear equations."))
     end
 
@@ -449,6 +457,70 @@ function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u
     end
 
     return J
+end
+
+"""
+    linear_structure_parabolic(semi::SemidiscretizationHyperbolicParabolic;
+                               t0 = zero(real(semi)))
+
+Wraps the **parabolic part** right-hand side operator of the hyperbolic-parabolic semidiscretization `semi`
+at time `t0` as an affine-linear operator given by a linear operator `A`
+and a vector `b`:
+```math
+\\partial_t u(t) = A u(t) - b.
+```
+Works only for linear parabolic equations, i.e.,
+equations which `have_constant_diffusivity(equations_parabolic) == True()`.
+
+This has the benefit of greatly reduced memory consumption compared to constructing
+the full system matrix explicitly, as done for instance in
+[`jacobian_ad_forward_parabolic`](@ref).
+
+The returned linear operator `A` is a matrix-free representation which can be
+supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
+
+It is also possible to use this to construct a sparse matrix without the detour of constructing
+first the full Jacobian by calling
+```julia
+using SparseArrays
+A_map, b = linear_structure_parabolic(semi, t0 = t0)
+A_sparse = sparse(A_map)
+```
+which can then be further used to construct for instance a
+[`MatrixOperator`](https://docs.sciml.ai/SciMLOperators/stable/tutorials/getting_started/#Simplest-Operator:-MatrixOperator)
+from [SciMLOperators.jl](https://docs.sciml.ai/SciMLOperators/stable/).
+This is especially useful for IMEX schemes where the parabolic part is implicitly,
+and for a `MatrixOperator` only factorized once.
+"""
+function linear_structure_parabolic(semi::SemidiscretizationHyperbolicParabolic;
+                                    t0 = zero(real(semi)))
+    if have_constant_diffusivity(semi.equations_parabolic) == False()
+        throw(ArgumentError("`linear_structure_parabolic` expects equations with constant diffusive terms."))
+    end
+
+    # allocate memory
+    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+    du_ode = similar(u_ode)
+
+    # get the parabolic right hand side from boundary conditions and optional source terms
+    u_ode .= zero(eltype(u_ode))
+    rhs_parabolic!(du_ode, u_ode, semi, t0)
+    b = -du_ode
+
+    # Create a copy of `b` used internally to extract the linear part of `semi`.
+    # This is necessary to get everything correct when the user updates the
+    # returned vector `b`.
+    b_tmp = copy(b)
+
+    # wrap the linear operator
+    A = LinearMap(length(u_ode), ismutating = true) do dest, src
+        rhs_parabolic!(dest, src, semi, t0)
+
+        @. dest += b_tmp
+        return dest
+    end
+
+    return A, b
 end
 
 """

@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    IdealGlmMhdMulticomponentEquations1D
+    IdealGlmMhdMulticomponentEquations1D(; gammas, gas_constants)
 
 The ideal compressible multicomponent GLM-MHD equations
 ```math
@@ -552,14 +552,37 @@ end
     return vcat(cons_other, cons_rho)
 end
 
+@doc raw"""
+    pressure(u, equations::IdealGlmMhdMulticomponentEquations1D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2} 
+  \left[\rho \Vert v \Vert_2^2  + \Vert B \Vert_2^2 \right] \right)
+\end{aligned}
+```
+"""
+@inline function pressure(u, equations::IdealGlmMhdMulticomponentEquations1D)
+    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
+    rho = density(u, equations)
+    gamma = totalgamma(u, equations)
+    p = (gamma - 1) * (rho_e - 0.5f0 *
+                 ((rho_v1^2 + rho_v2^2 + rho_v3^2) / rho +
+                  B1^2 + B2^2 + B3^2))
+    return p
+end
+
 @inline function density_pressure(u, equations::IdealGlmMhdMulticomponentEquations1D)
     rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
     rho = density(u, equations)
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2))
-    return rho * p
+    rho_times_p = (gamma - 1) * (rho * rho_e -
+                   0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2 +
+                    rho * (B1^2 + B2^2 + B3^2)))
+    return rho_times_p
 end
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
@@ -586,6 +609,11 @@ end
     return c_f
 end
 
+@doc raw"""
+    density(u, equations::AbstractIdealGlmMhdMulticomponentEquations)
+
+Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`.
+"""
 @inline function density(u, equations::IdealGlmMhdMulticomponentEquations1D)
     RealT = eltype(u)
     rho = zero(RealT)

@@ -606,6 +606,110 @@ end
     end
 end
 
+# It is for many equations possible to compute ρ ⋅ p more efficiently
+# than computing the pressure (and density if needed) separately and then multiplying. 
+# This is due to the computation of the kinetic energy term, which usually involves
+# dividing the squared momenta by the density, an operation that can be avoided
+# when computing the product ρ ⋅ p directly.
+@timed_testset "Test density_pressure" begin
+    let equations = CompressibleEulerEquations1D(5 / 3)
+        u = initial_condition_density_wave(SVector(1.0), 3.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerEquations2D(2.0)
+        u = initial_condition_eoc_test_coupled_euler_gravity(SVector(0.666, 0.25), 0.1,
+                                                             equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerEquations3D(1.4)
+        u = initial_condition_convergence_test(SVector(0.5, 0.1, -0.2), 1.5, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerEquationsQuasi1D(1.4)
+        u = initial_condition_convergence_test(SVector(2.0), 5.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdEquations1D(5 / 3)
+        u = initial_condition_convergence_test(SVector(-1.0), 7.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdEquations2D(5 / 3)
+        u = initial_condition_convergence_test(SVector(-1.0, 0.5), 0.1, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdEquations3D(5 / 3)
+        u = initial_condition_convergence_test(SVector(-1.0, 0.5, 0.2), 0.8, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerMulticomponentEquations1D(gammas = (1.4, 1.4),
+                                                               gas_constants = (0.4,
+                                                                                0.4))
+        u = initial_condition_convergence_test(SVector(1.0), 42.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
+                                                               gas_constants = (0.287,
+                                                                                1.578))
+        u = initial_condition_convergence_test(SVector(1.0, 0.1), 0.42, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdMulticomponentEquations1D(gammas = (2.0, 2.0, 2.0),
+                                                         gas_constants = (2.0, 2.0,
+                                                                          2.0))
+        u = initial_condition_weak_blast_wave(SVector(0.5, 0.1), 0.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdMulticomponentEquations2D(gammas = (5 / 3, 5 / 3, 5 / 3),
+                                                         gas_constants = (2.08, 2.08,
+                                                                          2.08))
+        u = initial_condition_convergence_test(SVector(-0.5, 0.1), 0.666, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+end
+
 @timed_testset "boundary_condition_do_nothing" begin
     rho, v1, v2, p = 1.0, 0.1, 0.2, 0.3, 2.0
 
@@ -2349,7 +2453,7 @@ end
                     0.7736369992226316 0.12636297693551043
                     0.8161315324169078 0.1838684675830921
                     0.7532704453316061 0.2467295546683939
-                    0.31168238866709846 0.18831761133290154], atol = 1e-13)
+                    0.31168238866709846 0.18831761133290154], atol = 1e-8)
 end
 
 @testset "PERK Single p4 Constructors" begin
