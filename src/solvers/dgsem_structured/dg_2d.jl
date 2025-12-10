@@ -10,7 +10,7 @@
 # - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
 #   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
 #   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
-# TODO: Implement resizable versions for p4est and t8code
+# TODO: Implement resizable versions for p4est and t8code, as container (move also there)
 function normalvectors_subcell_fv(mesh::Union{StructuredMesh{2},
                                               UnstructuredMesh2D,
                                               P4estMesh{2}, T8codeMesh{2}},
@@ -59,15 +59,12 @@ function normalvectors_subcell_fv(mesh::Union{StructuredMesh{2},
         end
     end
 
-    # TODO: Make this threaded!
-    normal_vector = MVector{2, RealT}(0, 0)
-
     return (normal_vectors_1, normal_vectors_2)
 end
 
 # Similar to `get_contravariant_vector`
 @inline function get_normal_vector(normal_vectors, indices...)
-    SVector(ntuple(@inline(dim->normal_vectors[dim, indices...]),
+    return SVector(ntuple(@inline(dim->normal_vectors[dim, indices...]),
                    Val(ndims(normal_vectors) - 2)))
 end
 
@@ -400,17 +397,11 @@ end
     @unpack weights, derivative_matrix = dg.basis
     @unpack normal_vectors_1, normal_vectors_2 = cache
 
-    # TODO: Move into `cache`
-    #normal_direction = MVector{2, eltype(u)}(0.0, 0.0)
-
     for j in eachnode(dg)
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            #@views normal_direction = normal_vectors_1[:, i, j, element]
-            #normal_direction[1] = normal_vectors_1[1, i, j, element]
-            #normal_direction[2] = normal_vectors_1[2, i, j, element]
             normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
 
             # Compute the contravariant flux
@@ -426,9 +417,6 @@ end
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            #@views normal_direction = normal_vectors_2[:, j, i, element]
-            #normal_direction[1] = normal_vectors_2[1, j, i, element]
-            #normal_direction[2] = normal_vectors_2[2, j, i, element]
             normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
 
             # Compute the contravariant flux by taking the scalar product of the
@@ -546,7 +534,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            @views normal_direction = normal_vectors_1[:, i, j, element]
+            normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
 
             # Compute the conservative part of the contravariant flux
             ftilde1 = volume_flux(u_ll, u_rr, normal_direction, equations)
@@ -573,7 +561,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            @views normal_direction = normal_vectors_2[:, j, i, element]
+            normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
 
             # Compute the conservative part of the contravariant flux
             ftilde2 = volume_flux(u_ll, u_rr, normal_direction, equations)
