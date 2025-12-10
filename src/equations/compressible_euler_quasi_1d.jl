@@ -411,7 +411,7 @@ equation of state with isentropic exponent/adiabatic index ``\gamma``.
 To obtain ``\rho``, ``\rho v``, and ``\rho e`` from the quasi-1d conserved variables,
 one has to divide by the nozzle width ``a``.
 
-This is a useful function since it combines two variables which need to 
+This is a useful function since it combines two variables which must 
 stay positive into a single one.
 
 Furthermore, the implementation is slightly more efficient than
