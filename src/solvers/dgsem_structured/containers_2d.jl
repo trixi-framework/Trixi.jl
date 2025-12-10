@@ -191,4 +191,86 @@ function initialize_left_neighbor_connectivity!(left_neighbors,
 
     return left_neighbors
 end
+
+# Fixed size, i.e., not AMR ready. Sufficient for `StructuredMesh` and `UnstructuredMesh2D`
+struct FixedNormalVectorContainer2D{RealT <: Real} <: AbstractNormalVectorContainer
+    # For normal vectors computed from first contravariant vectors
+    normal_vectors_1::Array{RealT, 4}
+    # For normal vectors computed from second contravariant vectors
+    normal_vectors_2::Array{RealT, 4}
+end
+
+# Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
+# equation (B.53) in:
+# - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+#   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
+#   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
+                                        mesh::Union{StructuredMesh{2},
+                                                    UnstructuredMesh2D,
+                                                    P4estMesh{2}, T8codeMesh{2}},
+                                        dg, cache_containers)
+    @unpack contravariant_vectors = cache_containers.elements
+    @unpack weights, derivative_matrix = dg.basis
+
+    for element in eachelement(dg, cache_containers)
+        for i in eachnode(dg)
+            # j = 1
+            # Optimize indexing: j to second position, i to third
+            normal_vectors_1[:, 1, i, element] = get_contravariant_vector(1,
+                                                                          contravariant_vectors,
+                                                                          1, i, element)
+            normal_vectors_2[:, 1, i, element] = get_contravariant_vector(2,
+                                                                          contravariant_vectors,
+                                                                          i, 1, element)
+            for j in 2:nnodes(dg)
+                normal_vectors_1[:, j, i, element] = normal_vectors_1[:, j - 1, i,
+                                                                      element]
+                normal_vectors_2[:, j, i, element] = normal_vectors_2[:, j - 1, i,
+                                                                      element]
+                for m in eachnode(dg)
+                    wD_jm = weights[j - 1] * derivative_matrix[j - 1, m]
+                    normal_vectors_1[:, j, i, element] += wD_jm *
+                                                          get_contravariant_vector(1,
+                                                                                   contravariant_vectors,
+                                                                                   m, i,
+                                                                                   element)
+
+                    normal_vectors_2[:, j, i, element] += wD_jm *
+                                                          get_contravariant_vector(2,
+                                                                                   contravariant_vectors,
+                                                                                   i, m,
+                                                                                   element)
+                end
+            end
+        end
+    end
+
+    return (normal_vectors_1, normal_vectors_2)
+end
+
+function FixedNormalVectorContainer2D(mesh::Union{StructuredMesh{2},
+                                                  UnstructuredMesh2D},
+                                      dg, cache_containers)
+    @unpack contravariant_vectors = cache_containers.elements
+    RealT = eltype(contravariant_vectors)
+
+    # For first contravariant vector
+    normal_vectors_1 = Array{RealT, 4}(undef, 2, nnodes(dg.basis), nnodes(dg.basis),
+                                       nelements(dg, cache_containers))
+    # For second contravariant vector
+    normal_vectors_2 = Array{RealT, 4}(undef, 2, nnodes(dg.basis), nnodes(dg.basis),
+                                       nelements(dg, cache_containers))
+
+    calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
+                                   mesh, dg, cache_containers)
+
+    return FixedNormalVectorContainer2D{RealT}(normal_vectors_1, normal_vectors_2)
+end
+
+# Similar to `get_contravariant_vector`
+@inline function get_normal_vector(normal_vectors, indices...)
+    return SVector(ntuple(@inline(dim->normal_vectors[dim, indices...]),
+                          Val(ndims(normal_vectors) - 2)))
+end
 end # @muladd

@@ -26,7 +26,7 @@ end
 # Extract contravariant vector Ja^i (i = index) as SVector
 @inline function get_contravariant_vector(index, contravariant_vectors, indices...)
     return SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
-                   Val(ndims(contravariant_vectors) - 3)))
+                          Val(ndims(contravariant_vectors) - 3)))
 end
 
 # Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `StructuredMesh`es.
