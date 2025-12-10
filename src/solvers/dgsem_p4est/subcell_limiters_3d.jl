@@ -78,15 +78,15 @@ end
 # Global positivity limiting of nonlinear variables
 
 @inline function idp_positivity_nonlinear!(alpha, limiter,
-                                           u::AbstractArray{<:Real, 5}, dt, semi,
-                                           variable)
+                                           u::AbstractArray{<:Real, 5},
+                                           dt, semi, elements, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    @threaded for element in eachelement(dg, semi.cache)
+    @threaded for element in elements
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
