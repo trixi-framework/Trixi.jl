@@ -135,6 +135,12 @@ function max_dt(u, t,
             # Local diffusivity transformed to the reference element
             Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
                                                         i, j, k, element)
+            # The metric terms are squared due to the second derivatives in the parabolic terms,
+            # which lead to application of the chain rule (coordinate transformation) twice.
+            # See for instance also the implementation in FLEXI
+            # https://github.com/flexi-framework/flexi/blob/e980e8635e6605daf906fc176c9897314a9cd9b1/src/equations/navierstokes/calctimestep.f90#L75-L77
+            # or FLUXO:
+            # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L130-L132
             diffusivity1_transformed = diffusivity * (Ja11^2 + Ja12^2 + Ja13^2)
             Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
                                                         i, j, k, element)
@@ -219,6 +225,12 @@ function max_dt(u, t,
             # Local diffusivity transformed to the reference element
             Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
                                                         i, j, k, element)
+            # The metric terms are squared due to the second derivatives in the parabolic terms,
+            # which lead to application of the chain rule (coordinate transformation) twice.
+            # See for instance also the implementation in FLEXI
+            # https://github.com/flexi-framework/flexi/blob/e980e8635e6605daf906fc176c9897314a9cd9b1/src/equations/navierstokes/calctimestep.f90#L75-L77
+            # or FLUXO:
+            # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L130-L132
             diffusivity1_transformed = diffusivity * (Ja11^2 + Ja12^2 + Ja13^2)
             Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
                                                         i, j, k, element)
