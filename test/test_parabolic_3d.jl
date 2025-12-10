@@ -372,8 +372,7 @@ end
 @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl (Diffusive CFL)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
-                        initial_refinement_level=2, tspan=(0.0, 0.25),
-                        surface_flux=FluxHLL(min_max_speed_naive),
+                        tspan=(0.0, 0.1),
                         mu=0.5, # render flow diffusion-dominated
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback,
@@ -382,18 +381,18 @@ end
                         adaptive=false, # respect CFL
                         ode_alg=CKLLSRK95_4S(),
                         l2=[
-                            0.0001336113719363628,
-                            0.1110290325891525,
-                            0.11102903258915098,
-                            0.009310736674102591,
-                            0.18713598666809547
+                            0.0001022410497625877,
+                            0.04954975879887512,
+                            0.049549758798875056,
+                            0.005853983721675305,
+                            0.09161121143324424
                         ],
                         linf=[
-                            0.0005497841741080034,
-                            0.31512261528156615,
-                            0.31512262804742686,
-                            0.02632785741783134,
-                            0.5709646222385913
+                            0.00039284994602417633,
+                            0.14026307274342587,
+                            0.14026307274350203,
+                            0.017003338595870714,
+                            0.2823457296549634
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
