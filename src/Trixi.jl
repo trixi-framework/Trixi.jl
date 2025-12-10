@@ -254,6 +254,7 @@ export entropy, energy_total, energy_kinetic, energy_internal,
        enstrophy, vorticity
 export lake_at_rest_error
 export ncomponents, eachcomponent
+export have_constant_speed
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
        P4estMeshView, P4estMeshCubedSphere, T8codeMesh
@@ -324,7 +325,7 @@ export ode_norm, ode_unstable_check
 
 export convergence_test,
        jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
-       linear_structure
+       linear_structure, linear_structure_parabolic
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 
