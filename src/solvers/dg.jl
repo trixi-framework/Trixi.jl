@@ -901,8 +901,9 @@ end
 @kernel function compute_coefficients_kernel!(u, func, t, equations,
                                               dg::DG, node_coordinates)
     element = @index(Global)
-    return compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
-                                         element)
+    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
+                                  element)
+    return nothing
 end
 
 function compute_coefficients_element!(u, func, t, equations, dg::DG,
