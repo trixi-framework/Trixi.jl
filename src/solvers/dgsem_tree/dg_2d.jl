@@ -40,33 +40,33 @@ function create_f_threaded(mesh::AbstractMesh{2}, equations,
                            dg::DG, uEltype)
     A3d = Array{uEltype, 3}
 
-    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
+    f1_L_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg) + 1, nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f1_R_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg) + 1, nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f2_L_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg) + 1)
+                        for _ in 1:Threads.maxthreadid()]
+    f2_R_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg) + 1)
+                        for _ in 1:Threads.maxthreadid()]
 
-    @threaded for t in eachindex(fstar1_L_threaded)
-        fstar1_L_threaded[t][:, 1, :] .= zero(uEltype)
-        fstar1_R_threaded[t][:, 1, :] .= zero(uEltype)
-        fstar1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
-        fstar1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+    @threaded for t in eachindex(f1_L_threaded)
+        f1_L_threaded[t][:, 1, :] .= zero(uEltype)
+        f1_R_threaded[t][:, 1, :] .= zero(uEltype)
+        f1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+        f1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
 
-        fstar2_L_threaded[t][:, :, 1] .= zero(uEltype)
-        fstar2_R_threaded[t][:, :, 1] .= zero(uEltype)
-        fstar2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
-        fstar2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+        f2_L_threaded[t][:, :, 1] .= zero(uEltype)
+        f2_R_threaded[t][:, :, 1] .= zero(uEltype)
+        f2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+        f2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
     end
 
-    return fstar1_L_threaded, fstar1_R_threaded,
-           fstar2_L_threaded, fstar2_R_threaded
+    return f1_L_threaded, f1_R_threaded,
+           f2_L_threaded, f2_R_threaded
 end
 
 function create_cache(mesh::TreeMesh{2}, equations,
