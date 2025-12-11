@@ -244,7 +244,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
         end
     end
 
-    return (normal_vectors_1, normal_vectors_2)
+    return normal_vectors_1, normal_vectors_2
 end
 
 # Used for both fixed (`StructuredMesh{2}` or `UnstructuredMesh2D`) 
