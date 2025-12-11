@@ -314,6 +314,7 @@ function Base.resize!(normal_vectors::NormalVectorContainer2D, capacity)
     return nothing
 end
 
+# Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
 function init_normal_vectors!(normal_vectors::NormalVectorContainer2D,
                               mesh::Union{P4estMesh{2}, T8codeMesh{2}}, dg, cache)
     @unpack normal_vectors_1, normal_vectors_2 = normal_vectors
