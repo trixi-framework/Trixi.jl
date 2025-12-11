@@ -10,7 +10,8 @@
 
 # 1D caches
 function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralStrongForm, dg, uEltype)
+                      volume_integral::VolumeIntegralStrongForm, 
+                      dg, cache_containers, uEltype)
     prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
                                                                             ntuple(_ -> nnodes(dg),
                                                                                    ndims(mesh))...)
