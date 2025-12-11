@@ -43,13 +43,13 @@ mesh = T8codeMesh(mesh_file, 2; polydeg = 3,
                   mapping = mapping,
                   initial_refinement_level = 1)
 
-function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
+function adapt_callback(forest, ltreeid, scheme, tree_class, lelemntid, elements, is_family,
                         user_data)
     vertex = Vector{Cdouble}(undef, 3)
 
-    Trixi.t8_element_vertex_reference_coords(eclass_scheme, elements[1], 0, vertex)
+    Trixi.t8_element_get_vertex_reference_coords(scheme, tree_class, elements[1], 0, vertex)
 
-    level = Trixi.t8_element_level(eclass_scheme, elements[1])
+    level = Trixi.t8_element_get_level(scheme, tree_class, elements[1])
 
     # TODO: Make this condition more general.
     if vertex[1] < 1e-8 && vertex[2] < 1e-8 && level < 3

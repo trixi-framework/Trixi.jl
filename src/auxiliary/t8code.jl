@@ -55,24 +55,23 @@ function trixi_t8_get_local_element_levels(forest)
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
 
-    levels = Vector{UInt8}(undef, t8_forest_get_local_num_elements(forest))
+    levels = Vector{UInt8}(undef, t8_forest_get_local_num_leaf_elements(forest))
 
     # Get the number of trees that have elements of this process.
     num_local_trees = t8_forest_get_num_local_trees(forest)
 
     current_index = 0
-
+    scheme = t8_forest_get_scheme(forest)
     for itree in 0:(num_local_trees - 1)
         tree_class = t8_forest_get_tree_class(forest, itree)
-        eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
         # Get the number of elements of this tree.
-        num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
+        num_elements_in_tree = t8_forest_get_tree_num_leaf_elements(forest, itree)
 
         for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(forest, itree, ielement)
+            element = t8_forest_get_leaf_element_in_tree(forest, itree, ielement)
             current_index += 1
-            levels[current_index] = UInt8(t8_element_level(eclass_scheme, element))
+            levels[current_index] = UInt8(t8_element_get_level(scheme, tree_class, element))
         end # for
     end # for
 
@@ -106,7 +105,7 @@ function adapt_callback(forest::Ptr{t8_forest},
                         is_family,
                         num_elements,
                         elements)::Cint
-    num_levels = t8_forest_get_local_num_elements(forest_from)
+    num_levels = t8_forest_get_local_num_leaf_elements(forest_from)
 
     indicator_ptr = Ptr{Int}(t8_forest_get_user_data(forest))
     indicators = unsafe_wrap(Array, indicator_ptr, num_levels)

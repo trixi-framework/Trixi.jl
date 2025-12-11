@@ -23,16 +23,17 @@ function calc_node_coordinates!(node_coordinates,
 
     num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
 
+    scheme = t8_forest_get_scheme(mesh.forest)
+
     current_index = 0
     for itree in 0:(num_local_trees - 1)
         tree_class = t8_forest_get_tree_class(mesh.forest, itree)
-        eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest, tree_class)
-        num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, itree)
+        num_elements_in_tree = t8_forest_get_tree_num_leaf_elements(mesh.forest, itree)
         global_itree = t8_forest_global_tree_id(mesh.forest, itree)
 
         for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
-            element_level = t8_element_level(eclass_scheme, element)
+            element = t8_forest_get_leaf_element_in_tree(mesh.forest, itree, ielement)
+            element_level = t8_element_get_level(scheme, tree_class, element)
 
             # Note, `t8_hex_len` is encoded as an integer (Morton encoding) in
             # relation to `t8_hex_root_len`. This line transforms the
@@ -40,7 +41,7 @@ function calc_node_coordinates!(node_coordinates,
             element_length = t8_hex_len(element_level) / t8_hex_root_len
 
             element_coords = Vector{RealT}(undef, 3)
-            t8_element_vertex_reference_coords(eclass_scheme, element, 0,
+            t8_element_get_vertex_reference_coords(scheme, tree_class, element, 0,
                                                pointer(element_coords))
 
             nodes_out_x = (2 *
