@@ -208,12 +208,12 @@ function AdaptiveNormalVectorContainer2D(mesh::Union{P4estMesh{2}, T8codeMesh{2}
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                    mesh, dg, cache_containers)
 
-    return AdaptiveNormalVectorContainer2D{RealT}(n_nodes, normal_vectors_1,
-                                                  normal_vectors_2,
+    return AdaptiveNormalVectorContainer2D{RealT}(n_nodes,
+                                                  normal_vectors_1, normal_vectors_2,
                                                   _normal_vectors_1, _normal_vectors_2)
 end
 
-storage_type(normal_vectors::AdaptiveNormalVectorContainer2D) = Array
+storage_type(::AdaptiveNormalVectorContainer2D) = Array
 
 function Base.resize!(normal_vectors::AdaptiveNormalVectorContainer2D, capacity)
     @unpack n_nodes, _normal_vectors_1, _normal_vectors_2 = normal_vectors
