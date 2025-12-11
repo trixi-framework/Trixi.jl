@@ -13,7 +13,7 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                       equations,
                       volume_integral::Union{VolumeIntegralPureLGLFiniteVolume,
                                              VolumeIntegralShockCapturingHG}, dg::DG,
-                      uEltype)
+                      cache_containers, uEltype)
     A4d = Array{uEltype, 4}
     fstar1_L_threaded = A4d[A4d(undef, nvariables(equations),
                                 nnodes(dg) + 1, nnodes(dg), nnodes(dg))
