@@ -208,7 +208,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
     @threaded for element in eachelement(dg, cache_containers)
         for i in eachnode(dg)
             # j = 1
-            # Optimize indexing: j to second position, i to third
+            # Optimize indexing (column-first): j to second position, i to third
             for d in 1:2
                 normal_vectors_1[d, 1, i, element] = contravariant_vectors[d, 1, 1, i,
                                                                            element]
