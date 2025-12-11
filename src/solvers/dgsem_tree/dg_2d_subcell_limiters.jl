@@ -10,6 +10,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                       dg::DG, cache_containers, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
+                         cache_containers,
                          dg, uEltype)
 
     fhat1_L_threaded, fhat1_R_threaded,

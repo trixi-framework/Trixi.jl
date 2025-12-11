@@ -10,7 +10,7 @@ function create_cache(mesh::P4estMesh{3},
                       dg::DG, cache_containers, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                         dg, uEltype)
+                         dg, cache_containers, uEltype)
 
     A4d = Array{uEltype, 4}
 
