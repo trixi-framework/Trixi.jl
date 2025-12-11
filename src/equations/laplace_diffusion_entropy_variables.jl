@@ -17,19 +17,19 @@ struct LaplaceDiffusionEntropyVariables{NDIMS, E, N, T} <:
 end
 
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusionEntropyVariables)
-    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+    return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
 function gradient_variable_transformation(::LaplaceDiffusionEntropyVariables)
-    cons2entropy
+    return cons2entropy
 end
 
 function cons2entropy(u, equations::LaplaceDiffusionEntropyVariables)
-    cons2entropy(u, equations.equations_hyperbolic)
+    return cons2entropy(u, equations.equations_hyperbolic)
 end
 
 function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
-    entropy2cons(w, equations.equations_hyperbolic)
+    return entropy2cons(w, equations.equations_hyperbolic)
 end
 
 # This is used to compute the diffusivity tensor for LaplaceDiffusionEntropyVariables.

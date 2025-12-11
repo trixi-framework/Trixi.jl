@@ -188,7 +188,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
                           du) do u, i, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, element)
         du_node = get_node_vars(du, equations, dg, i, element)
-        dot(cons2entropy(u_node, equations), du_node)
+        return dot(cons2entropy(u_node, equations), du_node)
     end
 end
 
@@ -203,7 +203,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
             divb += derivative_matrix[i, k] * u[6, k, element]
         end
         divb *= cache.elements.inverse_jacobian[element]
-        divb^2
+        return divb^2
     end |> sqrt
 end
 

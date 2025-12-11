@@ -57,16 +57,16 @@ struct CompressibleEulerEquationsQuasi1D{RealT <: Real} <:
 
     function CompressibleEulerEquationsQuasi1D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 have_nonconservative_terms(::CompressibleEulerEquationsQuasi1D) = True()
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquationsQuasi1D)
-    ("a_rho", "a_rho_v1", "a_e", "a")
+    return ("a_rho", "a_rho_v1", "a_e", "a")
 end
 function varnames(::typeof(cons2prim), ::CompressibleEulerEquationsQuasi1D)
-    ("rho", "v1", "p", "a")
+    return ("rho", "v1", "p", "a")
 end
 
 """

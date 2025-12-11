@@ -47,7 +47,7 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations,
     end
 
     # Use raw error values to compute EOC
-    analyze_convergence(errors, iterations, mod.semi)
+    return analyze_convergence(errors, iterations, mod.semi)
 end
 
 # Analyze convergence for any semidiscretization
@@ -55,7 +55,7 @@ end
 function analyze_convergence(errors, iterations, semi::AbstractSemidiscretization)
     _, equations, _, _ = mesh_equations_solver_cache(semi)
     variablenames = varnames(cons2cons, equations)
-    analyze_convergence(errors, iterations, variablenames)
+    return analyze_convergence(errors, iterations, variablenames)
 end
 
 # This method is called with the collected error values to actually compute and print the EOC
@@ -124,7 +124,7 @@ end
 
 function convergence_test(elixir::AbstractString, iterations, RealT = Float64;
                           kwargs...)
-    convergence_test(Main, elixir::AbstractString, iterations, RealT; kwargs...)
+    return convergence_test(Main, elixir::AbstractString, iterations, RealT; kwargs...)
 end
 
 # Helper methods used in the functions defined above
@@ -175,8 +175,8 @@ end
 # runs the specified elixir with a doubled resolution each time iter is increased by 1
 # works for TreeMesh
 function include_refined(mod, elixir, initial_refinement_level::Int, iter; kwargs)
-    trixi_include(mod, elixir; kwargs...,
-                  initial_refinement_level = initial_refinement_level + iter - 1)
+    return trixi_include(mod, elixir; kwargs...,
+                         initial_refinement_level = initial_refinement_level + iter - 1)
 end
 
 # runs the specified elixir with a doubled resolution each time iter is increased by 1
@@ -185,6 +185,7 @@ function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS, Int}, i
                          kwargs) where {NDIMS}
     new_cells_per_dimension = cells_per_dimension .* 2^(iter - 1)
 
-    trixi_include(mod, elixir; kwargs..., cells_per_dimension = new_cells_per_dimension)
+    return trixi_include(mod, elixir; kwargs...,
+                         cells_per_dimension = new_cells_per_dimension)
 end
 end # @muladd

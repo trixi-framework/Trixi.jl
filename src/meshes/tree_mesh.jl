@@ -82,7 +82,7 @@ partition!(mesh::SerialTreeMesh) = nothing
 # Constructor for passing the dimension and mesh type as an argument
 function TreeMesh(::Type{TreeType}, args...;
                   RealT = Float64) where {NDIMS, TreeType <: AbstractTree{NDIMS}}
-    TreeMesh{NDIMS, TreeType, RealT}(args...)
+    return TreeMesh{NDIMS, TreeType, RealT}(args...)
 end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
@@ -101,8 +101,9 @@ function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
                                                                      TreeType <:
                                                                      AbstractTree{NDIMS},
                                                                      RealT <: Real}
-    TreeMesh{NDIMS, TreeType, RealT}(n_cells_max, SVector{NDIMS, RealT}(domain_center),
-                                     domain_length, periodicity)
+    return TreeMesh{NDIMS, TreeType, RealT}(n_cells_max,
+                                            SVector{NDIMS, RealT}(domain_center),
+                                            domain_length, periodicity)
 end
 
 function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
@@ -200,11 +201,12 @@ end
 
 function TreeMesh(coordinates_min::Real, coordinates_max::Real;
                   kwargs...)
-    TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
+    return TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
 end
 
 function Base.show(io::IO, mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
     print(io, "TreeMesh{", NDIMS, ", ", TreeType, "} with length ", mesh.tree.length)
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -235,7 +237,7 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::False)
     # Read mesh filename from restart file
     mesh_file = ""
     h5open(restart_filename, "r") do file
-        mesh_file = read(attributes(file)["mesh_file"])
+        return mesh_file = read(attributes(file)["mesh_file"])
     end
 
     # Construct and return filename

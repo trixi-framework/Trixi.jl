@@ -139,87 +139,89 @@ function _precompile_manual_()
     ccall(:jl_generating_output, Cint, ()) == 1 || return nothing
 
     function equations_types_1d(RealT)
-        (LinearScalarAdvectionEquation1D{RealT},
-         HyperbolicDiffusionEquations1D{RealT},
-         CompressibleEulerEquations1D{RealT},
-         IdealGlmMhdEquations1D{RealT})
+        return (LinearScalarAdvectionEquation1D{RealT},
+                HyperbolicDiffusionEquations1D{RealT},
+                CompressibleEulerEquations1D{RealT},
+                IdealGlmMhdEquations1D{RealT})
     end
     function equations_types_2d(RealT)
-        (LinearScalarAdvectionEquation2D{RealT},
-         HyperbolicDiffusionEquations2D{RealT},
-         CompressibleEulerEquations2D{RealT},
-         IdealGlmMhdEquations2D{RealT},
-         LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)})
+        return (LinearScalarAdvectionEquation2D{RealT},
+                HyperbolicDiffusionEquations2D{RealT},
+                CompressibleEulerEquations2D{RealT},
+                IdealGlmMhdEquations2D{RealT},
+                LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)})
     end
     function equations_types_3d(RealT)
-        (LinearScalarAdvectionEquation3D{RealT},
-         HyperbolicDiffusionEquations3D{RealT},
-         CompressibleEulerEquations3D{RealT},
-         IdealGlmMhdEquations3D{RealT},
-         LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)})
+        return (LinearScalarAdvectionEquation3D{RealT},
+                HyperbolicDiffusionEquations3D{RealT},
+                CompressibleEulerEquations3D{RealT},
+                IdealGlmMhdEquations3D{RealT},
+                LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)})
     end
     function equations_types(RealT)
-        (LinearScalarAdvectionEquation1D{RealT},
-         LinearScalarAdvectionEquation2D{RealT},
-         LinearScalarAdvectionEquation3D{RealT},
-         HyperbolicDiffusionEquations1D{RealT},
-         HyperbolicDiffusionEquations2D{RealT},
-         HyperbolicDiffusionEquations3D{RealT},
-         CompressibleEulerEquations1D{RealT},
-         CompressibleEulerEquations2D{RealT},
-         CompressibleEulerEquations3D{RealT},
-         IdealGlmMhdEquations1D{RealT},
-         IdealGlmMhdEquations2D{RealT},
-         IdealGlmMhdEquations3D{RealT},
-         LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)},
-         LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)})
+        return (LinearScalarAdvectionEquation1D{RealT},
+                LinearScalarAdvectionEquation2D{RealT},
+                LinearScalarAdvectionEquation3D{RealT},
+                HyperbolicDiffusionEquations1D{RealT},
+                HyperbolicDiffusionEquations2D{RealT},
+                HyperbolicDiffusionEquations3D{RealT},
+                CompressibleEulerEquations1D{RealT},
+                CompressibleEulerEquations2D{RealT},
+                CompressibleEulerEquations3D{RealT},
+                IdealGlmMhdEquations1D{RealT},
+                IdealGlmMhdEquations2D{RealT},
+                IdealGlmMhdEquations3D{RealT},
+                LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)},
+                LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)})
     end
 
     function basis_type_dgsem(RealT, nnodes_)
-        LobattoLegendreBasis{RealT, nnodes_,
-                             # VectorT
-                             StaticArrays.SVector{nnodes_, RealT},
-                             # InverseVandermondeLegendre
-                             Matrix{RealT},
-                             # BoundaryMatrix
-                             #StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},
-                             Matrix{RealT},
-                             # DerivativeMatrix
-                             #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
-                             Matrix{RealT}}
+        return LobattoLegendreBasis{RealT, nnodes_,
+                                    # VectorT
+                                    StaticArrays.SVector{nnodes_, RealT},
+                                    # InverseVandermondeLegendre
+                                    Matrix{RealT},
+                                    # BoundaryMatrix
+                                    #StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},
+                                    Matrix{RealT},
+                                    # DerivativeMatrix
+                                    #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                                    Matrix{RealT}}
     end
 
     function mortar_type_dgsem(RealT, nnodes_)
-        LobattoLegendreMortarL2{RealT, nnodes_,
-                                # ForwardMatrix
-                                #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
-                                Matrix{RealT},
-                                # ReverseMatrix
-                                # StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
-                                Matrix{RealT}}
+        return LobattoLegendreMortarL2{RealT, nnodes_,
+                                       # ForwardMatrix
+                                       #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                                       Matrix{RealT},
+                                       # ReverseMatrix
+                                       # StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                                       Matrix{RealT}}
     end
 
     function analyzer_type_dgsem(RealT, nnodes_)
         polydeg = nnodes_ - 1
         nnodes_analysis = 2 * polydeg + 1
-        LobattoLegendreAnalyzer{RealT, nnodes_analysis,
-                                # VectorT
-                                StaticArrays.SVector{nnodes_analysis, RealT},
-                                # Vandermonde
-                                Array{RealT, 2}}
+        return LobattoLegendreAnalyzer{RealT, nnodes_analysis,
+                                       # VectorT
+                                       StaticArrays.SVector{nnodes_analysis, RealT},
+                                       # Vandermonde
+                                       Array{RealT, 2}}
     end
 
     function adaptor_type_dgsem(RealT, nnodes_)
-        LobattoLegendreAdaptorL2{RealT, nnodes_,
-                                 # ForwardMatrix
-                                 StaticArrays.SArray{Tuple{nnodes_, nnodes_}, RealT, 2,
-                                                     nnodes_^2},
-                                 # Matrix{RealT},
-                                 # ReverseMatrix
-                                 StaticArrays.SArray{Tuple{nnodes_, nnodes_}, RealT, 2,
-                                                     nnodes_^2}
-                                 # Matrix{RealT},
-                                 }
+        return LobattoLegendreAdaptorL2{RealT, nnodes_,
+                                        # ForwardMatrix
+                                        StaticArrays.SArray{Tuple{nnodes_, nnodes_}, RealT,
+                                                            2,
+                                                            nnodes_^2},
+                                        # Matrix{RealT},
+                                        # ReverseMatrix
+                                        StaticArrays.SArray{Tuple{nnodes_, nnodes_}, RealT,
+                                                            2,
+                                                            nnodes_^2}
+                                        # Matrix{RealT},
+                                        }
     end
 
     # Constructors: mesh

@@ -122,10 +122,11 @@ struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
-        new(gammas, charge_to_mass, gas_constants, molar_masses,
-            ion_ion_collision_constants,
-            ion_electron_collision_constants, electron_pressure, electron_temperature,
-            c_h)
+        return new(gammas, charge_to_mass, gas_constants, molar_masses,
+                   ion_ion_collision_constants,
+                   ion_electron_collision_constants, electron_pressure,
+                   electron_temperature,
+                   c_h)
     end
 end
 
@@ -198,7 +199,7 @@ end
                                                                                          NCOMP,
                                                                                          RealT
                                                                                          }
-    RealT
+    return RealT
 end
 
 """

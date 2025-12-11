@@ -35,7 +35,7 @@ end
 
 @inline function Base.put!(counter::PerformanceCounter, runtime::Real)
     counter.ncalls_since_readout += 1
-    counter.runtime += runtime
+    return counter.runtime += runtime
 end
 
 @inline ncalls(counter::PerformanceCounter) = counter.ncalls_since_readout
@@ -122,7 +122,7 @@ Return the path to an example elixir that can be used to quickly see Trixi.jl in
 [`TreeMesh`](@ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
 """
 function default_example()
-    joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
+    return joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
 end
 
 """
@@ -133,7 +133,7 @@ Return the path to an example elixir that can be used to quickly see Trixi.jl in
 given in the Trixi.jl documentation regarding unstructured meshes.
 """
 function default_example_unstructured()
-    joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
+    return joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
 end
 
 """
@@ -165,6 +165,7 @@ function print_startup_message()
          ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
       """
     mpi_println(s)
+    return nothing
 end
 
 """

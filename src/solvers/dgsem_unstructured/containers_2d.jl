@@ -40,7 +40,7 @@ function UnstructuredElementContainer2D{RealT, uEltype}(capacity::Integer, n_var
 end
 
 @inline function nelements(elements::UnstructuredElementContainer2D)
-    size(elements.surface_flux_values, 4)
+    return size(elements.surface_flux_values, 4)
 end
 """
     eachelement(elements::UnstructuredElementContainer2D)
@@ -50,19 +50,19 @@ for the elements in `elements`.
 In particular, not the elements themselves are returned.
 """
 @inline function eachelement(elements::UnstructuredElementContainer2D)
-    Base.OneTo(nelements(elements))
+    return Base.OneTo(nelements(elements))
 end
 
 @inline function nvariables(elements::UnstructuredElementContainer2D)
-    size(elements.surface_flux_values, 1)
+    return size(elements.surface_flux_values, 1)
 end
 @inline function nnodes(elements::UnstructuredElementContainer2D)
-    size(elements.surface_flux_values, 2)
+    return size(elements.surface_flux_values, 2)
 end
 
 Base.real(elements::UnstructuredElementContainer2D) = eltype(elements.node_coordinates)
 function Base.eltype(elements::UnstructuredElementContainer2D)
-    eltype(elements.surface_flux_values)
+    return eltype(elements.surface_flux_values)
 end
 
 @inline function get_surface_normal(vec, indices...)
@@ -144,7 +144,7 @@ function UnstructuredInterfaceContainer2D{uEltype}(capacity::Integer, n_variable
 end
 
 @inline function ninterfaces(interfaces::UnstructuredInterfaceContainer2D)
-    length(interfaces.start_index)
+    return length(interfaces.start_index)
 end
 @inline nnodes(interfaces::UnstructuredInterfaceContainer2D) = size(interfaces.u, 3)
 
@@ -287,7 +287,7 @@ function UnstructuredBoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_va
 end
 
 @inline function nboundaries(boundaries::UnstructuredBoundaryContainer2D)
-    length(boundaries.name)
+    return length(boundaries.name)
 end
 
 function init_boundaries(mesh::UnstructuredMesh2D,

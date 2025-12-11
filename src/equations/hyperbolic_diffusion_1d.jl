@@ -28,17 +28,17 @@ end
 
 function HyperbolicDiffusionEquations1D(; nu = 1.0, Lr = inv(2pi))
     Tr = Lr^2 / nu
-    HyperbolicDiffusionEquations1D(promote(Lr, inv(Tr), nu)...)
+    return HyperbolicDiffusionEquations1D(promote(Lr, inv(Tr), nu)...)
 end
 
 varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
 varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
 function default_analysis_errors(::HyperbolicDiffusionEquations1D)
-    (:l2_error, :linf_error, :residual)
+    return (:l2_error, :linf_error, :residual)
 end
 
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations1D)
-    abs(du[1])
+    return abs(du[1])
 end
 
 """
@@ -202,7 +202,7 @@ end
 
 # Calculate entropy for a conservative state `u` (here: same as total energy)
 @inline function entropy(u, equations::HyperbolicDiffusionEquations1D)
-    energy_total(u, equations)
+    return energy_total(u, equations)
 end
 
 # Calculate total energy for a conservative state `u`

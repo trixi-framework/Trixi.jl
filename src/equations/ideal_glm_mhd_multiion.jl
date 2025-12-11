@@ -42,7 +42,7 @@ function varnames(::typeof(cons2prim), equations::AbstractIdealGlmMhdMultiIonEqu
 end
 
 function default_analysis_integrals(::AbstractIdealGlmMhdMultiIonEquations)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+    return (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
 """

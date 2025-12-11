@@ -43,7 +43,7 @@ struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
                     2006345519317.0 / 3224310063776.0,
                     2802321613138.0 / 2924317926251.0)
 
-        new(a, b, c)
+        return new(a, b, c)
     end
 end
 
@@ -70,7 +70,7 @@ struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
         b = SVector(8 / 141, 6627 / 2000, 609375 / 1085297, 198961 / 526383)
         c = SVector(0, 8 / 141, 86 / 125, 1)
 
-        new(a, b, c)
+        return new(a, b, c)
     end
 end
 
@@ -84,8 +84,8 @@ mutable struct SimpleIntegratorOptions{Callback}
 end
 
 function SimpleIntegratorOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    SimpleIntegratorOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                              [last(tspan)])
+    return SimpleIntegratorOptions{typeof(callback)}(callback, false, Inf, maxiters,
+                                                     [last(tspan)])
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77

@@ -100,7 +100,7 @@ end
 
 # dispatch on semi
 function mesh_plotting_wireframe(u, semi)
-    mesh_plotting_wireframe(u, mesh_equations_solver_cache(semi)...)
+    return mesh_plotting_wireframe(u, mesh_equations_solver_cache(semi)...)
 end
 
 #     mesh_plotting_wireframe(u, mesh, equations, dg::DGMulti, cache; num_plotting_pts=25)
@@ -170,8 +170,8 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cac
         return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
     end
     function reshape_and_interpolate(x)
-        plotting_interp_matrix1D *
-        face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+        return plotting_interp_matrix1D *
+               face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
     end
     xfp, yfp = map(reshape_and_interpolate, (x, y))
     ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate,
@@ -208,8 +208,8 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cach
         return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
     end
     function reshape_and_interpolate(x)
-        plotting_interp_matrix1D *
-        face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+        return plotting_interp_matrix1D *
+               face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
     end
     xfp, yfp, ufp = map(reshape_and_interpolate, (x, y, u.data))
 
@@ -283,7 +283,7 @@ function adapt_to_mesh_level!(u_ode, semi, level)
 end
 
 function adapt_to_mesh_level!(sol::TrixiODESolution, level)
-    adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
+    return adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
 end
 
 """
@@ -308,7 +308,7 @@ function adapt_to_mesh_level(u_ode, semi, level)
 end
 
 function adapt_to_mesh_level(sol::TrixiODESolution, level)
-    adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
+    return adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
 end
 
 # Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.

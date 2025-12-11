@@ -33,7 +33,7 @@ function calc_node_coordinates!(node_coordinates,
     # than the polydeg of the solver.
     @assert length(basis.nodes)>=length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
 
-    calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
+    return calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 end
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes

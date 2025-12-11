@@ -50,6 +50,7 @@ function Base.show(io::IO,
     print(io, "EulerAcousticsCouplingCallback(")
     print(io, euler_acoustics_coupling.stepsize_callback_acoustics)
     print(io, ", ", euler_acoustics_coupling.stepsize_callback_euler, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -63,6 +64,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     summary_line(io, "Euler StepsizeCallback",
                  euler_acoustics_coupling.stepsize_callback_euler)
     summary_footer(io)
+    return nothing
 end
 
 """

@@ -262,7 +262,7 @@ end
 
 # use hybridized SBP operators for general flux differencing schemes.
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)
-    compute_flux_differencing_SBP_matrices(dg, has_sparse_operators(dg))
+    return compute_flux_differencing_SBP_matrices(dg, has_sparse_operators(dg))
 end
 
 function compute_flux_differencing_SBP_matrices(dg::DGMulti, sparse_operators)
@@ -433,21 +433,21 @@ end
 # sum factorization here, which is slower for fully dense matrices.
 @inline function has_sparse_operators(::Union{Line, Tri, Tet},
                                       approx_type::AT) where {AT <: SBP}
-    False()
+    return False()
 end
 
 # SBP/GaussSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
 # more efficient and we use the sparsity structure.
 @inline function has_sparse_operators(::Union{Quad, Hex},
                                       approx_type::AT) where {AT <: SBP}
-    True()
+    return True()
 end
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GaussSBP) = True()
 
 # FD SBP methods have sparse operators
 @inline function has_sparse_operators(::Union{Line, Quad, Hex},
                                       approx_type::AbstractDerivativeOperator)
-    True()
+    return True()
 end
 
 # Computes flux differencing contribution from each Cartesian direction over a single element.

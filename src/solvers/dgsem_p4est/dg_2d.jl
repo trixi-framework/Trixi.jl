@@ -653,7 +653,8 @@ end
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, dg, node_index)
-    set_node_vars!(fstar_secondary[position_index], flux, equations, dg, node_index)
+    return set_node_vars!(fstar_secondary[position_index], flux, equations, dg,
+                          node_index)
 end
 
 # Inlined version of the mortar flux computation on small elements for equations with conservative and

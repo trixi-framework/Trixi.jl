@@ -125,8 +125,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # Ion-ion and ion-electron collision source terms
 # In this particular case, we can omit source_terms_lorentz because the magnetic field is zero!
 function source_terms(u, x, t, equations::IdealGlmMhdMultiIonEquations2D)
-    source_terms_collision_ion_ion(u, x, t, equations) +
-    source_terms_collision_ion_electron(u, x, t, equations)
+    return source_terms_collision_ion_ion(u, x, t, equations) +
+           source_terms_collision_ion_electron(u, x, t, equations)
 end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

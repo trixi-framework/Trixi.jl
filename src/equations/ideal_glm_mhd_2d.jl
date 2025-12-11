@@ -54,30 +54,30 @@ struct IdealGlmMhdEquations2D{RealT <: Real} <:
 
     function IdealGlmMhdEquations2D(gamma, c_h)
         γ, inv_gamma_minus_one, c_h = promote(gamma, inv(gamma - 1), c_h)
-        new{typeof(γ)}(γ, inv_gamma_minus_one, c_h)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one, c_h)
     end
 end
 
 function IdealGlmMhdEquations2D(gamma; initial_c_h = convert(typeof(gamma), NaN))
     # Use `promote` to ensure that `gamma` and `initial_c_h` have the same type
-    IdealGlmMhdEquations2D(promote(gamma, initial_c_h)...)
+    return IdealGlmMhdEquations2D(promote(gamma, initial_c_h)...)
 end
 
 # Outer constructor for `@reset` works correctly
 function IdealGlmMhdEquations2D(gamma, inv_gamma_minus_one, c_h)
-    IdealGlmMhdEquations2D(gamma, c_h)
+    return IdealGlmMhdEquations2D(gamma, c_h)
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
 
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)
-    ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
+    return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
 end
 function varnames(::typeof(cons2prim), ::IdealGlmMhdEquations2D)
-    ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
+    return ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
 end
 function default_analysis_integrals(::IdealGlmMhdEquations2D)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+    return (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
 # Helper function to extract the magnetic field vector from the conservative variables

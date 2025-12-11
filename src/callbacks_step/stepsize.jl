@@ -11,7 +11,7 @@
 
 Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself.
-The keyword argument `cfl` must be either a `Real` number, corresponding to a constant 
+The keyword argument `cfl` must be either a `Real` number, corresponding to a constant
 CFL number, or a function of time `t` returning a `Real` number.
 The latter approach allows for variable CFL numbers that can be used to realize, e.g.,
 a ramp-up of the time step.
@@ -21,7 +21,7 @@ limit the admissible timestep also respecting diffusive restrictions.
 This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
 To enable checking for diffusive timestep restrictions, provide a value greater than zero for `cfl_diffusive`.
 By default, `cfl_diffusive` is set to zero which means that only the advective/convective CFL number is considered.
-The keyword argument `cfl_diffusive` must be either a `Real` number, corresponding to a constant 
+The keyword argument `cfl_diffusive` must be either a `Real` number, corresponding to a constant
 diffusive CFL number, or a function of time `t` returning a `Real` number.
 
 By default, the timestep will be adjusted at every step.
@@ -42,6 +42,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
           "cfl_advective=", cfl_advective, ", ",
           "cfl_diffusive=", cfl_diffusive, ", ",
           "interval=", interval, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -71,27 +72,27 @@ function StepsizeCallback(; cfl = 1.0, cfl_diffusive = 0.0,
                                                                              cfl_diff,
                                                                              interval)
 
-    DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 # Compatibility constructor used in `EulerAcousticsCouplingCallback`
 function StepsizeCallback(cfl_advective)
     RealT = typeof(cfl_advective)
-    StepsizeCallback{RealT, RealT}(cfl_advective, zero(RealT), 1)
+    return StepsizeCallback{RealT, RealT}(cfl_advective, zero(RealT), 1)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
                      integrator) where {Condition, Affect! <: StepsizeCallback}
-    cb.affect!(integrator)
+    return cb.affect!(integrator)
 end
 
 # this method is called to determine whether the callback should be activated
 function (stepsize_callback::StepsizeCallback)(u, t, integrator)
     @unpack interval = stepsize_callback
 
-    # Although the CFL-based timestep is usually not used with 
+    # Although the CFL-based timestep is usually not used with
     # adaptive time integration methods, we still check the accepted steps `naccept` here.
     return interval > 0 && integrator.stats.naccept % interval == 0
 end

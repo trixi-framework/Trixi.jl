@@ -88,11 +88,11 @@ end
 function trixi2tec(sol, filename; kwargs...)
     semi = sol.prob.p
     u_ode = sol.u[end]
-    trixi2tec(u_ode, semi, filename; kwargs...)
+    return trixi2tec(u_ode, semi, filename; kwargs...)
 end
 
 # Convenience function to allow calling `trixi2tec` with, e.g., the initial condition
 function trixi2tec(u_ode::Vector{<:Real}, semi, filename; kwargs...)
     u = Trixi.wrap_array_native(u_ode, semi)
-    trixi2tec(u, semi, filename; kwargs...)
+    return trixi2tec(u, semi, filename; kwargs...)
 end

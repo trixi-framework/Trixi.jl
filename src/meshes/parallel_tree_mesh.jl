@@ -39,7 +39,7 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening = true)
         last_id = leaves[leaf_count]
         parent_id = mesh.tree.parent_ids[last_id]
 
-        # If coarsening is allowed, we need to make sure that parents of leaves 
+        # If coarsening is allowed, we need to make sure that parents of leaves
         # are on the same rank as the leaves when coarsened.
         if allow_coarsening &&
            # Check if all children of the last parent are leaves
@@ -88,7 +88,7 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::True)
         # Read mesh filename from restart file
         mesh_file = ""
         h5open(restart_filename, "r") do file
-            mesh_file = read(attributes(file)["mesh_file"])
+            return mesh_file = read(attributes(file)["mesh_file"])
         end
 
         buffer = Vector{UInt8}(mesh_file)

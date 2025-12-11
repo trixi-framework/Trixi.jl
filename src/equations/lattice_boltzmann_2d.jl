@@ -128,16 +128,16 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
     v_alpha1 = SVector{9, RealT}(c, 0, -c, 0, c, -c, -c, c, 0)
     v_alpha2 = SVector{9, RealT}(0, c, 0, -c, c, c, -c, -c, 0)
 
-    LatticeBoltzmannEquations2D(c, c_s, rho0, Ma, u0, Re, L, nu,
-                                weights, v_alpha1, v_alpha2,
-                                collision_op)
+    return LatticeBoltzmannEquations2D(c, c_s, rho0, Ma, u0, Re, L, nu,
+                                       weights, v_alpha1, v_alpha2,
+                                       collision_op)
 end
 
 function varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations2D)
-    ntuple(v -> "pdf" * string(v), nvariables(equations))
+    return ntuple(v -> "pdf" * string(v), nvariables(equations))
 end
 function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations2D)
-    varnames(cons2cons, equations)
+    return varnames(cons2cons, equations)
 end
 
 """
@@ -153,7 +153,7 @@ to the macroscopic variables (density, velocity_1, velocity_2, pressure).
     return SVector(rho, v1, v2, p)
 end
 function varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations2D)
-    ("rho", "v1", "v2", "p")
+    return ("rho", "v1", "v2", "p")
 end
 
 # Set initial conditions at physical location `x` for time `t`
@@ -319,7 +319,7 @@ p = \rho c_s^2
     return rho * equations.c_s^2
 end
 @inline function pressure(u, equations::LatticeBoltzmannEquations2D)
-    pressure(density(u, equations), equations)
+    return pressure(density(u, equations), equations)
 end
 
 """

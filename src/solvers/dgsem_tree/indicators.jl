@@ -9,7 +9,7 @@ abstract type AbstractIndicator end
 
 function create_cache(typ::Type{IndicatorType},
                       semi) where {IndicatorType <: AbstractIndicator}
-    create_cache(typ, mesh_equations_solver_cache(semi)...)
+    return create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
 function get_element_variables!(element_variables, indicator::AbstractIndicator,
@@ -57,11 +57,12 @@ function IndicatorHennemannGassner(equations::AbstractEquations, basis;
                                    variable)
     alpha_max, alpha_min = promote(alpha_max, alpha_min)
     cache = create_cache(IndicatorHennemannGassner, equations, basis)
-    IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(alpha_max,
-                                                                                  alpha_min,
-                                                                                  alpha_smooth,
-                                                                                  variable,
-                                                                                  cache)
+    return IndicatorHennemannGassner{typeof(alpha_max), typeof(variable),
+                                     typeof(cache)}(alpha_max,
+                                                    alpha_min,
+                                                    alpha_smooth,
+                                                    variable,
+                                                    cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
@@ -72,11 +73,12 @@ function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
                                    variable)
     alpha_max, alpha_min = promote(alpha_max, alpha_min)
     cache = create_cache(IndicatorHennemannGassner, semi)
-    IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(alpha_max,
-                                                                                  alpha_min,
-                                                                                  alpha_smooth,
-                                                                                  variable,
-                                                                                  cache)
+    return IndicatorHennemannGassner{typeof(alpha_max), typeof(variable),
+                                     typeof(cache)}(alpha_max,
+                                                    alpha_min,
+                                                    alpha_smooth,
+                                                    variable,
+                                                    cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorHennemannGassner)
@@ -88,6 +90,7 @@ function Base.show(io::IO, indicator::IndicatorHennemannGassner)
     print(io, ", alpha_min=", indicator.alpha_min)
     print(io, ", alpha_smooth=", indicator.alpha_smooth)
     print(io, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassner)
@@ -99,6 +102,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
         "smooth α" => (indicator.alpha_smooth ? "yes" : "no")
     ]
     summary_box(io, "IndicatorHennemannGassner", setup)
+    return nothing
 end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM, cache;
@@ -169,16 +173,18 @@ end
 function IndicatorLöhner(equations::AbstractEquations, basis;
                          f_wave = 0.2, variable)
     cache = create_cache(IndicatorLöhner, equations, basis)
-    IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable,
-                                                                     cache)
+    return IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave,
+                                                                            variable,
+                                                                            cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorLöhner(semi::AbstractSemidiscretization;
                          f_wave = 0.2, variable)
     cache = create_cache(IndicatorLöhner, semi)
-    IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable,
-                                                                     cache)
+    return IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave,
+                                                                            variable,
+                                                                            cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorLöhner)
@@ -186,6 +192,7 @@ function Base.show(io::IO, indicator::IndicatorLöhner)
 
     print(io, "IndicatorLöhner(")
     print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
@@ -235,7 +242,7 @@ end
 function IndicatorMax(equations::AbstractEquations, basis;
                       variable)
     cache = create_cache(IndicatorMax, equations, basis)
-    IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
+    return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
@@ -250,6 +257,7 @@ function Base.show(io::IO, indicator::IndicatorMax)
 
     print(io, "IndicatorMax(")
     print(io, "variable=", indicator.variable, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)

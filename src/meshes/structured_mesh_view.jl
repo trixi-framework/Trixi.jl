@@ -127,6 +127,7 @@ function save_mesh_file(mesh::StructuredMeshView, output_directory; system = "",
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["size"] = collect(size(mesh))
         attributes(file)["mapping"] = mesh.mapping_as_string
+        return nothing
     end
 
     return filename

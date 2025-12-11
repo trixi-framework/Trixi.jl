@@ -6,3 +6,5 @@ yas_style_nesting = true
 
 # Align struct fields for better readability of large struct definitions
 align_struct_field = true
+
+always_use_return = true
