@@ -17,6 +17,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
     fhat2_L_threaded, fhat2_R_threaded = create_f_threaded(mesh, equations, dg,
                                                            uEltype)
 
+    A3d = Array{uEltype, 3}
     flux_temp_threaded = A3d[A3d(undef, nvariables(equations),
                                  nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
