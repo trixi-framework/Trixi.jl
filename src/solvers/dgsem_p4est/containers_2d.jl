@@ -213,10 +213,11 @@ function AdaptiveNormalVectorContainer2D(mesh::Union{P4estMesh{2}, T8codeMesh{2}
                                                   _normal_vectors_1, _normal_vectors_2)
 end
 
-# TODO: Find the required places to call this!
+storage_type(normal_vectors::AdaptiveNormalVectorContainer2D) = Array
+
 function Base.resize!(normal_vectors::AdaptiveNormalVectorContainer2D, capacity)
     @unpack n_nodes, _normal_vectors_1, _normal_vectors_2 = normal_vectors
-    ArrayType = storage_type(elements)
+    ArrayType = storage_type(normal_vectors)
 
     resize!(_normal_vectors_1, 2 * n_nodes^2 * capacity)
     normal_vectors.normal_vectors_1 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_1,
@@ -227,6 +228,15 @@ function Base.resize!(normal_vectors::AdaptiveNormalVectorContainer2D, capacity)
     normal_vectors.normal_vectors_2 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_2,
                                                            (2, n_nodes, n_nodes,
                                                             capacity))
+
+    return nothing
+end
+
+function init_normal_vectors!(normal_vectors::AdaptiveNormalVectorContainer2D,
+                              mesh, dg, cache)
+    @unpack normal_vectors_1, normal_vectors_2 = normal_vectors
+    calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
+                                   mesh, dg, cache)
 
     return nothing
 end

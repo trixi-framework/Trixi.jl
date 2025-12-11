@@ -279,6 +279,13 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
+    if (dg.volume_integral isa AbstractVolumeIntegralPureLGLFiniteVolume ||
+        dg.volume_integral isa VolumeIntegralShockCapturingHG)
+        @unpack normal_vectors = cache
+        resize!(normal_vectors, ncells(mesh))
+        init_normal_vectors!(normal_vectors, mesh, dg, cache)
+    end
+
     required = count_required_surfaces(mesh)
 
     # resize interfaces container
