@@ -10,8 +10,8 @@ function create_cache(mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
                                              VolumeIntegralShockCapturingHG}, dg::DG,
                       cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
-    fstar2_L_threaded, fstar2_R_threaded = create_fstar_threaded(mesh, equations, dg,
-                                                                 uEltype)
+    fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
+                                                             uEltype)
 
     normal_vectors = AdaptiveNormalVectorContainer2D(mesh, dg, cache_containers)
 

@@ -7,25 +7,14 @@
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                       equations, volume_integral::VolumeIntegralSubcellLimiting,
-                      dg::DG, uEltype)
+                      dg::DG, cache_containers, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                          dg, uEltype)
 
-    A3d = Array{uEltype, 3}
-
-    fhat1_L_threaded = A3d[A3d(undef, nvariables(equations),
-                               nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fhat2_L_threaded = A3d[A3d(undef, nvariables(equations),
-                               nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
-    fhat1_R_threaded = A3d[A3d(undef, nvariables(equations),
-                               nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fhat2_R_threaded = A3d[A3d(undef, nvariables(equations),
-                               nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
+    fhat1_L_threaded, fhat1_R_threaded,
+    fhat2_L_threaded, fhat2_R_threaded = create_f_threaded(mesh, equations, dg,
+                                                           uEltype)
 
     flux_temp_threaded = A3d[A3d(undef, nvariables(equations),
                                  nnodes(dg), nnodes(dg))
@@ -33,18 +22,6 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
     fhat_temp_threaded = A3d[A3d(undef, nvariables(equations),
                                  nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
-
-    @threaded for t in eachindex(fhat1_L_threaded)
-        fhat1_L_threaded[t][:, 1, :] .= zero(uEltype)
-        fhat1_R_threaded[t][:, 1, :] .= zero(uEltype)
-        fhat1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
-        fhat1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
-
-        fhat2_L_threaded[t][:, :, 1] .= zero(uEltype)
-        fhat2_R_threaded[t][:, :, 1] .= zero(uEltype)
-        fhat2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
-        fhat2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
-    end
 
     antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(0,
                                                                  nvariables(equations),

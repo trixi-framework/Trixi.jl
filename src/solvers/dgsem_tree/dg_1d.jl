@@ -38,7 +38,7 @@ end
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
                                              VolumeIntegralShockCapturingHG}, dg::DG,
-                      uEltype)
+                      cache_containers, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
                   uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
     fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]

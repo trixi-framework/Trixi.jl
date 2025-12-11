@@ -7,7 +7,7 @@
 
 function create_cache(mesh::P4estMesh{3},
                       equations, volume_integral::VolumeIntegralSubcellLimiting,
-                      dg::DG, uEltype)
+                      dg::DG, cache_containers, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                          dg, uEltype)
