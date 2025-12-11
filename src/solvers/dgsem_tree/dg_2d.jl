@@ -72,7 +72,7 @@ end
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
                                              VolumeIntegralShockCapturingHG}, dg::DG,
-                      uEltype)
+                      cache_container, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
                                                              uEltype)
