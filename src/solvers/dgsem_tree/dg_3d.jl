@@ -49,7 +49,8 @@ function create_f_threaded(mesh::AbstractMesh{3}, equations,
     end
 
     return f1_L_threaded, f1_R_threaded,
-           f2_L_threaded, f2_R_threaded
+           f2_L_threaded, f2_R_threaded,
+           f3_L_threaded, f3_R_threaded
 end
 
 function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
