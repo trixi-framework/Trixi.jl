@@ -10,7 +10,7 @@
 
 # 2D caches
 function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
-                      volume_integral::VolumeIntegralStrongForm, 
+                      volume_integral::VolumeIntegralStrongForm,
                       dg, cache_containers, uEltype)
     prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
                                                                             ntuple(_ -> nnodes(dg),
