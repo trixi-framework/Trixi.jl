@@ -192,14 +192,6 @@ function initialize_left_neighbor_connectivity!(left_neighbors,
     return left_neighbors
 end
 
-# Fixed size, i.e., not AMR ready. Sufficient for `StructuredMesh` and `UnstructuredMesh2D`
-struct FixedNormalVectorContainer2D{RealT <: Real} <: AbstractNormalVectorContainer
-    # For normal vectors computed from first contravariant vectors
-    normal_vectors_1::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
-    # For normal vectors computed from second contravariant vectors
-    normal_vectors_2::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
-end
-
 # Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
 # equation (B.53) in:
 # - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
@@ -255,30 +247,79 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
     return (normal_vectors_1, normal_vectors_2)
 end
 
-function FixedNormalVectorContainer2D(mesh::Union{StructuredMesh{2},
-                                                  UnstructuredMesh2D},
-                                      dg, cache_containers)
+# Used for both fixed (`StructuredMesh{2}` or `UnstructuredMesh2D`) 
+# and adaptive meshes (`P4estMesh{2}` or `T8codeMesh{2}`)
+mutable struct NormalVectorContainer2D{RealT <: Real} <:
+               AbstractNormalVectorContainer
+    const n_nodes::Int
+    # For normal vectors computed from first contravariant vectors
+    normal_vectors_1::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
+    # For normal vectors computed from second contravariant vectors
+    normal_vectors_2::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
+
+    # internal `resize!`able storage
+    _normal_vectors_1::Vector{RealT}
+    _normal_vectors_2::Vector{RealT}
+end
+
+function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                                             P4estMesh{2}, T8codeMesh{2}},
+                                 dg, cache_containers)
     @unpack contravariant_vectors = cache_containers.elements
     RealT = eltype(contravariant_vectors)
     n_elements = nelements(dg, cache_containers)
     n_nodes = nnodes(dg.basis)
 
-    # For first contravariant vector
-    normal_vectors_1 = Array{RealT, 4}(undef, 2, n_nodes, n_nodes,
-                                       n_elements)
-    # For second contravariant vector
-    normal_vectors_2 = Array{RealT, 4}(undef, 2, n_nodes, n_nodes,
-                                       n_elements)
+    _normal_vectors_1 = Vector{RealT}(undef, 2 * n_nodes^2 * n_elements)
+    normal_vectors_1 = unsafe_wrap(Array, pointer(_normal_vectors_1),
+                                   (2, n_nodes, n_nodes,
+                                    n_elements))
+
+    _normal_vectors_2 = Vector{RealT}(undef, 2 * n_nodes^2 * n_elements)
+    normal_vectors_2 = unsafe_wrap(Array, pointer(_normal_vectors_2),
+                                   (2, n_nodes, n_nodes,
+                                    n_elements))
 
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                    mesh, dg, cache_containers)
 
-    return FixedNormalVectorContainer2D{RealT}(normal_vectors_1, normal_vectors_2)
+    return NormalVectorContainer2D{RealT}(n_nodes,
+                                          normal_vectors_1, normal_vectors_2,
+                                          _normal_vectors_1, _normal_vectors_2)
 end
 
-# Similar to `get_contravariant_vector`
+# Essentially equivalent to `get_contravariant_vector` and `get_node_coords`
 @inline function get_normal_vector(normal_vectors, indices...)
     return SVector(ntuple(@inline(dim->normal_vectors[dim, indices...]),
                           Val(ndims(normal_vectors) - 2)))
+end
+
+@inline storage_type(::NormalVectorContainer2D) = Array
+
+# Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
+function Base.resize!(normal_vectors::NormalVectorContainer2D, capacity)
+    @unpack n_nodes, _normal_vectors_1, _normal_vectors_2 = normal_vectors
+    ArrayType = storage_type(normal_vectors)
+
+    resize!(_normal_vectors_1, 2 * n_nodes^2 * capacity)
+    normal_vectors.normal_vectors_1 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_1,
+                                                           (2, n_nodes, n_nodes,
+                                                            capacity))
+
+    resize!(_normal_vectors_2, 2 * n_nodes^2 * capacity)
+    normal_vectors.normal_vectors_2 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_2,
+                                                           (2, n_nodes, n_nodes,
+                                                            capacity))
+
+    return nothing
+end
+
+function init_normal_vectors!(normal_vectors::NormalVectorContainer2D,
+                              mesh::Union{P4estMesh{2}, T8codeMesh{2}}, dg, cache)
+    @unpack normal_vectors_1, normal_vectors_2 = normal_vectors
+    calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
+                                   mesh, dg, cache)
+
+    return nothing
 end
 end # @muladd

@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D}, equations,
+function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                                  P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
                                              VolumeIntegralShockCapturingHG}, dg::DG,
                       cache_containers, uEltype)
@@ -13,7 +14,7 @@ function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D}, equati
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
                                                              uEltype)
 
-    normal_vectors = FixedNormalVectorContainer2D(mesh, dg, cache_containers)
+    normal_vectors = NormalVectorContainer2D(mesh, dg, cache_containers)
 
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded,
