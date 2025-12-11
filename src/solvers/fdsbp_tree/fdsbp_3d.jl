@@ -20,8 +20,8 @@ function create_cache(mesh::TreeMesh{3}, equations,
 end
 
 function create_cache(mesh::TreeMesh{3}, equations,
-                      volume_integral::VolumeIntegralUpwind, dg, 
-                      cache_containers, uEltype)
+                      volume_integral::VolumeIntegralUpwind,
+                      dg, cache_containers, uEltype)
     u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype),
                                                             Val{nvariables(equations)}()))
     f = StructArray([(u_node, u_node)])
