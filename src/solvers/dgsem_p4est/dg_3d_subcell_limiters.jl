@@ -16,6 +16,7 @@ function create_cache(mesh::P4estMesh{3},
     fhat2_L_threaded, fhat2_R_threaded,
     fhat3_L_threaded, fhat3_R_threaded = create_f_threaded(mesh, equations, dg, uEltype)
 
+    A4d = Array{uEltype, 4}
     flux_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                  nnodes(dg), nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
