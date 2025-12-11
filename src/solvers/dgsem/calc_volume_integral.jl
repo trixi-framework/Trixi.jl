@@ -7,7 +7,8 @@
 
 # Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function create_cache(mesh, equations,
-                      volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+                      volume_integral::VolumeIntegralFluxDifferencing, dg::DG, 
+                      cache_containers, uEltype)
     return NamedTuple()
 end
 
