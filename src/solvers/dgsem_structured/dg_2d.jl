@@ -296,10 +296,6 @@ end
     return nothing
 end
 
-# Compute the normal flux for the FV method on curvilinear subcells, see
-# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
-# "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
-# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                           UnstructuredMesh2D,
@@ -314,6 +310,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
+            # Fetch precomputed freestream-preserving normal vector
             normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
 
             # Compute the contravariant flux
@@ -329,6 +326,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
+            # Fetch precomputed freestream-preserving normal vector
             normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
 
             # Compute the contravariant flux by taking the scalar product of the
@@ -382,11 +380,8 @@ end
                                            x_interfaces, i,
                                            slope_limiter, dg)
 
-            # Fetch precomputed freestream-preserving normal vector for the finite volume flux
-            #@views normal_direction = normal_vectors_2[:, j, i, element]
-            #normal_direction[1] = normal_vectors_2[1, j, i, element]
-            #normal_direction[2] = normal_vectors_2[2, j, i, element]
-            normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
+            # Fetch precomputed freestream-preserving normal vector
+            normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
 
             # Compute the contravariant flux by taking the scalar product of the
             # normal vector and the flux vector.
@@ -446,6 +441,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
+            # Fetch precomputed freestream-preserving normal vector
             normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
 
             # Compute the conservative part of the contravariant flux
@@ -473,6 +469,7 @@ end
             u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, element)
 
+            # Fetch precomputed freestream-preserving normal vector
             normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
 
             # Compute the conservative part of the contravariant flux
