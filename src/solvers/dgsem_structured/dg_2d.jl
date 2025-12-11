@@ -302,7 +302,6 @@ end
                                           P4estMesh{2}, T8codeMesh{2}},
                               have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-    @unpack weights, derivative_matrix = dg.basis
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
     for j in eachnode(dg)
@@ -348,7 +347,6 @@ end
                                 have_nonconservative_terms::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
                                 x_interfaces, reconstruction_mode, slope_limiter)
-    @unpack weights, derivative_matrix = dg.basis
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
     for j in eachnode(dg)
@@ -430,7 +428,6 @@ end
                                           P4estMesh{2}, T8codeMesh{2}},
                               have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-    @unpack weights, derivative_matrix = dg.basis
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
     volume_flux, nonconservative_flux = volume_flux_fv
