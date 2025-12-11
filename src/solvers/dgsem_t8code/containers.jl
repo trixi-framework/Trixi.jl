@@ -4,8 +4,9 @@ function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
-    if (dg.volume_integral isa AbstractVolumeIntegralPureLGLFiniteVolume ||
-        dg.volume_integral isa VolumeIntegralShockCapturingHG)
+    # TODO: Current workaround for 3D case where `normal_vectors` are not yet precomputed
+    # for `AbstractVolumeIntegralPureLGLFiniteVolume` and `VolumeIntegralShockCapturingHG`
+    if hasfield(typeof(cache), :normal_vectors)
         @unpack normal_vectors = cache
         resize!(normal_vectors, ncells(mesh))
         init_normal_vectors!(normal_vectors, mesh, dg, cache)
