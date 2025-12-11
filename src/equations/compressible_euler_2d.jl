@@ -44,12 +44,12 @@ struct CompressibleEulerEquations2D{RealT <: Real} <:
 
     function CompressibleEulerEquations2D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations2D)
-    ("rho", "rho_v1", "rho_v2", "rho_e")
+    return ("rho", "rho_v1", "rho_v2", "rho_e")
 end
 varnames(::typeof(cons2prim), ::CompressibleEulerEquations2D) = ("rho", "v1", "v2", "p")
 
@@ -2213,7 +2213,7 @@ end
 
 # Default entropy is the mathematical entropy
 @inline function entropy(cons, equations::CompressibleEulerEquations2D)
-    entropy_math(cons, equations)
+    return entropy_math(cons, equations)
 end
 
 # Calculate total energy for a conservative state `cons`

@@ -9,7 +9,7 @@ abstract type AbstractSubcellLimiter end
 
 function create_cache(typ::Type{LimiterType},
                       semi) where {LimiterType <: AbstractSubcellLimiter}
-    create_cache(typ, mesh_equations_solver_cache(semi)...)
+    return create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
 """
@@ -146,18 +146,19 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
 
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 
-    SubcellLimiterIDP{typeof(positivity_correction_factor),
-                      typeof(positivity_variables_nonlinear),
-                      typeof(local_onesided_variables_nonlinear_),
-                      typeof(cache)}(local_twosided, local_twosided_variables_cons_,
-                                     positivity, positivity_variables_cons_,
-                                     positivity_variables_nonlinear,
-                                     positivity_correction_factor,
-                                     local_onesided,
-                                     local_onesided_variables_nonlinear_,
-                                     cache,
-                                     max_iterations_newton, newton_tolerances,
-                                     gamma_constant_newton)
+    return SubcellLimiterIDP{typeof(positivity_correction_factor),
+                             typeof(positivity_variables_nonlinear),
+                             typeof(local_onesided_variables_nonlinear_),
+                             typeof(cache)}(local_twosided,
+                                            local_twosided_variables_cons_,
+                                            positivity, positivity_variables_cons_,
+                                            positivity_variables_nonlinear,
+                                            positivity_correction_factor,
+                                            local_onesided,
+                                            local_onesided_variables_nonlinear_,
+                                            cache,
+                                            max_iterations_newton, newton_tolerances,
+                                            gamma_constant_newton)
 end
 
 function Base.show(io::IO, limiter::SubcellLimiterIDP)
@@ -183,6 +184,7 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
     end
     print(io, "Local bounds with FV solution")
     print(io, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
@@ -256,7 +258,7 @@ function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg,
 end
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
-    get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
+    return get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
 end
 
 function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,

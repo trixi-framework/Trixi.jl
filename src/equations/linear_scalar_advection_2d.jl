@@ -20,11 +20,11 @@ struct LinearScalarAdvectionEquation2D{RealT <: Real} <:
 end
 
 function LinearScalarAdvectionEquation2D(a::NTuple{2, <:Real})
-    LinearScalarAdvectionEquation2D(SVector(a))
+    return LinearScalarAdvectionEquation2D(SVector(a))
 end
 
 function LinearScalarAdvectionEquation2D(a1::Real, a2::Real)
-    LinearScalarAdvectionEquation2D(SVector(a1, a2))
+    return LinearScalarAdvectionEquation2D(SVector(a1, a2))
 end
 
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = ("scalar",)
@@ -297,6 +297,6 @@ end
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation2D)
-    energy_total(u[1], equation)
+    return energy_total(u[1], equation)
 end
 end # @muladd

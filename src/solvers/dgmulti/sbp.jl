@@ -32,8 +32,8 @@ function DGMulti(element_type::AbstractElemShape,
                  volume_integral,
                  surface_integral;
                  kwargs...)
-    DGMulti(approximation_type, element_type = element_type,
-            surface_integral = surface_integral, volume_integral = volume_integral)
+    return DGMulti(approximation_type, element_type = element_type,
+                   surface_integral = surface_integral, volume_integral = volume_integral)
 end
 
 # type alias for specializing on a periodic SBP operator
@@ -157,7 +157,7 @@ end
 function prolong2interfaces!(cache, u,
                              mesh::DGMultiMesh, equations, dg::DGMultiPeriodicFDSBP)
     @assert nelements(mesh, dg, cache) == 1
-    nothing
+    return nothing
 end
 
 function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
@@ -165,14 +165,14 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
                               have_nonconservative_terms::False, equations,
                               dg::DGMultiPeriodicFDSBP)
     @assert nelements(mesh, dg, cache) == 1
-    nothing
+    return nothing
 end
 
 function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiPeriodicFDSBP, cache)
     @assert nelements(mesh, dg, cache) == 1
-    nothing
+    return nothing
 end
 
 function create_cache(mesh::DGMultiMesh, equations,

@@ -161,6 +161,7 @@ function Base.show(io::IO, semi::SemidiscretizationHyperbolicParabolic)
         print(io, key)
     end
     print(io, "))")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -191,7 +192,7 @@ end
 @inline Base.ndims(semi::SemidiscretizationHyperbolicParabolic) = ndims(semi.mesh)
 
 @inline function nvariables(semi::SemidiscretizationHyperbolicParabolic)
-    nvariables(semi.equations)
+    return nvariables(semi.equations)
 end
 
 @inline Base.real(semi::SemidiscretizationHyperbolicParabolic) = real(semi.solver)
@@ -207,25 +208,27 @@ function calc_error_norms(func, u_ode, t, analyzer,
     @unpack mesh, equations, initial_condition, solver, cache = semi
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver,
-                     cache, cache_analysis)
+    return calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition,
+                            solver,
+                            cache, cache_analysis)
 end
 
 function compute_coefficients(t, semi::SemidiscretizationHyperbolicParabolic)
     # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
-    compute_coefficients(semi.initial_condition, t, semi)
+    return compute_coefficients(semi.initial_condition, t, semi)
 end
 
 function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolicParabolic)
-    compute_coefficients!(u_ode, semi.initial_condition, t, semi)
+    return compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
 # Required for storing `extra_node_variables` in the `SaveSolutionCallback`.
 # Not to be confused with `get_node_vars` which returns the variables of the simulated equation.
 function get_node_variables!(node_variables, u_ode,
                              semi::SemidiscretizationHyperbolicParabolic)
-    get_node_variables!(node_variables, u_ode, mesh_equations_solver_cache(semi)...,
-                        semi.equations_parabolic, semi.cache_parabolic)
+    return get_node_variables!(node_variables, u_ode,
+                               mesh_equations_solver_cache(semi)...,
+                               semi.equations_parabolic, semi.cache_parabolic)
 end
 
 """
@@ -453,7 +456,7 @@ function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u
         # Implementation of split ODE problem in OrdinaryDiffEq
         rhs!(du_ode_hyp, u_ode, new_semi, t0)
         rhs_parabolic!(du_ode, u_ode, new_semi, t0)
-        du_ode .+= du_ode_hyp
+        return du_ode .+= du_ode_hyp
     end
 
     return J
@@ -529,16 +532,16 @@ end
                                   u0_ode = compute_coefficients(t0, semi))
 
 Uses the *parabolic part* of the right-hand side operator of the [`SemidiscretizationHyperbolicParabolic`](@ref) `semi`
-and forward mode automatic differentiation to compute the Jacobian `J` of the 
+and forward mode automatic differentiation to compute the Jacobian `J` of the
 parabolic/diffusive contribution only at time `t0` and state `u0_ode`.
 
-This might be useful for operator-splitting methods, e.g., the construction of optimized 
+This might be useful for operator-splitting methods, e.g., the construction of optimized
 time integrators which optimize different methods for the hyperbolic and parabolic part separately.
 """
 function jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabolic;
                                        t0 = zero(real(semi)),
                                        u0_ode = compute_coefficients(t0, semi))
-    jacobian_ad_forward_parabolic(semi, t0, u0_ode)
+    return jacobian_ad_forward_parabolic(semi, t0, u0_ode)
 end
 
 # The following version is for plain arrays
@@ -549,16 +552,16 @@ function jacobian_ad_forward_parabolic(semi::SemidiscretizationHyperbolicParabol
 
     # Use a function barrier since the generation of the `config` we use above
     # is not type-stable
-    _jacobian_ad_forward_parabolic(semi, t0, u0_ode, du_ode, config)
+    return _jacobian_ad_forward_parabolic(semi, t0, u0_ode, du_ode, config)
 end
 
 function _jacobian_ad_forward_parabolic(semi, t0, u0_ode, du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
-    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
-        Trixi.rhs_parabolic!(du_ode, u_ode, new_semi, t0)
+        return Trixi.rhs_parabolic!(du_ode, u_ode, new_semi, t0)
     end
 
     return J

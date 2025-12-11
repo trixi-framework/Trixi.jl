@@ -46,8 +46,8 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
         # --------------------
         #   b | 1/6  1/6  2/3
 
-        new{typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
-                                     stage_callbacks)
+        return new{typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
+                                            stage_callbacks)
     end
 end
 
@@ -67,10 +67,11 @@ function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kw
     # We add 2 * last(tspan) because add_tstop!(integrator, t) is only called by DiffEqCallbacks.jl if tstops contains a time that is larger than t
     # (https://github.com/SciML/DiffEqCallbacks.jl/blob/025dfe99029bd0f30a2e027582744528eb92cd24/src/iterative_and_periodic.jl#L92)
     push!(tstops_internal, 2 * last(tspan))
-    SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
-                                                                          false, Inf,
-                                                                          maxiters,
-                                                                          tstops_internal)
+    return SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
+                                                                                 false,
+                                                                                 Inf,
+                                                                                 maxiters,
+                                                                                 tstops_internal)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
@@ -111,7 +112,7 @@ function add_tstop!(integrator::SimpleIntegratorSSP, t)
     if length(integrator.opts.tstops) > 1
         pop!(integrator.opts.tstops)
     end
-    push!(integrator.opts.tstops, integrator.tdir * t)
+    return push!(integrator.opts.tstops, integrator.tdir * t)
 end
 
 has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)

@@ -179,7 +179,7 @@ using Plots
 equation = CubicConservationLaw.CubicEquation()
 
 function initial_condition_sine(x, t, equation::CubicConservationLaw.CubicEquation)
-    SVector(sinpi(x[1]))
+    return SVector(sinpi(x[1]))
 end
 
 mesh = TreeMesh(-1.0, 1.0, # min/max coordinates

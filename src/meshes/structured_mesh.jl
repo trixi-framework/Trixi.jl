@@ -26,7 +26,7 @@ end
     StructuredMesh(cells_per_dimension, mapping;
                    RealT = Float64,
                    periodicity = true,
-                   unsaved_changes = true, 
+                   unsaved_changes = true,
                    mapping_as_string = mapping2string(mapping, length(cells_per_dimension), RealT=RealT))
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
@@ -73,7 +73,7 @@ function StructuredMesh(cells_per_dimension, mapping;
 end
 
 """
-    StructuredMesh(cells_per_dimension, faces; 
+    StructuredMesh(cells_per_dimension, faces;
                    RealT = Float64,
                    periodicity = true)
 
@@ -147,7 +147,7 @@ end
 
 # Extract a string of the code that defines the mapping function
 function mapping2string(mapping, ndims, RealT = Float64)
-    string(code_string(mapping, ntuple(_ -> RealT, ndims)))
+    return string(code_string(mapping, ntuple(_ -> RealT, ndims)))
 end
 
 # An internal function wrapping `CodeTracking.code_string` with additional
@@ -165,31 +165,31 @@ end
 
 # Interpolate linearly between left and right value where s should be between -1 and 1
 function linear_interpolate(s, left_value, right_value)
-    0.5f0 * ((1 - s) * left_value + (1 + s) * right_value)
+    return 0.5f0 * ((1 - s) * left_value + (1 + s) * right_value)
 end
 
 # Convert min and max coordinates of a rectangle to the corresponding transformation mapping
 function coordinates2mapping(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
-    mapping(xi) = linear_interpolate(xi, coordinates_min[1], coordinates_max[1])
+    return mapping(xi) = linear_interpolate(xi, coordinates_min[1], coordinates_max[1])
 end
 # Convenience function for 1D: Do not insist on tuples
 function coordinates2mapping(coordinates_min::RealT,
                              coordinates_max::RealT) where {RealT <: Real}
-    mapping(xi) = linear_interpolate(xi, coordinates_min, coordinates_max)
+    return mapping(xi) = linear_interpolate(xi, coordinates_min, coordinates_max)
 end
 
 function coordinates2mapping(coordinates_min::NTuple{2}, coordinates_max::NTuple{2})
     function mapping(xi, eta)
-        SVector(linear_interpolate(xi, coordinates_min[1], coordinates_max[1]),
-                linear_interpolate(eta, coordinates_min[2], coordinates_max[2]))
+        return SVector(linear_interpolate(xi, coordinates_min[1], coordinates_max[1]),
+                       linear_interpolate(eta, coordinates_min[2], coordinates_max[2]))
     end
 end
 
 function coordinates2mapping(coordinates_min::NTuple{3}, coordinates_max::NTuple{3})
     function mapping(xi, eta, zeta)
-        SVector(linear_interpolate(xi, coordinates_min[1], coordinates_max[1]),
-                linear_interpolate(eta, coordinates_min[2], coordinates_max[2]),
-                linear_interpolate(zeta, coordinates_min[3], coordinates_max[3]))
+        return SVector(linear_interpolate(xi, coordinates_min[1], coordinates_max[1]),
+                       linear_interpolate(eta, coordinates_min[2], coordinates_max[2]),
+                       linear_interpolate(zeta, coordinates_min[3], coordinates_max[3]))
     end
 end
 
@@ -242,9 +242,9 @@ transfinite_mapping(faces::NTuple{2, Any}) = x -> linear_mapping(x, faces)
 # Transfinite mapping from the reference element to the domain described by the faces
 function transfinite_mapping(faces::NTuple{4, Any})
     function mapping(x, y)
-        (linear_interpolate(x, faces[1](y), faces[2](y)) +
-         linear_interpolate(y, faces[3](x), faces[4](x)) -
-         bilinear_mapping(x, y, faces))
+        return (linear_interpolate(x, faces[1](y), faces[2](y)) +
+                linear_interpolate(y, faces[3](x), faces[4](x)) -
+                bilinear_mapping(x, y, faces))
     end
 end
 
@@ -281,11 +281,11 @@ end
 # Transfinite mapping from the reference element to the domain described by the faces
 function transfinite_mapping(faces::NTuple{6, Any})
     function mapping(x, y, z)
-        (linear_interpolate(x, faces[1](y, z), faces[2](y, z)) +
-         linear_interpolate(y, faces[3](x, z), faces[4](x, z)) +
-         linear_interpolate(z, faces[5](x, y), faces[6](x, y)) -
-         correction_term_3d(x, y, z, faces) +
-         trilinear_mapping(x, y, z, faces))
+        return (linear_interpolate(x, faces[1](y, z), faces[2](y, z)) +
+                linear_interpolate(y, faces[3](x, z), faces[4](x, z)) +
+                linear_interpolate(z, faces[5](x, y), faces[6](x, y)) -
+                correction_term_3d(x, y, z, faces) +
+                trilinear_mapping(x, y, z, faces))
     end
 end
 
@@ -345,6 +345,7 @@ Base.axes(mesh::StructuredMesh, i) = Base.OneTo(mesh.cells_per_dimension[i])
 
 function Base.show(io::IO, mesh::StructuredMesh)
     print(io, "StructuredMesh{", ndims(mesh), ", ", real(mesh), "}")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)

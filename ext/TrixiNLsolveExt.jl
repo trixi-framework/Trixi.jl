@@ -1,7 +1,7 @@
 # Package extension for adding NLsolve-based features to Trixi.jl
 module TrixiNLsolveExt
 
-# Required for finding coefficients in Butcher tableau in the third order of 
+# Required for finding coefficients in Butcher tableau in the third order of
 # PERK scheme integrators
 using NLsolve: nlsolve
 
@@ -28,10 +28,10 @@ function PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, a_unknown,
     c_ts = c # ts = timestep
     # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
     a_coeff = [0, c_ts[2], a_unknown...]
-    # Equality constraint array that ensures that the stability polynomial computed from 
-    # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
+    # Equality constraint array that ensures that the stability polynomial computed from
+    # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the
     # optimized stability polynomial.
-    # For details, see Chapter 4.3, Proposition 3.2, Equation (3.3) from 
+    # For details, see Chapter 4.3, Proposition 3.2, Equation (3.3) from
     # Hairer, Wanner: Solving Ordinary Differential Equations 2
     # DOI: 10.1007/978-3-662-09947-6
 
@@ -59,13 +59,13 @@ function PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, a_unknown,
 
     c_eq[i] = monomial_coeffs[i] - term2
     # Third-order consistency condition (Cf. eq. (27) from https://doi.org/10.1016/j.jcp.2022.111470
-    c_eq[num_stage_evals - 2] = 1 - 4 * a_coeff[num_stage_evals] -
-                                a_coeff[num_stage_evals - 1]
+    return c_eq[num_stage_evals - 2] = 1 - 4 * a_coeff[num_stage_evals] -
+                                       a_coeff[num_stage_evals - 1]
 end
 
 # Find the values of the a_{i, i-1} in the Butcher tableau matrix A by solving a system of
 # non-linear equations that arise from the relation of the stability polynomial to the Butcher tableau.
-# For details, see Proposition 3.2, Equation (3.3) from 
+# For details, see Proposition 3.2, Equation (3.3) from
 # Hairer, Wanner: Solving Ordinary Differential Equations 2
 function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_coeffs,
                                                c; verbose, max_iter = 100000)
@@ -82,12 +82,12 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
     # RealT is determined as the type of the first element in monomial_coeffs to ensure type consistency
     RealT = typeof(monomial_coeffs[1])
 
-    # To ensure consistency and reproducibility of results across runs, we use 
+    # To ensure consistency and reproducibility of results across runs, we use
     # a seeded random initial guess.
     rng = StableRNG(555)
 
     for _ in 1:max_iter
-        # Due to the nature of the nonlinear solver, different initial guesses can lead to 
+        # Due to the nature of the nonlinear solver, different initial guesses can lead to
         # small numerical differences in the solution.
 
         x0 = convert(RealT, 0.1) .* rand(rng, RealT, num_stages - 2)
@@ -98,7 +98,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
 
         a_unknown = sol.zero # Retrieve solution (root = zero)
 
-        # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver) 
+        # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver)
         # and also c[i] - a[i, i-1] >= 0.0 since all coefficients should be non-negative
         # to avoid downwinding of numerical fluxes.
         is_sol_valid = all(x -> !isnan(x) && x >= 0, a_unknown) &&
@@ -115,6 +115,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
     end
 
     error("Maximum number of iterations ($max_iter) reached. Cannot find valid sets of coefficients.")
+    return nothing
 end
 end # @muladd
 

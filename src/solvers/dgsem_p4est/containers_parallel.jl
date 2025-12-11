@@ -21,7 +21,7 @@ mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
 end
 
 @inline function nmpiinterfaces(interfaces::P4estMPIInterfaceContainer)
-    length(interfaces.local_sides)
+    return length(interfaces.local_sides)
 end
 @inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
 
@@ -137,7 +137,7 @@ mutable struct P4estMPIMortarContainer{NDIMS, uEltype <: Real, RealT <: Real, ND
 end
 
 @inline function nmpimortars(mpi_mortars::P4estMPIMortarContainer)
-    length(mpi_mortars.local_neighbor_ids)
+    return length(mpi_mortars.local_neighbor_ids)
 end
 @inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where {NDIMS} = NDIMS
 
@@ -313,7 +313,7 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
     # re-initialize and distribute normal directions of MPI mortars; requires MPI communication, so
     # the MPI cache must be re-initialized before
     init_normal_directions!(mpi_mortars, dg.basis, elements)
-    exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
+    return exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 end
 
 # A helper struct used in initialization methods below
@@ -355,7 +355,7 @@ function init_surfaces_iter_face_parallel(info, user_data)
     data = unsafe_pointer_to_objref(Ptr{ParallelInitSurfacesIterFaceUserData}(user_data))
 
     # Function barrier because the unpacked user_data above is type-unstable
-    init_surfaces_iter_face_inner(info, data)
+    return init_surfaces_iter_face_inner(info, data)
 end
 
 # 2D

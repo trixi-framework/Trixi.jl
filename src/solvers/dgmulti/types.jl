@@ -56,6 +56,7 @@ const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
 polydeg(dg::DGMulti) = dg.basis.N
 function Base.summary(io::IO, dg::DG) where {DG <: DGMulti}
     print(io, "DGMulti(polydeg=$(polydeg(dg)))")
+    return nothing
 end
 
 # real(rd) is the eltype of the nodes `rd.r`.
@@ -96,8 +97,8 @@ function DGMulti(; polydeg = nothing,
                  kwargs...)
 
     # call dispatchable constructor
-    DGMulti(element_type, approximation_type, volume_integral, surface_integral;
-            polydeg = polydeg, kwargs...)
+    return DGMulti(element_type, approximation_type, volume_integral, surface_integral;
+                   polydeg = polydeg, kwargs...)
 end
 
 # `Wedge` element types can optionally take `polydeg = (polydeg_tri, polydeg_line)`, which
@@ -155,7 +156,7 @@ end
 
 function DGMulti(basis::RefElemData; volume_integral, surface_integral)
     # `nothing` is passed as `mortar`
-    DG(basis, nothing, surface_integral, volume_integral)
+    return DG(basis, nothing, surface_integral, volume_integral)
 end
 
 """
@@ -169,7 +170,7 @@ Constructs a basis for DGMulti solvers. Returns a "StartUpDG.RefElemData" object
 """
 function DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(),
                       kwargs...)
-    RefElemData(element_type, approximation_type, polydeg; kwargs...)
+    return RefElemData(element_type, approximation_type, polydeg; kwargs...)
 end
 
 ########################################
@@ -196,13 +197,13 @@ struct NonAffine <: GeometricTermsType end # mesh produces non-constant geometri
 
 # choose MeshType based on the constructor and element type
 function GeometricTermsType(mesh_type, dg::DGMulti)
-    GeometricTermsType(mesh_type, dg.basis.element_type)
+    return GeometricTermsType(mesh_type, dg.basis.element_type)
 end
 GeometricTermsType(mesh_type::Cartesian, element_type::AbstractElemShape) = Affine()
 GeometricTermsType(mesh_type::TriangulateIO, element_type::Tri) = Affine()
 GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Tri, Tet}) = Affine()
 function GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Quad, Hex})
-    NonAffine()
+    return NonAffine()
 end
 GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffine()
 
@@ -347,8 +348,8 @@ struct LazyMatrixLinearCombo{Tcoeffs, N, Tv, TA <: AbstractMatrix{Tv}} <:
     coeffs::NTuple{N, Tcoeffs}
     function LazyMatrixLinearCombo(matrices, coeffs)
         @assert all(matrix -> size(matrix) == size(first(matrices)), matrices)
-        new{typeof(first(coeffs)), length(matrices), eltype(first(matrices)),
-            typeof(first(matrices))}(matrices, coeffs)
+        return new{typeof(first(coeffs)), length(matrices), eltype(first(matrices)),
+                   typeof(first(matrices))}(matrices, coeffs)
     end
 end
 Base.eltype(A::LazyMatrixLinearCombo) = eltype(first(A.matrices))

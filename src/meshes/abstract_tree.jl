@@ -16,7 +16,7 @@ has_parent(t::AbstractTree, cell_id::Int) = t.parent_ids[cell_id] > 0
 
 # Count number of children for a given cell
 function n_children(t::AbstractTree, cell_id::Int)
-    count(x -> (x > 0), @view t.child_ids[:, cell_id])
+    return count(x -> (x > 0), @view t.child_ids[:, cell_id])
 end
 
 # Check whether cell has any child cell
@@ -30,7 +30,7 @@ has_child(t::AbstractTree, cell_id::Int, child::Int) = t.child_ids[child, cell_i
 
 # Check if cell has a neighbor at the same refinement level in the given direction
 function has_neighbor(t::AbstractTree, cell_id::Int, direction::Int)
-    t.neighbor_ids[direction, cell_id] > 0
+    return t.neighbor_ids[direction, cell_id] > 0
 end
 
 # Check if cell has a coarse neighbor, i.e., with one refinement level lower
@@ -174,7 +174,7 @@ local_leaf_cells(t::AbstractTree) = leaf_cells(t)
 count_leaf_cells(t::AbstractTree) = length(leaf_cells(t))
 
 @inline function cell_coordinates(t::AbstractTree{NDIMS}, cell) where {NDIMS}
-    SVector(ntuple(d -> t.coordinates[d, cell], Val(NDIMS)))
+    return SVector(ntuple(d -> t.coordinates[d, cell], Val(NDIMS)))
 end
 
 @inline function set_cell_coordinates!(t::AbstractTree{NDIMS}, coords,
@@ -196,7 +196,7 @@ end
 
 # Store cell id in each cell to use for post-AMR analysis
 function reset_original_cell_ids!(t::AbstractTree)
-    t.original_cell_ids[1:length(t)] .= 1:length(t)
+    return t.original_cell_ids[1:length(t)] .= 1:length(t)
 end
 
 # Efficiently perform uniform refinement up to a given level (works only on mesh with a single cell)
@@ -215,7 +215,7 @@ function refine_uniformly!(t::AbstractTree, max_level)
     init_children!(t, 1, max_level)
 
     # Set all neighbor relationships
-    init_neighbors!(t, max_level)
+    return init_neighbors!(t, max_level)
 end
 
 # Recursively initialize children up to level `max_level` in depth-first ordering, starting with
@@ -411,7 +411,7 @@ function refine_box!(t::AbstractTree{NDIMS},
     end
 
     # Refine cells
-    refine!(t, cells)
+    return refine!(t, cells)
 end
 
 # Convenience method for 1D (arguments are no arrays)
@@ -432,13 +432,13 @@ function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS},
     end
 
     # Refine cells
-    refine!(t, cells)
+    return refine!(t, cells)
 end
 
 # Convenience function to allow passing center as a tuple
 function refine_sphere!(t::AbstractTree{NDIMS}, center::NTuple{NDIMS},
                         radius) where {NDIMS}
-    refine_sphere!(t, SVector(center), radius)
+    return refine_sphere!(t, SVector(center), radius)
 end
 
 # For the given cell ids, check if neighbors need to be refined to restore a rebalanced tree.
@@ -500,7 +500,7 @@ function coarsen!(t::AbstractTree)
 
     # Get list of unique parent ids for all leaf cells
     parent_ids = unique(t.parent_ids[leaf_cells(t)])
-    coarsen!(t, parent_ids)
+    return coarsen!(t, parent_ids)
 end
 
 # Coarsen given *parent* cells (= these cells must have children who are all
@@ -651,7 +651,7 @@ function coarsen_box!(t::AbstractTree{NDIMS},
     end
 
     # Coarsen cells
-    coarsen!(t, parents)
+    return coarsen!(t, parents)
 end
 
 # Convenience method for 1D (arguments are no arrays)

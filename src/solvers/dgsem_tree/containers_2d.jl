@@ -568,6 +568,7 @@ function Base.show(io::IO, ::MIME"text/plain", c::TreeL2MortarContainer2D)
     println(io, "c.large_sides = $(c.large_sides)")
     println(io, "c.orientations = $(c.orientations)")
     print(io, '*'^20)
+    return nothing
 end
 
 # Create mortar container and initialize mortar data in `elements`.

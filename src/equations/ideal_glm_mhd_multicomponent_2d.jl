@@ -85,7 +85,7 @@ struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
         cv = gas_constants ./ (gammas .- 1)
         cp = gas_constants + gas_constants ./ (gammas .- 1)
 
-        new(gammas, gas_constants, cv, cp, c_h)
+        return new(gammas, gas_constants, cv, cp, c_h)
     end
 end
 
@@ -129,7 +129,7 @@ end
                                                                                                NCOMP,
                                                                                                RealT
                                                                                                }
-    RealT
+    return RealT
 end
 
 have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations2D) = True()
@@ -147,7 +147,7 @@ function varnames(::typeof(cons2prim), equations::IdealGlmMhdMulticomponentEquat
 end
 
 function default_analysis_integrals(::IdealGlmMhdMulticomponentEquations2D)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+    return (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
 # Helper function to extract the magnetic field vector from the conservative variables

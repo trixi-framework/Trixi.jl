@@ -19,15 +19,15 @@ Set up parameters for the gravitational part of a [`SemidiscretizationEulerGravi
 - `background_density<:Real`: Constant background/reference density ρ₀ which is subtracted from the (Euler) density
                               in the RHS source term computation of the gravity solver.
 - `gravitational_constant<:Real`: Gravitational constant G which needs to be in consistent units with the
-                                  density and velocity fields. 
+                                  density and velocity fields.
 - `cfl<:Real`: CFL number used for the pseudo-time stepping to advance the hyperbolic diffusion equations into steady state.
-- `resid_tol<:Real`: Absolute tolerance for the residual of the hyperbolic diffusion equations which are solved to 
+- `resid_tol<:Real`: Absolute tolerance for the residual of the hyperbolic diffusion equations which are solved to
                      (approximately) steady state.
-- `n_iterations_max::Int`: Maximum number of iterations of the pseudo-time gravity solver. 
-                           If `n_iterations <= 0` the solver will iterate until the residual is less or equal `resid_tol`. 
+- `n_iterations_max::Int`: Maximum number of iterations of the pseudo-time gravity solver.
+                           If `n_iterations <= 0` the solver will iterate until the residual is less or equal `resid_tol`.
                            This can cause an infinite loop if the solver does not converge!
 - `timestep_gravity`: Function to advance the gravity solver by one pseudo-time step.
-                      There are three optimized methods available: 
+                      There are three optimized methods available:
                       1) `timestep_gravity_erk51_3Sstar!` (first-order),
                       2) `timestep_gravity_erk52_3Sstar!` (second-order),
                       3) `timestep_gravity_erk53_3Sstar!` (third-order).
@@ -51,8 +51,9 @@ function ParametersEulerGravity(; background_density = 0.0,
     background_density, gravitational_constant, cfl, resid_tol = promote(background_density,
                                                                          gravitational_constant,
                                                                          cfl, resid_tol)
-    ParametersEulerGravity(background_density, gravitational_constant, cfl, resid_tol,
-                           n_iterations_max, timestep_gravity)
+    return ParametersEulerGravity(background_density, gravitational_constant, cfl,
+                                  resid_tol,
+                                  n_iterations_max, timestep_gravity)
 end
 
 function Base.show(io::IO, parameters::ParametersEulerGravity)
@@ -65,6 +66,7 @@ function Base.show(io::IO, parameters::ParametersEulerGravity)
     print(io, ", n_iterations_max=", parameters.n_iterations_max)
     print(io, ", timestep_gravity=", parameters.timestep_gravity)
     print(io, ")")
+    return nothing
 end
 function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravity)
     @nospecialize parameters # reduce precompilation time
@@ -179,6 +181,7 @@ function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
         print(io, key)
     end
     print(io, "))")
+    return nothing
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEulerGravity)
@@ -204,7 +207,7 @@ end
 # The hyperbolic diffusion equations part is only used internally to update the gravitational
 # potential during an rhs! evaluation of the flow solver.
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationEulerGravity)
-    mesh_equations_solver_cache(semi.semi_euler)
+    return mesh_equations_solver_cache(semi.semi_euler)
 end
 
 @inline Base.ndims(semi::SemidiscretizationEulerGravity) = ndims(semi.semi_euler)
@@ -214,21 +217,21 @@ end
 # computes the coefficients of the initial condition
 @inline function compute_coefficients(t, semi::SemidiscretizationEulerGravity)
     compute_coefficients!(semi.cache.u_ode, t, semi.semi_gravity)
-    compute_coefficients(t, semi.semi_euler)
+    return compute_coefficients(t, semi.semi_euler)
 end
 
 # computes the coefficients of the initial condition and stores the Euler part in `u_ode`
 @inline function compute_coefficients!(u_ode, t, semi::SemidiscretizationEulerGravity)
     compute_coefficients!(semi.cache.u_ode, t, semi.semi_gravity)
-    compute_coefficients!(u_ode, t, semi.semi_euler)
+    return compute_coefficients!(u_ode, t, semi.semi_euler)
 end
 
 @inline function calc_error_norms(func, u, t, analyzer,
                                   semi::SemidiscretizationEulerGravity, cache_analysis)
-    calc_error_norms(func, u, t, analyzer, semi.semi_euler, cache_analysis)
+    return calc_error_norms(func, u, t, analyzer, semi.semi_euler, cache_analysis)
 end
 
-# Coupled Euler and gravity solver at each Runge-Kutta stage, 
+# Coupled Euler and gravity solver at each Runge-Kutta stage,
 # corresponding to Algorithm 2 in Schlottke-Lakemper et al. (2020),
 # https://dx.doi.org/10.1016/j.jcp.2021.110467
 function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
@@ -406,8 +409,8 @@ function timestep_gravity_carpenter_kennedy_erk54_2N!(cache, u_euler, tau, dtau,
                 2006345519317.0 / 3224310063776.0,
                 2802321613138.0 / 2924317926251.0)
 
-    timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters, semi_gravity,
-                         a, b, c)
+    return timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
+                                semi_gravity, a, b, c)
 end
 
 # Integrate gravity solver for 3S*-type low-storage schemes
@@ -487,9 +490,9 @@ function timestep_gravity_erk51_3Sstar!(cache, u_euler, tau, dtau, gravity_param
     c = SVector(0.0000000000000000E+00, 1.9189497208340553E-01, 1.9580448818599061E-01,
                 2.4241635859769023E-01, 5.0728347557552977E-01)
 
-    timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
-                             semi_gravity,
-                             gamma1, gamma2, gamma3, beta, delta, c)
+    return timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
+                                    semi_gravity,
+                                    gamma1, gamma2, gamma3, beta, delta, c)
 end
 
 # Second-order, 5-stage, 3S*-storage optimized method
@@ -516,9 +519,9 @@ function timestep_gravity_erk52_3Sstar!(cache, u_euler, tau, dtau, gravity_param
     c = SVector(0.0000000000000000E+00, 4.5158640252832094E-01, 1.0221535725056414E+00,
                 1.4280257701954349E+00, 7.1581334196229851E-01)
 
-    timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
-                             semi_gravity,
-                             gamma1, gamma2, gamma3, beta, delta, c)
+    return timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
+                                    semi_gravity,
+                                    gamma1, gamma2, gamma3, beta, delta, c)
 end
 
 # Third-order, 5-stage, 3S*-storage optimized method
@@ -545,9 +548,9 @@ function timestep_gravity_erk53_3Sstar!(cache, u_euler, tau, dtau, gravity_param
     c = SVector(0.0000000000000000E+00, 8.4476964977404881E-02, 2.8110631488732202E-01,
                 5.7093842145029405E-01, 7.2999896418559662E-01)
 
-    timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
-                             semi_gravity,
-                             gamma1, gamma2, gamma3, beta, delta, c)
+    return timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
+                                    semi_gravity,
+                                    gamma1, gamma2, gamma3, beta, delta, c)
 end
 
 # TODO: Taal decide, where should specific parts like these be?

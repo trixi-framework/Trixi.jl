@@ -123,13 +123,13 @@ boundary_conditions = (; x_neg = boundary_condition_inflow,
 ### Viscous boundary conditions ###
 # For the viscous BCs, we use the known analytical solution
 velocity_bc = NoSlip() do x, t, equations_parabolic
-    velocity(initial_condition_viscous_shock(x, t, equations_parabolic),
-             equations_parabolic)
+    return velocity(initial_condition_viscous_shock(x, t, equations_parabolic),
+                    equations_parabolic)
 end
 
 heat_bc = Isothermal() do x, t, equations_parabolic
-    temperature(initial_condition_viscous_shock(x, t, equations_parabolic),
-                equations_parabolic)
+    return temperature(initial_condition_viscous_shock(x, t, equations_parabolic),
+                       equations_parabolic)
 end
 
 boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, heat_bc)

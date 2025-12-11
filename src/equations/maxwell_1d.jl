@@ -38,15 +38,15 @@ struct MaxwellEquations1D{RealT <: Real} <: AbstractMaxwellEquations{1, 2}
     speed_of_light::RealT # c
 
     function MaxwellEquations1D(c::Real = 299_792_458.0)
-        new{typeof(c)}(c)
+        return new{typeof(c)}(c)
     end
 end
 
 function varnames(::typeof(cons2cons), ::MaxwellEquations1D)
-    ("E", "B")
+    return ("E", "B")
 end
 function varnames(::typeof(cons2prim), ::MaxwellEquations1D)
-    ("E", "B")
+    return ("E", "B")
 end
 
 """
@@ -96,7 +96,7 @@ end
 
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::MaxwellEquations1D)
-    min_max_speed_davis(u_ll, u_rr, orientation, equations)
+    return min_max_speed_davis(u_ll, u_rr, orientation, equations)
 end
 
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,

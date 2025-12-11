@@ -192,6 +192,7 @@ end
                                   summary_callback = TrivialCallback(),
                                   analysis_callback = TrivialCallback(),
                                   alive_callback = TrivialCallback())
+                    return nothing
                 end
             end
             output = read(fname, String)
@@ -273,7 +274,7 @@ end
         x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
         scalar = sin(x0)
         advection_velocity = 2 + cos(x[1])
-        SVector(scalar, advection_velocity)
+        return SVector(scalar, advection_velocity)
     end
 
     # Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries

@@ -124,6 +124,7 @@ function Base.show(io::IO, semi::SemidiscretizationEulerAcoustics)
         print(io, key)
     end
     print(io, "))")
+    return nothing
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
@@ -154,17 +155,17 @@ end
 
 # Computes the coefficients of the initial condition
 @inline function compute_coefficients(t, semi::SemidiscretizationEulerAcoustics)
-    compute_coefficients(t, semi.semi_acoustics)
+    return compute_coefficients(t, semi.semi_acoustics)
 end
 
 @inline function compute_coefficients!(u_ode, t, semi::SemidiscretizationEulerAcoustics)
-    compute_coefficients!(u_ode, t, semi.semi_acoustics)
+    return compute_coefficients!(u_ode, t, semi.semi_acoustics)
 end
 
 @inline function calc_error_norms(func, u, t, analyzer,
                                   semi::SemidiscretizationEulerAcoustics,
                                   cache_analysis)
-    calc_error_norms(func, u, t, analyzer, semi.semi_acoustics, cache_analysis)
+    return calc_error_norms(func, u, t, analyzer, semi.semi_acoustics, cache_analysis)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)

@@ -70,7 +70,7 @@ struct IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT <: Real} <:
         cv = gas_constants ./ (gammas .- 1)
         cp = gas_constants + gas_constants ./ (gammas .- 1)
 
-        new(gammas, gas_constants, cv, cp)
+        return new(gammas, gas_constants, cv, cp)
     end
 end
 
@@ -91,7 +91,8 @@ end
 
 # Outer constructor for `@reset` works correctly
 function IdealGlmMhdMulticomponentEquations1D(gammas, gas_constants, cv, cp, c_h)
-    IdealGlmMhdMulticomponentEquations1D(gammas = gammas, gas_constants = gas_constants)
+    return IdealGlmMhdMulticomponentEquations1D(gammas = gammas,
+                                                gas_constants = gas_constants)
 end
 
 @inline function Base.real(::IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT}) where {
@@ -99,7 +100,7 @@ end
                                                                                                NCOMP,
                                                                                                RealT
                                                                                                }
-    RealT
+    return RealT
 end
 
 have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations1D) = False()

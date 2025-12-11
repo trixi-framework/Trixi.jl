@@ -39,7 +39,7 @@ source_rho_e  := df(rho_e, t)  + df((rho_e + p) * v1, x)
 =#
 
 function euler1d()
-    quote
+    return quote
         ini = c + a * sin(ω * (x - t))
         rho = ini
         rho_v1 = ini
@@ -77,7 +77,7 @@ source_rho_e  := df(rho_e, t)  + df((rho_e + p) * v1, x) + df((rho_e + p) * v2, 
 =#
 
 function euler2d()
-    quote
+    return quote
         ini = c + a * sin(ω * (x + y - t))
         rho = ini
         rho_v1 = ini
@@ -121,7 +121,7 @@ source_rho_e  := df(rho_e, t)  + df((rho_e + p) * v1, x) + df((rho_e + p) * v2, 
 =#
 
 function euler3d()
-    quote
+    return quote
         ini = c + a * sin(ω * (x + y + z - t))
         rho = ini
         rho_v1 = ini

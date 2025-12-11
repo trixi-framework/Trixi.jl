@@ -9,14 +9,14 @@ abstract type AbstractVolumeIntegral end
 
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::AbstractVolumeIntegral, dg, cache)
-    nothing
+    return nothing
 end
 
 # Function to define "element variables" for the SaveSolutionCallback. It does
 # nothing by default, but can be specialized for certain mesh types. For instance,
 # parallel meshes output the mpi rank as an "element variable".
 function get_element_variables!(element_variables, mesh, dg, cache)
-    nothing
+    return nothing
 end
 
 ### Functions to define `node variables` for the `SaveSolutionCallback`. ###
@@ -160,9 +160,11 @@ end
 
 function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg = flux_central,
                                         volume_flux_fv = flux_lax_friedrichs)
-    VolumeIntegralShockCapturingHG{typeof(volume_flux_dg), typeof(volume_flux_fv),
-                                   typeof(indicator)}(volume_flux_dg, volume_flux_fv,
-                                                      indicator)
+    return VolumeIntegralShockCapturingHG{typeof(volume_flux_dg),
+                                          typeof(volume_flux_fv),
+                                          typeof(indicator)}(volume_flux_dg,
+                                                             volume_flux_fv,
+                                                             indicator)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
@@ -186,8 +188,8 @@ function get_element_variables!(element_variables, u, mesh, equations,
                                 cache)
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator(u, mesh, equations, dg, cache)
-    get_element_variables!(element_variables, volume_integral.indicator,
-                           volume_integral)
+    return get_element_variables!(element_variables, volume_integral.indicator,
+                                  volume_integral)
 end
 
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
@@ -273,7 +275,7 @@ For the DG-subcells at the boundaries, two options are available:
 See especially Sections 3.2, Section 4, and Appendix D of the paper
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
-  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. 
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
@@ -290,16 +292,16 @@ function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
                                              volume_flux_fv = flux_lax_friedrichs,
                                              reconstruction_mode = reconstruction_O2_full,
                                              slope_limiter = minmod) where {Basis}
-    # Suffices to store only the intermediate boundaries of the sub-cell elements                                             
+    # Suffices to store only the intermediate boundaries of the sub-cell elements
     x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
-    VolumeIntegralPureLGLFiniteVolumeO2{eltype(basis.weights),
-                                        typeof(basis),
-                                        typeof(volume_flux_fv),
-                                        typeof(reconstruction_mode),
-                                        typeof(slope_limiter)}(x_interfaces,
-                                                               volume_flux_fv,
-                                                               reconstruction_mode,
-                                                               slope_limiter)
+    return VolumeIntegralPureLGLFiniteVolumeO2{eltype(basis.weights),
+                                               typeof(basis),
+                                               typeof(volume_flux_fv),
+                                               typeof(reconstruction_mode),
+                                               typeof(slope_limiter)}(x_interfaces,
+                                                                      volume_flux_fv,
+                                                                      reconstruction_mode,
+                                                                      slope_limiter)
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -343,9 +345,10 @@ end
 function VolumeIntegralSubcellLimiting(limiter;
                                        volume_flux_dg = flux_central,
                                        volume_flux_fv = flux_lax_friedrichs)
-    VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
-                                  typeof(limiter)}(volume_flux_dg, volume_flux_fv,
-                                                   limiter)
+    return VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
+                                         typeof(limiter)}(volume_flux_dg,
+                                                          volume_flux_fv,
+                                                          limiter)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
@@ -373,7 +376,7 @@ function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_
 
     # Resize container subcell_limiter_coefficients
     @unpack limiter = volume_integral
-    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+    return resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 end
 
 # TODO: FD. Should this definition live in a different file because it is
@@ -538,6 +541,7 @@ function Base.show(io::IO, dg::DG)
     print(io, ", ", dg.surface_integral)
     print(io, ", ", dg.volume_integral)
     print(io, ")")
+    return nothing
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
@@ -567,7 +571,7 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
     get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral,
                            dg, cache)
-    get_element_variables!(element_variables, mesh, dg, cache)
+    return get_element_variables!(element_variables, mesh, dg, cache)
 end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
@@ -575,7 +579,7 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
                           P4estMesh, P4estMeshView, T8codeMesh}
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
-    nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+    return nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 end
 
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
@@ -593,7 +597,7 @@ In particular, not the nodes themselves are returned.
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
 @inline function ndofsglobal(mesh, dg::DG, cache)
-    nelementsglobal(mesh, dg, cache) * nnodes(dg)^ndims(mesh)
+    return nelementsglobal(mesh, dg, cache) * nnodes(dg)^ndims(mesh)
 end
 
 """
@@ -652,7 +656,7 @@ In particular, not the mortars themselves are returned.
 
 @inline nelements(dg::DG, cache) = nelements(cache.elements)
 @inline function nelementsglobal(mesh, dg::DG, cache)
-    mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
+    return mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
 end
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
@@ -667,7 +671,7 @@ end
 # - https://github.com/trixi-framework/Trixi.jl/issues/87
 # - https://github.com/trixi-framework/Trixi.jl/issues/86
 @inline function get_node_coords(x, equations, solver::DG, indices...)
-    SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
+    return SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
 end
 
 """
@@ -695,7 +699,7 @@ https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
     # compiler for standard `Array`s but not necessarily for more
     # advanced array types such as `PtrArray`s, cf.
     # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
-    SVector(ntuple(@inline(v->u[v, indices...]), Val(nvariables(equations))))
+    return SVector(ntuple(@inline(v->u[v, indices...]), Val(nvariables(equations))))
 end
 
 @inline function get_surface_node_vars(u, equations, solver::DG, indices...)
@@ -833,7 +837,7 @@ end
 # General fallback
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
                             dg::DG, cache)
-    wrap_array_native(u_ode, mesh, equations, dg, cache)
+    return wrap_array_native(u_ode, mesh, equations, dg, cache)
 end
 
 # Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
@@ -845,9 +849,9 @@ end
         @assert length(u_ode) ==
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
-    unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                 nelements(dg, cache)))
+    return unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
+                       (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                        nelements(dg, cache)))
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
@@ -897,7 +901,8 @@ end
 @kernel function compute_coefficients_kernel!(u, func, t, equations,
                                               dg::DG, node_coordinates)
     element = @index(Global)
-    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates, element)
+    return compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
+                                         element)
 end
 
 function compute_coefficients_element!(u, func, t, equations, dg::DG,

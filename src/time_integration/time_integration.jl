@@ -62,7 +62,7 @@ function initialize_callbacks!(callbacks::Union{CallbackSet, Nothing},
             throw(ArgumentError("Continuous callbacks are unsupported."))
         end
         foreach(callbacks.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
+            return cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
     end
 
@@ -105,7 +105,7 @@ function solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
     # Start actual solve
-    solve!(integrator)
+    return solve!(integrator)
 end
 
 function solve!(integrator::AbstractTimeIntegrator)
@@ -139,10 +139,10 @@ function finalize_callbacks(integrator::AbstractTimeIntegrator)
 
     if callbacks isa CallbackSet
         foreach(callbacks.discrete_callbacks) do cb
-            cb.finalize(cb, integrator.u, integrator.t, integrator)
+            return cb.finalize(cb, integrator.u, integrator.t, integrator)
         end
         foreach(callbacks.continuous_callbacks) do cb
-            cb.finalize(cb, integrator.u, integrator.t, integrator)
+            return cb.finalize(cb, integrator.u, integrator.t, integrator)
         end
     end
 

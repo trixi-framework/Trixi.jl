@@ -55,10 +55,10 @@ function LinearizedEulerEquations1D(; v_mean_global::Real,
 end
 
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations1D)
-    ("rho_prime", "v1_prime", "p_prime")
+    return ("rho_prime", "v1_prime", "p_prime")
 end
 function varnames(::typeof(cons2prim), ::LinearizedEulerEquations1D)
-    ("rho_prime", "v1_prime", "p_prime")
+    return ("rho_prime", "v1_prime", "p_prime")
 end
 
 """
@@ -133,7 +133,7 @@ end
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::LinearizedEulerEquations1D)
-    min_max_speed_davis(u_ll, u_rr, orientation, equations)
+    return min_max_speed_davis(u_ll, u_rr, orientation, equations)
 end
 
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes

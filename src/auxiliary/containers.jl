@@ -92,17 +92,17 @@ end
 # Convenience method to copy a single element
 function Trixi.copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
                      destination::Int)
-    Trixi.copy!(target, source, from, from, destination)
+    return Trixi.copy!(target, source, from, from, destination)
 end
 
 # Convenience method for copies within a single container
 function Trixi.copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-    Trixi.copy!(c, c, first, last, destination)
+    return Trixi.copy!(c, c, first, last, destination)
 end
 
 # Convenience method for copying a single element within a single container
 function Trixi.copy!(c::AbstractContainer, from::Int, destination::Int)
-    Trixi.copy!(c, c, from, from, destination)
+    return Trixi.copy!(c, c, from, from, destination)
 end
 
 # Move elements in a way that preserves connectivity.
@@ -136,7 +136,7 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
     return c
 end
 function move!(c::AbstractContainer, from::Int, destination::Int)
-    move!(c, from, from, destination)
+    return move!(c, from, from, destination)
 end
 
 # Default implementation for moving a single element
@@ -220,23 +220,25 @@ end
 
 # Helpful overloads for `raw_copy`
 function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-    raw_copy!(c, c, first, last, destination)
+    return raw_copy!(c, c, first, last, destination)
 end
 function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
                    destination::Int)
-    raw_copy!(target, source, from, from, destination)
+    return raw_copy!(target, source, from, from, destination)
 end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
-    raw_copy!(c, c, from, from, destination)
+    return raw_copy!(c, c, from, from, destination)
 end
 
 # Trixi storage types must implement these two Adapt.jl methods
 function Adapt.adapt_structure(to, c::AbstractContainer)
     error("Interface: Must implement Adapt.adapt_structure(to, ::$(typeof(c)))")
+    return nothing
 end
 
 function Adapt.parent_type(C::Type{<:AbstractContainer})
     error("Interface: Must implement Adapt.parent_type(::Type{$C}")
+    return nothing
 end
 
 function Adapt.unwrap_type(C::Type{<:AbstractContainer})
@@ -255,10 +257,11 @@ end
 
 function storage_type(T::Type)
     error("Interface: Must implement storage_type(::Type{$T}")
+    return nothing
 end
 
 function storage_type(::Type{<:Array})
-    Array
+    return Array
 end
 
 function storage_type(C::Type{<:AbstractContainer})
@@ -320,39 +323,39 @@ struct TrixiAdaptor{Storage, RealT} end
 Adapt `x` to the storage type `Storage` and real type `RealT`.
 """
 function trixi_adapt(Storage, RealT, x)
-    adapt(TrixiAdaptor{Storage, RealT}(), x)
+    return adapt(TrixiAdaptor{Storage, RealT}(), x)
 end
 
 # Custom rules
 # 1. handling of StaticArrays
 function Adapt.adapt_storage(::TrixiAdaptor{<:Any, RealT},
                              x::StaticArrays.StaticArray) where {RealT}
-    StaticArrays.similar_type(x, RealT)(x)
+    return StaticArrays.similar_type(x, RealT)(x)
 end
 
 # 2. Handling of Arrays
 function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
                              x::AbstractArray{T}) where {Storage, RealT,
                                                          T <: AbstractFloat}
-    adapt(Storage{RealT}, x)
+    return adapt(Storage{RealT}, x)
 end
 
 function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
                              x::AbstractArray{T}) where {Storage, RealT,
                                                          T <: StaticArrays.StaticArray}
-    adapt(Storage{StaticArrays.similar_type(T, RealT)}, x)
+    return adapt(Storage{StaticArrays.similar_type(T, RealT)}, x)
 end
 
 # Our threaded cache contains MArray, it is unlikely that we would want to adapt those
 function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
                              x::Array{T}) where {Storage, RealT,
                                                  T <: StaticArrays.MArray}
-    adapt(Array{StaticArrays.similar_type(T, RealT)}, x)
+    return adapt(Array{StaticArrays.similar_type(T, RealT)}, x)
 end
 
 function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
                              x::AbstractArray) where {Storage, RealT}
-    adapt(Storage, x)
+    return adapt(Storage, x)
 end
 
 # 3. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again

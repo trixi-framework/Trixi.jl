@@ -377,7 +377,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # A semidiscretization collects data structures and functions for the spatial discretization.
 # In Trixi.jl, an initial condition has the following parameter structure and is of the type `SVector`.
 function initial_condition_sine_wave(x, t, equations)
-    SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+    return SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
@@ -506,7 +506,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 ## create initial condition and semidiscretization
 function initial_condition_sine_wave(x, t, equations)
-    SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+    return SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)

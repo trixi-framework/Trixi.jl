@@ -64,10 +64,10 @@ function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
 end
 
 function varnames(::typeof(cons2cons), ::LinearElasticityEquations1D)
-    ("v1", "sigma11")
+    return ("v1", "sigma11")
 end
 function varnames(::typeof(cons2prim), ::LinearElasticityEquations1D)
-    ("v1", "sigma11")
+    return ("v1", "sigma11")
 end
 
 """

@@ -23,7 +23,7 @@ end
 # this method is used when the indicator is constructed as for AMR
 function create_cache(typ::Type{IndicatorHennemannGassner},
                       mesh, equations::AbstractEquations, dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
+    return create_cache(typ, equations, dg.basis)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -90,7 +90,7 @@ end
     end
 
     # Clip the maximum amount of FV allowed
-    alpha[element] = min(alpha_max, alpha_element)
+    return alpha[element] = min(alpha_max, alpha_element)
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha

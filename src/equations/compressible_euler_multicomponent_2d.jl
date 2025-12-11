@@ -73,7 +73,7 @@ struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <
         cv = gas_constants ./ (gammas .- 1)
         cp = gas_constants + gas_constants ./ (gammas .- 1)
 
-        new(gammas, gas_constants, cv, cp)
+        return new(gammas, gas_constants, cv, cp)
     end
 end
 
@@ -98,7 +98,7 @@ end
                                                                                        NCOMP,
                                                                                        RealT
                                                                                        }
-    RealT
+    return RealT
 end
 
 function varnames(::typeof(cons2cons),
