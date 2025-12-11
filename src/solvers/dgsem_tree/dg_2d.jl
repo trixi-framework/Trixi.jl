@@ -36,10 +36,8 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
     return cache
 end
 
-function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             VolumeIntegralShockCapturingHG}, dg::DG,
-                      uEltype)
+function create_fstar_threaded(mesh::AbstractMesh{2}, equations,
+                               dg::DG, uEltype)
     A3d = Array{uEltype, 3}
 
     fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
@@ -66,6 +64,18 @@ function create_cache(mesh::TreeMesh{2}, equations,
         fstar2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
         fstar2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
     end
+
+    return fstar1_L_threaded, fstar1_R_threaded,
+           fstar2_L_threaded, fstar2_R_threaded
+end
+
+function create_cache(mesh::TreeMesh{2}, equations,
+                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralShockCapturingHG}, dg::DG,
+                      uEltype)
+    fstar1_L_threaded, fstar1_R_threaded,
+    fstar2_L_threaded, fstar2_R_threaded = create_fstar_threaded(mesh, equations, dg,
+                                                                 uEltype)
 
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded)

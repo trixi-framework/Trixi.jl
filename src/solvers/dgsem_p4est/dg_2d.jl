@@ -5,6 +5,21 @@
 @muladd begin
 #! format: noindent
 
+function create_cache(mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
+                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralShockCapturingHG}, dg::DG,
+                      cache_containers, uEltype)
+    fstar1_L_threaded, fstar1_R_threaded,
+    fstar2_L_threaded, fstar2_R_threaded = create_fstar_threaded(mesh, equations, dg,
+                                                                 uEltype)
+
+    normal_vectors = AdaptiveNormalVectorContainer2D(mesh, dg, cache_containers)
+
+    return (; fstar1_L_threaded, fstar1_R_threaded,
+            fstar2_L_threaded, fstar2_R_threaded,
+            normal_vectors)
+end
+
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},

@@ -5,37 +5,13 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}}, equations,
+function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D}, equations,
                       volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
                                              VolumeIntegralShockCapturingHG}, dg::DG,
                       cache_containers, uEltype)
-    A3d = Array{uEltype, 3}
-
-    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-
-    @threaded for t in eachindex(fstar1_L_threaded)
-        fstar1_L_threaded[t][:, 1, :] .= zero(uEltype)
-        fstar1_R_threaded[t][:, 1, :] .= zero(uEltype)
-        fstar1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
-        fstar1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
-
-        fstar2_L_threaded[t][:, :, 1] .= zero(uEltype)
-        fstar2_R_threaded[t][:, :, 1] .= zero(uEltype)
-        fstar2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
-        fstar2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
-    end
+    fstar1_L_threaded, fstar1_R_threaded,
+    fstar2_L_threaded, fstar2_R_threaded = create_fstar_threaded(mesh, equations, dg,
+                                                                 uEltype)
 
     normal_vectors = FixedNormalVectorContainer2D(mesh, dg, cache_containers)
 

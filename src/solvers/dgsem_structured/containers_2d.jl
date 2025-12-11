@@ -254,13 +254,15 @@ function FixedNormalVectorContainer2D(mesh::Union{StructuredMesh{2},
                                       dg, cache_containers)
     @unpack contravariant_vectors = cache_containers.elements
     RealT = eltype(contravariant_vectors)
+    n_elements = nelements(dg, cache_containers)
+    n_nodes = nnodes(dg.basis)
 
     # For first contravariant vector
-    normal_vectors_1 = Array{RealT, 4}(undef, 2, nnodes(dg.basis), nnodes(dg.basis),
-                                       nelements(dg, cache_containers))
+    normal_vectors_1 = Array{RealT, 4}(undef, 2, n_nodes, n_nodes,
+                                       n_elements)
     # For second contravariant vector
-    normal_vectors_2 = Array{RealT, 4}(undef, 2, nnodes(dg.basis), nnodes(dg.basis),
-                                       nelements(dg, cache_containers))
+    normal_vectors_2 = Array{RealT, 4}(undef, 2, n_nodes, n_nodes,
+                                       n_elements)
 
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                    mesh, dg, cache_containers)
