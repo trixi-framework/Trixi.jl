@@ -195,9 +195,9 @@ end
 # Fixed size, i.e., not AMR ready. Sufficient for `StructuredMesh` and `UnstructuredMesh2D`
 struct FixedNormalVectorContainer2D{RealT <: Real} <: AbstractNormalVectorContainer
     # For normal vectors computed from first contravariant vectors
-    normal_vectors_1::Array{RealT, 4}
+    normal_vectors_1::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
     # For normal vectors computed from second contravariant vectors
-    normal_vectors_2::Array{RealT, 4}
+    normal_vectors_2::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
 end
 
 # Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
@@ -213,34 +213,40 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
     @unpack contravariant_vectors = cache_containers.elements
     @unpack weights, derivative_matrix = dg.basis
 
-    for element in eachelement(dg, cache_containers)
+    @threaded for element in eachelement(dg, cache_containers)
         for i in eachnode(dg)
             # j = 1
             # Optimize indexing: j to second position, i to third
-            normal_vectors_1[:, 1, i, element] = get_contravariant_vector(1,
-                                                                          contravariant_vectors,
-                                                                          1, i, element)
-            normal_vectors_2[:, 1, i, element] = get_contravariant_vector(2,
-                                                                          contravariant_vectors,
-                                                                          i, 1, element)
+            for d in 1:2
+                normal_vectors_1[d, 1, i, element] = contravariant_vectors[d, 1, 1, i,
+                                                                           element]
+                normal_vectors_2[d, 1, i, element] = contravariant_vectors[d, 2, i, 1,
+                                                                           element]
+            end
+
             for j in 2:nnodes(dg)
-                normal_vectors_1[:, j, i, element] = normal_vectors_1[:, j - 1, i,
-                                                                      element]
-                normal_vectors_2[:, j, i, element] = normal_vectors_2[:, j - 1, i,
-                                                                      element]
+                for d in 1:2
+                    normal_vectors_1[d, j, i, element] = normal_vectors_1[d, j - 1, i,
+                                                                          element]
+                    normal_vectors_2[d, j, i, element] = normal_vectors_2[d, j - 1, i,
+                                                                          element]
+                end
                 for m in eachnode(dg)
                     wD_jm = weights[j - 1] * derivative_matrix[j - 1, m]
-                    normal_vectors_1[:, j, i, element] += wD_jm *
-                                                          get_contravariant_vector(1,
-                                                                                   contravariant_vectors,
-                                                                                   m, i,
-                                                                                   element)
-
-                    normal_vectors_2[:, j, i, element] += wD_jm *
-                                                          get_contravariant_vector(2,
-                                                                                   contravariant_vectors,
-                                                                                   i, m,
-                                                                                   element)
+                    for d in 1:2
+                        normal_vectors_1[d, j, i, element] += wD_jm *
+                                                              contravariant_vectors[d,
+                                                                                    1,
+                                                                                    m,
+                                                                                    i,
+                                                                                    element]
+                        normal_vectors_2[d, j, i, element] += wD_jm *
+                                                              contravariant_vectors[d,
+                                                                                    2,
+                                                                                    i,
+                                                                                    m,
+                                                                                    element]
+                    end
                 end
             end
         end

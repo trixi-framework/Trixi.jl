@@ -179,9 +179,9 @@ mutable struct AdaptiveNormalVectorContainer2D{RealT <: Real} <:
                AbstractNormalVectorContainer
     const n_nodes::Int
     # For normal vectors computed from first contravariant vectors
-    normal_vectors_1::Array{RealT, 4}
+    normal_vectors_1::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
     # For normal vectors computed from second contravariant vectors
-    normal_vectors_2::Array{RealT, 4}
+    normal_vectors_2::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
 
     # internal `resize!`able storage
     _normal_vectors_1::Vector{RealT}
