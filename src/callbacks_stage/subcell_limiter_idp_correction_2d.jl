@@ -14,11 +14,15 @@ function perform_idp_correction!(u, dt,
     @unpack alpha = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
 
     # The following code implements the IDP correction in flux-differencing form:
-    # u[v, i, j, element] += -dt * inverse_jacobian *
+    # u[v, i, j, element] += dt * -inverse_jacobian[i, j, element] *
     #    (inverse_weights[i] *
     #       ((1 - alpha_1_ip1) * antidiffusive_flux1_ip1[v] - (1 - alpha_1) * antidiffusive_flux1[v]) +
     #     inverse_weights[j] *
     #       ((1 - alpha_2_jp1) * antidiffusive_flux2_jp1[v] - (1 - alpha_2) * antidiffusive_flux2[v]))
+    # with
+    # alpha_1 = max(alpha[i - 1, j, element], alpha[i, j, element]),
+    # alpha_1_ip1 = max(alpha[i, j, element], alpha[i + 1, j, element])
+    # and equivalently for alpha_2 and alpha_2_jp1.
 
     # For LGL nodes, the high-order and low-order fluxes at element interfaces are equal
     # and therefore, the antidiffusive fluxes are zero there.
@@ -28,9 +32,10 @@ function perform_idp_correction!(u, dt,
     @threaded for element in eachelement(dg, cache)
         # Perform correction in 1st/x-direction
         for j in eachnode(dg), i in 2:nnodes(dg)
-            # Apply to right node
+            # Subcell interface between nodes (i - 1, j) and (i, j)
             alpha1 = max(alpha[i - 1, j, element], alpha[i, j, element])
 
+            # Apply to right node (i, j)
             # Sign switch as in apply_jacobian!
             inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                      mesh, i, j, element)
@@ -40,7 +45,7 @@ function perform_idp_correction!(u, dt,
             multiply_add_to_node_vars!(u, dg_factor, flux1,
                                        equations, dg, i, j, element)
 
-            # Apply to left node
+            # Apply to left node (i - 1, j)
             # Sign switch as in apply_jacobian!
             inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                      mesh, i - 1, j, element)
@@ -53,9 +58,10 @@ function perform_idp_correction!(u, dt,
 
         # Perform correction in 2nd/y-direction
         for j in 2:nnodes(dg), i in eachnode(dg)
-            # Apply to right node
+            # Subcell interface between nodes (i, j - 1) and (i, j)
             alpha2 = max(alpha[i, j - 1, element], alpha[i, j, element])
 
+            # Apply to right node (i, j)
             # Sign switch as in apply_jacobian!
             inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                      mesh, i, j, element)
@@ -65,7 +71,7 @@ function perform_idp_correction!(u, dt,
             multiply_add_to_node_vars!(u, dg_factor, flux2,
                                        equations, dg, i, j, element)
 
-            # Apply to left node
+            # Apply to left node (i, j - 1)
             # Sign switch as in apply_jacobian!
             inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                      mesh, i, j - 1, element)
