@@ -70,8 +70,8 @@ struct t8_dhex_t
 end
 
 # Refine bottom left quadrant of each second tree to level 2
-function adapt_callback(forest, ltreeid, scheme, tree_class, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_family,
+                        elements, user_data)
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
     if iseven(convert(Int, ltreeid)) && el.x == 0 && el.y == 0 && el.z == 0 &&

@@ -229,9 +229,8 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
         global_element_id += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
     end
 
-    function adapt_callback(forest, local_tree_id, scheme, tree_class, local_element_id,
-                            elements, is_family,
-                            user_data)
+    function adapt_callback(forest, local_tree_id, tree_class, local_element_id, scheme,
+                            is_family, elements, user_data)
 
         # Check if we are already in the next tree in terms of the `global_element_id`.
         global_tree_id = t8_forest_global_tree_id(forest, local_tree_id)
@@ -844,23 +843,27 @@ end
 # Otherwise `is_family` must equal zero and we consider the first entry
 # of the element array for refinement.
 # Entries of the element array beyond the first `num_elements` are undefined.
-# \param [in] forest       the forest to which the new elements belong
-# \param [in] forest_from  the forest that is adapted.
-# \param [in] which_tree   the local tree containing `elements`
-# \param [in] lelement_id  the local element id in `forest_old` in the tree of the current element
-# \param [in] ts           the eclass scheme of the tree
-# \param [in] is_family    if 1, the first `num_elements` entries in `elements` form a family. If 0, they do not.
-# \param [in] num_elements the number of entries in `elements` that are defined
-# \param [in] elements     Pointers to a family or, if `is_family` is zero,
+# \param [in] forest       The forest to which the new elements belong.
+# \param [in] forest_from  The forest that is adapted.
+# \param [in] which_tree   The local tree containing \a elements.
+# \param [in] tree_class   The eclass of \a which_tree.
+# \param [in] lelement_id  The local element id in \a forest in the tree of the current
+#                          element.
+# \param [in] scheme       The scheme of the forest.
+# \param [in] is_family    If 1, the first \a num_elements entries in \a elements form a family. If 0, they do not.
+# \param [in] num_elements The number of entries in \a elements that are defined
+# \param [in] elements     Pointers to a family or, if \a is_family is zero,
 #                          pointer to one element.
-# \return greater zero if the first entry in `elements` should be refined,
-#         smaller zero if the family `elements` shall be coarsened,
-#         zero else.
+# \return 1 if the first entry in \a elements should be refined,
+#        -1 if the family \a elements shall be coarsened,
+#        -2 if the first entry in \a elements should be removed,
+#         0 else.
 function adapt_callback_wrapper(forest,
                                 forest_from,
                                 which_tree,
+                                tree_class,
                                 lelement_id,
-                                ts,
+                                scheme,
                                 is_family,
                                 num_elements,
                                 elements_ptr)::Cint
@@ -868,8 +871,9 @@ function adapt_callback_wrapper(forest,
 
     elements = unsafe_wrap(Array, elements_ptr, num_elements)
 
-    return passthrough.adapt_callback(forest_from, which_tree, ts, lelement_id, elements,
-                                      Bool(is_family), passthrough.user_data)
+    return passthrough.adapt_callback(forest_from, which_tree, tree_class, lelement_id,
+                                      scheme, Bool(is_family), elements,
+                                      passthrough.user_data)
 end
 
 """
@@ -952,12 +956,12 @@ Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
         # Arguments
         - `forest`: Pointer to the analyzed forest.
         - `ltreeid`: Local index of the current tree where the analyzed elements are part of.
-        - `scheme`: Forest element scheme.
         - `tree_class`: Tree class.
         - `lelemntid`: Local index of the first element in `elements`.
+        - `scheme`: Forest element scheme.
+        - `is_family`: Boolean signifying if `elements` represents a family or not.
         - `elements`: Array of elements. If consecutive elements form a family
                       they are passed together, otherwise `elements` consists of just one element.
-        - `is_family`: Boolean signifying if `elements` represents a family or not.
         - `user_data`: Void pointer to some arbitrary user data. Default value is `C_NULL`.
         # Returns
           -1 : Coarsen family of elements.

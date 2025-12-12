@@ -58,8 +58,8 @@ struct t8_dhex_t
 end
 
 # Refine quadrants in y-direction of each tree at one edge to level 2
-function adapt_callback(forest, ltreeid, scheme, tree_class, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_family,
+                        elements, user_data)
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
     if convert(Int, ltreeid) < 4 && el.x == 0 && el.y == 0 && el.level < 2

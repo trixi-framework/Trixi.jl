@@ -37,8 +37,8 @@ struct t8_dquad_t
 end
 
 # Refine quadrants of each tree at lower left edge to level 4.
-function adapt_callback(forest, ltreeid, scheme, tree_class, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_family,
+                        elements, user_data)
     el = unsafe_load(Ptr{t8_dquad_t}(elements[1]))
 
     if el.x == 0 && el.y == 0 && el.level < 4

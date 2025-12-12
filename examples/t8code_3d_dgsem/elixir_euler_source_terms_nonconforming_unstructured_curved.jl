@@ -72,8 +72,8 @@ struct t8_dhex_t
     # [...] # See `p8est.h` in `p4est` for more info.
 end
 
-function adapt_callback(forest, ltreeid, scheme, tree_class, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_family,
+                        elements, user_data)
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
     if el.x == 0 && el.y == 0 && el.z == 0 && el.level < 2
