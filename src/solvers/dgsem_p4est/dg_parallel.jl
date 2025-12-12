@@ -248,12 +248,14 @@ function create_cache(mesh::ParallelP4estMesh, equations::AbstractEquations, dg:
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
     mortars = init_mortars(mesh, equations, dg.basis, elements)
 
-    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars, mpi_mortars,
-             mpi_cache)
+    # Container cache
+    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_mortars, mpi_cache)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Add Volume-Integral cache
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+    # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
