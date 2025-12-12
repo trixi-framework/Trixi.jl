@@ -146,6 +146,7 @@ include("equations/equations_parabolic.jl") # these depend on parabolic solver t
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
+include("semidiscretization/semidiscretization_artificial_viscosity.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
 include("time_integration/time_integration.jl")
@@ -286,6 +287,8 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integ
 
 export SemidiscretizationHyperbolicParabolic
 export have_constant_diffusivity, max_diffusivity
+
+export SemidiscretizationArtificialViscosity
 
 export SemidiscretizationEulerAcoustics
 
