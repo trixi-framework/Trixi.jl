@@ -13,7 +13,7 @@ struct StructuredElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     left_neighbors::Array{Int, 2} # [orientation, elements]
 
     # Jacobian matrix of the transformation
-    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
+    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix
     jacobian_matrix::Array{RealT, NDIMSP3}
 
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
