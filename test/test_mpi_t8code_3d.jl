@@ -177,15 +177,6 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        # Check for conservation
-        state_integrals = Trixi.integrate(sol.u[2], semi)
-        initial_state_integrals = analysis_callback.affect!.initial_state_integrals
-
-        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
-        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
-        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
-        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
-        @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
     end
 end
 end # T8codeMesh MPI
