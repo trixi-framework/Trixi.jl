@@ -66,7 +66,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
                                          "elixir_advection_amr_unstructured_curved.jl"),
                                 l2=[2.0535121347526814e-5],
                                 linf=[0.0010586603797777504],
-                                tspan=(0.0, 1.0),)
+                                tspan=(0.0, 1.0))
 
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
@@ -149,7 +149,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
                                 0.45574161423218573,
                                 0.8099577682187109
                             ],
-                            tspan=(0.0, 0.2),)
+                            tspan=(0.0, 0.2))
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -173,7 +173,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
                                 0.570663236219957,
                                 3.5496520808512027
                             ],
-                            tspan=(0.0, 0.025),)
+                            tspan=(0.0, 0.025))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)

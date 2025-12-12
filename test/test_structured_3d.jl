@@ -163,7 +163,7 @@ end
                             0.19313636558790004,
                             0.707563913727584
                         ],
-                        tspan=(0.0, 0.25),)
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -247,7 +247,7 @@ end
                             0.02116105422516923, 0.03419432640106229,
                             0.020324891223351533],
                         surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
-                                      flux_nonconservative_powell),)
+                                      flux_nonconservative_powell))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -265,7 +265,7 @@ end
                             0.9620943261873176, 0.181632512204141,
                             0.15995711137712265, 0.1791807940466812,
                             0.015138421396338456],
-                        tspan=(0.0, 0.25),)
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
