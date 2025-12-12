@@ -449,6 +449,15 @@ end
     return v
 end
 
+@doc raw"""
+    pressure(u, equations::PolytropicEulerEquations2D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+p = \kappa \rho^\gamma
+```
+"""
 @inline function pressure(u, equations::PolytropicEulerEquations2D)
     rho, _, _ = u
     p = equations.kappa * rho^equations.gamma
