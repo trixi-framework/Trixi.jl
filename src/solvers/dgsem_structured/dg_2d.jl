@@ -358,21 +358,21 @@ end
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
         u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
-                            equations)
+                         equations)
         u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
-                            equations)
+                         equations)
         u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                            equations)
+                         equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
         u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
-                                        element), equations)
+                                       element), equations)
 
         ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                        x_interfaces, i,
-                                        slope_limiter, dg)
+                                       x_interfaces, i,
+                                       slope_limiter, dg)
 
         # Fetch precomputed freestream-preserving normal vector
         normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
@@ -390,17 +390,17 @@ end
 
     for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
-                            equations)
+                         equations)
         u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, element),
-                            equations)
+                         equations)
         u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                            equations)
+                         equations)
         u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
-                                        element), equations)
+                                       element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                        x_interfaces, j,
-                                        slope_limiter, dg)
+                                       x_interfaces, j,
+                                       slope_limiter, dg)
 
         normal_direction = get_normal_vector(normal_vectors_2, i, j, element)
 
