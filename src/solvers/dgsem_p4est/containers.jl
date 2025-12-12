@@ -19,7 +19,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     node_coordinates::ArrayRealTNDIMSP2 # [orientation, node_i, node_j, node_k, element]
 
     # Jacobian matrix of the transformation
-    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
+    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix
     jacobian_matrix::ArrayRealTNDIMSP3
 
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)

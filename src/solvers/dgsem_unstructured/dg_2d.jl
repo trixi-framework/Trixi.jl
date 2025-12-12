@@ -16,6 +16,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
 
     boundaries = init_boundaries(mesh, elements)
 
+    # Container cache
     cache = (; elements, interfaces, boundaries)
 
     # perform a check on the sufficient metric identities condition for free-stream preservation
@@ -27,7 +28,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
         error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
     end
 
-    # Add specialized parts of the cache required to compute the flux differencing volume integral
+    # Add Volume-Integral cache
     cache = (; cache...,
              create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
 
@@ -62,8 +63,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2boundaries!(cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
@@ -277,7 +277,7 @@ end
 # move the approximate solution onto physical boundaries within a "right-handed" element
 function prolong2boundaries!(cache, u,
                              mesh::UnstructuredMesh2D,
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack boundaries = cache
     @unpack element_id, element_side_id = boundaries
     boundaries_u = boundaries.u

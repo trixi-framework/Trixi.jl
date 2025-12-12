@@ -79,6 +79,15 @@ end
     return equations.speed_of_light
 end
 
+"""
+    have_constant_speed(::MaxwellEquations1D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::MaxwellEquations1D) = True()
 
 @inline function max_abs_speeds(equations::MaxwellEquations1D)
