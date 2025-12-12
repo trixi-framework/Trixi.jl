@@ -305,12 +305,15 @@ Calculate the macroscopic velocity vector from the particle distribution functio
                    dot(v_alpha2, u) / rho)
 end
 
-"""
+@doc raw"""
     pressure(rho::Real, equations::LatticeBoltzmannEquations2D)
     pressure(u, equations::LatticeBoltzmannEquations2D)
 
 Calculate the macroscopic pressure from the density `rho` or the  particle distribution functions
-`u`.
+`u` as
+```math
+p = \rho c_s^2
+```
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations2D)
     return rho * equations.c_s^2

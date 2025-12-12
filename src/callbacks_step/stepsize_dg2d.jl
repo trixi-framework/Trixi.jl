@@ -7,7 +7,7 @@
 
 function max_dt(u, t, mesh::TreeMesh{2},
                 constant_speed::False, equations, dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
+    # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
@@ -33,7 +33,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
-    # to avoid a division by zero if the diffusivity vanishes everywhere
+    # Avoid division by zero if the diffusivity vanishes everywhere
     max_scaled_speed = nextfloat(zero(t))
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
@@ -55,7 +55,7 @@ end
 
 function max_dt(u, t, mesh::TreeMesh{2},
                 constant_speed::True, equations, dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
+    # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
@@ -114,7 +114,7 @@ function max_dt(u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                             T8codeMesh{2}, StructuredMeshView{2}},
                 constant_speed::False, equations, dg::DG, cache)
-    # to avoid a division by zero if the speed vanishes everywhere,
+    # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
@@ -149,12 +149,58 @@ function max_dt(u, t,
 end
 
 function max_dt(u, t,
+                mesh::P4estMesh{2}, # Parabolic terms currently only for `TreeMesh` and `P4estMesh`
+                constant_diffusivity::False, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DG, cache)
+    # Avoid division by zero if the diffusivity vanishes everywhere
+    max_scaled_diffusivity = nextfloat(zero(t))
+
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+        max_diffusivity1 = max_diffusivity2 = zero(max_scaled_diffusivity)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            diffusivity = max_diffusivity(u_node, equations_parabolic)
+
+            # Local diffusivity transformed to the reference element
+            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                  i, j, element)
+            # The metric terms are squared due to the second derivatives in the parabolic terms,
+            # which lead to application of the chain rule (coordinate transformation) twice.
+            # See for instance also the implementation in FLEXI
+            # https://github.com/flexi-framework/flexi/blob/e980e8635e6605daf906fc176c9897314a9cd9b1/src/equations/navierstokes/calctimestep.f90#L75-L77
+            # or FLUXO:
+            # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L130-L132
+            diffusivity1_transformed = diffusivity * (Ja11^2 + Ja12^2)
+            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                  i, j, element)
+            diffusivity2_transformed = diffusivity * (Ja21^2 + Ja22^2)
+
+            inv_jacobian = abs(inverse_jacobian[i, j, element])
+
+            max_diffusivity1 = Base.max(max_diffusivity1,
+                                        diffusivity1_transformed * inv_jacobian^2)
+            max_diffusivity2 = Base.max(max_diffusivity2,
+                                        diffusivity2_transformed * inv_jacobian^2)
+        end
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_diffusivity = Base.max(max_scaled_diffusivity,
+                                          max_diffusivity1 + max_diffusivity2)
+    end
+
+    return 4 / (nnodes(dg) * max_scaled_diffusivity)
+end
+
+function max_dt(u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                             P4estMeshView{2}, T8codeMesh{2}, StructuredMeshView{2}},
                 constant_speed::True, equations, dg::DG, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
-    # to avoid a division by zero if the speed vanishes everywhere,
+    # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
@@ -180,6 +226,51 @@ function max_dt(u, t,
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+function max_dt(u, t,
+                mesh::P4estMesh{2}, # Parabolic terms currently only for `TreeMesh` and `P4estMesh`
+                constant_diffusivity::True, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DG, cache)
+    # Avoid division by zero if the diffusivity vanishes everywhere
+    max_scaled_diffusivity = nextfloat(zero(t))
+
+    diffusivity = max_diffusivity(equations_parabolic)
+
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+        max_diffusivity1 = max_diffusivity2 = zero(max_scaled_diffusivity)
+        for j in eachnode(dg), i in eachnode(dg)
+            # Local diffusivity transformed to the reference element
+            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                  i, j, element)
+            # The metric terms are squared due to the second derivatives in the parabolic terms,
+            # which lead to application of the chain rule (coordinate transformation) twice.
+            # See for instance also the implementation in FLEXI
+            # https://github.com/flexi-framework/flexi/blob/e980e8635e6605daf906fc176c9897314a9cd9b1/src/equations/navierstokes/calctimestep.f90#L75-L77
+            # or FLUXO:
+            # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L130-L132
+            diffusivity1_transformed = diffusivity * (Ja11^2 + Ja12^2)
+            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                  i, j, element)
+            diffusivity2_transformed = diffusivity * (Ja21^2 + Ja22^2)
+
+            inv_jacobian = abs(inverse_jacobian[i, j, element])
+
+            max_diffusivity1 = Base.max(max_diffusivity1,
+                                        diffusivity1_transformed * inv_jacobian^2)
+            max_diffusivity2 = Base.max(max_diffusivity2,
+                                        diffusivity2_transformed * inv_jacobian^2)
+        end
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_diffusivity = Base.max(max_scaled_diffusivity,
+                                          max_diffusivity1 + max_diffusivity2)
+    end
+
+    return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
 function max_dt(u, t, mesh::ParallelP4estMesh{2},
