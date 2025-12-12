@@ -36,6 +36,8 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations,
 
         include_refined(mod, elixir, initial_resolution, iter; kwargs)
 
+        # @invokelatest is required for interactive use 
+        # due to world age issues on Julia 1.12 (and newer)
         l2_error, linf_error = @invokelatest mod.analysis_callback(@invokelatest mod.sol)
 
         # collect errors as one vector to reshape later
@@ -47,6 +49,8 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations,
     end
 
     # Use raw error values to compute EOC
+    # @invokelatest is required for interactive use 
+    # due to world age issues on Julia 1.12 (and newer)
     analyze_convergence(errors, iterations, (@invokelatest mod.semi))
 end
 
