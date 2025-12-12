@@ -7,8 +7,8 @@ provided substantial additions or modifications. Together, these two groups form
 "The Trixi.jl Authors" as mentioned in the [LICENSE.md](LICENSE.md) file.
 
 ## Principal Developers
-* [Michael Schlottke-Lakemper](https://lakemper.eu),
-  RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany
+* [Michael Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc),
+  University of Augsburg, Germany
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
 * [Hendrik Ranocha](https://ranocha.de),
@@ -17,6 +17,8 @@ provided substantial additions or modifications. Together, these two groups form
   Linköping University, Sweden
 * [Jesse Chan](https://jlchan.github.io),
   Rice University, US
+* [Andrés Rueda-Ramírez](https://andres.rueda-ramirez.com),
+  Polytechnic University of Madrid (UPM), Spain
 
 ## Contributors
 The following people contributed major additions or modifications to Trixi.jl and
@@ -38,8 +40,10 @@ are listed in alphabetical order:
 * Julia Odenthal
 * Sigrun Ortleb
 * Hendrik Ranocha
+* Warisa Roongaraya
 * Andrés M. Rueda-Ramírez
 * Felipe Santillan
 * Michael Schlottke-Lakemper
 * Toskan Theine
 * Andrew Winters
+* Huiyu Xie

@@ -23,9 +23,6 @@ called with [`VolumeIntegralSubcellLimiting`](@ref).
 - Pazner (2020)
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct SubcellLimiterIDPCorrection end
 
@@ -53,6 +50,7 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     # f_ij = alpha_ij * f^(FV)_ij + (1 - alpha_ij) * f^(DG)_ij
     #      = f^(FV)_ij + (1 - alpha_ij) * f^(antidiffusive)_ij
     @trixi_timeit timer() "blending factors" solver.volume_integral.limiter(u, semi,
+                                                                            equations,
                                                                             solver, t,
                                                                             dt)
 

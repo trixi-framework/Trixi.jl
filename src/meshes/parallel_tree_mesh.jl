@@ -20,8 +20,8 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening = true)
     n_leaves_per_rank = OffsetArray(fill(div(length(leaves), mpi_nranks()),
                                          mpi_nranks()),
                                     0:(mpi_nranks() - 1))
-    for d in 0:(rem(length(leaves), mpi_nranks()) - 1)
-        n_leaves_per_rank[d] += 1
+    for rank in 0:(rem(length(leaves), mpi_nranks()) - 1)
+        n_leaves_per_rank[rank] += 1
     end
     @assert sum(n_leaves_per_rank) == length(leaves)
 
@@ -31,17 +31,20 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening = true)
     mesh.n_cells_by_rank = similar(n_leaves_per_rank)
 
     leaf_count = 0
+    # Assign first cell to rank 0 (employ depth-first indexing of cells)
     mesh.first_cell_by_rank[0] = 1
     # Iterate over all ranks
-    for d in 0:(mpi_nranks() - 1)
-        leaf_count += n_leaves_per_rank[d]
+    for rank in 0:(mpi_nranks() - 1)
+        leaf_count += n_leaves_per_rank[rank]
         last_id = leaves[leaf_count]
         parent_id = mesh.tree.parent_ids[last_id]
 
-        # Check if all children of the last parent are leaves
+        # If coarsening is allowed, we need to make sure that parents of leaves 
+        # are on the same rank as the leaves when coarsened.
         if allow_coarsening &&
+           # Check if all children of the last parent are leaves
            all(id -> is_leaf(mesh.tree, id), @view mesh.tree.child_ids[:, parent_id]) &&
-           d < length(n_leaves_per_rank) - 1
+           rank < length(n_leaves_per_rank) - 1 # Make sure there is another rank
 
             # To keep children of parent together if they are all leaves,
             # all children are added to this rank
@@ -53,20 +56,21 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening = true)
                                           additional_cells)
                 leaf_count += additional_leaves
                 # Add leaves to this rank, remove from next rank
-                n_leaves_per_rank[d] += additional_leaves
-                n_leaves_per_rank[d + 1] -= additional_leaves
+                n_leaves_per_rank[rank] += additional_leaves
+                n_leaves_per_rank[rank + 1] -= additional_leaves
             end
         end
 
         @assert all(n -> n > 0, n_leaves_per_rank) "Too many ranks to properly partition the mesh!"
 
-        mesh.n_cells_by_rank[d] = last_id - mesh.first_cell_by_rank[d] + 1
-        mesh.tree.mpi_ranks[mesh.first_cell_by_rank[d]:last_id] .= d
+        mesh.n_cells_by_rank[rank] = last_id - mesh.first_cell_by_rank[rank] + 1
+        # Use depth-first indexing of cells again to assign also non leaf cells
+        mesh.tree.mpi_ranks[mesh.first_cell_by_rank[rank]:last_id] .= rank
 
         # Set first cell of next rank
-        if d < length(n_leaves_per_rank) - 1
-            mesh.first_cell_by_rank[d + 1] = mesh.first_cell_by_rank[d] +
-                                             mesh.n_cells_by_rank[d]
+        if rank < length(n_leaves_per_rank) - 1 # Make sure there is another rank
+            mesh.first_cell_by_rank[rank + 1] = mesh.first_cell_by_rank[rank] +
+                                                mesh.n_cells_by_rank[rank]
         end
     end
 

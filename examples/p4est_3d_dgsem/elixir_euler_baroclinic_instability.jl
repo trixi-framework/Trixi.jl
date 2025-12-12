@@ -11,7 +11,7 @@
 #   A proposed baroclinic wave test case for deep- and shallow-atmosphere dynamical cores
 #   https://doi.org/10.1002/qj.2241
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 using LinearAlgebra
 
@@ -229,8 +229,10 @@ solver = DGSEM(polydeg = 5, surface_flux = surface_flux,
 
 # For optimal results, use (16, 8) here
 trees_per_cube_face = (8, 4)
-mesh = Trixi.P4estMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
-                                  polydeg = 5, initial_refinement_level = 0)
+inner_radius = 6.371229e6
+thickness = 30000.0 # thickness of the spherical shell, outer radius is `inner_radius + thickness`
+mesh = P4estMeshCubedSphere(trees_per_cube_face..., inner_radius, thickness,
+                            polydeg = 5)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_baroclinic_instability,
@@ -292,8 +294,6 @@ callbacks = CallbackSet(summary_callback,
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
-sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = 1.0e-6,
-            reltol = 1.0e-6,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+            abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);
-
-summary_callback() # print the timer summary

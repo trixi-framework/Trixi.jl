@@ -9,7 +9,7 @@
 #! format: noindent
 
 # initialize all the values in the container of a general FD block (either straight sided or curved)
-# OBS! Requires the SBP derivative matrix in order to compute metric terms that are free-stream preserving
+# OBS! Requires the SBP derivative matrix in order to compute metric terms.
 function init_element!(elements, element, basis::AbstractDerivativeOperator,
                        corners_or_surface_curves)
     calc_node_coordinates!(elements.node_coordinates, element, get_nodes(basis),
@@ -29,9 +29,15 @@ function init_element!(elements, element, basis::AbstractDerivativeOperator,
     return elements
 end
 
+# Specialization to pass the central differencing matrix from an upwind SBP operator
+function calc_metric_terms!(jacobian_matrix, element,
+                            D_SBP::SummationByPartsOperators.UpwindOperators,
+                            node_coordinates)
+    calc_metric_terms!(jacobian_matrix, element, D_SBP.central, node_coordinates)
+end
+
 # construct the metric terms for a FDSBP element "block". Directly use the derivative matrix
 # applied to the node coordinates.
-# TODO: FD; How to make this work for the upwind solver because basis has three available derivative matrices
 function calc_metric_terms!(jacobian_matrix, element, D_SBP::AbstractDerivativeOperator,
                             node_coordinates)
 

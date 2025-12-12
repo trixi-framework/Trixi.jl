@@ -6,7 +6,8 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+function init_elements!(elements,
+                        mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                         basis::LobattoLegendreBasis)
     @unpack node_coordinates, jacobian_matrix,
     contravariant_vectors, inverse_jacobian = elements
@@ -26,7 +27,8 @@ end
 
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
 function calc_node_coordinates!(node_coordinates,
-                                mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                            T8codeMesh{2}},
                                 basis::LobattoLegendreBasis)
     # Hanging nodes will cause holes in the mesh if its polydeg is higher
     # than the polydeg of the solver.
@@ -37,13 +39,14 @@ end
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes
 function calc_node_coordinates!(node_coordinates,
-                                mesh::P4estMesh{2},
-                                nodes::AbstractVector)
+                                mesh::P4estMesh{2, NDIMS_AMBIENT},
+                                nodes::AbstractVector) where {NDIMS_AMBIENT}
     # We use `StrideArray`s here since these buffers are used in performance-critical
     # places and the additional information passed to the compiler makes them faster
     # than native `Array`s.
     tmp1 = StrideArray(undef, real(mesh),
-                       StaticInt(2), static_length(nodes), static_length(mesh.nodes))
+                       StaticInt(NDIMS_AMBIENT), static_length(nodes),
+                       static_length(mesh.nodes))
     matrix1 = StrideArray(undef, real(mesh),
                           static_length(nodes), static_length(mesh.nodes))
     matrix2 = similar(matrix1)

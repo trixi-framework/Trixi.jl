@@ -6,21 +6,42 @@
 #! format: noindent
 
 """
-    StepsizeCallback(; cfl=1.0)
+    StepsizeCallback(; cfl=1.0, cfl_diffusive = 0.0,
+                     interval = 1)
 
 Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself.
+The keyword argument `cfl` must be either a `Real` number, corresponding to a constant 
+CFL number, or a function of time `t` returning a `Real` number.
+The latter approach allows for variable CFL numbers that can be used to realize, e.g.,
+a ramp-up of the time step.
+
+One can additionally supply a diffusive CFL number `cfl_diffusive` to
+limit the admissible timestep also respecting diffusive restrictions.
+This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
+To enable checking for diffusive timestep restrictions, provide a value greater than zero for `cfl_diffusive`.
+By default, `cfl_diffusive` is set to zero which means that only the advective/convective CFL number is considered.
+The keyword argument `cfl_diffusive` must be either a `Real` number, corresponding to a constant 
+diffusive CFL number, or a function of time `t` returning a `Real` number.
+
+By default, the timestep will be adjusted at every step.
+For different values of `interval`, the timestep will be adjusted every `interval` steps.
 """
-mutable struct StepsizeCallback{RealT}
-    cfl_number::RealT
+mutable struct StepsizeCallback{CflAdvectiveType, CflDiffusiveType}
+    cfl_advective::CflAdvectiveType
+    cfl_diffusive::CflDiffusiveType
+    interval::Int
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
     @nospecialize cb # reduce precompilation time
 
     stepsize_callback = cb.affect!
-    @unpack cfl_number = stepsize_callback
-    print(io, "StepsizeCallback(cfl_number=", cfl_number, ")")
+    @unpack cfl_advective, cfl_diffusive, interval = stepsize_callback
+    print(io, "StepsizeCallback(",
+          "cfl_advective=", cfl_advective, ", ",
+          "cfl_diffusive=", cfl_diffusive, ", ",
+          "interval=", interval, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -33,18 +54,32 @@ function Base.show(io::IO, ::MIME"text/plain",
         stepsize_callback = cb.affect!
 
         setup = [
-            "CFL number" => stepsize_callback.cfl_number,
+            "CFL Advective" => stepsize_callback.cfl_advective,
+            "CFL Diffusive" => stepsize_callback.cfl_diffusive,
+            "Interval" => stepsize_callback.interval
         ]
         summary_box(io, "StepsizeCallback", setup)
     end
 end
 
-function StepsizeCallback(; cfl::Real = 1.0)
-    stepsize_callback = StepsizeCallback(cfl)
+function StepsizeCallback(; cfl = 1.0, cfl_diffusive = 0.0,
+                          interval = 1)
+    # Convert plain real numbers to functions for unified treatment
+    cfl_conv = isa(cfl, Real) ? Returns(cfl) : cfl
+    cfl_diff = isa(cfl_diffusive, Real) ? Returns(cfl_diffusive) : cfl_diffusive
+    stepsize_callback = StepsizeCallback{typeof(cfl_conv), typeof(cfl_diff)}(cfl_conv,
+                                                                             cfl_diff,
+                                                                             interval)
 
     DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
                      save_positions = (false, false),
                      initialize = initialize!)
+end
+
+# Compatibility constructor used in `EulerAcousticsCouplingCallback`
+function StepsizeCallback(cfl_advective)
+    RealT = typeof(cfl_advective)
+    StepsizeCallback{RealT, RealT}(cfl_advective, zero(RealT), 1)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -54,40 +89,35 @@ end
 
 # this method is called to determine whether the callback should be activated
 function (stepsize_callback::StepsizeCallback)(u, t, integrator)
-    return true
+    @unpack interval = stepsize_callback
+
+    # Although the CFL-based timestep is usually not used with 
+    # adaptive time integration methods, we still check the accepted steps `naccept` here.
+    return interval > 0 && integrator.stats.naccept % interval == 0
 end
 
 # This method is called as callback during the time integration.
 @inline function (stepsize_callback::StepsizeCallback)(integrator)
-    # TODO: Taal decide, shall we set the time step even if the integrator is adaptive?
-    if !integrator.opts.adaptive
-        t = integrator.t
-        u_ode = integrator.u
-        semi = integrator.p
-        @unpack cfl_number = stepsize_callback
-
-        # Dispatch based on semidiscretization
-        dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number,
-                                                               semi)
-
-        set_proposed_dt!(integrator, dt)
-        integrator.opts.dtmax = dt
-        integrator.dtcache = dt
+    if integrator.opts.adaptive
+        throw(ArgumentError("The `StepsizeCallback` has no effect when using an adaptive time integration scheme. Please remove the `StepsizeCallback` or set `adaptive = false` in `solve`."))
     end
+
+    t = integrator.t
+    u_ode = integrator.u
+    semi = integrator.p
+    @unpack cfl_advective, cfl_diffusive = stepsize_callback
+
+    # Dispatch based on semidiscretization
+    dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_advective,
+                                                           cfl_diffusive, semi)
+
+    set_proposed_dt!(integrator, dt)
+    integrator.opts.dtmax = dt
+    integrator.dtcache = dt
 
     # avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
     return nothing
-end
-
-# General case for a single semidiscretization
-function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
-
-    dt = cfl_number * max_dt(u, t, mesh,
-                have_constant_speed(equations), equations,
-                solver, cache)
 end
 
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own
@@ -99,15 +129,58 @@ function (cb::DiscreteCallback{Condition, Affect!})(ode::ODEProblem) where {Cond
                                                                             StepsizeCallback
                                                                             }
     stepsize_callback = cb.affect!
-    @unpack cfl_number = stepsize_callback
+    @unpack cfl_advective, cfl_diffusive = stepsize_callback
     u_ode = ode.u0
     t = first(ode.tspan)
     semi = ode.p
+
+    return calculate_dt(u_ode, t, cfl_advective, cfl_diffusive, semi)
+end
+
+# General case for an abstract single (i.e., non-coupled) semidiscretization
+function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+                      semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    return cfl_number *
-           max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
+    return cfl_advective(t) * max_dt(u, t, mesh,
+                  have_constant_speed(equations), equations,
+                  solver, cache)
+end
+
+# For Euler-Acoustic simulations with `EulerAcousticsCouplingCallback`
+function calculate_dt(u_ode, t, cfl_advective::Real, cfl_diffusive::Real,
+                      semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    return cfl_advective * max_dt(u, t, mesh,
+                  have_constant_speed(equations), equations,
+                  solver, cache)
+end
+
+# Case for a hyperbolic-parabolic semidiscretization
+function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+                      semi::SemidiscretizationHyperbolicParabolic)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    dt_advective = cfl_advective(t) * max_dt(u, t, mesh,
+                          have_constant_speed(equations), equations,
+                          solver, cache)
+
+    cfl_diff = cfl_diffusive(t)
+    if cfl_diff > 0 # Check if diffusive CFL should be considered
+        dt_diffusive = cfl_diff * max_dt(u, t, mesh,
+                              have_constant_diffusivity(equations_parabolic), equations,
+                              equations_parabolic, solver, cache)
+
+        return min(dt_advective, dt_diffusive)
+    else
+        return dt_advective
+    end
 end
 
 include("stepsize_dg1d.jl")

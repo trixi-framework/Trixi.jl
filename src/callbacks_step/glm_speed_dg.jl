@@ -7,12 +7,21 @@
 
 function calc_dt_for_cleaning_speed(cfl::Real, mesh,
                                     equations::Union{AbstractIdealGlmMhdEquations,
-                                                     AbstractIdealGlmMhdMulticomponentEquations},
+                                                     AbstractIdealGlmMhdMulticomponentEquations,
+                                                     AbstractIdealGlmMhdMultiIonEquations},
                                     dg::DG, cache)
     # compute time step for GLM linear advection equation with c_h=1 for the DG discretization on
     # Cartesian meshes
     max_scaled_speed_for_c_h = maximum(cache.elements.inverse_jacobian) *
                                ndims(equations)
+
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        max_scaled_speed_for_c_h = MPI.Allreduce!(Ref(max_scaled_speed_for_c_h),
+                                                  Base.max,
+                                                  mpi_comm())[]
+    end
+
     # OBS! This depends on the implementation details of the StepsizeCallback and needs to be adapted
     #      as well if that callback changes.
     return cfl * 2 / (nnodes(dg) * max_scaled_speed_for_c_h)
@@ -20,7 +29,8 @@ end
 
 function calc_dt_for_cleaning_speed(cfl::Real, mesh,
                                     equations::Union{AbstractIdealGlmMhdEquations,
-                                                     AbstractIdealGlmMhdMulticomponentEquations},
+                                                     AbstractIdealGlmMhdMulticomponentEquations,
+                                                     AbstractIdealGlmMhdMultiIonEquations},
                                     dg::DGMulti, cache)
     rd = dg.basis
     md = mesh.md
@@ -29,6 +39,12 @@ function calc_dt_for_cleaning_speed(cfl::Real, mesh,
     # Copies implementation behavior of `calc_dt_for_cleaning_speed` for DGSEM discretizations.
     max_scaled_speed_for_c_h = inv(minimum(md.J)) * ndims(equations)
 
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        max_scaled_speed_for_c_h = MPI.Allreduce!(Ref(max_scaled_speed_for_c_h),
+                                                  Base.max,
+                                                  mpi_comm())[]
+    end
     # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
     # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
     # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns

@@ -289,8 +289,8 @@ possible to step into further calls or access other function scopes.
 - Comment `@JuliaRegistrator register` on the commit setting the version number.
 - `JuliaRegistrator` will create a PR with the new version in the General registry.
   Wait for it to be merged.
-- Increment the version number in `Project.toml` again with suffix `-pre`. For example,
-  if you have released version `v0.2.0`, use `v0.2.1-pre` as new version number.
+- Increment the version number in `Project.toml` again with suffix `-DEV`. For example,
+  if you have released version `v0.2.0`, use `v0.2.1-DEV` as new version number.
 - When a new version of Trixi.jl was released, check whether the `[compat]` entries
   in `test/Project.toml` in Trixi2Vtk should be updated.
   When a new version of Trixi2Vtk was released, check whether the `[compat]`
@@ -313,7 +313,7 @@ julia --project=docs --color=yes docs/make.jl
 from the Trixi.jl main directory. Then, you can look at the html files generated in
 `docs/build`.
 For PRs triggered from branches inside the Trixi.jl main repository previews of
-the new documentation are generated at `https://trixi-framework.github.io/Trixi.jl/previews/PRXXX`,
+the new documentation are generated at `https://trixi-framework.github.io/TrixiDocumentation/previews/PRXXX`,
 where `XXX` is the number of the PR.
 This does not work for PRs from forks for security reasons (since anyone could otherwise push
 arbitrary stuff to the Trixi.jl website, including malicious code).

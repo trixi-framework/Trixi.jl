@@ -6,10 +6,11 @@
 #! format: noindent
 
 """
-    convergence_test([mod::Module=Main,] elixir::AbstractString, iterations; kwargs...)
+    convergence_test([mod::Module=Main,] elixir::AbstractString, iterations, RealT = Float64; kwargs...)
 
 Run `iterations` Trixi.jl simulations using the setup given in `elixir` and compute
 the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
+Use `RealT` as the data type to represent the errors.
 In each iteration, the resolution of the respective mesh will be doubled.
 Additional keyword arguments `kwargs...` and the optional module `mod` are passed directly
 to [`trixi_include`](@ref).
@@ -18,12 +19,14 @@ This function assumes that the spatial resolution is set via the keywords
 `initial_refinement_level` (an integer) or `cells_per_dimension` (a tuple of
 integers, one per spatial dimension).
 """
-function convergence_test(mod::Module, elixir::AbstractString, iterations; kwargs...)
+function convergence_test(mod::Module, elixir::AbstractString, iterations,
+                          RealT = Float64;
+                          kwargs...)
     @assert(iterations>1,
             "Number of iterations must be bigger than 1 for a convergence analysis")
 
     # Types of errors to be calculated
-    errors = Dict(:l2 => Float64[], :linf => Float64[])
+    errors = Dict(:l2 => RealT[], :linf => RealT[])
 
     initial_resolution = extract_initial_resolution(elixir, kwargs)
 
@@ -105,7 +108,7 @@ function analyze_convergence(errors, iterations,
         println("")
 
         # Print mean EOCs
-        mean_values = zeros(nvariables)
+        mean_values = zeros(eltype(errors[:l2]), nvariables)
         for v in 1:nvariables
             mean_values[v] = sum(eocs[kind][:, v]) ./ length(eocs[kind][:, v])
             @printf("%-10s", "mean")
@@ -119,8 +122,9 @@ function analyze_convergence(errors, iterations,
     return eoc_mean_values
 end
 
-function convergence_test(elixir::AbstractString, iterations; kwargs...)
-    convergence_test(Main, elixir::AbstractString, iterations; kwargs...)
+function convergence_test(elixir::AbstractString, iterations, RealT = Float64;
+                          kwargs...)
+    convergence_test(Main, elixir::AbstractString, iterations, RealT; kwargs...)
 end
 
 # Helper methods used in the functions defined above

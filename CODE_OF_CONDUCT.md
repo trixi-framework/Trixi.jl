@@ -60,7 +60,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to
-[Michael Schlottke-Lakemper](mailto:m.schlottke-lakemper@acom.rwth-aachen.de),
+[Michael Schlottke-Lakemper](mailto:michael.schlottke-lakemper@uni-a.de),
 [Hendrik Ranocha](mailto:mail@ranocha.de),
 or any other of the principal developers responsible for enforcement listed in
 [AUTHORS.md](AUTHORS.md).

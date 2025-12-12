@@ -8,7 +8,7 @@
 @doc raw"""
     LinearizedEulerEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 
-Linearized euler equations in two space dimensions. The equations are given by
+Linearized Euler equations in two space dimensions. The equations are given by
 ```math
 \partial_t
 \begin{pmatrix}
@@ -29,7 +29,7 @@ Linearized euler equations in two space dimensions. The equations are given by
     0 \\ 0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and c is the speed of sound.
+The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and ``c`` is the speed of sound.
 The unknowns are the acoustic velocities ``v' = (v_1', v_2')``, the pressure ``p'`` and the density ``\rho'``.
 """
 struct LinearizedEulerEquations2D{RealT <: Real} <:
@@ -204,14 +204,14 @@ The diagonalization of the flux matrix can be found in
         lambda1_p = positive_part(lambda1)
         lambda2_p = positive_part(lambda2)
         lambda3_p = positive_part(lambda3)
-        lambda2p3_half_p = 0.5 * (lambda2_p + lambda3_p)
-        lambda3m2_half_p = 0.5 * (lambda3_p - lambda2_p)
+        lambda2p3_half_p = 0.5f0 * (lambda2_p + lambda3_p)
+        lambda3m2_half_p = 0.5f0 * (lambda3_p - lambda2_p)
 
         lambda1_m = negative_part(lambda1)
         lambda2_m = negative_part(lambda2)
         lambda3_m = negative_part(lambda3)
-        lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
-        lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
+        lambda2p3_half_m = 0.5f0 * (lambda2_m + lambda3_m)
+        lambda3m2_half_m = 0.5f0 * (lambda3_m - lambda2_m)
 
         f1p = (lambda1_p * rho_prime_ll +
                lambda3m2_half_p / c_mean_global * rho_mean_global * v1_prime_ll +
@@ -244,14 +244,14 @@ The diagonalization of the flux matrix can be found in
         lambda1_p = positive_part(lambda1)
         lambda2_p = positive_part(lambda2)
         lambda3_p = positive_part(lambda3)
-        lambda2p3_half_p = 0.5 * (lambda2_p + lambda3_p)
-        lambda3m2_half_p = 0.5 * (lambda3_p - lambda2_p)
+        lambda2p3_half_p = 0.5f0 * (lambda2_p + lambda3_p)
+        lambda3m2_half_p = 0.5f0 * (lambda3_p - lambda2_p)
 
         lambda1_m = negative_part(lambda1)
         lambda2_m = negative_part(lambda2)
         lambda3_m = negative_part(lambda3)
-        lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
-        lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
+        lambda2p3_half_m = 0.5f0 * (lambda2_m + lambda3_m)
+        lambda3m2_half_m = 0.5f0 * (lambda3_m - lambda2_m)
 
         f1p = (lambda1_p * rho_prime_ll +
                lambda3m2_half_p / c_mean_global * rho_mean_global * v2_prime_ll +
@@ -304,14 +304,14 @@ end
     lambda1_p = positive_part(lambda1)
     lambda2_p = positive_part(lambda2)
     lambda3_p = positive_part(lambda3)
-    lambda2p3_half_p = 0.5 * (lambda2_p + lambda3_p)
-    lambda3m2_half_p = 0.5 * (lambda3_p - lambda2_p)
+    lambda2p3_half_p = 0.5f0 * (lambda2_p + lambda3_p)
+    lambda3m2_half_p = 0.5f0 * (lambda3_p - lambda2_p)
 
     lambda1_m = negative_part(lambda1)
     lambda2_m = negative_part(lambda2)
     lambda3_m = negative_part(lambda3)
-    lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
-    lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
+    lambda2p3_half_m = 0.5f0 * (lambda2_m + lambda3_m)
+    lambda3m2_half_m = 0.5f0 * (lambda3_m - lambda2_m)
 
     f1p = (lambda1_p * rho_prime_ll +
            lambda3m2_half_p / c_mean_global * rho_mean_global * v_prime_normal_ll +

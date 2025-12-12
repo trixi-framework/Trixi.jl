@@ -6,8 +6,6 @@
 #! format: noindent
 
 # Visualize a single variable in a 2D plot (default: heatmap)
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack plot_data, variable_id = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
@@ -32,8 +30,6 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
 end
 
 # Visualize the mesh in a 2D plot
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
     @unpack plot_data = pm
     @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
@@ -55,8 +51,6 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
 end
 
 # Visualize the mesh in a 2D plot
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any,
                                                                   <:AbstractVector{<:AbstractVector}}})
     @unpack plot_data = pm
@@ -79,8 +73,6 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any,
 end
 
 # Plot all available variables at once for convenience
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pd::AbstractPlotData)
     # Create layout that is as square as possible, when there are more than 3 subplots.
     # This is done with a preference for more columns than rows if not.
@@ -152,8 +144,6 @@ end
 
 # Create a plot directly from a TrixiODESolution for convenience
 # The plot is created by a PlotData1D or PlotData2D object.
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(sol::TrixiODESolution)
     # Redirect everything to the recipes below
     return sol.u[end], sol.prob.p
@@ -171,21 +161,52 @@ RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
     end
 end
 
+# Also allow plotting a function with signature `func(x, equations)`, e.g., for initial conditions.
+# We need this recipe in addition to the one above to avoid method ambiguities.
+RecipesBase.@recipe function f(func::Function, semi::AbstractSemidiscretization;
+                               solution_variables = nothing)
+    n_variables = length(func(SVector(0.0), semi.equations))
+    variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
+    if ndims(semi) == 1
+        return PlotData1D(func, semi; solution_variables = cons2cons, variable_names)
+    else
+        throw(ArgumentError("Plotting of functions is only supported in 1D."))
+    end
+end
+
 # Recipe specifically for TreeMesh-type solutions
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
 RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:TreeMesh};
                                solution_variables = nothing,
                                grid_lines = true, max_supported_level = 11,
-                               nvisnodes = nothing, slice = :xy,
-                               point = (0.0, 0.0, 0.0), curve = nothing)
+                               nvisnodes = nothing,
+                               reinterpolate = default_reinterpolate(semi.solver),
+                               slice = :xy, point = (0.0, 0.0, 0.0), curve = nothing)
     # Create a PlotData1D or PlotData2D object depending on the dimension.
     if ndims(semi) == 1
-        return PlotData1D(u, semi; solution_variables, nvisnodes, slice, point, curve)
+        return PlotData1D(u, semi; solution_variables, nvisnodes, reinterpolate,
+                          slice, point, curve)
     else
         return PlotData2D(u, semi;
                           solution_variables, grid_lines, max_supported_level,
                           nvisnodes, slice, point)
+    end
+end
+
+# Also allow plotting a function with signature `func(x, equations)`, e.g., for initial conditions.
+RecipesBase.@recipe function f(func::Function,
+                               semi::SemidiscretizationHyperbolic{<:TreeMesh};
+                               solution_variables = nothing,
+                               nvisnodes = nothing, slice = :xy,
+                               point = (0.0, 0.0, 0.0), curve = nothing)
+    n_variables = length(func(SVector(0.0), semi.equations))
+    variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
+    if ndims(semi) == 1
+        return PlotData1D(func, semi; solution_variables = cons2cons, nvisnodes, slice,
+                          point, curve, variable_names)
+    else
+        throw(ArgumentError("Plotting of functions is only supported in 1D."))
     end
 end
 

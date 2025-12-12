@@ -13,22 +13,16 @@ function create_cache(::Type{IndicatorHennemannGassner},
 
     A = Array{real(basis), ndims(equations)}
     indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
     modal_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                      for _ in 1:Threads.nthreads()]
+                      for _ in 1:Threads.maxthreadid()]
     modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
     modal_tmp2_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                           for _ in 1:Threads.nthreads()]
+                           for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded,
             modal_tmp2_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations{3}, dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -116,8 +110,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
         right = cache.interfaces.neighbor_ids[2, interface]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5 * alpha_tmp[right], alpha[left])
-        alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left], alpha[right])
+        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
+        alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
     end
 
     # Loop over L2 mortars
@@ -130,20 +124,26 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
         large = cache.mortars.neighbor_ids[5, mortar]
 
         # Apply smoothing
-        alpha[lower_left] = max(alpha_tmp[lower_left], 0.5 * alpha_tmp[large],
+        alpha[lower_left] = max(alpha_tmp[lower_left], 0.5f0 * alpha_tmp[large],
                                 alpha[lower_left])
-        alpha[lower_right] = max(alpha_tmp[lower_right], 0.5 * alpha_tmp[large],
+        alpha[lower_right] = max(alpha_tmp[lower_right], 0.5f0 * alpha_tmp[large],
                                  alpha[lower_right])
-        alpha[upper_left] = max(alpha_tmp[upper_left], 0.5 * alpha_tmp[large],
+        alpha[upper_left] = max(alpha_tmp[upper_left], 0.5f0 * alpha_tmp[large],
                                 alpha[upper_left])
-        alpha[upper_right] = max(alpha_tmp[upper_right], 0.5 * alpha_tmp[large],
+        alpha[upper_right] = max(alpha_tmp[upper_right], 0.5f0 * alpha_tmp[large],
                                  alpha[upper_right])
 
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_left], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_right], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[lower_left],
+                           alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[lower_right],
+                           alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper_left],
+                           alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper_right],
+                           alpha[large])
     end
+
+    return nothing
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -153,15 +153,9 @@ function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{3},
 
     A = Array{real(basis), ndims(equations)}
     indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{3},
-                      dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
 end
 
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
@@ -169,6 +163,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
                                    kwargs...)
     @assert nnodes(dg)>=3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
     @unpack alpha, indicator_threaded = löhner.cache
+    @unpack variable = löhner
     resize!(alpha, nelements(dg, cache))
 
     @threaded for element in eachelement(dg, cache)
@@ -177,7 +172,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
         # Calculate indicator variables at Gauss-Lobatto nodes
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
-            indicator[i, j, k] = löhner.variable(u_local, equations)
+            indicator[i, j, k] = variable(u_local, equations)
         end
 
         estimate = zero(real(dg))
@@ -219,15 +214,9 @@ function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{3},
 
     A = Array{real(basis), ndims(equations)}
     indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+                          for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{3},
-                      dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
 end
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},

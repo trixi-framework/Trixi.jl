@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -12,9 +11,9 @@ initial_condition = initial_condition_weak_blast_wave
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = flux_ranocha
+volume_integral = VolumeIntegralFluxDifferencing(volume_flux = flux_ranocha)
 solver = DGSEM(polydeg = 4, surface_flux = flux_ranocha,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+               volume_integral = volume_integral)
 
 ###############################################################################
 # Get the curved quad mesh from a mapping function
@@ -72,7 +71,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

@@ -7,11 +7,11 @@
 
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
 struct UnstructuredElementContainer2D{RealT <: Real, uEltype <: Real}
-    node_coordinates::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
-    jacobian_matrix::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
-    inverse_jacobian::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-    contravariant_vectors::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
-    normal_directions::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
+    node_coordinates::Array{RealT, 4}      # [ndims, nnodes, nnodes, nelement]
+    jacobian_matrix::Array{RealT, 5}       # [ndims, ndims, nnodes, nnodes, nelement]
+    inverse_jacobian::Array{RealT, 3}      # [nnodes, nnodes, nelement]
+    contravariant_vectors::Array{RealT, 5} # [ndims, ndims, nnodes, nnodes, nelement]
+    normal_directions::Array{RealT, 4}     # [ndims, nnodes, local sides, nelement]
     surface_flux_values::Array{uEltype, 4} # [variables, nnodes, local sides, elements]
 end
 

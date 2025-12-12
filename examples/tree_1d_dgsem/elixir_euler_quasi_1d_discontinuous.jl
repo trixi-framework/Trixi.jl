@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -14,21 +14,29 @@ A discontinuous initial condition taken from
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
     High order entropy stable schemes for the quasi-one-dimensional
     shallow water and compressible Euler equations
-    [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)   
+    [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
 function initial_condition_discontinuity(x, t,
                                          equations::CompressibleEulerEquationsQuasi1D)
-    rho = (x[1] < 0) ? 3.4718 : 2.0
-    v1 = (x[1] < 0) ? -2.5923 : -3.0
-    p = (x[1] < 0) ? 5.7118 : 2.639
-    a = (x[1] < 0) ? 1.0 : 1.5
+    RealT = eltype(x)
+    rho = (x[1] < 0) ? RealT(3.4718) : RealT(2.0)
+    v1 = (x[1] < 0) ? RealT(-2.5923) : RealT(-3.0)
+    p = (x[1] < 0) ? RealT(5.7118) : RealT(2.639)
+    a = (x[1] < 0) ? 1.0f0 : 1.5f0
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
 
 initial_condition = initial_condition_discontinuity
 
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_chan_etal)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_chan_etal)
 volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
 
 basis = LobattoLegendreBasis(3)
@@ -79,7 +87,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

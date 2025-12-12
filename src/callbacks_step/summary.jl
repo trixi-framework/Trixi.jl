@@ -12,17 +12,19 @@ summary_callback(integrator) = u_modified!(integrator, false) # the summary call
     SummaryCallback()
 
 Create and return a callback that prints a human-readable summary of the simulation setup at the
-beginning of a simulation and then resets the timer. When the returned callback is executed
-directly, the current timer values are shown.
+beginning of a simulation and then resets the timer. At the end of the simulation the final timer
+values are shown. When the returned callback is executed directly, the current timer values are shown.
 """
 function SummaryCallback(reset_threads = true)
     function initialize(cb, u, t, integrator)
         initialize_summary_callback(cb, u, t, integrator;
                                     reset_threads)
     end
+    # At the end of the simulation, the timer is printed
     DiscreteCallback(summary_callback, summary_callback,
                      save_positions = (false, false),
-                     initialize = initialize)
+                     initialize = initialize,
+                     finalize = finalize_summary_callback)
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
@@ -207,6 +209,10 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
 
     # technical details
     setup = Pair{String, Any}["#threads" => Threads.nthreads()]
+    push!(setup, "threading backend" => string(_PREFERENCE_THREADING))
+    if !_PREFERENCE_LOOPVECTORIZATION
+        push!(setup, "LoopVectorization" => "disabled")
+    end
     if mpi_isparallel()
         push!(setup,
               "#MPI ranks" => mpi_nranks())
@@ -218,6 +224,8 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
 
     return nothing
 end
+
+finalize_summary_callback(cb, u, t, integrator) = cb()
 
 function print_summary_semidiscretization(io::IO, semi::AbstractSemidiscretization)
     show(io, MIME"text/plain"(), semi)

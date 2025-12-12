@@ -11,10 +11,10 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
-struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
-                                    BoundaryConditions,
-                                    SourceTerms, Solver, Cache} <:
-       AbstractSemidiscretization
+mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
+                                            BoundaryConditions,
+                                            SourceTerms, Solver, Cache} <:
+               AbstractSemidiscretization
     mesh::Mesh
     equations::Equations
 
@@ -27,27 +27,6 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
     solver::Solver
     cache::Cache
     performance_counter::PerformanceCounter
-
-    function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
-                                          BoundaryConditions, SourceTerms, Solver,
-                                          Cache}(mesh::Mesh, equations::Equations,
-                                                 initial_condition::InitialCondition,
-                                                 boundary_conditions::BoundaryConditions,
-                                                 source_terms::SourceTerms,
-                                                 solver::Solver,
-                                                 cache::Cache) where {Mesh, Equations,
-                                                                      InitialCondition,
-                                                                      BoundaryConditions,
-                                                                      SourceTerms,
-                                                                      Solver,
-                                                                      Cache}
-        @assert ndims(mesh) == ndims(equations)
-
-        performance_counter = PerformanceCounter()
-
-        new(mesh, equations, initial_condition, boundary_conditions, source_terms,
-            solver, cache, performance_counter)
-    end
 end
 
 """
@@ -55,8 +34,7 @@ end
                                  source_terms=nothing,
                                  boundary_conditions=boundary_condition_periodic,
                                  RealT=real(solver),
-                                 uEltype=RealT,
-                                 initial_cache=NamedTuple())
+                                 uEltype=RealT)
 
 Construct a semidiscretization of a hyperbolic PDE.
 """
@@ -65,12 +43,16 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       boundary_conditions = boundary_condition_periodic,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
-                                      RealT = real(solver), uEltype = RealT,
-                                      initial_cache = NamedTuple())
-    cache = (; create_cache(mesh, equations, solver, RealT, uEltype)...,
-             initial_cache...)
+                                      RealT = real(solver), uEltype = RealT)
+    @assert ndims(mesh) == ndims(equations)
+
+    cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
+
+    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
+
+    performance_counter = PerformanceCounter()
 
     SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
                                  typeof(initial_condition),
@@ -79,8 +61,12 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                                                 initial_condition,
                                                                 _boundary_conditions,
                                                                 source_terms, solver,
-                                                                cache)
+                                                                cache,
+                                                                performance_counter)
 end
+
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(SemidiscretizationHyperbolic)
 
 # Create a new semidiscretization but change some parameters compared to the input.
 # `Base.similar` follows a related concept but would require us to `copy` the `mesh`,
@@ -210,6 +196,77 @@ function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, so
     throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
 end
 
+# No checks for these meshes yet available
+function check_periodicity_mesh_boundary_conditions(mesh::Union{P4estMesh,
+                                                                P4estMeshView,
+                                                                UnstructuredMesh2D,
+                                                                T8codeMesh,
+                                                                DGMultiMesh},
+                                                    boundary_conditions)
+end
+
+# No actions needed for periodic boundary conditions
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
+                                                                StructuredMesh,
+                                                                StructuredMeshView},
+                                                    boundary_conditions::BoundaryConditionPeriodic)
+end
+
+function check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
+    if isperiodic(mesh, 1) &&
+       (x_neg != BoundaryConditionPeriodic() ||
+        x_pos != BoundaryConditionPeriodic())
+        @error "For periodic mesh non-periodic boundary conditions in x-direction are supplied."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions_y(mesh, y_neg, y_pos)
+    if isperiodic(mesh, 2) &&
+       (y_neg != BoundaryConditionPeriodic() ||
+        y_pos != BoundaryConditionPeriodic())
+        @error "For periodic mesh non-periodic boundary conditions in y-direction are supplied."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions_z(mesh, z_neg, z_pos)
+    if isperiodic(mesh, 3) &&
+       (z_neg != BoundaryConditionPeriodic() ||
+        z_pos != BoundaryConditionPeriodic())
+        @error "For periodic mesh non-periodic boundary conditions in z-direction are supplied."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
+                                                                StructuredMesh{1}},
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               Tuple})
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
+                                                 boundary_conditions[2])
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
+                                                                StructuredMesh{2},
+                                                                StructuredMeshView{2}},
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               Tuple})
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
+                                                 boundary_conditions[2])
+    check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
+                                                 boundary_conditions[4])
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{3},
+                                                                StructuredMesh{3}},
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               Tuple})
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
+                                                 boundary_conditions[2])
+    check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
+                                                 boundary_conditions[4])
+    check_periodicity_mesh_boundary_conditions_z(mesh, boundary_conditions[5],
+                                                 boundary_conditions[6])
+end
+
 function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
     @nospecialize semi # reduce precompilation time
 
@@ -244,7 +301,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
-        summary_line(io, "total #DOFs per field", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)
     end
 end
@@ -338,14 +395,14 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolic)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
-    @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
+    @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition,
+    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations,
                                       boundary_conditions, source_terms, solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)

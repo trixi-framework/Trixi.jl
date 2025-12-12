@@ -1,9 +1,12 @@
 # Contributing
 
 Trixi.jl is an open-source project and we are very happy to accept contributions
-from the community. Please feel free to open issues or submit patches (preferably
-as pull requests) any time. For planned larger contributions, it is often
-beneficial to get in contact with one of the principal developers first (see
+from the community. Please feel free to
+[open issues](https://github.com/trixi-framework/Trixi.jl/issues/new/choose)
+or submit patches (preferably as
+[pull requests](https://github.com/trixi-framework/Trixi.jl/pulls))
+any time. For planned larger contributions, it is often beneficial to get
+in contact with one of the principal developers first (see
 [AUTHORS.md](AUTHORS.md)).
 
 Trixi.jl and its contributions are licensed under the MIT license (see

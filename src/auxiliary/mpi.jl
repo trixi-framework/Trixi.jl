@@ -68,11 +68,12 @@ step size control in OrdinaryDiffEq.jl. This function is aware of MPI and uses
 global MPI communication when running in parallel.
 
 You must pass this function as a keyword argument
-`internalnorm=ode_norm`
+`internalnorm = ode_norm`
 to OrdinaryDiffEq.jl's `solve` when using error-based step size control with MPI
 parallel execution of Trixi.jl.
 
-See the "Advanced Adaptive Stepsize Control" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
+See the "Advanced Adaptive Stepsize Control" section of the
+[documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 """
 ode_norm(u::Number, t) = @fastmath abs(u)
 function ode_norm(u::AbstractArray, t)
@@ -96,9 +97,9 @@ recursive_sum_abs2(u::Number) = abs2(u)
 # Use `mapreduce` instead of `sum` since `sum` from StaticArrays.jl does not
 # support the kwarg `init`
 # We need `init=zero(eltype(eltype(u))` below to deal with arrays of `SVector`s etc.
-# A better solution would be `recursive_unitless_bottom_eltype` from 
+# A better solution would be `recursive_unitless_bottom_eltype` from
 # https://github.com/SciML/RecursiveArrayTools.jl
-# However, what you have is good enough for us for now, so we don't need this 
+# However, what you have is good enough for us for now, so we don't need this
 # additional dependency at the moment.
 function recursive_sum_abs2(u::AbstractArray)
     mapreduce(recursive_sum_abs2, +, u; init = zero(eltype(eltype(u))))
@@ -125,6 +126,7 @@ You should pass this function as a keyword argument
 to OrdinaryDiffEq.jl's  `solve` when using error-based step size control with MPI
 parallel execution of Trixi.jl.
 
-See the "Miscellaneous" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
+See the "Miscellaneous" section of the
+[documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 """
 ode_unstable_check(dt, u, semi, t) = isnan(dt)

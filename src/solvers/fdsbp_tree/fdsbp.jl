@@ -51,12 +51,12 @@ create_cache(mesh, equations, mortar::Nothing, uEltype) = NamedTuple()
 nmortars(mortar::Nothing) = 0
 
 function prolong2mortars!(cache, u, mesh, equations, mortar::Nothing,
-                          surface_integral, dg::DG)
+                          dg::DG)
     @assert isempty(eachmortar(dg, cache))
 end
 
 function calc_mortar_flux!(surface_flux_values, mesh,
-                           nonconservative_terms, equations,
+                           have_nonconservative_terms, equations,
                            mortar::Nothing,
                            surface_integral, dg::DG, cache)
     @assert isempty(eachmortar(dg, cache))
