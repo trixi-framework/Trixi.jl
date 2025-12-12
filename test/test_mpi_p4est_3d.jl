@@ -206,7 +206,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                                 0.5953178904133528,
                                 3.117432982420204
                             ],
-                            tspan=(0.0, 0.025),)
+                            tspan=(0.0, 0.025))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
