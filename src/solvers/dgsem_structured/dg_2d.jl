@@ -409,7 +409,7 @@ end
                                            x_interfaces, j,
                                            slope_limiter, dg)
 
-            @views normal_direction = normal_vectors_2[:, j, i, element]
+            normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
 
             contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
                                                 prim2cons(u_r, equations),
