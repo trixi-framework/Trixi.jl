@@ -305,37 +305,33 @@ end
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
-    for j in eachnode(dg)
-        for i in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, element)
+    for j in eachnode(dg), i in 2:nnodes(dg)
+        u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            # Fetch precomputed freestream-preserving normal vector
-            normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
+        # Fetch precomputed freestream-preserving normal vector
+        normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
 
-            # Compute the contravariant flux
-            contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+        # Compute the contravariant flux
+        contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
 
-            set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j)
-            set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j)
-        end
+        set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j)
+        set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j)
     end
 
-    for i in eachnode(dg)
-        for j in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, element)
+    for j in 2:nnodes(dg), i in eachnode(dg)
+        u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            # Fetch precomputed freestream-preserving normal vector
-            normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
+        # Fetch precomputed freestream-preserving normal vector
+        normal_direction = get_normal_vector(normal_vectors_2, i, j, element)
 
-            # Compute the contravariant flux by taking the scalar product of the
-            # normal vector and the flux vector
-            contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
+        # Compute the contravariant flux by taking the scalar product of the
+        # normal vector and the flux vector
+        contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
 
-            set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j)
-            set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j)
-        end
+        set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j)
+        set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j)
     end
 
     return nothing
@@ -350,74 +346,70 @@ end
                                 x_interfaces, reconstruction_mode, slope_limiter)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
-    for j in eachnode(dg)
-        # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
-        # See `calcflux_fvO2!` in solvers/dgsem_tree/dg_1d.jl for a schematic
+    # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
+    # See `calcflux_fvO2!` in solvers/dgsem_tree/dg_1d.jl for a schematic
 
-        # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
-        # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
-        for i in 2:nnodes(dg)
-            ## Obtain unlimited values in primitive variables ##
+    # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
+    # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
+    for j in eachnode(dg), i in 2:nnodes(dg)
+        ## Obtain unlimited values in primitive variables ##
 
-            # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
-            # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
-            # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-            u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
-                             equations)
-            u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
-                             equations)
-            u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                             equations)
-            # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
-            # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
-            # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-            u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
-                                           element), equations)
+        # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
+        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
+                            equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
+                            equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
+                            equations)
+        # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
+        # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
+        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
+                                        element), equations)
 
-            ## Reconstruct values at interfaces with limiting ##
-            u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                           x_interfaces, i,
-                                           slope_limiter, dg)
+        ## Reconstruct values at interfaces with limiting ##
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                        x_interfaces, i,
+                                        slope_limiter, dg)
 
-            # Fetch precomputed freestream-preserving normal vector
-            normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
+        # Fetch precomputed freestream-preserving normal vector
+        normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
 
-            # Compute the contravariant flux by taking the scalar product of the
-            # normal vector and the flux vector.
-            ## Convert primitive variables back to conservative variables ##
-            contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
-                                                prim2cons(u_r, equations),
-                                                normal_direction, equations)
+        # Compute the contravariant flux by taking the scalar product of the
+        # normal vector and the flux vector.
+        ## Convert primitive variables back to conservative variables ##
+        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
+                                            prim2cons(u_r, equations),
+                                            normal_direction, equations)
 
-            set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j)
-            set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j)
-        end
+        set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j)
+        set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j)
     end
 
-    for i in eachnode(dg)
-        for j in 2:nnodes(dg)
-            u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
-                             equations)
-            u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, element),
-                             equations)
-            u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                             equations)
-            u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
-                                           element), equations)
+    for j in 2:nnodes(dg), i in eachnode(dg)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
+                            equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, element),
+                            equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
+                            equations)
+        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
+                                        element), equations)
 
-            u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                           x_interfaces, j,
-                                           slope_limiter, dg)
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                        x_interfaces, j,
+                                        slope_limiter, dg)
 
-            normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
+        normal_direction = get_normal_vector(normal_vectors_2, i, j, element)
 
-            contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
-                                                prim2cons(u_r, equations),
-                                                normal_direction, equations)
+        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
+                                            prim2cons(u_r, equations),
+                                            normal_direction, equations)
 
-            set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j)
-            set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j)
-        end
+        set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j)
+        set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j)
     end
 
     return nothing
@@ -434,59 +426,55 @@ end
     volume_flux, nonconservative_flux = volume_flux_fv
 
     # Fluxes in x-direction
-    for j in eachnode(dg)
-        for i in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, element)
+    for j in eachnode(dg), i in 2:nnodes(dg)
+        u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            # Fetch precomputed freestream-preserving normal vector
-            normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
+        # Fetch precomputed freestream-preserving normal vector
+        normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
 
-            # Compute the conservative part of the contravariant flux
-            ftilde1 = volume_flux(u_ll, u_rr, normal_direction, equations)
+        # Compute the conservative part of the contravariant flux
+        ftilde1 = volume_flux(u_ll, u_rr, normal_direction, equations)
 
-            # Compute and add in the nonconservative part
-            # Note the factor 0.5 necessary for the nonconservative fluxes based on
-            # the interpretation of global SBP operators coupled discontinuously via
-            # central fluxes/SATs
-            ftilde1_L = ftilde1 +
-                        0.5f0 *
-                        nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-            ftilde1_R = ftilde1 +
-                        0.5f0 *
-                        nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+        # Compute and add in the nonconservative part
+        # Note the factor 0.5 necessary for the nonconservative fluxes based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
+        ftilde1_L = ftilde1 +
+                    0.5f0 *
+                    nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+        ftilde1_R = ftilde1 +
+                    0.5f0 *
+                    nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
-            set_node_vars!(fstar1_L, ftilde1_L, equations, dg, i, j)
-            set_node_vars!(fstar1_R, ftilde1_R, equations, dg, i, j)
-        end
+        set_node_vars!(fstar1_L, ftilde1_L, equations, dg, i, j)
+        set_node_vars!(fstar1_R, ftilde1_R, equations, dg, i, j)
     end
 
     # Fluxes in y-direction
-    for i in eachnode(dg)
-        for j in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, element)
+    for j in 2:nnodes(dg), i in eachnode(dg)
+        u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, element)
 
-            # Fetch precomputed freestream-preserving normal vector
-            normal_direction = get_normal_vector(normal_vectors_2, j, i, element)
+        # Fetch precomputed freestream-preserving normal vector
+        normal_direction = get_normal_vector(normal_vectors_2, i, j, element)
 
-            # Compute the conservative part of the contravariant flux
-            ftilde2 = volume_flux(u_ll, u_rr, normal_direction, equations)
+        # Compute the conservative part of the contravariant flux
+        ftilde2 = volume_flux(u_ll, u_rr, normal_direction, equations)
 
-            # Compute and add in the nonconservative part
-            # Note the factor 0.5 necessary for the nonconservative fluxes based on
-            # the interpretation of global SBP operators coupled discontinuously via
-            # central fluxes/SATs
-            ftilde2_L = ftilde2 +
-                        0.5f0 *
-                        nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-            ftilde2_R = ftilde2 +
-                        0.5f0 *
-                        nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+        # Compute and add in the nonconservative part
+        # Note the factor 0.5 necessary for the nonconservative fluxes based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
+        ftilde2_L = ftilde2 +
+                    0.5f0 *
+                    nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+        ftilde2_R = ftilde2 +
+                    0.5f0 *
+                    nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
-            set_node_vars!(fstar2_L, ftilde2_L, equations, dg, i, j)
-            set_node_vars!(fstar2_R, ftilde2_R, equations, dg, i, j)
-        end
+        set_node_vars!(fstar2_L, ftilde2_L, equations, dg, i, j)
+        set_node_vars!(fstar2_R, ftilde2_R, equations, dg, i, j)
     end
 
     return nothing

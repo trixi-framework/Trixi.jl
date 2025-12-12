@@ -193,7 +193,7 @@ function initialize_left_neighbor_connectivity!(left_neighbors,
 end
 
 # Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
-# equation (B.53) in:
+# equations (14) and (B.53) in:
 # - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
 #   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
 #   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
@@ -208,11 +208,12 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
     @threaded for element in eachelement(dg, cache_containers)
         for i in eachnode(dg)
             # j = 1
-            # Optimize indexing (column-first): j to second position, i to third
             for d in 1:2
+                # Optimize memory layout for `normal_vectors_1`: 
+                # "Swap" positions of i and j, see `calcflux_fv!` for access pattern
                 normal_vectors_1[d, 1, i, element] = contravariant_vectors[d, 1, 1, i,
                                                                            element]
-                normal_vectors_2[d, 1, i, element] = contravariant_vectors[d, 2, i, 1,
+                normal_vectors_2[d, i, 1, element] = contravariant_vectors[d, 2, i, 1,
                                                                            element]
             end
 
@@ -220,7 +221,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                 for d in 1:2
                     normal_vectors_1[d, j, i, element] = normal_vectors_1[d, j - 1, i,
                                                                           element]
-                    normal_vectors_2[d, j, i, element] = normal_vectors_2[d, j - 1, i,
+                    normal_vectors_2[d, i, j, element] = normal_vectors_2[d, i, j - 1,
                                                                           element]
                 end
                 for m in eachnode(dg)
@@ -232,7 +233,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                                                                     m,
                                                                                     i,
                                                                                     element]
-                        normal_vectors_2[d, j, i, element] += wD_jm *
+                        normal_vectors_2[d, i, j, element] += wD_jm *
                                                               contravariant_vectors[d,
                                                                                     2,
                                                                                     i,
