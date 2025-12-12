@@ -117,9 +117,6 @@ sum(D, dims = 2)
 # Moreover it allows the construction of entropy conserving discretizations without relying on
 # exact integration. This is achieved when using a symmetric two-point entropy conserving flux function as
 # volume flux in the volume flux differencing formulation.
-# In particular, in contrast to the standard DGSEM volume operator ``M^{-1} D^T M`` there is no
-# integration (i.e., multiplication by the mass matrix ``M``) applied to the flux ``\underline{f}``
-# which is a source of entropy errors due to inexact integration of the nonlinear flux function.
 # Then, the numerical surface flux ``\underline{f}_{surface}^*`` can be used to control the
 # dissipation of the discretization and to guarantee decreasing entropy, i.e. entropy stability.
 
