@@ -945,6 +945,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_navierstokes_freestream_ldg.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_freestream_ldg.jl"),
+                        tspan=(0.0, 0.2),
+                        l2=[
+                            9.421780256792343e-17,
+                            3.597722377997839e-15,
+                            4.626519294383959e-15,
+                            1.4160796757846855e-13
+                        ],
+                        linf=[
+                            1.5543122344752192e-15,
+                            1.2378986724570495e-13,
+                            1.7111312367035225e-13,
+                            1.0867751143450732e-11
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_navierstokes_couette_flow.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_couette_flow.jl"),

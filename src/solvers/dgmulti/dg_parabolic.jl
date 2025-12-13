@@ -60,7 +60,7 @@ end
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh,
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DGMulti, parabolic_scheme, cache)
+                              dg::DGMulti, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
     @threaded for i in eachindex(u)
@@ -478,7 +478,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
     @trixi_timeit timer() "transform variables" begin
         (; u_transformed, gradients, flux_viscous) = cache_parabolic
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache)
+                             dg, cache)
     end
 
     @trixi_timeit timer() "calc gradient" begin
