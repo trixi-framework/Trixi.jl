@@ -162,6 +162,25 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
 end
 
 """
+    initial_condition_density_wave_highdensity(x, t, equations::CompressibleEulerEquations2D)
+
+A sine wave in the density with constant velocity and pressure; reduces the
+compressible Euler equations to the linear advection equations.
+High density version of [`initial_condition_density_wave`](@ref).
+"""
+function initial_condition_density_wave_highdensity(x, t,
+                                                    equations::CompressibleEulerEquations2D)
+    v1 = 0.1
+    v2 = 0.2
+    rho = 2.0 + 0.98 * sinpi(2 * (x[1] + x[2] - t * (v1 + v2)))
+    rho_v1 = rho * v1
+    rho_v2 = rho * v2
+    p = 20
+    rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2)
+    return SVector(rho, rho_v1, rho_v2, rho_e)
+end
+
+"""
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
 A weak blast wave taken from
@@ -390,6 +409,183 @@ Should be used together with [`StructuredMesh`](@ref).
     end
 
     return boundary_flux
+end
+
+"""
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::typeof(boundary_condition_slip_wall),
+                             normal_direction::AbstractVector,
+                             mesh, equations::CompressibleEulerEquations2D,
+                             dg, cache, indices...)
+For subcell limiting, the calculation of local bounds for non-periodic domains requires the boundary
+outer state. This function returns the boundary value for [`boundary_condition_slip_wall`](@ref) at
+time `t` and for node with spatial indices `indices` and at the boundary with `normal_direction`.
+
+Should be used together with [`P4estMesh`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          normal_direction::AbstractVector,
+                                          mesh, equations::CompressibleEulerEquations2D,
+                                          dg, cache, indices...)
+    factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
+    u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
+
+    return SVector(u_inner[1],
+                   u_inner[2] - 2.0 * u_normal[1],
+                   u_inner[3] - 2.0 * u_normal[2],
+                   u_inner[4])
+end
+
+"""
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::typeof(boundary_condition_slip_wall),
+                             normal_direction::AbstractVector, direction,
+                             mesh, equations::CompressibleEulerEquations2D,
+                             dg, cache, indices...)
+
+Should be used together with [`StructuredMesh`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          normal_direction::AbstractVector, direction,
+                                          mesh, equations::CompressibleEulerEquations2D,
+                                          dg, cache, indices...)
+    get_boundary_outer_state(u_inner, t, boundary_condition, normal_direction,
+                             mesh, equations, dg, cache, indices...)
+end
+
+"""
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::typeof(boundary_condition_slip_wall),
+                             orientation::Integer, direction,
+                             mesh, equations::CompressibleEulerEquations2D,
+                             dg, cache, indices...)
+
+Should be used together with [`TreeMesh`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          orientation::Integer, direction,
+                                          mesh, equations::CompressibleEulerEquations2D,
+                                          dg, cache, indices...)
+    return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
+end
+
+# TODO: Add docstring when about to merge.
+# Using with TreeMesh{2}
+@inline function characteristic_boundary_value_function(outer_boundary_value_function,
+                                                        u_inner, orientation::Integer,
+                                                        direction, x, t,
+                                                        equations::CompressibleEulerEquations2D)
+    # Get inverse of density
+    srho = 1 / u_inner[1]
+
+    # Get normal velocity
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        factor = 1
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        factor = -1
+    end
+    if orientation == 1
+        vn = factor * u_inner[2] * srho
+    else
+        vn = factor * u_inner[3] * srho
+    end
+
+    return calc_characteristic_boundary_value_function(outer_boundary_value_function,
+                                                       u_inner, srho, vn, x, t,
+                                                       equations)
+end
+
+# Using with StructuredMesh{2}
+@inline function characteristic_boundary_value_function(outer_boundary_value_function,
+                                                        u_inner,
+                                                        normal_direction::AbstractVector,
+                                                        direction, x, t,
+                                                        equations::CompressibleEulerEquations2D)
+    # Get inverse of density
+    srho = 1 / u_inner[1]
+
+    # Get normal velocity
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        factor = 1
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        factor = -1
+    end
+    vn = factor * srho *
+         (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3]) /
+         norm(normal_direction)
+
+    return calc_characteristic_boundary_value_function(outer_boundary_value_function,
+                                                       u_inner, srho, vn, x, t,
+                                                       equations)
+end
+
+# Using with P4estMesh{2}
+@inline function characteristic_boundary_value_function(outer_boundary_value_function,
+                                                        u_inner,
+                                                        normal_direction::AbstractVector,
+                                                        x, t,
+                                                        equations::CompressibleEulerEquations2D)
+    # Get inverse of density
+    srho = 1 / u_inner[1]
+
+    # Get normal velocity
+    vn = srho * (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3]) /
+         norm(normal_direction)
+
+    return calc_characteristic_boundary_value_function(outer_boundary_value_function,
+                                                       u_inner, srho, vn, x, t,
+                                                       equations)
+end
+
+# Function to compute the outer state of the characteristics-based boundary condition.
+# This function is called by all mesh types.
+@inline function calc_characteristic_boundary_value_function(outer_boundary_value_function,
+                                                             u_inner, srho, vn, x, t,
+                                                             equations::CompressibleEulerEquations2D)
+    # get pressure and Mach from state
+    p = pressure(u_inner, equations)
+    a = sqrt(equations.gamma * p * srho)
+    normalMachNo = abs(vn / a)
+
+    if vn < 0 # inflow
+        if normalMachNo < 1.0
+            # subsonic inflow: All variables from outside but pressure
+            cons = outer_boundary_value_function(x, t, equations)
+
+            prim = cons2prim(cons, equations)
+            prim = SVector(view(prim, 1:3)..., p)
+            cons = prim2cons(prim, equations)
+        else
+            # supersonic inflow: All variables from outside
+            cons = outer_boundary_value_function(x, t, equations)
+        end
+    else # outflow
+        if normalMachNo < 1.0
+            # subsonic outflow: All variables from inside but pressure
+            cons = outer_boundary_value_function(x, t, equations)
+
+            prim = cons2prim(u_inner, equations)
+            prim = SVector(view(prim, 1:3)..., pressure(cons, equations))
+            cons = prim2cons(prim, equations)
+        else
+            # supersonic outflow: All variables from inside
+            cons = u_inner
+        end
+    end
+
+    return cons
 end
 
 # Calculate 1D flux for a single point
