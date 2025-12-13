@@ -10,7 +10,8 @@
 
 # 1D caches
 function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralStrongForm, dg, uEltype)
+                      volume_integral::VolumeIntegralStrongForm,
+                      dg, cache_containers, uEltype)
     prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
                                                                             ntuple(_ -> nnodes(dg),
                                                                                    ndims(mesh))...)
@@ -20,7 +21,8 @@ function create_cache(mesh::TreeMesh{1}, equations,
 end
 
 function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralUpwind, dg, uEltype)
+                      volume_integral::VolumeIntegralUpwind,
+                      dg, cache_containers, uEltype)
     u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype),
                                                             Val{nvariables(equations)}()))
     f = StructArray([(u_node, u_node)])

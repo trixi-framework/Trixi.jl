@@ -279,6 +279,14 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
+    # TODO: Current workaround for 3D case where `normal_vectors` are not yet precomputed
+    # for `AbstractVolumeIntegralPureLGLFiniteVolume` and `VolumeIntegralShockCapturingHG`
+    if hasfield(typeof(cache), :normal_vectors)
+        @unpack normal_vectors = cache
+        resize!(normal_vectors, ncells(mesh))
+        init_normal_vectors!(normal_vectors, mesh, dg, cache)
+    end
+
     required = count_required_surfaces(mesh)
 
     # resize interfaces container

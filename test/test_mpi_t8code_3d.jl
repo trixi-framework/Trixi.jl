@@ -155,6 +155,38 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
+
+    @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_weak_blast_wave_amr.jl"),
+                            l2=[
+                                0.010014531529951328,
+                                0.0176268986746271,
+                                0.01817514447099777,
+                                0.018271085903740675,
+                                0.15193033077438198
+                            ],
+                            linf=[
+                                0.2898958869606375,
+                                0.529717119064458,
+                                0.5567193302705906,
+                                0.570663236219957,
+                                3.5496520808512027
+                            ],
+                            tspan=(0.0, 0.025),)
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+        # Check for conservation
+        state_integrals = Trixi.integrate(sol.u[2], semi)
+        initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
+        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+        @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
+    end
 end
 end # T8codeMesh MPI
 
