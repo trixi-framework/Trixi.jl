@@ -118,8 +118,10 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
     #    (total #steps)       (#accepted steps)
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
-    condition = (u, t, integrator) -> interval > 0 &&
-        (integrator.stats.naccept % interval == 0 || isfinished(integrator))
+    condition = (u, t,
+    integrator) -> interval > 0 &&
+        (integrator.stats.naccept % interval == 0 ||
+         isfinished(integrator))
 
     analyzer = SolutionAnalyzer(solver; kwargs...)
     cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache,
@@ -156,7 +158,8 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
 
     analysis_callback = cb.affect!
     analysis_callback.initial_state_integrals = initial_state_integrals
-    @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
+    @unpack save_analysis, output_directory, analysis_filename, analysis_errors,
+    analysis_integrals = analysis_callback
 
     if save_analysis && mpi_isroot()
         mkpath(output_directory)
@@ -387,8 +390,9 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
 
     if :l2_error in analysis_errors || :linf_error in analysis_errors
         # Calculate L2/Linf errors
-        l2_error, linf_error = calc_error_norms(u_ode, t, analyzer, semi,
-                                                cache_analysis)
+        l2_error,
+        linf_error = calc_error_norms(u_ode, t, analyzer, semi,
+                                      cache_analysis)
 
         if mpi_isroot()
             # L2 error
@@ -454,8 +458,9 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     # L2/L∞ errors of the primitive variables
     if :l2_error_primitive in analysis_errors ||
        :linf_error_primitive in analysis_errors
-        l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, u_ode, t, analyzer,
-                                                          semi, cache_analysis)
+        l2_error_prim,
+        linf_error_prim = calc_error_norms(cons2prim, u_ode, t, analyzer,
+                                           semi, cache_analysis)
 
         if mpi_isroot()
             print(" Variable:    ")
@@ -607,8 +612,9 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
     @unpack analyzer = analysis_callback
     cache_analysis = analysis_callback.cache
 
-    l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi,
-                                            cache_analysis)
+    l2_error,
+    linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi,
+                                  cache_analysis)
     (; l2 = l2_error, linf = linf_error)
 end
 
@@ -703,8 +709,7 @@ end
 # have `VariableViscous` available.
 function analyze(quantity::AnalysisSurfaceIntegral{Variable},
                  du, u, t,
-                 semi::SemidiscretizationHyperbolicParabolic) where {
-                                                                     Variable <:
+                 semi::SemidiscretizationHyperbolicParabolic) where {Variable <:
                                                                      VariableViscous}
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
