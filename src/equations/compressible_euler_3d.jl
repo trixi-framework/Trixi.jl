@@ -1791,6 +1791,29 @@ end
     return SVector(w1, w2, w3, w4, w5)
 end
 
+# Transformation from conservative variables u to entropy vector ds_0/du,
+# using the modified specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
+# Note: This is *not* the "conventional" specific entropy s = ln(p / rho^(gamma)).
+@inline function cons2entropy_guermond_etal(u, equations::CompressibleEulerEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_square = v1^2 + v2^2 + v3^2
+    inv_rho_gammap1 = (1 / rho)^(equations.gamma + 1)
+
+    # The derivative vector for the modified specific entropy of Guermond et al.
+    w1 = inv_rho_gammap1 *
+         (0.5f0 * rho * (equations.gamma + 1) * v_square - equations.gamma * rho_e)
+    w2 = -rho_v1 * inv_rho_gammap1
+    w3 = -rho_v2 * inv_rho_gammap1
+    w4 = -rho_v3 * inv_rho_gammap1
+    w5 = (1 / rho)^equations.gamma
+
+    return SVector(w1, w2, w3, w4, w5)
+end
+
 @inline function entropy2cons(w, equations::CompressibleEulerEquations3D)
     # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
     # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
@@ -1878,6 +1901,34 @@ end
     # Mathematical entropy
 
     return S
+end
+
+@doc raw"""
+    entropy_guermond_etal(u, equations::CompressibleEulerEquations3D)
+
+Calculate the modified specific entropy of Guermond et al. (2019):
+```math
+s_0 = p * \rho^{-\gamma} / (\gamma-1).
+```
+Note: This is *not* the "conventional" specific entropy ``s = ln(p / \rho^\gamma)``.
+- Guermond at al. (2019)
+  Invariant domain preserving discretization-independent schemes and convex limiting for hyperbolic systems.
+  [DOI: 10.1016/j.cma.2018.11.036](https://doi.org/10.1016/j.cma.2018.11.036)
+"""
+@inline function entropy_guermond_etal(u, equations::CompressibleEulerEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = u
+
+    # Modified specific entropy from Guermond et al. (2019)
+    s = (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho) *
+        (1 / rho)^equations.gamma
+
+    return s
+end
+
+# Transformation from conservative variables u to d(s)/d(u)
+@inline function gradient_conservative(::typeof(entropy_guermond_etal),
+                                       u, equations::CompressibleEulerEquations3D)
+    return cons2entropy_guermond_etal(u, equations)
 end
 
 # Default entropy is the mathematical entropy

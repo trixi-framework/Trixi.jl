@@ -44,7 +44,11 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
-                                positivity_variables_nonlinear = [pressure])
+                                positivity_variables_nonlinear = [pressure],
+                                local_twosided_variables_cons = [],
+                                local_onesided_variables_nonlinear = [],
+                                max_iterations_newton = 40, # Default parameters are not sufficient to fulfill bounds properly.
+                                newton_tolerances = (1.0e-14, 1.0e-15))
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -91,7 +95,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(),)
+stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

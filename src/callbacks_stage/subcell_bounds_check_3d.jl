@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-@inline function check_bounds(u, equations::AbstractEquations{2},
+@inline function check_bounds(u, equations::AbstractEquations{3},
                               solver, cache, limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -28,16 +28,18 @@
             deviation_max = idp_bounds_delta_local[key_max]
             @batch reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(solver,
                                                                                                      cache)
-                for j in eachnode(solver), i in eachnode(solver)
-                    var = u[v, i, j, element]
+                for k in eachnode(solver), j in eachnode(solver), i in eachnode(solver)
+                    var = u[v, i, j, k, element]
                     # Note: We always save the absolute deviations >= 0 and therefore use the
                     # `max` operator for the lower and upper bound. The different directions of
                     # upper and lower bound are considered in their calculations with a
                     # different sign.
                     deviation_min = max(deviation_min,
-                                        variable_bounds[key_min][i, j, element] - var)
+                                        variable_bounds[key_min][i, j, k, element] -
+                                        var)
                     deviation_max = max(deviation_max,
-                                        var - variable_bounds[key_max][i, j, element])
+                                        var -
+                                        variable_bounds[key_max][i, j, k, element])
                 end
             end
             idp_bounds_delta_local[key_min] = deviation_min
@@ -50,14 +52,15 @@
             deviation = idp_bounds_delta_local[key]
             sign_ = min_or_max(1.0, -1.0)
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
-                for j in eachnode(solver), i in eachnode(solver)
-                    v = variable(get_node_vars(u, equations, solver, i, j, element),
+                for k in eachnode(solver), j in eachnode(solver), i in eachnode(solver)
+                    v = variable(get_node_vars(u, equations, solver, i, j, k, element),
                                  equations)
                     # Note: We always save the absolute deviations >= 0 and therefore use the
                     # `max` operator for lower and upper bounds. The different directions of
                     # upper and lower bounds are considered with `sign_`.
                     deviation = max(deviation,
-                                    sign_ * (v - variable_bounds[key][i, j, element]))
+                                    sign_ *
+                                    (v - variable_bounds[key][i, j, k, element]))
                 end
             end
             idp_bounds_delta_local[key] = deviation
@@ -71,10 +74,10 @@
             key = Symbol(string(v), "_min")
             deviation = idp_bounds_delta_local[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
-                for j in eachnode(solver), i in eachnode(solver)
-                    var = u[v, i, j, element]
+                for k in eachnode(solver), j in eachnode(solver), i in eachnode(solver)
+                    var = u[v, i, j, k, element]
                     deviation = max(deviation,
-                                    variable_bounds[key][i, j, element] - var)
+                                    variable_bounds[key][i, j, k, element] - var)
                 end
             end
             idp_bounds_delta_local[key] = deviation
@@ -83,11 +86,12 @@
             key = Symbol(string(variable), "_min")
             deviation = idp_bounds_delta_local[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
-                for j in eachnode(solver), i in eachnode(solver)
-                    var = variable(get_node_vars(u, equations, solver, i, j, element),
+                for k in eachnode(solver), j in eachnode(solver), i in eachnode(solver)
+                    var = variable(get_node_vars(u, equations, solver, i, j, k,
+                                                 element),
                                    equations)
                     deviation = max(deviation,
-                                    variable_bounds[key][i, j, element] - var)
+                                    variable_bounds[key][i, j, k, element] - var)
                 end
             end
             idp_bounds_delta_local[key] = deviation
