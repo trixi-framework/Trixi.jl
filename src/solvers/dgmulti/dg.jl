@@ -699,4 +699,47 @@ function rhs!(du, u, t, mesh, equations,
 
     return nothing
 end
+
+function rhs_artificial_viscosity!(du, u, t, mesh, 
+                                   equations, equations_artificial_viscosity,
+                                   boundary_conditions::BC, source_terms::Source,
+                                   dg::DGMulti, solver_parabolic, 
+                                   cache, cache_parabolic) where {BC, Source}
+    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+
+    @trixi_timeit timer() "volume integral" begin
+        calc_volume_integral!(du, u, mesh,
+                              have_nonconservative_terms(equations), equations,
+                              dg.volume_integral, dg, cache)
+    end
+
+    
+
+    @trixi_timeit timer() "prolong2interfaces" begin
+        prolong2interfaces!(cache, u, mesh, equations, dg)
+    end
+
+    @trixi_timeit timer() "interface flux" begin
+        calc_interface_flux!(cache, dg.surface_integral, mesh,
+                             have_nonconservative_terms(equations), equations, dg)
+    end
+
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux!(cache, t, boundary_conditions, mesh,
+                            have_nonconservative_terms(equations), equations, dg)
+    end
+
+    @trixi_timeit timer() "surface integral" begin
+        calc_surface_integral!(du, u, mesh, equations, dg.surface_integral, dg, cache)
+    end
+
+    @trixi_timeit timer() "Jacobian" invert_jacobian!(du, mesh, equations, dg, cache)
+
+    @trixi_timeit timer() "source terms" begin
+        calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
+    end
+
+    return nothing
+end
+
 end # @muladd
