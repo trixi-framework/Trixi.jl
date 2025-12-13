@@ -232,6 +232,33 @@ function integrate_element(func::Func, u, element,
     return integral
 end
 
+function integrate_element(func::Func, u, element,
+                           mesh::Union{StructuredMesh{3}, StructuredMeshView{3},
+                                       P4estMesh{3}, T8codeMesh{3}},
+                           equations, dg::DGSEM, cache,
+                           args...; normalize = true) where {Func}
+    @unpack weights = dg.basis
+
+    # Initialize integral with zeros of the right shape
+    integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
+    total_volume = zero(real(mesh))
+
+    # Use quadrature to numerically integrate element
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, k, element]))
+        integral += volume_jacobian * weights[i] * weights[j] * weights[k] *
+                    func(u, i, j, k, element, equations, dg, args...)
+        total_volume += volume_jacobian * weights[i] * weights[j] * weights[k]
+    end
+
+    # Normalize with total volume
+    if normalize
+        integral = integral / total_volume
+    end
+
+    return integral
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
