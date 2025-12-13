@@ -5,8 +5,6 @@
 @muladd begin
 #! format: noindent
 
-abstract type AbstractIndicator end
-
 function create_cache(typ::Type{IndicatorType},
                       semi) where {IndicatorType <: AbstractIndicator}
     create_cache(typ, mesh_equations_solver_cache(semi)...)
@@ -264,4 +262,70 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
         summary_box(io, "IndicatorMax", setup)
     end
 end
+
+@doc raw"""
+    IndicatorEntropyIncrease(threshold=1e-3)
+
+This indicator checks the increase in the mathematical `entropy` (``S``) due to the application
+of the weak-form volume integral. In particular, the indicator computes
+```math
+\Delta S = 
+\int_{\Omega_m} 
+\frac{\partial S}{\partial \boldsymbol{u}}
+\cdot 
+(\Delta \boldsymbol u)_\mathrm{WF-VI}
+\mathrm{d} \Omega_m
+```
+for the currently processed element/cell ``m``, where ``(\Delta \boldsymbol u)_\mathrm{WF-VI}`` is the change 
+in the right-hand-side due to the weak-form volume integral only.
+
+``\Delta S`` is then compared against `threshold`, and if it exceeds this value, the indicator
+returns `true` for this element/cell, indicating that a more stable volume integral should be
+used there.
+Thus, for the mathematical entropy (default for `entropy`) which should not grow globally(!)
+over the course of a simulation, this can be used to identify troubled cells.
+
+Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
+more advanced/ (entropy) stable volume integral for the troubled cell/element ``m``.
+
+!!! note
+    This indicator is not implemented as an AMR indicator, i.e., it is currently not
+    possible to employ this as the `indicator` in [`ControllerThreeLevel`](@ref).
+"""
+struct IndicatorEntropyIncrease{RealT <: Real} <:
+       AbstractIndicator
+    threshold::RealT
+end
+
+function IndicatorEntropyIncrease(; threshold = 1e-3)
+    IndicatorEntropyIncrease{typeof(threshold)}(threshold)
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyIncrease)
+    @nospecialize indicator # reduce precompilation time
+
+    print(io, "IndicatorEntropyIncrease(")
+    print(io, ", threshold=", indicator.threshold, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyIncrease)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "threshold" => indicator.threshold
+        ]
+        summary_box(io, "IndicatorEntropyIncrease", setup)
+    end
+end
+
+# TODO: Would be nice to have something like this for plotting
+#=
+function get_element_variables!(element_variables, indicator::IndicatorEntropyIncrease,
+                                ::VolumeIntegralAdaptive)
+    return nothing
+end
+=#
 end # @muladd

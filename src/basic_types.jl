@@ -49,6 +49,10 @@ abstract type AdaptorAMR{RealT <: Real} end
 # which will be specialized for different SBP bases
 abstract type AdaptorL2{RealT <: Real} <: AdaptorAMR{RealT} end
 
+# abstract supertype of indicators used for AMR and/or shock capturing via
+# volume-integral selection
+abstract type AbstractIndicator end
+
 # TODO: Taal decide, which abstract types shall be defined here?
 
 struct BoundaryConditionPeriodic end

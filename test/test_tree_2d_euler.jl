@@ -607,6 +607,34 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_VI.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_VI.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.02607857802464446,
+                            0.020356961534334878,
+                            0.028510241224015066,
+                            0.02951575500982571
+                        ],
+                        linf=[
+                            0.12060888183906893,
+                            0.10673996262610572,
+                            0.06256827525217726,
+                            0.11999193068579528
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `show`
+    @test_nowarn show(stdout, indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      volume_integral)
+end
+
 @trixi_testset "elixir_euler_colliding_flow.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow.jl"),
                         l2=[
