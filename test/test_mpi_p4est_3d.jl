@@ -66,7 +66,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                                          "elixir_advection_amr_unstructured_curved.jl"),
                                 l2=[1.6163120948209677e-5],
                                 linf=[0.0010572201890564834],
-                                tspan=(0.0, 1.0),)
+                                tspan=(0.0, 1.0))
 
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
@@ -159,7 +159,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                                 0.45574161423218573,
                                 0.8099577682187109
                             ],
-                            tspan=(0.0, 0.2),)
+                            tspan=(0.0, 0.2))
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -184,6 +184,29 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                                 0.1154589758186293
                             ])
 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    end
+
+    @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_weak_blast_wave_amr.jl"),
+                            l2=[
+                                0.01405859231869672,
+                                0.02008263254684435,
+                                0.02054604394772085,
+                                0.02053240526223065,
+                                0.1503095833931905
+                            ],
+                            linf=[
+                                0.4413371352737734,
+                                0.6681574940838357,
+                                0.7352670681398884,
+                                0.5953178904133528,
+                                3.117432982420204
+                            ],
+                            tspan=(0.0, 0.025))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -214,7 +237,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                                 0.005104176909383168,
                                 9.738081186490818e-6
                             ],
-                            tspan=(0.0, 0.25),)
+                            tspan=(0.0, 0.25))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -246,7 +269,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                             0.05701669133068068,
                             0.00024182906501186622
                         ],
-                        tspan=(0.0, 0.25), trees_per_dimension=(1, 1, 1),)
+                        tspan=(0.0, 0.25), trees_per_dimension=(1, 1, 1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

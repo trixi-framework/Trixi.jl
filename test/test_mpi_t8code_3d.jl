@@ -66,7 +66,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
                                          "elixir_advection_amr_unstructured_curved.jl"),
                                 l2=[2.0535121347526814e-5],
                                 linf=[0.0010586603797777504],
-                                tspan=(0.0, 1.0),)
+                                tspan=(0.0, 1.0))
 
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
@@ -149,8 +149,31 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
                                 0.45574161423218573,
                                 0.8099577682187109
                             ],
-                            tspan=(0.0, 0.2),)
+                            tspan=(0.0, 0.2))
 
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    end
+
+    @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_weak_blast_wave_amr.jl"),
+                            l2=[
+                                0.010014531529951328,
+                                0.0176268986746271,
+                                0.01817514447099777,
+                                0.018271085903740675,
+                                0.15193033077438198
+                            ],
+                            linf=[
+                                0.2898958869606375,
+                                0.529717119064458,
+                                0.5567193302705906,
+                                0.570663236219957,
+                                3.5496520808512027
+                            ],
+                            tspan=(0.0, 0.025))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
