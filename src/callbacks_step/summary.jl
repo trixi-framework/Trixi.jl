@@ -9,15 +9,15 @@ summary_callback(u, t, integrator) = false # when used as condition; never call 
 summary_callback(integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
 
 """
-    SummaryCallback()
+    SummaryCallback(; io = stdout)
 
 Create and return a callback that prints a human-readable summary of the simulation setup at the
 beginning of a simulation and then resets the timer. At the end of the simulation the final timer
 values are shown. When the returned callback is executed directly, the current timer values are shown.
 """
-function SummaryCallback(reset_threads = true)
+function SummaryCallback(reset_threads = true; io = stdout)
     function initialize(cb, u, t, integrator)
-        initialize_summary_callback(cb, u, t, integrator;
+        initialize_summary_callback(io, cb, u, t, integrator;
                                     reset_threads)
     end
     # At the end of the simulation, the timer is printed
@@ -145,7 +145,7 @@ end
 
 # Print information about the current simulation setup
 # Note: This is called *after* all initialization is done, but *before* the first time step
-function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
+function initialize_summary_callback(io, cb::DiscreteCallback, u, t, integrator;
                                      reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
@@ -162,9 +162,8 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         return nothing
     end
 
-    print_startup_message()
+    print_startup_message(io)
 
-    io = stdout
     io_context = IOContext(io,
                            :compact => false,
                            :key_width => 30,
@@ -205,7 +204,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
               "controller" => integrator.opts.controller)
     end
     summary_box(io, "Time integration", setup)
-    println()
+    println(io)
 
     # technical details
     setup = Pair{String, Any}["#threads" => Threads.nthreads()]
@@ -218,7 +217,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
               "#MPI ranks" => mpi_nranks())
     end
     summary_box(io, "Environment information", setup)
-    println()
+    println(io)
 
     reset_timer!(timer())
 
