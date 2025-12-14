@@ -207,7 +207,9 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                                 3.2174576031675164
                             ],
                             tspan=(0.0, 0.025),
-                            alpha_smooth=false)
+                            alpha_smooth=false,
+                            analysis_callback=AnalysisCallback(semi,
+                                                               interval = analysis_interval))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
