@@ -193,21 +193,26 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_weak_blast_wave_amr.jl"),
                             l2=[
-                                0.007568705835830581,
-                                0.015740513443823764,
-                                0.01619928943625408,
-                                0.01596891516093198,
-                                0.15550037728664157
+                                0.011345993108796831,
+                                0.0185250739638337,
+                                0.019102348105917943,
+                                0.019205154389438372,
+                                0.15060493968460148
                             ],
                             linf=[
-                                0.22517613430297967,
-                                0.48214930456130534,
-                                0.5681792506198793,
-                                0.5697379746552841,
-                                3.61258981152018
+                                0.2994949779783409,
+                                0.5530175050084662,
+                                0.5335803757792129,
+                                0.5647252867336117,
+                                3.6462732329242566
                             ],
                             tspan=(0.0, 0.025),
-                            amr_callback=TrivialCallback())
+                            amr_controller=ControllerThreeLevel(semi, amr_indicator,
+                                                                base_level = 1,
+                                                                med_level = 2,
+                                                                med_threshold = 0.05,
+                                                                max_level = 3,
+                                                                max_threshold = 0.15))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
