@@ -174,7 +174,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
                                 3.61258981152018
                             ],
                             tspan=(0.0, 0.025),
-                            amr_callback=trivial_callback())
+                            amr_callback=TrivialCallback())
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
