@@ -160,23 +160,21 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_weak_blast_wave_amr.jl"),
                             l2=[
-                                0.011452984832518633,
-                                0.018607423330487212,
-                                0.01908174911005828,
-                                0.01921681500240875,
-                                0.15016143843144703
+                                0.007568705835830581,
+                                0.015740513443823764,
+                                0.01619928943625408,
+                                0.01596891516093198,
+                                0.15550037728664157
                             ],
                             linf=[
-                                0.35479772022901435,
-                                0.5900494176831249,
-                                0.5654198444296777,
-                                0.5901462927992144,
-                                3.6327402486344553
+                                0.22517613430297967,
+                                0.48214930456130534,
+                                0.5681792506198793,
+                                0.5697379746552841,
+                                3.61258981152018
                             ],
                             tspan=(0.0, 0.025),
-                            alpha_smooth=false,
-                            analysis_callback=AnalysisCallback(semi,
-                                                               interval = analysis_interval))
+                            amr_callback=trivial_callback())
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
