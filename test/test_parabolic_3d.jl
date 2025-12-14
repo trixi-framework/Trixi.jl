@@ -313,6 +313,15 @@ end
     @test_allocations(Trixi.Trixi.rhs_parabolic!, semi, sol, 100)
 end
 
+@trixi_testset "P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        l2=[0.006421164728264022], linf=[0.41638021060047015])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh3D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
@@ -354,6 +363,36 @@ end
                             0.03442565722577423,
                             0.06295407168705314,
                             0.032857472756916195
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl (Diffusive CFL)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex.jl"),
+                        tspan=(0.0, 0.1),
+                        mu=0.5, # render flow diffusion-dominated
+                        callbacks=CallbackSet(summary_callback, analysis_callback,
+                                              alive_callback,
+                                              StepsizeCallback(cfl = 2.3,
+                                                               cfl_diffusive = 0.4)),
+                        adaptive=false, # respect CFL
+                        ode_alg=CKLLSRK95_4S(),
+                        l2=[
+                            0.0001022410497625877,
+                            0.04954975879887512,
+                            0.049549758798875056,
+                            0.005853983721675305,
+                            0.09161121143324424
+                        ],
+                        linf=[
+                            0.00039284994602417633,
+                            0.14026307274342587,
+                            0.14026307274350203,
+                            0.017003338595870714,
+                            0.2823457296549634
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -412,8 +451,15 @@ end
 @trixi_testset "P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
-                        time_int_tol=1e-12,
-                        l2=[0.004013972492136502], linf=[0.05519561455143737])
+                        semi=SemidiscretizationHyperbolicParabolic(mesh,
+                                                                   (equations,
+                                                                    equations_parabolic),
+                                                                   initial_condition,
+                                                                   solver;
+                                                                   solver_parabolic = ViscousFormulationLocalDG(),
+                                                                   boundary_conditions = (boundary_conditions,
+                                                                                          boundary_conditions)),
+                        l2=[0.004013972492906333], linf=[0.0551956145538277])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -465,6 +511,25 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh3D: elixir_navierstokes_viscous_shock.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        l2=[
+                            0.0002576235757916208,
+                            0.00014336914033937938,
+                            3.361746364570895e-17,
+                            3.1399702631471645e-17,
+                            0.00017369856897561295
+                        ],
+                        linf=[
+                            0.0016731997562187129,
+                            0.0010638567566626511,
+                            1.733671234158084e-16,
+                            1.9060786274399122e-16,
+                            0.001149518946967798
+                        ])
 end
 
 @trixi_testset "P4estMesh3D: elixir_navierstokes_blast_wave_amr.jl" begin

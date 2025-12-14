@@ -10,9 +10,7 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
 
 polydeg = 3
-solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs,
-               volume_integral = VolumeIntegralFluxDifferencing(flux_central))
-solver_parabolic = ViscousFormulationLocalDG()
+solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -0.5, -0.5)
 coordinates_max = (0.0, 0.5, 0.5)
@@ -61,7 +59,6 @@ boundary_conditions = boundary_condition_default(mesh,
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             solver_parabolic = solver_parabolic,
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions))
 
@@ -78,11 +75,15 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
+stepsize_callback = StepsizeCallback(cfl = 1.6,
+                                     cfl_diffusive = 0.25)
+
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1.0e-5
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
