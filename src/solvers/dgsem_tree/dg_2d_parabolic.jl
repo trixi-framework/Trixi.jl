@@ -82,7 +82,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     return nothing
 end
 
-function calc_divergence!(du, flux_viscous, u, mesh::TreeMesh{2}, equations_parabolic, 
+function calc_divergence!(du, flux_viscous, u, mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations_parabolic, 
                           boundary_conditions_parabolic, dg, parabolic_scheme, cache, t)
     # Calculate volume integral.
     # This calls the specialized version for the viscous fluxes from
