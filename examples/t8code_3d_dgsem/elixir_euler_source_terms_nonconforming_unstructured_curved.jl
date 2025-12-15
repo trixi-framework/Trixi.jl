@@ -60,8 +60,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/d45c8a
 
 # Mesh polydeg of 2 (half the solver polydeg) to ensure FSP (see above).
 mesh = T8codeMesh(mesh_file, 3; polydeg = 2,
-                  mapping = mapping,
-                  initial_refinement_level = 0)
+                  mapping = mapping)
 
 # Note: This is actually a `p8est_quadrant_t` which is much bigger than the
 # following struct. But we only need the first four fields for our purpose.

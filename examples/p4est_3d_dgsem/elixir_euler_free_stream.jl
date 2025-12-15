@@ -58,8 +58,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/d45c8a
 
 # Mesh polydeg of 2 (half the solver polydeg) to ensure FSP (see above).
 mesh = P4estMesh{3}(mesh_file, polydeg = 2,
-                    mapping = mapping,
-                    initial_refinement_level = 0)
+                    mapping = mapping)
 
 # Refine bottom left quadrant of each second tree to level 2
 function refine_fn(p8est, which_tree, quadrant)

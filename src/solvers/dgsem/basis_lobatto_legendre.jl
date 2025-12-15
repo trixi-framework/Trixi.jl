@@ -435,7 +435,7 @@ function polynomial_derivative_matrix(nodes)
 
     for i in 1:n_nodes, j in 1:n_nodes
         if j != i
-            d[i, j] = wbary[j] / wbary[i] * 1 / (nodes[i] - nodes[j])
+            d[i, j] = (wbary[j] / wbary[i]) * 1 / (nodes[i] - nodes[j])
             d[i, i] -= d[i, j]
         end
     end

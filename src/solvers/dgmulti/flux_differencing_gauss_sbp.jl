@@ -427,9 +427,9 @@ function create_cache(mesh::DGMultiMesh, equations,
 
     nvars = nvariables(equations)
     rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                                 for _ in 1:Threads.nthreads()]
+                                 for _ in 1:Threads.maxthreadid()]
     gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                                   for _ in 1:Threads.nthreads()]
+                                   for _ in 1:Threads.maxthreadid()]
 
     return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
             rhs_volume_local_threaded, gauss_volume_local_threaded,

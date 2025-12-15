@@ -36,8 +36,8 @@ the [`AveragingCallback`](@ref).
 """
 mutable struct EulerAcousticsCouplingCallback{RealT <: Real, MeanValues,
                                               IntegratorEuler}
-    stepsize_callback_acoustics::StepsizeCallback{RealT}
-    stepsize_callback_euler::StepsizeCallback{RealT}
+    stepsize_callback_acoustics::StepsizeCallback{RealT, RealT}
+    stepsize_callback_euler::StepsizeCallback{RealT, RealT}
     mean_values::MeanValues
     integrator_euler::IntegratorEuler
 end

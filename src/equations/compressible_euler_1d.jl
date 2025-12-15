@@ -90,6 +90,14 @@ end
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquations1D)
@@ -1051,6 +1059,18 @@ end
     return v1
 end
 
+@doc raw"""
+    pressure(u, equations::AbstractCompressibleEulerEquations)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2}\rho \Vert v \Vert_2^2 \right)
+\end{aligned}
+```
+"""
 @inline function pressure(u, equations::CompressibleEulerEquations1D)
     rho, rho_v1, rho_e = u
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2) / rho)

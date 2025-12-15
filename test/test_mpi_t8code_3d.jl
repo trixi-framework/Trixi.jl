@@ -39,12 +39,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_advection_amr.jl" begin
@@ -55,28 +50,27 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
+    # There is an issue with the LoopVectorization.jl ecosystem for this setup
+    # (not caused by MPI), see
+    # https://github.com/JuliaSIMD/LoopVectorization.jl/issues/543
+    # Thus, we do not run this test on macOS with ARM processors.
     @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_amr_unstructured_curved.jl"),
-                            l2=[2.0535121347526814e-5],
-                            linf=[0.0010586603797777504],
-                            tspan=(0.0, 1.0),)
+        if Sys.isapple() && (Sys.ARCH === :aarch64)
+            # Show a hint in the test summary that there is a broken test
+            @test_skip false
+        else
+            @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                         "elixir_advection_amr_unstructured_curved.jl"),
+                                l2=[2.0535121347526814e-5],
+                                linf=[0.0010586603797777504],
+                                tspan=(0.0, 1.0),)
 
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            @test_allocations(Trixi.rhs!, semi, sol, 1000)
         end
     end
 
@@ -87,12 +81,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # Compressible Euler
@@ -117,12 +106,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
@@ -146,12 +130,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_ec.jl" begin
@@ -174,12 +153,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_3d_dgsem")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 end # T8codeMesh MPI

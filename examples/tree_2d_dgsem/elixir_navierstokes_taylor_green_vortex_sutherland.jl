@@ -16,7 +16,7 @@ prandtl_number() = 0.72
     T_ref = convert(RealT, 291.15)
 
     R_specific_air = convert(RealT, 287.052874)
-    T = R_specific_air * Trixi.temperature(u, equations)
+    T = R_specific_air * temperature(u, equations)
 
     C_air = 120
     mu_ref_air = convert(RealT, 1.827e-5)

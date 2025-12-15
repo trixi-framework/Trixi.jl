@@ -18,12 +18,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_fdsbp")
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_extended.jl with periodic operators" begin
@@ -41,12 +36,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end
 
@@ -69,12 +59,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_convergence.jl with Lax-Friedrichs splitting" begin
@@ -95,12 +80,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_convergence.jl with Drikakis-Tsangaris splitting" begin
@@ -121,12 +101,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
@@ -148,12 +123,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_vortex.jl" begin
@@ -174,12 +144,7 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 end
 

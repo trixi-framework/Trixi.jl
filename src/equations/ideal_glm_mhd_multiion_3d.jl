@@ -38,9 +38,9 @@ References:
     In case of more than one ion species, the multi-ion GLM-MHD equations should ALWAYS be used
     with [`source_terms_lorentz`](@ref).
 """
-mutable struct IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT <: Real,
-                                              ElectronPressure} <:
-               AbstractIdealGlmMhdMultiIonEquations{3, NVARS, NCOMP}
+struct IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT <: Real,
+                                      ElectronPressure} <:
+       AbstractIdealGlmMhdMultiIonEquations{3, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
     electron_pressure::ElectronPressure # Function to compute the electron pressure

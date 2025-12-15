@@ -11,7 +11,7 @@ mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                           IndicesVector <:
                                           DenseVector{NTuple{NDIMS, Symbol}},
                                           uVector <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractMPIInterfaceContainer
     u::uArray                   # [primary/secondary, variable, i, j, interface]
     local_neighbor_ids::VecInt  # [interface]
     node_indices::IndicesVector # [interface]
@@ -124,7 +124,7 @@ mutable struct P4estMPIMortarContainer{NDIMS, uEltype <: Real, RealT <: Real, ND
                                        NDIMSP2, NDIMSP3,
                                        uArray <: DenseArray{uEltype, NDIMSP3},
                                        uVector <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractMPIMortarContainer
     u::uArray                                      # [small/large side, variable, position, i, j, mortar]
     local_neighbor_ids::Vector{Vector{Int}}        # [mortar][ids]
     local_neighbor_positions::Vector{Vector{Int}}  # [mortar][positions]
@@ -278,6 +278,14 @@ function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM,
     @unpack elements = cache
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
+
+    if ndims(mesh) == 2 && # TODO: 3D precomputation of normal vectors
+       (dg.volume_integral isa AbstractVolumeIntegralPureLGLFiniteVolume ||
+        dg.volume_integral isa VolumeIntegralShockCapturingHG)
+        @unpack normal_vectors = cache
+        resize!(normal_vectors, ncells(mesh))
+        init_normal_vectors!(normal_vectors, mesh, dg, cache)
+    end
 
     required = count_required_surfaces(mesh)
 

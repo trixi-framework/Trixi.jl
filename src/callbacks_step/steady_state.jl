@@ -11,7 +11,7 @@
 Terminates the integration when the [`residual_steady_state(du, equations)`](@ref)
 falls below the threshold specified by `abstol, reltol`.
 """
-mutable struct SteadyStateCallback{RealT <: Real}
+struct SteadyStateCallback{RealT <: Real}
     abstol::RealT
     reltol::RealT
 end

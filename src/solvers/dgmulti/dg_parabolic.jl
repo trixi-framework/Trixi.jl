@@ -1,8 +1,7 @@
 # version for standard (e.g., non-entropy stable or flux differencing) schemes
 function create_cache_parabolic(mesh::DGMultiMesh,
                                 equations_hyperbolic::AbstractEquations,
-                                equations_parabolic::AbstractEquationsParabolic,
-                                dg::DGMulti, parabolic_scheme, RealT, uEltype)
+                                dg::DGMulti, n_elements, uEltype)
 
     # default to taking derivatives of all hyperbolic variables
     # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
@@ -38,13 +37,13 @@ function create_cache_parabolic(mesh::DGMultiMesh,
     gradients_face_values = ntuple(_ -> similar(u_face_values), ndims(mesh))
 
     local_u_values_threaded = [similar(u_transformed, dg.basis.Nq)
-                               for _ in 1:Threads.nthreads()]
+                               for _ in 1:Threads.maxthreadid()]
     local_flux_viscous_threaded = [SVector{ndims(mesh)}(ntuple(_ -> similar(u_transformed,
                                                                             dg.basis.Nq),
                                                                ndims(mesh)))
-                                   for _ in 1:Threads.nthreads()]
+                                   for _ in 1:Threads.maxthreadid()]
     local_flux_face_values_threaded = [similar(scalar_flux_face_values[:, 1])
-                                       for _ in 1:Threads.nthreads()]
+                                       for _ in 1:Threads.maxthreadid()]
 
     return (; u_transformed, gradients, flux_viscous,
             weak_differentiation_matrices, strong_differentiation_matrices,
@@ -61,7 +60,7 @@ end
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh,
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
+                              dg::DGMulti, parabolic_scheme, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
     @threaded for i in eachindex(u)
@@ -152,9 +151,9 @@ function calc_gradient_interface_flux!(scalar_flux_face_values,
         idM, idP = mapM[face_node_index], mapP[face_node_index]
         uM = u_face_values[idM]
         uP = u_face_values[idP]
-        # Here, we use the "strong" formulation to compute the gradient. 
-        # This guarantees that the parabolic formulation is symmetric and 
-        # stable on curved meshes with variable geometric terms. 
+        # Here, we use the "strong" formulation to compute the gradient.
+        # This guarantees that the parabolic formulation is symmetric and
+        # stable on curved meshes with variable geometric terms.
         scalar_flux_face_values[idM] = 0.5f0 * (uP - uM)
     end
 
@@ -257,7 +256,7 @@ end
 function calc_boundary_flux!(flux, u, t, operator_type,
                              boundary_conditions::NamedTuple{(), Tuple{}},
                              mesh, equations, dg::DGMulti, cache, cache_parabolic)
-    nothing
+    return nothing
 end
 
 function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
@@ -479,7 +478,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
     @trixi_timeit timer() "transform variables" begin
         (; u_transformed, gradients, flux_viscous) = cache_parabolic
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache, cache_parabolic)
+                             dg, parabolic_scheme, cache)
     end
 
     @trixi_timeit timer() "calc gradient" begin

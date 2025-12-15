@@ -44,7 +44,7 @@ end
 """
     initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
 
-A non-priodic smooth initial condition. Can be used for convergence tests in combination with
+A non-periodic smooth initial condition. Can be used for convergence tests in combination with
 [`source_terms_poisson_nonperiodic`](@ref) and [`boundary_condition_poisson_nonperiodic`](@ref).
 !!! note
     The solution is periodic but the initial guess is not.
@@ -172,6 +172,15 @@ end
     return sqrt(equations.nu * equations.inv_Tr)
 end
 
+"""
+    have_constant_speed(::HyperbolicDiffusionEquations1D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::HyperbolicDiffusionEquations1D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations1D)

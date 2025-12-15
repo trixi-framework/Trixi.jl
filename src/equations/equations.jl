@@ -312,7 +312,7 @@ abstract type FluxNonConservative{STRUCTURE} end
 Trait function determining whether `equations` represent a conservation law
 with or without nonconservative terms. Classical conservation laws such as the
 [`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
-[`IdealGlmMhdEquations2D`] are an example of equations with nonconservative terms.
+[`IdealGlmMhdEquations2D`](@ref) are an example of equations with nonconservative terms.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = False()
@@ -326,6 +326,53 @@ combined with certain solvers (e.g., subcell limiting).
 """
 function n_nonconservative_terms end
 
+"""
+	Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)
+
+Trait function indicating whether the given `flux` and `equations` support
+fusing the computation of conservative fluxes with nonconservative fluxes.
+This is purely a performance optimization for equations with nonconservative
+terms (i.e., where `have_nonconservative_terms(equations)` is `Trixi.True()`).
+The default value is `Trixi.False()`, i.e., you have to pass a tuple of
+numerical fluxes for the conservative and the nonconservative terms, e.g.,
+to compute surface terms or the [`VolumeIntegralFluxDifferencing`](@ref).
+
+For some systems and flux implementations, it is cheaper to compute
+
+    flux_noncons(u_ll, u_rr, orientation_or_normal_direction, equations)
+    
+and 
+
+    flux_noncons(u_rr, u_ll, orientation_or_normal_direction, equations)
+
+together, or to compute conservative and nonconservative flux contributions in
+a single fused kernel. In this case, you should set this trait to be `Trixi.True()`
+to take advantage of a more efficient implementation. In this case, you have to
+define a single method that computes
+
+    flux_cons(u_ll, u_rr, n, equations) + 0.5f0 * flux_noncons(u_ll, u_rr, n, equations)
+  
+and
+
+    flux_cons(u_ll, u_rr, n, equations) + 0.5f0 * flux_noncons(u_rr, u_ll, n, equations)
+
+together and returns them as a tuple.
+See also the test section P4estMesh2D with combine_conservative_and_nonconservative_fluxes in
+[Test Performance](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_performance_specializations_2d.jl).
+"""
+combine_conservative_and_nonconservative_fluxes(flux, ::AbstractEquations) = False()
+
+"""
+    have_constant_speed(::AbstractEquations)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref).
+
+This is the default fallback for nonlinear equations.
+
+# Returns
+- `False()`
+"""
 have_constant_speed(::AbstractEquations) = False()
 
 """
@@ -504,7 +551,15 @@ Return the product of the [`density`](@ref) and the [`pressure`](@ref)
 associated to the conserved variables `u` for a given set of
 `equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
 This can be useful, e.g., as a variable for (shock-cappturing or AMR)
-indicators.
+indicators as it combines two variables which must stay positive into one.
+
+Furthermore, this implementation is for media which are described by an
+ideal gas law alike equation of state more efficient than
+computing [`pressure(u, equations)`](@ref) first and then multiplying with the density.
+This is due to the fact that in computation of the pressure,
+the kinetic energy needs to be computed, which usually involves
+**division** of the squared momenta by the density.
+This operation can be avoided!
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
@@ -724,4 +779,8 @@ include("traffic_flow_lwr_1d.jl")
 abstract type AbstractMaxwellEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("maxwell_1d.jl")
+
+abstract type AbstractLinearElasticityEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("linear_elasticity_1d.jl")
 end # @muladd

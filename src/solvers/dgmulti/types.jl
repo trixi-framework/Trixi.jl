@@ -72,19 +72,19 @@ Base.real(rd::RefElemData) = eltype(rd.r)
 
 Create a discontinuous Galerkin method which uses
 - Approximations of polynomial degree `polydeg`.
-- Element type `element_type` (`Tri()`, `Quad()`, `Tet()`, `Hex()`, and `Wedge()` are 
+- Element type `element_type` (`Tri()`, `Quad()`, `Tet()`, `Hex()`, and `Wedge()` are
   currently supported)
 
 Optional:
-- `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`, 
+- `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`,
   `Quad()`, and `Hex()` element types).
-- `RefElemData_kwargs` are additional keyword arguments for `RefElemData`, such as 
+- `RefElemData_kwargs` are additional keyword arguments for `RefElemData`, such as
   `quad_rule_vol`.
-  
+
 For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
 
 !!! note "Wedge elements"
-    For `Wedge` elements (i.e. triangular prisms), the polynomial degree may optionally be 
+    For `Wedge` elements (i.e. triangular prisms), the polynomial degree may optionally be
     specified as a tuple of the form `polydeg = (polydeg_tri, polydeg_line)`.
 """
 function DGMulti(; polydeg = nothing,
@@ -100,9 +100,9 @@ function DGMulti(; polydeg = nothing,
             polydeg = polydeg, kwargs...)
 end
 
-# `Wedge` element types can optionally take `polydeg = (polydeg_tri, polydeg_line)`, which 
+# `Wedge` element types can optionally take `polydeg = (polydeg_tri, polydeg_line)`, which
 # constructs a `TensorProductWedge` approximation. Since Julia does not dispatch on keyword
-# arguments, we wrap a method which makes `polydeg` a positional argument. 
+# arguments, we wrap a method which makes `polydeg` a positional argument.
 function DGMulti(element_type::Wedge,
                  approximation_type,
                  volume_integral,
@@ -376,7 +376,7 @@ end
 function SimpleKronecker(NDIMS, A, eltype_A = eltype(A))
     @assert size(A, 1) == size(A, 2) # check if square
     tmp_storage = [zeros(eltype_A, ntuple(_ -> size(A, 2), NDIMS)...)
-                   for _ in 1:Threads.nthreads()]
+                   for _ in 1:Threads.maxthreadid()]
     return SimpleKronecker{NDIMS, typeof(A), typeof(tmp_storage)}(A, tmp_storage)
 end
 

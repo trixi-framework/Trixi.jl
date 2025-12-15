@@ -16,12 +16,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
                         linf=[3.217887726258972e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_basic.jl (max_abs_speed)" begin
@@ -31,12 +26,7 @@ end
                         linf=[3.217887726258972e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_amr.jl" begin
@@ -45,12 +35,7 @@ end
                         linf=[0.9999896603382347])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
@@ -59,12 +44,7 @@ end
                         linf=[3.235356127918171e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_basic.jl (No errors)" begin
@@ -73,12 +53,7 @@ end
                                                            analysis_errors = Symbol[]))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_finite_volume.jl" begin
@@ -87,12 +62,7 @@ end
                         linf=[0.01647256923710194])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_perk2.jl" begin
@@ -101,16 +71,11 @@ end
                         linf=[0.01596735472556976])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
-    end
+    # Larger values for allowed allocations due to usage of custom 
+    # integrator which are not *recorded* for the methods from 
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 8000)
 end
 
 # Testing the second-order paired explicit Runge-Kutta (PERK) method without stepsize callback
@@ -125,16 +90,11 @@ end
                         linf=[3.729460413781638e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
-    end
+    # Larger values for allowed allocations due to usage of custom 
+    # integrator which are not *recorded* for the methods from 
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 8000)
 end
 
 # Testing the second-order paired explicit Runge-Kutta (PERK) method with the optimal CFL number
@@ -144,16 +104,11 @@ end
                         linf=[0.00137209242077041])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
-    end
+    # Larger values for allowed allocations due to usage of custom 
+    # integrator which are not *recorded* for the methods from 
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 8000)
 end
 
 @trixi_testset "elixir_advection_doublefloat.jl" begin
@@ -163,12 +118,7 @@ end
                         linf=Double64[5.82834770064525291688100323411704252e-10])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end
 

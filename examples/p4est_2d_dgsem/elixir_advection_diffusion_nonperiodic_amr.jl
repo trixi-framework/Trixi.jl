@@ -45,10 +45,14 @@ boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_conditio
                            :y_pos => BoundaryConditionDirichlet(initial_condition),
                            :x_pos => boundary_condition_do_nothing)
 
-boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :x_pos => BoundaryConditionDirichlet(initial_condition),
-                                     :y_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :y_pos => BoundaryConditionDirichlet(initial_condition))
+# Assign a single boundary condition to all boundaries
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions_parabolic = boundary_condition_default(mesh, boundary_condition)
+# Alternatively, you can use
+# boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
+#                                      :x_pos => BoundaryConditionDirichlet(initial_condition),
+#                                      :y_neg => BoundaryConditionDirichlet(initial_condition),
+#                                      :y_pos => BoundaryConditionDirichlet(initial_condition))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh,
@@ -90,6 +94,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
+ode_alg = RDPK3SpFSAL49()
 time_int_tol = 1.0e-11
-sol = solve(ode, dt = 1e-7, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, dt = 1e-7, ode_alg; abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

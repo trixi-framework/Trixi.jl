@@ -78,23 +78,24 @@ coloring_vec = column_colors(coloring_result)
 ### sparsity-aware semidiscretization and ode ###
 
 # Semidiscretization for actual simulation
-semi_float_type = SemidiscretizationHyperbolic(mesh, equations,
-                                               initial_condition_convergence_test,
-                                               solver,
-                                               source_terms = source_terms_convergence_test)
+# Must be called 'semi' in order for the convergence test to run successfully
+semi = SemidiscretizationHyperbolic(mesh, equations,
+                                    initial_condition_convergence_test,
+                                    solver,
+                                    source_terms = source_terms_convergence_test)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
-ode_jac_sparse = semidiscretize(semi_float_type, tspan,
+ode_jac_sparse = semidiscretize(semi, tspan,
                                 jac_prototype = jac_prototype,
                                 colorvec = coloring_vec)
-# using "dense" `ode = semidiscretize(semi_float_type, tspan)`
+# using "dense" `ode = semidiscretize(semi, tspan)`
 # is essentially infeasible, even single step takes ages!
 
 ###############################################################################
 ### callbacks & solve ###
 
 summary_callback = SummaryCallback()
-analysis_callback = AnalysisCallback(semi_float_type, interval = 50)
+analysis_callback = AnalysisCallback(semi, interval = 50)
 alive_callback = AliveCallback(alive_interval = 3)
 
 # Note: No `stepsize_callback` due to implicit solver
