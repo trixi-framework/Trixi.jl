@@ -16,12 +16,18 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupled{S, Indices, EquationList} <:
+mutable struct SemidiscretizationCoupled{S, Indices} <:
                AbstractSemidiscretization
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationCoupled(semis...)
@@ -49,9 +55,8 @@ function SemidiscretizationCoupled(semis...)
 
     performance_counter = PerformanceCounter()
 
-    SemidiscretizationCoupled{typeof(semis), typeof(u_indices),
-                              typeof(performance_counter)}(semis, u_indices,
-                                                           performance_counter)
+    return SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices,
+                                                                       performance_counter)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupled)

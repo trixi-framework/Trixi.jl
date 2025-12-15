@@ -19,7 +19,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     node_coordinates::ArrayRealTNDIMSP2 # [orientation, node_i, node_j, node_k, element]
 
     # Jacobian matrix of the transformation
-    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
+    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix
     jacobian_matrix::ArrayRealTNDIMSP3
 
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
@@ -632,6 +632,14 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
+    if ndims(mesh) == 2 && # TODO: 3D precomputation of normal vectors
+       (dg.volume_integral isa AbstractVolumeIntegralPureLGLFiniteVolume ||
+        dg.volume_integral isa VolumeIntegralShockCapturingHG)
+        @unpack normal_vectors = cache
+        resize!(normal_vectors, ncells(mesh))
+        init_normal_vectors!(normal_vectors, mesh, dg, cache)
+    end
+
     required = count_required_surfaces(mesh)
 
     # resize interfaces container
@@ -643,16 +651,12 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     resize!(boundaries, required.boundaries)
 
     # re-initialize mortars container
-    if hasproperty(cache, :mortars) # cache_parabolic does not carry mortars
-        @unpack mortars = cache
-        resize!(mortars, required.mortars)
+    @unpack mortars = cache
+    resize!(mortars, required.mortars)
 
-        # re-initialize containers together to reduce
-        # the number of iterations over the mesh in `p4est`
-        init_surfaces!(interfaces, mortars, boundaries, mesh)
-    else
-        init_surfaces!(interfaces, nothing, boundaries, mesh)
-    end
+    # re-initialize containers together to reduce
+    # the number of iterations over the mesh in `p4est`
+    init_surfaces!(interfaces, mortars, boundaries, mesh)
 end
 
 # A helper struct used in initialization methods below
