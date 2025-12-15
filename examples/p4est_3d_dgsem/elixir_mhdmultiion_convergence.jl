@@ -9,6 +9,7 @@ using Trixi
 ###############################################################################
 """
   electron_pressure_alpha(u, equations::IdealGlmMhdMultiIonEquations3D)
+
 Returns a fraction (alpha) of the total ion pressure for the electron pressure.
 """
 function electron_pressure_alpha(u, equations::IdealGlmMhdMultiIonEquations3D)

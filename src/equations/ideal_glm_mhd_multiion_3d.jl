@@ -875,7 +875,7 @@ end
 
     for k in eachcomponent(equations)
         # Compute terms for each species
-        # (we multiply by 2 because the non-conservative flux is multiplied by 0.5 whenever it's used in the Trixi code)
+        # Multiply by 2 because the non-conservative flux is multiplied by 0.5 in routines like `calc_interface_flux!`, `flux_differencing_kernel!` etc.
 
         # Compute term Lorentz term
         f2_ll = ((0.5f0 * mag_norm_ll + pe_ll) * normal_direction[1] -
