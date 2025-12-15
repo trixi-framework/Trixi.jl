@@ -1,0 +1,157 @@
+using OrdinaryDiffEqLowStorageRK
+using Trixi
+
+###############################################################################
+# semidiscretization of the compressible Navier-Stokes equations
+
+prandtl_number() = 0.72
+mu() = 0.0
+
+equations = CompressibleEulerEquations1D(1.4)
+gradient_variables = GradientVariablesEntropy()
+equations_parabolic = CompressibleNavierStokesDiffusion1D(equations; mu = mu(),
+                                                          Prandtl = prandtl_number(), 
+                                                          gradient_variables)
+
+# This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
+# (Simplified version of the 2D)
+function initial_condition_navier_stokes_convergence_test(x, t, equations)
+    # Amplitude and shift
+    RealT = eltype(x)
+    A = 0.5f0
+    c = 2
+
+    # convenience values for trig. functions
+    pi_x = convert(RealT, pi) * x[1]
+    pi_t = convert(RealT, pi) * t
+
+    rho = c + A * sin(pi_x) * cos(pi_t)
+    v1 = sin(pi_x) * cos(pi_t)
+    p = rho^2
+
+    return prim2cons(SVector(rho, v1, p), equations)
+end
+initial_condition = initial_condition_navier_stokes_convergence_test
+
+@inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
+    # we currently need to hardcode these parameters until we fix the "combined equation" issue
+    # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
+    RealT = eltype(x)
+    inv_gamma_minus_one = inv(equations.gamma - 1)
+    Pr = prandtl_number()
+    mu_ = mu()
+
+    # Same settings as in `initial_condition`
+    # Amplitude and shift
+    A = 0.5f0
+    c = 2
+
+    # convenience values for trig. functions
+    pi_x = convert(RealT, pi) * x[1]
+    pi_t = convert(RealT, pi) * t
+
+    # compute the manufactured solution and all necessary derivatives
+    rho = c + A * sin(pi_x) * cos(pi_t)
+    rho_t = -convert(RealT, pi) * A * sin(pi_x) * sin(pi_t)
+    rho_x = convert(RealT, pi) * A * cos(pi_x) * cos(pi_t)
+    rho_xx = -convert(RealT, pi) * convert(RealT, pi) * A * sin(pi_x) * cos(pi_t)
+
+    v1 = sin(pi_x) * cos(pi_t)
+    v1_t = -convert(RealT, pi) * sin(pi_x) * sin(pi_t)
+    v1_x = convert(RealT, pi) * cos(pi_x) * cos(pi_t)
+    v1_xx = -convert(RealT, pi) * convert(RealT, pi) * sin(pi_x) * cos(pi_t)
+
+    p = rho * rho
+    p_t = 2 * rho * rho_t
+    p_x = 2 * rho * rho_x
+    p_xx = 2 * rho * rho_xx + 2 * rho_x * rho_x
+
+    E = p * inv_gamma_minus_one + 0.5f0 * rho * v1^2
+    E_t = p_t * inv_gamma_minus_one + 0.5f0 * rho_t * v1^2 + rho * v1 * v1_t
+    E_x = p_x * inv_gamma_minus_one + 0.5f0 * rho_x * v1^2 + rho * v1 * v1_x
+
+    # Some convenience constants
+    T_const = equations.gamma * inv_gamma_minus_one / Pr
+    inv_rho_cubed = 1 / (rho^3)
+
+    # compute the source terms
+    # density equation
+    du1 = rho_t + rho_x * v1 + rho * v1_x
+
+    # x-momentum equation
+    du2 = (rho_t * v1 + rho * v1_t
+           + p_x + rho_x * v1^2 + 2 * rho * v1 * v1_x -
+           # stress tensor from x-direction
+           v1_xx * mu_)
+
+    # total energy equation
+    du3 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x) -
+           # stress tensor and temperature gradient terms from x-direction
+           v1_xx * v1 * mu_ -
+           v1_x * v1_x * mu_ -
+           T_const * inv_rho_cubed *
+           (p_xx * rho * rho -
+            2 * p_x * rho * rho_x +
+            2 * p * rho_x * rho_x -
+            p * rho * rho_xx) * mu_)
+
+    return SVector(du1, du2, du3)
+end
+
+function initial_condition_test(x, t, equations)
+    # Amplitude and shift
+    RealT = eltype(x)
+
+    rho = 1.0 + 2.0 * (abs(x[1]) < 0.5)
+    v1 = 0.0
+    p = rho^equations.gamma
+
+    return prim2cons(SVector(rho, v1, p), equations)
+end
+initial_condition = initial_condition_test #initial_condition_weak_blast_wave
+
+solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
+            #    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+               volume_integral = VolumeIntegralWeakForm())
+
+coordinates_min = -1.0
+coordinates_max = 1.0
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 7,
+                n_cells_max = 100_000)
+
+# semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+#                                              initial_condition, solver)
+semi = SemidiscretizationArtificialViscosity(mesh, (equations, equations_parabolic),
+                                             initial_condition, solver)
+
+###############################################################################
+# ODE solvers, callbacks etc.
+
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan)
+
+u = copy(ode.u0)
+du = similar(u)
+Trixi.rhs_parabolic!(du, u, semi, 0)
+Trixi.rhs!(du, u, semi, 0)
+
+summary_callback = SummaryCallback()
+
+analysis_interval = 1000
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
+                        alive_callback)
+
+###############################################################################
+# run the simulation
+
+time_int_tol = 1e-7
+sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+            ode_default_options()..., callback = callbacks)
+using Plots
+plot(sol[end], semi)

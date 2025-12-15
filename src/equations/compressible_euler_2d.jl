@@ -2216,6 +2216,9 @@ end
     entropy_math(cons, equations)
 end
 
+entropy_potential(u, normal::AbstractVector, ::CompressibleEulerEquations2D) = 
+    u[2] * normal[1] + u[3] * normal[2]
+
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(cons, ::CompressibleEulerEquations2D) = cons[4]
 
