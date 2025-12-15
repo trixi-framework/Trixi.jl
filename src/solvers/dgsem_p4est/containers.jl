@@ -632,14 +632,9 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
-    # TODO: Current workaround for 3D case where `normal_vectors` are not yet precomputed
-    # for `AbstractVolumeIntegralPureLGLFiniteVolume` and `VolumeIntegralShockCapturingHG`.
-    #
-    # Goal would be to use:
-    #if (dg.volume_integral isa AbstractVolumeIntegralPureLGLFiniteVolume ||
-    #dg.volume_integral isa VolumeIntegralShockCapturingHG)
-    # which can ideally better inferred for improved performance.
-    if hasfield(typeof(cache), :normal_vectors)
+    if ndims(mesh) == 2 &&
+    (dg.volume_integral isa AbstractVolumeIntegralPureLGLFiniteVolume ||
+    dg.volume_integral isa VolumeIntegralShockCapturingHG)
         @unpack normal_vectors = cache
         resize!(normal_vectors, ncells(mesh))
         init_normal_vectors!(normal_vectors, mesh, dg, cache)
