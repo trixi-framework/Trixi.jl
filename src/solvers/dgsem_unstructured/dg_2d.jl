@@ -30,7 +30,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 
     return cache
 end
@@ -313,6 +313,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
                                          T8codeMesh},
                              equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
+
+    return nothing
 end
 
 # Function barrier for type stability
