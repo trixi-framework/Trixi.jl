@@ -71,6 +71,14 @@ function Base.eltype(::StructuredElementContainer{NDIMS, RealT, uEltype}) where 
     return uEltype
 end
 
+# Essentially equivalent to `get_contravariant_vector` and `get_node_coords`
+@inline function get_normal_vector(normal_vectors, indices...)
+    return SVector(ntuple(@inline(dim->normal_vectors[dim, indices...]),
+                          Val(ndims(normal_vectors) - 2)))
+end
+
+@inline storage_type(::AbstractNormalVectorContainer) = Array
+
 include("containers_1d.jl")
 include("containers_2d.jl")
 include("containers_3d.jl")

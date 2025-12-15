@@ -207,7 +207,8 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
 
     @threaded for element in eachelement(dg, cache_containers)
         for i in eachnode(dg)
-            # j = 1
+            # We do not store j = 1, as it is never used, see `calcflux_fv!`.
+            # => Store j = 2 at position 1
             for d in 1:2
                 # Optimize memory layout for `normal_vectors_1`: 
                 # "Swap" positions of i and j, see `calcflux_fv!` for access pattern
@@ -216,8 +217,25 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                 normal_vectors_2[d, i, 1, element] = contravariant_vectors[d, 2, i, 1,
                                                                            element]
             end
+            for m in eachnode(dg)
+                wD_jm = weights[1] * derivative_matrix[1, m]
+                for d in 1:2
+                    normal_vectors_1[d, 1, i, element] += wD_jm *
+                                                          contravariant_vectors[d,
+                                                                                1,
+                                                                                m,
+                                                                                i,
+                                                                                element]
+                    normal_vectors_2[d, i, 1, element] += wD_jm *
+                                                          contravariant_vectors[d,
+                                                                                2,
+                                                                                i,
+                                                                                m,
+                                                                                element]
+                end
+            end
 
-            for j in 2:nnodes(dg)
+            for j in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
                 for d in 1:2
                     normal_vectors_1[d, j, i, element] = normal_vectors_1[d, j - 1, i,
                                                                           element]
@@ -225,7 +243,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                                                           element]
                 end
                 for m in eachnode(dg)
-                    wD_jm = weights[j - 1] * derivative_matrix[j - 1, m]
+                    wD_jm = weights[j] * derivative_matrix[j, m]
                     for d in 1:2
                         normal_vectors_1[d, j, i, element] += wD_jm *
                                                               contravariant_vectors[d,
@@ -254,9 +272,9 @@ mutable struct NormalVectorContainer2D{RealT <: Real} <:
                AbstractNormalVectorContainer
     const n_nodes::Int
     # For normal vectors computed from first contravariant vectors
-    normal_vectors_1::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
+    normal_vectors_1::Array{RealT, 4} # [NDIMS, NNODES - 1, NNODES, NELEMENTS]
     # For normal vectors computed from second contravariant vectors
-    normal_vectors_2::Array{RealT, 4} # [NDIMS, NNODES, NNODES, NELEMENTS]
+    normal_vectors_2::Array{RealT, 4} # [NDIMS, NNODES, NNODES - 1, NELEMENTS]
 
     # internal `resize!`able storage
     _normal_vectors_1::Vector{RealT}
@@ -271,14 +289,14 @@ function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh
     n_elements = nelements(dg, cache_containers)
     n_nodes = nnodes(dg.basis)
 
-    _normal_vectors_1 = Vector{RealT}(undef, 2 * n_nodes^2 * n_elements)
+    _normal_vectors_1 = Vector{RealT}(undef, 2 * (n_nodes - 1) * n_nodes * n_elements)
     normal_vectors_1 = unsafe_wrap(Array, pointer(_normal_vectors_1),
-                                   (2, n_nodes, n_nodes,
+                                   (2, n_nodes - 1, n_nodes,
                                     n_elements))
 
-    _normal_vectors_2 = Vector{RealT}(undef, 2 * n_nodes^2 * n_elements)
+    _normal_vectors_2 = Vector{RealT}(undef, 2 * n_nodes * (n_nodes - 1) * n_elements)
     normal_vectors_2 = unsafe_wrap(Array, pointer(_normal_vectors_2),
-                                   (2, n_nodes, n_nodes,
+                                   (2, n_nodes, n_nodes - 1,
                                     n_elements))
 
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
@@ -289,27 +307,19 @@ function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh
                                           _normal_vectors_1, _normal_vectors_2)
 end
 
-# Essentially equivalent to `get_contravariant_vector` and `get_node_coords`
-@inline function get_normal_vector(normal_vectors, indices...)
-    return SVector(ntuple(@inline(dim->normal_vectors[dim, indices...]),
-                          Val(ndims(normal_vectors) - 2)))
-end
-
-@inline storage_type(::NormalVectorContainer2D) = Array
-
 # Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
 function Base.resize!(normal_vectors::NormalVectorContainer2D, capacity)
     @unpack n_nodes, _normal_vectors_1, _normal_vectors_2 = normal_vectors
     ArrayType = storage_type(normal_vectors)
 
-    resize!(_normal_vectors_1, 2 * n_nodes^2 * capacity)
+    resize!(_normal_vectors_1, 2 * (n_nodes - 1) * n_nodes * capacity)
     normal_vectors.normal_vectors_1 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_1,
-                                                           (2, n_nodes, n_nodes,
+                                                           (2, n_nodes - 1, n_nodes,
                                                             capacity))
 
-    resize!(_normal_vectors_2, 2 * n_nodes^2 * capacity)
+    resize!(_normal_vectors_2, 2 * n_nodes * (n_nodes - 1) * capacity)
     normal_vectors.normal_vectors_2 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_2,
-                                                           (2, n_nodes, n_nodes,
+                                                           (2, n_nodes, n_nodes - 1,
                                                             capacity))
 
     return nothing

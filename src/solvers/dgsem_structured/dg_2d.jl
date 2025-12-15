@@ -310,7 +310,8 @@ end
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 
         # Fetch precomputed freestream-preserving normal vector
-        normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
+        # We access i - 1 here since the normal vector for i = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_1, i - 1, j, element)
 
         # Compute the contravariant flux
         contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
@@ -324,7 +325,8 @@ end
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 
         # Fetch precomputed freestream-preserving normal vector
-        normal_direction = get_normal_vector(normal_vectors_2, i, j, element)
+        # We access j - 1 here since the normal vector for j = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, element)
 
         # Compute the contravariant flux by taking the scalar product of the
         # normal vector and the flux vector
@@ -375,7 +377,8 @@ end
                                        slope_limiter, dg)
 
         # Fetch precomputed freestream-preserving normal vector
-        normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
+        # We access i - 1 here since the normal vector for i = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_1, i - 1, j, element)
 
         # Compute the contravariant flux by taking the scalar product of the
         # normal vector and the flux vector.
@@ -402,7 +405,8 @@ end
                                        x_interfaces, j,
                                        slope_limiter, dg)
 
-        normal_direction = get_normal_vector(normal_vectors_2, i, j, element)
+        # We access j - 1 here since the normal vector for j = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, element)
 
         contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
                                             prim2cons(u_r, equations),
@@ -431,7 +435,8 @@ end
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 
         # Fetch precomputed freestream-preserving normal vector
-        normal_direction = get_normal_vector(normal_vectors_1, i, j, element)
+        # We access i - 1 here since the normal vector for i = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_1, i - 1, j, element)
 
         # Compute the conservative part of the contravariant flux
         ftilde1 = volume_flux(u_ll, u_rr, normal_direction, equations)
@@ -457,7 +462,8 @@ end
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 
         # Fetch precomputed freestream-preserving normal vector
-        normal_direction = get_normal_vector(normal_vectors_2, i, j, element)
+        # We access j - 1 here since the normal vector for j = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, element)
 
         # Compute the conservative part of the contravariant flux
         ftilde2 = volume_flux(u_ll, u_rr, normal_direction, equations)
