@@ -305,12 +305,15 @@ Calculate the macroscopic velocity vector from the particle distribution functio
                    dot(v_alpha2, u) / rho)
 end
 
-"""
+@doc raw"""
     pressure(rho::Real, equations::LatticeBoltzmannEquations2D)
     pressure(u, equations::LatticeBoltzmannEquations2D)
 
 Calculate the macroscopic pressure from the density `rho` or the  particle distribution functions
-`u`.
+`u` as
+```math
+p = \rho c_s^2
+```
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations2D)
     return rho * equations.c_s^2
@@ -371,6 +374,15 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
     return -(u - equilibrium_distribution(u, equations)) / (tau + 0.5f0)
 end
 
+"""
+    have_constant_speed(::LatticeBoltzmannEquations2D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LatticeBoltzmannEquations2D) = True()
 
 @inline function max_abs_speeds(equations::LatticeBoltzmannEquations2D)

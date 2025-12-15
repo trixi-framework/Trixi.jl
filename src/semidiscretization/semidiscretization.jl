@@ -245,7 +245,8 @@ and a vector `b`:
 ```math
 \\partial_t u(t) = A u(t) - b.
 ```
-Works only for linear equations, i.e., equations with `have_constant_speed(equations) == True()`.
+Works only for linear equations, i.e.,
+equations which `have_constant_speed(equations) == True()`.
 
 This has the benefit of greatly reduced memory consumption compared to constructing
 the full system matrix explicitly, as done for instance in
@@ -253,6 +254,14 @@ the full system matrix explicitly, as done for instance in
 
 The returned linear operator `A` is a matrix-free operator which can be
 supplied to iterative solvers from, e.g., [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
+
+It is also possible to use this to construct a sparse matrix without the detour of constructing
+first the full Jacobian by calling
+```julia
+using SparseArrays
+A_map, b = linear_structure(semi, t0 = t0)
+A_sparse = sparse(A_map)
+```
 """
 function linear_structure(semi::AbstractSemidiscretization;
                           t0 = zero(real(semi)))
@@ -268,6 +277,7 @@ function linear_structure(semi::AbstractSemidiscretization;
     u_ode .= zero(eltype(u_ode))
     rhs!(du_ode, u_ode, semi, t0)
     b = -du_ode
+
     # Create a copy of `b` used internally to extract the linear part of `semi`.
     # This is necessary to get everything correct when the user updates the
     # returned vector `b`.

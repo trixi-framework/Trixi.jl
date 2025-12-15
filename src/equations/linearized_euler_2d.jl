@@ -144,6 +144,15 @@ end
     return SVector(f1, f2, f3, f4)
 end
 
+"""
+    have_constant_speed(::LinearizedEulerEquations2D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearizedEulerEquations2D) = True()
 
 @inline function max_abs_speeds(equations::LinearizedEulerEquations2D)

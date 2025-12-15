@@ -253,6 +253,15 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_imex_operator.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_imex_operator.jl"),
+                        l2=[7.542670562162156e-8], linf=[3.972014046560446e-7])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
@@ -565,6 +574,22 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (Diffusive CFL)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
+                        callbacks=CallbackSet(summary_callback, analysis_callback,
+                                              alive_callback,
+                                              StepsizeCallback(cfl = 1.6,
+                                                               cfl_diffusive = 0.2)),
+                        ode_alg=CarpenterKennedy2N54(williamson_condition = false),
+                        dt=1.0, # will be overwritten
+                        l2=[0.00010850375815619432],
+                        linf=[0.0024081141187764932])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_curved.jl"),
@@ -801,6 +826,34 @@ end
                         ],
                         tspan=(0.0, 5e-3),
                         stepsize_callback=StepsizeCallback(cfl = 2.2, interval = 5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_navierstokes_vortex_street.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_vortex_street.jl"),
+                        tspan=(0.0, 0.5),
+                        Re=20, # Render flow diffusion-dominated
+                        callbacks=CallbackSet(summary_callback, analysis_callback,
+                                              alive_callback,
+                                              StepsizeCallback(cfl = 2.3,
+                                                               cfl_diffusive = 1.0)),
+                        adaptive=false, # respect CFL
+                        ode_alg=CKLLSRK95_4S(),
+                        l2=[
+                            0.011916725799140692,
+                            0.027926098816747836,
+                            0.01902700347912797,
+                            0.11793406377747188
+                        ],
+                        linf=[
+                            0.3546113252441576,
+                            1.0152021857472098,
+                            0.5811488174143082,
+                            3.207373092525428
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

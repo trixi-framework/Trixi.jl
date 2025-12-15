@@ -362,12 +362,8 @@ end
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
 
-    # Performance improvement if the metric terms of the subcell FV method are only computed
-    # once at the beginning of the simulation, instead of at every Runge-Kutta stage
-    fstar1_L[:, 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_R))
+    # TODO: Performance gain if the metric terms of the subcell FV method are computed
+    # only once at the beginning of the simulation (e.g. in `create_cache`)!
 
     for k in eachnode(dg), j in eachnode(dg)
         normal_direction = get_contravariant_vector(1, contravariant_vectors,
@@ -393,11 +389,6 @@ end
         end
     end
 
-    fstar2_L[:, :, 1, :] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1, :] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_R))
-
     for k in eachnode(dg), i in eachnode(dg)
         normal_direction = get_contravariant_vector(2, contravariant_vectors,
                                                     i, 1, k, element)
@@ -419,11 +410,6 @@ end
             set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j, k)
         end
     end
-
-    fstar3_L[:, :, :, 1] .= zero(eltype(fstar3_L))
-    fstar3_L[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_L))
-    fstar3_R[:, :, :, 1] .= zero(eltype(fstar3_R))
-    fstar3_R[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_R))
 
     for j in eachnode(dg), i in eachnode(dg)
         normal_direction = get_contravariant_vector(3, contravariant_vectors,
@@ -461,12 +447,8 @@ end
 
     volume_flux, nonconservative_flux = volume_flux_fv
 
-    # Performance improvement if the metric terms of the subcell FV method are only computed
-    # once at the beginning of the simulation, instead of at every Runge-Kutta stage
-    fstar1_L[:, 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_R))
+    # TODO: Performance gain if the metric terms of the subcell FV method are computed
+    # only once at the beginning of the simulation (e.g. in `create_cache`)!
 
     for k in eachnode(dg), j in eachnode(dg)
         normal_direction = get_contravariant_vector(1, contravariant_vectors,
@@ -503,11 +485,6 @@ end
         end
     end
 
-    fstar2_L[:, :, 1, :] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1, :] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_R))
-
     for k in eachnode(dg), i in eachnode(dg)
         normal_direction = get_contravariant_vector(2, contravariant_vectors,
                                                     i, 1, k, element)
@@ -540,11 +517,6 @@ end
             set_node_vars!(fstar2_R, ftilde_R, equations, dg, i, j, k)
         end
     end
-
-    fstar3_L[:, :, :, 1] .= zero(eltype(fstar3_L))
-    fstar3_L[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_L))
-    fstar3_R[:, :, :, 1] .= zero(eltype(fstar3_R))
-    fstar3_R[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_R))
 
     for j in eachnode(dg), i in eachnode(dg)
         normal_direction = get_contravariant_vector(3, contravariant_vectors,
