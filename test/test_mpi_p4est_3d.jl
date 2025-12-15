@@ -238,6 +238,30 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
+    @trixi_testset "elixir_euler_weak_blast_wave.jl (SC, no AMR)" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_weak_blast_wave_amr.jl"),
+                            l2=[
+                                0.015615847128050312,
+                                0.02089494968195156,
+                                0.021142425493380322,
+                                0.021158867196633537,
+                                0.15228294683320912
+                            ],
+                            linf=[
+                                0.5130403752991672,
+                                0.7720479608428932,
+                                0.8708711203219623,
+                                0.642178915919414,
+                                3.21745760316752
+                            ],
+                            tspan=(0.0, 0.025),
+                            alpha_smooth=false)
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    end
+
     @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_mhd_alfven_wave_nonconforming.jl"),
