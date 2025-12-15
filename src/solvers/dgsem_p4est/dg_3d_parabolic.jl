@@ -43,7 +43,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # This reuses `prolong2boundaries` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u_transformed, mesh,
-                            equations_parabolic, dg.surface_integral, dg)
+                            equations_parabolic, dg)
     end
 
     # Calculate boundary fluxes
@@ -781,7 +781,7 @@ end
 function prolong2boundaries!(cache, flux_viscous::Tuple,
                              mesh::P4estMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG)
+                             dg::DG)
     (; boundaries) = cache
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)

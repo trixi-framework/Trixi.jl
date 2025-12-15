@@ -8,64 +8,64 @@
 # everything related to a DG semidiscretization in 3D,
 # currently limited to Lobatto-Legendre nodes
 
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                  T8codeMesh{3}},
-                      equations,
-                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
-    cache = create_cache(mesh, equations,
-                         VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
-                         dg, uEltype)
-
+function create_f_threaded(mesh::AbstractMesh{3}, equations,
+                           dg::DG, uEltype)
     A4d = Array{uEltype, 4}
-    fstar1_L_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar3_L_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar3_R_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
 
-    return (; cache..., fstar1_L_threaded, fstar1_R_threaded,
-            fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded)
+    f1_L_threaded = A4d[A4d(undef, nvariables(equations),
+                            nnodes(dg) + 1, nnodes(dg), nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f1_R_threaded = A4d[A4d(undef, nvariables(equations),
+                            nnodes(dg) + 1, nnodes(dg), nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f2_L_threaded = A4d[A4d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg) + 1, nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f2_R_threaded = A4d[A4d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg) + 1, nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f3_L_threaded = A4d[A4d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg), nnodes(dg) + 1)
+                        for _ in 1:Threads.maxthreadid()]
+    f3_R_threaded = A4d[A4d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg), nnodes(dg) + 1)
+                        for _ in 1:Threads.maxthreadid()]
+
+    @threaded for t in eachindex(f1_L_threaded)
+        f1_L_threaded[t][:, 1, :, :] .= zero(uEltype)
+        f1_R_threaded[t][:, 1, :, :] .= zero(uEltype)
+        f1_L_threaded[t][:, nnodes(dg) + 1, :, :] .= zero(uEltype)
+        f1_R_threaded[t][:, nnodes(dg) + 1, :, :] .= zero(uEltype)
+
+        f2_L_threaded[t][:, :, 1, :] .= zero(uEltype)
+        f2_R_threaded[t][:, :, 1, :] .= zero(uEltype)
+        f2_L_threaded[t][:, :, nnodes(dg) + 1, :] .= zero(uEltype)
+        f2_R_threaded[t][:, :, nnodes(dg) + 1, :] .= zero(uEltype)
+
+        f3_L_threaded[t][:, :, :, 1] .= zero(uEltype)
+        f3_R_threaded[t][:, :, :, 1] .= zero(uEltype)
+        f3_L_threaded[t][:, :, :, nnodes(dg) + 1] .= zero(uEltype)
+        f3_R_threaded[t][:, :, :, nnodes(dg) + 1] .= zero(uEltype)
+    end
+
+    return f1_L_threaded, f1_R_threaded,
+           f2_L_threaded, f2_R_threaded,
+           f3_L_threaded, f3_R_threaded
 end
 
 function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                  T8codeMesh{3}}, equations,
-                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
-                      uEltype)
-    A4d = Array{uEltype, 4}
-    fstar1_L_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar3_L_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar3_R_threaded = A4d[A4d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
+                                  T8codeMesh{3}},
+                      equations,
+                      volume_integral::Union{VolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralShockCapturingHG},
+                      dg::DG, cache_containers, uEltype)
+    fstar1_L_threaded, fstar1_R_threaded,
+    fstar2_L_threaded, fstar2_R_threaded,
+    fstar3_L_threaded, fstar3_R_threaded = create_f_threaded(mesh, equations, dg,
+                                                             uEltype)
 
-    return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
-            fstar2_R_threaded,
+    return (; fstar1_L_threaded, fstar1_R_threaded,
+            fstar2_L_threaded, fstar2_R_threaded,
             fstar3_L_threaded, fstar3_R_threaded)
 end
 
@@ -313,11 +313,6 @@ end
                               mesh::TreeMesh{3}, have_nonconservative_terms::False,
                               equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-    fstar1_L[:, 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_R))
-
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
@@ -326,11 +321,6 @@ end
         set_node_vars!(fstar1_R, flux, equations, dg, i, j, k)
     end
 
-    fstar2_L[:, :, 1, :] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1, :] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_R))
-
     for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
@@ -338,11 +328,6 @@ end
         set_node_vars!(fstar2_L, flux, equations, dg, i, j, k)
         set_node_vars!(fstar2_R, flux, equations, dg, i, j, k)
     end
-
-    fstar3_L[:, :, :, 1] .= zero(eltype(fstar3_L))
-    fstar3_L[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_L))
-    fstar3_R[:, :, :, 1] .= zero(eltype(fstar3_R))
-    fstar3_R[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_R))
 
     for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
@@ -362,11 +347,6 @@ end
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
-    fstar1_L[:, 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_L[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_L))
-    fstar1_R[:, 1, :, :] .= zero(eltype(fstar1_R))
-    fstar1_R[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_R))
-
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
@@ -385,11 +365,6 @@ end
         set_node_vars!(fstar1_R, flux_R, equations, dg, i, j, k)
     end
 
-    fstar2_L[:, :, 1, :] .= zero(eltype(fstar2_L))
-    fstar2_L[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_L))
-    fstar2_R[:, :, 1, :] .= zero(eltype(fstar2_R))
-    fstar2_R[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_R))
-
     for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
@@ -407,11 +382,6 @@ end
         set_node_vars!(fstar2_L, flux_L, equations, dg, i, j, k)
         set_node_vars!(fstar2_R, flux_R, equations, dg, i, j, k)
     end
-
-    fstar3_L[:, :, :, 1] .= zero(eltype(fstar3_L))
-    fstar3_L[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_L))
-    fstar3_R[:, :, :, 1] .= zero(eltype(fstar3_R))
-    fstar3_R[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_R))
 
     for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
@@ -555,7 +525,7 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 function prolong2boundaries!(cache, u,
-                             mesh::TreeMesh{3}, equations, surface_integral, dg::DG)
+                             mesh::TreeMesh{3}, equations, dg::DG)
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides = boundaries
 

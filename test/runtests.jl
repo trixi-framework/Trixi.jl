@@ -6,7 +6,9 @@ using MPI: mpiexec
 # By default, we just run the threaded tests since they are relatively cheap
 # and test a good amount of different functionality.
 const TRIXI_TEST = get(ENV, "TRIXI_TEST", "threaded")
-const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
+# Some GitHub CI runners may have not much RAM and just 3 virtual CPU cores.
+# In this case, we do not want to use all of the cores to speed-up CI.
+const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS - 1, 2, 3)
 const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 
 @time @testset "Trixi.jl tests" begin

@@ -7,32 +7,16 @@
 
 function create_cache(mesh::P4estMesh{3},
                       equations, volume_integral::VolumeIntegralSubcellLimiting,
-                      dg::DG, uEltype)
+                      dg::DG, cache_containers, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                         dg, uEltype)
+                         dg, cache_containers, uEltype)
+
+    fhat1_L_threaded, fhat1_R_threaded,
+    fhat2_L_threaded, fhat2_R_threaded,
+    fhat3_L_threaded, fhat3_R_threaded = create_f_threaded(mesh, equations, dg, uEltype)
 
     A4d = Array{uEltype, 4}
-
-    fhat1_L_threaded = A4d[A4d(undef, nvariables(equations),
-                               nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fhat1_R_threaded = A4d[A4d(undef, nvariables(equations),
-                               nnodes(dg) + 1, nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fhat2_L_threaded = A4d[A4d(undef, nvariables(equations),
-                               nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fhat2_R_threaded = A4d[A4d(undef, nvariables(equations),
-                               nnodes(dg), nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fhat3_L_threaded = A4d[A4d(undef, nvariables(equations),
-                               nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
-    fhat3_R_threaded = A4d[A4d(undef, nvariables(equations),
-                               nnodes(dg), nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
-
     flux_temp_threaded = A4d[A4d(undef, nvariables(equations),
                                  nnodes(dg), nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
@@ -166,11 +150,6 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    fhat1_L[:, 1, :, :] .= zero(eltype(fhat1_L))
-    fhat1_L[:, nnodes(dg) + 1, :, :] .= zero(eltype(fhat1_L))
-    fhat1_R[:, 1, :, :] .= zero(eltype(fhat1_R))
-    fhat1_R[:, nnodes(dg) + 1, :, :] .= zero(eltype(fhat1_R))
-
     for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1),
         v in eachvariable(equations)
 
@@ -206,11 +185,6 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    fhat2_L[:, :, 1, :] .= zero(eltype(fhat2_L))
-    fhat2_L[:, :, nnodes(dg) + 1, :] .= zero(eltype(fhat2_L))
-    fhat2_R[:, :, 1, :] .= zero(eltype(fhat2_R))
-    fhat2_R[:, :, nnodes(dg) + 1, :] .= zero(eltype(fhat2_R))
-
     for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg),
         v in eachvariable(equations)
 
@@ -246,11 +220,6 @@ end
     end
 
     # FV-form flux `fhat` in z direction
-    fhat3_L[:, :, :, 1] .= zero(eltype(fhat3_L))
-    fhat3_L[:, :, :, nnodes(dg) + 1] .= zero(eltype(fhat3_L))
-    fhat3_R[:, :, :, 1] .= zero(eltype(fhat3_R))
-    fhat3_R[:, :, :, nnodes(dg) + 1] .= zero(eltype(fhat3_R))
-
     for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg),
         v in eachvariable(equations)
 
