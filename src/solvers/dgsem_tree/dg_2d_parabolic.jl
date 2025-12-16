@@ -920,16 +920,23 @@ function calc_gradient_surface_integral!(gradients,
     return nothing
 end
 
-# Calculate the gradient of the transformed variables
-function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{2},
-                        equations_parabolic, boundary_conditions_parabolic,
-                        dg::DG, parabolic_scheme, cache)
+function reset_gradients!(gradients::NTuple{2}, dg::DG, cache)
     gradients_x, gradients_y = gradients
 
+    reset_du!(gradients_x, dg, cache)
+    reset_du!(gradients_y, dg, cache)
+
+    return nothing
+end
+
+# Calculate the gradient of the transformed variables
+function calc_gradient!(gradients, u_transformed, t,
+                        mesh::Union{TreeMesh{2}, TreeMesh{3}},
+                        equations_parabolic, boundary_conditions_parabolic,
+                        dg::DG, parabolic_scheme, cache)
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
-        reset_du!(gradients_x, dg, cache)
-        reset_du!(gradients_y, dg, cache)
+        reset_gradients!(gradients, dg, cache)
     end
 
     # Calculate volume integral
@@ -993,6 +1000,19 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{2},
         apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg,
                                   cache)
     end
+
+    return nothing
+end
+
+function apply_jacobian_parabolic!(gradients::NTuple{2}, mesh::AbstractMesh{2},
+                                   equations_parabolic::AbstractEquationsParabolic,
+                                   dg::DG, cache)
+    gradients_x, gradients_y = gradients
+
+    apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg,
+                              cache)
+    apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg,
+                              cache)
 
     return nothing
 end

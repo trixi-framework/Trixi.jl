@@ -5,88 +5,6 @@
 @muladd begin
 #! format: noindent
 
-function calc_gradient!(gradients, u_transformed, t, mesh::P4estMesh{3},
-                        equations_parabolic, boundary_conditions_parabolic,
-                        dg::DG, parabolic_scheme, cache)
-    gradients_x, gradients_y, gradients_z = gradients
-
-    # Reset gradients
-    @trixi_timeit timer() "reset gradients" begin
-        reset_du!(gradients_x, dg, cache)
-        reset_du!(gradients_y, dg, cache)
-        reset_du!(gradients_z, dg, cache)
-    end
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_gradient_volume_integral!(gradients, u_transformed,
-                                       mesh, equations_parabolic, dg, cache)
-    end
-
-    # Prolong solution to interfaces.
-    # This reuses `prolong2interfaces` for the purely hyperbolic case.
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u_transformed, mesh,
-                            equations_parabolic, dg)
-    end
-
-    # Calculate interface fluxes for the gradients
-    @trixi_timeit timer() "interface flux" begin
-        @unpack surface_flux_values = cache.elements
-        calc_gradient_interface_flux!(surface_flux_values, mesh, equations_parabolic,
-                                      dg, parabolic_scheme, cache)
-    end
-
-    # Prolong viscous fluxes to boundaries.
-    # This reuses `prolong2boundaries` for the purely hyperbolic case.
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh,
-                            equations_parabolic, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_gradient_boundary_flux!(cache, t, boundary_conditions_parabolic,
-                                     mesh, equations_parabolic,
-                                     dg.surface_integral, dg)
-    end
-
-    # Prolong solution to mortars.
-    # This reuses `prolong2mortars` for the purely hyperbolic case.
-    @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
-                         dg.mortar, dg)
-    end
-
-    # Calculate mortar fluxes. These should reuse the hyperbolic version of `calc_mortar_flux`,
-    # along with a specialization on `calc_mortar_flux!` and `mortar_fluxes_to_elements!` for
-    # AbstractEquationsParabolic.
-    @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values,
-                          mesh, False(), # False() = no nonconservative terms
-                          equations_parabolic,
-                          dg.mortar, dg.surface_integral, dg, cache)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
-                                        dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg,
-                                  cache)
-        apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg,
-                                  cache)
-        apply_jacobian_parabolic!(gradients_z, mesh, equations_parabolic, dg,
-                                  cache)
-    end
-
-    return nothing
-end
-
 # This version is called during `calc_gradients!` and must be specialized because the flux
 # in the gradient is {u} which doesn't depend on normals. Thus, you don't need to scale by
 # 2 and flip the sign when storing the mortar fluxes back into surface_flux_values
@@ -178,7 +96,7 @@ end
 end
 
 function calc_gradient_interface_flux!(surface_flux_values,
-                                       mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                       mesh::P4estMesh{3},
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
@@ -541,9 +459,8 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
     return nothing
 end
 
-function prolong2mortars_divergence!(cache, flux_viscous,
-                                     mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                     equations,
+function prolong_divergence2mortars!(cache, flux_viscous,
+                                     mesh::P4estMesh{3}, equations,
                                      mortar_l2::LobattoLegendreMortarL2,
                                      dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -677,13 +594,13 @@ function prolong2mortars_divergence!(cache, flux_viscous,
     return nothing
 end
 
-# We specialize `calc_mortar_flux!` for the divergence part of
+# We have special `calc_divergence_mortar_flux!` for the divergence part of
 # the parabolic terms.
-function calc_mortar_flux_divergence!(surface_flux_values,
-                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                      equations::AbstractEquationsParabolic,
+function calc_divergence_mortar_flux!(surface_flux_values,
+                                      mesh::P4estMesh{3},
+                                      equations_parabolic,
                                       mortar_l2::LobattoLegendreMortarL2,
-                                      surface_integral, dg::DG, cache)
+                                      dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack fstar_primary_threaded, fstar_tmp_threaded = cache
     index_range = eachnode(dg)
@@ -711,15 +628,17 @@ function calc_mortar_flux_divergence!(surface_flux_values,
             element = neighbor_ids[position, mortar]
             for j in eachnode(dg)
                 for i in eachnode(dg)
-                    for v in eachvariable(equations)
+                    for v in eachvariable(equations_parabolic)
                         viscous_flux_normal_ll = cache.mortars.u[1, v, position, i, j,
                                                                  mortar]
                         viscous_flux_normal_rr = cache.mortars.u[2, v, position, i, j,
                                                                  mortar]
 
-                        # TODO: parabolic; only BR1 at the moment
-                        fstar[v, i, j, position] = 0.5f0 * (viscous_flux_normal_ll +
-                                                    viscous_flux_normal_rr)
+                        fstar[v, i, j, position] = flux_parabolic(viscous_flux_normal_ll,
+                                                                  viscous_flux_normal_rr,
+                                                                  Divergence(),
+                                                                  equations_parabolic,
+                                                                  parabolic_scheme)
                     end
 
                     i_small += i_small_step_i
@@ -737,32 +656,99 @@ function calc_mortar_flux_divergence!(surface_flux_values,
         u_buffer = cache.u_threaded[Threads.threadid()]
 
         # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
-        mortar_fluxes_to_elements!(surface_flux_values,
-                                   mesh, equations, mortar_l2, dg, cache,
+        mortar_fluxes_to_elements!(surface_flux_values, mesh,
+                                   equations_parabolic, mortar_l2, dg, cache,
                                    mortar, fstar, fstar, u_buffer, fstar_tmp)
     end
 
     return nothing
 end
 
-# NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
-# Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for
-# hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
-@inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                   mesh::P4estMesh{3},
-                                   have_nonconservative_terms::False,
-                                   equations::AbstractEquationsParabolic,
-                                   surface_integral, dg::DG, cache,
-                                   mortar_index, position_index, normal_direction,
-                                   i_node_index, j_node_index)
+function calc_gradient_mortar_flux!(surface_flux_values,
+                                    mesh::P4estMesh{3},
+                                    equations_parabolic,
+                                    mortar_l2::LobattoLegendreMortarL2,
+                                    dg::DG, parabolic_scheme, cache)
+    @unpack neighbor_ids, node_indices = cache.mortars
+    @unpack contravariant_vectors = cache.elements
+    @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
+    index_range = eachnode(dg)
+
+    @threaded for mortar in eachmortar(dg, cache)
+        # Choose thread-specific pre-allocated container
+        fstar_primary = fstar_primary_threaded[Threads.threadid()]
+        fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
+        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+
+        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                               index_range)
+        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                               index_range)
+        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                               index_range)
+
+        for position in 1:4
+            i_small = i_small_start
+            j_small = j_small_start
+            k_small = k_small_start
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    calc_gradient_mortar_flux!(fstar_primary, fstar_secondary,
+                                               mesh, equations_parabolic,
+                                               dg, parabolic_scheme, cache,
+                                               mortar, position, node)
+
+                    i_small += i_small_step_i
+                    j_small += j_small_step_i
+                    k_small += k_small_step_i
+                end
+                i_small += i_small_step_j
+                j_small += j_small_step_j
+                k_small += k_small_step_j
+            end
+        end
+
+        # Buffer to interpolate flux values of the large element to before
+        # copying in the correct orientation
+        u_buffer = cache.u_threaded[Threads.threadid()]
+
+        # in calc_interface_flux!, the interface flux is computed once over each
+        # interface using the normal from the "primary" element. The result is then
+        # passed back to the "secondary" element, flipping the sign to account for the
+        # change in the normal direction. For mortars, this sign flip occurs in
+        # "mortar_fluxes_to_elements!" instead.
+        mortar_fluxes_to_elements!(surface_flux_values,
+                                   mesh, equations_parabolic, mortar_l2, dg, cache,
+                                   mortar, fstar_primary, fstar_secondary, u_buffer,
+                                   fstar_tmp)
+    end
+
+    return nothing
+end
+
+# We structure `calc_gradient_mortar_flux!` similarly to "calc_mortar_flux!" for
+# hyperbolic  equations with no nonconservative terms.
+# The reasoning is that parabolic fluxes are treated like conservative
+# terms (e.g., we compute a viscous conservative "flux") and thus no
+# non-conservative terms are present.
+@inline function calc_gradient_mortar_flux!(fstar_primary, fstar_secondary,
+                                            mesh::P4estMesh{3},
+                                            eequations_parabolic,
+                                            surface_integral, dg::DG, cache,
+                                            mortar_index, position_index,
+                                            i_node_index, j_node_index)
     @unpack u = cache.mortars
     @unpack surface_flux = surface_integral
 
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
                                        j_node_index, mortar_index)
 
-    # TODO: parabolic; only BR1 at the moment
-    flux_ = 0.5f0 * (u_ll + u_rr)
+    flux_ = flux_parabolic(u_ll, u_rr, Gradient(),
+                           equations_parabolic, parabolic_scheme)
+
     # Copy flux to buffer
     set_node_vars!(fstar_primary, flux_, equations, dg, i_node_index, j_node_index,
                    position_index)
@@ -1081,6 +1067,21 @@ function calc_gradient_surface_integral!(gradients,
             end
         end
     end
+
+    return nothing
+end
+
+function apply_jacobian_parabolic!(gradients::NTuple{3}, mesh::AbstractMesh{3},
+                                   equations_parabolic,
+                                   dg::DG, cache)
+    gradients_x, gradients_y, gradients_z = gradients
+
+    apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg,
+                              cache)
+    apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg,
+                              cache)
+    apply_jacobian_parabolic!(gradients_z, mesh, equations_parabolic, dg,
+                              cache)
 
     return nothing
 end
