@@ -736,15 +736,14 @@ end
 # non-conservative terms are present.
 @inline function calc_gradient_mortar_flux!(fstar_primary, fstar_secondary,
                                             mesh::P4estMesh{3},
-                                            eequations_parabolic,
-                                            surface_integral, dg::DG, cache,
+                                            equations_parabolic,
+                                            dg::DG, parabolic_scheme, cache,
                                             mortar_index, position_index,
                                             i_node_index, j_node_index)
     @unpack u = cache.mortars
-    @unpack surface_flux = surface_integral
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
-                                       j_node_index, mortar_index)
+    u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, position_index,
+                                       i_node_index, j_node_index, mortar_index)
 
     flux_ = flux_parabolic(u_ll, u_rr, Gradient(),
                            equations_parabolic, parabolic_scheme)

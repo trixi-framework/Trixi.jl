@@ -14,17 +14,15 @@ for `P4estMesh`es we call
                                 dg.mortar, dg)
 
     calc_divergence_mortar_flux!(cache_parabolic.elements.surface_flux_values,
-                                 mesh, equations_parabolic, dg.mortar,
-                                 dg, cache)
+                                 mesh, equations_parabolic, dg.mortar, dg, cache)
     ```
 instead of
     ```
     prolong2mortars!(cache, flux_viscous, mesh, equations_parabolic,
                      dg.mortar, dg)
 
-    calc_mortar_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                      equations_parabolic,
-                      dg.mortar, dg, cache)
+    calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
+                      mesh, equations_parabolic, dg.mortar, dg, cache)
     ```
 =#
 function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
@@ -186,9 +184,7 @@ function calc_gradient!(gradients, u_transformed, t,
                          dg.mortar, dg)
     end
 
-    # Calculate mortar fluxes. This reuses the hyperbolic version of `calc_mortar_flux`,
-    # along with a specialization on `calc_mortar_flux!(fstar, ...)` and `mortar_fluxes_to_elements!` for
-    # AbstractEquationsParabolic.
+    # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_gradient_mortar_flux!(cache.elements.surface_flux_values,
                                    mesh, equations_parabolic, dg.mortar,
