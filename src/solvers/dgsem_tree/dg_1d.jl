@@ -22,11 +22,12 @@ function create_cache(mesh::TreeMesh{1}, equations,
 
     boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
 
+    # Container cache
     cache = (; elements, interfaces, boundaries)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 
     return cache
 end
@@ -36,8 +37,8 @@ end
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                       volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             VolumeIntegralShockCapturingHG}, dg::DG,
-                      uEltype)
+                                             VolumeIntegralShockCapturingHG},
+                      dg::DG, cache_containers, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
                   uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
     fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]

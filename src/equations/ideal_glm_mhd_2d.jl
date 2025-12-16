@@ -1662,7 +1662,7 @@ end
 end
 
 @inline function density(u, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho = u[1]
     return rho
 end
 
@@ -1680,13 +1680,25 @@ end
     return v
 end
 
+@doc raw"""
+    pressure(u, equations::IdealGlmMhdEquations2D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} - \frac{1}{2}\psi^2 \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2} 
+  \left[\rho \Vert v \Vert_2^2  + \Vert B \Vert_2^2 + \psi^2 \right] \right)
+\end{aligned}
+```
+"""
 @inline function pressure(u, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2)
-         -
-         0.5f0 * psi^2)
+    p = (equations.gamma - 1) * (rho_e -
+         0.5f0 *
+         ((rho_v1^2 + rho_v2^2 + rho_v3^2) / rho +
+          B1^2 + B2^2 + B3^2 + psi^2))
     return p
 end
 
@@ -1706,12 +1718,10 @@ end
 
 @inline function density_pressure(u, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2)
-         -
-         0.5f0 * psi^2)
-    return rho * p
+    rho_times_p = (equations.gamma - 1) * (rho * rho_e -
+                   0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2 +
+                    rho * (B1^2 + B2^2 + B3^2 + psi^2)))
+    return rho_times_p
 end
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
