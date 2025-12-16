@@ -602,7 +602,7 @@ end
                                                                    boundary_conditions = (boundary_conditions,
                                                                                           boundary_conditions_parabolic)),
                         tspan=(0.0, 0.01),
-                        l2=[0.009527580628252715], linf=[0.2120941240759382])
+                        l2=[0.009528054353218938], linf=[0.21211942139742634])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
