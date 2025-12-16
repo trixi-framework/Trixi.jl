@@ -6,10 +6,10 @@
 #! format: noindent
 
 """
-    AliveCallback(analysis_interval=0, alive_interval=analysis_interval÷10)
+    AliveCallback(analysis_interval=0, alive_interval=analysis_interval÷10; io = stdout)
 
 Inexpensive callback showing that a simulation is still running by printing
-some information such as the current time to the screen every `alive_interval`
+some information such as the current time to `io` every `alive_interval`
 time steps. If `analysis_interval ≂̸ 0`, the output is omitted every
 `analysis_interval` time steps.
 """
@@ -17,11 +17,12 @@ mutable struct AliveCallback
     start_time::Float64
     const alive_interval::Int
     const analysis_interval::Int
+    const io::IO
 end
 
 function AliveCallback(; analysis_interval = 0,
-                       alive_interval = analysis_interval ÷ 10)
-    alive_callback = AliveCallback(0.0, alive_interval, analysis_interval)
+                       alive_interval = analysis_interval ÷ 10, io = stdout)
+    alive_callback = AliveCallback(0.0, alive_interval, analysis_interval, io)
 
     DiscreteCallback(alive_callback, alive_callback, # the first one is the condition, the second the affect!
                      save_positions = (false, false),
@@ -77,20 +78,22 @@ end
 function (alive_callback::AliveCallback)(integrator)
     # Checking for floating point equality is OK here as `DifferentialEquations.jl`
     # sets the time exactly to the final time in the last iteration
+    @unpack io = alive_callback
     if isfinished(integrator) && mpi_isroot()
-        println("─"^100)
-        println("Trixi.jl simulation finished.  Final time: ", integrator.t,
+        println(io, "─"^100)
+        println(io, "Trixi.jl simulation finished.  Final time: ", integrator.t,
                 "  Time steps: ", integrator.stats.naccept, " (accepted), ",
                 integrator.iter, " (total)")
-        println("─"^100)
-        println()
+        println(io, "─"^100)
+        println(io)
     elseif mpi_isroot()
         t = integrator.t
         t_initial = first(integrator.sol.prob.tspan)
         t_final = last(integrator.sol.prob.tspan)
         sim_time_percentage = (t - t_initial) / (t_final - t_initial) * 100
         runtime_absolute = 1.0e-9 * (time_ns() - alive_callback.start_time)
-        println(rpad(@sprintf("#timesteps: %6d │ Δt: %.4e │ sim. time: %.4e (%5.3f%%)",
+        println(io,
+                rpad(@sprintf("#timesteps: %6d │ Δt: %.4e │ sim. time: %.4e (%5.3f%%)",
                               integrator.stats.naccept, integrator.dt, t,
                               sim_time_percentage), 71) *
                 @sprintf("│ run time: %.4e s", runtime_absolute))

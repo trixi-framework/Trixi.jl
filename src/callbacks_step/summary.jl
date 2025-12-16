@@ -5,29 +5,31 @@
 @muladd begin
 #! format: noindent
 
-summary_callback(u, t, integrator) = false # when used as condition; never call the summary callback during the simulation
-summary_callback(integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
-
 """
-    SummaryCallback()
+    SummaryCallback(; io = stdout)
 
 Create and return a callback that prints a human-readable summary of the simulation setup at the
 beginning of a simulation and then resets the timer. At the end of the simulation the final timer
 values are shown. When the returned callback is executed directly, the current timer values are shown.
 """
-function SummaryCallback(reset_threads = true)
-    function initialize(cb, u, t, integrator)
-        initialize_summary_callback(cb, u, t, integrator;
-                                    reset_threads)
+struct SummaryCallback
+    io::IO
+
+    function SummaryCallback(reset_threads = true; io = stdout)
+        function initialize(cb, u, t, integrator)
+            initialize_summary_callback(io, cb, u, t, integrator;
+                                        reset_threads)
+        end
+        summary_callback = new(io)
+        # At the end of the simulation, the timer is printed
+        DiscreteCallback(summary_callback, summary_callback,
+                         save_positions = (false, false),
+                         initialize = initialize,
+                         finalize = finalize_summary_callback)
     end
-    # At the end of the simulation, the timer is printed
-    DiscreteCallback(summary_callback, summary_callback,
-                     save_positions = (false, false),
-                     initialize = initialize,
-                     finalize = finalize_summary_callback)
 end
 
-function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SummaryCallback})
     @nospecialize cb # reduce precompilation time
 
     print(io, "SummaryCallback")
@@ -145,7 +147,7 @@ end
 
 # Print information about the current simulation setup
 # Note: This is called *after* all initialization is done, but *before* the first time step
-function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
+function initialize_summary_callback(io, cb::DiscreteCallback, u, t, integrator;
                                      reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
@@ -162,9 +164,8 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         return nothing
     end
 
-    print_startup_message()
+    print_startup_message(io)
 
-    io = stdout
     io_context = IOContext(io,
                            :compact => false,
                            :key_width => 30,
@@ -182,7 +183,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         end
         foreach(callbacks.discrete_callbacks) do cb
             # Do not show ourselves
-            cb.affect! === summary_callback && return nothing
+            cb.affect! isa SummaryCallback && return nothing
 
             show(io_context, MIME"text/plain"(), cb)
             println(io, "\n")
@@ -205,7 +206,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
               "controller" => integrator.opts.controller)
     end
     summary_box(io, "Time integration", setup)
-    println()
+    println(io)
 
     # technical details
     setup = Pair{String, Any}["#threads" => Threads.nthreads()]
@@ -218,14 +219,17 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
               "#MPI ranks" => mpi_nranks())
     end
     summary_box(io, "Environment information", setup)
-    println()
+    println(io)
 
     reset_timer!(timer())
 
     return nothing
 end
 
-finalize_summary_callback(cb, u, t, integrator) = cb()
+(cb::SummaryCallback)(u, t, integrator) = false # when used as condition; never call the summary callback during the simulation
+(cb::SummaryCallback)(integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
+
+finalize_summary_callback(cb, u, t, integrator) = cb(cb.affect!.io)
 
 function print_summary_semidiscretization(io::IO, semi::AbstractSemidiscretization)
     show(io, MIME"text/plain"(), semi)
@@ -241,7 +245,7 @@ end
 
 function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Condition,
                                                                             Affect! <:
-                                                                            typeof(summary_callback)
+                                                                            SummaryCallback
                                                                             }
     mpi_isroot() || return nothing
 
