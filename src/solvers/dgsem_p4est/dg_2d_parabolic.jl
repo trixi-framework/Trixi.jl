@@ -751,7 +751,7 @@ function calc_gradient_mortar_flux!(surface_flux_values,
 end
 
 # We structure `calc_gradient_mortar_flux!` similarly to "calc_mortar_flux!" for
-# hyperbolic  equations with no nonconservative terms.
+# hyperbolic equations with no nonconservative terms.
 # The reasoning is that parabolic fluxes are treated like conservative
 # terms (e.g., we compute a viscous conservative "flux") and thus no
 # non-conservative terms are present.
