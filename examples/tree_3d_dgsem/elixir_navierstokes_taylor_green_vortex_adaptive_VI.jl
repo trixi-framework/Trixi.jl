@@ -57,7 +57,7 @@ volume_integral = VolumeIntegralAdaptive(indicator;
                                          volume_integral_stabilized = volume_integral_fluxdiff)
 
 #volume_integral = volume_integral_weakform # Crashes
-volume_integral = volume_integral_fluxdiff # Runs, but is more expensive
+#volume_integral = volume_integral_fluxdiff # Runs, but is (slightly) more expensive
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 

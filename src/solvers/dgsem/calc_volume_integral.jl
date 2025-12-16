@@ -13,10 +13,11 @@ function create_cache(mesh, equations,
 end
 
 function create_cache(mesh, equations,
-                      volume_integral::VolumeIntegralAdaptive, dg::DG, uEltype)
+                      volume_integral::VolumeIntegralAdaptive,
+                      dg::DG, cache_containers, uEltype)
     return create_cache(mesh, equations,
                         volume_integral.volume_integral_stabilized,
-                        dg, uEltype)
+                        dg, cache_containers, uEltype)
 end
 
 # The following `calc_volume_integral!` functions are
