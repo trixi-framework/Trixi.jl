@@ -507,16 +507,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_sc_subcell.jl"),
                         l2=[
-                            0.008160130377504262,
-                            0.008658251570413505,
-                            0.009351904811521596,
-                            0.027757011943600092
+                            0.00816012903579455,
+                            0.008658254676548509,
+                            0.009351902041569443,
+                            0.02775701709422987
                         ],
                         linf=[
-                            0.027225586655142298,
-                            0.04073403227619998,
-                            0.038194072596896333,
-                            0.08080652842365987
+                            0.027225622131454852,
+                            0.040734035728054785,
+                            0.03819407146323339,
+                            0.0808064964384676
                         ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
@@ -666,7 +666,7 @@ end
     lines = readlines(joinpath("out", "alphas.txt"))
     @test lines[1] ==
           "# iter, simu_time, alpha_max, alpha_avg"
-    @test startswith(lines[end], "193, 0.05, 1.0, 0.316")
+    @test startswith(lines[end], "193, 0.05, 1.0, 0.315")
     @test count(",", lines[end]) == 3
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
     # Ensure that we do not have excessive memory allocations
