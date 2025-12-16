@@ -749,10 +749,10 @@ end
                            equations_parabolic, parabolic_scheme)
 
     # Copy flux to buffer
-    set_node_vars!(fstar_primary, flux_, equations, dg, i_node_index, j_node_index,
-                   position_index)
-    set_node_vars!(fstar_secondary, flux_, equations, dg, i_node_index, j_node_index,
-                   position_index)
+    set_node_vars!(fstar_primary, flux_, equations_parabolic, dg,
+                   i_node_index, j_node_index, position_index)
+    set_node_vars!(fstar_secondary, flux_, equations_parabolic, dg,
+                   i_node_index, j_node_index, position_index)
 
     return nothing
 end
