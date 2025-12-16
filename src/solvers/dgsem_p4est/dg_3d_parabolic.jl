@@ -699,7 +699,7 @@ function calc_gradient_mortar_flux!(surface_flux_values,
                     calc_gradient_mortar_flux!(fstar_primary, fstar_secondary,
                                                mesh, equations_parabolic,
                                                dg, parabolic_scheme, cache,
-                                               mortar, position, node)
+                                               mortar, position, i, j)
 
                     i_small += i_small_step_i
                     j_small += j_small_step_i

@@ -136,7 +136,8 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
     return nothing
 end
 
-function calc_gradient!(gradients, u_transformed, t, mesh::P4estMesh{2},
+function calc_gradient!(gradients, u_transformed, t,
+                        mesh::Union{P4estMesh{2}, P4estMesh{3}},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
     # Reset gradients
