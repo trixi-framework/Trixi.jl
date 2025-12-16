@@ -41,7 +41,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
 # `threshold` governs the tolerated entropy increase due to the weak-form
 # volume integral before switching to the stabilized version
-indicator = IndicatorEntropyIncrease(threshold = 1e-1)
+indicator = IndicatorEntropyIncrease(threshold = 1.5e-1)
 # Adaptive volume integral using the entropy increase indicator to perform the 
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(indicator;
