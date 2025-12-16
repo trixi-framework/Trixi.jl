@@ -89,8 +89,7 @@ alive_callback = AliveCallback(alive_interval = 50)
 
 callbacks = CallbackSet(summary_callback,
                         alive_callback,
-                        #analysis_callback
-                        )
+                        analysis_callback)
 
 ###############################################################################
 # run the simulation
