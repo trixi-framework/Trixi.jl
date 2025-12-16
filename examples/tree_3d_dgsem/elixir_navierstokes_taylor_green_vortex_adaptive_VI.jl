@@ -57,7 +57,7 @@ volume_integral = VolumeIntegralAdaptive(indicator;
                                          volume_integral_stabilized = volume_integral_fluxdiff)
 
 #volume_integral = volume_integral_weakform # Crashes
-#volume_integral = volume_integral_fluxdiff # Runs, but is more expensive
+volume_integral = volume_integral_fluxdiff # Runs, but is more expensive
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
@@ -85,8 +85,12 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_integrals = (energy_kinetic,
                                                            enstrophy))
 
+alive_callback = AliveCallback(alive_interval = 50)
+
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback)
+                        alive_callback,
+                        #analysis_callback
+                        )
 
 ###############################################################################
 # run the simulation
