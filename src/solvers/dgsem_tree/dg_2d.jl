@@ -36,63 +36,49 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
     return cache
 end
 
-# The methods below are specialized on the volume integral type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
-                                  UnstructuredMesh2D,
-                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                      equations, volume_integral::VolumeIntegralFluxDifferencing,
-                      dg::DG, uEltype)
-    NamedTuple()
-end
-
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
-    cache = create_cache(mesh, equations,
-                         VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
-                         dg, uEltype)
-
+function create_f_threaded(mesh::AbstractMesh{2}, equations,
+                           dg::DG, uEltype)
     A3d = Array{uEltype, 3}
 
-    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
+    f1_L_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg) + 1, nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f1_R_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg) + 1, nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f2_L_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg) + 1)
+                        for _ in 1:Threads.maxthreadid()]
+    f2_R_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg) + 1)
+                        for _ in 1:Threads.maxthreadid()]
 
-    return (; cache...,
-            fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
+    @threaded for t in eachindex(f1_L_threaded)
+        f1_L_threaded[t][:, 1, :] .= zero(uEltype)
+        f1_R_threaded[t][:, 1, :] .= zero(uEltype)
+        f1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+        f1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+
+        f2_L_threaded[t][:, :, 1] .= zero(uEltype)
+        f2_R_threaded[t][:, :, 1] .= zero(uEltype)
+        f2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+        f2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+    end
+
+    return f1_L_threaded, f1_R_threaded,
+           f2_L_threaded, f2_R_threaded
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
-                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
-                      uEltype)
-    A3d = Array{uEltype, 3}
+function create_cache(mesh::TreeMesh{2}, equations,
+                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralShockCapturingHG},
+                      dg::DG, cache_containers, uEltype)
+    fstar1_L_threaded, fstar1_R_threaded,
+    fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
+                                                             uEltype)
 
-    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-
-    return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
-            fstar2_R_threaded)
+    return (; fstar1_L_threaded, fstar1_R_threaded,
+            fstar2_L_threaded, fstar2_R_threaded)
 end
 
 # The methods below are specialized on the mortar type
