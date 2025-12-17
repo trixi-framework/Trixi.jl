@@ -1456,21 +1456,16 @@ mutable struct ContainerBarStates2D{uEltype <: Real}
     bar_states2::Array{uEltype, 4}            # [variable, i, j, element]
     lambda1::Array{uEltype, 3}                # [i, j, element]
     lambda2::Array{uEltype, 3}
-    normal_direction_xi::Array{uEltype, 4}    # [index, i, j, elements]
-    normal_direction_eta::Array{uEltype, 4}   # [index, i, j, elements]
     # internal `resize!`able storage
     _bar_states1::Vector{uEltype}
     _bar_states2::Vector{uEltype}
     _lambda1::Vector{uEltype}
     _lambda2::Vector{uEltype}
-    _normal_direction_xi::Vector{uEltype}
-    _normal_direction_eta::Vector{uEltype}
 end
 
 function ContainerBarStates2D{uEltype}(capacity::Integer, n_variables,
                                        n_nodes) where {uEltype <: Real}
     nan_uEltype = convert(uEltype, NaN)
-    n_dims = 2
 
     # Initialize fields with defaults
     _bar_states1 = fill(nan_uEltype, n_variables * (n_nodes + 1) * n_nodes * capacity)
@@ -1485,21 +1480,8 @@ function ContainerBarStates2D{uEltype}(capacity::Integer, n_variables,
     _lambda2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * capacity)
     lambda2 = unsafe_wrap(Array, pointer(_lambda2), (n_nodes, n_nodes + 1, capacity))
 
-    _normal_direction_xi = fill(nan_uEltype,
-                                n_dims * (n_nodes - 1) * n_nodes * capacity)
-    normal_direction_xi = unsafe_wrap(Array, pointer(_normal_direction_xi),
-                                      (n_dims, n_nodes - 1, n_nodes, capacity))
-
-    _normal_direction_eta = fill(nan_uEltype,
-                                 n_dims * n_nodes * (n_nodes - 1) * capacity)
-    normal_direction_eta = unsafe_wrap(Array, pointer(_normal_direction_eta),
-                                       (n_dims, n_nodes, n_nodes - 1,
-                                        capacity))
-
     return ContainerBarStates2D{uEltype}(bar_states1, bar_states2, lambda1, lambda2,
-                                         normal_direction_xi, normal_direction_eta,
-                                         _bar_states1, _bar_states2, _lambda1, _lambda2,
-                                         _normal_direction_xi, _normal_direction_eta)
+                                         _bar_states1, _bar_states2, _lambda1, _lambda2)
 end
 
 nvariables(container::ContainerBarStates2D) = size(container.bar_states1, 1)
@@ -1513,7 +1495,6 @@ nnodes(container::ContainerBarStates2D) = size(container.bar_states1, 3)
 function Base.resize!(container::ContainerBarStates2D, capacity)
     n_variables = nvariables(container)
     n_nodes = nnodes(container)
-    n_dims = size(container.normal_direction_xi, 1)
 
     @unpack _bar_states1, _bar_states2 = container
     resize!(_bar_states1, n_variables * (n_nodes + 1) * n_nodes * capacity)
@@ -1530,66 +1511,6 @@ function Base.resize!(container::ContainerBarStates2D, capacity)
     resize!(_lambda2, n_nodes * (n_nodes + 1) * capacity)
     container.lambda2 = unsafe_wrap(Array, pointer(_lambda2),
                                     (n_nodes, n_nodes + 1, capacity))
-
-    @unpack _normal_direction_xi, _normal_direction_eta = container
-    resize!(_normal_direction_xi,
-            n_dims * (n_nodes - 1) * n_nodes * capacity)
-    container.normal_direction_xi = unsafe_wrap(Array, pointer(_normal_direction_xi),
-                                                (n_dims, n_nodes - 1, n_nodes,
-                                                 capacity))
-    resize!(_normal_direction_eta,
-            n_dims * n_nodes * (n_nodes - 1) * capacity)
-    container.normal_direction_eta = unsafe_wrap(Array, pointer(_normal_direction_eta),
-                                                 (n_dims, n_nodes, n_nodes - 1,
-                                                  capacity))
-
-    return nothing
-end
-
-function calc_normal_directions!(container_bar_states, mesh::TreeMesh, equations, dg,
-                                 cache)
-    nothing
-end
-
-function calc_normal_directions!(container_bar_states,
-                                 mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                                 equations, dg, cache)
-    (; weights, derivative_matrix) = dg.basis
-    (; contravariant_vectors) = cache.elements
-
-    (; normal_direction_xi, normal_direction_eta) = container_bar_states
-    @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg)
-            normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j,
-                                                        element)
-            for i in 2:nnodes(dg)
-                for m in eachnode(dg)
-                    normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
-                                        get_contravariant_vector(1,
-                                                                 contravariant_vectors,
-                                                                 m, j, element)
-                end
-                for v in axes(normal_direction_xi, 1)
-                    normal_direction_xi[v, i - 1, j, element] = normal_direction[v]
-                end
-            end
-        end
-        for i in eachnode(dg)
-            normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1,
-                                                        element)
-            for j in 2:nnodes(dg)
-                for m in eachnode(dg)
-                    normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
-                                        get_contravariant_vector(2,
-                                                                 contravariant_vectors,
-                                                                 i, m, element)
-                end
-                for v in axes(normal_direction_eta, 1)
-                    normal_direction_eta[v, i, j - 1, element] = normal_direction[v]
-                end
-            end
-        end
-    end
 
     return nothing
 end

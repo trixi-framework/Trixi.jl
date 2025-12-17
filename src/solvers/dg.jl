@@ -380,8 +380,6 @@ function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_
     if limiter isa SubcellLimiterMCL ||
        (limiter isa SubcellLimiterIDP && limiter.bar_states)
         resize!(limiter.cache.container_bar_states, new_size)
-        calc_normal_directions!(limiter.cache.container_bar_states,
-                                mesh_equations_solver_cache(semi)...)
     end
 end
 

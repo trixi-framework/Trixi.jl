@@ -598,7 +598,7 @@ end
         return nothing
     end
     (; lambda1, lambda2, bar_states1, bar_states2) = limiter.cache.container_bar_states
-    (; normal_direction_xi, normal_direction_eta) = limiter.cache.container_bar_states
+    (; normal_vectors_1, normal_vectors_2) = cache.normal_vectors
 
     # Calc lambdas and bar states inside elements
     @threaded for element in eachelement(dg, cache)
@@ -606,8 +606,9 @@ end
             u_node = get_node_vars(u, equations, dg, i, j, element)
             u_node_im1 = get_node_vars(u, equations, dg, i - 1, j, element)
 
-            normal_direction = get_node_coords(normal_direction_xi, equations, dg,
-                                               i - 1, j, element)
+            # Fetch precomputed freestream-preserving normal vector
+            # We access i - 1 here since the normal vector for i = 1 is not used and stored
+            normal_direction = get_normal_vector(normal_vectors_1, i - 1, j, element)
 
             lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node,
                                                          normal_direction, equations)
@@ -627,8 +628,9 @@ end
             u_node = get_node_vars(u, equations, dg, i, j, element)
             u_node_jm1 = get_node_vars(u, equations, dg, i, j - 1, element)
 
-            normal_direction = get_node_coords(normal_direction_eta, equations, dg, i,
-                                               j - 1, element)
+            # Fetch precomputed freestream-preserving normal vector
+            # We access j - 1 here since the normal vector for j = 1 is not used and stored
+            normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, element)
 
             lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node,
                                                          normal_direction, equations)
