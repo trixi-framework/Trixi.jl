@@ -137,7 +137,6 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
     (; contravariant_vectors) = cache.elements
-
     # Calc bounds at interfaces and periodic boundaries
     for element in eachelement(dg, cache)
         # Get neighboring element ids

@@ -11,7 +11,7 @@
 
 Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself.
-The keyword argument `cfl` must be either a `Real` number, corresponding to a constant 
+The keyword argument `cfl` must be either a `Real` number, corresponding to a constant
 CFL number, or a function of time `t` returning a `Real` number.
 The latter approach allows for variable CFL numbers that can be used to realize, e.g.,
 a ramp-up of the time step.
@@ -21,7 +21,7 @@ limit the admissible timestep also respecting diffusive restrictions.
 This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
 To enable checking for diffusive timestep restrictions, provide a value greater than zero for `cfl_diffusive`.
 By default, `cfl_diffusive` is set to zero which means that only the advective/convective CFL number is considered.
-The keyword argument `cfl_diffusive` must be either a `Real` number, corresponding to a constant 
+The keyword argument `cfl_diffusive` must be either a `Real` number, corresponding to a constant
 diffusive CFL number, or a function of time `t` returning a `Real` number.
 
 By default, the timestep will be adjusted at every step.
@@ -91,7 +91,7 @@ end
 function (stepsize_callback::StepsizeCallback)(u, t, integrator)
     @unpack interval = stepsize_callback
 
-    # Although the CFL-based timestep is usually not used with 
+    # Although the CFL-based timestep is usually not used with
     # adaptive time integration methods, we still check the accepted steps `naccept` here.
     return interval > 0 && integrator.stats.naccept % interval == 0
 end
@@ -144,8 +144,8 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_advective(t) * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
-                  solver, cache)
+                  have_constant_speed(equations), semi, equations, solver, cache,
+                  solver.volume_integral)
 end
 
 # For Euler-Acoustic simulations with `EulerAcousticsCouplingCallback`
@@ -155,8 +155,25 @@ function calculate_dt(u_ode, t, cfl_advective::Real, cfl_diffusive::Real,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_advective * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
-                  solver, cache)
+                  have_constant_speed(equations), semi, equations, solver, cache,
+                  solver.volume_integral)
+end
+
+function max_dt(u, t, mesh, constant_speed, semi, equations, solver, cache,
+                volume_integral::AbstractVolumeIntegral)
+    max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+end
+
+@inline function max_dt(u, t, mesh,
+                        constant_speed, semi, equations, solver, cache,
+                        volume_integral::VolumeIntegralSubcellLimiting)
+    @unpack limiter = volume_integral
+    if limiter isa SubcellLimiterIDP && !limiter.bar_states
+        return max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+    else
+        return max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
+                      limiter)
+    end
 end
 
 # Case for a hyperbolic-parabolic semidiscretization

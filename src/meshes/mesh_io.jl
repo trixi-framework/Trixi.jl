@@ -321,10 +321,10 @@ end
 @inline get_EToV(mesh_type::StartUpDG.CurvedMesh) = get_EToV(mesh_type.original_mesh_type)
 @inline get_EToV(mesh_type::StartUpDG.HOHQMeshType) = mesh_type.hmd.EToV
 
-# To save the data needed to reconstruct a DGMultiMesh object, we must include additional 
-# information contained within `dg.basis`. Currently, only the element shape and polynomial 
-# degree are stored, and it is assumed that the solution is stored at the default node 
-# positions for the `Polynomial` or `TensorProductWedge` approximation of that element 
+# To save the data needed to reconstruct a DGMultiMesh object, we must include additional
+# information contained within `dg.basis`. Currently, only the element shape and polynomial
+# degree are stored, and it is assumed that the solution is stored at the default node
+# positions for the `Polynomial` or `TensorProductWedge` approximation of that element
 # shape and polynomial degree.
 function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0)
 
@@ -546,9 +546,9 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
             end
         end
 
-        # Currently, we assume that `basis.approximation_type` is a `TensorProductWedge` 
+        # Currently, we assume that `basis.approximation_type` is a `TensorProductWedge`
         # with 2-tuple polynomial degree or a `Polynomial` with integer polynomial degree.
-        # TODO: Add support for other approximation types. This would requires further 
+        # TODO: Add support for other approximation types. This would requires further
         # information to be saved to the HDF5 file.
         if etype isa StartUpDG.Wedge && polydeg isa NTuple{2}
             factor_a = RefElemData(StartUpDG.Tri(), Polynomial(), polydeg[1])

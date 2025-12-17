@@ -588,4 +588,253 @@ end
 
     return nothing
 end
+
+@inline function calc_lambdas_bar_states!(u, t,
+                                          mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                                          have_nonconservative_terms, equations,
+                                          limiter, dg, cache, boundary_conditions;
+                                          calc_bar_states = true)
+    if limiter isa SubcellLimiterIDP && !limiter.bar_states
+        return nothing
+    end
+    (; lambda1, lambda2, bar_states1, bar_states2) = limiter.cache.container_bar_states
+    (; normal_vectors_1, normal_vectors_2) = cache.normal_vectors
+
+    # Calc lambdas and bar states inside elements
+    @threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in 2:nnodes(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            u_node_im1 = get_node_vars(u, equations, dg, i - 1, j, element)
+
+            # Fetch precomputed freestream-preserving normal vector
+            # We access i - 1 here since the normal vector for i = 1 is not used and stored
+            normal_direction = get_normal_vector(normal_vectors_1, i - 1, j, element)
+
+            lambda1[i, j, element] = max_abs_speed_naive(u_node_im1, u_node,
+                                                         normal_direction, equations)
+
+            !calc_bar_states && continue
+
+            flux1 = flux(u_node, normal_direction, equations)
+            flux1_im1 = flux(u_node_im1, normal_direction, equations)
+            for v in eachvariable(equations)
+                bar_states1[v, i, j, element] = 0.5 * (u_node[v] + u_node_im1[v]) -
+                                                0.5 * (flux1[v] - flux1_im1[v]) /
+                                                lambda1[i, j, element]
+            end
+        end
+
+        for j in 2:nnodes(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            u_node_jm1 = get_node_vars(u, equations, dg, i, j - 1, element)
+
+            # Fetch precomputed freestream-preserving normal vector
+            # We access j - 1 here since the normal vector for j = 1 is not used and stored
+            normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, element)
+
+            lambda2[i, j, element] = max_abs_speed_naive(u_node_jm1, u_node,
+                                                         normal_direction, equations)
+
+            !calc_bar_states && continue
+
+            flux2 = flux(u_node, normal_direction, equations)
+            flux2_jm1 = flux(u_node_jm1, normal_direction, equations)
+            for v in eachvariable(equations)
+                bar_states2[v, i, j, element] = 0.5 * (u_node[v] + u_node_jm1[v]) -
+                                                0.5 * (flux2[v] - flux2_jm1[v]) /
+                                                lambda2[i, j, element]
+            end
+        end
+    end
+
+    calc_lambdas_bar_states_interface!(u, t, limiter, boundary_conditions, mesh,
+                                       equations,
+                                       dg, cache; calc_bar_states = calc_bar_states)
+
+    return nothing
+end
+
+@inline function calc_lambdas_bar_states_interface!(u, t, limiter, boundary_conditions,
+                                                    mesh::StructuredMesh{2}, equations,
+                                                    dg, cache; calc_bar_states = true)
+    (; contravariant_vectors) = cache.elements
+    (; lambda1, lambda2, bar_states1, bar_states2) = limiter.cache.container_bar_states
+
+    # Calc lambdas and bar states at interfaces and periodic boundaries
+    @threaded for element in eachelement(dg, cache)
+        # Get neighboring element ids
+        left = cache.elements.left_neighbors[1, element]
+        lower = cache.elements.left_neighbors[2, element]
+
+        if left != 0
+            for i in eachnode(dg)
+                u_left = get_node_vars(u, equations, dg, nnodes(dg), i, left)
+                u_element = get_node_vars(u, equations, dg, 1, i, element)
+
+                Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, i, element)
+                lambda = max_abs_speed_naive(u_left, u_element, Ja1, equations)
+
+                lambda1[nnodes(dg) + 1, i, left] = lambda
+                lambda1[1, i, element] = lambda
+
+                !calc_bar_states && continue
+
+                flux_left = flux(u_left, Ja1, equations)
+                flux_element = flux(u_element, Ja1, equations)
+                bar_state = 0.5 * (u_element + u_left) -
+                            0.5 * (flux_element - flux_left) / lambda
+                for v in eachvariable(equations)
+                    bar_states1[v, nnodes(dg) + 1, i, left] = bar_state[v]
+                    bar_states1[v, 1, i, element] = bar_state[v]
+                end
+            end
+        end
+        if lower != 0
+            for i in eachnode(dg)
+                u_lower = get_node_vars(u, equations, dg, i, nnodes(dg), lower)
+                u_element = get_node_vars(u, equations, dg, i, 1, element)
+
+                Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+                lambda = max_abs_speed_naive(u_lower, u_element, Ja2, equations)
+
+                lambda2[i, nnodes(dg) + 1, lower] = lambda
+                lambda2[i, 1, element] = lambda
+
+                !calc_bar_states && continue
+
+                flux_lower = flux(u_lower, Ja2, equations)
+                flux_element = flux(u_element, Ja2, equations)
+                bar_state = 0.5 * (u_element + u_lower) -
+                            0.5 * (flux_element - flux_lower) / lambda
+                for v in eachvariable(equations)
+                    bar_states2[v, i, nnodes(dg) + 1, lower] = bar_state[v]
+                    bar_states2[v, i, 1, element] = bar_state[v]
+                end
+            end
+        end
+    end
+
+    # Calc lambdas and bar states at physical boundaries
+    if isperiodic(mesh)
+        return nothing
+    end
+    linear_indices = LinearIndices(size(mesh))
+    if !isperiodic(mesh, 1)
+        # - xi direction
+        for cell_y in axes(mesh, 2)
+            element = linear_indices[begin, cell_y]
+            for j in eachnode(dg)
+                Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
+                u_inner = get_node_vars(u, equations, dg, 1, j, element)
+                u_outer = get_boundary_outer_state(u_inner, t,
+                                                   boundary_conditions[1], Ja1, 1,
+                                                   mesh, equations, dg, cache,
+                                                   1, j, element)
+                lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1,
+                                                             equations)
+
+                !calc_bar_states && continue
+
+                flux_inner = flux(u_inner, Ja1, equations)
+                flux_outer = flux(u_outer, Ja1, equations)
+                for v in eachvariable(equations)
+                    bar_states1[v, 1, j, element] = 0.5 * (u_inner[v] + u_outer[v]) -
+                                                    0.5 *
+                                                    (flux_inner[v] - flux_outer[v]) /
+                                                    lambda1[1, j, element]
+                end
+            end
+        end
+        # + xi direction
+        for cell_y in axes(mesh, 2)
+            element = linear_indices[end, cell_y]
+            for j in eachnode(dg)
+                Ja1 = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j,
+                                               element)
+                u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
+                u_outer = get_boundary_outer_state(u_inner, t,
+                                                   boundary_conditions[2], Ja1, 2,
+                                                   mesh, equations, dg, cache,
+                                                   nnodes(dg), j, element)
+                lambda1[nnodes(dg) + 1, j, element] = max_abs_speed_naive(u_inner,
+                                                                          u_outer, Ja1,
+                                                                          equations)
+
+                !calc_bar_states && continue
+
+                flux_inner = flux(u_inner, Ja1, equations)
+                flux_outer = flux(u_outer, Ja1, equations)
+                for v in eachvariable(equations)
+                    bar_states1[v, nnodes(dg) + 1, j, element] = 0.5 * (u_inner[v] +
+                                                                  u_outer[v]) -
+                                                                 0.5 *
+                                                                 (flux_outer[v] -
+                                                                  flux_inner[v]) /
+                                                                 lambda1[nnodes(dg) + 1,
+                                                                         j, element]
+                end
+            end
+        end
+    end
+    if !isperiodic(mesh, 2)
+        # - eta direction
+        for cell_x in axes(mesh, 1)
+            element = linear_indices[cell_x, begin]
+            for i in eachnode(dg)
+                Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
+                u_inner = get_node_vars(u, equations, dg, i, 1, element)
+                u_outer = get_boundary_outer_state(u_inner, t,
+                                                   boundary_conditions[3], Ja2, 3,
+                                                   mesh, equations, dg, cache,
+                                                   i, 1, element)
+                lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2,
+                                                             equations)
+
+                !calc_bar_states && continue
+
+                flux_inner = flux(u_inner, Ja2, equations)
+                flux_outer = flux(u_outer, Ja2, equations)
+                for v in eachvariable(equations)
+                    bar_states2[v, i, 1, element] = 0.5 * (u_inner[v] + u_outer[v]) -
+                                                    0.5 *
+                                                    (flux_inner[v] - flux_outer[v]) /
+                                                    lambda2[i, 1, element]
+                end
+            end
+        end
+        # + eta direction
+        for cell_x in axes(mesh, 1)
+            element = linear_indices[cell_x, end]
+            for i in eachnode(dg)
+                Ja2 = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg),
+                                               element)
+                u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+                u_outer = get_boundary_outer_state(u_inner, t,
+                                                   boundary_conditions[4], Ja2, 4,
+                                                   mesh, equations, dg, cache,
+                                                   i, nnodes(dg), element)
+                lambda2[i, nnodes(dg) + 1, element] = max_abs_speed_naive(u_inner,
+                                                                          u_outer, Ja2,
+                                                                          equations)
+
+                !calc_bar_states && continue
+
+                flux_inner = flux(u_inner, Ja2, equations)
+                flux_outer = flux(u_outer, Ja2, equations)
+                for v in eachvariable(equations)
+                    bar_states2[v, i, nnodes(dg) + 1, element] = 0.5 * (u_outer[v] +
+                                                                  u_inner[v]) -
+                                                                 0.5 *
+                                                                 (flux_outer[v] -
+                                                                  flux_inner[v]) /
+                                                                 lambda2[i,
+                                                                         nnodes(dg) + 1,
+                                                                         element]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
 end # @muladd
