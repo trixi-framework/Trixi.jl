@@ -18,7 +18,7 @@ function create_cache(mesh::Union{StructuredMesh, StructuredMeshView},
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 
     return cache
 end
@@ -34,6 +34,8 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
                              mesh::StructuredMesh, equations, surface_integral,
                              dg::DG)
     @assert isperiodic(mesh)
+
+    return nothing
 end
 
 function rhs!(du, u, t,
