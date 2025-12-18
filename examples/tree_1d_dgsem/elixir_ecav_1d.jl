@@ -5,7 +5,7 @@ using Trixi
 # semidiscretization of the compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-mu() = 0.0
+mu() = 1e-2
 
 equations = CompressibleEulerEquations1D(1.4)
 gradient_variables = GradientVariablesEntropy()
@@ -102,22 +102,26 @@ function initial_condition_test(x, t, equations)
     # Amplitude and shift
     RealT = eltype(x)
 
-    rho = 1.0 + 2.0 * (abs(x[1]) < 0.5)
+    rho = 1.0 + 100.0 * (abs(x[1]) < 0.5)
     v1 = 0.0
     p = rho^equations.gamma
+
+    rho = x[1] > 0.f0 ? 1.2 : 120.0
+    p = x[1] > 0.f0 ? 1.2 / equations.gamma : 120.0 / equations.gamma
+
 
     return prim2cons(SVector(rho, v1, p), equations)
 end
 initial_condition = initial_condition_test #initial_condition_weak_blast_wave
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
             #    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
                volume_integral = VolumeIntegralWeakForm())
 
 coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 7,
+                initial_refinement_level = 6,
                 n_cells_max = 100_000)
 
 # semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
@@ -143,6 +147,16 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+# amr_controller = ControllerThreeLevel(semi,
+#                                       IndicatorLöhner(semi, variable = Trixi.density),
+#                                       base_level = 3,
+#                                       med_level = 4, med_threshold = 0.005,
+#                                       max_level = 6, max_threshold = 0.01)
+
+# amr_callback = AMRCallback(semi, amr_controller,
+#                            interval = 5,
+#                            adapt_initial_condition = true)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback)
@@ -151,7 +165,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 time_int_tol = 1e-7
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol, dt = time_int_tol,
             ode_default_options()..., callback = callbacks)
 using Plots
 plot(sol[end], semi)
