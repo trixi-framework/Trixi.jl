@@ -253,19 +253,20 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2},
     end
 
     # --- calculate AV denominator by dotting `flux_viscous` and `gradients`
-    for element in eachelement(dg, cache)
+    @threaded for element in eachelement(dg, cache)
 
         # calculate volume integral
         element_viscous_dissipation = zero(real(dg))
         for j in eachnode(dg), i in eachnode(dg)
-            volume_jacobian_ = volume_jacobian(element, mesh, cache)
-            weight_ij = dg.basis.weights[i] * dg.basis.weights[i]
             flux_viscous_x_node = get_node_vars(flux_viscous[1], equations, dg, i, j, element)
             flux_viscous_y_node = get_node_vars(flux_viscous[2], equations, dg, i, j, element)
             gradients_x_node = get_node_vars(gradients[1], equations, dg, i, j, element)
             gradients_y_node = get_node_vars(gradients[2], equations, dg, i, j, element)
             viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
             viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
+
+            volume_jacobian_ = volume_jacobian(element, mesh, cache)
+            weight_ij = dg.basis.weights[i] * dg.basis.weights[j]
             element_viscous_dissipation = element_viscous_dissipation + 
                 (viscous_dissipation_x + viscous_dissipation_y) * weight_ij * volume_jacobian_
         end
