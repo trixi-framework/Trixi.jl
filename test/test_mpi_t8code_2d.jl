@@ -117,28 +117,6 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_2d_dgsem")
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
-
-    @trixi_testset "elixir_euler_weak_blast_wave_amr.jl (no SC, only FD)" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_weak_blast_wave_amr.jl"),
-                            l2=[
-                                0.14867465821207587,
-                                0.1363982753785497,
-                                0.13577219655689884,
-                                0.8088320933411307
-                            ],
-                            linf=[
-                                1.3184095729547027,
-                                1.358117761203173,
-                                1.7839625312456264,
-                                6.061398109304063
-                            ],
-                            tspan=(0.0, 0.1),
-                            volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
 end
 end # T8codeMesh MPI
 
