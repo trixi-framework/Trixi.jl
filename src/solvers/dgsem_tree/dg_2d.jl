@@ -179,7 +179,7 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2},
 
     # calculate entropy residual
     entropy_residual = zeros(real(dg), nelements(dg, cache))
-    for element in eachelement(dg, cache)
+    @threaded for element in eachelement(dg, cache)
 
         # calculate volume integral
         volume_integral_du_entropy = zero(real(dg))
@@ -198,15 +198,15 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2},
             u_left = get_node_vars(u, equations, dg, 1, ii, element)
             u_right = get_node_vars(u, equations, dg, nnodes(dg), ii, element)
             surface_integral_entropy_potential = surface_integral_entropy_potential + 
-                dg.basis.weights[ii] * (entropy_potential(u_right, SVector(1.0, 0.0), equations) +
-                                        entropy_potential(u_left, SVector(-1.0, 0.0), equations))
+                dg.basis.weights[ii] * (entropy_potential(u_right, SVector(1.f0, 0.f0), equations) +
+                                        entropy_potential(u_left, SVector(-1.f0, 0.f0), equations))
 
             # y direction
             u_left = get_node_vars(u, equations, dg, ii, 1, element)
             u_right = get_node_vars(u, equations, dg, ii, nnodes(dg), element)
             surface_integral_entropy_potential = surface_integral_entropy_potential + 
-                dg.basis.weights[ii] * (entropy_potential(u_right, SVector(0.0, 1.0), equations) + 
-                                        entropy_potential(u_left, SVector(0.0, -1.0), equations))
+                dg.basis.weights[ii] * (entropy_potential(u_right, SVector(0.f0, 1.f0), equations) + 
+                                        entropy_potential(u_left, SVector(0.f0, -1.f0), equations))
         end
         entropy_residual[element] = volume_integral_du_entropy + surface_integral_entropy_potential
     end
