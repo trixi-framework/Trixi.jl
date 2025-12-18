@@ -275,7 +275,6 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2},
         # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we 
         # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl. 
         ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]), element_viscous_dissipation)
-        # ecav_coefficient = 1e-4
         for j in eachnode(dg), i in eachnode(dg)
             flux_viscous_x_node = get_node_vars(flux_viscous[1], equations, dg, i, j, element)
             flux_viscous_y_node = get_node_vars(flux_viscous[2], equations, dg, i, j, element)
