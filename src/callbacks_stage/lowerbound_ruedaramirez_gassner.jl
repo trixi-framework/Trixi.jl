@@ -19,7 +19,7 @@
 Lower-bound (and thus also positivity-preserving) limiter for density and pressure for
 finite volume (FV) subcell stabilized DGSEM.
 Applicable to every set of equations where density and pressure are the only variables
-required to be bounded from below (i.e., positive)
+required to be bounded from below (i.e., positive).
 These are for instance the [`CompressibleEulerEquations1D`](@ref) or the [`IdealGlmMhdEquations1D`](@ref)
 in any spatial dimension.
 
