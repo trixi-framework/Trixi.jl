@@ -903,7 +903,6 @@ end
     element = @index(Global)
     compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
                                   element)
-    return nothing
 end
 
 function compute_coefficients_element!(u, func, t, equations, dg::DG,
