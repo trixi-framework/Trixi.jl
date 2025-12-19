@@ -16,7 +16,7 @@
                                                 i, element),
                                   equations)
             stage_node = get_node_vars(stage, equations, dg, i, element)
-            dot(w_node, stage_node)
+            return dot(w_node, stage_node)
         end
     end
 end
@@ -34,7 +34,7 @@ end
                                                 i, j, element),
                                   equations)
             stage_node = get_node_vars(stage, equations, dg, i, j, element)
-            dot(w_node, stage_node)
+            return dot(w_node, stage_node)
         end
     end
 end
@@ -51,7 +51,7 @@ end
                                                 i, j, k, element),
                                   equations)
             stage_node = get_node_vars(stage, equations, dg, i, j, k, element)
-            dot(w_node, stage_node)
+            return dot(w_node, stage_node)
         end
     end
 end
@@ -73,8 +73,8 @@ end
 """
     AbstractRelaxationSolver
 
-Abstract type for relaxation solvers used to compute the relaxation parameter `` \\gamma`` 
-in the entropy relaxation time integration methods 
+Abstract type for relaxation solvers used to compute the relaxation parameter `` \\gamma``
+in the entropy relaxation time integration methods
 [`SubDiagonalRelaxationAlgorithm`](@ref) and [`vanderHouwenRelaxationAlgorithm`](@ref).
 Implemented methods are [`RelaxationSolverBisection`](@ref) and [`RelaxationSolverNewton`](@ref).
 """
@@ -85,30 +85,30 @@ abstract type AbstractRelaxationSolver end
                                 root_tol = 1e-15, gamma_tol = 1e-13,
                                 gamma_min = 0.1, gamma_max = 1.2)
 
-Solve the relaxation equation 
+Solve the relaxation equation
 ```math
-H \big(\boldsymbol U_{n+1}(\gamma_n) \big) = 
-H \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=} 
+H \big(\boldsymbol U_{n+1}(\gamma_n) \big) =
+H \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=}
 H(\boldsymbol U_n) + \gamma_n \Delta H (\boldsymbol U_n)
 ```
 with true entropy change
 ```math
-\Delta H \coloneqq 
-\Delta t \sum_{i=1}^S b_i 
-\left \langle \frac{\partial H(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}}, 
-\boldsymbol K_i 
-\right \rangle	
+\Delta H \coloneqq
+\Delta t \sum_{i=1}^S b_i
+\left \langle \frac{\partial H(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}},
+\boldsymbol K_i
+\right \rangle
 ```
 for the relaxation parameter ``\gamma_n`` using a bisection method.
 Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonalAlgorithm`](@ref) or [`vanderHouwenRelaxationAlgorithm`](@ref).
 
 # Arguments
 - `max_iterations::Int`: Maximum number of bisection iterations.
-- `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e., 
-                     the absolute defect of the left and right-hand side of the equation above, i.e., 
+- `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e.,
+                     the absolute defect of the left and right-hand side of the equation above, i.e.,
                      the solver stops if
                      ``\left|H_{n+1} - \left(H_n + \gamma_n \Delta H( \boldsymbol U_n) \right) \right| \leq \text{root\_tol}``.
-- `gamma_tol::RealT`: Absolute tolerance for the bracketing interval length, i.e., the bisection stops if 
+- `gamma_tol::RealT`: Absolute tolerance for the bracketing interval length, i.e., the bisection stops if
                      ``|\gamma_{\text{max}} - \gamma_{\text{min}}| \leq \text{gamma\_tol}``.
 - `gamma_min::RealT`: Lower bound of the initial bracketing interval.
 - `gamma_max::RealT`: Upper bound of the initial bracketing interval.
@@ -137,6 +137,7 @@ function Base.show(io::IO, relaxation_solver::RelaxationSolverBisection)
           ", gamma_tol=", relaxation_solver.gamma_tol,
           ", gamma_min=", relaxation_solver.gamma_min,
           ", gamma_max=", relaxation_solver.gamma_max, ")")
+    return nothing
 end
 function Base.show(io::IO, ::MIME"text/plain",
                    relaxation_solver::RelaxationSolverBisection)
@@ -216,19 +217,19 @@ end
                              root_tol = 1e-15, gamma_tol = 1e-13,
                              gamma_min = 1e-13, step_scaling = 1.0)
 
-Solve the relaxation equation 
+Solve the relaxation equation
 ```math
-H \big(\boldsymbol U_{n+1}(\gamma_n) \big) = 
-H \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=} 
+H \big(\boldsymbol U_{n+1}(\gamma_n) \big) =
+H \left( \boldsymbol U_n + \Delta t \gamma_n \sum_{i=1}^Sb_i \boldsymbol K_i  \right) \overset{!}{=}
 H(\boldsymbol U_n) + \gamma_n \Delta H (\boldsymbol U_n)
 ```
 with true entropy change
 ```math
-\Delta H \coloneqq 
-\Delta t \sum_{i=1}^S b_i 
-\left \langle \frac{\partial H(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}}, 
-\boldsymbol K_i 
-\right \rangle	
+\Delta H \coloneqq
+\Delta t \sum_{i=1}^S b_i
+\left \langle \frac{\partial H(\boldsymbol U_{n,i})}{\partial \boldsymbol U_{n,i}},
+\boldsymbol K_i
+\right \rangle
 ```
 for the relaxation parameter ``\gamma_n`` using Newton's method.
 The derivative of the relaxation function is known and can be directly computed.
@@ -236,13 +237,13 @@ Supposed to be supplied to a relaxation Runge-Kutta method such as [`SubDiagonal
 
 # Arguments
 - `max_iterations::Int`: Maximum number of Newton iterations.
-- `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e., 
+- `root_tol::RealT`: Function-tolerance for the relaxation equation, i.e.,
                      the absolute defect of the left and right-hand side of the equation above, i.e.,
                      the solver stops if
                      ``|H_{n+1} - (H_n + \gamma_n \Delta H( \boldsymbol U_n))| \leq \text{root\_tol}``.
-- `gamma_tol::RealT`: Absolute tolerance for the Newton update step size, i.e., the solver stops if 
+- `gamma_tol::RealT`: Absolute tolerance for the Newton update step size, i.e., the solver stops if
                       ``|\gamma_{\text{new}} - \gamma_{\text{old}}| \leq \text{gamma\_tol}``.
-- `gamma_min::RealT`: Minimum relaxation parameter. If the Newton iteration results a value smaller than this, 
+- `gamma_min::RealT`: Minimum relaxation parameter. If the Newton iteration results a value smaller than this,
                       the relaxation parameter is set to 1.
 - `step_scaling::RealT`: Scaling factor for the Newton step. For `step_scaling > 1` the Newton procedure is accelerated, while for `step_scaling < 1` it is damped.
 """
@@ -252,7 +253,7 @@ struct RelaxationSolverNewton{RealT <: Real} <: AbstractRelaxationSolver
     root_tol::RealT     # Function-tolerance for the relaxation equation
     gamma_tol::RealT    # Absolute tolerance for the Newton update step size
     # Method-specific parameters
-    # Minimum relaxation parameter. If the Newton iteration computes a value smaller than this, 
+    # Minimum relaxation parameter. If the Newton iteration computes a value smaller than this,
     # the relaxation parameter is set to 1.
     gamma_min::RealT
     step_scaling::RealT # Scaling factor for the Newton step
@@ -272,6 +273,7 @@ function Base.show(io::IO,
           ", gamma_tol=", relaxation_solver.gamma_tol,
           ", gamma_min=", relaxation_solver.gamma_min,
           ", step_scaling=", relaxation_solver.step_scaling, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
