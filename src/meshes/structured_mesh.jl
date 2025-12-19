@@ -170,12 +170,14 @@ end
 
 # Convert min and max coordinates of a rectangle to the corresponding transformation mapping
 function coordinates2mapping(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
-    return mapping(xi) = linear_interpolate(xi, coordinates_min[1], coordinates_max[1])
+    mapping(xi) = linear_interpolate(xi, coordinates_min[1], coordinates_max[1])
+    return mapping
 end
 # Convenience function for 1D: Do not insist on tuples
 function coordinates2mapping(coordinates_min::RealT,
                              coordinates_max::RealT) where {RealT <: Real}
-    return mapping(xi) = linear_interpolate(xi, coordinates_min, coordinates_max)
+    mapping(xi) = linear_interpolate(xi, coordinates_min, coordinates_max)
+    return mapping
 end
 
 function coordinates2mapping(coordinates_min::NTuple{2}, coordinates_max::NTuple{2})
@@ -183,6 +185,7 @@ function coordinates2mapping(coordinates_min::NTuple{2}, coordinates_max::NTuple
         return SVector(linear_interpolate(xi, coordinates_min[1], coordinates_max[1]),
                        linear_interpolate(eta, coordinates_min[2], coordinates_max[2]))
     end
+    return mapping
 end
 
 function coordinates2mapping(coordinates_min::NTuple{3}, coordinates_max::NTuple{3})
@@ -191,6 +194,7 @@ function coordinates2mapping(coordinates_min::NTuple{3}, coordinates_max::NTuple
                        linear_interpolate(eta, coordinates_min[2], coordinates_max[2]),
                        linear_interpolate(zeta, coordinates_min[3], coordinates_max[3]))
     end
+    return mapping
 end
 
 # In 1D
@@ -246,6 +250,7 @@ function transfinite_mapping(faces::NTuple{4, Any})
                 linear_interpolate(y, faces[3](x), faces[4](x)) -
                 bilinear_mapping(x, y, faces))
     end
+    return mapping
 end
 
 # In 3D
@@ -287,6 +292,7 @@ function transfinite_mapping(faces::NTuple{6, Any})
                 correction_term_3d(x, y, z, faces) +
                 trilinear_mapping(x, y, z, faces))
     end
+    return mapping
 end
 
 function validate_faces(faces::NTuple{2, Any}) end

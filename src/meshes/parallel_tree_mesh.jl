@@ -88,7 +88,8 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::True)
         # Read mesh filename from restart file
         mesh_file = ""
         h5open(restart_filename, "r") do file
-            return mesh_file = read(attributes(file)["mesh_file"])
+            mesh_file = read(attributes(file)["mesh_file"])
+            return nothing
         end
 
         buffer = Vector{UInt8}(mesh_file)
