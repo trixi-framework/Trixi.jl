@@ -344,9 +344,8 @@ end
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
     Trixi.delete_connectivity!(c::MyContainer, first, last) = c
     function Trixi.reset_data_structures!(c::MyContainer)
-        return (c.data = Vector{Int}(undef,
-                                     c.capacity + 1);
-                c)
+        c.data = Vector{Int}(undef, c.capacity + 1)
+        return c
     end
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
         return (c1.capacity == c2.capacity &&

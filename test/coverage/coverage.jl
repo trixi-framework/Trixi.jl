@@ -32,5 +32,6 @@ cd(joinpath(@__DIR__, "..", "..")) do
     run(`genhtml -t $(title) -o $(report_dir) $(tracefile)`)
 
     # Clean up .cov files
-    return clean_folder("src")
+    clean_folder("src")
+    return nothing
 end
