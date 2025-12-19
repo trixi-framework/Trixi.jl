@@ -15,7 +15,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=8.311947673061856e-6,
-                        linf=6.627000273229378e-5,)
+                        linf=6.627000273229378e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
