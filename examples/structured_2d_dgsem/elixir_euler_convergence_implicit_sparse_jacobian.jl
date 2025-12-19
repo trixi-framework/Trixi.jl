@@ -6,7 +6,6 @@ using OrdinaryDiffEqSDIRK, ADTypes
 ###############################################################################
 ### solver and equations ###
 
-# For sparsity detection we can only use `flux_lax_friedrichs` at the moment since this is 
 # `if`-clause free (although it contains `min` and `max` operations).
 # The sparsity pattern, however, should be the same for other (two-point) fluxes as well.
 surface_flux = flux_lax_friedrichs
