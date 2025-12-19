@@ -163,8 +163,7 @@ is_own_cell(t::ParallelTree, cell_id) = t.mpi_ranks[cell_id] == mpi_rank()
 # Return an array with the ids of all leaf cells for a given rank
 leaf_cells_by_rank(t::ParallelTree, rank) =
     filter_leaf_cells(t) do cell_id
-        t.mpi_ranks[cell_id] == rank
-        return nothing
+        return t.mpi_ranks[cell_id] == rank
     end
 
 # Return an array with the ids of all local leaf cells
