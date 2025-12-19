@@ -11,8 +11,8 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a mixed hyperbolic-parabolic conservation law with additional artificial viscosity.
 """
-struct SemidiscretizationArtificialViscosity{Mesh, Equations, 
-                                             EquationsArtificialViscosity, 
+struct SemidiscretizationArtificialViscosity{CombineRHS, Mesh, Equations, 
+                                             ArtificialViscosity, 
                                              EquationsParabolic,
                                              InitialCondition,
                                              BoundaryConditions,
@@ -20,10 +20,11 @@ struct SemidiscretizationArtificialViscosity{Mesh, Equations,
                                              SourceTerms, Solver, SolverParabolic,
                                              Cache, CacheParabolic} <:
        AbstractSemidiscretization
+    combine_rhs::CombineRHS       
     mesh::Mesh
 
     equations::Equations
-    equations_artificial_viscosity::EquationsArtificialViscosity
+    artificial_viscosity::ArtificialViscosity
     equations_parabolic::EquationsParabolic
 
     # This guy is a bit messy since we abuse it as some kind of "exact solution"
@@ -61,7 +62,8 @@ end
 Construct a semidiscretization of a hyperbolic-parabolic PDE with artificial viscosity.
 """
 function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
-                                               initial_condition, solver;                                               
+                                               initial_condition, solver;
+                                               combine_rhs = False(),
                                                equations_artificial_viscosity = default_artificial_viscosity(equations[1]),
                                                solver_parabolic = default_parabolic_solver(),
                                                source_terms = nothing,
@@ -71,6 +73,8 @@ function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
                                                # while `uEltype` is used as element type of solutions etc.
                                                RealT = real(solver), uEltype = RealT)
     equations, equations_parabolic = equations
+
+    artificial_viscosity = EntropyCorrectionArtificialViscosity(equations_artificial_viscosity)
 
     @assert ndims(mesh) == ndims(equations)
     @assert ndims(mesh) == ndims(equations_parabolic)
@@ -82,6 +86,11 @@ function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
     boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
+    
+    cache = (; cache..., 
+                artificial_viscosity = 
+                    create_cache(mesh, artificial_viscosity, solver, cache, RealT, uEltype))
+
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
                                                       mesh, solver, cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
@@ -95,9 +104,10 @@ function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
 
     performance_counter = PerformanceCounterList{2}(false)
 
-    return SemidiscretizationArtificialViscosity{typeof(mesh),
+    return SemidiscretizationArtificialViscosity{typeof(combine_rhs), 
+                                                 typeof(mesh),
                                                  typeof(equations),
-                                                 typeof(equations_artificial_viscosity),
+                                                 typeof(artificial_viscosity),
                                                  typeof(equations_parabolic),
                                                  typeof(initial_condition),
                                                  typeof(_boundary_conditions),
@@ -106,9 +116,10 @@ function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
                                                  typeof(solver),
                                                  typeof(solver_parabolic),
                                                  typeof(cache),
-                                                 typeof(cache_parabolic)}(mesh,
+                                                 typeof(cache_parabolic)}(combine_rhs, 
+                                                                          mesh,
                                                                           equations,
-                                                                          equations_artificial_viscosity,
+                                                                          artificial_viscosity,
                                                                           equations_parabolic,
                                                                           initial_condition,
                                                                           _boundary_conditions,
@@ -276,9 +287,9 @@ function semidiscretize(semi::SemidiscretizationArtificialViscosity, tspan;
         # Convert `jac_prototype_parabolic` to real type, as seen here:
         # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
         parabolic_ode = SciMLBase.ODEFunction(rhs_parabolic!,
-                                              jac_prototype = convert.(eltype(u0_ode),
-                                                                       jac_prototype_parabolic),
-                                              colorvec = colorvec_parabolic) # coloring vector is optional
+                                            jac_prototype = convert.(eltype(u0_ode),
+                                                                    jac_prototype_parabolic),
+                                            colorvec = colorvec_parabolic) # coloring vector is optional
 
         # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
         # first function implicitly and the second one explicitly. Thus, we pass the
@@ -290,6 +301,24 @@ function semidiscretize(semi::SemidiscretizationArtificialViscosity, tspan;
         # let OrdinaryDiffEq.jl handle the rest
         return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
     end
+end
+
+function semidiscretize(semi::SemidiscretizationArtificialViscosity{<:True}, tspan;
+                        reset_threads = true)
+    # Optionally reset Polyester.jl threads. See
+    # https://github.com/trixi-framework/Trixi.jl/issues/1583
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
+    if reset_threads
+        Polyester.reset_threads!()
+    end
+
+    u0_ode = compute_coefficients(first(tspan), semi)
+    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
+    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
+    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
+
+    return ODEProblem{iip}(rhs!, u0_ode, tspan, semi)
 end
 
 """
@@ -356,8 +385,9 @@ end
 
 # Unlike a standard rhs!, this calls a version which takes in the parabolic solver and cache
 function rhs!(du_ode, u_ode, semi::SemidiscretizationArtificialViscosity, t)
-    @unpack mesh, equations, equations_artificial_viscosity, boundary_conditions, source_terms = semi
+    @unpack mesh, equations, equations_parabolic, boundary_conditions, boundary_conditions_parabolic, source_terms = semi
     @unpack solver, solver_parabolic, cache, cache_parabolic = semi
+    (; equations_artificial_viscosity) = semi.artificial_viscosity
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
@@ -365,10 +395,34 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationArtificialViscosity, t)
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
     @trixi_timeit timer() "rhs!" rhs_artificial_viscosity!(du, u, t, mesh, 
-                                                           equations, equations_artificial_viscosity,
-                                                           boundary_conditions, source_terms, 
+                                                           equations, equations_parabolic, equations_artificial_viscosity,
+                                                           boundary_conditions, boundary_conditions_parabolic, 
+                                                           source_terms, 
                                                            solver, solver_parabolic,
                                                            cache, cache_parabolic)
+    runtime = time_ns() - time_start
+    put!(semi.performance_counter.counters[1], runtime)
+
+    return nothing
+end
+
+# the version with a combined RHS
+function rhs!(du_ode, u_ode, semi::SemidiscretizationArtificialViscosity{<:True}, t)
+    @unpack mesh, equations, boundary_conditions, source_terms = semi
+    @unpack equations_parabolic, boundary_conditions_parabolic = semi
+    @unpack solver, solver_parabolic, cache, cache_parabolic = semi
+    
+    (; equations_artificial_viscosity) = semi.artificial_viscosity
+
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
+
+    # TODO: Taal decide, do we need to pass the mesh?
+    time_start = time_ns()
+    @trixi_timeit timer() "rhs!" rhs_combined!(du, u, t, mesh, 
+                                               equations, equations_parabolic, equations_artificial_viscosity,
+                                               boundary_conditions, boundary_conditions_parabolic, source_terms, 
+                                               solver, solver_parabolic, cache, cache_parabolic)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[1], runtime)
 
