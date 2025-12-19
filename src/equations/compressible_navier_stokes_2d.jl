@@ -399,7 +399,9 @@ end
                                                                                     equations)
     _, tau_1n, tau_2n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
     normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
-    return SVector(flux_inner[1], flux_inner[2], flux_inner[3], normal_energy_flux)
+
+    # first term is zero due to the mass equation having no dissipation
+    return SVector(0, flux_inner[2], flux_inner[3], normal_energy_flux) 
 end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
@@ -470,7 +472,9 @@ end
                                                                                     equations)
     _, tau_1n, tau_2n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
     normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
-    return SVector(flux_inner[1], flux_inner[2], flux_inner[3], normal_energy_flux)
+
+    # first term is zero due to the mass equation having no dissipation
+    return SVector(0, flux_inner[2], flux_inner[3], normal_energy_flux)
 end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
@@ -500,7 +504,7 @@ end
                                                                                        t,
                                                                                        operator_type::Divergence,
                                                                                        equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
-    return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
+    return SVector(0, flux_inner[2], flux_inner[3], flux_inner[4])
 end
 
 # Computes the mirror velocity across a symmetry plane which enforces
@@ -554,7 +558,7 @@ end
     # "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions
     #  for the compressible Navier-Stokes equations" by Chan, Lin, Warburton 2022.
     # DOI: 10.1016/j.jcp.2021.110723
-    return SVector(flux_inner[1], 0, 0, normal_heat_flux)
+    return SVector(0, 0, 0, normal_heat_flux)
 end
 
 # Dirichlet Boundary Condition for e.g. P4est mesh
