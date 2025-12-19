@@ -48,6 +48,7 @@ include("dg_1d_parabolic.jl")
 
 # 2D DG implementation
 include("dg_2d.jl")
+include("dg_2d_artificial_viscosity.jl")
 include("dg_2d_parallel.jl")
 include("dg_2d_parabolic.jl")
 
