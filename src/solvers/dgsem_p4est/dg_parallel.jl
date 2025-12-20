@@ -36,13 +36,16 @@ function P4estMPICache(uEltype)
     n_elements_global = 0
     first_element_global_id = 0
 
-    P4estMPICache{Vector{uEltype}, Vector{Int}}(mpi_neighbor_ranks,
-                                                mpi_neighbor_interfaces,
-                                                mpi_neighbor_mortars,
-                                                mpi_send_buffers, mpi_recv_buffers,
-                                                mpi_send_requests, mpi_recv_requests,
-                                                n_elements_by_rank, n_elements_global,
-                                                first_element_global_id)
+    return P4estMPICache{Vector{uEltype}, Vector{Int}}(mpi_neighbor_ranks,
+                                                       mpi_neighbor_interfaces,
+                                                       mpi_neighbor_mortars,
+                                                       mpi_send_buffers,
+                                                       mpi_recv_buffers,
+                                                       mpi_send_requests,
+                                                       mpi_recv_requests,
+                                                       n_elements_by_rank,
+                                                       n_elements_global,
+                                                       first_element_global_id)
 end
 
 @inline Base.eltype(::P4estMPICache{BufferType}) where {BufferType} = eltype(BufferType)
@@ -125,7 +128,7 @@ function start_mpi_receive!(mpi_cache::P4estMPICache)
 end
 
 function finish_mpi_send!(mpi_cache::P4estMPICache)
-    MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
+    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
 function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
@@ -383,7 +386,7 @@ function init_neighbor_rank_connectivity_iter_face(info, user_data)
     data = unsafe_pointer_to_objref(Ptr{InitNeighborRankConnectivityIterFaceUserData}(user_data))
 
     # Function barrier because the unpacked user_data above is not type-stable
-    init_neighbor_rank_connectivity_iter_face_inner(info, data)
+    return init_neighbor_rank_connectivity_iter_face_inner(info, data)
 end
 
 # 2D
@@ -599,8 +602,8 @@ end
 
 # Get normal direction of MPI mortar
 @inline function get_normal_direction(mpi_mortars::P4estMPIMortarContainer, indices...)
-    SVector(ntuple(@inline(dim->mpi_mortars.normal_directions[dim, indices...]),
-                   Val(ndims(mpi_mortars))))
+    return SVector(ntuple(@inline(dim->mpi_mortars.normal_directions[dim, indices...]),
+                          Val(ndims(mpi_mortars))))
 end
 
 include("dg_2d_parallel.jl")

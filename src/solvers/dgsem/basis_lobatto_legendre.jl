@@ -77,13 +77,13 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     derivative_split_transpose = Matrix(derivative_split')
     derivative_dhat = calc_dhat(nodes_, weights_)
 
-    # Type conversions to enable possible optimizations of runtime performance 
+    # Type conversions to enable possible optimizations of runtime performance
     # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
-    # We keep the matrices above stored using the standard `Matrix` type 
+    # We keep the matrices above stored using the standard `Matrix` type
     # since this is usually as fast as `SMatrix`
     # (when using `let` in the volume integral/`@threaded`)
     # and reduces latency
@@ -106,12 +106,14 @@ function Base.show(io::IO, basis::LobattoLegendreBasis)
     @nospecialize basis # reduce precompilation time
 
     print(io, "LobattoLegendreBasis{", real(basis), "}(polydeg=", polydeg(basis), ")")
+    return nothing
 end
 function Base.show(io::IO, ::MIME"text/plain", basis::LobattoLegendreBasis)
     @nospecialize basis # reduce precompilation time
 
     print(io, "LobattoLegendreBasis{", real(basis), "} with polynomials of degree ",
           polydeg(basis))
+    return nothing
 end
 
 function Base.:(==)(b1::LobattoLegendreBasis, b2::LobattoLegendreBasis)
@@ -132,14 +134,14 @@ end
 
 @inline function nnodes(basis::LobattoLegendreBasis{RealT, NNODES}) where {RealT, NNODES
                                                                            }
-    NNODES
+    return NNODES
 end
 
 """
     eachnode(basis::LobattoLegendreBasis)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the nodes in `basis`. 
+for the nodes in `basis`.
 In particular, not the nodes themselves are returned.
 """
 @inline eachnode(basis::LobattoLegendreBasis) = Base.OneTo(nnodes(basis))
@@ -201,7 +203,7 @@ function MortarL2(basis::LobattoLegendreBasis)
     reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
     reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
 
-    # We keep the matrices above stored using the standard `Matrix` type 
+    # We keep the matrices above stored using the standard `Matrix` type
     # since this is usually as fast as `SMatrix`
     # (when using `let` in the volume integral/`@threaded`)
     # and reduces latency
@@ -215,9 +217,9 @@ function MortarL2(basis::LobattoLegendreBasis)
     # reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
     # reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
 
-    LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper),
-                            typeof(reverse_upper)}(forward_upper, forward_lower,
-                                                   reverse_upper, reverse_lower)
+    return LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper),
+                                   typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                          reverse_upper, reverse_lower)
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarL2)
@@ -225,19 +227,21 @@ function Base.show(io::IO, mortar::LobattoLegendreMortarL2)
 
     print(io, "LobattoLegendreMortarL2{", real(mortar), "}(polydeg=", polydeg(mortar),
           ")")
+    return nothing
 end
 function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2)
     @nospecialize mortar # reduce precompilation time
 
     print(io, "LobattoLegendreMortarL2{", real(mortar), "} with polynomials of degree ",
           polydeg(mortar))
+    return nothing
 end
 
 @inline Base.real(mortar::LobattoLegendreMortarL2{RealT}) where {RealT} = RealT
 
 @inline function nnodes(mortar::LobattoLegendreMortarL2{RealT, NNODES}) where {RealT,
                                                                                NNODES}
-    NNODES
+    return NNODES
 end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
@@ -292,7 +296,7 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis;
     nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
     vandermonde = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
 
-    # Type conversions to enable possible optimizations of runtime performance 
+    # Type conversions to enable possible optimizations of runtime performance
     # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
@@ -307,25 +311,27 @@ function Base.show(io::IO, analyzer::LobattoLegendreAnalyzer)
 
     print(io, "LobattoLegendreAnalyzer{", real(analyzer), "}(polydeg=",
           polydeg(analyzer), ")")
+    return nothing
 end
 function Base.show(io::IO, ::MIME"text/plain", analyzer::LobattoLegendreAnalyzer)
     @nospecialize analyzer # reduce precompilation time
 
     print(io, "LobattoLegendreAnalyzer{", real(analyzer),
           "} with polynomials of degree ", polydeg(analyzer))
+    return nothing
 end
 
 @inline Base.real(analyzer::LobattoLegendreAnalyzer{RealT}) where {RealT} = RealT
 
 @inline function nnodes(analyzer::LobattoLegendreAnalyzer{RealT, NNODES}) where {RealT,
                                                                                  NNODES}
-    NNODES
+    return NNODES
 end
 """
     eachnode(analyzer::LobattoLegendreAnalyzer)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the nodes in `analyzer`. 
+for the nodes in `analyzer`.
 In particular, not the nodes themselves are returned.
 """
 @inline eachnode(analyzer::LobattoLegendreAnalyzer) = Base.OneTo(nnodes(analyzer))
@@ -370,9 +376,9 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
     # reverse_upper = Matrix{RealT}(reverse_upper_)
     # reverse_lower = Matrix{RealT}(reverse_lower_)
 
-    LobattoLegendreAdaptorL2{RealT, nnodes_, typeof(forward_upper),
-                             typeof(reverse_upper)}(forward_upper, forward_lower,
-                                                    reverse_upper, reverse_lower)
+    return LobattoLegendreAdaptorL2{RealT, nnodes_, typeof(forward_upper),
+                                    typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                           reverse_upper, reverse_lower)
 end
 
 function Base.show(io::IO, adaptor::LobattoLegendreAdaptorL2)
@@ -380,19 +386,21 @@ function Base.show(io::IO, adaptor::LobattoLegendreAdaptorL2)
 
     print(io, "LobattoLegendreAdaptorL2{", real(adaptor), "}(polydeg=",
           polydeg(adaptor), ")")
+    return nothing
 end
 function Base.show(io::IO, ::MIME"text/plain", adaptor::LobattoLegendreAdaptorL2)
     @nospecialize adaptor # reduce precompilation time
 
     print(io, "LobattoLegendreAdaptorL2{", real(adaptor),
           "} with polynomials of degree ", polydeg(adaptor))
+    return nothing
 end
 
 @inline Base.real(adaptor::LobattoLegendreAdaptorL2{RealT}) where {RealT} = RealT
 
 @inline function nnodes(adaptor::LobattoLegendreAdaptorL2{RealT, NNODES}) where {RealT,
                                                                                  NNODES}
-    NNODES
+    return NNODES
 end
 
 @inline polydeg(adaptor::LobattoLegendreAdaptorL2) = nnodes(adaptor) - 1
@@ -531,19 +539,19 @@ function calc_lhat(x, nodes, weights)
     return lhat
 end
 
-""" 
+"""
     lagrange_interpolating_polynomials(x, nodes, wbary)
 
 Calculate Lagrange polynomials for a given node distribution with
-associated barycentric weights `wbary` at a given point `x` on the 
+associated barycentric weights `wbary` at a given point `x` on the
 reference interval ``[-1, 1]``.
 
 This returns all ``l_j(x)``, i.e., the Lagrange polynomials for each node ``x_j``.
-Thus, to obtain the interpolating polynomial ``p(x)`` at ``x``, one has to 
+Thus, to obtain the interpolating polynomial ``p(x)`` at ``x``, one has to
 multiply the Lagrange polynomials with the nodal values ``u_j`` and sum them up:
 ``p(x) = \\sum_{j=1}^{n} u_j l_j(x)``.
 
-For details, see e.g. Section 2 of 
+For details, see e.g. Section 2 of
 - Jean-Paul Berrut and Lloyd N. Trefethen (2004).
   Barycentric Lagrange Interpolation.
   [DOI:10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
@@ -553,7 +561,7 @@ function lagrange_interpolating_polynomials(x, nodes, wbary)
     polynomials = zeros(eltype(nodes), n_nodes)
 
     for i in 1:n_nodes
-        # Avoid division by zero when `x` is close to node by using 
+        # Avoid division by zero when `x` is close to node by using
         # the Kronecker-delta property at nodes
         # of the Lagrange interpolation polynomials.
         if isapprox(x, nodes[i], rtol = eps(x))
@@ -580,9 +588,9 @@ end
 Computes nodes ``x_j`` and weights ``w_j`` for the (Legendre-)Gauss-Lobatto quadrature.
 This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
 
-- David A. Kopriva, (2009). 
+- David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers. 
+  Algorithms for scientists and engineers.
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
@@ -686,9 +694,9 @@ end
 Computes nodes ``x_j`` and weights ``w_j`` for the Gauss-Legendre quadrature.
 This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
 
-- David A. Kopriva, (2009). 
+- David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers. 
+  Algorithms for scientists and engineers.
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
@@ -756,9 +764,9 @@ end
 Computes the Legendre polynomial of degree `N` and its derivative at `x`.
 This implements algorithm 22 "LegendrePolynomialAndDerivative" from the book
 
-- David A. Kopriva, (2009). 
+- David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers. 
+  Algorithms for scientists and engineers.
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function legendre_polynomial_and_derivative(N::Int, x::Real)
