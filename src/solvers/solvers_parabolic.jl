@@ -87,9 +87,31 @@ function flux_parabolic(u_ll, u_rr, ::Gradient, equations_parabolic,
     return u_ll # Use the upwind value for the gradient interface flux
 end
 
+# TODO: Add mesh dispatch to save this computation on a TreeMesh
+function flux_parabolic(u_ll, u_rr, normal_direction,
+                        ::Gradient, equations_parabolic::AbstractEquationsParabolic{2, NVARS},
+                        parabolic_scheme::ViscousFormulationLocalDG) where NVARS
+    if dot(normal_direction, [1, 1]) > 0
+        return u_ll
+    else
+        return u_rr
+    end           
+end
+  
 function flux_parabolic(u_ll, u_rr, ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux
+end
+
+# TODO: Add mesh dispatch to save this computation on a TreeMesh
+function flux_parabolic(u_ll, u_rr, normal_direction,
+                        ::Divergence, equations_parabolic::AbstractEquationsParabolic{2, NVARS},
+                        parabolic_scheme::ViscousFormulationLocalDG) where NVARS
+    if dot(normal_direction, [1, 1]) > 0
+        return u_rr
+    else
+        return u_ll
+    end           
 end
 
 default_parabolic_solver() = ViscousFormulationBassiRebay1()
