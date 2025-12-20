@@ -653,6 +653,11 @@ end
     @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
                       indicator)
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      indicator)
+
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      volume_integral)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
                       volume_integral)
 end
 
