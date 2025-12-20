@@ -328,12 +328,4 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyIncrea
         summary_box(io, "IndicatorEntropyIncrease", setup)
     end
 end
-
-# TODO: Would be nice to have something like this for plotting
-#=
-function get_element_variables!(element_variables, indicator::IndicatorEntropyIncrease,
-                                ::VolumeIntegralAdaptive)
-    return nothing
-end
-=#
 end # @muladd
