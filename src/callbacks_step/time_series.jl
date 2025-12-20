@@ -56,6 +56,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
           "output_directory=", "\"output_directory\"", ", ",
           "filename=", "\"filename\"",
           ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",

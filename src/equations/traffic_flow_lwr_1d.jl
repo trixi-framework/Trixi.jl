@@ -23,7 +23,7 @@ struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquatio
     v_max::RealT
 
     function TrafficFlowLWREquations1D(v_max = 1.0)
-        new{typeof(v_max)}(v_max)
+        return new{typeof(v_max)}(v_max)
     end
 end
 
@@ -102,7 +102,7 @@ end
 
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    min_max_speed_naive(u_ll, u_rr, orientation, equations)
+    return min_max_speed_naive(u_ll, u_rr, orientation, equations)
 end
 
 @inline function max_abs_speeds(u, equations::TrafficFlowLWREquations1D)
