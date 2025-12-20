@@ -234,8 +234,12 @@ function Base.show(io::IO, mime::MIME"text/plain",
                      integral.volume_integral_default)
         summary_line(io, "volume integral stabilized",
                      integral.volume_integral_stabilized)
-        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
-        show(increment_indent(io), mime, integral.indicator)
+        if integral.indicator === nothing
+            summary_line(io, "indicator", integral.indicator)
+        else
+            summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
+            show(increment_indent(io), mime, integral.indicator)
+        end
         summary_footer(io)
     end
 end
