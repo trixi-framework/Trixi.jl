@@ -93,7 +93,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
-                        #analysis_callback,
+                        analysis_callback,
                         alive_callback,
                         amr_callback, stepsize_callback)
 ###############################################################################
