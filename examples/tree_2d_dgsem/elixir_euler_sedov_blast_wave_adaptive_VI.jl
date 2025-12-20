@@ -50,9 +50,9 @@ volume_integral_stabilized = VolumeIntegralShockCapturingHG(indicator_sc;
                                                             volume_flux_dg = volume_flux,
                                                             volume_flux_fv = surface_flux)
 
-volume_integral = VolumeIntegralAdaptive(nothing, # Indicator taken from `volume_integral_stabilized`
-                                         volume_integral_default = VolumeIntegralWeakForm(),
-                                         volume_integral_stabilized = volume_integral_stabilized)
+volume_integral = VolumeIntegralAdaptive(volume_integral_default = VolumeIntegralWeakForm(),
+                                         volume_integral_stabilized = volume_integral_stabilized,
+                                         nothing) #= Indicator taken from `volume_integral_stabilized`=#
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 

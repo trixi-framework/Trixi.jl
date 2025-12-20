@@ -305,7 +305,7 @@ struct IndicatorEntropyIncrease{RealT <: Real} <:
     threshold::RealT
 end
 
-function IndicatorEntropyIncrease(; threshold = 1e-3)
+function IndicatorEntropyIncrease(; threshold = 0)
     IndicatorEntropyIncrease{typeof(threshold)}(threshold)
 end
 

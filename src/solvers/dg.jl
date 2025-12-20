@@ -193,11 +193,16 @@ function get_element_variables!(element_variables, u, mesh, equations,
 end
 
 """
-    VolumeIntegralAdaptive(indicator;
+    VolumeIntegralAdaptive(;
                            volume_integral_default = VolumeIntegralWeakForm(),
-                           volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central))
+                           volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
+                           indicator = IndicatorEntropyIncrease())
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
 
-Possible combination: [`VolumeIntegralWeakForm`](@ref) and [`VolumeIntegralFluxDifferencing`](@ref).
+Possible combinations:
+- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyIncrease`](@ref)
+- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralShockCapturingHG`](@ref), and `nothing` (indicator taken from `VolumeIntegralShockCapturingHG`)
 """
 struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
                               Indicator} <: AbstractVolumeIntegral
@@ -206,14 +211,15 @@ struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
     indicator::Indicator
 end
 
-function VolumeIntegralAdaptive(indicator;
+function VolumeIntegralAdaptive(;
                                 volume_integral_default = VolumeIntegralWeakForm(),
-                                volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central))
-    VolumeIntegralAdaptive{typeof(volume_integral_default),
-                           typeof(volume_integral_stabilized),
-                           typeof(indicator)}(volume_integral_default,
-                                              volume_integral_stabilized,
-                                              indicator)
+                                volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
+                                indicator = IndicatorEntropyIncrease())
+    return VolumeIntegralAdaptive{typeof(volume_integral_default),
+                                  typeof(volume_integral_stabilized),
+                                  typeof(indicator)}(volume_integral_default,
+                                                     volume_integral_stabilized,
+                                                     indicator)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
