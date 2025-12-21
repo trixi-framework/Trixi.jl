@@ -179,7 +179,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
     return SVector(u_prim[1], u_prim[2], u_prim[3], p)
 end
 function Trixi.varnames(::typeof(cons2macroscopic), ::PolytropicEulerEquations2D)
-    ("rho", "v1", "v2", "p")
+    return ("rho", "v1", "v2", "p")
 end
 
 save_solution = SaveSolutionCallback(interval = 50,

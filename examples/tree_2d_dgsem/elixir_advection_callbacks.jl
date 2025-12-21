@@ -20,7 +20,7 @@ struct ExampleStageCallback
     # some required stuff. You can also create outer constructors (not demonstrated
     # here) for further customization options.
     function ExampleStageCallback()
-        new(Float64[], Float64[], Float64[])
+        return new(Float64[], Float64[], Float64[])
     end
 end
 
@@ -50,7 +50,7 @@ struct ExampleStepCallback
     # some required stuff. You can also create outer constructors (not demonstrated
     # here) for further customization options.
     function ExampleStepCallback(message::String)
-        new(message, Float64[], Float64[], Float64[])
+        return new(message, Float64[], Float64[], Float64[])
     end
 end
 
@@ -84,9 +84,9 @@ function ExampleStepCallback(; message::String)
 
     example_callback = ExampleStepCallback(message)
 
-    DiscreteCallback(condition, example_callback,
-                     save_positions = (false, false),
-                     initialize = initialize)
+    return DiscreteCallback(condition, example_callback,
+                            save_positions = (false, false),
+                            initialize = initialize)
 end
 
 end # module TrixiExtensionExample

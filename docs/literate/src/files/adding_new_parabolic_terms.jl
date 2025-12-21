@@ -32,7 +32,7 @@ struct ConstantAnisotropicDiffusion2D{E, T} <:
 end
 
 function varnames(variable_mapping, equations_parabolic::ConstantAnisotropicDiffusion2D)
-    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+    return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
 # Next, we define the viscous flux function. We assume that the mixed hyperbolic-parabolic system
