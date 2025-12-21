@@ -274,7 +274,7 @@ end
 @doc raw"""
     IndicatorEntropyIncrease(threshold=0)
 
-This indicator checks the increase in the mathematical `entropy` (``S``) due to the application
+This indicator checks the increase in the mathematical [`entropy`](@ref) (```S```) due to the application
 of the weak-form volume integral. In particular, the indicator computes
 ```math
 \Delta S = 
