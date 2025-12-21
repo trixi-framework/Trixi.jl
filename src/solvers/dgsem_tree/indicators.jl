@@ -297,8 +297,8 @@ Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which t
 more advanced/ (entropy) stable volume integral for the troubled cell/element ``m``.
 
 !!! note
-    This indicator is not implemented as an AMR indicator, i.e., it is currently not
-    possible to employ this as the `indicator` in [`ControllerThreeLevel`](@ref).
+    This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref).
 """
 struct IndicatorEntropyIncrease{RealT <: Real} <:
        AbstractIndicator
