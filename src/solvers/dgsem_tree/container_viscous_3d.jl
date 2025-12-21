@@ -11,25 +11,25 @@ mutable struct ViscousContainer3D{uEltype <: Real}
 
     function ViscousContainer3D{uEltype}(n_vars::Integer, n_nodes::Integer,
                                          n_elements::Integer) where {uEltype <: Real}
-        new(Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements), # `u_transformed`
-            # `gradients`
-            (Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
-             Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
-             Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)),
-            # `flux_viscous`
-            (Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
-             Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
-             Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)),
-            # `u_transformed`
-            Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
-            # `_gradients`
-            (Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
-             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
-             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements)),
-            # `_flux_viscous`
-            (Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
-             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
-             Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements)))
+        return new(Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements), # `u_transformed`
+                   # `gradients`
+                   (Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
+                    Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
+                    Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)),
+                   # `flux_viscous`
+                   (Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
+                    Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements),
+                    Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)),
+                   # `u_transformed`
+                   Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+                   # `_gradients`
+                   (Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+                    Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+                    Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements)),
+                   # `_flux_viscous`
+                   (Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+                    Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements),
+                    Vector{uEltype}(undef, n_vars * n_nodes^3 * n_elements)))
     end
 end
 

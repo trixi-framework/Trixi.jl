@@ -10,12 +10,12 @@ mutable struct ViscousContainer1D{uEltype <: Real}
 
     function ViscousContainer1D{uEltype}(n_vars::Integer, n_nodes::Integer,
                                          n_elements::Integer) where {uEltype <: Real}
-        new(Array{uEltype, 3}(undef, n_vars, n_nodes, n_elements),
-            Array{uEltype, 3}(undef, n_vars, n_nodes, n_elements),
-            Array{uEltype, 3}(undef, n_vars, n_nodes, n_elements),
-            Vector{uEltype}(undef, n_vars * n_nodes * n_elements),
-            Vector{uEltype}(undef, n_vars * n_nodes * n_elements),
-            Vector{uEltype}(undef, n_vars * n_nodes * n_elements))
+        return new(Array{uEltype, 3}(undef, n_vars, n_nodes, n_elements),
+                   Array{uEltype, 3}(undef, n_vars, n_nodes, n_elements),
+                   Array{uEltype, 3}(undef, n_vars, n_nodes, n_elements),
+                   Vector{uEltype}(undef, n_vars * n_nodes * n_elements),
+                   Vector{uEltype}(undef, n_vars * n_nodes * n_elements),
+                   Vector{uEltype}(undef, n_vars * n_nodes * n_elements))
     end
 end
 
