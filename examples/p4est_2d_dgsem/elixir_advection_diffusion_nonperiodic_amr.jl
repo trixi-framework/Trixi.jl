@@ -58,6 +58,7 @@ boundary_conditions_parabolic = boundary_condition_default(mesh, boundary_condit
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ViscousFormulationLocalDG(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -65,7 +66,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
-tspan = (0.0, 0.5)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
@@ -88,7 +89,8 @@ amr_callback = AMRCallback(semi, amr_controller,
                            interval = 50)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback
+)
 
 ###############################################################################
 # run the simulation

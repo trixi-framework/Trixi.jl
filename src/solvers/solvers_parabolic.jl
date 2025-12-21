@@ -87,9 +87,23 @@ function flux_parabolic(u_ll, u_rr, ::Gradient, equations_parabolic,
     return u_ll # Use the upwind value for the gradient interface flux
 end
 
+function flux_parabolic(u_ll, u_rr, normal_direction,
+                        ::Gradient, equations_parabolic,
+                        parabolic_scheme::ViscousFormulationLocalDG)
+    ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
+    return 0.5f0 * (u_ll + u_rr) - 0.5f0 * ldg_switch * (u_rr - u_ll)
+end
+
 function flux_parabolic(u_ll, u_rr, ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux
+end
+
+function flux_parabolic(u_ll, u_rr, normal_direction,
+                        ::Divergence, equations_parabolic,
+                        parabolic_scheme::ViscousFormulationLocalDG)
+    ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
+    return 0.5f0 * (u_ll + u_rr) + 0.5f0 * ldg_switch * (u_rr - u_ll)
 end
 
 default_parabolic_solver() = ViscousFormulationBassiRebay1()
