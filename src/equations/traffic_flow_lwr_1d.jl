@@ -115,7 +115,14 @@ end
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::TrafficFlowLWREquations1D) = u
 
-# Calculate entropy for a conservative state `cons`
+@doc raw"""
+    entropy(cons, equations::TrafficFlowLWREquations1D)
+
+Calculate entropy for a conservative state `cons` as
+```math
+S(u) = \frac{1}{2} u^2
+```
+"""
 @inline entropy(u::Real, ::TrafficFlowLWREquations1D) = 0.5f0 * u^2
 @inline entropy(u, equations::TrafficFlowLWREquations1D) = entropy(u[1], equations)
 

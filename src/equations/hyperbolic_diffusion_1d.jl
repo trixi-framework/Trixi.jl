@@ -200,12 +200,22 @@ end
     return SVector(w1, w2)
 end
 
-# Calculate entropy for a conservative state `u` (here: same as total energy)
+"""
+    entropy(u, equations::AbstractHyperbolicDiffusionEquations)
+
+Calculate entropy for a conservative state `u` (here: same as [`energy_total`](@ref)).
+"""
 @inline function entropy(u, equations::HyperbolicDiffusionEquations1D)
     return energy_total(u, equations)
 end
 
-# Calculate total energy for a conservative state `u`
+@doc raw"""
+    energy_total(u, equations::AbstractHyperbolicDiffusionEquations)
+
+Calculate total energy for a conservative state `u` as
+```math
+E = \frac{1}{2} \left( \phi^2 + L_r^2 \Vert \boldsymbol q \Vert_2^2 \right)
+"""
 @inline function energy_total(u, equations::HyperbolicDiffusionEquations1D)
     # energy function as found in equations (2.5.12) in the book "I Do Like CFD, Vol. 1"
     phi, q1 = u

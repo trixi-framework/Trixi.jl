@@ -39,9 +39,9 @@ end
         @test isapprox(pressure(u, eqn), 1.7219999999999995)
         @test isapprox(density_pressure(u, eqn), 1.7219999999999995)
 
-        @test isapprox(Trixi.entropy_thermodynamic(u, eqn), 0.5434864060055388)
-        @test isapprox(Trixi.entropy_math(u, eqn), -1.3587160150138473)
-        @test isapprox(Trixi.entropy(u, eqn), -1.3587160150138473)
+        @test isapprox(entropy_thermodynamic(u, eqn), 0.5434864060055388)
+        @test isapprox(entropy_math(u, eqn), -1.3587160150138473)
+        @test isapprox(entropy(u, eqn), -1.3587160150138473)
 
         @test isapprox(energy_total(u, eqn), 20.0)
         @test isapprox(energy_kinetic(u, eqn), 14.5)

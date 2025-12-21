@@ -735,7 +735,15 @@ as given by
     return v1_roe, c_f_roe
 end
 
-# Calculate thermodynamic entropy for a conservative state `cons`
+@doc raw"""
+    entropy_thermodynamic(cons, equations::AbstractIdealGlmMhdEquations)
+
+Calculate thermodynamic entropy for a conservative state `cons` as
+
+```math
+s = \log(p) - \gamma \log(\rho)
+```
+"""
 @inline function entropy_thermodynamic(cons, equations::IdealGlmMhdEquations1D)
     # Pressure
     p = (equations.gamma - 1) *
@@ -749,14 +757,26 @@ end
     return s
 end
 
-# Calculate mathematical entropy for a conservative state `cons`
+@doc raw"""
+    entropy_math(cons, equations::AbstractIdealGlmMhdEquations)
+
+Calculate mathematical entropy for a conservative state `cons` as
+```math
+S = -\frac{\rho s}{\gamma - 1}
+```
+where `s` is the thermodynamic entropy calculated by [`entropy_thermodynamic`](@ref).
+"""
 @inline function entropy_math(cons, equations::IdealGlmMhdEquations1D)
     S = -entropy_thermodynamic(cons, equations) * cons[1] / (equations.gamma - 1)
 
     return S
 end
 
-# Default entropy is the mathematical entropy
+"""
+    entropy(cons, equations::AbstractIdealGlmMhdEquations)
+
+Default entropy is the mathematical entropy [`entropy_math`](@ref).
+"""
 @inline entropy(cons, equations::IdealGlmMhdEquations1D) = entropy_math(cons, equations)
 
 # Calculate total energy for a conservative state `cons`

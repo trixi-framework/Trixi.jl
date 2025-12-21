@@ -138,15 +138,44 @@ end
     return u[1]
 end
 
+@doc raw"""
+    energy_kinetic(u, equations::LinearElasticityEquations1D)
+
+Calculate kinetic energy for a conservative state `u` as
+```math
+E_{kin} = \frac{1}{2} \rho v_1^2
+```
+"""
 @inline function energy_kinetic(u, equations::LinearElasticityEquations1D)
     return 0.5f0 * equations.rho * u[1]^2
 end
+
+@doc raw"""
+    energy_internal(u, equations::LinearElasticityEquations1D)
+
+Calculate internal energy for a conservative state `u` as
+```math
+E_{int} = \frac{1}{2} \frac{\sigma_{11}^2}{E}
+```
+"""
 @inline function energy_internal(u, equations::LinearElasticityEquations1D)
     return 0.5f0 * u[2]^2 / equations.E
 end
+
+"""
+    energy_total(u, equations::LinearElasticityEquations1D)
+
+Calculate total energy for a conservative state `u` as the sum of
+[`energy_kinetic`](@ref) and [`energy_internal`](@ref).
+"""
 @inline function energy_total(u, equations::LinearElasticityEquations1D)
     return energy_kinetic(u, equations) + energy_internal(u, equations)
 end
 
+"""
+    entropy(u, equations::LinearElasticityEquations1D)
+
+Calculate entropy for a conservative state `u` (here: same as [`energy_total`](@ref)).
+"""
 @inline entropy(u, equations::LinearElasticityEquations1D) = energy_total(u, equations)
 end # muladd

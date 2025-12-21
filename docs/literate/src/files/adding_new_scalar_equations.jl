@@ -131,7 +131,7 @@ plot(sol)
 # Possible next steps could be
 # - to define `Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2`
 #   to use CFL-based time step control via a [`StepsizeCallback`](@ref)
-# - to define quantities of interest like `Trixi.entropy(u, equations::CubicEquation) = u[1]^2`
+# - to define quantities of interest like `entropy(u, equations::CubicEquation) = u[1]^2`
 #   and integrate them in a simulation using the [`AnalysisCallback`](@ref)
 # - to experiment with shock-capturing volume integrals [`VolumeIntegralShockCapturingHG`](@ref)
 #   and adaptive mesh refinement [`AMRCallback`](@ref)
