@@ -272,7 +272,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 @doc raw"""
-    IndicatorEntropyIncrease(threshold=1e-3)
+    IndicatorEntropyIncrease(threshold=0)
 
 This indicator checks the increase in the mathematical `entropy` (``S``) due to the application
 of the weak-form volume integral. In particular, the indicator computes
