@@ -764,7 +764,8 @@ Calculate mathematical entropy for a conservative state `cons` as
 ```math
 S = -\frac{\rho s}{\gamma - 1}
 ```
-where `s` is the thermodynamic entropy calculated by [`entropy_thermodynamic`](@ref).
+where `s` is the thermodynamic entropy calculated by
+[`entropy_thermodynamic(cons, equations::AbstractIdealGlmMhdEquations)`](@ref).
 """
 @inline function entropy_math(cons, equations::IdealGlmMhdEquations1D)
     S = -entropy_thermodynamic(cons, equations) * cons[1] / (equations.gamma - 1)
@@ -775,7 +776,8 @@ end
 """
     entropy(cons, equations::AbstractIdealGlmMhdEquations)
 
-Default entropy is the mathematical entropy [`entropy_math`](@ref).
+Default entropy is the mathematical entropy
+[`entropy_math(cons, equations::AbstractIdealGlmMhdEquations)`](@ref).
 """
 @inline entropy(cons, equations::IdealGlmMhdEquations1D) = entropy_math(cons, equations)
 

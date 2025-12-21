@@ -175,7 +175,8 @@ end
 """
     entropy(u, equations::LinearElasticityEquations1D)
 
-Calculate entropy for a conservative state `u` (here: same as [`energy_total`](@ref)).
+Calculate entropy for a conservative state `u`,
+here same as [`energy_total(u, equations::AbstractLinearElasticityEquations)`](@ref).
 """
 @inline entropy(u, equations::LinearElasticityEquations1D) = energy_total(u, equations)
 end # muladd

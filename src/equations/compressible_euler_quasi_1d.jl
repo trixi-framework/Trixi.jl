@@ -347,7 +347,8 @@ end
 """
     entropy(u, equations::CompressibleEulerEquationsQuasi1D)
 
-The entropy for the quasi-1D compressible Euler equations is the [`entropy`](@ref) for the
+The entropy for the quasi-1D compressible Euler equations is the
+[`entropy(cons, equations::AbstractCompressibleEulerEquations)`](@ref) for the
 (1D) compressible Euler equations scaled by the channel width `a`.
 """
 @inline function entropy(u, equations::CompressibleEulerEquationsQuasi1D)

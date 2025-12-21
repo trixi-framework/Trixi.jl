@@ -1109,7 +1109,8 @@ Calculate mathematical entropy for a conservative state `cons` as
 ```math
 S = -\frac{\rho s}{\gamma - 1}
 ```
-where `s` is the thermodynamic entropy calculated by [`entropy_thermodynamic`](@ref).
+where `s` is the thermodynamic entropy calculated by
+[`entropy_thermodynamic(cons, equations::AbstractCompressibleEulerEquations)`](@ref).
 """
 @inline function entropy_math(cons, equations::CompressibleEulerEquations1D)
     # Mathematical entropy
@@ -1122,7 +1123,8 @@ end
 """
     entropy(cons, equations::AbstractCompressibleEulerEquations)
 
-Default entropy is the mathematical entropy [`entropy_math`](@ref).
+Default entropy is the mathematical entropy
+[`entropy_math(cons, equations::AbstractCompressibleEulerEquations)`](@ref).
 """
 @inline function entropy(cons, equations::CompressibleEulerEquations1D)
     return entropy_math(cons, equations)

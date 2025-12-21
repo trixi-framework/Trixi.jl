@@ -203,7 +203,8 @@ end
 """
     entropy(u, equations::AbstractHyperbolicDiffusionEquations)
 
-Calculate entropy for a conservative state `u` (here: same as [`energy_total`](@ref)).
+Calculate entropy for a conservative state `u`,
+here same as [`energy_total(u, equations::AbstractHyperbolicDiffusionEquations)`](@ref).
 """
 @inline function entropy(u, equations::HyperbolicDiffusionEquations1D)
     return energy_total(u, equations)
