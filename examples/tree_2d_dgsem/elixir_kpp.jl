@@ -49,8 +49,8 @@ end
                                                                                                            norm(normal_direction)
 
 # Compute entropy: we use the square entropy
-@inline entropy(u::Real, ::KPPEquation2D) = 0.5f0 * u^2
-@inline entropy(u, ::KPPEquation2D) = entropy(u[1], equation)
+@inline Trixi.entropy(u::Real, ::KPPEquation2D) = 0.5f0 * u^2
+@inline Trixi.entropy(u, ::KPPEquation2D) = entropy(u[1], equation)
 
 # Convert between conservative, primitive, and entropy variables. The conserved quantity "u" is also
 # considered the "primitive variable". Since we use the square entropy, "u" is also the entropy
