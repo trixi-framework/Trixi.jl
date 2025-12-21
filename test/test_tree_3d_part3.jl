@@ -30,6 +30,7 @@ end
 @trixi_testset "Additional tests in 3D" begin
     using Trixi: Trixi, IdealGlmMhdEquations3D, density, pressure, density_pressure,
                  energy_total, energy_kinetic, energy_magnetic, energy_internal,
+                 entropy, entropy_math, entropy_thermodynamic,
                  cross_helicity
     @testset "ideal GLM MHD" begin
         eqn = IdealGlmMhdEquations3D(1.4)
