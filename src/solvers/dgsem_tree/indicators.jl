@@ -294,7 +294,7 @@ Thus, for the mathematical entropy (default for `entropy`) which should not grow
 over the course of a simulation, this can be used to identify troubled cells.
 
 Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
-more advanced/ (entropy) stable volume integral for the troubled cell/element ``m``.
+more advanced/(entropy) stable volume integral for the troubled cell/element ``m``.
 
 !!! note
     This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
