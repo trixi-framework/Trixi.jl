@@ -232,9 +232,9 @@ end
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation1D) = u
 
 @doc raw"""
-    entropy(cons, equations::AbstractLinearScalarAdvectionEquation)
+    entropy(u, equations::AbstractLinearScalarAdvectionEquation)
 
-Calculate entropy for a conservative state `cons` as
+Calculate entropy for a conservative state `u` as
 ```math
 S(u) = \frac{1}{2} u^2
 ```
@@ -242,7 +242,7 @@ S(u) = \frac{1}{2} u^2
 @inline entropy(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation1D) = entropy(u[1], equation)
 
-# Calculate total energy for a conservative state `cons`
+# Calculate total energy for a conservative state `u`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation1D)
     return energy_total(u[1], equation)
