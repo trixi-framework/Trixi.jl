@@ -197,6 +197,7 @@ end
                            volume_integral_default = VolumeIntegralWeakForm(),
                            volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
                            indicator = IndicatorEntropyIncrease())
+
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
 
