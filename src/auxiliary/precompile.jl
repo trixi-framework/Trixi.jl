@@ -378,7 +378,7 @@ function _precompile_manual_()
     # for RealT in (Float64,), polydeg in 1:7
     #   nnodes_ = polydeg + 1
     #   nnodes_analysis = 2*polydeg + 1
-    # @assert Base.precompile(Tuple{Type{AnalysisCallback},RealT,Int,Bool,String,String,Trixi.LobattoLegendreAnalyzer{RealT,nnodes_analysis,Array{RealT,2}},Array{Symbol,1},Tuple{typeof(Trixi.entropy_timederivative),typeof(entropy)},StaticArrays.SArray{Tuple{1},RealT,1,1}})
+    # @assert Base.precompile(Tuple{Type{AnalysisCallback},RealT,Int,Bool,String,String,Trixi.LobattoLegendreAnalyzer{RealT,nnodes_analysis,Array{RealT,2}},Array{Symbol,1},Tuple{typeof(entropy_timederivative),typeof(entropy)},StaticArrays.SArray{Tuple{1},RealT,1,1}})
     # We would need to use all special cases instead of
     # Function,Trixi.AbstractVolumeIntegral
     # for equations_type in equations_types(RealT)
