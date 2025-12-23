@@ -86,7 +86,7 @@ function flux_parabolic(u_ll, u_rr, ::Gradient, equations_parabolic,
     # and `u_rr` for the divergence. 
     return u_ll # Use the upwind value for the gradient interface flux
 end
-
+  
 function flux_parabolic(u_ll, u_rr, ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux

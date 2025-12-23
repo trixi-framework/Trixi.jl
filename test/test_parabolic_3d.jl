@@ -514,6 +514,37 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex_amr.jl"),
+                        initial_refinement_level=0,
+                        max_level=2,
+                        tspan=(0.0, 0.1),
+                        semi=SemidiscretizationHyperbolicParabolic(mesh,
+                                                                   (equations,
+                                                                    equations_parabolic),
+                                                                   initial_condition,
+                                                                   solver;
+                                                                   solver_parabolic = ViscousFormulationLocalDG()),
+                        l2=[
+                            0.001106957715988547,
+                            0.013872608965686416,
+                            0.013872608965686475,
+                            0.012060236235076741,
+                            0.1449367783885418
+                        ],
+                        linf=[
+                            0.004409026648702463,
+                            0.05154414212870001,
+                            0.05154414253101042,
+                            0.03528488752084412,
+                            0.6807800215038924
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh3D: elixir_navierstokes_viscous_shock.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
