@@ -343,4 +343,183 @@ function initialize_left_neighbor_connectivity!(left_neighbors, mesh::Structured
 
     return left_neighbors
 end
+
+# Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
+# equations (14) and (B.53) in:
+# - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+#   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
+#   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
+                                        normal_vectors_3,
+                                        mesh::Union{StructuredMesh{3},
+                                                    P4estMesh{3}, T8codeMesh{3}},
+                                        dg, cache_containers)
+    @unpack contravariant_vectors = cache_containers.elements
+    @unpack weights, derivative_matrix = dg.basis
+
+    # TODO: Optimize memory layout!
+    @threaded for element in eachelement(dg, cache_containers)
+
+        # First contravariant vector/direction
+        for k in eachnode(dg), j in eachnode(dg)
+            for d in 1:3
+                normal_vectors_1[d, 1, j, k, element] = contravariant_vectors[d, 1,
+                                                                              1,
+                                                                              j,
+                                                                              k,
+                                                                              element]
+            end
+
+            for i in 2:nnodes(dg)
+                for d in 1:3
+                    normal_vectors_1[d, i, j, k, element] = normal_vectors_1[d,
+                                                                             i - 1,
+                                                                             j,
+                                                                             k,
+                                                                             element]
+                end
+                # Compute freestream-preserving normal vector for the finite volume flux.
+                # This is the first equation in (B.53).
+                for m in eachnode(dg)
+                    wD_im = weights[i - 1] * derivative_matrix[i - 1, m]
+                    for d in 1:3
+                        normal_vectors_1[d, i, j, k, element] += wD_im *
+                                                                 contravariant_vectors[d,
+                                                                                       1,
+                                                                                       m,
+                                                                                       j,
+                                                                                       k,
+                                                                                       element]
+                    end
+                end
+            end
+        end
+
+        # Second contravariant vector/direction
+        for k in eachnode(dg), i in eachnode(dg)
+            for d in 1:3
+                normal_vectors_2[d, i, 1, k, element] = contravariant_vectors[d, 2,
+                                                                              i,
+                                                                              1,
+                                                                              k,
+                                                                              element]
+            end
+
+            for j in 2:nnodes(dg)
+                for d in 1:3
+                    normal_vectors_2[d, i, j, k, element] = normal_vectors_2[d,
+                                                                             i,
+                                                                             j - 1,
+                                                                             k,
+                                                                             element]
+                end
+
+                for m in eachnode(dg)
+                    wD_jm = weights[j - 1] * derivative_matrix[j - 1, m]
+                    for d in 1:3
+                        normal_vectors_2[d, i, j, k, element] += wD_jm *
+                                                                 contravariant_vectors[d,
+                                                                                       2,
+                                                                                       i,
+                                                                                       m,
+                                                                                       k,
+                                                                                       element]
+                    end
+                end
+            end
+        end
+
+        # Third contravariant vector/direction
+        for j in eachnode(dg), i in eachnode(dg)
+            for d in 1:3
+                normal_vectors_3[d, i, j, 1, element] = contravariant_vectors[d, 3,
+                                                                              i,
+                                                                              j,
+                                                                              1,
+                                                                              element]
+            end
+
+            for k in 2:nnodes(dg)
+                for d in 1:3
+                    normal_vectors_3[d, i, j, k, element] = normal_vectors_3[d,
+                                                                             i,
+                                                                             j,
+                                                                             k - 1,
+                                                                             element]
+                end
+                for m in eachnode(dg)
+                    wD_km = weights[k - 1] * derivative_matrix[k - 1, m]
+                    for d in 1:3
+                        normal_vectors_3[d, i, j, k, element] += wD_km *
+                                                                 contravariant_vectors[d,
+                                                                                       3,
+                                                                                       i,
+                                                                                       j,
+                                                                                       m,
+                                                                                       element]
+                    end
+                end
+            end
+        end
+    end
+
+    return normal_vectors_1, normal_vectors_2, normal_vectors_3
+end
+
+# Used for both fixed (`StructuredMesh{3}`) 
+# and adaptive meshes (`P4estMesh{3}` or `T8codeMesh{3}`)
+mutable struct NormalVectorContainer3D{RealT <: Real} <:
+               AbstractNormalVectorContainer
+    const n_nodes::Int
+    # For normal vectors computed from first contravariant vectors
+    normal_vectors_1::Array{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES, NELEMENTS]
+    # For normal vectors computed from second contravariant vectors
+    normal_vectors_2::Array{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES, NELEMENTS]
+    # For normal vectors computed from third contravariant vectors
+    normal_vectors_3::Array{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES, NELEMENTS]
+
+    # internal `resize!`able storage
+    _normal_vectors_1::Vector{RealT}
+    _normal_vectors_2::Vector{RealT}
+    _normal_vectors_3::Vector{RealT}
+end
+
+function NormalVectorContainer3D(mesh::Union{StructuredMesh{3},
+                                             P4estMesh{3}, T8codeMesh{3}},
+                                 dg, cache_containers)
+    @unpack contravariant_vectors = cache_containers.elements
+    RealT = eltype(contravariant_vectors)
+    n_elements = nelements(dg, cache_containers)
+    n_nodes = nnodes(dg.basis)
+
+    _normal_vectors_1 = Vector{RealT}(undef,
+                                      3 * n_nodes * n_nodes * n_nodes * n_elements)
+    normal_vectors_1 = unsafe_wrap(Array, pointer(_normal_vectors_1),
+                                   (3, n_nodes, n_nodes, n_nodes,
+                                    n_elements))
+
+    _normal_vectors_2 = Vector{RealT}(undef,
+                                      3 * n_nodes * n_nodes * n_nodes * n_elements)
+    normal_vectors_2 = unsafe_wrap(Array, pointer(_normal_vectors_2),
+                                   (3, n_nodes, n_nodes, n_nodes,
+                                    n_elements))
+
+    _normal_vectors_3 = Vector{RealT}(undef,
+                                      3 * n_nodes * n_nodes * n_nodes * n_elements)
+    normal_vectors_3 = unsafe_wrap(Array, pointer(_normal_vectors_3),
+                                   (3, n_nodes, n_nodes, n_nodes,
+                                    n_elements))
+
+    calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2, normal_vectors_3,
+                                   mesh, dg, cache_containers)
+
+    return NormalVectorContainer3D{RealT}(n_nodes,
+                                          normal_vectors_1, normal_vectors_2,
+                                          normal_vectors_3,
+                                          _normal_vectors_1, _normal_vectors_2,
+                                          _normal_vectors_3)
+end
+
+# TODO: resize!, init_normal_vectors!
+
 end # @muladd

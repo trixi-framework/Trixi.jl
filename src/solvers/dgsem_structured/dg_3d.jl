@@ -5,6 +5,25 @@
 @muladd begin
 #! format: noindent
 
+function create_cache(mesh::Union{StructuredMesh{3},
+                                  P4estMesh{3}, T8codeMesh{3}},
+                      equations,
+                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralShockCapturingHG},
+                      dg::DG, cache_containers, uEltype)
+    fstar1_L_threaded, fstar1_R_threaded,
+    fstar2_L_threaded, fstar2_R_threaded,
+    fstar3_L_threaded, fstar3_R_threaded = create_f_threaded(mesh, equations, dg,
+                                                             uEltype)
+
+    normal_vectors = NormalVectorContainer3D(mesh, dg, cache_containers)
+
+    return (; fstar1_L_threaded, fstar1_R_threaded,
+            fstar2_L_threaded, fstar2_R_threaded,
+            fstar3_L_threaded, fstar3_R_threaded,
+            normal_vectors)
+end
+
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -361,25 +380,16 @@ end
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
+    @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
-    # TODO: Performance gain if the metric terms of the subcell FV method are computed
-    # only once at the beginning of the simulation (e.g. in `create_cache`)!
+    # TODO: Optimize memory layout and accessing!
 
     for k in eachnode(dg), j in eachnode(dg)
-        normal_direction = get_contravariant_vector(1, contravariant_vectors,
-                                                    1, j, k, element)
-
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
             u_rr = get_node_vars(u, equations, dg, i, j, k, element)
-
-            # Compute freestream-preserving normal vector for the finite volume flux.
-            # This is the first equation in (B.53).
-            for m in eachnode(dg)
-                normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
-                                    get_contravariant_vector(1, contravariant_vectors,
-                                                             m, j, k, element)
-            end
+            normal_direction = get_normal_vector(normal_vectors_1,
+                                                 i, j, k, element)
 
             # Compute the contravariant flux
             contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
@@ -390,18 +400,12 @@ end
     end
 
     for k in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, 1, k, element)
-
         for j in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
             u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
-                                    get_contravariant_vector(2, contravariant_vectors,
-                                                             i, m, k, element)
-            end
+            normal_direction = get_normal_vector(normal_vectors_2,
+                                                 i, j, k, element)
 
             # Compute the contravariant flux
             contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
@@ -412,18 +416,12 @@ end
     end
 
     for j in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(3, contravariant_vectors,
-                                                    i, j, 1, element)
-
         for k in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[k - 1] * derivative_matrix[k - 1, m] *
-                                    get_contravariant_vector(3, contravariant_vectors,
-                                                             i, j, m, element)
-            end
+            normal_direction = get_normal_vector(normal_vectors_3,
+                                                 i, j, k, element)
 
             # Compute the contravariant flux
             contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
@@ -447,24 +445,15 @@ end
 
     volume_flux, nonconservative_flux = volume_flux_fv
 
-    # TODO: Performance gain if the metric terms of the subcell FV method are computed
-    # only once at the beginning of the simulation (e.g. in `create_cache`)!
+    # TODO: Optimize memory layout and accessing!
 
     for k in eachnode(dg), j in eachnode(dg)
-        normal_direction = get_contravariant_vector(1, contravariant_vectors,
-                                                    1, j, k, element)
-
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
             u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-            # Compute freestream-preserving normal vector for the finite volume flux.
-            # This is the first equation in (B.53).
-            for m in eachnode(dg)
-                normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
-                                    get_contravariant_vector(1, contravariant_vectors,
-                                                             m, j, k, element)
-            end
+            normal_direction = get_normal_vector(normal_vectors_1,
+                                                 i, j, k, element)
 
             # Compute the contravariant conservative flux
             ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
@@ -486,18 +475,12 @@ end
     end
 
     for k in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, 1, k, element)
-
         for j in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
             u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
-                                    get_contravariant_vector(2, contravariant_vectors,
-                                                             i, m, k, element)
-            end
+            normal_direction = get_normal_vector(normal_vectors_2,
+                                                 i, j, k, element)
 
             # Compute the contravariant conservative flux
             ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
@@ -519,18 +502,12 @@ end
     end
 
     for j in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(3, contravariant_vectors,
-                                                    i, j, 1, element)
-
         for k in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
             u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[k - 1] * derivative_matrix[k - 1, m] *
-                                    get_contravariant_vector(3, contravariant_vectors,
-                                                             i, j, m, element)
-            end
+            normal_direction = get_normal_vector(normal_vectors_3,
+                                                 i, j, k, element)
 
             # Compute the contravariant conservative flux
             ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
