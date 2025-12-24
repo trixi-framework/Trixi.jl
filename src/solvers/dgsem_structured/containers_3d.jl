@@ -357,11 +357,11 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
     @unpack contravariant_vectors = cache_containers.elements
     @unpack weights, derivative_matrix = dg.basis
 
-    # TODO: Optimize memory layout!
     @threaded for element in eachelement(dg, cache_containers)
-
         # First contravariant vector/direction
         for k in eachnode(dg), j in eachnode(dg)
+            # We do not store i = 1, as it is never used, see `calcflux_fv!`.
+            # => Store i = 2 at position 1
             for d in 1:3
                 normal_vectors_1[d, 1, j, k, element] = contravariant_vectors[d, 1,
                                                                               1,
@@ -369,8 +369,20 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                                                               k,
                                                                               element]
             end
+            for m in eachnode(dg)
+                wD_im = weights[1] * derivative_matrix[1, m]
+                for d in 1:3
+                    normal_vectors_1[d, 1, j, k, element] += wD_im *
+                                                             contravariant_vectors[d,
+                                                                                   1,
+                                                                                   m,
+                                                                                   j,
+                                                                                   k,
+                                                                                   element]
+                end
+            end
 
-            for i in 2:nnodes(dg)
+            for i in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
                 for d in 1:3
                     normal_vectors_1[d, i, j, k, element] = normal_vectors_1[d,
                                                                              i - 1,
@@ -378,8 +390,6 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                                                              k,
                                                                              element]
                 end
-                # Compute freestream-preserving normal vector for the finite volume flux.
-                # This is the first equation in (B.53).
                 for m in eachnode(dg)
                     wD_im = weights[i - 1] * derivative_matrix[i - 1, m]
                     for d in 1:3
@@ -397,15 +407,29 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
 
         # Second contravariant vector/direction
         for k in eachnode(dg), i in eachnode(dg)
+            # We do not store j = 1, as it is never used.
+            # => Store physical j = 2 at position 1
             for d in 1:3
                 normal_vectors_2[d, i, 1, k, element] = contravariant_vectors[d, 2,
                                                                               i,
-                                                                              1,
+                                                                              2,
                                                                               k,
                                                                               element]
             end
+            for m in eachnode(dg)
+                wD_jm = weights[1] * derivative_matrix[1, m]
+                for d in 1:3
+                    normal_vectors_2[d, i, 1, k, element] += wD_jm *
+                                                             contravariant_vectors[d,
+                                                                                   2,
+                                                                                   i,
+                                                                                   m,
+                                                                                   k,
+                                                                                   element]
+                end
+            end
 
-            for j in 2:nnodes(dg)
+            for j in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
                 for d in 1:3
                     normal_vectors_2[d, i, j, k, element] = normal_vectors_2[d,
                                                                              i,
@@ -415,7 +439,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                 end
 
                 for m in eachnode(dg)
-                    wD_jm = weights[j - 1] * derivative_matrix[j - 1, m]
+                    wD_jm = weights[j] * derivative_matrix[j, m]
                     for d in 1:3
                         normal_vectors_2[d, i, j, k, element] += wD_jm *
                                                                  contravariant_vectors[d,
@@ -431,15 +455,30 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
 
         # Third contravariant vector/direction
         for j in eachnode(dg), i in eachnode(dg)
+            # We do not store k = 1, as it is never used.
+            # => Store physical k = 2 at position 1
             for d in 1:3
                 normal_vectors_3[d, i, j, 1, element] = contravariant_vectors[d, 3,
                                                                               i,
                                                                               j,
-                                                                              1,
+                                                                              2,
                                                                               element]
             end
 
-            for k in 2:nnodes(dg)
+            for m in eachnode(dg)
+                wD_km = weights[1] * derivative_matrix[1, m]
+                for d in 1:3
+                    normal_vectors_3[d, i, j, 1, element] += wD_km *
+                                                             contravariant_vectors[d,
+                                                                                   3,
+                                                                                   i,
+                                                                                   j,
+                                                                                   m,
+                                                                                   element]
+                end
+            end
+
+            for k in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
                 for d in 1:3
                     normal_vectors_3[d, i, j, k, element] = normal_vectors_3[d,
                                                                              i,
@@ -448,7 +487,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                                                              element]
                 end
                 for m in eachnode(dg)
-                    wD_km = weights[k - 1] * derivative_matrix[k - 1, m]
+                    wD_km = weights[k] * derivative_matrix[k, m]
                     for d in 1:3
                         normal_vectors_3[d, i, j, k, element] += wD_km *
                                                                  contravariant_vectors[d,
@@ -472,11 +511,11 @@ mutable struct NormalVectorContainer3D{RealT <: Real} <:
                AbstractNormalVectorContainer
     const n_nodes::Int
     # For normal vectors computed from first contravariant vectors
-    normal_vectors_1::Array{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES, NELEMENTS]
+    normal_vectors_1::Array{RealT, 5} # [NDIMS, NNODES - 1, NNODES, NNODES, NELEMENTS]
     # For normal vectors computed from second contravariant vectors
-    normal_vectors_2::Array{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES, NELEMENTS]
+    normal_vectors_2::Array{RealT, 5} # [NDIMS, NNODES, NNODES - 1, NNODES, NELEMENTS]
     # For normal vectors computed from third contravariant vectors
-    normal_vectors_3::Array{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES, NELEMENTS]
+    normal_vectors_3::Array{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES - 1, NELEMENTS]
 
     # internal `resize!`able storage
     _normal_vectors_1::Vector{RealT}
@@ -493,21 +532,24 @@ function NormalVectorContainer3D(mesh::Union{StructuredMesh{3},
     n_nodes = nnodes(dg.basis)
 
     _normal_vectors_1 = Vector{RealT}(undef,
-                                      3 * n_nodes * n_nodes * n_nodes * n_elements)
+                                      3 * (n_nodes - 1) * n_nodes * n_nodes *
+                                      n_elements)
     normal_vectors_1 = unsafe_wrap(Array, pointer(_normal_vectors_1),
-                                   (3, n_nodes, n_nodes, n_nodes,
+                                   (3, n_nodes - 1, n_nodes, n_nodes,
                                     n_elements))
 
     _normal_vectors_2 = Vector{RealT}(undef,
-                                      3 * n_nodes * n_nodes * n_nodes * n_elements)
+                                      3 * n_nodes * (n_nodes - 1) * n_nodes *
+                                      n_elements)
     normal_vectors_2 = unsafe_wrap(Array, pointer(_normal_vectors_2),
-                                   (3, n_nodes, n_nodes, n_nodes,
+                                   (3, n_nodes, n_nodes - 1, n_nodes,
                                     n_elements))
 
     _normal_vectors_3 = Vector{RealT}(undef,
-                                      3 * n_nodes * n_nodes * n_nodes * n_elements)
+                                      3 * n_nodes * n_nodes * (n_nodes - 1) *
+                                      n_elements)
     normal_vectors_3 = unsafe_wrap(Array, pointer(_normal_vectors_3),
-                                   (3, n_nodes, n_nodes, n_nodes,
+                                   (3, n_nodes, n_nodes, n_nodes - 1,
                                     n_elements))
 
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2, normal_vectors_3,
