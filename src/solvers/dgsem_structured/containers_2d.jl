@@ -345,12 +345,14 @@ function Base.resize!(normal_vectors::NormalVectorContainer2D, capacity)
 
     resize!(_normal_vectors_1, 2 * (n_nodes - 1) * n_nodes * capacity)
     normal_vectors.normal_vectors_1 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_1,
-                                                           (2, n_nodes - 1, n_nodes,
+                                                           (2,
+                                                            n_nodes - 1, n_nodes,
                                                             capacity))
 
     resize!(_normal_vectors_2, 2 * n_nodes * (n_nodes - 1) * capacity)
     normal_vectors.normal_vectors_2 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_2,
-                                                           (2, n_nodes, n_nodes - 1,
+                                                           (2,
+                                                            n_nodes, n_nodes - 1,
                                                             capacity))
 
     return nothing

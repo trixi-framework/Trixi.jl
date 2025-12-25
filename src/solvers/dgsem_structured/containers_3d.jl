@@ -562,6 +562,45 @@ function NormalVectorContainer3D(mesh::Union{StructuredMesh{3},
                                           _normal_vectors_3)
 end
 
-# TODO: resize!, init_normal_vectors!
+# Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
+function Base.resize!(normal_vectors::NormalVectorContainer3D, capacity)
+    @unpack n_nodes, _normal_vectors_1, _normal_vectors_2, _normal_vectors_3 = normal_vectors
+    ArrayType = storage_type(normal_vectors)
 
+    resize!(_normal_vectors_1, 3 * (n_nodes - 1) * n_nodes * n_nodes * capacity)
+    normal_vectors.normal_vectors_1 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_1,
+                                                           (3,
+                                                            n_nodes - 1,
+                                                            n_nodes,
+                                                            n_nodes,
+                                                            capacity))
+
+    resize!(_normal_vectors_2, 3 * n_nodes * (n_nodes - 1) * n_nodes * capacity)
+    normal_vectors.normal_vectors_2 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_2,
+                                                           (3,
+                                                            n_nodes,
+                                                            n_nodes - 1,
+                                                            n_nodes,
+                                                            capacity))
+
+    resize!(_normal_vectors_3, 3 * n_nodes * n_nodes * (n_nodes - 1) * capacity)
+    normal_vectors.normal_vectors_3 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_3,
+                                                           (3,
+                                                            n_nodes,
+                                                            n_nodes,
+                                                            n_nodes - 1,
+                                                            capacity))
+
+    return nothing
+end
+
+# Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
+function init_normal_vectors!(normal_vectors::NormalVectorContainer3D,
+                              mesh::Union{P4estMesh{3}, T8codeMesh{3}}, dg, cache)
+    @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = normal_vectors
+    calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2, normal_vectors_3,
+                                   mesh, dg, cache)
+
+    return nothing
+end
 end # @muladd
