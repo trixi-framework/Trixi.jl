@@ -209,6 +209,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
         for i in eachnode(dg)
             # We do not store j = 1, as it is never used, see `calcflux_fv!`.
             # => Store j = 2 at position 1
+            # TODO: Make similar to 3D case?
             for d in 1:2
                 # Optimize memory layout for `normal_vectors_1`: 
                 # "Swap" positions of i and j, see `calcflux_fv!` for access pattern
