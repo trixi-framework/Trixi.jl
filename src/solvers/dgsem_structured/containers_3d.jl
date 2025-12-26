@@ -502,7 +502,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
         end
     end
 
-    return normal_vectors_1, normal_vectors_2, normal_vectors_3
+    return nothing
 end
 
 # Used for both fixed (`StructuredMesh{3}`) 
