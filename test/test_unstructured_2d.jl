@@ -160,16 +160,16 @@ end
 @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[
-                            2.19945600e-01,
-                            1.71050453e-01,
-                            1.71050453e-01,
-                            1.21719195e+00
+                            0.21966981351550263,
+                            0.17135713143119666,
+                            0.17124726090984335,
+                            1.2165081798377775
                         ],
                         linf=[
-                            7.44218635e-01,
-                            7.02887039e-01,
-                            7.02887039e-01,
-                            6.11732719e+00
+                            0.7450545760463145,
+                            0.7235564571433826,
+                            0.6912019501126028,
+                            6.11845757058629
                         ],
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations

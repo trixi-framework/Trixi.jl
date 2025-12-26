@@ -441,6 +441,7 @@ end
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
+    @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
     volume_flux, nonconservative_flux = volume_flux_fv
 
