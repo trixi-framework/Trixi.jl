@@ -412,7 +412,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
             for d in 1:3
                 normal_vectors_2[d, i, 1, k, element] = contravariant_vectors[d, 2,
                                                                               i,
-                                                                              2,
+                                                                              1,
                                                                               k,
                                                                               element]
             end
@@ -461,7 +461,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                 normal_vectors_3[d, i, j, 1, element] = contravariant_vectors[d, 3,
                                                                               i,
                                                                               j,
-                                                                              2,
+                                                                              1,
                                                                               element]
             end
 
