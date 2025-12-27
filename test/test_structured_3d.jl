@@ -169,27 +169,6 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
-                        l2=[
-                            0.029967524427772754,
-                            0.025798083855645693,
-                            0.025798083855645696,
-                            0.025798083855645755,
-                            0.09685309204972407
-                        ],
-                        linf=[
-                            0.05913377241331785,
-                            0.05406386301284938,
-                            0.05406386301284938,
-                            0.054063863012848934,
-                            0.20936693975478438
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
 @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[

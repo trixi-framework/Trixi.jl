@@ -391,7 +391,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                                                              element]
                 end
                 for m in eachnode(dg)
-                    wD_im = weights[i - 1] * derivative_matrix[i - 1, m]
+                    wD_im = weights[i] * derivative_matrix[i, m]
                     for d in 1:3
                         normal_vectors_1[d, i, j, k, element] += wD_im *
                                                                  contravariant_vectors[d,
