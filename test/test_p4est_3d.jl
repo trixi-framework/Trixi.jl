@@ -170,6 +170,30 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_free_stream.jl (Finite Volume Vol. Int.)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
+                        volume_integral=VolumeIntegralPureLGLFiniteVolume(flux_hllc),
+                        cfl=1.0,
+                        l2=[
+                            1.9974155101075348e-15,
+                            1.1961083306610996e-14,
+                            1.2872974022570237e-14,
+                            1.5462968285712546e-14,
+                            2.6094715468434938e-14
+                        ],
+                        linf=[
+                            2.828848266744899e-13,
+                            1.6810441927361808e-12,
+                            2.784633634789202e-12,
+                            2.8425040099477883e-12,
+                            3.7339020764193265e-12
+                        ],
+                        tspan=(0.0, 0.03))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_free_stream_extruded.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
                         l2=[
