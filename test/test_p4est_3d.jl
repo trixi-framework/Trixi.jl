@@ -170,7 +170,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream.jl (Finite Volume Vol. Int.)" begin
+@trixi_testset "elixir_euler_free_stream.jl (VolumeIntegralPureLGLFiniteVolume)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         volume_integral=VolumeIntegralPureLGLFiniteVolume(flux_hllc),
                         cfl=1.0,
