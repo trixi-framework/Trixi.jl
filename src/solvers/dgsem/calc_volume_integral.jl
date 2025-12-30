@@ -84,7 +84,7 @@ function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingRG,
                                dg::DGSEM, cache)
-    @unpack volume_flux_dg, volume_flux_fv, indicator, 
+    @unpack volume_flux_dg, volume_flux_fv, indicator,
     x_interfaces, slope_limiter = volume_integral
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
@@ -112,10 +112,10 @@ function calc_volume_integral!(du, u, mesh,
 
             # Calculate second-order FV volume integral contribution
             fvO2_kernel!(du, u, mesh,
-                       have_nonconservative_terms, equations,
-                       volume_flux_fv, dg, cache, element, 
-                       x_interfaces, reconstruction_O2_inner, slope_limiter,
-                       alpha_element)
+                         have_nonconservative_terms, equations,
+                         volume_flux_fv, dg, cache, element,
+                         x_interfaces, reconstruction_O2_inner, slope_limiter,
+                         alpha_element)
         end
     end
 

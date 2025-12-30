@@ -186,8 +186,8 @@ function Base.show(io::IO, mime::MIME"text/plain",
 end
 
 function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::AbstractVolumeIntegralShockCapturing, dg,
-                                cache)
+                                volume_integral::AbstractVolumeIntegralShockCapturing,
+                                dg, cache)
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator(u, mesh, equations, dg, cache)
     return get_element_variables!(element_variables, volume_integral.indicator,
@@ -195,7 +195,8 @@ function get_element_variables!(element_variables, u, mesh, equations,
 end
 
 # TODO Docstring
-struct VolumeIntegralShockCapturingRG{RealT, VolumeFluxDG, VolumeFluxFV, Indicator, Limiter} <:
+struct VolumeIntegralShockCapturingRG{RealT, VolumeFluxDG, VolumeFluxFV, Indicator,
+                                      Limiter} <:
        AbstractVolumeIntegralShockCapturing
     volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
@@ -207,7 +208,7 @@ end
 function VolumeIntegralShockCapturingRG(basis, indicator; volume_flux_dg = flux_central,
                                         volume_flux_fv = flux_lax_friedrichs,
                                         slope_limiter = minmod)
-        # Suffices to store only the intermediate boundaries of the sub-cell elements
+    # Suffices to store only the intermediate boundaries of the sub-cell elements
     x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
 
     return VolumeIntegralShockCapturingRG{eltype(basis.weights),
