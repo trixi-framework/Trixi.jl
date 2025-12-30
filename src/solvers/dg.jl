@@ -135,6 +135,8 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
     end
 end
 
+abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegral end
+
 """
     VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
                                               volume_flux_fv=flux_lax_friedrichs)
@@ -152,7 +154,7 @@ The amount of blending is determined by the `indicator`, e.g.,
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
 struct VolumeIntegralShockCapturingHG{VolumeFluxDG, VolumeFluxFV, Indicator} <:
-       AbstractVolumeIntegral
+       AbstractVolumeIntegralShockCapturing
     volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
     indicator::Indicator
@@ -184,12 +186,56 @@ function Base.show(io::IO, mime::MIME"text/plain",
 end
 
 function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralShockCapturingHG, dg,
+                                volume_integral::AbstractVolumeIntegralShockCapturing, dg,
                                 cache)
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator(u, mesh, equations, dg, cache)
     return get_element_variables!(element_variables, volume_integral.indicator,
                                   volume_integral)
+end
+
+# TODO Docstring
+struct VolumeIntegralShockCapturingRG{RealT, VolumeFluxDG, VolumeFluxFV, Indicator, Limiter} <:
+       AbstractVolumeIntegralShockCapturing
+    volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
+    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+    indicator::Indicator
+    x_interfaces::Vector{RealT} # x-coordinates of the sub-cell element interfaces
+    slope_limiter::Limiter # slope limiter used for the inner subcell reconstructions
+end
+
+function VolumeIntegralShockCapturingRG(basis, indicator; volume_flux_dg = flux_central,
+                                        volume_flux_fv = flux_lax_friedrichs,
+                                        slope_limiter = minmod)
+        # Suffices to store only the intermediate boundaries of the sub-cell elements
+    x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
+
+    return VolumeIntegralShockCapturingRG{eltype(basis.weights),
+                                          typeof(volume_flux_dg),
+                                          typeof(volume_flux_fv),
+                                          typeof(indicator),
+                                          typeof(slope_limiter)}(volume_flux_dg,
+                                                                 volume_flux_fv,
+                                                                 indicator,
+                                                                 x_interfaces,
+                                                                 slope_limiter)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralShockCapturingRG)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralShockCapturingRG")
+        summary_line(io, "volume flux DG", integral.volume_flux_dg)
+        summary_line(io, "volume flux FV", integral.volume_flux_fv)
+        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
+        summary_line(io, "slope limiter", integral.slope_limiter |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.indicator)
+        summary_footer(io)
+    end
 end
 
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
@@ -279,7 +325,7 @@ See especially Sections 3.2, Section 4, and Appendix D of the paper
    Part II: Subcell finite volume shock capturing"
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
-struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
+struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, VolumeFluxFV,
                                            Reconstruction, Limiter} <:
        AbstractVolumeIntegralPureLGLFiniteVolume
     x_interfaces::Vector{RealT} # x-coordinates of the sub-cell element interfaces
@@ -288,14 +334,13 @@ struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
     slope_limiter::Limiter # which type of slope limiter function
 end
 
-function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
+function VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                              volume_flux_fv = flux_lax_friedrichs,
                                              reconstruction_mode = reconstruction_O2_full,
-                                             slope_limiter = minmod) where {Basis}
+                                             slope_limiter = minmod)
     # Suffices to store only the intermediate boundaries of the sub-cell elements
     x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
     return VolumeIntegralPureLGLFiniteVolumeO2{eltype(basis.weights),
-                                               typeof(basis),
                                                typeof(volume_flux_fv),
                                                typeof(reconstruction_mode),
                                                typeof(slope_limiter)}(x_interfaces,

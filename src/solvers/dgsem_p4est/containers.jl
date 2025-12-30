@@ -634,7 +634,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 
     if ndims(mesh) == 2 && # TODO: 3D precomputation of normal vectors
        (dg.volume_integral isa AbstractVolumeIntegralPureLGLFiniteVolume ||
-        dg.volume_integral isa VolumeIntegralShockCapturingHG)
+        dg.volume_integral isa AbstractVolumeIntegralShockCapturing)
         @unpack normal_vectors = cache
         resize!(normal_vectors, ncells(mesh))
         init_normal_vectors!(normal_vectors, mesh, dg, cache)
