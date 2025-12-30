@@ -233,8 +233,8 @@ function Base.show(io::IO, mime::MIME"text/plain",
         summary_line(io, "volume flux DG", integral.volume_flux_dg)
         summary_line(io, "volume flux FV", integral.volume_flux_fv)
         summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
-        summary_line(io, "slope limiter", integral.slope_limiter |> typeof |> nameof)
         show(increment_indent(io), mime, integral.indicator)
+        summary_line(io, "slope limiter", integral.slope_limiter)
         summary_footer(io)
     end
 end

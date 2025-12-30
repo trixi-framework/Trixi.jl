@@ -48,8 +48,8 @@ function calc_volume_integral!(du, u, mesh,
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-    alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
-                                                               cache)
+    alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations,
+                                                               dg, cache)
 
     # For `Float64`, this gives 1.8189894035458565e-12
     # For `Float32`, this gives 1.1920929f-5
@@ -85,11 +85,11 @@ function calc_volume_integral!(du, u, mesh,
                                volume_integral::VolumeIntegralShockCapturingRG,
                                dg::DGSEM, cache)
     @unpack volume_flux_dg, volume_flux_fv, indicator,
-    x_interfaces, slope_limiter = volume_integral
+    x_interfaces, slope_limiter = volume_integral # Second-oder/RG additions
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-    alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
-                                                               cache)
+    alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations,
+                                                               dg, cache)
 
     # For `Float64`, this gives 1.8189894035458565e-12
     # For `Float32`, this gives 1.1920929f-5
