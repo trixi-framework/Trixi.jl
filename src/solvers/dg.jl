@@ -211,6 +211,8 @@ The amount of blending is determined by the `indicator`, e.g.,
 
 ## References
 
+See especially Sections 3.2, Section 4, and Appendix D of the paper
+
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
