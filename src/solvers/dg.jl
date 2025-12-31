@@ -292,8 +292,9 @@ function VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                              volume_flux_fv = flux_lax_friedrichs,
                                              reconstruction_mode = reconstruction_O2_full,
                                              slope_limiter = minmod)
+    polydeg = nnodes(basis) - 1
     # Suffices to store only the intermediate boundaries of the sub-cell elements
-    sc_interface_coords = SVector{nnodes(basis) - 1}(cumsum(basis.weights)[1:(end - 1)] .- 1)
+    sc_interface_coords = SVector{polydeg}(cumsum(basis.weights)[1:polydeg] .- 1)
     return VolumeIntegralPureLGLFiniteVolumeO2{typeof(sc_interface_coords),
                                                typeof(volume_flux_fv),
                                                typeof(reconstruction_mode),
