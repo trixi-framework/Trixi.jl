@@ -1,4 +1,5 @@
 using OrdinaryDiffEqSSPRK
+using OrdinaryDiffEqCore: PIDController
 using Trixi
 
 ###############################################################################
@@ -36,7 +37,7 @@ boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_astr
                        y_pos = boundary_condition_periodic)
 
 surface_flux = flux_hll
-volume_flux = flux_ranocha # works with Chandrashekar flux as well
+volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
@@ -46,10 +47,6 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_min = 0.0001,
                                          alpha_smooth = true,
                                          variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
-
 volume_integral = VolumeIntegralShockCapturingRRG(basis, indicator_sc;
                                                   volume_flux_dg = volume_flux,
                                                   volume_flux_fv = surface_flux,
@@ -75,10 +72,10 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 5000
+analysis_interval = 10_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-alive_callback = AliveCallback(analysis_interval = analysis_interval)
+alive_callback = AliveCallback(alive_interval = 200)
 
 save_solution = SaveSolutionCallback(interval = 5000,
                                      save_initial_solution = true,
@@ -93,7 +90,7 @@ amr_indicator = IndicatorHennemannGassner(semi,
 
 amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
                                               base_level = 2,
-                                              med_level = 0, med_threshold = 0.0003, # med_level = current level
+                                              med_level = 5, med_threshold = 0.0003,
                                               max_level = 8, max_threshold = 0.003,
                                               max_threshold_secondary = indicator_sc.alpha_max)
 
@@ -113,8 +110,9 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 ###############################################################################
 # run the simulation
 
-# use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
+# use adaptive time stepping based on error estimates
 sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
+            controller = PIDController(0.55, -0.27, 0.05),
             ode_default_options()..., callback = callbacks);
 
 using Plots
@@ -123,4 +121,4 @@ pd = PlotData2D(sol)
 
 plot(pd["rho"], dpi = 500, clims = (0.01, 27), colorbar_scale = :log10)
 
-plot!(getmesh(pd))
+#plot!(getmesh(pd))
