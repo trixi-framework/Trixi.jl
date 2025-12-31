@@ -209,6 +209,13 @@ slope limiter `slope_limiter` and the
 The amount of blending is determined by the `indicator`, e.g.,
 [`IndicatorHennemannGassner`](@ref).
 
+!!! note "Conservative Systems only"
+    Currently only implemented for systems in conservative form, i.e.,
+    `have_nonconservative_terms(equations) = False()`
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
 ## References
 
 See especially Sections 3.2, Section 4, and Appendix D of the paper
