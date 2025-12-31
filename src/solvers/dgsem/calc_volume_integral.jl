@@ -82,7 +82,7 @@ end
 
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralShockCapturingRG,
+                               volume_integral::VolumeIntegralShockCapturingRRG,
                                dg::DGSEM, cache)
     @unpack volume_flux_dg, volume_flux_fv, indicator,
     x_interfaces, slope_limiter = volume_integral # Second-oder/RG additions

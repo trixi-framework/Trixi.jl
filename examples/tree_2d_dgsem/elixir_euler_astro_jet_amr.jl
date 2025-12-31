@@ -56,7 +56,12 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
-
+#=
+volume_integral = VolumeIntegralShockCapturingRRG(basis, indicator_sc;
+                                                 volume_flux_dg = volume_flux,
+                                                 volume_flux_fv = surface_flux,
+                                                 slope_limiter = minmod)
+=#
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-0.5, -0.5)
@@ -106,7 +111,8 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        amr_callback, save_solution)
+                        amr_callback
+                        )
 
 # positivity limiter necessary for this tough example
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
@@ -115,5 +121,5 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
             ode_default_options()..., callback = callbacks);

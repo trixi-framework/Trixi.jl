@@ -39,16 +39,18 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_min = 0.001,
                                          alpha_smooth = true,
                                          variable = shock_indicator_variable)
-volume_integral = VolumeIntegralShockCapturingRG(basis, indicator_sc;
+volume_integral = VolumeIntegralShockCapturingRRG(basis, indicator_sc;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux,
                                                  slope_limiter = monotonized_central)
 
 # For comparison
+
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
-                                                
+
+
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-5.0,)

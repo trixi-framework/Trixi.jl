@@ -138,8 +138,9 @@ end
 abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegral end
 
 """
-    VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
-                                              volume_flux_fv=flux_lax_friedrichs)
+    VolumeIntegralShockCapturingHG(indicator;
+                                   volume_flux_dg=flux_central,
+                                   volume_flux_fv=flux_lax_friedrichs)
 
 Shock-capturing volume integral type for DG methods using a convex blending of
 the finite volume method with numerical flux `volume_flux_fv` and the
@@ -160,7 +161,8 @@ struct VolumeIntegralShockCapturingHG{VolumeFluxDG, VolumeFluxFV, Indicator} <:
     indicator::Indicator
 end
 
-function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg = flux_central,
+function VolumeIntegralShockCapturingHG(indicator;
+                                        volume_flux_dg = flux_central,
                                         volume_flux_fv = flux_lax_friedrichs)
     return VolumeIntegralShockCapturingHG{typeof(volume_flux_dg),
                                           typeof(volume_flux_fv),
@@ -194,9 +196,28 @@ function get_element_variables!(element_variables, u, mesh, equations,
                                   volume_integral)
 end
 
-# TODO Docstring
-struct VolumeIntegralShockCapturingRG{RealT, VolumeFluxDG, VolumeFluxFV, Indicator,
-                                      Limiter} <:
+"""
+    VolumeIntegralShockCapturingRRG(basis, indicator;
+                                    volume_flux_dg=flux_central,
+                                    volume_flux_fv=flux_lax_friedrichs,
+                                    slope_limiter=minmod)
+
+Shock-capturing volume integral type for DG methods using a convex blending of
+a **second-order** finite volume method with numerical flux `volume_flux_fv` and
+slope limiter `slope_limiter` and the
+[`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
+The amount of blending is determined by the `indicator`, e.g.,
+[`IndicatorHennemannGassner`](@ref).
+
+## References
+
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+"""
+struct VolumeIntegralShockCapturingRRG{VolumeFluxDG, VolumeFluxFV, Indicator,
+                                       RealT, Limiter} <:
        AbstractVolumeIntegralShockCapturing
     volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
@@ -205,31 +226,32 @@ struct VolumeIntegralShockCapturingRG{RealT, VolumeFluxDG, VolumeFluxFV, Indicat
     slope_limiter::Limiter # slope limiter used for the inner subcell reconstructions
 end
 
-function VolumeIntegralShockCapturingRG(basis, indicator; volume_flux_dg = flux_central,
-                                        volume_flux_fv = flux_lax_friedrichs,
-                                        slope_limiter = minmod)
+function VolumeIntegralShockCapturingRRG(basis, indicator;
+                                         volume_flux_dg = flux_central,
+                                         volume_flux_fv = flux_lax_friedrichs,
+                                         slope_limiter = minmod)
     # Suffices to store only the intermediate boundaries of the sub-cell elements
     x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
 
-    return VolumeIntegralShockCapturingRG{eltype(basis.weights),
-                                          typeof(volume_flux_dg),
-                                          typeof(volume_flux_fv),
-                                          typeof(indicator),
-                                          typeof(slope_limiter)}(volume_flux_dg,
-                                                                 volume_flux_fv,
-                                                                 indicator,
-                                                                 x_interfaces,
-                                                                 slope_limiter)
+    return VolumeIntegralShockCapturingRRG{typeof(volume_flux_dg),
+                                           typeof(volume_flux_fv),
+                                           typeof(indicator),
+                                           eltype(basis.weights),
+                                           typeof(slope_limiter)}(volume_flux_dg,
+                                                                  volume_flux_fv,
+                                                                  indicator,
+                                                                  x_interfaces,
+                                                                  slope_limiter)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
-                   integral::VolumeIntegralShockCapturingRG)
+                   integral::VolumeIntegralShockCapturingRRG)
     @nospecialize integral # reduce precompilation time
 
     if get(io, :compact, false)
         show(io, integral)
     else
-        summary_header(io, "VolumeIntegralShockCapturingRG")
+        summary_header(io, "VolumeIntegralShockCapturingRRG")
         summary_line(io, "volume flux DG", integral.volume_flux_dg)
         summary_line(io, "volume flux FV", integral.volume_flux_fv)
         summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
