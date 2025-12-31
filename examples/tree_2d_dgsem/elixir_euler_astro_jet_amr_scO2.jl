@@ -35,14 +35,7 @@ boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_astr
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
 
-# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
-# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
-surface_flux = FluxLaxFriedrichs(max_abs_speed_naive) # HLLC needs more shock capturing (alpha_max)
+surface_flux = flux_hll
 volume_flux = flux_ranocha # works with Chandrashekar flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -56,19 +49,19 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
-#=
+
 volume_integral = VolumeIntegralShockCapturingRRG(basis, indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux,
-                                                 slope_limiter = minmod)
-=#
+                                                  volume_flux_dg = volume_flux,
+                                                  volume_flux_fv = surface_flux,
+                                                  slope_limiter = minmod)
+
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-0.5, -0.5)
 coordinates_max = (0.5, 0.5)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 6,
+                initial_refinement_level = 8,
                 periodicity = (false, true),
                 n_cells_max = 100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -105,7 +98,7 @@ amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
                                               max_threshold_secondary = indicator_sc.alpha_max)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 1,
+                           interval = 4,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
@@ -119,6 +112,15 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 
 ###############################################################################
 # run the simulation
+
 # use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
 sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
             ode_default_options()..., callback = callbacks);
+
+using Plots
+
+pd = PlotData2D(sol)
+
+plot(pd["rho"], dpi = 500, clims = (0.01, 27), colorbar_scale = :log10)
+
+plot!(getmesh(pd))
