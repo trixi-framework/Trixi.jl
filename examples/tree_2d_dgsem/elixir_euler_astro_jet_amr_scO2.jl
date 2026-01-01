@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations2D(gamma)
 # Initial condition adopted from
 # - Yong Liu, Jianfang Lu, and Chi-Wang Shu
 #   An oscillation free discontinuous Galerkin method for hyperbolic systems
-#   https://tinyurl.com/c76fjtx4
+#   https://doi.org/10.1137/20M1354192
 # Mach = 2000 jet
 function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations2D)
     RealT = eltype(x)
@@ -76,11 +76,6 @@ analysis_interval = 10_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(alive_interval = 200)
-
-save_solution = SaveSolutionCallback(interval = 5000,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
 
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max = 1.0,
