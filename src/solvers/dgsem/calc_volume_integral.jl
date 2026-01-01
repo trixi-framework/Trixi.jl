@@ -85,7 +85,7 @@ function calc_volume_integral!(du, u, mesh,
                                volume_integral::VolumeIntegralShockCapturingRRG,
                                dg::DGSEM, cache)
     @unpack volume_flux_dg, volume_flux_fv, indicator,
-    x_interfaces, slope_limiter = volume_integral # Second-oder/RG additions
+    sc_interface_coords, slope_limiter = volume_integral # Second-oder/RG additions
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations,
@@ -114,7 +114,8 @@ function calc_volume_integral!(du, u, mesh,
             fvO2_kernel!(du, u, mesh,
                          have_nonconservative_terms, equations,
                          volume_flux_fv, dg, cache, element,
-                         x_interfaces, reconstruction_O2_inner, slope_limiter,
+                         # `reconstruction_O2_inner` is needed for limiting effect
+                         sc_interface_coords, reconstruction_O2_inner, slope_limiter,
                          alpha_element)
         end
     end
@@ -145,14 +146,14 @@ function calc_volume_integral!(du, u,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                dg::DGSEM, cache)
-    @unpack x_interfaces, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
+    @unpack sc_interface_coords, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
 
     # Calculate LGL second-order FV volume integral
     @threaded for element in eachelement(dg, cache)
         fvO2_kernel!(du, u, mesh,
                      have_nonconservative_terms, equations,
                      volume_flux_fv, dg, cache, element,
-                     x_interfaces, reconstruction_mode, slope_limiter, true)
+                     sc_interface_coords, reconstruction_mode, slope_limiter, true)
     end
 
     return nothing
