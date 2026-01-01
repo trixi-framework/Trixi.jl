@@ -294,7 +294,7 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
-    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
+    VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                         volume_flux_fv = flux_lax_friedrichs,
                                         reconstruction_mode = reconstruction_O2_full,
                                         slope_limiter = minmod)
@@ -332,26 +332,26 @@ See especially Sections 3.2, Section 4, and Appendix D of the paper
    Part II: Subcell finite volume shock capturing"
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
-struct VolumeIntegralPureLGLFiniteVolumeO2{RealT <: Real, Basis, VolumeFluxFV,
+struct VolumeIntegralPureLGLFiniteVolumeO2{SubCellInterfaceCoordinates, VolumeFluxFV,
                                            Reconstruction, Limiter} <:
        AbstractVolumeIntegralPureLGLFiniteVolume
-    x_interfaces::Vector{RealT} # x-coordinates of the sub-cell element interfaces
+    sc_interface_coords::SubCellInterfaceCoordinates # (x-)coordinates of the sub-cell element interfaces
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
     reconstruction_mode::Reconstruction # which type of FV reconstruction to use
     slope_limiter::Limiter # which type of slope limiter function
 end
 
-function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
+function VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                              volume_flux_fv = flux_lax_friedrichs,
                                              reconstruction_mode = reconstruction_O2_full,
-                                             slope_limiter = minmod) where {Basis}
+                                             slope_limiter = minmod)
+    polydeg = nnodes(basis) - 1
     # Suffices to store only the intermediate boundaries of the sub-cell elements
-    x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
-    return VolumeIntegralPureLGLFiniteVolumeO2{eltype(basis.weights),
-                                               typeof(basis),
+    sc_interface_coords = SVector{polydeg}(cumsum(basis.weights)[1:polydeg] .- 1)
+    return VolumeIntegralPureLGLFiniteVolumeO2{typeof(sc_interface_coords),
                                                typeof(volume_flux_fv),
                                                typeof(reconstruction_mode),
-                                               typeof(slope_limiter)}(x_interfaces,
+                                               typeof(slope_limiter)}(sc_interface_coords,
                                                                       volume_flux_fv,
                                                                       reconstruction_mode,
                                                                       slope_limiter)
@@ -368,7 +368,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "FV flux" => integral.volume_flux_fv,
             "Reconstruction" => integral.reconstruction_mode,
             "Slope limiter" => integral.slope_limiter,
-            "Subcell boundaries" => vcat([-1.0], integral.x_interfaces, [1.0])
+            "Subcell boundaries" => vcat([-1.0], integral.sc_interface_coords, [1.0])
         ]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolumeO2", setup)
     end
