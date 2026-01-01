@@ -6,16 +6,19 @@ function create_cache(mesh, artificial_viscosity::EntropyCorrectionArtificialVis
     return cache
 end
 
-function calc_volume_entropy_residual(du, u, element, mesh::TreeMesh{2}, equations, dg)
+function calc_volume_entropy_residual(du, u, element, mesh::TreeMesh{2}, equations, dg, cache)
+
     # calculate volume integral
     volume_integral_du_entropy = zero(real(dg))
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
-        weight_ij = dg.basis.weights[i] * dg.basis.weights[j]
+        weight_ij = dg.basis.weights[i] * dg.basis.weights[j] 
+
+        # calc integral(-dv/dx_i * f(u)) -> missing factor of J
         volume_integral_du_entropy = volume_integral_du_entropy + 
             dot(cons2entropy(u_node, equations), du_node) * weight_ij
-    end
+    end 
     
     # calculate surface integral
     surface_integral_entropy_potential = zero(real(dg))
@@ -34,7 +37,13 @@ function calc_volume_entropy_residual(du, u, element, mesh::TreeMesh{2}, equatio
             dg.basis.weights[ii] * (entropy_potential(u_right, SVector(0.f0, 1.f0), equations) + 
                                     entropy_potential(u_left, SVector(0.f0, -1.f0), equations))
     end
-    return volume_integral_du_entropy + surface_integral_entropy_potential
+
+    # by default, the volume_integral contribution to du does not scale by any geometric terms
+    # For TreeMesh, these geometric terms are ds/dx = 0 and dr/dx * J = 0.5 * h. Thus, to calculate 
+    # the volume integral over the physical element, we need to scale by the 1D Jacobian. Similarly,
+    # the surface integrals should be scaled by the 1D Jacobian as well. 
+    jacobian_1d = inv(cache.elements.inverse_jacobian[element]) # O(h) 
+    return (volume_integral_du_entropy + surface_integral_entropy_potential) * jacobian_1d
 end
 
 function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2}, 
@@ -55,7 +64,7 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2},
     # calculate entropy residual
     entropy_residual = cache.artificial_viscosity.coefficients # reuse storage
     @threaded for element in eachelement(dg, cache)
-        entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh, equations, dg)
+        entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh, equations, dg, cache)
     end
 
     # Prolong solution to interfaces
@@ -114,6 +123,7 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2},
 
     # --- calculate AV denominator by dotting `flux_viscous` and `gradients`
     @threaded for element in eachelement(dg, cache)
+        volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
         # calculate volume integral
         element_viscous_dissipation = zero(real(dg))
@@ -125,7 +135,6 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2},
             viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
             viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
 
-            volume_jacobian_ = volume_jacobian(element, mesh, cache)
             weight_ij = dg.basis.weights[i] * dg.basis.weights[j]
             element_viscous_dissipation = element_viscous_dissipation + 
                 (viscous_dissipation_x + viscous_dissipation_y) * weight_ij * volume_jacobian_
@@ -184,7 +193,7 @@ function rhs_combined!(du, u, t, mesh::TreeMesh{2},
     # calculate entropy residual
     entropy_residual = cache.artificial_viscosity.coefficients # reuse storage
     @threaded for element in eachelement(dg, cache)
-        entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh, equations, dg)
+        entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh, equations, dg, cache)
     end
 
     # Prolong solution to interfaces
