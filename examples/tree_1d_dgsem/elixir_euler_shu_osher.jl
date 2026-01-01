@@ -44,12 +44,6 @@ volume_integral = VolumeIntegralShockCapturingRRG(basis, indicator_sc;
                                                   volume_flux_fv = surface_flux,
                                                   slope_limiter = monotonized_central)
 
-# For comparison
-
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
-
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-5.0,)

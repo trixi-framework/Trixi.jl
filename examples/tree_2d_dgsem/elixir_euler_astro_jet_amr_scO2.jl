@@ -109,11 +109,3 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
             controller = PIDController(0.55, -0.27, 0.05),
             ode_default_options()..., callback = callbacks);
-
-using Plots
-
-pd = PlotData2D(sol)
-
-plot(pd["rho"], dpi = 500, clims = (0.01, 27), colorbar_scale = :log10)
-
-#plot!(getmesh(pd))

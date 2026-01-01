@@ -231,7 +231,7 @@ struct VolumeIntegralShockCapturingRRG{VolumeFluxDG, VolumeFluxFV, Indicator,
     volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
     indicator::Indicator
-    sc_interface_coords::SubCellInterfaceCoordinates
+    sc_interface_coords::SubCellInterfaceCoordinates # (x-)coordinates of the sub-cell element interfaces
     slope_limiter::Limiter # slope limiter used for the inner subcell reconstructions
 end
 
