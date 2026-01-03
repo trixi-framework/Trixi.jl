@@ -213,9 +213,6 @@ The amount of blending is determined by the `indicator`, e.g.,
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
 
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
 ## References
 
 See especially Sections 3.2, Section 4, and Appendix D of the paper
@@ -285,9 +282,6 @@ A volume integral that only uses the subcell finite volume schemes of the
 This gives a formally O(1)-accurate finite volume scheme on an LGL-type subcell
 mesh (LGL = Legendre-Gauss-Lobatto).
 
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
 ## References
 
 - Hennemann, Gassner (2020)
@@ -344,9 +338,6 @@ For the DG-subcells at the boundaries, two options are available:
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 
 ## References
 
