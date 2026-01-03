@@ -39,8 +39,8 @@ function initial_condition_taylor_green_vortex(x, t,
 end
 initial_condition = initial_condition_taylor_green_vortex
 
-surface_flux = flux_hlle
-volume_flux = flux_chandrashekar
+surface_flux = flux_hllc
+volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
@@ -49,7 +49,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
 # `threshold` governs the tolerated entropy increase due to the weak-form
 # volume integral before switching to the stabilized version
-indicator = IndicatorEntropyIncrease(threshold = 1e-3)
+indicator = IndicatorEntropyIncrease(threshold = 0)
 # Adaptive volume integral using the entropy increase indicator to perform the 
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,
@@ -59,12 +59,12 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integr
 #volume_integral = volume_integral_weakform # Crashes
 #volume_integral = volume_integral_fluxdiff # Runs, but is (slightly) more expensive
 
-solver = DGSEM(basis, surface_flux, volume_integral)
+solver = DGSEM(basis, surface_flux, volume_integral_fluxdiff)
 
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0, 1.0) .* pi
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 5,
                 n_cells_max = 100_000)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
@@ -78,7 +78,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 2
+analysis_interval = 10
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      save_analysis = true,
                                      analysis_errors = Symbol[],
@@ -94,5 +94,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(); dt = 2e-2, adaptive = false,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True()); adaptive = true,
             ode_default_options()..., callback = callbacks)
