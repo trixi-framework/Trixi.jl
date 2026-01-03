@@ -272,9 +272,9 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 @doc raw"""
-    IndicatorEntropyIncrease(threshold=1e-3)
+    IndicatorEntropyIncrease(threshold=0)
 
-This indicator checks the increase in the mathematical `entropy` (``S``) due to the application
+This indicator checks the increase in the mathematical [`entropy`](@ref) (```S```) due to the application
 of the weak-form volume integral. In particular, the indicator computes
 ```math
 \Delta S = 
@@ -294,11 +294,11 @@ Thus, for the mathematical entropy (default for `entropy`) which should not grow
 over the course of a simulation, this can be used to identify troubled cells.
 
 Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
-more advanced/ (entropy) stable volume integral for the troubled cell/element ``m``.
+more advanced/(entropy) stable volume integral for the troubled cell/element ``m``.
 
 !!! note
-    This indicator is not implemented as an AMR indicator, i.e., it is currently not
-    possible to employ this as the `indicator` in [`ControllerThreeLevel`](@ref).
+    This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref).
 """
 struct IndicatorEntropyIncrease{RealT <: Real} <:
        AbstractIndicator

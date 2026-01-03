@@ -209,10 +209,10 @@ end
     @testset "compressible Euler" begin
         eqn = CompressibleEulerEquations1D(1.4)
 
-        @test isapprox(Trixi.entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
+        @test isapprox(entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
                        1.9740810260220094)
-        @test isapprox(Trixi.entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
-        @test isapprox(Trixi.entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+        @test isapprox(entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+        @test isapprox(entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
 
         @test isapprox(energy_total([1.0, 2.0, 20.0], eqn), 20.0)
         @test isapprox(energy_kinetic([1.0, 2.0, 20.0], eqn), 2.0)
