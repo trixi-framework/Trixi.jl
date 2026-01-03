@@ -53,10 +53,9 @@ function create_f_threaded(mesh::AbstractMesh{3}, equations,
            f3_L_threaded, f3_R_threaded
 end
 
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                  T8codeMesh{3}},
+function create_cache(mesh::TreeMesh{3},
                       equations,
-                      volume_integral::Union{VolumeIntegralPureLGLFiniteVolume,
+                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
                                              VolumeIntegralShockCapturingHG},
                       dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
