@@ -143,7 +143,7 @@ abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegral end
                                    volume_flux_fv=flux_lax_friedrichs)
 
 Shock-capturing volume integral type for DG methods using a convex blending of
-the finite volume method with numerical flux `volume_flux_fv` and the
+the **first-order** finite volume method with numerical flux `volume_flux_fv` and the
 [`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
 The amount of blending is determined by the `indicator`, e.g.,
 [`IndicatorHennemannGassner`](@ref).
