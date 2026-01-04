@@ -49,15 +49,15 @@ struct CompressibleEulerEquations3D{RealT <: Real} <:
 
     function CompressibleEulerEquations3D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations3D)
-    ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
+    return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
 end
 function varnames(::typeof(cons2prim), ::CompressibleEulerEquations3D)
-    ("rho", "v1", "v2", "v3", "p")
+    return ("rho", "v1", "v2", "v3", "p")
 end
 
 # Set initial conditions at physical location `x` for time `t`
@@ -106,6 +106,14 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquations3D)
@@ -577,27 +585,20 @@ end
     # Unpack left and right state
     rho_e_ll = last(u_ll)
     rho_e_rr = last(u_rr)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
-
-    v1_ll = rho_v1_ll / rho_ll
-    v2_ll = rho_v2_ll / rho_ll
-    v3_ll = rho_v3_ll / rho_ll
-    v1_rr = rho_v1_rr / rho_rr
-    v2_rr = rho_v2_rr / rho_rr
-    v3_rr = rho_v3_rr / rho_rr
+    rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
 
     # Average each factor of products in flux
     rho_avg = 0.5f0 * (rho_ll + rho_rr)
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_avg = 0.5f0 * (v2_ll + v2_rr)
     v3_avg = 0.5f0 * (v3_ll + v3_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
+
     v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2] +
                   v3_avg * normal_direction[3]
-    p_avg = 0.5f0 * ((equations.gamma - 1) *
-             (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2)) +
-             (equations.gamma - 1) *
-             (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2)))
+    p_avg = 0.5f0 * (p_ll + p_rr)
     e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
 
     # Calculate fluxes depending on normal_direction
@@ -1881,7 +1882,7 @@ end
 
 # Default entropy is the mathematical entropy
 @inline function entropy(cons, equations::CompressibleEulerEquations3D)
-    entropy_math(cons, equations)
+    return entropy_math(cons, equations)
 end
 
 # Calculate total energy for a conservative state `cons`
@@ -1896,5 +1897,13 @@ end
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleEulerEquations3D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
+end
+
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::CompressibleEulerEquations3D)
+    if u[1] <= 0 || pressure(u, equations) <= 0
+        return false
+    end
+    return true
 end
 end # @muladd

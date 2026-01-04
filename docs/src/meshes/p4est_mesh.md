@@ -939,3 +939,7 @@ rebalance_solver!(u0, mesh, equations, dg, cache, old_global_first_quadrant)
 reinitialize_boundaries!(semi.boundary_conditions, cache) # Needs to be called after `rebalance_solver!`
 ```
 This code could then be placed in the [`resize!`](https://github.com/trixi-framework/Trixi.jl/blob/eaeb04113523500ed831e3ab459694f12f7a49ea/src/time_integration/methods_2N.jl#L251-L255) function of a corresponding multirate integrator to ensure load-balancing for simulations involving AMR.
+
+### Boundary conditions
+For [`P4estMesh`](@ref)es, boundary conditions are defined and stored in [dictionaries](https://docs.julialang.org/en/v1/base/collections/#Base.Dict) (see, for example, `examples/p4est_2d_dgsem/elixir_advection_diffusion_nonperiodic_amr.jl`).  
+If you want to apply the same boundary condition to all faces of the mesh, you can use the `boundary_condition_default(mesh, boundary_condition)` function, as demonstrated in `examples/p4est_2d_dgsem/elixir_advection_diffusion_nonperiodic_amr.jl` and `examples/p4est_3d_dgsem/elixir_euler_source_terms_nonperiodic.jl`.

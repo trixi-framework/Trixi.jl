@@ -53,6 +53,8 @@ function calc_node_coordinates!(node_coordinates, element,
         node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx / 2 * nodes[i],
                                                       cell_y_offset + dy / 2 * nodes[j])
     end
+
+    return nothing
 end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
@@ -100,7 +102,7 @@ function calc_jacobian_matrix!(jacobian_matrix, element,
     return jacobian_matrix
 end
 
-# Calculate contravarant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
+# Calculate contravariant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
 # Those are called Ja^i in Kopriva's blue book.
 function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any, 5},
                                      element, jacobian_matrix)
@@ -188,5 +190,148 @@ function initialize_left_neighbor_connectivity!(left_neighbors,
     end
 
     return left_neighbors
+end
+
+# Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
+# equations (14) and (B.53) in:
+# - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+#   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
+#   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
+                                        mesh::Union{StructuredMesh{2},
+                                                    UnstructuredMesh2D,
+                                                    P4estMesh{2}, T8codeMesh{2}},
+                                        dg, cache_containers)
+    @unpack contravariant_vectors = cache_containers.elements
+    @unpack weights, derivative_matrix = dg.basis
+
+    @threaded for element in eachelement(dg, cache_containers)
+        for i in eachnode(dg)
+            # We do not store j = 1, as it is never used, see `calcflux_fv!`.
+            # => Store j = 2 at position 1
+            for d in 1:2
+                # Optimize memory layout for `normal_vectors_1`: 
+                # "Swap" positions of i and j, see `calcflux_fv!` for access pattern
+                normal_vectors_1[d, 1, i, element] = contravariant_vectors[d, 1, 1, i,
+                                                                           element]
+                normal_vectors_2[d, i, 1, element] = contravariant_vectors[d, 2, i, 1,
+                                                                           element]
+            end
+            for m in eachnode(dg)
+                wD_jm = weights[1] * derivative_matrix[1, m]
+                for d in 1:2
+                    normal_vectors_1[d, 1, i, element] += wD_jm *
+                                                          contravariant_vectors[d,
+                                                                                1,
+                                                                                m,
+                                                                                i,
+                                                                                element]
+                    normal_vectors_2[d, i, 1, element] += wD_jm *
+                                                          contravariant_vectors[d,
+                                                                                2,
+                                                                                i,
+                                                                                m,
+                                                                                element]
+                end
+            end
+
+            for j in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
+                for d in 1:2
+                    normal_vectors_1[d, j, i, element] = normal_vectors_1[d, j - 1, i,
+                                                                          element]
+                    normal_vectors_2[d, i, j, element] = normal_vectors_2[d, i, j - 1,
+                                                                          element]
+                end
+                for m in eachnode(dg)
+                    wD_jm = weights[j] * derivative_matrix[j, m]
+                    for d in 1:2
+                        normal_vectors_1[d, j, i, element] += wD_jm *
+                                                              contravariant_vectors[d,
+                                                                                    1,
+                                                                                    m,
+                                                                                    i,
+                                                                                    element]
+                        normal_vectors_2[d, i, j, element] += wD_jm *
+                                                              contravariant_vectors[d,
+                                                                                    2,
+                                                                                    i,
+                                                                                    m,
+                                                                                    element]
+                    end
+                end
+            end
+        end
+    end
+
+    return normal_vectors_1, normal_vectors_2
+end
+
+# Used for both fixed (`StructuredMesh{2}` or `UnstructuredMesh2D`) 
+# and adaptive meshes (`P4estMesh{2}` or `T8codeMesh{2}`)
+mutable struct NormalVectorContainer2D{RealT <: Real} <:
+               AbstractNormalVectorContainer
+    const n_nodes::Int
+    # For normal vectors computed from first contravariant vectors
+    normal_vectors_1::Array{RealT, 4} # [NDIMS, NNODES - 1, NNODES, NELEMENTS]
+    # For normal vectors computed from second contravariant vectors
+    normal_vectors_2::Array{RealT, 4} # [NDIMS, NNODES, NNODES - 1, NELEMENTS]
+
+    # internal `resize!`able storage
+    _normal_vectors_1::Vector{RealT}
+    _normal_vectors_2::Vector{RealT}
+end
+
+function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                                             P4estMesh{2}, T8codeMesh{2}},
+                                 dg, cache_containers)
+    @unpack contravariant_vectors = cache_containers.elements
+    RealT = eltype(contravariant_vectors)
+    n_elements = nelements(dg, cache_containers)
+    n_nodes = nnodes(dg.basis)
+
+    _normal_vectors_1 = Vector{RealT}(undef, 2 * (n_nodes - 1) * n_nodes * n_elements)
+    normal_vectors_1 = unsafe_wrap(Array, pointer(_normal_vectors_1),
+                                   (2, n_nodes - 1, n_nodes,
+                                    n_elements))
+
+    _normal_vectors_2 = Vector{RealT}(undef, 2 * n_nodes * (n_nodes - 1) * n_elements)
+    normal_vectors_2 = unsafe_wrap(Array, pointer(_normal_vectors_2),
+                                   (2, n_nodes, n_nodes - 1,
+                                    n_elements))
+
+    calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
+                                   mesh, dg, cache_containers)
+
+    return NormalVectorContainer2D{RealT}(n_nodes,
+                                          normal_vectors_1, normal_vectors_2,
+                                          _normal_vectors_1, _normal_vectors_2)
+end
+
+# Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
+function Base.resize!(normal_vectors::NormalVectorContainer2D, capacity)
+    @unpack n_nodes, _normal_vectors_1, _normal_vectors_2 = normal_vectors
+    ArrayType = storage_type(normal_vectors)
+
+    resize!(_normal_vectors_1, 2 * (n_nodes - 1) * n_nodes * capacity)
+    normal_vectors.normal_vectors_1 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_1,
+                                                           (2, n_nodes - 1, n_nodes,
+                                                            capacity))
+
+    resize!(_normal_vectors_2, 2 * n_nodes * (n_nodes - 1) * capacity)
+    normal_vectors.normal_vectors_2 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_2,
+                                                           (2, n_nodes, n_nodes - 1,
+                                                            capacity))
+
+    return nothing
+end
+
+# Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
+function init_normal_vectors!(normal_vectors::NormalVectorContainer2D,
+                              mesh::Union{P4estMesh{2}, T8codeMesh{2}}, dg, cache)
+    @unpack normal_vectors_1, normal_vectors_2 = normal_vectors
+    calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
+                                   mesh, dg, cache)
+
+    return nothing
 end
 end # @muladd

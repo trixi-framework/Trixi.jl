@@ -97,8 +97,7 @@ coordinates_min = (-domain_length / 2, -domain_length / 2, -domain_length / 2)
 coordinates_max = (domain_length / 2, domain_length / 2, domain_length / 2)
 
 trees_per_dimension = (8, 2, 2)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 0,
+mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (false, true, true))
 
@@ -109,9 +108,7 @@ function boundary_condition_inflow(u_inner, normal_direction::AbstractVector, x,
                                    surface_flux_function,
                                    equations::CompressibleEulerEquations3D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
-    flux = Trixi.flux(u_cons, normal_direction, equations)
-
-    return flux
+    return flux(u_cons, normal_direction, equations)
 end
 
 # Completely free outflow
@@ -119,9 +116,7 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x
                                     surface_flux_function,
                                     equations::CompressibleEulerEquations3D)
     # Calculate the boundary flux entirely from the internal solution state
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, normal_direction, equations)
 end
 
 boundary_conditions = Dict(:x_neg => boundary_condition_inflow,

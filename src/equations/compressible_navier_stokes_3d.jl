@@ -96,6 +96,7 @@ struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real, Mu,
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
+    max_4over3_kappa::RealT    # max(4/3, kappa) used for diffusive CFL => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations3D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -114,12 +115,15 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
     # This avoids recomputation of kappa for non-constant μ.
     kappa = gamma * inv_gamma_minus_one / Prandtl
 
-    CompressibleNavierStokesDiffusion3D{typeof(gradient_variables), typeof(gamma),
-                                        typeof(mu),
-                                        typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                           mu, Prandtl, kappa,
-                                                           equations,
-                                                           gradient_variables)
+    return CompressibleNavierStokesDiffusion3D{typeof(gradient_variables),
+                                               typeof(gamma),
+                                               typeof(mu),
+                                               typeof(equations)}(gamma,
+                                                                  inv_gamma_minus_one,
+                                                                  mu, Prandtl, kappa,
+                                                                  max(4 / 3, kappa),
+                                                                  equations,
+                                                                  gradient_variables)
 end
 
 # TODO: parabolic
@@ -129,16 +133,16 @@ end
 
 function varnames(variable_mapping,
                   equations_parabolic::CompressibleNavierStokesDiffusion3D)
-    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+    return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    cons2prim
+    return cons2prim
 end
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
-    cons2entropy
+    return cons2entropy
 end
 
 # Explicit formulas for the diffusive Navier-Stokes fluxes are available, e.g., in Section 2
@@ -164,11 +168,11 @@ function flux(u, gradients, orientation::Integer,
 
     # Diagonal parts
     # (4 * (v1)_x / 3 - 2 * ((v2)_y + (v3)_z)) / 3)
-    tau_11 = 4 * dv1dx / 3 - 2 * (dv2dy + dv3dz) / 3
+    tau_11 = (4 * dv1dx - 2 * (dv2dy + dv3dz)) / 3
     # (4 * (v2)_y / 3 - 2 * ((v1)_x + (v3)_z) / 3)
-    tau_22 = 4 * dv2dy / 3 - 2 * (dv1dx + dv3dz) / 3
+    tau_22 = (4 * dv2dy - 2 * (dv1dx + dv3dz)) / 3
     # (4 * (v3)_z / 3 - 2 * ((v1)_x + (v2)_y) / 3)
-    tau_33 = 4 * dv3dz / 3 - 2 * (dv1dx + dv2dy) / 3
+    tau_33 = (4 * dv3dz - 2 * (dv1dx + dv2dy)) / 3
 
     # Off diagonal parts, exploit that stress tensor is symmetric
     # ((v1)_y + (v2)_x)
@@ -225,6 +229,42 @@ function flux(u, gradients, orientation::Integer,
     end
 end
 
+@doc raw"""
+    max_diffusivity(u, equations_parabolic::CompressibleNavierStokesDiffusion3D)
+
+# Returns
+- `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_4over3_kappa`
+where `max_4over3_kappa = max(4/3, kappa)` is computed in the constructor.
+
+For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
+as suggested in Section 3.5 of 
+- Krais et. al (2021)
+  FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
+  [DOI: 10.1016/j.camwa.2020.05.004](https://doi.org/10.1016/j.camwa.2020.05.004)
+
+For details on the derivation of eigenvalues of the diffusivity matrix
+for the compressible Navier-Stokes equations see for instance
+- Richard P. Dwight (2006)
+  Efficiency improvements of RANS-based analysis and optimization using implicit and adjoint methods on unstructured grids
+  PhD Thesis, University of Manchester
+  https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
+  See especially equations (2.79), (3.24), and (3.25) from Chapter 3.2.3
+
+The eigenvalues of the diffusivity matrix in 3D are
+``-\frac{\mu}{\rho} \{0, 4/3, 1, 1, \kappa\}``
+and thus the largest absolute eigenvalue is
+``\frac{\mu}{\rho} \max(4/3, \kappa)``.
+"""
+@inline function max_diffusivity(u,
+                                 equations_parabolic::CompressibleNavierStokesDiffusion3D)
+    # See for instance also the computation in FLUXO:
+    # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
+    #
+    # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
+    return dynamic_viscosity(u, equations_parabolic) / u[1] *
+           equations_parabolic.max_4over3_kappa
+end
+
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, _ = u
@@ -242,10 +282,10 @@ end
 # This can be done by specializing `cons2entropy` and `entropy2cons` to `CompressibleNavierStokesDiffusion2D`,
 # but this may be confusing to new users.
 function cons2entropy(u, equations::CompressibleNavierStokesDiffusion3D)
-    cons2entropy(u, equations.equations_hyperbolic)
+    return cons2entropy(u, equations.equations_hyperbolic)
 end
 function entropy2cons(w, equations::CompressibleNavierStokesDiffusion3D)
-    entropy2cons(w, equations.equations_hyperbolic)
+    return entropy2cons(w, equations.equations_hyperbolic)
 end
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
@@ -299,14 +339,23 @@ end
 # with `cons2prim(..., ::CompressibleNavierStokesDiffusion3D)` as defined above.
 # TODO: parabolic. Is there a way to clean this up?
 @inline function prim2cons(u, equations::CompressibleNavierStokesDiffusion3D)
-    prim2cons(u, equations.equations_hyperbolic)
+    return prim2cons(u, equations.equations_hyperbolic)
 end
 
+"""
+    temperature(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Compute the temperature from the conservative variables `u`.
+In particular, this assumes a specific gas constant ``R = 1``:
+```math
+T = \\frac{p}{\\rho}
+```
+"""
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e = u
 
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
-    T = p / rho
+    T = p / rho # Corresponds to a specific gas constant R = 1
     return T
 end
 

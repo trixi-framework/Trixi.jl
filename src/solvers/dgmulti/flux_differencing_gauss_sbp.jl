@@ -153,7 +153,7 @@ end
                                                      A::TensorProductGaussFaceOperator{1,
                                                                                        Interpolation},
                                                      x::AbstractVector)
-    mul!(out, A.interp_matrix_gauss_to_face_1d, x)
+    return mul!(out, A.interp_matrix_gauss_to_face_1d, x)
 end
 
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
@@ -427,9 +427,9 @@ function create_cache(mesh::DGMultiMesh, equations,
 
     nvars = nvariables(equations)
     rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                                 for _ in 1:Threads.nthreads()]
+                                 for _ in 1:Threads.maxthreadid()]
     gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                                   for _ in 1:Threads.nthreads()]
+                                   for _ in 1:Threads.maxthreadid()]
 
     return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
             rhs_volume_local_threaded, gauss_volume_local_threaded,
@@ -521,7 +521,7 @@ end
         rhs_local[i] = fluxdiff_local[i]
     end
 
-    project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 end
 
 function project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh::DGMultiMesh,

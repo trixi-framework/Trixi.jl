@@ -10,6 +10,7 @@ include("test_trixi.jl")
 @timed_testset "Aqua.jl" begin
     Aqua.test_all(Trixi,
                   ambiguities = false,
+                  unbound_args = false, # FIXME: UnstructuredSortedBoundaryTypes
                   # exceptions necessary for adding a new method `StartUpDG.estimate_h`
                   # in src/solvers/dgmulti/sbp.jl
                   piracies = (treat_as_own = [Trixi.StartUpDG.RefElemData,

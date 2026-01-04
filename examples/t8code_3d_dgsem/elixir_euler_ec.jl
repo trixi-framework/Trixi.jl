@@ -48,8 +48,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df00
                            joinpath(@__DIR__, "cube_unstructured_2.inp"))
 
 mesh = T8codeMesh(mesh_file, 3; polydeg = 5,
-                  mapping = mapping,
-                  initial_refinement_level = 0)
+                  mapping = mapping)
 
 # Create the semidiscretization object.
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -89,7 +88,7 @@ function Trixi.get_node_variable(::Val{:thermodynamic_entropy}, u, mesh, equatio
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
-            entropy_array[i, j, k, element] = Trixi.entropy_thermodynamic(u_node, equations)
+            entropy_array[i, j, k, element] = entropy_thermodynamic(u_node, equations)
         end
     end
 

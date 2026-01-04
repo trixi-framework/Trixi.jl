@@ -111,8 +111,10 @@ solver = DGSEM(polydeg = 4, surface_flux = surface_flux)
 #                  periodicity=false)
 
 trees_per_cube_face = (6, 2)
-mesh = Trixi.P4estMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
-                                  polydeg = 4, initial_refinement_level = 0)
+inner_radius = 6.371229e6
+thickness = 30000.0 # thickness of the spherical shell, outer radius is `inner_radius + thickness`
+mesh = P4estMeshCubedSphere(trees_per_cube_face..., inner_radius, thickness,
+                            polydeg = 4)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_circular_wind,
