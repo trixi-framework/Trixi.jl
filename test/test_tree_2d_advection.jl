@@ -86,7 +86,7 @@ end
                         l2=[0.00017439412748604995], linf=[0.0004655222114398061])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi_float_type, sol, 1000)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_mortar.jl" begin
