@@ -153,35 +153,51 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
 end
 
 # Compute the L2 projection matrix for projecting polynomials 
-# from a higher degree to a lower degree.
+# from a higher degree to a lower degree using Gauss-Legendre quadrature.
 #
 # Arguments
 # - `nodes_high`: GLL/LGL nodes of the higher-degree polynomial
 # - `nodes_low`: GLL/LGL nodes of the lower-degree polynomial
-# - `::Val{:gauss_lobatto}`: Use Gauss-Lobatto-Legendre quadrature (accuracy 2N - 3)
+# - `::Val{:gauss}`: Use Gauss-Legendre quadrature (accuracy 2N - 1)
 # - `RealT`: Type of the output matrix (default: Float64)
 #
 # Returns
 # The projection matrix such that multiplying with it projects 
 # a higher degree Lagrange interpolation/solution polynomial
 # to a lower degree Lagrange interpolation/solution polynomial.
-function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss_lobatto},
+function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss},
                                         RealT = Float64)
     n_high = length(nodes_high)
     n_low = length(nodes_low)
 
-    weights_high = gauss_lobatto_nodes_weights(n_high, RealT)[2]
-    weights_low = gauss_lobatto_nodes_weights(n_low, RealT)[2]
+    # Get Gauss-Legendre nodes and weights for quadrature
+    # Use enough nodes to exactly integrate polynomials of degree n_high + n_low - 1
+    n_quad = div(n_high + n_low + 1, 2)
+    gauss_nodes, gauss_weights = gauss_nodes_weights(n_quad, RealT)
+
+    # Get barycentric weights for interpolation
+    wbary_high = barycentric_weights(nodes_high)
     wbary_low = barycentric_weights(nodes_low)
 
+    # Weights for the low-degree mass matrix (diagonal for Gauss-Lobatto)
+    weights_low = gauss_lobatto_nodes_weights(n_low, RealT)[2]
+
+    # Build projection matrix
     projection_matrix = zeros(RealT, n_low, n_high)
-    for j in 1:n_high
-        # Evaluate the lower degree polynomial at the higher degree nodes
-        poly = lagrange_interpolating_polynomials(nodes_high[j], nodes_low, wbary_low)
-        for i in 1:n_low
-            # The first product corresponds to building the RHS
-            # The division corresponds to "solving" the diagonal "mass-matrix" system 
-            projection_matrix[i, j] = poly[i] * weights_high[j] / weights_low[i]
+
+    for q in 1:n_quad
+        # Evaluate low-degree basis functions at Gauss quadrature point
+        poly_low = lagrange_interpolating_polynomials(gauss_nodes[q], nodes_low,
+                                                      wbary_low)
+
+        # Evaluate high-degree basis functions at Gauss quadrature point
+        poly_high = lagrange_interpolating_polynomials(gauss_nodes[q], nodes_high,
+                                                       wbary_high)
+
+        for i in 1:n_low, j in 1:n_high
+            # Build integral using Gauss quadrature
+            projection_matrix[i, j] += poly_low[i] * poly_high[j] * gauss_weights[q] /
+                                       weights_low[i]
         end
     end
 

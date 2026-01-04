@@ -199,7 +199,7 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
             else # Projection from higher to lower
                 conversion_matrix = polynomial_l2projection_matrix(nodes_file,
                                                                    nodes_solver,
-                                                                   Val(:gauss_lobatto))
+                                                                   Val(:gauss))
             end
             convert_restart_file_polydeg!(u, file, polydeg_file,
                                           mesh, equations, dg, cache,
@@ -390,7 +390,7 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
             else # Projection from higher to lower
                 conversion_matrix = polynomial_l2projection_matrix(nodes_file,
                                                                    nodes_solver,
-                                                                   Val(:gauss_lobatto))
+                                                                   Val(:gauss))
             end
 
             # Calculate element and node counts by MPI rank                                                                   
@@ -484,7 +484,7 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
             else # Projection from higher to lower
                 conversion_matrix = polynomial_l2projection_matrix(nodes_file,
                                                                    nodes_solver,
-                                                                   Val(:gauss_lobatto))
+                                                                   Val(:gauss))
             end
 
             # We perform the interpolation of all elements on the root rank.
