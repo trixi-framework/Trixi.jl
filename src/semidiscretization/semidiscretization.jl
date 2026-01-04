@@ -151,9 +151,9 @@ end
 """
     semidiscretize(semi::AbstractSemidiscretization, tspan,
                    restart_file::AbstractString;
+                   interpolate_high2low = true,
                    jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
-                   colorvec::Union{AbstractVector, Nothing} = nothing,
-                   interpolate_high2low = true)
+                   colorvec::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
@@ -161,10 +161,6 @@ that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai
 The initial condition etc. is taken from the `restart_file`.
 
 Optional keyword arguments:
-- `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
-  Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
-- `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
-  Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype` is given.
 - `interpolate_high2low` applies only to the case when a simulation is restarted with a 
   lower polynomial degree than the one used in the original simulation.
   In that case, the solution is either interpolated (default) from the higher-degree polynomial
@@ -174,6 +170,10 @@ Optional keyword arguments:
   For `interpolate_high2low = false`, the solution is projected with minimal L2-error onto the
   lower-degree polynomial.
   This results in overall smaller L2-errors, but does not preserve continuity at the cell interfaces.
+- `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
+  Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
+- `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
+  Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype` is given.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan,
                         restart_file::AbstractString;
