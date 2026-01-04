@@ -334,7 +334,9 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
         Polyester.reset_threads!()
     end
 
+    # Load initial condition from restart file
     u0_ode = load_restart_file(semi, restart_file, interpolate_high2low)
+
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
