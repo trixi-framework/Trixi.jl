@@ -68,44 +68,47 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 tspan = (0.0, 1.0)
 initial_condition = initial_condition_daru
 periodicity = (false, false)
-mu() = 5e-3
+# @inline mu() = 5e-3 # Re = 200
+# @inline mu() = 2e-3  # Re = 500
+# @inline mu() = 0.0013333333333333333 # Re = 750
+@inline mu() = 1e-3 # Re = 1000
 
 # coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 # coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
-# tspan = (0.0, 1.5)
-# initial_condition = initial_condition_blast_wave
-# # tspan = (0.0, 5.0)
-# # initial_condition = initial_condition_kelvin_helmholtz_instability
+# # initial_condition = initial_condition_blast_wave
+# # tspan = (0.0, 1.5)
+# initial_condition = initial_condition_kelvin_helmholtz_instability
+# tspan = (0.0, 5.0)
 # periodicity = (true, true)
 # # periodicity = (false, false)
-# mu() = 5e-3
+# mu() = 1e-6
 
 equations = CompressibleEulerEquations2D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesEntropy())
 
-# dg = DGSEM(polydeg = 2, surface_flux = FluxLaxFriedrichs(max_abs_speed),
-#            volume_integral = VolumeIntegralWeakForm())
+dg = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed),
+           volume_integral = VolumeIntegralWeakForm())
 #         #    volume_integral = VolumeIntegralFluxDifferencing(flux_shima_etal))
 
-surface_flux = FluxLaxFriedrichs(max_abs_speed)
-basis = LobattoLegendreBasis(3)
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.5,
-                                         alpha_min = 0.001,
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                #  volume_flux_dg = flux_shima_etal,
-                                                 volume_flux_dg = flux_central,
-                                                 volume_flux_fv = surface_flux)           
-dg = DGSEM(basis, surface_flux, volume_integral)
+# surface_flux = FluxLaxFriedrichs(max_abs_speed)
+# basis = LobattoLegendreBasis(3)
+# indicator_sc = IndicatorHennemannGassner(equations, basis,
+#                                          alpha_max = 0.25,
+#                                          alpha_min = 0.001,
+#                                          alpha_smooth = true,
+#                                          variable = density_pressure)
+# volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+#                                                  volume_flux_dg = flux_shima_etal,
+#                                                 #  volume_flux_dg = flux_central,
+#                                                  volume_flux_fv = surface_flux)           
+# dg = DGSEM(basis, surface_flux, volume_integral)
 
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 7,
+                initial_refinement_level = 9,
                 periodicity=periodicity, n_cells_max = 400_000) 
 
 # BC types
@@ -126,14 +129,13 @@ boundary_conditions_parabolic = (; x_neg = boundary_condition_noslip_wall,
                                    y_pos = boundary_condition_noslip_wall)
 
 solver_parabolic = ViscousFormulationBassiRebay1()
-# solver_parabolic = ViscousFormulationLocalDG()
+solver_parabolic = ViscousFormulationLocalDG()
 
 if all(mesh.tree.periodicity .== true)
     semi = SemidiscretizationArtificialViscosity(mesh, (equations, equations_parabolic),
                                                  initial_condition, dg;
                                                  combine_rhs=Trixi.True(),
                                                  solver_parabolic = solver_parabolic)
-    # equations_artificial_viscosity=LaplaceDiffusionEntropyVariables2D(10.0, equations)) 
     # semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
     #                                              initial_condition, dg;
     #                                              solver_parabolic = solver_parabolic)
@@ -145,6 +147,7 @@ else
                                                  solver_parabolic = solver_parabolic,
                                                  boundary_conditions = (boundary_conditions_hyperbolic, 
                                                                         boundary_conditions_parabolic))
+
 #     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
 #                                                 initial_condition, dg;
 #                                                 solver_parabolic = solver_parabolic,
@@ -179,10 +182,10 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback) #, 
 
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-6, 1.0e-6),
                                                      variables = (Trixi.density, pressure))
-solver = SSPRK43(stage_limiter!, stage_limiter!)
-# solver = SSPRK43()
+# solver = SSPRK43(stage_limiter!, stage_limiter!)
+solver = SSPRK43()
 
-sol = solve(ode, solver; abstol = 1e-6, reltol = 1e-4, 
+sol = solve(ode, solver; abstol = 1e-6, reltol = 1e-4, # dt = 1e-8,
             ode_default_options()..., callback = callbacks)
 
 using Plots
@@ -192,10 +195,15 @@ u = Trixi.wrap_array(sol.u[end], semi)
 T = [Trixi.temperature(get_node_vars(u, equations, dg, i, j, elements), equations_parabolic) 
      for i in eachnode(dg), j in eachnode(dg), elements in eachelement(dg, semi.cache)]
 plot(ScalarPlotData2D(T, semi))
-plot!(clims=(0.4, 1.2), xlims=(0.4, 1.0), ylims=(0, 0.25))
+plot!(clims=(0.4, 1.2))
+plot!(xlims=(0.4, 1.0), ylims=(0, 0.25))
 
 ECAV_coefficient = [semi.cache.artificial_viscosity.coefficients[elements]
                   for i in eachnode(dg), j in eachnode(dg), elements in eachelement(dg, semi.cache)]
 plot(ScalarPlotData2D(ECAV_coefficient, semi))
-
+plot!(clims=(0, 5e-6))
+plot!(xlims=(0.4, 1.0), ylims=(0, 0.25))
 # plot!(getmesh(PlotData2D(sol)))
+
+# using JLD2
+# @save "DaruTenaudRe1000_polydeg_3_elements_512.jld2" sol
