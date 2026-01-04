@@ -96,8 +96,6 @@ for human readability.
   paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 - Passive tracers for arbitrary equations with density and flow variables ([#2364])
-- Simulations can now be restarted from other runs with different polynomial degrees, i.e.,
-  the solution variables are correctly converted via interpolation or L2 projection ([#2358]).
 
 #### Deprecated
 
