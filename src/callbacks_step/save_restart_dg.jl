@@ -61,14 +61,17 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
         all_variables[v, .., :] = read(file["variables_$v"])
     end
 
-    if mesh isa P4estMesh # TODO T8Code and Unstructured?
+    # NOTE: Transform to reference element currently not needed, as geometry does not change.
+    #=
+    if mesh isa P4estMesh || mesh isa T8codeMesh || mesh isa UnstructuredMesh2D
         # Reconstruct basis of the solver used in the restart file
         basis_file = LobattoLegendreBasis(polydeg_file)
         # Reconstruct elements of the solver used in the restart file
         elements_file = init_elements(mesh, equations, basis_file, eltype(u))
         inverse_jacobian_file = elements_file.inverse_jacobian
 
-        # Multiply file Jacobian prior to interpolation/projection
+        # Multiply file Jacobian prior to interpolation/projection,
+        # i.e., move to reference element
         for element_id in eachelement(dg, cache)
             for v in eachvariable(equations)
                 all_variables[v, .., element_id] ./= inverse_jacobian_file[..,
@@ -76,6 +79,7 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
             end
         end
     end
+    =#
 
     # Perform interpolation/projection to new polynomial degree
     for element in eachelement(dg, cache)
@@ -83,17 +87,21 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
                                                 all_variables[.., element])
     end
 
-    if mesh isa P4estMesh # TODO T8Code and Unstructured?
+    # NOTE: Transform back to physical element currently not needed, as geometry does not change.
+    #=
+    if mesh isa P4estMesh || mesh isa T8codeMesh || mesh isa UnstructuredMesh2D
         # Apply Jacobian of the new solver to the coefficients
         inverse_jacobian = cache.elements.inverse_jacobian
 
         # Divide interpolated/projected coefficients by the current inverse Jacobian
+        # to move back to physical space
         for element_id in eachelement(dg, cache)
             for v in eachvariable(equations)
                 u[v, .., element_id] .*= inverse_jacobian[.., element_id]
             end
         end
     end
+    =#
 
     return nothing
 end
@@ -185,7 +193,7 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
 
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
 
-            if polydeg_file < polydeg(dg) || interpolate_high2low # Interpolation from lower to higher
+            if (polydeg_file < polydeg(dg)) || interpolate_high2low # Interpolation from lower to higher
                 conversion_matrix = polynomial_interpolation_matrix(nodes_file,
                                                                     nodes_solver)
             else # Projection from higher to lower
@@ -376,7 +384,7 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
             nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            if polydeg_file < polydeg(dg) || interpolate_high2low # Interpolation from lower to higher
+            if (polydeg_file < polydeg(dg)) || interpolate_high2low # Interpolation from lower to higher
                 conversion_matrix = polynomial_interpolation_matrix(nodes_file,
                                                                     nodes_solver)
             else # Projection from higher to lower
@@ -470,7 +478,7 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
             nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            if polydeg_file < polydeg(dg) || interpolate_high2low # Interpolation from lower to higher
+            if (polydeg_file < polydeg(dg)) || interpolate_high2low # Interpolation from lower to higher
                 conversion_matrix = polynomial_interpolation_matrix(nodes_file,
                                                                     nodes_solver)
             else # Projection from higher to lower

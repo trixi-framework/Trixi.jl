@@ -6,11 +6,10 @@ using Trixi
 alg = CarpenterKennedy2N54(williamson_condition = false)
 # Create a restart file
 base_elixir = "elixir_advection_extended.jl"
-trixi_include(@__MODULE__, joinpath(@__DIR__, base_elixir), alg = alg,
-              tspan = (0.0, 10.0))
+trixi_include(@__MODULE__, joinpath(@__DIR__, base_elixir), alg = alg)
 
-restart_filename = joinpath("out", "restart_000000040.h5")
-tspan = (10.0, 11.0)
+restart_filename = joinpath("out", "restart_000000018.h5")
+tspan = (1.0, 1.0)
 
 ###############################################################################
 # Project original solution to LOWER order (3 -> 2)
@@ -22,14 +21,14 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 
 # Set `interpolate_high2low = false` to avoid interpolation of the solution and 
 # construct the solution via L2-projection                              
-ode = semidiscretize(semi, tspan, restart_filename; interpolate_high2low = false)
+ode = semidiscretize(semi, tspan, restart_filename; interpolate_high2low = true)
 
 # We can increase the CFL number compared to the k = 3 case
 stepsize_callback = StepsizeCallback(cfl = 2.0)
 
 # Reinitialize the `AnalysisCallback` for changed basis polynomial degree
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_integrals = (entropy, energy_total))
+                                     extra_analysis_errors = (:conservation_error,))
 
 callbacks = CallbackSet(summary_callback, # Re-used
                         alive_callback, # Re-used
