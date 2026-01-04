@@ -59,7 +59,7 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integr
 #volume_integral = volume_integral_weakform # Crashes
 #volume_integral = volume_integral_fluxdiff # Runs, but is (slightly) more expensive
 
-solver = DGSEM(basis, surface_flux, volume_integral_fluxdiff)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0, 1.0) .* pi
