@@ -415,6 +415,7 @@ function calc_dhat(nodes, weights)
     n_nodes = length(nodes)
     dhat = Matrix(polynomial_derivative_matrix(nodes)')
 
+    # Perform M^{-1} D^T M operation and negate
     for n in 1:n_nodes, j in 1:n_nodes
         dhat[j, n] *= -weights[n] / weights[j]
     end
