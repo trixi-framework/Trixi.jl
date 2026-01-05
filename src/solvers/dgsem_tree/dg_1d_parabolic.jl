@@ -38,7 +38,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Convert conservative variables to a form more suitable for viscous flux calculations
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic, dg,
-                             parabolic_scheme, cache)
+                             cache)
     end
 
     # Compute the gradients of the transformed variables
@@ -98,7 +98,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Calculate boundary fluxes.
     # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache, t,
+        calc_divergence_boundary_flux!(cache, t,
                                        boundary_conditions_parabolic, mesh,
                                        equations_parabolic,
                                        dg.surface_integral, dg)
@@ -124,7 +124,7 @@ end
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh::TreeMesh{1},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, parabolic_scheme, cache)
+                              dg::DG, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
     @threaded for element in eachelement(dg, cache)
@@ -164,9 +164,9 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function calc_interface_flux!(surface_flux_values,
-                              mesh::TreeMesh{1}, equations_parabolic,
-                              dg::DG, parabolic_scheme, cache)
+function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
+                              equations_parabolic, dg::DG, parabolic_scheme,
+                              cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
     @threaded for interface in eachinterface(dg, cache)
@@ -186,7 +186,7 @@ function calc_interface_flux!(surface_flux_values,
 
         # compute interface flux for the DG divergence 
         flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
-                              mesh, equations_parabolic, parabolic_scheme)
+                              equations_parabolic, parabolic_scheme)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
@@ -227,7 +227,7 @@ function calc_gradient_boundary_flux!(cache, t,
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t,
+function calc_divergence_boundary_flux!(cache, t,
                                         boundary_conditions_parabolic::BoundaryConditionPeriodic,
                                         mesh::TreeMesh{1},
                                         equations_parabolic::AbstractEquationsParabolic,
@@ -264,8 +264,7 @@ end
 
 function calc_gradient_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,
                                                                                       3},
-                                                   t,
-                                                   boundary_condition,
+                                                   t, boundary_condition,
                                                    equations_parabolic::AbstractEquationsParabolic,
                                                    surface_integral, dg::DG, cache,
                                                    direction, first_boundary,
@@ -304,7 +303,7 @@ function calc_gradient_boundary_flux_by_direction!(surface_flux_values::Abstract
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t,
+function calc_divergence_boundary_flux!(cache, t,
                                         boundary_conditions_parabolic::NamedTuple,
                                         mesh::TreeMesh{1},
                                         equations_parabolic::AbstractEquationsParabolic,
@@ -402,8 +401,9 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
 end
 
 function calc_gradient_interface_flux!(surface_flux_values,
-                                       mesh::TreeMesh{1}, equations_parabolic, dg::DG,
-                                       parabolic_scheme, cache)
+                                       mesh::TreeMesh{1},
+                                       equations_parabolic,
+                                       dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
     @threaded for interface in eachinterface(dg, cache)
@@ -421,7 +421,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
                                            equations_parabolic, dg, interface)
 
         flux = flux_parabolic(u_ll, u_rr, Gradient(),
-                              mesh, equations_parabolic, parabolic_scheme)
+                              equations_parabolic, parabolic_scheme)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
@@ -526,7 +526,7 @@ end
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
-function apply_jacobian_parabolic!(du, mesh::TreeMesh{1},
+function apply_jacobian_parabolic!(du::AbstractArray, mesh::TreeMesh{1},
                                    equations::AbstractEquationsParabolic, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 

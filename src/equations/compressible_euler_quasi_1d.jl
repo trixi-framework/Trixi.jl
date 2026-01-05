@@ -57,16 +57,16 @@ struct CompressibleEulerEquationsQuasi1D{RealT <: Real} <:
 
     function CompressibleEulerEquationsQuasi1D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 have_nonconservative_terms(::CompressibleEulerEquationsQuasi1D) = True()
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquationsQuasi1D)
-    ("a_rho", "a_rho_v1", "a_e", "a")
+    return ("a_rho", "a_rho_v1", "a_e", "a")
 end
 function varnames(::typeof(cons2prim), ::CompressibleEulerEquationsQuasi1D)
-    ("rho", "v1", "p", "a")
+    return ("rho", "v1", "p", "a")
 end
 
 """
@@ -344,8 +344,13 @@ end
     return SVector(q[1], q[2], q[3], a)
 end
 
-# The entropy for the quasi-1D compressible Euler equations is the entropy for the
-# 1D compressible Euler equations scaled by the channel width `a`.
+"""
+    entropy(u, equations::CompressibleEulerEquationsQuasi1D)
+
+The entropy for the quasi-1D compressible Euler equations is the
+[`entropy(cons, equations::AbstractCompressibleEulerEquations)`](@ref) for the
+(1D) compressible Euler equations scaled by the channel width `a`.
+"""
 @inline function entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     return a * entropy(SVector(a_rho, a_rho_v1, a_e) / a,
