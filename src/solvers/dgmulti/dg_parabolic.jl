@@ -505,7 +505,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
     end
 
     @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources!(du, u, gradients, t, source_terms_parabolic, mesh, equations, dg, cache)
+        calc_sources!(du, u, gradients, t, source_terms_parabolic, mesh, equations_parabolic, dg, cache)
     end
 
     return nothing
@@ -513,17 +513,18 @@ end
 
 # Multiple calc_sources! to resolve method ambiguities
 function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
-                       mesh, equations, dg::DGMulti, cache)
+                       mesh, equations_parabolic, dg::DGMulti, cache)
     return nothing
 end
 function calc_sources_parabolic(du, u, gradients, t, source_terms::Nothing,
-                       mesh, equations, dg::DGMultiFluxDiffSBP, cache)
+                       mesh, equations_parabolic, dg::DGMultiFluxDiffSBP, cache)
     return nothing
 end
 
 # uses quadrature + projection to compute source terms.
 function calc_sources_parabolic(du, u, gradients, t, source_terms,
-                                mesh, equations, dg::DGMulti, cache)
+                                mesh, equations_parabolic, dg::DGMulti, cache)
+    (; equations) = equations_parabolic
     md = mesh.md
     @threaded for e in eachelement(mesh, dg, cache)
         for i in each_quad_node(mesh, dg, cache)

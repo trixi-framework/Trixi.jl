@@ -138,7 +138,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     end
 
     @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms, equations, dg, cache)
+        calc_sources_parabolic!(du, u, gradients, t, source_terms, equations_parabolic, dg, cache)
     end
 
 
@@ -1043,13 +1043,14 @@ end
 
 # Need dimension specific version to avoid error at dispatching
 function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
-                                 equations::AbstractEquations{2}, dg::DG, cache)
+                                 equations_parabolic::AbstractEquations{2}, dg::DG, cache)
     return nothing
 end
 
 function calc_sources_parabolic!(du, u, gradients, t, source_terms,
-                                 equations::AbstractEquations{2}, dg::DG, cache)
+                                 equations_parabolic::AbstractEquations{2}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
+    @unpack equations = equations_parabolic
 
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)

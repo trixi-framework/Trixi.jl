@@ -1289,13 +1289,14 @@ end
 
 # Need dimension specific version to avoid error at dispatching
 function calc_sources!(du, u, t, source_terms::Nothing,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+                       equations_parabolic::AbstractEquations{3}, dg::DG, cache)
     return nothing
 end
 
 function calc_sources!(du, u, t, source_terms,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+                       equations_parabolic::AbstractEquations{3}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
+    @unpack equations = equations_parabolic
 
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
