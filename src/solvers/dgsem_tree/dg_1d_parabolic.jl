@@ -118,9 +118,9 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Calculate source terms
     @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic, equations_parabolic, dg, cache)
+        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
+                                equations_parabolic, dg, cache)
     end
-
 
     return nothing
 end
@@ -551,12 +551,14 @@ end
 
 # Need dimension specific version to avoid error at dispatching
 function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
-                                 equations_parabolic::AbstractEquations{1}, dg::DG, cache)
+                                 equations_parabolic::AbstractEquations{1}, dg::DG,
+                                 cache)
     return nothing
 end
 
 function calc_sources_parabolic!(du, u, gradients, t, source_terms,
-                                 equations_parabolic::AbstractEquations{1}, dg::DG, cache)
+                                 equations_parabolic::AbstractEquations{1}, dg::DG,
+                                 cache)
     @unpack node_coordinates = cache.elements
     equations = equations_parabolic.equations_hyperbolic
 
@@ -566,7 +568,8 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms,
             gradients_x_local = get_node_vars(gradients, equations, dg, i, element)
             x_local = get_node_coords(node_coordinates, equations, dg,
                                       i, element)
-            du_local = source_terms(u_local, (gradients_x_local, ), x_local, t, equations_parabolic)
+            du_local = source_terms(u_local, (gradients_x_local,), x_local, t,
+                                    equations_parabolic)
             add_to_node_vars!(du, du_local, equations, dg, i, element)
         end
     end

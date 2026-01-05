@@ -15,7 +15,7 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
                                              InitialCondition,
                                              BoundaryConditions,
                                              BoundaryConditionsParabolic,
-                                             SourceTerms, SourceTermsParabolic, 
+                                             SourceTerms, SourceTermsParabolic,
                                              Solver, SolverParabolic,
                                              Cache, CacheParabolic} <:
        AbstractSemidiscretization
@@ -32,7 +32,7 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
     boundary_conditions_parabolic::BoundaryConditionsParabolic
 
     source_terms::SourceTerms
-    source_terms_parabolic::SourceTermsParabolic    
+    source_terms_parabolic::SourceTermsParabolic
 
     solver::Solver
     solver_parabolic::SolverParabolic
@@ -134,7 +134,7 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
                 solver = semi.solver,
                 solver_parabolic = semi.solver_parabolic,
                 source_terms = semi.source_terms,
-                source_terms_parabolic = semi.source_terms_parabolic, 
+                source_terms_parabolic = semi.source_terms_parabolic,
                 boundary_conditions = semi.boundary_conditions,
                 boundary_conditions_parabolic = semi.boundary_conditions_parabolic)
     # TODO: Which parts do we want to `remake`? At least the solver needs some
@@ -142,8 +142,8 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
     #       the indicators and their own caches...).
     return SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, solver;
-                                                 solver_parabolic, source_terms, 
-                                                 source_terms_parabolic, 
+                                                 solver_parabolic, source_terms,
+                                                 source_terms_parabolic,
                                                  boundary_conditions = (boundary_conditions,
                                                                         boundary_conditions_parabolic),
                                                  uEltype)

@@ -241,7 +241,7 @@ end
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_diffusivity::False, equations, 
+                constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
@@ -257,7 +257,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
 
             # estimate diffusive "wavespeed" as diffusivity / h
             # this corresponds to a CFL of h^2 * diffusivity
-            diffusivity = max_diffusivity(u[i, e], equations_parabolic) 
+            diffusivity = max_diffusivity(u[i, e], equations_parabolic)
             max_speeds = max.(max_speeds, lambda_i, diffusivity / h_e)
         end
         dt_min = min(dt_min, h_e / sum(max_speeds))
@@ -270,7 +270,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_diffusivity::True, equations, 
+                constant_diffusivity::True, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
@@ -282,7 +282,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
 
     # estimate diffusive "wavespeed" as diffusivity / h
     # this corresponds to a CFL of h^2 * diffusivity
-    diffusivity = max_diffusivity(equations_parabolic) 
+    diffusivity = max_diffusivity(equations_parabolic)
 
     dt_min = Inf
     for e in eachelement(mesh, dg, cache)

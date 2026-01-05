@@ -505,7 +505,8 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
     end
 
     @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic, mesh, equations_parabolic, dg, cache)
+        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic, mesh,
+                                equations_parabolic, dg, cache)
     end
 
     return nothing
@@ -513,11 +514,11 @@ end
 
 # Multiple calc_sources! to resolve method ambiguities
 function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
-                       mesh, equations_parabolic, dg::DGMulti, cache)
+                                 mesh, equations_parabolic, dg::DGMulti, cache)
     return nothing
 end
 function calc_sources_parabolic(du, u, gradients, t, source_terms::Nothing,
-                       mesh, equations_parabolic, dg::DGMultiFluxDiffSBP, cache)
+                                mesh, equations_parabolic, dg::DGMultiFluxDiffSBP, cache)
     return nothing
 end
 
@@ -527,9 +528,10 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms,
     md = mesh.md
     @threaded for e in eachelement(mesh, dg, cache)
         for i in each_quad_node(mesh, dg, cache)
-            du[i, e] = du[i, e] + source_terms(u[i, e], SVector(getindex.(gradients, i, e)), 
-                                            SVector(getindex.(md.xyzq, i, e)),
-                                            t, equations_parabolic)
+            du[i, e] = du[i, e] +
+                       source_terms(u[i, e], SVector(getindex.(gradients, i, e)),
+                                    SVector(getindex.(md.xyzq, i, e)),
+                                    t, equations_parabolic)
         end
     end
 

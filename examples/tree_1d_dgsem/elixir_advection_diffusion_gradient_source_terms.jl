@@ -4,25 +4,25 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection diffusion equation
 
-const a    = 0.1
-const nu   = 0.1
+const a = 0.1
+const nu = 0.1
 const beta = 0.3
 
 equations = LinearScalarAdvectionEquation1D(a)
-equations_parabolic  = LaplaceDiffusion1D(nu, equations)
+equations_parabolic = LaplaceDiffusion1D(nu, equations)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-initial_condition = function(x, t, equations::LinearScalarAdvectionEquation1D)
+initial_condition = function (x, t, equations::LinearScalarAdvectionEquation1D)
     return SVector(sin(x[1]))
 end
 
-source_terms = function(u, x, t, equations::LinearScalarAdvectionEquation1D)
+source_terms = function (u, x, t, equations::LinearScalarAdvectionEquation1D)
     f = a * cos(x[1]) + nu * sin(x[1]) - beta * (cos(x[1])^2)
     return SVector(f)
 end
 
-source_terms_parabolic = function(u, gradients, x, t, equations::LaplaceDiffusion1D)
+source_terms_parabolic = function (u, gradients, x, t, equations::LaplaceDiffusion1D)
     dudx = gradients[1][1]
     return SVector(beta * dudx^2)
 end
@@ -43,7 +43,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
                                              solver;
                                              solver_parabolic = ViscousFormulationLocalDG(),
                                              source_terms = source_terms,
-                                             source_terms_parabolic = source_terms_parabolic,                                             
+                                             source_terms_parabolic = source_terms_parabolic,
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -70,7 +70,8 @@ stepsize_callback = StepsizeCallback(cfl = cfl_advective,
                                      cfl_diffusive = cfl_diffusive)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
@@ -78,4 +79,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, ste
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, RDPK3SpFSAL35(); adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)
-
