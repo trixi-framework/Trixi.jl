@@ -13,11 +13,6 @@ equations_parabolic  = LaplaceDiffusion1D(nu, equations)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-mesh = TreeMesh(-Float64(pi), Float64(pi);
-                initial_refinement_level = 2,
-                n_cells_max = 30_000,
-                periodicity = true)
-
 initial_condition = function(x, t, equations::LinearScalarAdvectionEquation1D)
     return SVector(sin(x[1]))
 end
@@ -33,9 +28,9 @@ source_terms_parabolic = function(u, gradients, x, t, equations::LaplaceDiffusio
 end
 
 # Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
+mesh = TreeMesh(-Float64(pi), Float64(pi);
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
+                n_cells_max = 30_000,
                 periodicity = true)
 
 # define periodic boundary conditions everywhere
