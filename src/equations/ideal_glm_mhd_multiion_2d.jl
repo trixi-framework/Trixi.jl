@@ -1461,7 +1461,7 @@ end
     return c_f
 end
 
-@inline function calc_fast_wavespeed(cons, normal_direction::SVector{2,Float64},
+@inline function calc_fast_wavespeed(cons, normal_direction::SVector{2, Float64},
                                      equations::IdealGlmMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(cons, equations)
     psi = divergence_cleaning_field(cons, equations)
