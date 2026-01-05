@@ -19,8 +19,8 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 # ## Gradient-dependent source terms
 
 # For a mixed hyperbolic-parabolic system, one can specify source terms which depend
-# on the gradient of the solution. Here, we solve the advection-diffusion equation 
-# 
+# on the gradient of the solution. Here, we solve a steady advection-diffusion 
+# equation with both solution and gradient-dependent source terms. 
 
 initial_condition = function (x, t, equations::LinearScalarAdvectionEquation1D)
     return SVector(sin(x[1]))
@@ -36,7 +36,17 @@ end
 
 # For gradient-dependent source terms, we also pass the solution gradients and the 
 # parabolic equations instead of the hyperbolic equations. Note that all parabolic 
+<<<<<<< Updated upstream
 # equations have `equations_hyperbolic` as a field. 
+=======
+# equations have `equations_hyperbolic` as a solution field. 
+# 
+# For advection-diffusion, the gradients are gradients of the solution `u`. However, 
+# for systems such as `CompressibleNavierStokesDiffusion1D`, different gradient 
+# variables can be selected through the `gradient_variables` keyword option. The 
+# choice of `gradient_variables` will also determine the variables whose gradients 
+# are passed into `source_terms_parabolic`. 
+>>>>>>> Stashed changes
 
 source_terms_parabolic = function (u, gradients, x, t, equations::LaplaceDiffusion1D)
     dudx = gradients[1][1]
