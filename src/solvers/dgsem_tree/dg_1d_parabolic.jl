@@ -116,6 +116,12 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
         apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
     end
 
+    # Calculate source terms
+    @trixi_timeit timer() "source terms parabolic" begin
+        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic, equations, dg, cache)
+    end
+
+
     return nothing
 end
 
@@ -518,12 +524,6 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
         apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
                                   cache)
     end
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources!(du, u, gradients, t, source_terms_parabolic, equations, dg, cache)
-    end
-
 
     return nothing
 end
