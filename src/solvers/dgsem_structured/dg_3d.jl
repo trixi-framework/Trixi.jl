@@ -844,9 +844,15 @@ end
 function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            factor = -cache.elements.inverse_jacobian[i, j, k, element]
+            # negative sign included to account for the negated surface and volume terms,
+            # see e.g. the computation of `derivative_dhat` in the basis setup
+            # and the combination of the `boundary_interpolation` factors in
+            # `calc_surface_integral!`.
+            factor = -inverse_jacobian[i, j, k, element]
 
             for v in eachvariable(equations)
                 du[v, i, j, k, element] *= factor

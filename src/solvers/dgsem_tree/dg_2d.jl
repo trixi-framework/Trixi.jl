@@ -1128,6 +1128,10 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
+        # negative sign included to account for the negated surface and volume terms,
+        # see e.g. the computation of `derivative_dhat` in the basis setup
+        # and the combination of the `boundary_interpolation` factors in
+        # `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
         for j in eachnode(dg), i in eachnode(dg)
