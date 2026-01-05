@@ -103,7 +103,7 @@ function calc_entropy_change_element(du, u, element,
 
     # Apply inverse Jacobian
     @unpack inverse_jacobian = cache.elements
-    factor = inverse_jacobian[element]
+    factor = -inverse_jacobian[element]
     return factor * dS_unscaled
 end
 
@@ -118,7 +118,7 @@ function calc_entropy_change_element(du, u, element,
 
     # Apply inverse Jacobian
     @unpack inverse_jacobian = cache.elements
-    factor = inverse_jacobian[element]
+    factor = -inverse_jacobian[element]
     return factor * dS_unscaled
 end
 
