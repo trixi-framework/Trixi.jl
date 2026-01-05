@@ -1166,7 +1166,7 @@ function calc_sources_parabolic!(du, u, t, source_terms,
             gradients_local = (gradients_x_local, gradients_y_local, gradients_z_local)
             x_local = get_node_coords(node_coordinates, equations, dg,
                                       i, j, k, element)
-            du_local = source_terms(u_local, gradients_local, x_local, t, equations)
+            du_local = source_terms(u_local, gradients_local, x_local, t, equations_parabolic)
             add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
         end
     end
