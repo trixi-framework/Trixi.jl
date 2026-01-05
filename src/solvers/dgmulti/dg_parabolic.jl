@@ -505,7 +505,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
     end
 
     @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources!(du, u, gradients, t, source_terms_parabolic, mesh, equations_parabolic, dg, cache)
+        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic, mesh, equations_parabolic, dg, cache)
     end
 
     return nothing
