@@ -93,23 +93,33 @@ end
 
 # Calculate ∫_el (∂S/∂u ⋅ ∂u/∂t) dΩ_el
 function calc_entropy_change_element(du, u, element,
-                                     mesh::AbstractMesh{2}, equations, dg, cache)
-    return integrate_element(u, element, mesh, equations, dg, cache,
-                             du) do u, i, j, element, equations, dg, du
+                                     mesh::TreeMesh{2}, equations, dg, cache)
+    dS_unscaled = integrate_element(u, element, mesh, equations, dg, cache,
+                                    du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
         dot(cons2entropy(u_node, equations), du_node)
     end
+
+    # Apply inverse Jacobian
+    @unpack inverse_jacobian = cache.elements
+    factor = inverse_jacobian[element]
+    return factor * dS_unscaled
 end
 
 function calc_entropy_change_element(du, u, element,
-                                     mesh::AbstractMesh{3}, equations, dg, cache)
-    return integrate_element(u, element, mesh, equations, dg, cache,
-                             du) do u, i, j, k, element, equations, dg, du
+                                     mesh::TreeMesh{3}, equations, dg, cache)
+    dS_unscaled = integrate_element(u, element, mesh, equations, dg, cache,
+                                    du) do u, i, j, k, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         du_node = get_node_vars(du, equations, dg, i, j, k, element)
         dot(cons2entropy(u_node, equations), du_node)
     end
+
+    # Apply inverse Jacobian
+    @unpack inverse_jacobian = cache.elements
+    factor = inverse_jacobian[element]
+    return factor * dS_unscaled
 end
 
 function calc_volume_integral!(du, u, mesh,

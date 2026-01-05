@@ -41,7 +41,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
 # `threshold` governs the tolerated entropy increase due to the weak-form
 # volume integral before switching to the stabilized version
-indicator = IndicatorEntropyIncrease(threshold = 1.5e-1)
+indicator = IndicatorEntropyIncrease(threshold = 9.5)
 # Adaptive volume integral using the entropy increase indicator to perform the 
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,
@@ -63,7 +63,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 3.1)
+tspan = (0.0, 3.25)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
