@@ -1147,33 +1147,26 @@ function apply_jacobian_parabolic!(du::AbstractArray, mesh::TreeMesh{3},
 end
 
 # Need dimension specific version to avoid error at dispatching
-function calc_sources_parabolic!(du, u, t, source_terms::Nothing,
-                                 equations_parabolic::AbstractEquations{3}, dg::DG,
-                                 cache)
+function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
+                                 equations_parabolic::AbstractEquations{3}, dg::DG, cache)
     return nothing
 end
 
-function calc_sources_parabolic!(du, u, t, source_terms,
-                                 equations_parabolic::AbstractEquations{3}, dg::DG,
-                                 cache)
+function calc_sources_parabolic!(du, u, gradients, t, source_terms,
+                                 equations_parabolic::AbstractEquations{3}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
-    @unpack equations = equations_parabolic
 
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, j, k, element)
-            gradients_x_local = get_node_vars(gradients[1], equations, dg, i, j, k,
-                                              element)
-            gradients_y_local = get_node_vars(gradients[2], equations, dg, i, j, k,
-                                              element)
-            gradients_z_local = get_node_vars(gradients[3], equations, dg, i, j, k,
-                                              element)
+            u_local = get_node_vars(u, equations_parabolic, dg, i, j, k, element)
+            gradients_x_local = get_node_vars(gradients[1], equations_parabolic, dg, i, j, k, element)
+            gradients_y_local = get_node_vars(gradients[2], equations_parabolic, dg, i, j, k, element)
+            gradients_z_local = get_node_vars(gradients[3], equations_parabolic, dg, i, j, k, element)
             gradients_local = (gradients_x_local, gradients_y_local, gradients_z_local)
-            x_local = get_node_coords(node_coordinates, equations, dg,
+            x_local = get_node_coords(node_coordinates, equations_parabolic, dg,
                                       i, j, k, element)
-            du_local = source_terms(u_local, gradients_local, x_local, t,
-                                    equations_parabolic)
-            add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+            du_local = source_terms(u_local, gradients_local, x_local, t, equations_parabolic)
+            add_to_node_vars!(du, du_local, equations_parabolic, dg, i, j, k, element)
         end
     end
 
