@@ -36,7 +36,7 @@ end
 
 # For gradient-dependent source terms, we also pass the solution gradients and the 
 # parabolic equations instead of the hyperbolic equations. Note that all parabolic 
-# equations have `equations_hyperbolic` as a solution field. 
+# equations have `equations_hyperbolic` as a field. 
 
 source_terms_parabolic = function (u, gradients, x, t, equations::LaplaceDiffusion1D)
     dudx = gradients[1][1]
