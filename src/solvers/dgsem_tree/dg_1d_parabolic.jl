@@ -444,8 +444,8 @@ function calc_gradient_surface_integral!(gradients,
     # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor_1 = boundary_interpolation[1, 1] # = -1
+    factor_2 = boundary_interpolation[nnodes(dg), 2] # = +1
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations_parabolic)
             # surface at -x
