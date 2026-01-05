@@ -118,7 +118,7 @@ mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
                                                                  electron_temperature
                                                                  ::ElectronTemperature,
                                                                  c_h::RealT) where
-             {NVARS, NCOMP, RealT <: Real, ElectronPressure, ElectronTemperature}
+        {NVARS, NCOMP, RealT <: Real, ElectronPressure, ElectronTemperature}
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
@@ -193,11 +193,9 @@ function IdealGlmMhdMultiIonEquations2D(gammas, charge_to_mass, gas_constants,
                                           initial_c_h = c_h)
 end
 
-@inline function Base.real(::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {
-                                                                                         NVARS,
+@inline function Base.real(::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {NVARS,
                                                                                          NCOMP,
-                                                                                         RealT
-                                                                                         }
+                                                                                         RealT}
     RealT
 end
 
@@ -251,8 +249,9 @@ end
     B1, B2, B3 = magnetic_field(u, equations)
     psi = divergence_cleaning_field(u, equations)
 
-    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
-                                                                                         equations)
+    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus,
+    vk3_plus = charge_averaged_velocities(u,
+                                          equations)
 
     mag_en = 0.5f0 * (B1^2 + B2^2 + B3^2)
     div_clean_energy = 0.5f0 * psi^2
@@ -318,13 +317,14 @@ end
     return SVector(f)
 end
 
-@inline function flux(u, normal_direction::SVector{2,T},
-                      equations::IdealGlmMhdMultiIonEquations2D) where {T<:Real}
+@inline function flux(u, normal_direction::SVector{2, T},
+                      equations::IdealGlmMhdMultiIonEquations2D) where {T <: Real}
     B1, B2, B3 = magnetic_field(u, equations)
     psi = divergence_cleaning_field(u, equations)
 
-    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
-                                                                                         equations)
+    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus,
+    vk3_plus = charge_averaged_velocities(u,
+                                          equations)
 
     mag_en = 0.5f0 * (B1^2 + B2^2 + B3^2)
     div_clean_energy = 0.5f0 * psi^2
@@ -431,10 +431,12 @@ The term is composed of four individual non-conservative terms:
     charge_ratio_ll ./= total_electron_charge
 
     # Compute auxiliary variables
-    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll,
-                                                                                                           equations)
-    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr,
-                                                                                                           equations)
+    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll,
+    vk3_plus_ll = charge_averaged_velocities(u_ll,
+                                             equations)
+    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr,
+    vk3_plus_rr = charge_averaged_velocities(u_rr,
+                                             equations)
 
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
@@ -536,8 +538,9 @@ The term is composed of four individual non-conservative terms:
 end
 
 @inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
-                                                        normal_direction::SVector{2,T},
-                                                        equations::IdealGlmMhdMultiIonEquations2D) where {T<:Real}
+                                                        normal_direction::SVector{2, T},
+                                                        equations::IdealGlmMhdMultiIonEquations2D) where {T <:
+                                                                                                          Real}
     @unpack charge_to_mass = equations
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
@@ -570,10 +573,12 @@ end
     charge_ratio_ll ./= total_electron_charge
 
     # Compute auxiliary variables
-    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll,
-                                                                                                           equations)
-    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr,
-                                                                                                           equations)
+    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll,
+    vk3_plus_ll = charge_averaged_velocities(u_ll,
+                                             equations)
+    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr,
+    vk3_plus_rr = charge_averaged_velocities(u_rr,
+                                             equations)
 
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
@@ -599,13 +604,13 @@ end
         f3 = Tyx * normal_direction[1] + Tyy * normal_direction[2]
         f4 = Txz * normal_direction[1] + Tyz * normal_direction[2]
 
-#         f2 = charge_ratio_ll[k] *
-#              ((0.5f0 * mag_norm_avg - B1_avg * B1_avg + pe_mean) * normal_direction[1] +
-#               (-B2_avg * B1_avg) * normal_direction[2])
-#         f3 = charge_ratio_ll[k] * ((-B1_avg * B2_avg) * normal_direction[1] +
-#               (-B2_avg * B2_avg + 0.5f0 * mag_norm_avg + pe_mean) * normal_direction[2])
-#         f4 = charge_ratio_ll[k] * (-B1_avg * B3_avg * normal_direction[1] -
-#               B2_avg * B3_avg * normal_direction[2])
+        #         f2 = charge_ratio_ll[k] *
+        #              ((0.5f0 * mag_norm_avg - B1_avg * B1_avg + pe_mean) * normal_direction[1] +
+        #               (-B2_avg * B1_avg) * normal_direction[2])
+        #         f3 = charge_ratio_ll[k] * ((-B1_avg * B2_avg) * normal_direction[1] +
+        #               (-B2_avg * B2_avg + 0.5f0 * mag_norm_avg + pe_mean) * normal_direction[2])
+        #         f4 = charge_ratio_ll[k] * (-B1_avg * B3_avg * normal_direction[1] -
+        #               B2_avg * B3_avg * normal_direction[2])
 
         f5 = (vk1_plus_ll[k] * normal_direction[1] +
               vk2_plus_ll[k] * normal_direction[2]) * pe_mean
@@ -624,27 +629,29 @@ end
         vk_minus_avg = SVector((vk1_minus_avg, vk2_minus_avg, vk3_minus_avg))
         B_avg = SVector((B1_avg, B2_avg, B3_avg))
         B_ll = SVector((B1_ll, B2_ll, B3_ll))
-#         f5 += dot(B_ll, cross(vk_minus_avg, B_avg)) ⋅ normal_direction
-        f5 += dot(B_ll, cross(vk_minus_avg, B_avg)) * dot(normal_direction, normal_direction)
-#         f5 += (B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
-#                B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) *
-#               normal_direction[1]
-#         f5 += (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
-#                B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) *
-#               normal_direction[2]
+        #         f5 += dot(B_ll, cross(vk_minus_avg, B_avg)) ⋅ normal_direction
+        f5 += dot(B_ll, cross(vk_minus_avg, B_avg)) *
+              dot(normal_direction, normal_direction)
+        #         f5 += (B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
+        #                B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) *
+        #               normal_direction[1]
+        #         f5 += (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
+        #                B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) *
+        #               normal_direction[2]
 
         # Compute Godunov-Powell term
-        GP_term = charge_ratio_ll[k] * (B_ll * dot(B_avg, SVector((normal_direction..., 0))))
+        GP_term = charge_ratio_ll[k] *
+                  (B_ll * dot(B_avg, SVector((normal_direction..., 0))))
         f2 = GP_term[1]
         f3 = GP_term[2]
         f4 = GP_term[3]
 
-#         f2 += charge_ratio_ll[k] * B1_ll *
-#               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
-#         f3 += charge_ratio_ll[k] * B2_ll *
-#               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
-#         f4 += charge_ratio_ll[k] * B3_ll *
-#               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
+        #         f2 += charge_ratio_ll[k] * B1_ll *
+        #               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
+        #         f3 += charge_ratio_ll[k] * B2_ll *
+        #               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
+        #         f4 += charge_ratio_ll[k] * B3_ll *
+        #               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
         f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
 
@@ -717,10 +724,12 @@ The term is composed of four individual non-conservative terms:
     charge_ratio_ll ./= total_electron_charge
 
     # Compute auxiliary variables
-    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll,
-                                                                                                           equations)
-    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr,
-                                                                                                           equations)
+    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll,
+    vk3_plus_ll = charge_averaged_velocities(u_ll,
+                                             equations)
+    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr,
+    vk3_plus_rr = charge_averaged_velocities(u_rr,
+                                             equations)
 
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
@@ -812,8 +821,9 @@ The term is composed of four individual non-conservative terms:
 end
 
 @inline function flux_nonconservative_central(u_ll, u_rr,
-                                              normal_direction::SVector{2,T},
-                                              equations::IdealGlmMhdMultiIonEquations2D) where {T<:Real}
+                                              normal_direction::SVector{2, T},
+                                              equations::IdealGlmMhdMultiIonEquations2D) where {T <:
+                                                                                                Real}
     @unpack charge_to_mass = equations
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
@@ -840,10 +850,12 @@ end
     charge_ratio_ll ./= total_electron_charge
 
     # Compute auxiliary variables
-    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll,
-                                                                                                           equations)
-    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr,
-                                                                                                           equations)
+    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll,
+    vk3_plus_ll = charge_averaged_velocities(u_ll,
+                                             equations)
+    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr,
+    vk3_plus_rr = charge_averaged_velocities(u_rr,
+                                             equations)
 
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
@@ -937,10 +949,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
     psi_ll = divergence_cleaning_field(u_ll, equations)
     psi_rr = divergence_cleaning_field(u_rr, equations)
 
-    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll,
-                                                                                                           equations)
-    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr,
-                                                                                                           equations)
+    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll,
+    vk3_plus_ll = charge_averaged_velocities(u_ll,
+                                             equations)
+    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr,
+    vk3_plus_rr = charge_averaged_velocities(u_rr,
+                                             equations)
 
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
@@ -974,10 +988,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
         # Iterate over all components
         for k in eachcomponent(equations)
             # Unpack left and right states
-            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll,
-                                                                              equations)
-            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
-                                                                              equations)
+            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll,
+            rho_e_ll = get_component(k, u_ll,
+                                     equations)
+            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr,
+            rho_e_rr = get_component(k, u_rr,
+                                     equations)
             rho_inv_ll = 1 / rho_ll
             v1_ll = rho_v1_ll * rho_inv_ll
             v2_ll = rho_v2_ll * rho_inv_ll
@@ -1072,10 +1088,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
         # Iterate over all components
         for k in eachcomponent(equations)
             # Unpack left and right states
-            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll,
-                                                                              equations)
-            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
-                                                                              equations)
+            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll,
+            rho_e_ll = get_component(k, u_ll,
+                                     equations)
+            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr,
+            rho_e_rr = get_component(k, u_rr,
+                                     equations)
 
             rho_inv_ll = 1 / rho_ll
             v1_ll = rho_v1_ll * rho_inv_ll
@@ -1158,8 +1176,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
     return SVector(f)
 end
 
-function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2,T},
-                                equations::IdealGlmMhdMultiIonEquations2D) where {T<:Real}
+function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2, T},
+                                equations::IdealGlmMhdMultiIonEquations2D) where {T <:
+                                                                                  Real}
     @unpack gammas = equations
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
@@ -1167,10 +1186,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2,T},
     psi_ll = divergence_cleaning_field(u_ll, equations)
     psi_rr = divergence_cleaning_field(u_rr, equations)
 
-    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll,
-                                                                                                           equations)
-    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr,
-                                                                                                           equations)
+    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll,
+    vk3_plus_ll = charge_averaged_velocities(u_ll,
+                                             equations)
+    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr,
+    vk3_plus_rr = charge_averaged_velocities(u_rr,
+                                             equations)
 
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
@@ -1208,10 +1229,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2,T},
     # Iterate over all components
     for k in eachcomponent(equations)
         # Unpack left and right states
-        rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll,
-                                                                          equations)
-        rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
-                                                                          equations)
+        rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll,
+        rho_e_ll = get_component(k, u_ll,
+                                 equations)
+        rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr,
+        rho_e_rr = get_component(k, u_rr,
+                                 equations)
         rho_inv_ll = 1 / rho_ll
         v1_ll = rho_v1_ll * rho_inv_ll
         v2_ll = rho_v2_ll * rho_inv_ll
@@ -1270,7 +1293,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2,T},
 
         # total energy flux is complicated and involves the previous eight components
         vk1_plus_mag_avg = 0.5f0 * (vk1_plus_ll[k] * mag_norm_ll +
-                           vk1_plus_rr[k] * mag_norm_rr)
+                            vk1_plus_rr[k] * mag_norm_rr)
         vk2_plus_mag_avg = 0.5f0 * (vk2_plus_ll[k] * mag_norm_ll +
                             vk2_plus_rr[k] * mag_norm_rr)
         # Euler part
@@ -1345,7 +1368,7 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::SVector{2,Float64},
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::SVector{2, Float64},
                                      equations::IdealGlmMhdMultiIonEquations2D)
     # Calculate fast magnetoacoustic wave speeds
     # left
