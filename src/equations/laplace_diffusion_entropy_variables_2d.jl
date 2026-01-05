@@ -1,7 +1,8 @@
 function LaplaceDiffusionEntropyVariables2D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusionEntropyVariables{2, typeof(equations_hyperbolic),
-                                     nvariables(equations_hyperbolic),
-                                     typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+    return LaplaceDiffusionEntropyVariables{2, typeof(equations_hyperbolic),
+                                            nvariables(equations_hyperbolic),
+                                            typeof(diffusivity)}(diffusivity,
+                                                                 equations_hyperbolic)
 end
 
 function flux(u, gradients, orientation::Integer,

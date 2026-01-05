@@ -82,6 +82,7 @@ function Base.show(io::IO, pd::PlotData2DCartesian)
           typeof(pd.variable_names), ",",
           typeof(pd.mesh_vertices_x),
           "}(<x>, <y>, <data>, <variable_names>, <mesh_vertices_x>, <mesh_vertices_y>)")
+    return nothing
 end
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
@@ -109,6 +110,7 @@ function Base.show(io::IO, pd::PlotData2DTriangulated)
           typeof(pd.face_data), ", ",
           typeof(pd.variable_names),
           "}(<x>, <y>, <data>, <plot_triangulation>, <x_face>, <y_face>, <face_data>, <variable_names>)")
+    return nothing
 end
 
 """
@@ -133,6 +135,7 @@ function Base.show(io::IO, pd::PlotData1D)
           typeof(pd.variable_names), ",",
           typeof(pd.mesh_vertices_x),
           "}(<x>, <data>, <variable_names>, <mesh_vertices_x>)")
+    return nothing
 end
 
 # Auxiliary data structure for visualizing a single variable
@@ -147,6 +150,7 @@ function Base.show(io::IO, pds::PlotDataSeries)
 
     print(io, "PlotDataSeries{", typeof(pds.plot_data), "}(<plot_data>, ",
           pds.variable_id, ")")
+    return nothing
 end
 
 # Generic PlotMesh wrapper type.
@@ -159,6 +163,7 @@ function Base.show(io::IO, pm::PlotMesh)
     @nospecialize pm # reduce precompilation time
 
     print(io, "PlotMesh{", typeof(pm.plot_data), "}(<plot_data>)")
+    return nothing
 end
 
 """
@@ -214,9 +219,9 @@ julia> plot!(getmesh(pd)) # To add grid lines to the plot
 ```
 """
 function PlotData2D(u_ode, semi; kwargs...)
-    PlotData2D(wrap_array_native(u_ode, semi),
-               mesh_equations_solver_cache(semi)...;
-               kwargs...)
+    return PlotData2D(wrap_array_native(u_ode, semi),
+                      mesh_equations_solver_cache(semi)...;
+                      kwargs...)
 end
 
 function PlotData2D(u_ode, semi::SemidiscretizationCoupled; kwargs...)
@@ -227,10 +232,10 @@ function PlotData2D(u_ode, semi::SemidiscretizationCoupled; kwargs...)
         u_loc = get_system_u_ode(u_ode, i, semi)
         u_loc_wrapped = wrap_array_native(u_loc, semi_)
 
-        push!(plot_data_array,
-              PlotData2D(u_loc_wrapped,
-                         mesh_equations_solver_cache(semi_)...;
-                         kwargs...))
+        return push!(plot_data_array,
+                     PlotData2D(u_loc_wrapped,
+                                mesh_equations_solver_cache(semi_)...;
+                                kwargs...))
     end
 
     return plot_data_array
@@ -238,19 +243,19 @@ end
 
 # Redirect `PlotDataTriangulated2D` constructor.
 function PlotData2DTriangulated(u_ode, semi; kwargs...)
-    PlotData2DTriangulated(wrap_array_native(u_ode, semi),
-                           mesh_equations_solver_cache(semi)...;
-                           kwargs...)
+    return PlotData2DTriangulated(wrap_array_native(u_ode, semi),
+                                  mesh_equations_solver_cache(semi)...;
+                                  kwargs...)
 end
 
 # Create a PlotData2DCartesian object for TreeMeshes on default.
 function PlotData2D(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
-    PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
+    return PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
 end
 
 # Create a PlotData2DTriangulated object for any type of mesh other than the TreeMesh.
 function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
-    PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
+    return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
 end
 
 # Create a PlotData2DCartesian for a TreeMesh.
@@ -299,12 +304,12 @@ returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
 """
 function PlotData2D(sol::TrixiODESolution; kwargs...)
-    PlotData2D(sol.u[end], sol.prob.p; kwargs...)
+    return PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 end
 
 # Also redirect when using PlotData2DTriangulate.
 function PlotData2DTriangulated(sol::TrixiODESolution; kwargs...)
-    PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
+    return PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
 end
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
@@ -444,7 +449,7 @@ Returns an `PlotData2DTriangulated` object which is used to visualize a single s
 `u` should be an array whose entries correspond to values of the scalar field at nodal points.
 """
 function ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...)
-    ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
+    return ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
 end
 
 # Returns an `PlotData2DTriangulated` which is used to visualize a single scalar field
@@ -550,15 +555,15 @@ This is done with the keyword argument `curve`. It can be set to a list of 2D/3D
 which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
 """
 function PlotData1D(u_ode, semi; kwargs...)
-    PlotData1D(wrap_array_native(u_ode, semi),
-               mesh_equations_solver_cache(semi)...;
-               kwargs...)
+    return PlotData1D(wrap_array_native(u_ode, semi),
+                      mesh_equations_solver_cache(semi)...;
+                      kwargs...)
 end
 
 function PlotData1D(func::Function, semi; kwargs...)
-    PlotData1D(func,
-               mesh_equations_solver_cache(semi)...;
-               kwargs...)
+    return PlotData1D(func,
+                      mesh_equations_solver_cache(semi)...;
+                      kwargs...)
 end
 
 function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
@@ -760,7 +765,7 @@ Create a `PlotData1D` object from a solution object created by either `OrdinaryD
 `TimeIntegratorSolution`).
 """
 function PlotData1D(sol::TrixiODESolution; kwargs...)
-    PlotData1D(sol.u[end], sol.prob.p; kwargs...)
+    return PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 end
 
 function PlotData1D(time_series_callback::TimeSeriesCallback, point_id::Integer)

@@ -38,12 +38,12 @@ struct CompressibleEulerEquations1D{RealT <: Real} <:
 
     function CompressibleEulerEquations1D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations1D)
-    ("rho", "rho_v1", "rho_e")
+    return ("rho", "rho_v1", "rho_e")
 end
 varnames(::typeof(cons2prim), ::CompressibleEulerEquations1D) = ("rho", "v1", "p")
 
@@ -1083,7 +1083,15 @@ end
     return rho_times_p
 end
 
-# Calculate thermodynamic entropy for a conservative state `cons`
+@doc raw"""
+    entropy_thermodynamic(cons, equations::AbstractCompressibleEulerEquations)
+
+Calculate thermodynamic entropy for a conservative state `cons` as
+
+```math
+s = \log(p) - \gamma \log(\rho)
+```
+"""
 @inline function entropy_thermodynamic(cons, equations::CompressibleEulerEquations1D)
     # Pressure
     p = (equations.gamma - 1) * (cons[3] - 0.5f0 * (cons[2]^2) / cons[1])
@@ -1094,7 +1102,16 @@ end
     return s
 end
 
-# Calculate mathematical entropy for a conservative state `cons`
+@doc raw"""
+    entropy_math(cons, equations::AbstractCompressibleEulerEquations)
+
+Calculate mathematical entropy for a conservative state `cons` as
+```math
+S = -\frac{\rho s}{\gamma - 1}
+```
+where `s` is the thermodynamic entropy calculated by
+[`entropy_thermodynamic(cons, equations::AbstractCompressibleEulerEquations)`](@ref).
+"""
 @inline function entropy_math(cons, equations::CompressibleEulerEquations1D)
     # Mathematical entropy
     S = -entropy_thermodynamic(cons, equations) * cons[1] *
@@ -1103,9 +1120,14 @@ end
     return S
 end
 
-# Default entropy is the mathematical entropy
+"""
+    entropy(cons, equations::AbstractCompressibleEulerEquations)
+
+Default entropy is the mathematical entropy
+[`entropy_math(cons, equations::AbstractCompressibleEulerEquations)`](@ref).
+"""
 @inline function entropy(cons, equations::CompressibleEulerEquations1D)
-    entropy_math(cons, equations)
+    return entropy_math(cons, equations)
 end
 
 # Calculate total energy for a conservative state `cons`

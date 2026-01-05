@@ -42,6 +42,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
           "cfl_advective=", cfl_advective, ", ",
           "cfl_diffusive=", cfl_diffusive, ", ",
           "interval=", interval, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -71,20 +72,20 @@ function StepsizeCallback(; cfl = 1.0, cfl_diffusive = 0.0,
                                                                              cfl_diff,
                                                                              interval)
 
-    DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 # Compatibility constructor used in `EulerAcousticsCouplingCallback`
 function StepsizeCallback(cfl_advective)
     RealT = typeof(cfl_advective)
-    StepsizeCallback{RealT, RealT}(cfl_advective, zero(RealT), 1)
+    return StepsizeCallback{RealT, RealT}(cfl_advective, zero(RealT), 1)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
                      integrator) where {Condition, Affect! <: StepsizeCallback}
-    cb.affect!(integrator)
+    return cb.affect!(integrator)
 end
 
 # this method is called to determine whether the callback should be activated

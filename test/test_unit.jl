@@ -344,9 +344,8 @@ end
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
     Trixi.delete_connectivity!(c::MyContainer, first, last) = c
     function Trixi.reset_data_structures!(c::MyContainer)
-        (c.data = Vector{Int}(undef,
-                              c.capacity + 1);
-         c)
+        c.data = Vector{Int}(undef, c.capacity + 1)
+        return c
     end
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
         return (c1.capacity == c2.capacity &&
@@ -447,7 +446,7 @@ end
     @test_nowarn show(stdout, indicator_hg)
 
     limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
-                                    true, [(Trixi.entropy_guermond_etal, min)], true,
+                                    true, [(entropy_guermond_etal, min)], true,
                                     "cache", 1, (1.0, 1.0), 1.0, true, 1.0, nothing)
     @test_nowarn show(stdout, limiter_idp)
 
@@ -611,7 +610,7 @@ end
 end
 
 # It is for many equations possible to compute ρ ⋅ p more efficiently
-# than computing the pressure (and density if needed) separately and then multiplying. 
+# than computing the pressure (and density if needed) separately and then multiplying.
 # This is due to the computation of the kinetic energy term, which usually involves
 # dividing the squared momenta by the density, an operation that can be avoided
 # when computing the product ρ ⋅ p directly.
