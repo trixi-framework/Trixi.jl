@@ -66,12 +66,13 @@ function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) whe
                                                                                     T3,
                                                                                     T4
                                                                                     }
-    DGMultiMesh{T1, T2, T3, T4}
+    return DGMultiMesh{T1, T2, T3, T4}
 end
 
 function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
     @nospecialize mesh # reduce precompilation time
     print(io, "$MeshType DGMultiMesh with NDIMS = $NDIMS.")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -91,7 +92,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-# This constructor is called by load_mesh_serial. Note that constructing the mesh this way 
+# This constructor is called by load_mesh_serial. Note that constructing the mesh this way
 # doesn't specify whether the mesh is affine. We assume the more general case (non-affine).
 function DGMultiMesh(md::MeshData{NDIMS}, boundary_names = []) where {NDIMS}
     return DGMultiMesh{NDIMS, NonAffine, typeof(md), typeof(boundary_names)}(md,

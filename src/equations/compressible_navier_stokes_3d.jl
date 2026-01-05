@@ -115,13 +115,15 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
     # This avoids recomputation of kappa for non-constant μ.
     kappa = gamma * inv_gamma_minus_one / Prandtl
 
-    CompressibleNavierStokesDiffusion3D{typeof(gradient_variables), typeof(gamma),
-                                        typeof(mu),
-                                        typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                           mu, Prandtl, kappa,
-                                                           max(4 / 3, kappa),
-                                                           equations,
-                                                           gradient_variables)
+    return CompressibleNavierStokesDiffusion3D{typeof(gradient_variables),
+                                               typeof(gamma),
+                                               typeof(mu),
+                                               typeof(equations)}(gamma,
+                                                                  inv_gamma_minus_one,
+                                                                  mu, Prandtl, kappa,
+                                                                  max(4 / 3, kappa),
+                                                                  equations,
+                                                                  gradient_variables)
 end
 
 # TODO: parabolic
@@ -131,16 +133,16 @@ end
 
 function varnames(variable_mapping,
                   equations_parabolic::CompressibleNavierStokesDiffusion3D)
-    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+    return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    cons2prim
+    return cons2prim
 end
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
-    cons2entropy
+    return cons2entropy
 end
 
 # Explicit formulas for the diffusive Navier-Stokes fluxes are available, e.g., in Section 2
@@ -280,10 +282,10 @@ end
 # This can be done by specializing `cons2entropy` and `entropy2cons` to `CompressibleNavierStokesDiffusion2D`,
 # but this may be confusing to new users.
 function cons2entropy(u, equations::CompressibleNavierStokesDiffusion3D)
-    cons2entropy(u, equations.equations_hyperbolic)
+    return cons2entropy(u, equations.equations_hyperbolic)
 end
 function entropy2cons(w, equations::CompressibleNavierStokesDiffusion3D)
-    entropy2cons(w, equations.equations_hyperbolic)
+    return entropy2cons(w, equations.equations_hyperbolic)
 end
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
@@ -337,7 +339,7 @@ end
 # with `cons2prim(..., ::CompressibleNavierStokesDiffusion3D)` as defined above.
 # TODO: parabolic. Is there a way to clean this up?
 @inline function prim2cons(u, equations::CompressibleNavierStokesDiffusion3D)
-    prim2cons(u, equations.equations_hyperbolic)
+    return prim2cons(u, equations.equations_hyperbolic)
 end
 
 """

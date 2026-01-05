@@ -42,11 +42,11 @@ trixi_include(default_example_unstructured())
 # on the curved quadrilateral mesh described in the
 # [Trixi.jl documentation](https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/unstructured_quad_mesh/).
 # For references on the method of manufactured solutions (MMS) see the following publications:
-# - Kambiz Salari and Patrick Knupp (2000)  
-#   Code Verification by the Method of Manufactured Solutions  
+# - Kambiz Salari and Patrick Knupp (2000)
+#   Code Verification by the Method of Manufactured Solutions
 #   [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
-# - Patrick J. Roache (2002)  
-#   Code Verification by the Method of Manufactured Solutions  
+# - Patrick J. Roache (2002)
+#   Code Verification by the Method of Manufactured Solutions
 #   [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 
 # Apart from the usual error and timing output provided by the Trixi.jl run, it is useful to visualize and inspect
@@ -95,63 +95,64 @@ trixi2vtk("out/solution_000*.h5", output_directory = "out", nvisnodes = 12)
 # The associated `ice_cream_straight_sides.control` file is created below.
 open("out/ice_cream_straight_sides.control", "w") do io
     println(io, raw"""
-  \begin{CONTROL_INPUT}
-      \begin{RUN_PARAMETERS}
-          mesh file name   = ice_cream_straight_sides.mesh
-          plot file name   = ice_cream_straight_sides.tec
-          stats file name  = none
-          mesh file format = ISM-v2
-          polynomial order = 4
-          plot file format = skeleton
-      \end{RUN_PARAMETERS}
+         \begin{CONTROL_INPUT}
+             \begin{RUN_PARAMETERS}
+                 mesh file name   = ice_cream_straight_sides.mesh
+                 plot file name   = ice_cream_straight_sides.tec
+                 stats file name  = none
+                 mesh file format = ISM-v2
+                 polynomial order = 4
+                 plot file format = skeleton
+             \end{RUN_PARAMETERS}
 
-      \begin{BACKGROUND_GRID}
-          x0 = [-8.0, -8.0, 0.0]
-          dx = [1.0, 1.0, 0.0]
-          N  = [16,16,1]
-      \end{BACKGROUND_GRID}
+             \begin{BACKGROUND_GRID}
+                 x0 = [-8.0, -8.0, 0.0]
+                 dx = [1.0, 1.0, 0.0]
+                 N  = [16,16,1]
+             \end{BACKGROUND_GRID}
 
-      \begin{SPRING_SMOOTHER}
-          smoothing            = ON
-          smoothing type       = LinearAndCrossBarSpring
-          number of iterations = 25
-      \end{SPRING_SMOOTHER}
+             \begin{SPRING_SMOOTHER}
+                 smoothing            = ON
+                 smoothing type       = LinearAndCrossBarSpring
+                 number of iterations = 25
+             \end{SPRING_SMOOTHER}
 
-  \end{CONTROL_INPUT}
+         \end{CONTROL_INPUT}
 
-  \begin{MODEL}
+         \begin{MODEL}
 
-      \begin{INNER_BOUNDARIES}
+             \begin{INNER_BOUNDARIES}
 
-          \begin{CHAIN}
-              name = IceCreamCone
-              \begin{END_POINTS_LINE}
-                  name = LeftSlant
-                  xStart = [-2.0, 1.0, 0.0]
-                  xEnd   = [ 0.0, -3.0, 0.0]
-              \end{END_POINTS_LINE}
+                 \begin{CHAIN}
+                     name = IceCreamCone
+                     \begin{END_POINTS_LINE}
+                         name = LeftSlant
+                         xStart = [-2.0, 1.0, 0.0]
+                         xEnd   = [ 0.0, -3.0, 0.0]
+                     \end{END_POINTS_LINE}
 
-              \begin{END_POINTS_LINE}
-                  name = RightSlant
-                  xStart = [ 0.0, -3.0, 0.0]
-                  xEnd   = [ 2.0, 1.0, 0.0]
-              \end{END_POINTS_LINE}
+                     \begin{END_POINTS_LINE}
+                         name = RightSlant
+                         xStart = [ 0.0, -3.0, 0.0]
+                         xEnd   = [ 2.0, 1.0, 0.0]
+                     \end{END_POINTS_LINE}
 
-              \begin{CIRCULAR_ARC}
-                  name        = IceCream
-                  units       = degrees
-                  center      = [ 0.0, 1.0, 0.0]
-                  radius      = 2.0
-                  start angle = 0.0
-                  end angle   = 180.0
-              \end{CIRCULAR_ARC}
-          \end{CHAIN}
+                     \begin{CIRCULAR_ARC}
+                         name        = IceCream
+                         units       = degrees
+                         center      = [ 0.0, 1.0, 0.0]
+                         radius      = 2.0
+                         start angle = 0.0
+                         end angle   = 180.0
+                     \end{CIRCULAR_ARC}
+                 \end{CHAIN}
 
-      \end{INNER_BOUNDARIES}
+             \end{INNER_BOUNDARIES}
 
-  \end{MODEL}
-  \end{FILE}
-  """)
+         \end{MODEL}
+         \end{FILE}
+         """)
+    return nothing
 end
 
 # The first three blocks of information are wrapped within a `CONTROL_INPUT` environment block as they define the
@@ -385,71 +386,72 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
 # major differences compared to `ice_cream_straight_sides.control`.
 open("out/ice_cream_curved_sides.control", "w") do io
     println(io, raw"""
-  \begin{CONTROL_INPUT}
-      \begin{RUN_PARAMETERS}
-          mesh file name   = ice_cream_curved_sides.mesh
-          plot file name   = ice_cream_curved_sides.tec
-          stats file name  = none
-          mesh file format = ISM-v2
-          polynomial order = 4
-          plot file format = skeleton
-      \end{RUN_PARAMETERS}
+         \begin{CONTROL_INPUT}
+             \begin{RUN_PARAMETERS}
+                 mesh file name   = ice_cream_curved_sides.mesh
+                 plot file name   = ice_cream_curved_sides.tec
+                 stats file name  = none
+                 mesh file format = ISM-v2
+                 polynomial order = 4
+                 plot file format = skeleton
+             \end{RUN_PARAMETERS}
 
-      \begin{BACKGROUND_GRID}
-          background grid size = [1.0, 1.0, 0.0]
-      \end{BACKGROUND_GRID}
+             \begin{BACKGROUND_GRID}
+                 background grid size = [1.0, 1.0, 0.0]
+             \end{BACKGROUND_GRID}
 
-      \begin{SPRING_SMOOTHER}
-          smoothing            = ON
-          smoothing type       = LinearAndCrossBarSpring
-          number of iterations = 25
-      \end{SPRING_SMOOTHER}
+             \begin{SPRING_SMOOTHER}
+                 smoothing            = ON
+                 smoothing type       = LinearAndCrossBarSpring
+                 number of iterations = 25
+             \end{SPRING_SMOOTHER}
 
-  \end{CONTROL_INPUT}
+         \end{CONTROL_INPUT}
 
-  \begin{MODEL}
+         \begin{MODEL}
 
-      \begin{OUTER_BOUNDARY}
-          \begin{PARAMETRIC_EQUATION_CURVE}
-              name = OuterCircle
-              xEqn = x(t) = 8.0*sin(2.0*pi*t)
-              yEqn = y(t) = 8.0*cos(2.0*pi*t)
-              zEqn = z(t) = 0.0
-          \end{PARAMETRIC_EQUATION_CURVE}
+             \begin{OUTER_BOUNDARY}
+                 \begin{PARAMETRIC_EQUATION_CURVE}
+                     name = OuterCircle
+                     xEqn = x(t) = 8.0*sin(2.0*pi*t)
+                     yEqn = y(t) = 8.0*cos(2.0*pi*t)
+                     zEqn = z(t) = 0.0
+                 \end{PARAMETRIC_EQUATION_CURVE}
 
-      \end{OUTER_BOUNDARY}
+             \end{OUTER_BOUNDARY}
 
-      \begin{INNER_BOUNDARIES}
+             \begin{INNER_BOUNDARIES}
 
-          \begin{CHAIN}
-              name = IceCreamCone
-              \begin{END_POINTS_LINE}
-                  name = LeftSlant
-                  xStart = [-2.0, 1.0, 0.0]
-                  xEnd   = [ 0.0, -3.0, 0.0]
-              \end{END_POINTS_LINE}
+                 \begin{CHAIN}
+                     name = IceCreamCone
+                     \begin{END_POINTS_LINE}
+                         name = LeftSlant
+                         xStart = [-2.0, 1.0, 0.0]
+                         xEnd   = [ 0.0, -3.0, 0.0]
+                     \end{END_POINTS_LINE}
 
-              \begin{END_POINTS_LINE}
-                  name = RightSlant
-                  xStart = [ 0.0, -3.0, 0.0]
-                  xEnd   = [ 2.0, 1.0, 0.0]
-              \end{END_POINTS_LINE}
+                     \begin{END_POINTS_LINE}
+                         name = RightSlant
+                         xStart = [ 0.0, -3.0, 0.0]
+                         xEnd   = [ 2.0, 1.0, 0.0]
+                     \end{END_POINTS_LINE}
 
-              \begin{CIRCULAR_ARC}
-                  name        = IceCream
-                  units       = degrees
-                  center      = [ 0.0, 1.0, 0.0]
-                  radius      = 2.0
-                  start angle = 0.0
-                  end angle   = 180.0
-              \end{CIRCULAR_ARC}
-          \end{CHAIN}
+                     \begin{CIRCULAR_ARC}
+                         name        = IceCream
+                         units       = degrees
+                         center      = [ 0.0, 1.0, 0.0]
+                         radius      = 2.0
+                         start angle = 0.0
+                         end angle   = 180.0
+                     \end{CIRCULAR_ARC}
+                 \end{CHAIN}
 
-      \end{INNER_BOUNDARIES}
+             \end{INNER_BOUNDARIES}
 
-  \end{MODEL}
-  \end{FILE}
-  """)
+         \end{MODEL}
+         \end{FILE}
+         """)
+    return nothing
 end
 
 # The first alteration is that we have altered the second block of information
