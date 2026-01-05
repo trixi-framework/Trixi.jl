@@ -142,7 +142,7 @@ end
 
 # This is the version used when calculating the divergence of the viscous fluxes.
 # Identical to weak-form volume integral/kernel for the purely hyperbolic case,
-# except that the fluxes are here already precomputed.
+# except that the fluxes are here already precomputed in `calc_viscous_fluxes!`
 function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{1},
                                equations_parabolic::AbstractEquationsParabolic,
