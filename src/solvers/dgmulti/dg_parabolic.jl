@@ -522,8 +522,8 @@ function calc_sources_parabolic(du, u, gradients, t, source_terms::Nothing,
 end
 
 # uses quadrature + projection to compute source terms.
-function calc_sources_parabolic(du, u, gradients, t, source_terms,
-                                mesh, equations_parabolic, dg::DGMulti, cache)
+function calc_sources_parabolic!(du, u, gradients, t, source_terms,
+                                 mesh, equations_parabolic, dg::DGMulti, cache)
     md = mesh.md
     @threaded for e in eachelement(mesh, dg, cache)
         for i in each_quad_node(mesh, dg, cache)
