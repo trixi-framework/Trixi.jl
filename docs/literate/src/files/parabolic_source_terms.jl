@@ -36,9 +36,6 @@ end
 
 # For gradient-dependent source terms, we also pass the solution gradients and the 
 # parabolic equations instead of the hyperbolic equations. Note that all parabolic 
-<<<<<<< Updated upstream
-# equations have `equations_hyperbolic` as a field. 
-=======
 # equations have `equations_hyperbolic` as a solution field. 
 # 
 # For advection-diffusion, the gradients are gradients of the solution `u`. However, 
@@ -46,7 +43,6 @@ end
 # variables can be selected through the `gradient_variables` keyword option. The 
 # choice of `gradient_variables` will also determine the variables whose gradients 
 # are passed into `source_terms_parabolic`. 
->>>>>>> Stashed changes
 
 source_terms_parabolic = function (u, gradients, x, t, equations::LaplaceDiffusion1D)
     dudx = gradients[1][1]
