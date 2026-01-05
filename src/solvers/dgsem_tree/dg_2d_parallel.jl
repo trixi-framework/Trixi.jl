@@ -38,11 +38,12 @@ function MPICache(uEltype)
     n_elements_global = 0
     first_element_global_id = 0
 
-    MPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars,
-                      mpi_send_buffers, mpi_recv_buffers,
-                      mpi_send_requests, mpi_recv_requests,
-                      n_elements_by_rank, n_elements_global,
-                      first_element_global_id)
+    return MPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces,
+                             mpi_neighbor_mortars,
+                             mpi_send_buffers, mpi_recv_buffers,
+                             mpi_send_requests, mpi_recv_requests,
+                             n_elements_by_rank, n_elements_global,
+                             first_element_global_id)
 end
 @inline Base.eltype(::MPICache{uEltype}) where {uEltype} = uEltype
 
@@ -154,7 +155,7 @@ end
 
 # TODO: MPI dimension agnostic
 function finish_mpi_send!(mpi_cache::MPICache)
-    MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
+    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
 # TODO: MPI dimension agnostic
@@ -261,12 +262,14 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations,
     mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
                                nvariables(equations), nnodes(dg), uEltype)
 
-    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars, mpi_mortars,
-             mpi_cache)
+    # Container cache
+    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_mortars, mpi_cache)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+    # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
@@ -496,8 +499,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2boundaries!(cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
@@ -722,7 +724,7 @@ end
 
 function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
-                                  nonconservative_terms::False, equations,
+                                  have_nonconservative_terms::False, equations,
                                   surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
@@ -763,7 +765,7 @@ end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
                                mesh::ParallelTreeMesh{2},
-                               nonconservative_terms::False, equations,
+                               have_nonconservative_terms::False, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -777,7 +779,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
         fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
-        # Because `nonconservative_terms` is `False` the primary and secondary fluxes
+        # Because `have_nonconservative_terms` is `False` the primary and secondary fluxes
         # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
         calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,

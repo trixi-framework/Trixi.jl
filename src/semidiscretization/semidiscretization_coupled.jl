@@ -16,12 +16,18 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupled{S, Indices, EquationList} <:
+mutable struct SemidiscretizationCoupled{S, Indices} <:
                AbstractSemidiscretization
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
 end
+# We assume some properties of the fields of the semidiscretization, e.g.,
+# the `equations` and the `mesh` should have the same dimension. We check these
+# properties in the outer constructor defined below. While we could ensure
+# them even better in an inner constructor, we do not use this approach to
+# simplify the integration with Adapt.jl for GPU usage, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationCoupled(semis...)
@@ -49,15 +55,15 @@ function SemidiscretizationCoupled(semis...)
 
     performance_counter = PerformanceCounter()
 
-    SemidiscretizationCoupled{typeof(semis), typeof(u_indices),
-                              typeof(performance_counter)}(semis, u_indices,
-                                                           performance_counter)
+    return SemidiscretizationCoupled{typeof(semis), typeof(u_indices)}(semis, u_indices,
+                                                                       performance_counter)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupled)
     @nospecialize semi # reduce precompilation time
 
     print(io, "SemidiscretizationCoupled($(semi.semis))")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
@@ -117,11 +123,11 @@ end
 @inline Base.real(semi::SemidiscretizationCoupled) = promote_type(real.(semi.semis)...)
 
 @inline function Base.eltype(semi::SemidiscretizationCoupled)
-    promote_type(eltype.(semi.semis)...)
+    return promote_type(eltype.(semi.semis)...)
 end
 
 @inline function ndofs(semi::SemidiscretizationCoupled)
-    sum(ndofs, semi.semis)
+    return sum(ndofs, semi.semis)
 end
 
 """
@@ -133,7 +139,7 @@ parallelized via threads. It will in general be different for simulations
 running in parallel with MPI.
 """
 @inline function ndofsglobal(semi::SemidiscretizationCoupled)
-    sum(ndofsglobal, semi.semis)
+    return sum(ndofsglobal, semi.semis)
 end
 
 function compute_coefficients(t, semi::SemidiscretizationCoupled)
@@ -166,7 +172,7 @@ end
     func((index, element))
 
     # Process remaining collection
-    foreach_enumerate(func, remaining_collection, index + 1)
+    return foreach_enumerate(func, remaining_collection, index + 1)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
@@ -176,7 +182,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
     @trixi_timeit timer() "copy to coupled boundaries" begin
         foreach(semi.semis) do semi_
-            copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
+            return copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi,
+                                             semi_)
         end
     end
 
@@ -184,7 +191,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, semi_, t)
+        return rhs!(du_loc, u_loc, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -241,12 +248,12 @@ function AnalysisCallbackCoupled(semi_coupled, callbacks...)
 
     # This callback is triggered if any of its subsidiary callbacks' condition is triggered
     condition = (u, t, integrator) -> any(callbacks) do callback
-        callback.condition(u, t, integrator)
+        return callback.condition(u, t, integrator)
     end
 
-    DiscreteCallback(condition, analysis_callback_coupled,
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(condition, analysis_callback_coupled,
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 # This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
@@ -314,7 +321,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
         append!(linf_error_collection, linf_error)
     end
 
-    (; l2 = l2_error_collection, linf = linf_error_collection)
+    return (; l2 = l2_error_collection, linf = linf_error_collection)
 end
 
 ################################################################################
@@ -349,24 +356,15 @@ end
 ################################################################################
 ### StepsizeCallback
 ################################################################################
-
 # In case of coupled system, use minimum timestep over all systems
-# Case for constant `cfl_number`.
-function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCoupled)
+function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+                      semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
+        return calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
     end
 
     return dt
-end
-# Case for `cfl_number` as a function of time `t`.
-function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
-    cfl_number_ = cfl_number(t)
-    dt = minimum(eachsystem(semi)) do i
-        u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_number_, semi.semis[i])
-    end
 end
 
 function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
@@ -385,18 +383,12 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
         end
     end
 
-    if cfl isa Real # Case for constant CFL
-        cfl_number = cfl
-    else # Variable CFL
-        cfl_number = cfl(t)
-    end
-
     for semi_index in semi_indices
         semi = semi_coupled.semis[semi_index]
         mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number,
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl(t),
                                                 mesh, equations, solver, cache)
 
         # c_h is proportional to its own time step divided by the complete MHD time step
@@ -458,10 +450,10 @@ mutable struct BoundaryConditionCoupled{NDIMS,
                                         uEltype <: Real, Indices, CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
-    u_boundary         :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-    other_orientation  :: Int
-    indices            :: Indices
-    coupling_converter :: CouplingConverter
+    u_boundary               :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
+    const other_orientation  :: Int
+    const indices            :: Indices
+    const coupling_converter :: CouplingConverter
 
     function BoundaryConditionCoupled(other_semi_index, indices, uEltype,
                                       coupling_converter)
@@ -476,15 +468,15 @@ mutable struct BoundaryConditionCoupled{NDIMS,
             other_orientation = 3
         end
 
-        new{NDIMS, other_semi_index, NDIMS * 2 - 1, uEltype, typeof(indices),
-            typeof(coupling_converter)}(u_boundary,
-                                        other_orientation,
-                                        indices, coupling_converter)
+        return new{NDIMS, other_semi_index, NDIMS * 2 - 1, uEltype, typeof(indices),
+                   typeof(coupling_converter)}(u_boundary,
+                                               other_orientation,
+                                               indices, coupling_converter)
     end
 end
 
 function Base.eltype(boundary_condition::BoundaryConditionCoupled)
-    eltype(boundary_condition.u_boundary)
+    return eltype(boundary_condition.u_boundary)
 end
 
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
@@ -555,9 +547,10 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
     end
 
     uEltype = eltype(boundary_condition)
-    boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
-                                                      nnodes(dg),
-                                                      cell_size)
+    return boundary_condition.u_boundary = Array{uEltype, 3}(undef,
+                                                             nvariables(equations),
+                                                             nnodes(dg),
+                                                             cell_size)
 end
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
@@ -576,8 +569,9 @@ end
 
 function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode,
                                    semi_coupled, semi)
-    copy_to_coupled_boundary!(u_ode, semi_coupled, semi, 1, length(boundary_conditions),
-                              boundary_conditions...)
+    return copy_to_coupled_boundary!(u_ode, semi_coupled, semi, 1,
+                                     length(boundary_conditions),
+                                     boundary_conditions...)
 end
 
 # In 2D
@@ -644,6 +638,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
             j_node += j_node_step
         end
     end
+
+    return nothing
 end
 
 ################################################################################
@@ -655,7 +651,7 @@ end
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms::False,
+                                                  have_nonconservative_terms::False,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
@@ -686,6 +682,8 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
     end
+
+    return nothing
 end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
@@ -693,7 +691,7 @@ end
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms::True,
+                                                  have_nonconservative_terms::True,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
@@ -728,6 +726,8 @@ end
                                                                                0.5f0 *
                                                                                noncons_flux[v])
     end
+
+    return nothing
 end
 
 function get_boundary_indices(element, orientation,

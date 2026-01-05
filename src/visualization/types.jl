@@ -3,7 +3,6 @@
 # This is a union of a Trixi.jl-specific SciMLBase.ODESolution and of Trixi.jl's own
 # TimeIntegratorSolution.
 #
-# Note: This is an experimental feature and may be changed in future releases without notice.
 #! format: off
 const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, discType, P} where
     {T, N, uType, uType2, DType, tType, rateType, discType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
@@ -42,9 +41,6 @@ end
     Base.getindex(pd::AbstractPlotData, variable_name)
 
 Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function Base.getindex(pd::AbstractPlotData, variable_name)
     variable_id = findfirst(isequal(variable_name), pd.variable_names)
@@ -63,9 +59,6 @@ Base.eltype(pd::AbstractPlotData) = Pair{String, PlotDataSeries{typeof(pd)}}
 
 Holds all relevant data for creating 2D plots of multiple solution variables and to visualize the
 mesh.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <:
        AbstractPlotData{2}
@@ -89,6 +82,7 @@ function Base.show(io::IO, pd::PlotData2DCartesian)
           typeof(pd.variable_names), ",",
           typeof(pd.mesh_vertices_x),
           "}(<x>, <y>, <data>, <variable_names>, <mesh_vertices_x>, <mesh_vertices_y>)")
+    return nothing
 end
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
@@ -116,6 +110,7 @@ function Base.show(io::IO, pd::PlotData2DTriangulated)
           typeof(pd.face_data), ", ",
           typeof(pd.variable_names),
           "}(<x>, <y>, <data>, <plot_triangulation>, <x_face>, <y_face>, <face_data>, <variable_names>)")
+    return nothing
 end
 
 """
@@ -123,9 +118,6 @@ end
 
 Holds all relevant data for creating 1D plots of multiple solution variables and to visualize the
 mesh.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData{1}
     x::Coordinates
@@ -143,11 +135,10 @@ function Base.show(io::IO, pd::PlotData1D)
           typeof(pd.variable_names), ",",
           typeof(pd.mesh_vertices_x),
           "}(<x>, <data>, <variable_names>, <mesh_vertices_x>)")
+    return nothing
 end
 
 # Auxiliary data structure for visualizing a single variable
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 struct PlotDataSeries{PD <: AbstractPlotData}
     plot_data::PD
     variable_id::Int
@@ -159,6 +150,7 @@ function Base.show(io::IO, pds::PlotDataSeries)
 
     print(io, "PlotDataSeries{", typeof(pds.plot_data), "}(<plot_data>, ",
           pds.variable_id, ")")
+    return nothing
 end
 
 # Generic PlotMesh wrapper type.
@@ -171,15 +163,13 @@ function Base.show(io::IO, pm::PlotMesh)
     @nospecialize pm # reduce precompilation time
 
     print(io, "PlotMesh{", typeof(pm.plot_data), "}(<plot_data>)")
+    return nothing
 end
 
 """
     getmesh(pd::AbstractPlotData)
 
 Extract grid lines from `pd` for plotting with `Plots.plot`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 getmesh(pd::AbstractPlotData) = PlotMesh(pd)
 
@@ -195,6 +185,10 @@ Create a new `PlotData2D` object that can be used for visualizing 2D/3D DGSEM so
 from the solution are used for plotting. This can be changed by passing an appropriate conversion
 function to `solution_variables`.
 
+For coupled semidiscretizations, i.e., `semi isa` [`SemidiscretizationCoupled`](@ref) a vector of
+`PlotData2D` objects is returned, one for each semidiscretization which is part of the
+coupled semidiscretization.
+
 If `grid_lines` is `true`, also extract grid vertices for visualizing the mesh. The output
 resolution is indirectly set via `max_supported_level`: all data is interpolated to
 `2^max_supported_level` uniformly distributed points in each spatial direction, also setting the
@@ -206,9 +200,6 @@ When visualizing data from a three-dimensional simulation, a 2D slice is extract
 `slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 
 # Examples
 ```julia
@@ -228,26 +219,43 @@ julia> plot!(getmesh(pd)) # To add grid lines to the plot
 ```
 """
 function PlotData2D(u_ode, semi; kwargs...)
-    PlotData2D(wrap_array_native(u_ode, semi),
-               mesh_equations_solver_cache(semi)...;
-               kwargs...)
+    return PlotData2D(wrap_array_native(u_ode, semi),
+                      mesh_equations_solver_cache(semi)...;
+                      kwargs...)
+end
+
+function PlotData2D(u_ode, semi::SemidiscretizationCoupled; kwargs...)
+    plot_data_array = []
+    @unpack semis = semi
+
+    foreach_enumerate(semis) do (i, semi_)
+        u_loc = get_system_u_ode(u_ode, i, semi)
+        u_loc_wrapped = wrap_array_native(u_loc, semi_)
+
+        return push!(plot_data_array,
+                     PlotData2D(u_loc_wrapped,
+                                mesh_equations_solver_cache(semi_)...;
+                                kwargs...))
+    end
+
+    return plot_data_array
 end
 
 # Redirect `PlotDataTriangulated2D` constructor.
 function PlotData2DTriangulated(u_ode, semi; kwargs...)
-    PlotData2DTriangulated(wrap_array_native(u_ode, semi),
-                           mesh_equations_solver_cache(semi)...;
-                           kwargs...)
+    return PlotData2DTriangulated(wrap_array_native(u_ode, semi),
+                                  mesh_equations_solver_cache(semi)...;
+                                  kwargs...)
 end
 
 # Create a PlotData2DCartesian object for TreeMeshes on default.
 function PlotData2D(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
-    PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
+    return PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
 end
 
 # Create a PlotData2DTriangulated object for any type of mesh other than the TreeMesh.
 function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
-    PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
+    return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
 end
 
 # Create a PlotData2DCartesian for a TreeMesh.
@@ -294,17 +302,14 @@ end
 Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
 returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData2D(sol::TrixiODESolution; kwargs...)
-    PlotData2D(sol.u[end], sol.prob.p; kwargs...)
+    return PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 end
 
 # Also redirect when using PlotData2DTriangulate.
 function PlotData2DTriangulated(sol::TrixiODESolution; kwargs...)
-    PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
+    return PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
 end
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
@@ -444,7 +449,7 @@ Returns an `PlotData2DTriangulated` object which is used to visualize a single s
 `u` should be an array whose entries correspond to values of the scalar field at nodal points.
 """
 function ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...)
-    ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
+    return ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
 end
 
 # Returns an `PlotData2DTriangulated` which is used to visualize a single scalar field
@@ -548,20 +553,17 @@ This applies analogously to three-dimensional simulations, where `slice` may be 
 Another way to visualize 2D/3D data is by creating a plot along a given curve.
 This is done with the keyword argument `curve`. It can be set to a list of 2D/3D points
 which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData1D(u_ode, semi; kwargs...)
-    PlotData1D(wrap_array_native(u_ode, semi),
-               mesh_equations_solver_cache(semi)...;
-               kwargs...)
+    return PlotData1D(wrap_array_native(u_ode, semi),
+                      mesh_equations_solver_cache(semi)...;
+                      kwargs...)
 end
 
 function PlotData1D(func::Function, semi; kwargs...)
-    PlotData1D(func,
-               mesh_equations_solver_cache(semi)...;
-               kwargs...)
+    return PlotData1D(func,
+                      mesh_equations_solver_cache(semi)...;
+                      kwargs...)
 end
 
 function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
@@ -761,12 +763,9 @@ end
 Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!`
 (which returns a `SciMLBase.ODESolution`) or Trixi.jl's own `solve!` (which returns a
 `TimeIntegratorSolution`).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function PlotData1D(sol::TrixiODESolution; kwargs...)
-    PlotData1D(sol.u[end], sol.prob.p; kwargs...)
+    return PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 end
 
 function PlotData1D(time_series_callback::TimeSeriesCallback, point_id::Integer)

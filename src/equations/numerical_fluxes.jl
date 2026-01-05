@@ -46,6 +46,7 @@ end
 
 function Base.show(io::IO, f::FluxPlusDissipation)
     print(io, "FluxPlusDissipation(", f.numerical_flux, ", ", f.dissipation, ")")
+    return nothing
 end
 
 """
@@ -151,21 +152,22 @@ end
 
 function Base.show(io::IO, d::DissipationGlobalLaxFriedrichs)
     print(io, "DissipationGlobalLaxFriedrichs(", d.λ, ")")
+    return nothing
 end
 
 """
-    DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+    DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed)
 
 Create a local Lax-Friedrichs dissipation operator where the maximum absolute wave speed
 is estimated as
 `max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
-defaulting to [`max_abs_speed_naive`](@ref).
+defaulting to [`max_abs_speed`](@ref).
 """
 struct DissipationLocalLaxFriedrichs{MaxAbsSpeed}
     max_abs_speed::MaxAbsSpeed
 end
 
-DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_naive)
+DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed)
 
 @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
                                                               orientation_or_normal_direction,
@@ -177,6 +179,7 @@ end
 
 function Base.show(io::IO, d::DissipationLocalLaxFriedrichs)
     print(io, "DissipationLocalLaxFriedrichs(", d.max_abs_speed, ")")
+    return nothing
 end
 
 """
@@ -188,6 +191,8 @@ Simple and fast estimate of the maximal wave speed of the Riemann problem with l
 
 For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
+
+Slightly more diffusive/overestimating than [`max_abs_speed`](@ref).
 """
 function max_abs_speed_naive end
 
@@ -206,34 +211,38 @@ Simple and fast estimate of the maximal wave speed of the Riemann problem with l
 Less diffusive, i.e., overestimating than [`max_abs_speed_naive`](@ref).
 
 In particular, `max_abs_speed(u, u, i, equations)` gives the same result as `max_abs_speeds(u, equations)[i]`,
-i.e., the wave speeds used in `max_dt` which computes the maximum stable time step size through the 
+i.e., the wave speeds used in `max_dt` which computes the maximum stable time step size through the
 [`StepsizeCallback`](@ref).
 
 For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
+
+Defaults to [`min_max_speed_naive`](@ref) if no specialized version for the 'equations` at hand is available.
 """
 @inline function max_abs_speed(u_ll, u_rr,
                                orientation_or_normal_direction,
                                equations::AbstractEquations)
-    # Use naive version as "backup" if no specialized version for the equations at hand is available                                             
-    max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations)
+    # Use naive version as "backup" if no specialized version for the equations at hand is available
+    return max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
                                                            DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
 """
-    FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+    FluxLaxFriedrichs(max_abs_speed=max_abs_speed)
 
 Local Lax-Friedrichs (Rusanov) flux with maximum wave speed estimate provided by
 `max_abs_speed`, cf. [`DissipationLocalLaxFriedrichs`](@ref) and
 [`max_abs_speed_naive`](@ref).
 """
-function FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)
-    FluxPlusDissipation(flux_central, DissipationLocalLaxFriedrichs(max_abs_speed))
+function FluxLaxFriedrichs(max_abs_speed = max_abs_speed)
+    return FluxPlusDissipation(flux_central,
+                               DissipationLocalLaxFriedrichs(max_abs_speed))
 end
 
 function Base.show(io::IO, f::FluxLaxFriedrichs)
     print(io, "FluxLaxFriedrichs(", f.dissipation.max_abs_speed, ")")
+    return nothing
 end
 
 """
@@ -244,10 +253,10 @@ See [`FluxLaxFriedrichs`](@ref).
 const flux_lax_friedrichs = FluxLaxFriedrichs()
 
 @doc raw"""
-    DissipationLaxFriedrichsEntropyVariables(max_abs_speed=max_abs_speed_naive)
+    DissipationLaxFriedrichsEntropyVariables(max_abs_speed=max_abs_speed)
 
 Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable. This operator
-must be used together with an entropy-conservative two-point flux function (e.g., `flux_ec`) to yield 
+must be used together with an entropy-conservative two-point flux function (e.g., `flux_ec`) to yield
 an entropy-stable surface flux. The surface flux function can be initialized as:
 ```julia
 flux_es = FluxPlusDissipation(flux_ec, DissipationLaxFriedrichsEntropyVariables())
@@ -257,9 +266,9 @@ In particular, the numerical flux has the form
 ```math
 f^{\mathrm{ES}} = f^{\mathrm{EC}} - \frac{1}{2} \lambda_{\mathrm{max}} H (w_r - w_l),
 ```
-where ``f^{\mathrm{EC}}`` is the entropy-conservative two-point flux function (computed with, e.g., `flux_ec`), ``\lambda_{\mathrm{max}}`` 
+where ``f^{\mathrm{EC}}`` is the entropy-conservative two-point flux function (computed with, e.g., `flux_ec`), ``\lambda_{\mathrm{max}}``
 is the maximum wave speed estimated as `max_abs_speed(u_l, u_r, orientation_or_normal_direction, equations)`,
-defaulting to [`max_abs_speed_naive`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
+defaulting to [`max_abs_speed`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
 depends on the left and right states `u_l` and `u_r`, and ``(w_r - w_l)`` is the jump in entropy variables.
 Ideally, ``H (w_r - w_l) = (u_r - u_l)``, such that the dissipation operator is consistent with the local
 Lax-Friedrichs dissipation.
@@ -277,18 +286,19 @@ struct DissipationLaxFriedrichsEntropyVariables{MaxAbsSpeed}
     max_abs_speed::MaxAbsSpeed
 end
 
-DissipationLaxFriedrichsEntropyVariables() = DissipationLaxFriedrichsEntropyVariables(max_abs_speed_naive)
+DissipationLaxFriedrichsEntropyVariables() = DissipationLaxFriedrichsEntropyVariables(max_abs_speed)
 
 function Base.show(io::IO, d::DissipationLaxFriedrichsEntropyVariables)
     print(io, "DissipationLaxFriedrichsEntropyVariables(", d.max_abs_speed, ")")
+    return nothing
 end
 
 @doc raw"""
     DissipationMatrixWintersEtal()
 
 Creates the Roe-like entropy-stable matrix dissipation operator from Winters et al. (2017). This operator
-must be used together with an entropy-conservative two-point flux function 
-(e.g., [`flux_ranocha`](@ref) or [`flux_chandrashekar`](@ref)) to yield 
+must be used together with an entropy-conservative two-point flux function
+(e.g., [`flux_ranocha`](@ref) or [`flux_chandrashekar`](@ref)) to yield
 an entropy-stable surface flux. The surface flux function can be initialized as:
 ```julia
 flux_es = FluxPlusDissipation(flux_ec, DissipationMatrixWintersEtal())
@@ -297,7 +307,7 @@ The 1D and 2D implementations are adapted from the [Atum.jl library](https://git
 The 3D implementation is adapted from the [FLUXO library](https://github.com/project-fluxo/fluxo)
 
 For the derivation of the matrix dissipation operator, see:
-- A. R. Winters, D. Derigs, G. Gassner, S. Walch, A uniquely defined entropy stable matrix dissipation operator 
+- A. R. Winters, D. Derigs, G. Gassner, S. Walch, A uniquely defined entropy stable matrix dissipation operator
   for high Mach number ideal MHD and compressible Euler simulations (2017). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2016.12.006](https://doi.org/10.1016/j.jcp.2016.12.006).
 """
@@ -456,7 +466,7 @@ increase runtime efficiency on modern hardware.
 """
 @inline function flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction,
                                        equations)
-    flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+    return flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
 """
@@ -469,7 +479,7 @@ increase runtime efficiency on modern hardware.
 """
 @inline function flux_ranocha_turbo(u_ll, u_rr, orientation_or_normal_direction,
                                     equations)
-    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations)
+    return flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
 """
@@ -482,7 +492,7 @@ be used to ensure well-balancedness and entropy conservation.
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function flux_wintermeyer_etal end
@@ -498,7 +508,7 @@ Gives entropy conservation and well-balancedness on both the volume and surface 
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function flux_nonconservative_wintermeyer_etal end
@@ -512,7 +522,7 @@ For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function flux_fjordholm_etal end
@@ -528,7 +538,7 @@ conservation and well-balancedness.
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function flux_nonconservative_fjordholm_etal end

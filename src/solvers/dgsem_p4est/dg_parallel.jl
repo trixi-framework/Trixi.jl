@@ -5,12 +5,13 @@
 @muladd begin
 #! format: noindent
 
-mutable struct P4estMPICache{uEltype}
+mutable struct P4estMPICache{BufferType <: DenseVector,
+                             VecInt <: DenseVector{<:Integer}}
     mpi_neighbor_ranks::Vector{Int}
-    mpi_neighbor_interfaces::Vector{Vector{Int}}
-    mpi_neighbor_mortars::Vector{Vector{Int}}
-    mpi_send_buffers::Vector{Vector{uEltype}}
-    mpi_recv_buffers::Vector{Vector{uEltype}}
+    mpi_neighbor_interfaces::VecOfArrays{VecInt}
+    mpi_neighbor_mortars::VecOfArrays{VecInt}
+    mpi_send_buffers::VecOfArrays{BufferType}
+    mpi_recv_buffers::VecOfArrays{BufferType}
     mpi_send_requests::Vector{MPI.Request}
     mpi_recv_requests::Vector{MPI.Request}
     n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
@@ -25,25 +26,32 @@ function P4estMPICache(uEltype)
     end
 
     mpi_neighbor_ranks = Vector{Int}(undef, 0)
-    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0)
-    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0)
-    mpi_send_buffers = Vector{Vector{uEltype}}(undef, 0)
-    mpi_recv_buffers = Vector{Vector{uEltype}}(undef, 0)
+    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0) |> VecOfArrays
+    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0) |> VecOfArrays
+    mpi_send_buffers = Vector{Vector{uEltype}}(undef, 0) |> VecOfArrays
+    mpi_recv_buffers = Vector{Vector{uEltype}}(undef, 0) |> VecOfArrays
     mpi_send_requests = Vector{MPI.Request}(undef, 0)
     mpi_recv_requests = Vector{MPI.Request}(undef, 0)
     n_elements_by_rank = OffsetArray(Vector{Int}(undef, 0), 0:-1)
     n_elements_global = 0
     first_element_global_id = 0
 
-    P4estMPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces,
-                           mpi_neighbor_mortars,
-                           mpi_send_buffers, mpi_recv_buffers,
-                           mpi_send_requests, mpi_recv_requests,
-                           n_elements_by_rank, n_elements_global,
-                           first_element_global_id)
+    return P4estMPICache{Vector{uEltype}, Vector{Int}}(mpi_neighbor_ranks,
+                                                       mpi_neighbor_interfaces,
+                                                       mpi_neighbor_mortars,
+                                                       mpi_send_buffers,
+                                                       mpi_recv_buffers,
+                                                       mpi_send_requests,
+                                                       mpi_recv_requests,
+                                                       n_elements_by_rank,
+                                                       n_elements_global,
+                                                       first_element_global_id)
 end
 
-@inline Base.eltype(::P4estMPICache{uEltype}) where {uEltype} = uEltype
+@inline Base.eltype(::P4estMPICache{BufferType}) where {BufferType} = eltype(BufferType)
+
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(P4estMPICache)
 
 ##
 # Note that the code in `start_mpi_send`/`finish_mpi_receive!` is sensitive to inference on (at least) Julia 1.10.
@@ -120,7 +128,7 @@ function start_mpi_receive!(mpi_cache::P4estMPICache)
 end
 
 function finish_mpi_send!(mpi_cache::P4estMPICache)
-    MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
+    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
 function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
@@ -243,12 +251,14 @@ function create_cache(mesh::ParallelP4estMesh, equations::AbstractEquations, dg:
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
     mortars = init_mortars(mesh, equations, dg.basis, elements)
 
-    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars, mpi_mortars,
-             mpi_cache)
+    # Container cache
+    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_mortars, mpi_cache)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+    # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
@@ -265,16 +275,16 @@ end
 
 function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
                          mpi_interfaces, mpi_mortars, nvars, n_nodes, uEltype)
-    mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_interfaces,
-                                                                                                       mpi_mortars,
-                                                                                                       mesh)
+    mpi_neighbor_ranks, _mpi_neighbor_interfaces, _mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_interfaces,
+                                                                                                         mpi_mortars,
+                                                                                                         mesh)
 
-    mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(mpi_neighbor_interfaces,
-                                                                                                        mpi_neighbor_mortars,
-                                                                                                        ndims(mesh),
-                                                                                                        nvars,
-                                                                                                        n_nodes,
-                                                                                                        uEltype)
+    _mpi_send_buffers, _mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(_mpi_neighbor_interfaces,
+                                                                                                          _mpi_neighbor_mortars,
+                                                                                                          ndims(mesh),
+                                                                                                          nvars,
+                                                                                                          n_nodes,
+                                                                                                          uEltype)
 
     # Determine local and total number of elements
     n_elements_global = Int(mesh.p4est.global_num_quadrants[])
@@ -285,6 +295,11 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
     # Account for 1-based indexing in Julia
     first_element_global_id = Int(mesh.p4est.global_first_quadrant[mpi_rank() + 1]) + 1
     @assert n_elements_global==sum(n_elements_by_rank) "error in total number of elements"
+
+    mpi_neighbor_interfaces = VecOfArrays(_mpi_neighbor_interfaces)
+    mpi_neighbor_mortars = VecOfArrays(_mpi_neighbor_mortars)
+    mpi_send_buffers = VecOfArrays(_mpi_send_buffers)
+    mpi_recv_buffers = VecOfArrays(_mpi_recv_buffers)
 
     # TODO reuse existing structures
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
@@ -371,7 +386,7 @@ function init_neighbor_rank_connectivity_iter_face(info, user_data)
     data = unsafe_pointer_to_objref(Ptr{InitNeighborRankConnectivityIterFaceUserData}(user_data))
 
     # Function barrier because the unpacked user_data above is not type-stable
-    init_neighbor_rank_connectivity_iter_face_inner(info, data)
+    return init_neighbor_rank_connectivity_iter_face_inner(info, data)
 end
 
 # 2D
@@ -587,8 +602,8 @@ end
 
 # Get normal direction of MPI mortar
 @inline function get_normal_direction(mpi_mortars::P4estMPIMortarContainer, indices...)
-    SVector(ntuple(@inline(dim->mpi_mortars.normal_directions[dim, indices...]),
-                   Val(ndims(mpi_mortars))))
+    return SVector(ntuple(@inline(dim->mpi_mortars.normal_directions[dim, indices...]),
+                          Val(ndims(mpi_mortars))))
 end
 
 include("dg_2d_parallel.jl")

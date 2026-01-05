@@ -35,7 +35,7 @@ end
 
 @inline function Base.put!(counter::PerformanceCounter, runtime::Real)
     counter.ncalls_since_readout += 1
-    counter.runtime += runtime
+    return counter.runtime += runtime
 end
 
 @inline ncalls(counter::PerformanceCounter) = counter.ncalls_since_readout
@@ -122,7 +122,7 @@ Return the path to an example elixir that can be used to quickly see Trixi.jl in
 [`TreeMesh`](@ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
 """
 function default_example()
-    joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
+    return joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
 end
 
 """
@@ -133,7 +133,7 @@ Return the path to an example elixir that can be used to quickly see Trixi.jl in
 given in the Trixi.jl documentation regarding unstructured meshes.
 """
 function default_example_unstructured()
-    joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
+    return joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
 end
 
 """
@@ -165,6 +165,7 @@ function print_startup_message()
          ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
       """
     mpi_println(s)
+    return nothing
 end
 
 """
@@ -206,16 +207,19 @@ and [https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-re
 macro threaded(expr)
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
-    expr = if _PREFERENCE_POLYESTER
+    expr = @static if _PREFERENCE_THREADING === :polyester
         # Currently using `@batch` from Polyester.jl is more efficient,
         # bypasses the Julia task scheduler and provides parallelization with less overhead.
         quote
             $Trixi.@batch $(expr)
         end
-    else
+    elseif _PREFERENCE_THREADING === :static ||
+           _PREFERENCE_THREADING === :kernelabstractions
         # The following code is a simple version using only `Threads.@threads` from the
         # standard library with an additional check whether only a single thread is used
         # to reduce some overhead (and allocations) for serial execution.
+        # If we want to execute on KernelAbstractions, we use the static backend here to fallback on,
+        # for loops that do not yet support GPU execution.
         quote
             let
                 if $Threads.nthreads() == 1
@@ -224,6 +228,10 @@ macro threaded(expr)
                     $Threads.@threads :static $(expr)
                 end
             end
+        end
+    elseif _PREFERENCE_THREADING === :serial
+        quote
+            $(expr)
         end
     end
     # Use `esc(quote ... end)` for nested macro calls as suggested in

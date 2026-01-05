@@ -139,87 +139,89 @@ function _precompile_manual_()
     ccall(:jl_generating_output, Cint, ()) == 1 || return nothing
 
     function equations_types_1d(RealT)
-        (LinearScalarAdvectionEquation1D{RealT},
-         HyperbolicDiffusionEquations1D{RealT},
-         CompressibleEulerEquations1D{RealT},
-         IdealGlmMhdEquations1D{RealT})
+        return (LinearScalarAdvectionEquation1D{RealT},
+                HyperbolicDiffusionEquations1D{RealT},
+                CompressibleEulerEquations1D{RealT},
+                IdealGlmMhdEquations1D{RealT})
     end
     function equations_types_2d(RealT)
-        (LinearScalarAdvectionEquation2D{RealT},
-         HyperbolicDiffusionEquations2D{RealT},
-         CompressibleEulerEquations2D{RealT},
-         IdealGlmMhdEquations2D{RealT},
-         LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)})
+        return (LinearScalarAdvectionEquation2D{RealT},
+                HyperbolicDiffusionEquations2D{RealT},
+                CompressibleEulerEquations2D{RealT},
+                IdealGlmMhdEquations2D{RealT},
+                LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)})
     end
     function equations_types_3d(RealT)
-        (LinearScalarAdvectionEquation3D{RealT},
-         HyperbolicDiffusionEquations3D{RealT},
-         CompressibleEulerEquations3D{RealT},
-         IdealGlmMhdEquations3D{RealT},
-         LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)})
+        return (LinearScalarAdvectionEquation3D{RealT},
+                HyperbolicDiffusionEquations3D{RealT},
+                CompressibleEulerEquations3D{RealT},
+                IdealGlmMhdEquations3D{RealT},
+                LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)})
     end
     function equations_types(RealT)
-        (LinearScalarAdvectionEquation1D{RealT},
-         LinearScalarAdvectionEquation2D{RealT},
-         LinearScalarAdvectionEquation3D{RealT},
-         HyperbolicDiffusionEquations1D{RealT},
-         HyperbolicDiffusionEquations2D{RealT},
-         HyperbolicDiffusionEquations3D{RealT},
-         CompressibleEulerEquations1D{RealT},
-         CompressibleEulerEquations2D{RealT},
-         CompressibleEulerEquations3D{RealT},
-         IdealGlmMhdEquations1D{RealT},
-         IdealGlmMhdEquations2D{RealT},
-         IdealGlmMhdEquations3D{RealT},
-         LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)},
-         LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)})
+        return (LinearScalarAdvectionEquation1D{RealT},
+                LinearScalarAdvectionEquation2D{RealT},
+                LinearScalarAdvectionEquation3D{RealT},
+                HyperbolicDiffusionEquations1D{RealT},
+                HyperbolicDiffusionEquations2D{RealT},
+                HyperbolicDiffusionEquations3D{RealT},
+                CompressibleEulerEquations1D{RealT},
+                CompressibleEulerEquations2D{RealT},
+                CompressibleEulerEquations3D{RealT},
+                IdealGlmMhdEquations1D{RealT},
+                IdealGlmMhdEquations2D{RealT},
+                IdealGlmMhdEquations3D{RealT},
+                LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)},
+                LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)})
     end
 
     function basis_type_dgsem(RealT, nnodes_)
-        LobattoLegendreBasis{RealT, nnodes_,
-                             # VectorT
-                             StaticArrays.SVector{nnodes_, RealT},
-                             # InverseVandermondeLegendre
-                             Matrix{RealT},
-                             # BoundaryMatrix
-                             #StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},
-                             Matrix{RealT},
-                             # DerivativeMatrix
-                             #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
-                             Matrix{RealT}}
+        return LobattoLegendreBasis{RealT, nnodes_,
+                                    # VectorT
+                                    StaticArrays.SVector{nnodes_, RealT},
+                                    # InverseVandermondeLegendre
+                                    Matrix{RealT},
+                                    # BoundaryMatrix
+                                    #StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},
+                                    Matrix{RealT},
+                                    # DerivativeMatrix
+                                    #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                                    Matrix{RealT}}
     end
 
     function mortar_type_dgsem(RealT, nnodes_)
-        LobattoLegendreMortarL2{RealT, nnodes_,
-                                # ForwardMatrix
-                                #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
-                                Matrix{RealT},
-                                # ReverseMatrix
-                                # StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
-                                Matrix{RealT}}
+        return LobattoLegendreMortarL2{RealT, nnodes_,
+                                       # ForwardMatrix
+                                       #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                                       Matrix{RealT},
+                                       # ReverseMatrix
+                                       # StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                                       Matrix{RealT}}
     end
 
     function analyzer_type_dgsem(RealT, nnodes_)
         polydeg = nnodes_ - 1
         nnodes_analysis = 2 * polydeg + 1
-        LobattoLegendreAnalyzer{RealT, nnodes_analysis,
-                                # VectorT
-                                StaticArrays.SVector{nnodes_analysis, RealT},
-                                # Vandermonde
-                                Array{RealT, 2}}
+        return LobattoLegendreAnalyzer{RealT, nnodes_analysis,
+                                       # VectorT
+                                       StaticArrays.SVector{nnodes_analysis, RealT},
+                                       # Vandermonde
+                                       Array{RealT, 2}}
     end
 
     function adaptor_type_dgsem(RealT, nnodes_)
-        LobattoLegendreAdaptorL2{RealT, nnodes_,
-                                 # ForwardMatrix
-                                 StaticArrays.SArray{Tuple{nnodes_, nnodes_}, RealT, 2,
-                                                     nnodes_^2},
-                                 # Matrix{RealT},
-                                 # ReverseMatrix
-                                 StaticArrays.SArray{Tuple{nnodes_, nnodes_}, RealT, 2,
-                                                     nnodes_^2}
-                                 # Matrix{RealT},
-                                 }
+        return LobattoLegendreAdaptorL2{RealT, nnodes_,
+                                        # ForwardMatrix
+                                        StaticArrays.SArray{Tuple{nnodes_, nnodes_}, RealT,
+                                                            2,
+                                                            nnodes_^2},
+                                        # Matrix{RealT},
+                                        # ReverseMatrix
+                                        StaticArrays.SArray{Tuple{nnodes_, nnodes_}, RealT,
+                                                            2,
+                                                            nnodes_^2}
+                                        # Matrix{RealT},
+                                        }
     end
 
     # Constructors: mesh
@@ -376,7 +378,7 @@ function _precompile_manual_()
     # for RealT in (Float64,), polydeg in 1:7
     #   nnodes_ = polydeg + 1
     #   nnodes_analysis = 2*polydeg + 1
-    # @assert Base.precompile(Tuple{Type{AnalysisCallback},RealT,Int,Bool,String,String,Trixi.LobattoLegendreAnalyzer{RealT,nnodes_analysis,Array{RealT,2}},Array{Symbol,1},Tuple{typeof(Trixi.entropy_timederivative),typeof(entropy)},StaticArrays.SArray{Tuple{1},RealT,1,1}})
+    # @assert Base.precompile(Tuple{Type{AnalysisCallback},RealT,Int,Bool,String,String,Trixi.LobattoLegendreAnalyzer{RealT,nnodes_analysis,Array{RealT,2}},Array{Symbol,1},Tuple{typeof(entropy_timederivative),typeof(entropy)},StaticArrays.SArray{Tuple{1},RealT,1,1}})
     # We would need to use all special cases instead of
     # Function,Trixi.AbstractVolumeIntegral
     # for equations_type in equations_types(RealT)
@@ -384,11 +386,6 @@ function _precompile_manual_()
     # end
     # end
     @assert Base.precompile(Tuple{typeof(SummaryCallback)})
-    @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback),
-                                                   typeof(Trixi.summary_callback),
-                                                   typeof(Trixi.initialize_summary_callback),
-                                                   typeof(SciMLBase.FINALIZE_DEFAULT),
-                                                   typeof(nothing)}})
     @assert Base.precompile(Tuple{typeof(summary_box), Base.TTY, String,
                                   Vector{Pair{String, Any}}})
     # TODO: AMRCallback, ControllerThreeLevel, indicators
@@ -402,23 +399,23 @@ function _precompile_manual_()
         # 1D, serial
         @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
                                       TreeMesh{1, Trixi.SerialTree{1}, RealT},
-                                      Trixi.ElementContainer1D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer1D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
                                       TreeMesh{1, Trixi.SerialTree{1}, RealT},
-                                      Trixi.ElementContainer1D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer1D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
                                       TreeMesh{1, Trixi.SerialTree{1}, RealT}, String})
 
         # 2D, serial
         @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
                                       TreeMesh{2, Trixi.SerialTree{2}, RealT},
-                                      Trixi.ElementContainer2D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
                                       TreeMesh{2, Trixi.SerialTree{2}, RealT},
-                                      Trixi.ElementContainer2D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
                                       TreeMesh{2, Trixi.SerialTree{2}, RealT},
-                                      Trixi.ElementContainer2D{RealT, uEltype},
+                                      Trixi.TreeElementContainer2D{RealT, uEltype},
                                       mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
                                       TreeMesh{2, Trixi.SerialTree{2}, RealT}, String})
@@ -426,30 +423,30 @@ function _precompile_manual_()
         # 2D, parallel
         @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
                                       TreeMesh{2, Trixi.ParallelTree{2}, RealT},
-                                      Trixi.ElementContainer2D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
                                       TreeMesh{2, Trixi.ParallelTree{2}, RealT},
-                                      Trixi.ElementContainer2D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
                                       TreeMesh{2, Trixi.ParallelTree{2}, RealT},
-                                      Trixi.ElementContainer2D{RealT, uEltype},
+                                      Trixi.TreeElementContainer2D{RealT, uEltype},
                                       mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mpi_interfaces), Array{Int, 1},
                                       TreeMesh{2, Trixi.ParallelTree{2}, RealT},
-                                      Trixi.ElementContainer2D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
                                       TreeMesh{2, Trixi.ParallelTree{2}, RealT}, String})
 
         # 3D, serial
         @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
                                       TreeMesh{3, Trixi.SerialTree{3}, RealT},
-                                      Trixi.ElementContainer3D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer3D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
                                       TreeMesh{3, Trixi.SerialTree{3}, RealT},
-                                      Trixi.ElementContainer3D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer3D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
                                       TreeMesh{3, Trixi.SerialTree{3}, RealT},
-                                      Trixi.ElementContainer3D{RealT, uEltype},
+                                      Trixi.TreeElementContainer3D{RealT, uEltype},
                                       mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
                                       TreeMesh{3, Trixi.SerialTree{3}, RealT}, String})
@@ -520,75 +517,9 @@ function _precompile_manual_()
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       SemidiscretizationHyperbolic})
 
-        # callbacks
-        summary_callback_type = DiscreteCallback{typeof(Trixi.summary_callback),
-                                                 typeof(Trixi.summary_callback),
-                                                 typeof(Trixi.initialize_summary_callback),
-                                                 typeof(SciMLBase.FINALIZE_DEFAULT),
-                                                 typeof(nothing)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, summary_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      summary_callback_type})
-        @assert Base.precompile(Tuple{summary_callback_type, Base.TTY})
-
-        # TODO: SteadyStateCallback, AnalysisCallback
-
-        alive_callback_type = DiscreteCallback{AliveCallback, AliveCallback,
-                                               typeof(Trixi.initialize!),
-                                               typeof(SciMLBase.FINALIZE_DEFAULT),
-                                               typeof(nothing)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, alive_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      alive_callback_type})
-
-        restart_callback_type = DiscreteCallback{SaveRestartCallback, SaveRestartCallback,
-                                                 typeof(Trixi.initialize!),
-                                                 typeof(SciMLBase.FINALIZE_DEFAULT),
-                                                 typeof(nothing)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, restart_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      restart_callback_type})
-
-        for solution_variables in (cons2cons, cons2prim)
-            save_solution_callback_type = DiscreteCallback{SaveSolutionCallback{typeof(solution_variables)},
-                                                           SaveSolutionCallback{typeof(solution_variables)},
-                                                           typeof(Trixi.initialize!),
-                                                           typeof(SciMLBase.FINALIZE_DEFAULT),
-                                                           typeof(nothing)}
-            @assert Base.precompile(Tuple{typeof(show), Base.TTY,
-                                          save_solution_callback_type})
-            @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY},
-                                          MIME"text/plain", save_solution_callback_type})
-        end
-
-        # TODO: AMRCallback
-
-        stepsize_callback_type = DiscreteCallback{StepsizeCallback{RealT},
-                                                  StepsizeCallback{RealT},
-                                                  typeof(Trixi.initialize!),
-                                                  typeof(SciMLBase.FINALIZE_DEFAULT),
-                                                  typeof(nothing)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, stepsize_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      stepsize_callback_type})
-
-        glm_speed_callback_type = DiscreteCallback{GlmSpeedCallback{RealT},
-                                                   GlmSpeedCallback{RealT},
-                                                   typeof(Trixi.initialize!),
-                                                   typeof(SciMLBase.FINALIZE_DEFAULT),
-                                                   typeof(nothing)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, glm_speed_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      glm_speed_callback_type})
-
-        lbm_collision_callback_type = DiscreteCallback{typeof(Trixi.lbm_collision_callback),
-                                                       typeof(Trixi.lbm_collision_callback),
-                                                       typeof(Trixi.initialize!),
-                                                       typeof(SciMLBase.FINALIZE_DEFAULT),
-                                                       typeof(nothing)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, lbm_collision_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      lbm_collision_callback_type})
+        # We do not precompile callbacks since they are based on
+        # SciML structures like `DiscreteCallback` that may change their
+        # type signatures in non-breaking releases.
     end
 
     @assert Base.precompile(Tuple{typeof(init_mpi)})

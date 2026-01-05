@@ -57,16 +57,16 @@ struct CompressibleEulerEquationsQuasi1D{RealT <: Real} <:
 
     function CompressibleEulerEquationsQuasi1D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 have_nonconservative_terms(::CompressibleEulerEquationsQuasi1D) = True()
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquationsQuasi1D)
-    ("a_rho", "a_rho_v1", "a_e", "a")
+    return ("a_rho", "a_rho_v1", "a_e", "a")
 end
 function varnames(::typeof(cons2prim), ::CompressibleEulerEquationsQuasi1D)
-    ("rho", "v1", "p", "a")
+    return ("rho", "v1", "p", "a")
 end
 
 """
@@ -102,8 +102,19 @@ Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
-This manufactured solution source term is specifically designed for the mozzle width 'a(x) = 1.5 - 0.5 * cos(x[1] * pi)'
+This manufactured solution source term is specifically designed for the nozzle width
+```math 
+  a(x) = 1.5 - 0.5 \\cos(x \\pi)
+```
 as defined in [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquationsQuasi1D)
@@ -176,9 +187,9 @@ and the nozzle width.
 
 Further details are available in the paper:
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
-    High order entropy stable schemes for the quasi-one-dimensional
-    shallow water and compressible Euler equations
-    [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)    
+  High order entropy stable schemes for the quasi-one-dimensional
+  shallow water and compressible Euler equations
+  [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)    
 """
 @inline function flux_nonconservative_chan_etal(u_ll, u_rr, orientation::Integer,
                                                 equations::CompressibleEulerEquationsQuasi1D)
@@ -333,8 +344,13 @@ end
     return SVector(q[1], q[2], q[3], a)
 end
 
-# The entropy for the quasi-1D compressible Euler equations is the entropy for the
-# 1D compressible Euler equations scaled by the channel width `a`.
+"""
+    entropy(u, equations::CompressibleEulerEquationsQuasi1D)
+
+The entropy for the quasi-1D compressible Euler equations is the
+[`entropy(cons, equations::AbstractCompressibleEulerEquations)`](@ref) for the
+(1D) compressible Euler equations scaled by the channel width `a`.
+"""
 @inline function entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     return a * entropy(SVector(a_rho, a_rho_v1, a_e) / a,
@@ -375,6 +391,13 @@ end
     return rho
 end
 
+@doc raw"""
+    pressure(u, equations::CompressibleEulerEquationsQuasi1D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`,
+see [`pressure(u, equations::CompressibleEulerEquations1D)`](@ref).
+"""
 @inline function pressure(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     return pressure(SVector(a_rho, a_rho_v1, a_e) / a,

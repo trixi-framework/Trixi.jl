@@ -6,8 +6,6 @@
 #! format: noindent
 
 # Visualize a single variable in a 2D plot (default: heatmap)
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack plot_data, variable_id = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
@@ -28,12 +26,10 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     seriestype --> :heatmap
 
     # Return data for plotting
-    x, y, data[variable_id]
+    return x, y, data[variable_id]
 end
 
 # Visualize the mesh in a 2D plot
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
     @unpack plot_data = pm
     @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
@@ -51,12 +47,10 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
     linewidth --> 1
 
     # Return data for plotting
-    mesh_vertices_x, mesh_vertices_y
+    return mesh_vertices_x, mesh_vertices_y
 end
 
 # Visualize the mesh in a 2D plot
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any,
                                                                   <:AbstractVector{<:AbstractVector}}})
     @unpack plot_data = pm
@@ -75,12 +69,10 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any,
     linewidth --> 1
 
     # Return data for plotting
-    mesh_vertices_x, mesh_vertices_y
+    return mesh_vertices_x, mesh_vertices_y
 end
 
 # Plot all available variables at once for convenience
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(pd::AbstractPlotData)
     # Create layout that is as square as possible, when there are more than 3 subplots.
     # This is done with a preference for more columns than rows if not.
@@ -129,7 +121,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{1}})
     xguide --> _get_guide(orientation_x)
 
     # Return data for plotting
-    x, data[:, variable_id]
+    return x, data[:, variable_id]
 end
 
 # Plot the mesh as vertical lines from a PlotMesh object.
@@ -147,13 +139,11 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{1}})
     linewidth --> 1
 
     # Return data for plotting
-    mesh_vertices_x
+    return mesh_vertices_x
 end
 
 # Create a plot directly from a TrixiODESolution for convenience
 # The plot is created by a PlotData1D or PlotData2D object.
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
 RecipesBase.@recipe function f(sol::TrixiODESolution)
     # Redirect everything to the recipes below
     return sol.u[end], sol.prob.p

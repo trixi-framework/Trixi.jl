@@ -74,6 +74,8 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
             MPI.Waitall(requests, MPI.Status)
         end
     end # GC.@preserve old_u_ode
+
+    return nothing
 end
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined.
@@ -116,7 +118,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
             end
         end
 
-        reinitialize_containers!(mesh, equations, dg, cache)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
 
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
@@ -188,14 +192,6 @@ function refine!(u_ode::AbstractVector, adaptor,
     # Resize parabolic helper variables
     @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
-       !mpi_isparallel()
-        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
-                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
-    end
 
     return nothing
 end
@@ -310,7 +306,9 @@ function coarsen!(u_ode::AbstractVector, adaptor,
             end
         end
 
-        reinitialize_containers!(mesh, equations, dg, cache)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
 
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
@@ -389,14 +387,6 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     # Resize parabolic helper variables
     @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
-       !mpi_isparallel()
-        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
-                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
-    end
 
     return nothing
 end
@@ -502,7 +492,9 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
             end
         end
 
-        reinitialize_containers!(mesh, equations, dg, cache)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
 
         resize!(u_ode, nvariables(equations) * ndofs(mesh, dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)

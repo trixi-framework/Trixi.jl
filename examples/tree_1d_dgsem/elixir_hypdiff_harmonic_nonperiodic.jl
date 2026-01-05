@@ -8,7 +8,7 @@ equations = HyperbolicDiffusionEquations1D(nu = 1.25)
 """
     initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
 
-A non-priodic harmonic function used in combination with
+A non-periodic harmonic function used in combination with
 [`source_terms_poisson_nonperiodic`](@ref) and [`boundary_condition_poisson_nonperiodic`](@ref).
 
 !!! note

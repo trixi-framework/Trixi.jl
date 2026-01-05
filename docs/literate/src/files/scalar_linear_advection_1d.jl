@@ -14,7 +14,7 @@ coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0  # maximum coordinate
 
 # We assume periodic boundaries and the following initial condition.
-initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)
+initial_condition_sine_wave(x) = 1.0 + 0.5 * sinpi(x)
 
 # ## The discontinuous Galerkin collocation spectral element method (DGSEM)
 # ### i. Discretization of the physical domain
@@ -128,7 +128,7 @@ u0 = initial_condition_sine_wave.(x)
 
 # To have a look at the initial sinus curve, we plot it.
 using Plots
-plot(vec(x), vec(u0), label = "initial condition", legend = :topleft)
+plot(vec(x), vec(u0), label = "initial condition", legend = :topleft, markershape = :circle)
 
 # ### iii. Variational formulation
 # After defining the equation and initial condition, we want to implement an algorithm to
@@ -173,7 +173,7 @@ M = diagm(weights)
 # ```math
 # \frac{dx}{2} \int_{-1, N}^1 \dot{u}(\xi, t) \underline{l}(\xi)d\xi = \frac{dx}{2} M \underline{\dot{u}}(t),
 # ```
-# where $\underline{\dot{u}} = (\dot{u}_0, ..., \dot{u}_N)^T$ and $\underline{l}$ respectively.
+# where $\underline{\dot{u}} = (\dot{u}_0, \dots, \dot{u}_N)^T$ and $\underline{l} = (l_0, \dots, l_N)^T$ respectively.
 
 # **Note:** Since the LGL quadrature with $N+1$ nodes is exact up to functions of degree $2N-1$ and
 # $\dot{u}(\xi, t) l_i(\xi)$ is of degree $2N$, in general the following holds
@@ -366,7 +366,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # We will now create a mesh with 16 elements for the physical domain `[-1, 1]` with periodic boundaries.
 # We use Trixi.jl's standard mesh [`TreeMesh`](@ref). Since it's limited to hypercube domains, we
-# choose `2^4=16` elements. The mesh type supports AMR, that' why `n_cells_max` has to be set, even
+# choose `2^4=16` elements. The mesh type supports Adaptive Mesh Refinement (AMR), that is why `n_cells_max` has to be set, even
 # if we don't need AMR here.
 coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0  # maximum coordinate
@@ -377,7 +377,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # A semidiscretization collects data structures and functions for the spatial discretization.
 # In Trixi.jl, an initial condition has the following parameter structure and is of the type `SVector`.
 function initial_condition_sine_wave(x, t, equations)
-    SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+    return SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
@@ -426,10 +426,10 @@ for element in 1:n_elements
 end
 
 ## initial condition
-initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)
+initial_condition_sine_wave(x) = 1.0 + 0.5 * sinpi(x)
 u0 = initial_condition_sine_wave.(x)
 
-plot(vec(x), vec(u0), label = "initial condition", legend = :topleft)
+plot(vec(x), vec(u0), label = "initial condition", legend = :topleft, markershape = :circle)
 
 ## flux Lax-Friedrichs
 surface_flux = flux_lax_friedrichs
@@ -506,7 +506,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 ## create initial condition and semidiscretization
 function initial_condition_sine_wave(x, t, equations)
-    SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+    return SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)

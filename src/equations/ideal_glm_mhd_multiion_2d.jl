@@ -82,9 +82,9 @@ References:
     In case of more than one ion species, the multi-ion GLM-MHD equations should ALWAYS be used
     with [`source_terms_lorentz`](@ref).
 """
-mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
-                                              ElectronPressure, ElectronTemperature} <:
-               AbstractIdealGlmMhdMultiIonEquations{2, NVARS, NCOMP}
+struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
+                                      ElectronPressure, ElectronTemperature} <:
+       AbstractIdealGlmMhdMultiIonEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
     gas_constants::SVector{NCOMP, RealT} # Specific gas constants
@@ -122,10 +122,11 @@ mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
-        new(gammas, charge_to_mass, gas_constants, molar_masses,
-            ion_ion_collision_constants,
-            ion_electron_collision_constants, electron_pressure, electron_temperature,
-            c_h)
+        return new(gammas, charge_to_mass, gas_constants, molar_masses,
+                   ion_ion_collision_constants,
+                   ion_electron_collision_constants, electron_pressure,
+                   electron_temperature,
+                   c_h)
     end
 end
 
@@ -195,8 +196,9 @@ end
 
 @inline function Base.real(::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {NVARS,
                                                                                          NCOMP,
-                                                                                         RealT}
-    RealT
+                                                                                         RealT
+                                                                                         }
+    return RealT
 end
 
 """

@@ -33,5 +33,7 @@ function apply_smoothing!(mesh::StructuredMesh{3}, alpha, alpha_tmp, dg, cache)
         alpha[element] = max(alpha_tmp[element], 0.5f0 * alpha_tmp[front],
                              alpha[element])
     end
+
+    return nothing
 end
 end # @muladd
