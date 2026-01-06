@@ -120,12 +120,16 @@ alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
 
+cfl_advective = 0.5
+cfl_diffusive = 0.1
+stepsize_callback = StepsizeCallback(cfl = cfl_advective,
+                                     cfl_diffusive = cfl_diffusive)
+
 callbacks = CallbackSet(summary_callback, alive_callback,
-                        analysis_callback)
+                        analysis_callback, stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-6
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(); adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)

@@ -385,14 +385,14 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         l2=[
-                            3.792507750192902e-5,
-                            4.085145751417269e-5,
-                            0.0002455008811883454
+                            3.804624387087144e-5,
+                            4.0776239664045585e-5,
+                            0.0002452796554181002
                         ],
                         linf=[
-                            0.00010974669014740535,
-                            9.26102644349669e-5,
-                            0.0005481045795789896
+                            0.00010899905841177393,
+                            9.108558032178138e-5,
+                            0.0005277952647766426
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
