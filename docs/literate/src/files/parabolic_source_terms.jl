@@ -20,14 +20,15 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # For a mixed hyperbolic-parabolic system, one can specify source terms which depend
 # on the gradient of the solution. Here, we solve a steady advection-diffusion 
-# equation with both solution and gradient-dependent source terms. 
+# equation with both solution and gradient-dependent source terms. The exact solution 
+# `u(x) = sin(x)` is given by `initial_condition`. 
 
 initial_condition = function (x, t, equations::LinearScalarAdvectionEquation1D)
     return SVector(sin(x[1]))
 end
 
-# For standard source terms, we pass in the solution, the spatial coordinate, the 
-# current time, and the hyperbolic equations. 
+# For standard hyperbolic source terms, we pass in the solution, the spatial coordinate, 
+# the current time, and the hyperbolic equations. 
 
 source_terms = function (u, x, t, equations::LinearScalarAdvectionEquation1D)
     f = a * cos(x[1]) + nu * sin(x[1]) - beta * (cos(x[1])^2)
@@ -82,8 +83,9 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
-# Finally, we note that while we solve the ODE system using explicit time-stepping, 
-# the maximum stable time-step is $O(h^2)$ due to the dominant parabolic term.
+# Finally, we note that while we solve the ODE system using explicit time-stepping, the maximum 
+# stable time-step is $O(h^2)$ due to the dominant parabolic term. We enforce this more stringent
+# parabolic CFL condition using a diffusion-aware `StepsizeCallback`. 
 
 cfl_advective = 0.5
 cfl_diffusive = 0.05
