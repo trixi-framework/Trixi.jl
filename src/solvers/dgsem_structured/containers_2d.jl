@@ -210,34 +210,34 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
         for j in eachnode(dg)
             # We do not store i = 1, as it is never used, see `calcflux_fv!`.
             # => Store i = 2 at position 1
-            @views @. normal_vectors_1[:, 1, j, element] = contravariant_vectors[:,
-                                                                                 1,
+            @views normal_vectors_1[:, 1, j, element] = get_contravariant_vector(1,
+                                                                                 contravariant_vectors,
                                                                                  1,
                                                                                  j,
-                                                                                 element]
+                                                                                 element)
             for m in eachnode(dg)
                 wD_im = weights[1] * derivative_matrix[1, m]
-                @views @. normal_vectors_1[:, 1, j, element] += wD_im *
-                                                                contravariant_vectors[:,
-                                                                                      1,
-                                                                                      m,
-                                                                                      j,
-                                                                                      element]
+                @views normal_vectors_1[:, 1, j, element] .+= wD_im *
+                                                              get_contravariant_vector(1,
+                                                                                       contravariant_vectors,
+                                                                                       m,
+                                                                                       j,
+                                                                                       element)
             end
 
             for i in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
-                @views @. normal_vectors_1[:, i, j, element] = normal_vectors_1[:,
-                                                                                i - 1,
-                                                                                j,
-                                                                                element]
+                @views normal_vectors_1[:, i, j, element] = normal_vectors_1[:,
+                                                                             i - 1,
+                                                                             j,
+                                                                             element]
                 for m in eachnode(dg)
                     wD_im = weights[i] * derivative_matrix[i, m]
-                    @views @. normal_vectors_1[:, i, j, element] += wD_im *
-                                                                    contravariant_vectors[:,
-                                                                                          1,
-                                                                                          m,
-                                                                                          j,
-                                                                                          element]
+                    @views normal_vectors_1[:, i, j, element] .+= wD_im *
+                                                                  get_contravariant_vector(1,
+                                                                                           contravariant_vectors,
+                                                                                           m,
+                                                                                           j,
+                                                                                           element)
                 end
             end
         end
@@ -246,35 +246,35 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
         for i in eachnode(dg)
             # We do not store j = 1, as it is never used.
             # => Store physical j = 2 at position 1
-            @views @. normal_vectors_2[:, i, 1, element] = contravariant_vectors[:,
-                                                                                 2,
+            @views normal_vectors_2[:, i, 1, element] = get_contravariant_vector(2,
+                                                                                 contravariant_vectors,
                                                                                  i,
                                                                                  1,
-                                                                                 element]
+                                                                                 element)
             for m in eachnode(dg)
                 wD_jm = weights[1] * derivative_matrix[1, m]
-                @views @. normal_vectors_2[:, i, 1, element] += wD_jm *
-                                                                contravariant_vectors[:,
-                                                                                      2,
-                                                                                      i,
-                                                                                      m,
-                                                                                      element]
+                @views normal_vectors_2[:, i, 1, element] .+= wD_jm *
+                                                              get_contravariant_vector(2,
+                                                                                       contravariant_vectors,
+                                                                                       i,
+                                                                                       m,
+                                                                                       element)
             end
 
             for j in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
-                @views @. normal_vectors_2[:, i, j, element] = normal_vectors_2[:,
-                                                                                i,
-                                                                                j - 1,
-                                                                                element]
+                @views normal_vectors_2[:, i, j, element] = normal_vectors_2[:,
+                                                                             i,
+                                                                             j - 1,
+                                                                             element]
 
                 for m in eachnode(dg)
                     wD_jm = weights[j] * derivative_matrix[j, m]
-                    @views @. normal_vectors_2[:, i, j, element] += wD_jm *
-                                                                    contravariant_vectors[:,
-                                                                                          2,
-                                                                                          i,
-                                                                                          m,
-                                                                                          element]
+                    @views normal_vectors_2[:, i, j, element] .+= wD_jm *
+                                                                  get_contravariant_vector(2,
+                                                                                           contravariant_vectors,
+                                                                                           i,
+                                                                                           m,
+                                                                                           element)
                 end
             end
         end
