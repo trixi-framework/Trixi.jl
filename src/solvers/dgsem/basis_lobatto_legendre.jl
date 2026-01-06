@@ -25,9 +25,9 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     inverse_weights::VectorT
 
     inverse_vandermonde_legendre::InverseVandermondeLegendre
-    boundary_interpolation::BoundaryMatrix # lhat
+    boundary_interpolation::BoundaryMatrix # "lhat"
 
-    derivative_matrix::DerivativeMatrix # strong form derivative matrix
+    derivative_matrix::DerivativeMatrix # strong form derivative matrix "D"
     derivative_split::DerivativeMatrix # strong form derivative matrix minus boundary terms
     derivative_split_transpose::DerivativeMatrix # transpose of `derivative_split`
     derivative_dhat::DerivativeMatrix # weak form matrix "dhat",
@@ -410,12 +410,12 @@ end
 
 # TODO: Taal refactor, allow other RealT below and adapt constructors above accordingly
 
-# Calculate the Dhat matrix
+# Calculate the Dhat matrix = -M^{-1} D^T M for weak form differentiation
 function calc_dhat(nodes, weights)
     n_nodes = length(nodes)
     dhat = Matrix(polynomial_derivative_matrix(nodes)')
 
-    # Perform M^{-1} D^T M operation and negate
+    # Perform M matrix multplicaitons and negate
     for n in 1:n_nodes, j in 1:n_nodes
         dhat[j, n] *= -weights[n] / weights[j]
     end
@@ -526,7 +526,7 @@ function barycentric_weights(nodes)
     return weights
 end
 
-# Calculate Lhat.
+# Calculate Lhat = M^{-1} * B
 function calc_lhat(x, nodes, weights)
     n_nodes = length(nodes)
     wbary = barycentric_weights(nodes)
