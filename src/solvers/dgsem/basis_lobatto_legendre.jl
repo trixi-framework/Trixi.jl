@@ -410,7 +410,8 @@ end
 
 # TODO: Taal refactor, allow other RealT below and adapt constructors above accordingly
 
-# Calculate the Dhat matrix = -M^{-1} D^T M for weak form differentiation
+# Calculate the Dhat matrix = -M^{-1} D^T M for weak form differentiation.
+# Note that this is the negated version of the matrix that shows up in the standard DG weak form!
 function calc_dhat(nodes, weights)
     n_nodes = length(nodes)
     dhat = Matrix(polynomial_derivative_matrix(nodes)')
@@ -526,7 +527,8 @@ function barycentric_weights(nodes)
     return weights
 end
 
-# Calculate Lhat = M^{-1} * B
+# Calculate Lhat = M^{-1} * B.
+# Note that this is the negated version of the matrix that shows up in the standard DG weak form!
 function calc_lhat(x, nodes, weights)
     n_nodes = length(nodes)
     wbary = barycentric_weights(nodes)
