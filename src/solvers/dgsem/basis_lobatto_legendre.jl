@@ -410,7 +410,8 @@ end
 # TODO: Taal refactor, allow other RealT below and adapt constructors above accordingly
 
 # Calculate the Dhat matrix = -M^{-1} D^T M for weak form differentiation.
-# Note that this is the negated version of the matrix that shows up in the standard DG weak form!
+# Note that this is the negated version of the matrix that shows up on the RHS of the
+# DG update multiplying the physical flux evaluations.
 function calc_Dhat(nodes, weights)
     n_nodes = length(nodes)
     Dhat = Matrix(polynomial_derivative_matrix(nodes)')
@@ -423,7 +424,9 @@ function calc_Dhat(nodes, weights)
     return Dhat
 end
 
-# Calculate the Dsplit matrix for split-form differentiation: dplit = 2D - M⁻¹B
+# Calculate the Dsplit matrix for split-form differentiation: Dsplit = 2D - M⁻¹B
+# Note that this is the negated version of the matrix that shows up on the RHS of the 
+# DG update multiplying the two-point numerical volume flux evaluations.
 function calc_Dsplit(nodes, weights)
     # Start with 2 x the normal D matrix
     Dsplit = 2 .* polynomial_derivative_matrix(nodes)
@@ -527,7 +530,8 @@ function barycentric_weights(nodes)
 end
 
 # Calculate Lhat = M^{-1} * B.
-# Note that this is the negated version of the matrix that shows up in the standard DG weak form!
+# Note that this is the negated version of the matrix that shows up on the RHS of the
+# DG update multiplying the two-point numerical surface flux evaluations.
 function calc_Lhat(x, nodes, weights)
     n_nodes = length(nodes)
     wbary = barycentric_weights(nodes)
