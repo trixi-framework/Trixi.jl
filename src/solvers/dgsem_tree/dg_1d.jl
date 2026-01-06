@@ -36,8 +36,7 @@ end
 # and called from the basic `create_cache` method at the top.
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             AbstractVolumeIntegralShockCapturing},
+                      volume_integral::AbstractVolumeIntegralSubCell,
                       dg::DG, cache_containers, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
                   uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
