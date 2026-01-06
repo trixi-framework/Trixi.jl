@@ -19,6 +19,8 @@ for human readability.
   When the trait is set to `Trixi.True()`, a single method has to be defined, that computes and returns the tuple
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_ll, u_rr)` and
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_rr, u_ll)`.
+- Simulations can now be restarted from other runs with different polynomial degrees, i.e.,
+  the solution variables are correctly converted via interpolation or L2 projection ([#2358]).
 
 ## Changes when updating to v0.13 from v0.12.x
 

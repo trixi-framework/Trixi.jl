@@ -292,6 +292,7 @@ end
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
                    restart_file::AbstractString;
+                   interpolate_high2low = true,
                    jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                    colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
 
@@ -304,6 +305,14 @@ SciML ecosystem.
 The initial condition etc. is taken from the `restart_file`.
 
 Optional keyword arguments:
+- `interpolate_high2low` applies only to the case when a simulation is restarted with a 
+  lower polynomial degree than the one used in the original simulation.
+  In that case, the solution is either interpolated (default) from the higher-degree polynomial
+  to the lower-degree polynomial.
+  This preserves the values at the cell interfaces, thus a formerly continuous solution
+  is still continuous after the interpolation.
+  For `interpolate_high2low = false`, the solution is projected with minimal L2-error onto the
+  lower-degree polynomial.
 - `jac_prototype_parabolic`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
   Specifies the sparsity structure of the parabolic function's Jacobian to enable e.g. efficient implicit time stepping.
   The [`SplitODEProblem`](https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitODEProblem) only expects the Jacobian
@@ -314,6 +323,7 @@ Optional keyword arguments:
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
                         restart_file::AbstractString;
+                        interpolate_high2low = true,
                         jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true)
@@ -324,7 +334,9 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
         Polyester.reset_threads!()
     end
 
-    u0_ode = load_restart_file(semi, restart_file)
+    # Load initial condition from restart file
+    u0_ode = load_restart_file(semi, restart_file, interpolate_high2low)
+
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328

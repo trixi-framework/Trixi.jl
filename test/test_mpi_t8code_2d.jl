@@ -97,6 +97,17 @@ EXAMPLES_DIR = joinpath(examples_dir(), "t8code_2d_dgsem")
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
+    @trixi_testset "elixir_advection_restart_polydeg_higher.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_restart_polydeg_higher.jl"),
+                            l2=[0.0004035489510898178],
+                            linf=[0.0054955091397658196],)
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    end
+
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
