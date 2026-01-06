@@ -201,6 +201,8 @@ function integrate_element(func::Func, u, element,
     end
 
     # Multiply with element volume if not normalized
+    # TODO: Normalization makes not really sense here - Jacobian needed for coordinate transformation I guess.
+    # But for purpose of entropy change calculation this is ok for now.
     if !normalize
         integral = integral * volume_jacobian(element, mesh, cache)
     end
