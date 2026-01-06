@@ -431,9 +431,9 @@ function calc_Dsplit(nodes, weights)
     # Start with 2 x the normal D matrix
     Dsplit = 2 .* polynomial_derivative_matrix(nodes)
 
-    # Modify to account for
-    Dsplit[1, 1] += 1 / weights[1]
-    Dsplit[end, end] -= 1 / weights[end]
+    # Modify to account for the weighted boundary terms
+    Dsplit[1, 1] += 1 / weights[1] # B[1, 1] = -1
+    Dsplit[end, end] -= 1 / weights[end] # B[end, end] = 1
 
     return Dsplit
 end
