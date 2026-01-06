@@ -135,7 +135,10 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
     end
 end
 
-abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegral end
+# Abstract supertype for DG subcell-based volume integrals with
+# finite volume schemes on the subcells.
+abstract type AbstractVolumeIntegralSubCell <: AbstractVolumeIntegral end
+abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubCell end
 
 """
     VolumeIntegralShockCapturingHG(indicator;
@@ -270,7 +273,7 @@ end
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.
-abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegral end
+abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegralSubCell end
 
 """
     VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
