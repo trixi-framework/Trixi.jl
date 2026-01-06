@@ -44,12 +44,12 @@ struct PolytropicEulerEquations2D{RealT <: Real} <:
 
     function PolytropicEulerEquations2D(gamma, kappa)
         gamma_, kappa_ = promote(gamma, kappa)
-        new{typeof(gamma_)}(gamma_, kappa_)
+        return new{typeof(gamma_)}(gamma_, kappa_)
     end
 end
 
 function varnames(::typeof(cons2cons), ::PolytropicEulerEquations2D)
-    ("rho", "rho_v1", "rho_v2")
+    return ("rho", "rho_v1", "rho_v2")
 end
 varnames(::typeof(cons2prim), ::PolytropicEulerEquations2D) = ("rho", "v1", "v2")
 
@@ -449,6 +449,15 @@ end
     return v
 end
 
+@doc raw"""
+    pressure(u, equations::PolytropicEulerEquations2D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+p = \kappa \rho^\gamma
+```
+"""
 @inline function pressure(u, equations::PolytropicEulerEquations2D)
     rho, _, _ = u
     p = equations.kappa * rho^equations.gamma

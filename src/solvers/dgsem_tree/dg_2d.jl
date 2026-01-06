@@ -24,47 +24,58 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
+    # Container cache
     cache = (; elements, interfaces, boundaries, mortars)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+    # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}}, equations,
-                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             VolumeIntegralShockCapturingHG}, dg::DG,
-                      uEltype)
+function create_f_threaded(mesh::AbstractMesh{2}, equations,
+                           dg::DG, uEltype)
     A3d = Array{uEltype, 3}
 
-    fstar1_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar1_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg) + 1, nnodes(dg))
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_L_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
-    fstar2_R_threaded = A3d[A3d(undef, nvariables(equations),
-                                nnodes(dg), nnodes(dg) + 1)
-                            for _ in 1:Threads.maxthreadid()]
+    f1_L_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg) + 1, nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f1_R_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg) + 1, nnodes(dg))
+                        for _ in 1:Threads.maxthreadid()]
+    f2_L_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg) + 1)
+                        for _ in 1:Threads.maxthreadid()]
+    f2_R_threaded = A3d[A3d(undef, nvariables(equations),
+                            nnodes(dg), nnodes(dg) + 1)
+                        for _ in 1:Threads.maxthreadid()]
 
-    @threaded for t in eachindex(fstar1_L_threaded)
-        fstar1_L_threaded[t][:, 1, :] .= zero(uEltype)
-        fstar1_R_threaded[t][:, 1, :] .= zero(uEltype)
-        fstar1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
-        fstar1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+    @threaded for t in eachindex(f1_L_threaded)
+        f1_L_threaded[t][:, 1, :] .= zero(uEltype)
+        f1_R_threaded[t][:, 1, :] .= zero(uEltype)
+        f1_L_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
+        f1_R_threaded[t][:, nnodes(dg) + 1, :] .= zero(uEltype)
 
-        fstar2_L_threaded[t][:, :, 1] .= zero(uEltype)
-        fstar2_R_threaded[t][:, :, 1] .= zero(uEltype)
-        fstar2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
-        fstar2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+        f2_L_threaded[t][:, :, 1] .= zero(uEltype)
+        f2_R_threaded[t][:, :, 1] .= zero(uEltype)
+        f2_L_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
+        f2_R_threaded[t][:, :, nnodes(dg) + 1] .= zero(uEltype)
     end
+
+    return f1_L_threaded, f1_R_threaded,
+           f2_L_threaded, f2_R_threaded
+end
+
+function create_cache(mesh::TreeMesh{2}, equations,
+                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralShockCapturingHG},
+                      dg::DG, cache_containers, uEltype)
+    fstar1_L_threaded, fstar1_R_threaded,
+    fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
+                                                             uEltype)
 
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded)
@@ -283,7 +294,7 @@ end
                                           T8codeMesh{2}},
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
-                              x_interfaces, reconstruction_mode, slope_limiter,
+                              sc_interface_coords, reconstruction_mode, slope_limiter,
                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -296,7 +307,7 @@ end
     calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
                    have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
-                   x_interfaces, reconstruction_mode, slope_limiter)
+                   sc_interface_coords, reconstruction_mode, slope_limiter)
 
     # Calculate FV volume integral contribution
     for j in eachnode(dg), i in eachnode(dg)
@@ -316,7 +327,7 @@ end
                                 mesh::TreeMesh{2},
                                 have_nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
-                                x_interfaces, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter)
     for j in eachnode(dg), i in 2:nnodes(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
@@ -343,7 +354,7 @@ end
 
         ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       x_interfaces, i,
+                                       sc_interface_coords, i,
                                        slope_limiter, dg)
 
         ## Convert primitive variables back to conservative variables ##
@@ -365,7 +376,7 @@ end
                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       x_interfaces, j,
+                                       sc_interface_coords, j,
                                        slope_limiter, dg)
 
         flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),

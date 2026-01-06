@@ -551,7 +551,15 @@ Return the product of the [`density`](@ref) and the [`pressure`](@ref)
 associated to the conserved variables `u` for a given set of
 `equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
 This can be useful, e.g., as a variable for (shock-cappturing or AMR)
-indicators.
+indicators as it combines two variables which must stay positive into one.
+
+Furthermore, this implementation is for media which are described by an
+ideal gas law alike equation of state more efficient than
+computing [`pressure(u, equations)`](@ref) first and then multiplying with the density.
+This is due to the fact that in computation of the pressure,
+the kinetic energy needs to be computed, which usually involves
+**division** of the squared momenta by the density.
+This operation can be avoided!
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
@@ -661,7 +669,7 @@ include("passive_tracers.jl")
                                                                                                NVARS,
                                                                                                NCOMP
                                                                                                }
-    NCOMP
+    return NCOMP
 end
 """
     eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
@@ -671,7 +679,7 @@ for the components in `AbstractCompressibleEulerMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline function eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
-    Base.OneTo(ncomponents(equations))
+    return Base.OneTo(ncomponents(equations))
 end
 
 # Ideal MHD
@@ -701,7 +709,7 @@ include("ideal_glm_mhd_multiion_3d.jl")
                                                                                          NVARS,
                                                                                          NCOMP
                                                                                          }
-    NCOMP
+    return NCOMP
 end
 """
     eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
@@ -711,7 +719,7 @@ for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline function eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
-    Base.OneTo(ncomponents(equations))
+    return Base.OneTo(ncomponents(equations))
 end
 
 # Retrieve number of components from equation instance for the multi-ion case
@@ -721,7 +729,7 @@ end
                                                                                    NVARS,
                                                                                    NCOMP
                                                                                    }
-    NCOMP
+    return NCOMP
 end
 
 """
@@ -732,7 +740,7 @@ for the components in `AbstractIdealGlmMhdMultiIonEquations`.
 In particular, not the components themselves are returned.
 """
 @inline function eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)
-    Base.OneTo(ncomponents(equations))
+    return Base.OneTo(ncomponents(equations))
 end
 
 # Diffusion equation: first order hyperbolic system

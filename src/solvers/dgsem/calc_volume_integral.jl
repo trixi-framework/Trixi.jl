@@ -7,7 +7,8 @@
 
 # Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
 function create_cache(mesh, equations,
-                      volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+                      volume_integral::VolumeIntegralFluxDifferencing,
+                      dg::DG, cache_containers, uEltype)
     return NamedTuple()
 end
 
@@ -102,14 +103,14 @@ function calc_volume_integral!(du, u,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                dg::DGSEM, cache)
-    @unpack x_interfaces, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
+    @unpack sc_interface_coords, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
 
     # Calculate LGL second-order FV volume integral
     @threaded for element in eachelement(dg, cache)
         fvO2_kernel!(du, u, mesh,
                      have_nonconservative_terms, equations,
                      volume_flux_fv, dg, cache, element,
-                     x_interfaces, reconstruction_mode, slope_limiter, true)
+                     sc_interface_coords, reconstruction_mode, slope_limiter, true)
     end
 
     return nothing
