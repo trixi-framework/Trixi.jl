@@ -39,7 +39,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_gradient_source_terms.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
-                        l2=[0.01704628303948817], linf=[0.043158155625039885])
+                        l2 = [1.0990454698899562e-5], linf = [6.469747978055107e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -361,7 +361,7 @@ end
 end
 
 @trixi_testset "DGMulti: elixir_advection_diffusion_gradient_source_terms.jl" begin
-    @test_trixi_include(joinpath(examples_dir(), "dgmulti_1d",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_advection_diffusion_gradient_source_terms.jl"),
                         l2=[0.019004588207592106],
                         linf=[0.04265178288243865])
