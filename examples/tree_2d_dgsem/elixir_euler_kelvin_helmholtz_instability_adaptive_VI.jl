@@ -39,9 +39,12 @@ basis = LobattoLegendreBasis(polydeg)
 volume_integral_weakform = VolumeIntegralWeakForm()
 volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
-# `threshold` governs the tolerated entropy increase due to the weak-form
-# volume integral before switching to the stabilized version
-indicator = IndicatorEntropyIncrease(threshold = 0.3)
+# This indicator compares the entropy production of the weak form to the 
+# entropy-conserving flux-differencing volume integral.
+# If the entropy production of the weak form is lower than that of the
+# flux-differencing form, we use the flux-differencing form to stabilize the solution.
+indicator = IndicatorEntropyComparison(equations, basis)
+
 # Adaptive volume integral using the entropy increase indicator to perform the 
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,
@@ -49,9 +52,9 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integr
                                          indicator = indicator)
 
 #volume_integral = volume_integral_weakform # Crashes
-#volume_integral = volume_integral_fluxdiff # Runs, but is more expensive
+#volume_integral = volume_integral_fluxdiff # Crashes
 
-solver = DGSEM(basis, surface_flux, volume_integral_fluxdiff)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
@@ -63,12 +66,12 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 3.4)
+tspan = (0.0, 5.0) # Flux-differencing volume integral alone does not reach this!
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 500
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_errors = Symbol[])
 

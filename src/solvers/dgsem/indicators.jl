@@ -329,20 +329,37 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyIncrea
     end
 end
 
-struct IndicatorEntropyComparison{dUElementThreaded <: AbstractArray} <: AbstractIndicator
+struct IndicatorEntropyComparison{dUElementThreaded <: AbstractArray} <:
+       AbstractIndicator
     du_element_threaded::dUElementThreaded
 
-    function IndicatorEntropyComparison(::AbstractEquations{NDIMS, NVARS}, basis) where {NDIMS, NVARS}
+    function IndicatorEntropyComparison(::AbstractEquations{NDIMS, NVARS},
+                                        basis) where {NDIMS, NVARS}
         uEltype = real(basis)
         # Required dimensions: Variables and Nodes...
         AT = Array{uEltype, NDIMS + 1}
         du_element_threaded = AT[AT(undef, NVARS,
                                     ntuple(_ -> nnodes(basis), NDIMS)...)
-                                for _ in 1:Threads.maxthreadid()]
+                                 for _ in 1:Threads.maxthreadid()]
 
         return new{typeof(du_element_threaded)}(du_element_threaded)
     end
 end
 
+function Base.show(io::IO, indicator::IndicatorEntropyComparison)
+    @nospecialize indicator # reduce precompilation time
 
+    print(io, "IndicatorEntropyComparison()")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyComparison)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = []
+        summary_box(io, "IndicatorEntropyComparison", setup)
+    end
+end
 end # @muladd

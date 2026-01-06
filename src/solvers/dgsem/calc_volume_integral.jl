@@ -94,34 +94,76 @@ end
 # Calculate ∫_el (∂S/∂u ⋅ ∂u/∂t) dΩ_el
 function calc_entropy_change_element(du, u, element,
                                      mesh::TreeMesh{2}, equations, dg, cache)
-    dS_unscaled = integrate_element(u, element, mesh, equations, dg, cache,
-                                    du) do u, i, j, element, equations, dg, du
+    return integrate_element_ref(u, element, mesh, equations, dg, cache,
+                                 du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
+        # Minus sign because of the flipped sign in the DG RHS.
+        # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
+        # in `integrate_element_ref`.
         -dot(cons2entropy(u_node, equations), du_node)
     end
-
-    # Apply inverse Jacobian
-    #@unpack inverse_jacobian = cache.elements
-    #factor = -inverse_jacobian[element]
-    #return factor * dS_unscaled
-    return dS_unscaled
 end
 
 function calc_entropy_change_element(du, u, element,
                                      mesh::TreeMesh{3}, equations, dg, cache)
-    dS_unscaled = integrate_element(u, element, mesh, equations, dg, cache,
-                                    du) do u, i, j, k, element, equations, dg, du
+    return integrate_element_ref(u, element, mesh, equations, dg, cache,
+                                 du) do u, i, j, k, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         du_node = get_node_vars(du, equations, dg, i, j, k, element)
+        # Minus sign because of the flipped sign in the DG RHS.
+        # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
+        # in `integrate_element_ref`.
         -dot(cons2entropy(u_node, equations), du_node)
     end
+end
 
-    # Apply inverse Jacobian
-    #@unpack inverse_jacobian = cache.elements
-    #factor = -inverse_jacobian[element]
-    #return factor * dS_unscaled
-    return dS_unscaled
+function calc_volume_integral!(du, u, mesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
+                                                                       VolumeIntegralFD,
+                                                                       Indicator},
+                               dg::DGSEM,
+                               cache) where {
+                                             VolumeIntegralFD <:
+                                             VolumeIntegralFluxDifferencing,
+                                             Indicator <: IndicatorEntropyComparison}
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    @unpack du_element_threaded = volume_integral.indicator
+
+    @threaded for element in eachelement(dg, cache)
+        # Compute weak form volume integral
+        weak_form_kernel!(du, u, element, mesh,
+                          have_nonconservative_terms, equations,
+                          dg, cache)
+
+        # Compute entropy production of WF volume integral
+        entropy_delta_WF = calc_entropy_change_element(du, u, element,
+                                                       mesh, equations, dg, cache)
+        # Store weak form result
+        du_element = du_element_threaded[Threads.threadid()]
+        @views du_element .= du[.., element]
+
+        # Reset weak form volume integral 
+        du[.., element] .= zero(eltype(du))
+
+        # Recompute using entropy-conservative volume integral
+        flux_differencing_kernel!(du, u, element, mesh,
+                                  have_nonconservative_terms, equations,
+                                  volume_integral_stabilized.volume_flux,
+                                  dg, cache)
+
+        # Compute entropy production of FD volume integral
+        entropy_delta_FD = calc_entropy_change_element(du, u, element,
+                                                       mesh, equations, dg, cache)
+
+        entropy_delta = entropy_delta_WF - entropy_delta_FD
+        if entropy_delta < 0 # Use weak form if it is more stable
+            @views du[.., element] .= du_element
+        end
+    end
+
+    return nothing
 end
 
 function calc_volume_integral!(du, u, mesh,
@@ -144,10 +186,10 @@ function calc_volume_integral!(du, u, mesh,
                           dg, cache)
 
         # Compute entropy production of this volume integral
-        entropy_delta = calc_entropy_change_element(du, u, element,
-                                                    mesh, equations, dg, cache)
+        entropy_delta_WF = calc_entropy_change_element(du, u, element,
+                                                       mesh, equations, dg, cache)
 
-        if entropy_delta > threshold
+        if entropy_delta_WF > threshold
             # Reset bad volume integral 
             du[.., element] .= zero(eltype(du))
 
