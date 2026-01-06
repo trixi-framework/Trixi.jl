@@ -328,4 +328,21 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyIncrea
         summary_box(io, "IndicatorEntropyIncrease", setup)
     end
 end
+
+struct IndicatorEntropyComparison{dUElementThreaded <: AbstractArray} <: AbstractIndicator
+    du_element_threaded::dUElementThreaded
+
+    function IndicatorEntropyComparison(::AbstractEquations{NDIMS, NVARS}, basis) where {NDIMS, NVARS}
+        uEltype = real(basis)
+        # Required dimensions: Variables and Nodes...
+        AT = Array{uEltype, NDIMS + 1}
+        du_element_threaded = AT[AT(undef, NVARS,
+                                    ntuple(_ -> nnodes(basis), NDIMS)...)
+                                for _ in 1:Threads.maxthreadid()]
+
+        return new{typeof(du_element_threaded)}(du_element_threaded)
+    end
+end
+
+
 end # @muladd

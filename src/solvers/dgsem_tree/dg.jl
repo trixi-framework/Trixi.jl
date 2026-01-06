@@ -24,7 +24,6 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
 end
 
 # Indicators used for shock-capturing and AMR
-include("indicators.jl")
 include("indicators_1d.jl")
 include("indicators_2d.jl")
 include("indicators_3d.jl")
