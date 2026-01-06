@@ -689,6 +689,26 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_astro_jet_amr_scO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_amr_scO2.jl"),
+                        l2=[
+                            0.011443079784345214,
+                            10.241451663574527,
+                            0.003617158399146703,
+                            4089.5052326255754
+                        ],
+                        linf=[
+                            3.454389963699461,
+                            3142.415249478047,
+                            7.337729728348691,
+                            1.2527931359048043e6
+                        ],
+                        tspan=(0.0, 1.0e-7),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
                         l2=[
