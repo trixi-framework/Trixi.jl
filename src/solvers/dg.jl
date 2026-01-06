@@ -137,8 +137,8 @@ end
 
 # Abstract supertype for DG subcell-based volume integrals with
 # finite volume schemes on the subcells.
-abstract type AbstractVolumeIntegralSubCell <: AbstractVolumeIntegral end
-abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubCell end
+abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
+abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubcell end
 
 """
     VolumeIntegralShockCapturingHG(indicator;
@@ -273,7 +273,7 @@ end
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.
-abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegralSubCell end
+abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegralSubcell end
 
 """
     VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)

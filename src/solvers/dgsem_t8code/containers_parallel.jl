@@ -5,7 +5,7 @@ function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM
     init_elements!(elements, mesh, dg.basis)
 
     if ndims(mesh) == 2 && # TODO: 3D precomputation of normal vectors
-       dg.volume_integral isa AbstractVolumeIntegralSubCell
+       dg.volume_integral isa AbstractVolumeIntegralSubcell
         @unpack normal_vectors = cache
         resize!(normal_vectors, ncells(mesh))
         init_normal_vectors!(normal_vectors, mesh, dg, cache)
