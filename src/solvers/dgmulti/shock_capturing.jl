@@ -198,7 +198,7 @@ function calc_volume_integral!(du, u,
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{1}, cache)
-    SVector(cache.sparse_hybridized_SBP_operators[1][i, j])
+    return SVector(cache.sparse_hybridized_SBP_operators[1][i, j])
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{2}, cache)
@@ -212,7 +212,7 @@ function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{3}, cache)
 end
 
 function get_contravariant_matrix(element, mesh::DGMultiMesh{1}, cache)
-    SMatrix{1, 1}(cache.dxidxhatj[1, 1][1, element])
+    return SMatrix{1, 1}(cache.dxidxhatj[1, 1][1, element])
 end
 
 function get_contravariant_matrix(element, mesh::DGMultiMesh{2, <:Affine}, cache)
@@ -248,8 +248,8 @@ function get_contravariant_matrix(i, element, mesh::DGMultiMesh{3}, cache)
 end
 
 function get_avg_contravariant_matrix(i, j, element, mesh::DGMultiMesh, cache)
-    0.5 * (get_contravariant_matrix(i, element, mesh, cache) +
-     get_contravariant_matrix(j, element, mesh, cache))
+    return 0.5 * (get_contravariant_matrix(i, element, mesh, cache) +
+            get_contravariant_matrix(j, element, mesh, cache))
 end
 
 # computes an algebraic low order method with internal dissipation.
@@ -292,7 +292,7 @@ function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
     end
 
     # TODO: factor this out to avoid calling it twice during calc_volume_integral!
-    project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 end
 
 function low_order_flux_differencing_kernel!(du, u, element,
@@ -332,5 +332,5 @@ function low_order_flux_differencing_kernel!(du, u, element,
     end
 
     # TODO: factor this out to avoid calling it twice during calc_volume_integral!
-    project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 end

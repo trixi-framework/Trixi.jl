@@ -22,17 +22,17 @@ end
 
 function HyperbolicDiffusionEquations2D(; nu = 1.0, Lr = inv(2pi))
     Tr = Lr^2 / nu
-    HyperbolicDiffusionEquations2D(promote(Lr, inv(Tr), nu)...)
+    return HyperbolicDiffusionEquations2D(promote(Lr, inv(Tr), nu)...)
 end
 
 varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 function default_analysis_errors(::HyperbolicDiffusionEquations2D)
-    (:l2_error, :linf_error, :residual)
+    return (:l2_error, :linf_error, :residual)
 end
 
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations2D)
-    abs(du[1])
+    return abs(du[1])
 end
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
@@ -165,12 +165,12 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::HyperbolicDiffusionEquations2D)
-    sqrt(equations.nu * equations.inv_Tr)
+    return sqrt(equations.nu * equations.inv_Tr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::HyperbolicDiffusionEquations2D)
-    sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
+    return sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
 end
 
 """
@@ -255,7 +255,7 @@ end
 
 # Calculate entropy for a conservative state `u` (here: same as total energy)
 @inline function entropy(u, equations::HyperbolicDiffusionEquations2D)
-    energy_total(u, equations)
+    return energy_total(u, equations)
 end
 
 # Calculate total energy for a conservative state `u`

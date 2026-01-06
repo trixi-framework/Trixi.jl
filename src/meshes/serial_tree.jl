@@ -81,11 +81,11 @@ end
 # Constructors accepting a single number as center (as opposed to an array) for 1D
 function SerialTree{1, RealT}(cap::Int, center::RealT, len::RealT,
                               periodicity = true) where {RealT <: Real}
-    SerialTree{1, RealT}(cap, [center], len, periodicity)
+    return SerialTree{1, RealT}(cap, [center], len, periodicity)
 end
 function SerialTree{1}(cap::Int, center::RealT, len::RealT,
                        periodicity = true) where {RealT <: Real}
-    SerialTree{1, RealT}(cap, [center], len, periodicity)
+    return SerialTree{1, RealT}(cap, [center], len, periodicity)
 end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
@@ -149,6 +149,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::SerialTree)
     println(io, "t.center_level_0 = $(t.center_level_0)")
     println(io, "t.length_level_0 = $(t.length_level_0)")
     println(io, '*'^20)
+    return nothing
 end
 
 # Set information for child cell `child_id` based on parent cell `cell_id` (except neighbors)
@@ -198,8 +199,8 @@ function raw_copy!(target::SerialTree, source::SerialTree, first::Int, last::Int
     copy_data!(target.levels, source.levels, first, last, destination)
     copy_data!(target.coordinates, source.coordinates, first, last, destination,
                ndims(target))
-    copy_data!(target.original_cell_ids, source.original_cell_ids, first, last,
-               destination)
+    return copy_data!(target.original_cell_ids, source.original_cell_ids, first, last,
+                      destination)
 end
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
@@ -212,6 +213,6 @@ function reset_data_structures!(t::SerialTree{NDIMS, RealT}) where {NDIMS, RealT
     t.coordinates = Matrix{RealT}(undef, NDIMS, t.capacity + 1)
     t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
 
-    invalidate!(t, 1, capacity(t) + 1)
+    return invalidate!(t, 1, capacity(t) + 1)
 end
 end # @muladd
