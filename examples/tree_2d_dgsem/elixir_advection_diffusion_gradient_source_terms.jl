@@ -22,23 +22,22 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000,
                 periodicity = true)
 
-initial_condition = function(x, t, equations::LinearScalarAdvectionEquation2D)
+initial_condition = function (x, t, equations::LinearScalarAdvectionEquation2D)
     return SVector(sin(x[1]) * sin(x[2]))
 end
 
-source_terms = function(u, x, t, equations::LinearScalarAdvectionEquation2D)
+source_terms = function (u, x, t, equations::LinearScalarAdvectionEquation2D)
     a1, a2 = a
     sinx, cosx = sincos(x[1])
     siny, cosy = sincos(x[2])
-    
+
     f = a1 * cosx * siny + a2 * sinx * cosy +
         2 * nu * sinx * siny -
         beta * (cosx^2 * siny^2 + sinx^2 * cosy^2)
     return SVector(f)
 end
 
-
-source_terms_parabolic = function(u, gradients, x, t, equations)
+source_terms_parabolic = function (u, gradients, x, t, equations)
     dudx = gradients[1][1]
     dudy = gradients[2][1]
     return SVector(beta * (dudx^2 + dudy^2))
@@ -76,12 +75,13 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 alive_callback = AliveCallback(analysis_interval = 100)
 
 cfl_advective = 0.5
-cfl_diffusive = 0.01  
+cfl_diffusive = 0.01
 stepsize_callback = StepsizeCallback(cfl = cfl_advective,
                                      cfl_diffusive = cfl_diffusive)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
@@ -89,4 +89,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, ste
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, RDPK3SpFSAL35(); adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)
-

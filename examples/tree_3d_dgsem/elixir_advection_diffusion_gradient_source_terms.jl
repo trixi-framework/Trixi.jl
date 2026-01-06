@@ -28,10 +28,11 @@ source_terms = function (u, x, t, equations::LinearScalarAdvectionEquation3D)
     sinx, cosx = sincos(x[1])
     siny, cosy = sincos(x[2])
     sinz, cosz = sincos(x[3])
-    
+
     f = a[1] * cosx * siny * sinz + a[2] * sinx * cosy * sinz + a[3] * sinx * siny * cosz +
         3 * nu * sinx * siny * sinz -
-        beta * (cosx^2 * siny^2 * sinz^2 + sinx^2 * cosy^2 * sinz^2 + sinx^2 * siny^2 * cosz^2)
+        beta *
+        (cosx^2 * siny^2 * sinz^2 + sinx^2 * cosy^2 * sinz^2 + sinx^2 * siny^2 * cosz^2)
     return SVector(f)
 end
 
@@ -88,4 +89,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, RDPK3SpFSAL35(); adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)
-
