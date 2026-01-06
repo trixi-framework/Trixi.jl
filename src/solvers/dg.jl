@@ -408,7 +408,7 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     with a high-order mortar is not invariant domain preserving.
 """
 struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
-       VolumeIntegralSubcell
+       AbstractVolumeIntegralSubcell
     volume_flux_dg::VolumeFluxDG
     volume_flux_fv::VolumeFluxFV
     limiter::Limiter
