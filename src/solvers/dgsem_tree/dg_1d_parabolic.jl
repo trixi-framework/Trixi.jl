@@ -439,15 +439,15 @@ function calc_gradient_surface_integral!(gradients,
                                          mesh::TreeMesh{1}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack boundary_interpolation_entries = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor_1 = boundary_interpolation_entries[1]
+    factor_2 = boundary_interpolation_entries[2]
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations_parabolic)
             # surface at -x
