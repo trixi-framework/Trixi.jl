@@ -17,6 +17,7 @@ This exceptional case is currently only supported for TreeMesh!
 struct LobattoLegendreBasis{RealT <: Real, NNODES,
                             VectorT <: AbstractVector{RealT},
                             InverseVandermondeLegendre <: AbstractMatrix{RealT},
+                            VectorT2 <: AbstractVector{RealT},
                             DerivativeMatrix <: AbstractMatrix{RealT}} <:
        AbstractBasisSBP{RealT}
     nodes::VectorT
@@ -24,7 +25,7 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     inverse_weights::VectorT
 
     inverse_vandermonde_legendre::InverseVandermondeLegendre
-    boundary_interpolation_entries::VectorT # Compressed form of "Lhat"
+    boundary_interpolation_entries::VectorT2 # Compressed form of "Lhat"
 
     derivative_matrix::DerivativeMatrix # strong form derivative matrix "D"
     derivative_split::DerivativeMatrix # strong form derivative matrix minus boundary terms
@@ -46,6 +47,7 @@ function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
     derivative_hat = adapt(to, basis.derivative_hat)
     return LobattoLegendreBasis{RealT, nnodes(basis), typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
+                                typeof(boundary_interpolation_entries),
                                 typeof(derivative_matrix)}(nodes,
                                                            weights,
                                                            inverse_weights,
@@ -91,6 +93,7 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
+                                typeof(boundary_interpolation_entries),
                                 typeof(derivative_matrix)}(nodes, weights,
                                                            inverse_weights,
                                                            inverse_vandermonde_legendre,
