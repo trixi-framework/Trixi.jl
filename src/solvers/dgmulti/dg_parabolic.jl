@@ -527,7 +527,7 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms,
                                  mesh, equations_parabolic, dg::DGMulti, cache)
     md = mesh.md
     @threaded for e in eachelement(mesh, dg, cache)
-        for i in each_quad_node(mesh, dg, cache)
+        for i in eachnode(dg)
             du[i, e] = du[i, e] +
                        source_terms(u[i, e], SVector(getindex.(gradients, i, e)),
                                     SVector(getindex.(md.xyzq, i, e)),
