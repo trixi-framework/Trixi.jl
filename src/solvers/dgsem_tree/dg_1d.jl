@@ -123,14 +123,14 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
 
     for i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, element)
 
         flux1 = flux(u_node, 1, equations)
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i], flux1,
                                        equations, dg, ii, element)
         end
     end
@@ -618,7 +618,7 @@ function apply_jacobian!(du, mesh::TreeMesh{1},
 
     @threaded for element in eachelement(dg, cache)
         # negative sign included to account for the negated surface and volume terms,
-        # see e.g. the computation of `derivative_dhat` in the basis setup
+        # see e.g. the computation of `derivative_hat` in the basis setup
         # and the combination of the `boundary_interpolation` factors in
         # `calc_surface_integral!`.
         factor = -inverse_jacobian[element]

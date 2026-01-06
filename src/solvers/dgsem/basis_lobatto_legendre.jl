@@ -25,13 +25,12 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     inverse_weights::VectorT
 
     inverse_vandermonde_legendre::InverseVandermondeLegendre
-    boundary_interpolation::BoundaryMatrix # "lhat"
+    boundary_interpolation::BoundaryMatrix # "Lhat"
 
     derivative_matrix::DerivativeMatrix # strong form derivative matrix "D"
     derivative_split::DerivativeMatrix # strong form derivative matrix minus boundary terms
     derivative_split_transpose::DerivativeMatrix # transpose of `derivative_split`
-    derivative_dhat::DerivativeMatrix # weak form matrix "dhat",
-    # negative adjoint wrt the SBP dot product
+    derivative_hat::DerivativeMatrix # weak form matrix "Dhat", negative adjoint wrt the SBP dot product
 end
 
 function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
@@ -45,7 +44,7 @@ function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
     derivative_matrix = adapt(to, basis.derivative_matrix)
     derivative_split = adapt(to, basis.derivative_split)
     derivative_split_transpose = adapt(to, basis.derivative_split_transpose)
-    derivative_dhat = adapt(to, basis.derivative_dhat)
+    derivative_hat = adapt(to, basis.derivative_hat)
     return LobattoLegendreBasis{RealT, nnodes(basis), typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
                                 typeof(boundary_interpolation),
@@ -57,7 +56,7 @@ function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
                                                            derivative_matrix,
                                                            derivative_split,
                                                            derivative_split_transpose,
-                                                           derivative_dhat)
+                                                           derivative_hat)
 end
 
 function LobattoLegendreBasis(RealT, polydeg::Integer)
@@ -69,13 +68,13 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     _, inverse_vandermonde_legendre = vandermonde_legendre(nodes_, RealT)
 
     boundary_interpolation = zeros(RealT, nnodes_, 2)
-    boundary_interpolation[:, 1] = calc_lhat(-one(RealT), nodes_, weights_)
-    boundary_interpolation[:, 2] = calc_lhat(one(RealT), nodes_, weights_)
+    boundary_interpolation[:, 1] = calc_Lhat(-one(RealT), nodes_, weights_)
+    boundary_interpolation[:, 2] = calc_Lhat(one(RealT), nodes_, weights_)
 
     derivative_matrix = polynomial_derivative_matrix(nodes_)
-    derivative_split = calc_dsplit(nodes_, weights_)
+    derivative_split = calc_Dsplit(nodes_, weights_)
     derivative_split_transpose = Matrix(derivative_split')
-    derivative_dhat = calc_dhat(nodes_, weights_)
+    derivative_hat = calc_Dhat(nodes_, weights_)
 
     # Type conversions to enable possible optimizations of runtime performance
     # and latency
@@ -98,7 +97,7 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
                                                            derivative_matrix,
                                                            derivative_split,
                                                            derivative_split_transpose,
-                                                           derivative_dhat)
+                                                           derivative_hat)
 end
 LobattoLegendreBasis(polydeg::Integer) = LobattoLegendreBasis(Float64, polydeg)
 
@@ -412,45 +411,45 @@ end
 
 # Calculate the Dhat matrix = -M^{-1} D^T M for weak form differentiation.
 # Note that this is the negated version of the matrix that shows up in the standard DG weak form!
-function calc_dhat(nodes, weights)
+function calc_Dhat(nodes, weights)
     n_nodes = length(nodes)
-    dhat = Matrix(polynomial_derivative_matrix(nodes)')
+    Dhat = Matrix(polynomial_derivative_matrix(nodes)')
 
     # Perform M matrix multplicaitons and negate
     for n in 1:n_nodes, j in 1:n_nodes
-        dhat[j, n] *= -weights[n] / weights[j]
+        Dhat[j, n] *= -weights[n] / weights[j]
     end
 
-    return dhat
+    return Dhat
 end
 
 # Calculate the Dsplit matrix for split-form differentiation: dplit = 2D - M⁻¹B
-function calc_dsplit(nodes, weights)
+function calc_Dsplit(nodes, weights)
     # Start with 2 x the normal D matrix
-    dsplit = 2 .* polynomial_derivative_matrix(nodes)
+    Dsplit = 2 .* polynomial_derivative_matrix(nodes)
 
     # Modify to account for
-    dsplit[1, 1] += 1 / weights[1]
-    dsplit[end, end] -= 1 / weights[end]
+    Dsplit[1, 1] += 1 / weights[1]
+    Dsplit[end, end] -= 1 / weights[end]
 
-    return dsplit
+    return Dsplit
 end
 
 # Calculate the polynomial derivative matrix D.
 # This implements algorithm 37 "PolynomialDerivativeMatrix" from Kopriva's book.
 function polynomial_derivative_matrix(nodes)
     n_nodes = length(nodes)
-    d = zeros(eltype(nodes), n_nodes, n_nodes)
+    D = zeros(eltype(nodes), n_nodes, n_nodes)
     wbary = barycentric_weights(nodes)
 
     for i in 1:n_nodes, j in 1:n_nodes
         if j != i
-            d[i, j] = (wbary[j] / wbary[i]) * 1 / (nodes[i] - nodes[j])
-            d[i, i] -= d[i, j]
+            D[i, j] = (wbary[j] / wbary[i]) * 1 / (nodes[i] - nodes[j])
+            D[i, i] -= D[i, j]
         end
     end
 
-    return d
+    return D
 end
 
 # Calculate and interpolation matrix (Vandermonde matrix) between two given sets of nodes
@@ -529,17 +528,17 @@ end
 
 # Calculate Lhat = M^{-1} * B.
 # Note that this is the negated version of the matrix that shows up in the standard DG weak form!
-function calc_lhat(x, nodes, weights)
+function calc_Lhat(x, nodes, weights)
     n_nodes = length(nodes)
     wbary = barycentric_weights(nodes)
 
-    lhat = lagrange_interpolating_polynomials(x, nodes, wbary)
+    Lhat = lagrange_interpolating_polynomials(x, nodes, wbary)
 
     for i in 1:n_nodes
-        lhat[i] /= weights[i]
+        Lhat[i] /= weights[i]
     end
 
-    return lhat
+    return Lhat
 end
 
 """

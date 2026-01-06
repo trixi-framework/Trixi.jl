@@ -147,7 +147,7 @@ function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{1},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
 
     @threaded for element in eachelement(dg, cache)
         # Calculate volume terms in one element
@@ -156,7 +156,7 @@ function calc_volume_integral!(du, flux_viscous,
                                         element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node,
+                multiply_add_to_node_vars!(du, derivative_hat[ii, i], flux_1_node,
                                            equations_parabolic, dg, ii, element)
             end
         end
@@ -382,7 +382,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                         mesh::TreeMesh{1}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DGSEM, cache)
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
 
     @threaded for element in eachelement(dg, cache)
         # Calculate volume terms in one element,
@@ -392,7 +392,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                    i, element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(gradients, derivative_dhat[ii, i],
+                multiply_add_to_node_vars!(gradients, derivative_hat[ii, i],
                                            u_node, equations_parabolic, dg,
                                            ii, element)
             end
