@@ -274,31 +274,35 @@ end
 @doc raw"""
     IndicatorEntropyIncrease(threshold=0)
 
-This indicator checks the increase in the mathematical [`entropy`](@ref) (```S```) due to the application
+This indicator checks the increase in the mathematical [`entropy`](@ref) (``S``) due to the application
 of the weak-form volume integral. In particular, the indicator computes
 ```math
-\Delta S = 
+\dot{S}_\mathrm{WF} = 
 \int_{\Omega_m} 
 \frac{\partial S}{\partial \boldsymbol{u}}
 \cdot 
-(\Delta \boldsymbol u)_\mathrm{WF-VI}
+\dot{\boldsymbol u}_\mathrm{WF}
 \mathrm{d} \Omega_m
 ```
-for the currently processed element/cell ``m``, where ``(\Delta \boldsymbol u)_\mathrm{WF-VI}`` is the change 
-in the right-hand-side due to the weak-form volume integral only.
+for the currently processed element/cell ``m``, where ``\dot{\boldsymbol u}_\mathrm{WF}`` is the change 
+in the DG right-hand-side due to the weak-form volume integral only.
 
-``\Delta S`` is then compared against `threshold`, and if it exceeds this value, the indicator
+``\dot{S}_\mathrm{WF}`` is then compared against `threshold`, and if it exceeds this value, the indicator
 returns `true` for this element/cell, indicating that a more stable volume integral should be
 used there.
-Thus, for the mathematical entropy (default for `entropy`) which should not grow globally(!)
+# TODO: Revisit this: This is only a heuristic, also FD VI can produce entropy!
+Thus, for the mathematical entropy (default for [`entropy`](@ref)) which should not grow globally(!)
 over the course of a simulation, this can be used to identify troubled cells.
+
+# TODO: Document automatic rescaling of `threshold` with appropriate callback (also TODO)
 
 Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
 more advanced/(entropy) stable volume integral for the troubled cell/element ``m``.
 
 !!! note
     This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
-    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref).
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
+    for instance.
 """
 struct IndicatorEntropyIncrease{RealT <: Real} <:
        AbstractIndicator
@@ -329,6 +333,38 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyIncrea
     end
 end
 
+@doc raw"""
+    IndicatorEntropyComparison()
+
+This indicator checks the difference in mathematical [`entropy`](@ref) (``S``) due to the application
+of the weak-form and flux-differencing volume integral. In particular, the indicator computes
+```math
+\Delta S = \dot{S}_\mathrm{WF} - \dot{S}_\mathrm{VI} =
+\int_{\Omega_m} 
+\frac{\partial S}{\partial \boldsymbol{u}}
+\cdot 
+[\dot{\boldsymbol u}_\mathrm{WF} - \dot{\boldsymbol u}_\mathrm{VI}]
+\mathrm{d} \Omega_m
+```
+for the currently processed element/cell ``m``.
+Here, ``\dot{\boldsymbol u}_\mathrm{WF}`` is the change in the DG right-hand-side
+due to the weak-form volume integral only,
+and ``\dot{\boldsymbol u}_\mathrm{VI}`` is the change in the DG right-hand-side
+due to the flux-differencing volume integral only.
+
+For ``\Delta S < 0`` the weak form volume integral is more entropy-diffusive than the
+flux-differencing volume integral, and thus the weak form update is used.
+Otherwise, the flux-differencing volume integral with proven stability properties
+is used to compute the volume integral in the ``m``-th element/cell.
+
+Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
+the most entropy-diffusive volume integral for every cell/element ``m``.
+
+!!! note
+    This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
+    for instance.
+"""
 struct IndicatorEntropyComparison{dUElementThreaded <: AbstractArray} <:
        AbstractIndicator
     du_element_threaded::dUElementThreaded

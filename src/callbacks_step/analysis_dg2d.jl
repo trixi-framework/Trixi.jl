@@ -196,7 +196,7 @@ function integrate_element_ref(func::Func, u, element,
 
     # Use quadrature to numerically integrate element.
     # We do not multiply with the Jacobian to stay in reference space.
-    # This avoids the need to divide the RHS of the DG scheme when computing
+    # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
     # the time derivative of entropy, see `calc_entropy_change_element`.
     for j in eachnode(dg), i in eachnode(dg)
         integral += weights[i] * weights[j] *
