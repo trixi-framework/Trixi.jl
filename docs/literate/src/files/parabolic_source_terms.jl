@@ -42,7 +42,12 @@ end
 # for systems such as `CompressibleNavierStokesDiffusion1D`, different gradient 
 # variables can be selected through the `gradient_variables` keyword option. The 
 # choice of `gradient_variables` will also determine the variables whose gradients 
-# are passed into `source_terms_parabolic`. 
+# are passed into `source_terms_parabolic`.
+#
+# The `gradients` passed to the `source_terms_parabolic` are a tuple of vectors;
+# `gradients[1]` are the gradients in the first coordinate direction,
+# `gradients[1][1]` is the gradient of the first (and only in this case) variable
+# in the first coordinate direction.
 
 source_terms_parabolic = function (u, gradients, x, t, equations::LaplaceDiffusion1D)
     dudx = gradients[1][1]
