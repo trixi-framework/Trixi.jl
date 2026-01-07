@@ -141,8 +141,8 @@ function calc_volume_integral!(du, u, mesh,
         entropy_delta_WF = calc_entropy_change_element(du, u, element,
                                                        mesh, equations, dg, cache)
         # Store weak form result
-        du_element = du_element_threaded[Threads.threadid()]
-        @views du_element .= du[.., element]
+        du_element_WF = du_element_threaded[Threads.threadid()]
+        @views du_element_WF .= du[.., element]
 
         # Reset weak form volume integral 
         du[.., element] .= zero(eltype(du))
@@ -158,8 +158,12 @@ function calc_volume_integral!(du, u, mesh,
                                                        mesh, equations, dg, cache)
 
         entropy_delta = entropy_delta_WF - entropy_delta_FD
+        #=
+        entropy_delta = calc_entropy_delta(du_element_WF, du, u, element,
+                                           mesh, equations, dg, cache)
+        =#
         if entropy_delta < 0 # Use weak form if it is more stable
-            @views du[.., element] .= du_element
+            @views du[.., element] .= du_element_WF
         end
     end
 
