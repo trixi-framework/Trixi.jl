@@ -196,7 +196,8 @@ end
 
 @inline function Base.real(::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {NVARS,
                                                                                          NCOMP,
-                                                                                         RealT}
+                                                                                         RealT
+                                                                                         }
     return RealT
 end
 
