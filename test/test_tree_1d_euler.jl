@@ -330,6 +330,23 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_shu_osher.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        abstol=1e-11, reltol=1e-11,
+                        l2=[0.5003722074045994, 1.7969921454130888, 6.505994574859934],
+                        linf=[2.9946689312100907, 10.11428777614952, 36.371663950285836],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `:compact` `show`
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      volume_integral)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      volume_integral)
+end
+
 @trixi_testset "elixir_euler_blast_wave_entropy_bounded.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_entropy_bounded.jl"),
