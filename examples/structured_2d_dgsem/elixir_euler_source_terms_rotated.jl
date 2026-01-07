@@ -17,7 +17,7 @@ end
 function InitialConditionSourceTermsRotated(alpha)
     sin_alpha, cos_alpha = sincos(alpha)
 
-    InitialConditionSourceTermsRotated(sin_alpha, cos_alpha)
+    return InitialConditionSourceTermsRotated(sin_alpha, cos_alpha)
 end
 
 function (initial_condition::InitialConditionSourceTermsRotated)(x, t,
