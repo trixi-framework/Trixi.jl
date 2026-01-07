@@ -381,12 +381,13 @@ local normal direction compared to the averaged one used in [`flux_nonconservati
 The two other flux functions with the same name return either the local
 or symmetric portion of the non-conservative flux based on the type of the
 nonconservative_type argument, employing multiple dispatch. They are used to
-compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 
 ## References
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
-  [DOI: 10.48550/arXiv.2211.14009](https://doi.org/10.48550/arXiv.2211.14009)
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
+  [arXiv: 2211.14009](https://doi.org/10.48550/arXiv.2211.14009).
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                                          normal_direction::AbstractVector,
@@ -436,9 +437,10 @@ Local part of the Powell and GLM non-conservative terms. Needed for the calculat
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. 
-  [DOI: 10.48550/arXiv.2211.14009](https://doi.org/10.48550/arXiv.2211.14009)
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
+  [arXiv: 2211.14009](https://doi.org/10.48550/arXiv.2211.14009).
   
-This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+This function is used to compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll,
                                                                          normal_direction_ll::AbstractVector,
@@ -494,9 +496,10 @@ Symmetric part of the Powell and GLM non-conservative terms. Needed for the calc
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
-  [DOI: 10.48550/arXiv.2211.14009](https://doi.org/10.48550/arXiv.2211.14009)
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
+  [arXiv: 2211.14009](https://doi.org/10.48550/arXiv.2211.14009).
   
-This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+This function is used to compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                                          normal_direction_avg::AbstractVector,
