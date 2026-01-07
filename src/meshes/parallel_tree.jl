@@ -84,11 +84,11 @@ end
 # Constructors accepting a single number as center (as opposed to an array) for 1D
 function ParallelTree{1, RealT}(cap::Int, center::RealT, len::RealT,
                                 periodicity = true) where {RealT <: Real}
-    ParallelTree{1, RealT}(cap, [center], len, periodicity)
+    return ParallelTree{1, RealT}(cap, [center], len, periodicity)
 end
 function ParallelTree{1}(cap::Int, center::RealT, len::RealT,
                          periodicity = true) where {RealT <: Real}
-    ParallelTree{1, RealT}(cap, [center], len, periodicity)
+    return ParallelTree{1, RealT}(cap, [center], len, periodicity)
 end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
@@ -154,6 +154,7 @@ function Base.show(io::IO, ::MIME"text/plain", t::ParallelTree)
     println(io, "t.center_level_0 = $(t.center_level_0)")
     println(io, "t.length_level_0 = $(t.length_level_0)")
     println(io, '*'^20)
+    return nothing
 end
 
 # Check if cell is own cell, i.e., belongs to this MPI rank
@@ -162,7 +163,7 @@ is_own_cell(t::ParallelTree, cell_id) = t.mpi_ranks[cell_id] == mpi_rank()
 # Return an array with the ids of all leaf cells for a given rank
 leaf_cells_by_rank(t::ParallelTree, rank) =
     filter_leaf_cells(t) do cell_id
-        t.mpi_ranks[cell_id] == rank
+        return t.mpi_ranks[cell_id] == rank
     end
 
 # Return an array with the ids of all local leaf cells
@@ -219,7 +220,7 @@ function raw_copy!(target::ParallelTree, source::ParallelTree, first::Int, last:
                ndims(target))
     copy_data!(target.original_cell_ids, source.original_cell_ids, first, last,
                destination)
-    copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
+    return copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
 end
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
@@ -233,6 +234,6 @@ function reset_data_structures!(t::ParallelTree{NDIMS, RealT}) where {NDIMS,
     t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
     t.mpi_ranks = Vector{Int}(undef, t.capacity + 1)
 
-    invalidate!(t, 1, capacity(t) + 1)
+    return invalidate!(t, 1, capacity(t) + 1)
 end
 end # @muladd

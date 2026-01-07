@@ -22,17 +22,17 @@ end
 
 function HyperbolicDiffusionEquations3D(; nu = 1.0, Lr = inv(2pi))
     Tr = Lr^2 / nu
-    HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu)...)
+    return HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu)...)
 end
 
 function varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations3D)
-    ("phi", "q1", "q2", "q3")
+    return ("phi", "q1", "q2", "q3")
 end
 function varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations3D)
-    ("phi", "q1", "q2", "q3")
+    return ("phi", "q1", "q2", "q3")
 end
 function default_analysis_errors(::HyperbolicDiffusionEquations3D)
-    (:l2_error, :linf_error, :residual)
+    return (:l2_error, :linf_error, :residual)
 end
 
 """
@@ -42,7 +42,7 @@ Used to determine the termination criterion of a [`SteadyStateCallback`](@ref).
 For hyperbolic diffusion, this checks convergence of the potential ``\\phi``.
 """
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations3D)
-    abs(du[1])
+    return abs(du[1])
 end
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
@@ -255,7 +255,7 @@ end
 
 # Calculate entropy for a conservative state `u` (here: same as total energy)
 @inline function entropy(u, equations::HyperbolicDiffusionEquations3D)
-    energy_total(u, equations)
+    return energy_total(u, equations)
 end
 
 # Calculate total energy for a conservative state `u`

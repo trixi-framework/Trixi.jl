@@ -9,7 +9,7 @@
 function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, P4estMeshView, T8codeMesh},
                         output_directory,
                         timestep = 0)
-    save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
+    return save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
 
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
@@ -45,6 +45,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
         file["neighbor_ids"] = @view mesh.tree.neighbor_ids[:, 1:n_cells]
         file["levels"] = @view mesh.tree.levels[1:n_cells]
         file["coordinates"] = @view mesh.tree.coordinates[:, 1:n_cells]
+        return nothing
     end
 
     return filename
@@ -89,6 +90,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
         file["neighbor_ids"] = @view mesh.tree.neighbor_ids[:, 1:n_cells]
         file["levels"] = @view mesh.tree.levels[1:n_cells]
         file["coordinates"] = @view mesh.tree.coordinates[:, 1:n_cells]
+        return nothing
     end
 
     return filename
@@ -118,6 +120,7 @@ function save_mesh_file(mesh::StructuredMesh, output_directory; system = "",
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["size"] = collect(size(mesh))
         attributes(file)["mapping"] = mesh.mapping_as_string
+        return nothing
     end
 
     return filename
@@ -141,6 +144,7 @@ function save_mesh_file(mesh::UnstructuredMesh2D, output_directory)
         attributes(file)["size"] = length(mesh)
         attributes(file)["mesh_filename"] = mesh.filename
         attributes(file)["periodicity"] = collect(mesh.periodicity)
+        return nothing
     end
 
     return filename
@@ -181,6 +185,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
         file["boundary_names"] = mesh.boundary_names .|> String
+        return nothing
     end
 
     return filename
@@ -221,6 +226,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
         file["boundary_names"] = mesh.boundary_names .|> String
+        return nothing
     end
 
     return filename
@@ -306,6 +312,7 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         file["orientations"] = orientations
         file["levels"] = levels
         file["num_elements_per_tree"] = num_elements_per_tree
+        return nothing
     end
 
     return filename
@@ -321,10 +328,10 @@ end
 @inline get_EToV(mesh_type::StartUpDG.CurvedMesh) = get_EToV(mesh_type.original_mesh_type)
 @inline get_EToV(mesh_type::StartUpDG.HOHQMeshType) = mesh_type.hmd.EToV
 
-# To save the data needed to reconstruct a DGMultiMesh object, we must include additional 
-# information contained within `dg.basis`. Currently, only the element shape and polynomial 
-# degree are stored, and it is assumed that the solution is stored at the default node 
-# positions for the `Polynomial` or `TensorProductWedge` approximation of that element 
+# To save the data needed to reconstruct a DGMultiMesh object, we must include additional
+# information contained within `dg.basis`. Currently, only the element shape and polynomial
+# degree are stored, and it is assumed that the solution is stored at the default node
+# positions for the `Polynomial` or `TensorProductWedge` approximation of that element
 # shape and polynomial degree.
 function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0)
 
@@ -378,6 +385,7 @@ function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0
 
         # TODO: Save boundaries.
         # file["boundary_names"] = mesh.boundary_faces .|> String
+        return nothing
     end
 
     return filename
@@ -546,9 +554,9 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
             end
         end
 
-        # Currently, we assume that `basis.approximation_type` is a `TensorProductWedge` 
+        # Currently, we assume that `basis.approximation_type` is a `TensorProductWedge`
         # with 2-tuple polynomial degree or a `Polynomial` with integer polynomial degree.
-        # TODO: Add support for other approximation types. This would requires further 
+        # TODO: Add support for other approximation types. This would requires further
         # information to be saved to the HDF5 file.
         if etype isa StartUpDG.Wedge && polydeg isa NTuple{2}
             factor_a = RefElemData(StartUpDG.Tri(), Polynomial(), polydeg[1])
@@ -608,6 +616,7 @@ function load_mesh!(mesh::SerialTreeMesh, mesh_file::AbstractString)
         mesh.tree.neighbor_ids[:, 1:n_cells] = read(file["neighbor_ids"])
         mesh.tree.levels[1:n_cells] = read(file["levels"])
         mesh.tree.coordinates[:, 1:n_cells] = read(file["coordinates"])
+        return nothing
     end
 
     return mesh
