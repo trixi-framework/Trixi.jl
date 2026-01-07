@@ -385,14 +385,14 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         l2=[
-                            3.789338945263433e-5,
-                            4.077133537852922e-5,
-                            0.0002453501597538154
+                            3.7943372542675425e-5,
+                            4.078766566292102e-5,
+                            0.00024524952267207235
                         ],
                         linf=[
-                            0.00010982982290830279,
-                            9.148409535386648e-5,
-                            0.0005417194022747651
+                            0.00010969455084941515,
+                            9.183113730193426e-5,
+                            0.0005450421812014383
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -427,14 +427,14 @@ end
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         gradient_variables=GradientVariablesEntropy(),
                         l2=[
-                            3.848960319109203e-5,
-                            4.074474356332946e-5,
-                            0.0002458331511569064
+                            3.855011159752911e-5,
+                            4.077230736638483e-5,
+                            0.0002457818746735199
                         ],
                         linf=[
-                            0.00011068091516719392,
-                            9.152674893009305e-5,
-                            0.0005423300104112627
+                            0.00011052974882530542,
+                            9.179337892284423e-5,
+                            0.00054534178933352
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
