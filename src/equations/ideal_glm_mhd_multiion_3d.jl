@@ -937,7 +937,7 @@ end
         set_component!(f, k, 0, f2, f3, f4, f5, equations)
     end
     # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
-    # multiplied by 0.5 whenever it's used in the Trixi code)
+    # multiplied by 0.5 in routines like `calc_interface_flux!`, `flux_differencing_kernel!` etc.)
     f[end] = 2 * v_plus_dot_n_ll * psi_avg
 
     return SVector(f)
