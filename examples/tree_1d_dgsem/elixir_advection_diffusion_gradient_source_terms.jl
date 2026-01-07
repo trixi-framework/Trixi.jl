@@ -33,7 +33,6 @@ mesh = TreeMesh(-Float64(pi), Float64(pi);
                 n_cells_max = 30_000,
                 periodicity = true)
 
-# define periodic boundary conditions everywhere
 boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
@@ -50,26 +49,20 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
-# At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
-# and resets the timers
 summary_callback = SummaryCallback()
 
-# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval = 100)
 
-# The AliveCallback prints short status information in regular intervals
 alive_callback = AliveCallback(analysis_interval = 100)
 
-cfl_advective = 0.5   # Not restrictive for this example
-cfl_diffusive = 0.05 # Restricts the timestep
+cfl_advective = 0.5
+cfl_diffusive = 0.05
 stepsize_callback = StepsizeCallback(cfl = cfl_advective,
                                      cfl_diffusive = cfl_diffusive)
 
-# Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
 
