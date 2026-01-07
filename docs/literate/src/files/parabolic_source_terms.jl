@@ -55,6 +55,8 @@ source_terms_parabolic = function (u, gradients, x, t, equations::LaplaceDiffusi
     return SVector(beta * dudx^2)
 end
 
+# The parabolic source terms can then be supplied to `SemidiscretizationHyperbolicParabolic`
+# by setting the optional keyword argument `source_terms_parabolic`.
 # The rest of the code is identical to standard hyperbolic-parabolic cases. We create a 
 # system of ODEs through `semidiscretize`, define callbacks, and then passing the system 
 # to OrdinaryDiffEq.jl. 
