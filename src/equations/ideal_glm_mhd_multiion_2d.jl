@@ -118,7 +118,7 @@ struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
                                                                  electron_temperature
                                                                  ::ElectronTemperature,
                                                                  c_h::RealT) where
-        {NVARS, NCOMP, RealT <: Real, ElectronPressure, ElectronTemperature}
+             {NVARS, NCOMP, RealT <: Real, ElectronPressure, ElectronTemperature}
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
