@@ -149,7 +149,7 @@ end
 
 function rhs_source_custom!(du_ode, u_ode, semi, t)
     GLOBAL_TIME[] = t
-    Trixi.rhs!(du_ode, u_ode, semi, t)
+    return Trixi.rhs!(du_ode, u_ode, semi, t)
 end
 
 # Next, we create an `ODEProblem` manually copying over the data from
@@ -222,7 +222,7 @@ end
 
 function rhs_semi_custom!(du_ode, u_ode, semi_custom, t)
     semi_custom.t[] = t
-    Trixi.rhs!(du_ode, u_ode, semi_custom.semi, t)
+    return Trixi.rhs!(du_ode, u_ode, semi_custom.semi, t)
 end
 
 # Finally, we set up an `ODEProblem` and solve it numerically.
@@ -242,7 +242,7 @@ sol_semi_custom = solve(ode_semi_custom, RDPK3SpFSAL49();
 
 Base.ndims(semi::CustomSemidiscretization) = ndims(semi.semi)
 function Trixi.mesh_equations_solver_cache(semi::CustomSemidiscretization)
-    Trixi.mesh_equations_solver_cache(semi.semi)
+    return Trixi.mesh_equations_solver_cache(semi.semi)
 end
 
 # Now, we can plot the numerical solution as usual.
@@ -279,9 +279,9 @@ end
 function Trixi.calc_error_norms(func, u, t, analyzer,
                                 semi::CustomSemidiscretization,
                                 cache_analysis)
-    Trixi.calc_error_norms(func, u, t, analyzer,
-                           semi.semi,
-                           cache_analysis)
+    return Trixi.calc_error_norms(func, u, t, analyzer,
+                                  semi.semi,
+                                  cache_analysis)
 end
 
 # Now, we can work with the callbacks used before as usual.

@@ -669,7 +669,7 @@ include("passive_tracers.jl")
                                                                                                NVARS,
                                                                                                NCOMP
                                                                                                }
-    NCOMP
+    return NCOMP
 end
 """
     eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
@@ -679,7 +679,7 @@ for the components in `AbstractCompressibleEulerMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline function eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
-    Base.OneTo(ncomponents(equations))
+    return Base.OneTo(ncomponents(equations))
 end
 
 # Ideal MHD
@@ -709,7 +709,7 @@ include("ideal_glm_mhd_multiion_3d.jl")
                                                                                          NVARS,
                                                                                          NCOMP
                                                                                          }
-    NCOMP
+    return NCOMP
 end
 """
     eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
@@ -719,7 +719,7 @@ for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline function eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
-    Base.OneTo(ncomponents(equations))
+    return Base.OneTo(ncomponents(equations))
 end
 
 # Retrieve number of components from equation instance for the multi-ion case
@@ -729,7 +729,7 @@ end
                                                                                    NVARS,
                                                                                    NCOMP
                                                                                    }
-    NCOMP
+    return NCOMP
 end
 
 """
@@ -740,7 +740,7 @@ for the components in `AbstractIdealGlmMhdMultiIonEquations`.
 In particular, not the components themselves are returned.
 """
 @inline function eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)
-    Base.OneTo(ncomponents(equations))
+    return Base.OneTo(ncomponents(equations))
 end
 
 # Diffusion equation: first order hyperbolic system
