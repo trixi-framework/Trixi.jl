@@ -342,7 +342,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyCompar
 end
 
 @doc raw"""
-    IndicatorEntropyIncrease(threshold=0)
+    IndicatorEntropyDecay(; target_decay=0)
 
 This indicator checks the increase in the mathematical [`entropy`](@ref) (``S``) due to the application
 of the weak-form volume integral. In particular, the indicator computes
@@ -357,11 +357,13 @@ of the weak-form volume integral. In particular, the indicator computes
 for the currently processed element/cell ``m``, where ``\dot{\boldsymbol u}_\mathrm{WF}`` is the change 
 in the DG right-hand-side due to the weak-form volume integral only.
 
-``\dot{S}_\mathrm{WF}`` is then compared against `threshold`, and if it exceeds this value, the indicator
+``\dot{S}_\mathrm{WF}`` is then compared against `target_decay`, and if it exceeds this value, the indicator
 returns `true` for this element/cell, indicating that a more stable volume integral should be
 used there.
 
-# TODO: Document automatic rescaling of `threshold` with appropriate callback (also TODO)
+This indicator can be supplied to the stage/step callbacks
+[`EntropyIndicatorUpdateStageCB`](@ref)/[`EntropyIndicatorUpdateStepCB`](@ref) to adaptively adjust `target_decay`
+based on the observed global entropy production during a Runge-Kutta stage/step.
 
 Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
 more advanced/(entropy) stable volume integral for the troubled cell/element ``m``.
@@ -371,36 +373,35 @@ more advanced/(entropy) stable volume integral for the troubled cell/element ``m
     possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
     for instance.
 """
-mutable struct IndicatorEntropyIncrease{RealT <: Real} <:
+mutable struct IndicatorEntropyDecay{RealT <: Real} <:
                AbstractIndicator
-    threshold::RealT
+    target_decay::RealT
     n_cells_fluxdiff_threaded::Vector{Int}
 end
 
-function IndicatorEntropyIncrease(; threshold = 0)
+function IndicatorEntropyDecay(; target_decay = 0)
     n_cells_fluxdiff_threaded = [0 for _ in 1:Threads.maxthreadid()]
-    return IndicatorEntropyIncrease{typeof(threshold)}(threshold,
-                                                       n_cells_fluxdiff_threaded)
+    return IndicatorEntropyDecay{typeof(target_decay)}(target_decay,
+                                                                  n_cells_fluxdiff_threaded)
 end
 
-function Base.show(io::IO, indicator::IndicatorEntropyIncrease)
+function Base.show(io::IO, indicator::IndicatorEntropyDecay)
     @nospecialize indicator # reduce precompilation time
 
-    print(io, "IndicatorEntropyIncrease(")
-    print(io, ", threshold=", indicator.threshold, ")")
+    print(io, "IndicatorEntropyDecay(")
+    print(io, ", target_decay=", indicator.target_decay, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyIncrease)
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyDecay)
     @nospecialize indicator # reduce precompilation time
 
     if get(io, :compact, false)
         show(io, indicator)
     else
         setup = [
-            "threshold" => indicator.threshold
+            "target_decay" => indicator.target_decay
         ]
-        summary_box(io, "IndicatorEntropyIncrease", setup)
+        summary_box(io, "IndicatorEntropyDecay", setup)
     end
 end
-
 end # @muladd

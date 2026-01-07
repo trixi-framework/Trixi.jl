@@ -47,9 +47,9 @@ basis = LobattoLegendreBasis(polydeg)
 volume_integral_weakform = VolumeIntegralWeakForm()
 volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
-# `threshold` governs the tolerated entropy increase due to the weak-form
+# `target_decay` governs the tolerated entropy increase due to the weak-form
 # volume integral before switching to the stabilized version
-indicator = IndicatorEntropyIncrease(threshold = 0)
+indicator = IndicatorEntropyDecay(target_decay = 0)
 # Adaptive volume integral using the entropy increase indicator to perform the 
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,

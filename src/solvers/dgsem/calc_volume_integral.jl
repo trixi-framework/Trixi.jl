@@ -175,9 +175,9 @@ function calc_volume_integral!(du, u, mesh,
                                cache) where {
                                              VolumeIntegralFD <:
                                              VolumeIntegralFluxDifferencing,
-                                             Indicator <: IndicatorEntropyIncrease}
+                                             Indicator <: IndicatorEntropyDecay}
     @unpack volume_integral_default, volume_integral_stabilized = volume_integral
-    @unpack threshold, n_cells_fluxdiff_threaded = volume_integral.indicator
+    @unpack target_decay, n_cells_fluxdiff_threaded = volume_integral.indicator
     n_cells_fluxdiff_threaded .= 0 # Reset counter
 
     @threaded for element in eachelement(dg, cache)
@@ -190,7 +190,7 @@ function calc_volume_integral!(du, u, mesh,
         entropy_delta_WF = calc_entropy_change_element(du, u, element,
                                                        mesh, equations, dg, cache)
 
-        if entropy_delta_WF > threshold
+        if entropy_delta_WF > target_decay
             # Reset bad volume integral 
             du[.., element] .= zero(eltype(du))
 
