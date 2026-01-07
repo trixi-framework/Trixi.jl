@@ -13,7 +13,6 @@ equations_parabolic = LaplaceDiffusion3D(nu, equations)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh((-Float64(pi), -Float64(pi), -Float64(pi)),
                 (Float64(pi), Float64(pi), Float64(pi));
                 initial_refinement_level = 3,
@@ -47,7 +46,6 @@ end
 boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
-# A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
                                              solver;

@@ -16,7 +16,6 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-Float64(pi), -Float64(pi))
 coordinates_max = (Float64(pi), Float64(pi))
 
-# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 30_000,
@@ -47,7 +46,6 @@ end
 boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
-# A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
                                              solver;
