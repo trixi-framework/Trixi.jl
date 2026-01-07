@@ -69,6 +69,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 ###############################################################################
 # run the simulation
 
-# OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, RDPK3SpFSAL35(); adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)
