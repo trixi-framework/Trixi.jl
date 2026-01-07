@@ -284,7 +284,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     # this corresponds to a CFL of h^2 * diffusivity
     diffusivity = max_diffusivity(equations_parabolic)
 
-    dt_min = Inf
+    dt_min = typemax(typeof(t))
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
         max_speeds = max.(max_speeds, diffusivity / h_e)
@@ -304,7 +304,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     @unpack md = mesh
     rd = dg.basis
 
-    dt_min = Inf
+    dt_min = typemax(typeof(t))
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
         max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
