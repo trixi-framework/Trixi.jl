@@ -194,7 +194,8 @@ function IdealGlmMhdMultiIonEquations2D(gammas, charge_to_mass, gas_constants,
                                           initial_c_h = c_h)
 end
 
-@inline function Base.real(::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {NVARS,
+@inline function Base.real(::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {
+                                                                                         NVARS,
                                                                                          NCOMP,
                                                                                          RealT
                                                                                          }
