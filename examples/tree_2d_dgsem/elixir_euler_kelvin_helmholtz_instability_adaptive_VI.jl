@@ -71,10 +71,11 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 500
+analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_errors = Symbol[],
-                                     extra_analysis_integrals = (entropy,))
+                                     extra_analysis_integrals = (entropy,),
+                                     save_analysis = true)
 
 alive_callback = AliveCallback(alive_interval = 200)
 
