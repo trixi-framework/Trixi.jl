@@ -36,7 +36,6 @@ end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
-@inline ncells(mesh::P4estMeshView) = length(mesh.cell_ids)
 
 function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
@@ -81,6 +80,7 @@ end
 function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Identify interfaces that need to be retained
     mask = BitArray(undef, ninterfaces(interfaces_parent))
+    # Loop over all interfaces (index 2).
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
         mask[interface] = (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
                           (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
@@ -111,7 +111,8 @@ end
 
 # Remove all boundaries that are not part of this p4est mesh view and add new boundaries
 # that were interfaces of the parent mesh.
-function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_parent,
+function extract_boundaries(mesh::P4estMeshView,
+                            boundaries_parent, interfaces_parent,
                             interfaces)
     # Remove all boundaries that are not part of this p4est mesh view.
     boundaries = deepcopy(boundaries_parent)
@@ -125,6 +126,7 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
     boundaries.node_indices = boundaries_parent.node_indices[mask]
 
     # Add new boundaries that were interfaces of the parent mesh.
+    # Loop over all interfaces (index 2).
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
         if ((interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) ⊻
             (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids))
@@ -137,9 +139,12 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
                 view_idx = 2
             end
 
+            # Update the neighbor ids.
             push!(boundaries.neighbor_ids,
                   global_element_id_to_local(neighbor_id, mesh))
-            if interfaces_parent.node_indices[view_idx, interface] == (:end, :i_forward)
+            # Update the boundary names.
+            if interfaces_parent.node_indices[view_idx, interface] ==
+               (:end, :i_forward)
                 push!(boundaries.name, :x_pos)
             elseif interfaces_parent.node_indices[view_idx, interface] ==
                    (:begin, :i_forward)
@@ -151,6 +156,7 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
                 push!(boundaries.name, :y_neg)
             end
 
+            # Update the node indices.
             push!(boundaries.node_indices,
                   interfaces_parent.node_indices[view_idx, interface])
         end
@@ -165,8 +171,8 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
 end
 
 # Extract the ids of the neighboring elements using the global indexing of the parent mesh.
-function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
-                                     interfaces_parent,
+function extract_neighbor_ids_global(mesh::P4estMeshView,
+                                     boundaries_parent, interfaces_parent,
                                      boundaries)
     # Determine the global indices of the boundaring elements.
     neighbor_ids_global = zero.(boundaries.neighbor_ids)
@@ -247,8 +253,6 @@ end
 
 # Convert a global cell id to a local cell id in the mesh view.
 function global_element_id_to_local(id::Int, mesh::P4estMeshView)
-    # Return -1 if the id is not part of the mesh view.
-    local_id = -1
     # Find the index of the cell id in the mesh view
     local_id = findfirst(==(id), mesh.cell_ids)
 
