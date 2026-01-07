@@ -399,6 +399,29 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "DGMulti: elixir_navierstokes_convergence_periodic.jl (Diff. CFL)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        callbacks=CallbackSet(summary_callback, alive_callback,
+                                              analysis_callback,
+                                              StepsizeCallback(cfl = 0.5,
+                                                               cfl_diffusive = 0.1)),
+                        adaptive=false,
+                        l2=[
+                            3.804624387087144e-5,
+                            4.0776239664045585e-5,
+                            0.0002452796554181002
+                        ],
+                        linf=[
+                            0.00010899905841177393,
+                            9.108558032178138e-5,
+                            0.0005277952647766426
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "DGMulti: elixir_navierstokes_convergence_periodic.jl (GradientVariablesEntropy)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_navierstokes_convergence_periodic.jl"),
