@@ -5,6 +5,10 @@
 @muladd begin
 #! format: noindent
 
+# Abstract supertype of indicators used for AMR, shock capturing, and
+# adaptive volume-integral selection
+abstract type AbstractIndicator end
+
 function create_cache(typ::Type{IndicatorType},
                       semi) where {IndicatorType <: AbstractIndicator}
     return create_cache(typ, mesh_equations_solver_cache(semi)...)
@@ -272,68 +276,6 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 @doc raw"""
-    IndicatorEntropyIncrease(threshold=0)
-
-This indicator checks the increase in the mathematical [`entropy`](@ref) (``S``) due to the application
-of the weak-form volume integral. In particular, the indicator computes
-```math
-\dot{S}_\mathrm{WF} = 
-\int_{\Omega_m} 
-\frac{\partial S}{\partial \boldsymbol{u}}
-\cdot 
-\dot{\boldsymbol u}_\mathrm{WF}
-\mathrm{d} \Omega_m
-```
-for the currently processed element/cell ``m``, where ``\dot{\boldsymbol u}_\mathrm{WF}`` is the change 
-in the DG right-hand-side due to the weak-form volume integral only.
-
-``\dot{S}_\mathrm{WF}`` is then compared against `threshold`, and if it exceeds this value, the indicator
-returns `true` for this element/cell, indicating that a more stable volume integral should be
-used there.
-# TODO: Revisit this: This is only a heuristic, also FD VI can produce entropy!
-Thus, for the mathematical entropy (default for [`entropy`](@ref)) which should not grow globally(!)
-over the course of a simulation, this can be used to identify troubled cells.
-
-# TODO: Document automatic rescaling of `threshold` with appropriate callback (also TODO)
-
-Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
-more advanced/(entropy) stable volume integral for the troubled cell/element ``m``.
-
-!!! note
-    This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
-    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
-    for instance.
-"""
-struct IndicatorEntropyIncrease{RealT <: Real} <:
-       AbstractIndicator
-    threshold::RealT
-end
-
-function IndicatorEntropyIncrease(; threshold = 0)
-    IndicatorEntropyIncrease{typeof(threshold)}(threshold)
-end
-
-function Base.show(io::IO, indicator::IndicatorEntropyIncrease)
-    @nospecialize indicator # reduce precompilation time
-
-    print(io, "IndicatorEntropyIncrease(")
-    print(io, ", threshold=", indicator.threshold, ")")
-end
-
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyIncrease)
-    @nospecialize indicator # reduce precompilation time
-
-    if get(io, :compact, false)
-        show(io, indicator)
-    else
-        setup = [
-            "threshold" => indicator.threshold
-        ]
-        summary_box(io, "IndicatorEntropyIncrease", setup)
-    end
-end
-
-@doc raw"""
     IndicatorEntropyComparison()
 
 This indicator checks the difference in mathematical [`entropy`](@ref) (``S``) due to the application
@@ -398,4 +340,67 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyCompar
         summary_box(io, "IndicatorEntropyComparison", setup)
     end
 end
+
+@doc raw"""
+    IndicatorEntropyIncrease(threshold=0)
+
+This indicator checks the increase in the mathematical [`entropy`](@ref) (``S``) due to the application
+of the weak-form volume integral. In particular, the indicator computes
+```math
+\dot{S}_\mathrm{WF} = 
+\int_{\Omega_m} 
+\frac{\partial S}{\partial \boldsymbol{u}}
+\cdot 
+\dot{\boldsymbol u}_\mathrm{WF}
+\mathrm{d} \Omega_m
+```
+for the currently processed element/cell ``m``, where ``\dot{\boldsymbol u}_\mathrm{WF}`` is the change 
+in the DG right-hand-side due to the weak-form volume integral only.
+
+``\dot{S}_\mathrm{WF}`` is then compared against `threshold`, and if it exceeds this value, the indicator
+returns `true` for this element/cell, indicating that a more stable volume integral should be
+used there.
+
+# TODO: Document automatic rescaling of `threshold` with appropriate callback (also TODO)
+
+Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
+more advanced/(entropy) stable volume integral for the troubled cell/element ``m``.
+
+!!! note
+    This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
+    for instance.
+"""
+mutable struct IndicatorEntropyIncrease{RealT <: Real} <:
+               AbstractIndicator
+    threshold::RealT
+    n_cells_fluxdiff_threaded::Vector{Int}
+end
+
+function IndicatorEntropyIncrease(; threshold = 0)
+    n_cells_fluxdiff_threaded = [0 for _ in 1:Threads.maxthreadid()]
+    return IndicatorEntropyIncrease{typeof(threshold)}(threshold,
+                                                       n_cells_fluxdiff_threaded)
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyIncrease)
+    @nospecialize indicator # reduce precompilation time
+
+    print(io, "IndicatorEntropyIncrease(")
+    print(io, ", threshold=", indicator.threshold, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyIncrease)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "threshold" => indicator.threshold
+        ]
+        summary_box(io, "IndicatorEntropyIncrease", setup)
+    end
+end
+
 end # @muladd

@@ -175,9 +175,10 @@ function calc_volume_integral!(du, u, mesh,
                                cache) where {
                                              VolumeIntegralFD <:
                                              VolumeIntegralFluxDifferencing,
-                                             Indicator <: AbstractIndicator}
+                                             Indicator <: IndicatorEntropyIncrease}
     @unpack volume_integral_default, volume_integral_stabilized = volume_integral
-    @unpack threshold = volume_integral.indicator
+    @unpack threshold, n_cells_fluxdiff_threaded = volume_integral.indicator
+    n_cells_fluxdiff_threaded .= 0 # Reset counter
 
     @threaded for element in eachelement(dg, cache)
         # Try plain weak form first
@@ -198,6 +199,8 @@ function calc_volume_integral!(du, u, mesh,
                                       have_nonconservative_terms, equations,
                                       volume_integral_stabilized.volume_flux,
                                       dg, cache)
+
+            n_cells_fluxdiff_threaded[Threads.threadid()] += 1
         end
     end
 
