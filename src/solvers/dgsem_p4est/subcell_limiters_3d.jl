@@ -17,38 +17,44 @@
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
-        var_min[:, :, :, element] .= typemax(eltype(var_min))
-        var_max[:, :, :, element] .= typemin(eltype(var_max))
-        # Calculate bounds at Gauss-Lobatto nodes using u
+        # Calculate bounds at Gauss-Lobatto nodes
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, k, element]
+            var_min[i, j, k, element] = var
+            var_max[i, j, k, element] = var
+        end
+
+        # Apply values in x direction
+        for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+            var = u[variable, i - 1, j, k, element]
             var_min[i, j, k, element] = min(var_min[i, j, k, element], var)
             var_max[i, j, k, element] = max(var_max[i, j, k, element], var)
 
-            if i > 1
-                var_min[i - 1, j, k, element] = min(var_min[i - 1, j, k, element], var)
-                var_max[i - 1, j, k, element] = max(var_max[i - 1, j, k, element], var)
-            end
-            if i < nnodes(dg)
-                var_min[i + 1, j, k, element] = min(var_min[i + 1, j, k, element], var)
-                var_max[i + 1, j, k, element] = max(var_max[i + 1, j, k, element], var)
-            end
-            if j > 1
-                var_min[i, j - 1, k, element] = min(var_min[i, j - 1, k, element], var)
-                var_max[i, j - 1, k, element] = max(var_max[i, j - 1, k, element], var)
-            end
-            if j < nnodes(dg)
-                var_min[i, j + 1, k, element] = min(var_min[i, j + 1, k, element], var)
-                var_max[i, j + 1, k, element] = max(var_max[i, j + 1, k, element], var)
-            end
-            if k > 1
-                var_min[i, j, k - 1, element] = min(var_min[i, j, k - 1, element], var)
-                var_max[i, j, k - 1, element] = max(var_max[i, j, k - 1, element], var)
-            end
-            if k < nnodes(dg)
-                var_min[i, j, k + 1, element] = min(var_min[i, j, k + 1, element], var)
-                var_max[i, j, k + 1, element] = max(var_max[i, j, k + 1, element], var)
-            end
+            var = u[variable, i, j, k, element]
+            var_min[i - 1, j, k, element] = min(var_min[i - 1, j, k, element], var)
+            var_max[i - 1, j, k, element] = max(var_max[i - 1, j, k, element], var)
+        end
+
+        # Apply values in y direction
+        for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+            var = u[variable, i, j - 1, k, element]
+            var_min[i, j, k, element] = min(var_min[i, j, k, element], var)
+            var_max[i, j, k, element] = max(var_max[i, j, k, element], var)
+
+            var = u[variable, i, j, k, element]
+            var_min[i, j - 1, k, element] = min(var_min[i, j - 1, k, element], var)
+            var_max[i, j - 1, k, element] = max(var_max[i, j - 1, k, element], var)
+        end
+
+        # Apply values in z direction
+        for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+            var = u[variable, i, j, k - 1, element]
+            var_min[i, j, k, element] = min(var_min[i, j, k, element], var)
+            var_max[i, j, k, element] = max(var_max[i, j, k, element], var)
+
+            var = u[variable, i, j, k, element]
+            var_min[i, j, k - 1, element] = min(var_min[i, j, k - 1, element], var)
+            var_max[i, j, k - 1, element] = max(var_max[i, j, k - 1, element], var)
         end
     end
 
@@ -234,6 +240,10 @@ end
                                        u::AbstractArray{<:Any, 5}, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
+
+    # The approach used in `calc_bounds_twosided!` is not used here because it requires more
+    # evaluations of the variable and is therefore slower.
+
     @threaded for element in eachelement(dg, cache)
         # Reset bounds
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
