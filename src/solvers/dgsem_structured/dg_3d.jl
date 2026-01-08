@@ -8,8 +8,7 @@
 function create_cache(mesh::Union{StructuredMesh{3},
                                   P4estMesh{3}, T8codeMesh{3}},
                       equations,
-                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             VolumeIntegralShockCapturingHG},
+                      volume_integral::AbstractVolumeIntegralSubcell,
                       dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded,
