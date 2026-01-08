@@ -135,12 +135,18 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
     end
 end
 
+# Abstract supertype for DG subcell-based volume integrals with
+# finite volume schemes on the subcells.
+abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
+abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubcell end
+
 """
-    VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
-                                              volume_flux_fv=flux_lax_friedrichs)
+    VolumeIntegralShockCapturingHG(indicator;
+                                   volume_flux_dg=flux_central,
+                                   volume_flux_fv=flux_lax_friedrichs)
 
 Shock-capturing volume integral type for DG methods using a convex blending of
-the finite volume method with numerical flux `volume_flux_fv` and the
+the **first-order** finite volume method with numerical flux `volume_flux_fv` and the
 [`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
 The amount of blending is determined by the `indicator`, e.g.,
 [`IndicatorHennemannGassner`](@ref).
@@ -152,13 +158,14 @@ The amount of blending is determined by the `indicator`, e.g.,
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
 struct VolumeIntegralShockCapturingHG{VolumeFluxDG, VolumeFluxFV, Indicator} <:
-       AbstractVolumeIntegral
+       AbstractVolumeIntegralShockCapturing
     volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
     indicator::Indicator
 end
 
-function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg = flux_central,
+function VolumeIntegralShockCapturingHG(indicator;
+                                        volume_flux_dg = flux_central,
                                         volume_flux_fv = flux_lax_friedrichs)
     return VolumeIntegralShockCapturingHG{typeof(volume_flux_dg),
                                           typeof(volume_flux_fv),
@@ -184,12 +191,83 @@ function Base.show(io::IO, mime::MIME"text/plain",
 end
 
 function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralShockCapturingHG,
+                                volume_integral::AbstractVolumeIntegralShockCapturing,
                                 dg, cache)
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator(u, mesh, equations, dg, cache)
     return get_element_variables!(element_variables, volume_integral.indicator,
                                   volume_integral)
+end
+
+"""
+    VolumeIntegralShockCapturingRRG(basis, indicator;
+                                    volume_flux_dg=flux_central,
+                                    volume_flux_fv=flux_lax_friedrichs,
+                                    slope_limiter=minmod)
+
+Shock-capturing volume integral type for DG methods using a convex blending of
+a **second-order** finite volume method with numerical flux `volume_flux_fv` and
+slope limiter `slope_limiter` and the
+[`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
+The amount of blending is determined by the `indicator`, e.g.,
+[`IndicatorHennemannGassner`](@ref).
+
+!!! note "Conservative Systems only"
+    Currently only implemented for systems in conservative form, i.e.,
+    `have_nonconservative_terms(equations) = False()`
+
+## References
+
+See especially Sections 3.2, Section 4, and Appendix D of the paper
+
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+"""
+struct VolumeIntegralShockCapturingRRG{VolumeFluxDG, VolumeFluxFV, Indicator,
+                                       SubCellInterfaceCoordinates, Limiter} <:
+       AbstractVolumeIntegralShockCapturing
+    volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
+    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+    indicator::Indicator
+    sc_interface_coords::SubCellInterfaceCoordinates # (x-)coordinates of the sub-cell element interfaces
+    slope_limiter::Limiter # slope limiter used for the inner subcell reconstructions
+end
+
+function VolumeIntegralShockCapturingRRG(basis, indicator;
+                                         volume_flux_dg = flux_central,
+                                         volume_flux_fv = flux_lax_friedrichs,
+                                         slope_limiter = minmod)
+    polydeg = nnodes(basis) - 1
+    # Suffices to store only the intermediate boundaries of the sub-cell elements
+    sc_interface_coords = SVector{polydeg}(cumsum(basis.weights)[1:polydeg] .- 1)
+    return VolumeIntegralShockCapturingRRG{typeof(volume_flux_dg),
+                                           typeof(volume_flux_fv),
+                                           typeof(indicator),
+                                           typeof(sc_interface_coords),
+                                           typeof(slope_limiter)}(volume_flux_dg,
+                                                                  volume_flux_fv,
+                                                                  indicator,
+                                                                  sc_interface_coords,
+                                                                  slope_limiter)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralShockCapturingRRG)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralShockCapturingRRG")
+        summary_line(io, "volume flux DG", integral.volume_flux_dg)
+        summary_line(io, "volume flux FV", integral.volume_flux_fv)
+        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.indicator)
+        summary_line(io, "slope limiter", integral.slope_limiter)
+        summary_footer(io)
+    end
 end
 
 """
@@ -248,7 +326,7 @@ end
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.
-abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegral end
+abstract type AbstractVolumeIntegralPureLGLFiniteVolume <: AbstractVolumeIntegralSubcell end
 
 """
     VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
@@ -259,9 +337,6 @@ A volume integral that only uses the subcell finite volume schemes of the
 
 This gives a formally O(1)-accurate finite volume scheme on an LGL-type subcell
 mesh (LGL = Legendre-Gauss-Lobatto).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 
 ## References
 
@@ -319,9 +394,6 @@ For the DG-subcells at the boundaries, two options are available:
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 
 ## References
 

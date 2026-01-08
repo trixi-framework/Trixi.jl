@@ -15,7 +15,7 @@ function create_cache(typ::Type{IndicatorType},
 end
 
 function get_element_variables!(element_variables, indicator::AbstractIndicator,
-                                ::VolumeIntegralShockCapturingHG)
+                                ::AbstractVolumeIntegralShockCapturing)
     element_variables[:indicator_shock_capturing] = indicator.cache.alpha
     return nothing
 end
