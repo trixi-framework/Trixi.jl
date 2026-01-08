@@ -118,7 +118,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers
 
 # Run for a long time to reach a state where forces stabilize up to 3 digits
-tspan = (0.0, 1e-3)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 # Callbacks
