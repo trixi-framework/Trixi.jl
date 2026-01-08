@@ -382,7 +382,7 @@ end
 function IndicatorEntropyDecay(; target_decay = 0)
     n_cells_fluxdiff_threaded = [0 for _ in 1:Threads.maxthreadid()]
     return IndicatorEntropyDecay{typeof(target_decay)}(target_decay,
-                                                                  n_cells_fluxdiff_threaded)
+                                                       n_cells_fluxdiff_threaded)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyDecay)

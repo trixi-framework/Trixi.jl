@@ -632,7 +632,8 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
-    if dg.volume_integral isa AbstractVolumeIntegralSubcell
+    if dg.volume_integral isa AbstractVolumeIntegralSubcell ||
+       dg.volume_integral isa VolumeIntegralAdaptive
         @unpack normal_vectors = cache
         resize!(normal_vectors, ncells(mesh))
         init_normal_vectors!(normal_vectors, mesh, dg, cache)

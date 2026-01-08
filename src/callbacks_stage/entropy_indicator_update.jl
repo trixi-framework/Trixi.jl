@@ -22,8 +22,10 @@ struct EntropyIndicatorUpdateStageCB{Indicator <: IndicatorEntropyDecay, RealT <
     scaling::RealT
 end
 
-function EntropyIndicatorUpdateStageCB(; indicator::IndicatorEntropyDecay, scaling = 1.0)
-    return EntropyIndicatorUpdateStageCB{typeof(indicator), typeof(scaling)}(indicator, scaling)
+function EntropyIndicatorUpdateStageCB(; indicator::IndicatorEntropyDecay,
+                                       scaling = 1.0)
+    return EntropyIndicatorUpdateStageCB{typeof(indicator), typeof(scaling)}(indicator,
+                                                                             scaling)
 end
 
 init_callback(limiter!::EntropyIndicatorUpdateStageCB, semi) = nothing
@@ -37,8 +39,8 @@ function (limiter!::EntropyIndicatorUpdateStageCB)(u_ode, integrator, stage)
 end
 
 function (limiter!::EntropyIndicatorUpdateStageCB)(u_ode, integrator,
-                                                semi::AbstractSemidiscretization,
-                                                t)
+                                                   semi::AbstractSemidiscretization,
+                                                   t)
     @trixi_timeit timer() "IndicatorEntropyDecay correction" begin
         @unpack indicator, scaling = limiter!
 

@@ -17,7 +17,8 @@ that used the weak form volume integral in this Runge-Kutta step.
 This way, the indicator becomes more restrictive in the next step and more cells will use the stabilized
 volume integral form.
 """
-mutable struct EntropyIndicatorUpdateStepCB{Indicator <: IndicatorEntropyDecay, RealT <: Real}
+mutable struct EntropyIndicatorUpdateStepCB{Indicator <: IndicatorEntropyDecay,
+                                            RealT <: Real}
     indicator::Indicator
     scaling::RealT
 end
@@ -55,7 +56,8 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
-                     integrator) where {Condition, Affect! <: EntropyIndicatorUpdateStepCB}
+                     integrator) where {Condition,
+                                        Affect! <: EntropyIndicatorUpdateStepCB}
     return nothing
 end
 
@@ -65,13 +67,13 @@ function (::EntropyIndicatorUpdateStepCB)(u, t, integrator)
 end
 
 function update_target_decay!(indicator::IndicatorEntropyDecay, scaling,
-                                     du, u, t, semi::AbstractSemidiscretization)
+                              du, u, t, semi::AbstractSemidiscretization)
     @unpack target_decay, n_cells_fluxdiff_threaded = indicator
 
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     dS = analyze(entropy_timederivative, du, u, t,
-                    mesh, equations, dg, cache)
+                 mesh, equations, dg, cache)
 
     if dS > 0
         # Number of cells calculated with flux differencing in this stage
@@ -109,5 +111,4 @@ function (entropy_ind_up_step_cb::EntropyIndicatorUpdateStepCB)(integrator)
     u_modified!(integrator, false)
     return nothing
 end
-
 end # @muladd
