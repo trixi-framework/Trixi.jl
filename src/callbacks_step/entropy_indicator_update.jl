@@ -68,13 +68,12 @@ end
 
 function update_target_decay!(indicator::IndicatorEntropyDecay, scaling,
                               du, u, t, semi::AbstractSemidiscretization)
-    @unpack target_decay, n_cells_fluxdiff_threaded = indicator
+    @unpack n_cells_fluxdiff_threaded = indicator
 
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     dS = analyze(entropy_timederivative, du, u, t,
                  mesh, equations, dg, cache)
-
     if dS > 0
         # Number of cells calculated with flux differencing in this stage
         n_cells_fd = sum(n_cells_fluxdiff_threaded)
@@ -82,8 +81,10 @@ function update_target_decay!(indicator::IndicatorEntropyDecay, scaling,
         n_cells_wf = nelements(dg, cache) - n_cells_fd
 
         if n_cells_wf > 0
-            target_decay = -dS / n_cells_wf * scaling
+            indicator.target_decay = -dS / n_cells_wf * scaling
         end
+    else
+        indicator.target_decay = 0
     end
 
     return nothing
