@@ -124,7 +124,7 @@ end
                                        u::AbstractArray{<:Any, 4}, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
 
-    # The approach as in `calc_bounds_twosided!` is not used here, because it requires more
+    # The approach used in `calc_bounds_twosided!` is not used here because it requires more
     # evaluations of the variable and is therefore slower.
 
     # Calc bounds inside elements
