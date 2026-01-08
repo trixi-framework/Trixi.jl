@@ -31,7 +31,8 @@ aoa() = 10.0 * pi / 180.0 # 10 degree angle of attack
 l_inf() = 1.0
 mach_inf() = 0.8
 u_inf(equations) = mach_inf() * sqrt(equations.gamma * p_inf() / rho_inf())
-@inline function initial_condition_mach08_flow(x, t, equations::CompressibleEulerEquations2D)
+@inline function initial_condition_mach08_flow(x, t,
+                                               equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
     gamma = equations.gamma
     u_inf = mach_inf() * sqrt(gamma * p_inf() / rho_inf())
@@ -89,7 +90,8 @@ heat_airfoil = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_conditions_airfoil = BoundaryConditionNavierStokesWall(velocity_airfoil,
                                                                 heat_airfoil)
 
-function velocities_initial_condition_mach08_flow(x, t, equations::CompressibleEulerEquations2D)
+function velocities_initial_condition_mach08_flow(x, t,
+                                                  equations::CompressibleEulerEquations2D)
     u_cons = initial_condition_mach08_flow(x, t, equations)
     return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
 end
