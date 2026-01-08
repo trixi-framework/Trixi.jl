@@ -187,7 +187,7 @@ end
 
 # used in `calc_entropy_change_element`
 function integrate_element_ref(func::Func, u, element,
-                               mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
+                               mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
                                args...) where {Func}
     @unpack weights = dg.basis
 
