@@ -57,7 +57,7 @@ end
 
 # Optional: Nicer display of the indicator
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorVortex)
-    Trixi.summary_box(io, "IndicatorVortex")
+    return Trixi.summary_box(io, "IndicatorVortex")
 end
 
 end # module TrixiExtension

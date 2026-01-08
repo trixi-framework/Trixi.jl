@@ -93,6 +93,7 @@ const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
@@ -746,7 +747,7 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
     # Read in the Header of the meshfile to determine which constructor is appropriate.
     header = open(meshfile.path, "r") do io
         readline(io) # Header of the Abaqus file; discarded
-        readline(io) # Read in the actual header information
+        return readline(io) # Read in the actual header information
     end
 
     # Check if the meshfile was generated using HOHQMesh.

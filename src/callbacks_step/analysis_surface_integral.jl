@@ -92,38 +92,38 @@ end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any,
                                                                                <:Any}})
-    "CL_p"
+    return "CL_p"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any,
                                                                              <:Any}})
-    "CL_p"
+    return "CL_p"
 end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any,
                                                                                <:Any}})
-    "CD_p"
+    return "CD_p"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any,
                                                                              <:Any}})
-    "CD_p"
+    return "CD_p"
 end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any,
                                                                                   <:Any}})
-    "CL_f"
+    return "CL_f"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any,
                                                                                 <:Any}})
-    "CL_f"
+    return "CL_f"
 end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any,
                                                                                   <:Any}})
-    "CD_f"
+    return "CD_f"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any,
                                                                                 <:Any}})
-    "CD_f"
+    return "CD_f"
 end
 
 include("analysis_surface_integral_2d.jl")

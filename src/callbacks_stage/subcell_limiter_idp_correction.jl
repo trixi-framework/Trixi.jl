@@ -30,8 +30,8 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode,
                                                  integrator::Trixi.SimpleIntegratorSSP,
                                                  stage)
     semi = integrator.p
-    limiter!(u_ode, semi, integrator.t, integrator.dt,
-             semi.solver.volume_integral)
+    return limiter!(u_ode, semi, integrator.t, integrator.dt,
+                    semi.solver.volume_integral)
 end
 
 function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,

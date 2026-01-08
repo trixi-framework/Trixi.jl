@@ -347,20 +347,20 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
             @test eltype(@inferred entropy2cons(u, equations)) == RealT
             @test eltype(@inferred Trixi.cons2entropy_guermond_etal(u, equations)) == RealT
-            @test typeof(@inferred Trixi.entropy_guermond_etal(u, equations)) == RealT
+            @test typeof(@inferred entropy_guermond_etal(u, equations)) == RealT
             @test typeof(@inferred density(u, equations)) == RealT
             @test typeof(@inferred pressure(u, equations)) == RealT
             @test typeof(@inferred density_pressure(u, equations)) == RealT
             @test typeof(@inferred entropy(cons, equations)) == RealT
-            @test typeof(@inferred Trixi.entropy_math(cons, equations)) == RealT
-            @test typeof(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
+            @test typeof(@inferred entropy_math(cons, equations)) == RealT
+            @test typeof(@inferred entropy_thermodynamic(cons, equations)) == RealT
             @test typeof(@inferred energy_internal(cons, equations)) == RealT
 
             @test eltype(@inferred Trixi.gradient_conservative(pressure, u, equations)) ==
                   RealT
-            @test eltype(@inferred Trixi.gradient_conservative(Trixi.entropy_math, u,
+            @test eltype(@inferred Trixi.gradient_conservative(entropy_math, u,
                                                                equations)) == RealT
-            @test eltype(@inferred Trixi.gradient_conservative(Trixi.entropy_guermond_etal,
+            @test eltype(@inferred Trixi.gradient_conservative(entropy_guermond_etal,
                                                                u,
                                                                equations)) == RealT
         end
@@ -474,8 +474,8 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred pressure(u, equations)) == RealT
             @test typeof(@inferred density_pressure(u, equations)) == RealT
             @test typeof(@inferred entropy(cons, equations)) == RealT
-            @test typeof(@inferred Trixi.entropy_math(cons, equations)) == RealT
-            @test typeof(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
+            @test typeof(@inferred entropy_math(cons, equations)) == RealT
+            @test typeof(@inferred entropy_thermodynamic(cons, equations)) == RealT
             @test typeof(@inferred energy_internal(cons, equations)) == RealT
         end
     end
@@ -1177,8 +1177,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                            equations)) == RealT
             end
 
-            @test typeof(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
-            @test typeof(@inferred Trixi.entropy_math(cons, equations)) == RealT
+            @test typeof(@inferred entropy_thermodynamic(cons, equations)) == RealT
+            @test typeof(@inferred entropy_math(cons, equations)) == RealT
             @test typeof(@inferred entropy(cons, equations)) == RealT
             @test typeof(@inferred energy_total(cons, equations)) == RealT
             @test typeof(@inferred energy_kinetic(cons, equations)) == RealT
@@ -1297,8 +1297,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                      equations)) == RealT
             end
 
-            @test typeof(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
-            @test typeof(@inferred Trixi.entropy_math(cons, equations)) == RealT
+            @test typeof(@inferred entropy_thermodynamic(cons, equations)) == RealT
+            @test typeof(@inferred entropy_math(cons, equations)) == RealT
             @test typeof(@inferred entropy(cons, equations)) == RealT
             @test typeof(@inferred energy_total(cons, equations)) == RealT
             @test typeof(@inferred energy_kinetic(cons, equations)) == RealT
@@ -1392,8 +1392,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                      equations)) == RealT
             end
 
-            @test typeof(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
-            @test typeof(@inferred Trixi.entropy_math(cons, equations)) == RealT
+            @test typeof(@inferred entropy_thermodynamic(cons, equations)) == RealT
+            @test typeof(@inferred entropy_math(cons, equations)) == RealT
             @test typeof(@inferred entropy(cons, equations)) == RealT
             @test typeof(@inferred energy_total(cons, equations)) == RealT
             @test typeof(@inferred energy_kinetic(cons, equations)) == RealT

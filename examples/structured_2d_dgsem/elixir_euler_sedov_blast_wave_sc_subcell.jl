@@ -55,7 +55,7 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
-                                local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
+                                local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
                                 # Default parameters are not sufficient to fulfill bounds properly.
                                 max_iterations_newton = 40,

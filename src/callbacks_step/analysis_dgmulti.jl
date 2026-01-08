@@ -149,7 +149,7 @@ function nelementsglobal(mesh::DGMultiMesh, solver::DGMulti, cache)
     if mpi_isparallel()
         error("`nelementsglobal` is not implemented for `DGMultiMesh` when used in parallel with MPI")
     else
-        return ndofs(mesh, solver, cache)
+        return nelements(mesh, solver)
     end
 end
 function ndofsglobal(mesh::DGMultiMesh, solver::DGMulti, cache)

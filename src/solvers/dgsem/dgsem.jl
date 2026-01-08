@@ -53,7 +53,7 @@ end
 # This API is no longer documented, and we recommend avoiding its public use.
 function DGSEM(polydeg::Integer, surface_flux = flux_central,
                volume_integral = VolumeIntegralWeakForm())
-    DGSEM(Float64, polydeg, surface_flux, volume_integral)
+    return DGSEM(Float64, polydeg, surface_flux, volume_integral)
 end
 
 # The constructor using only keyword arguments is convenient for elixirs since

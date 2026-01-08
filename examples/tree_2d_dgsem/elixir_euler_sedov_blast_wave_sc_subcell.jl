@@ -49,7 +49,7 @@ volume_flux = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
-                                local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
+                                local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
                                 positivity_variables_nonlinear = [pressure],
                                 # Default parameters are not sufficient to fulfill bounds properly.

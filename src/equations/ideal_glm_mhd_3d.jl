@@ -54,29 +54,29 @@ struct IdealGlmMhdEquations3D{RealT <: Real} <:
 
     function IdealGlmMhdEquations3D(gamma, c_h)
         γ, inv_gamma_minus_one, c_h = promote(gamma, inv(gamma - 1), c_h)
-        new{typeof(γ)}(γ, inv_gamma_minus_one, c_h)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one, c_h)
     end
 end
 
 function IdealGlmMhdEquations3D(gamma; initial_c_h = convert(typeof(gamma), NaN))
     # Use `promote` to ensure that `gamma` and `initial_c_h` have the same type
-    IdealGlmMhdEquations3D(promote(gamma, initial_c_h)...)
+    return IdealGlmMhdEquations3D(promote(gamma, initial_c_h)...)
 end
 
 # Outer constructor for `@reset` works correctly
 function IdealGlmMhdEquations3D(gamma, inv_gamma_minus_one, c_h)
-    IdealGlmMhdEquations3D(gamma, c_h)
+    return IdealGlmMhdEquations3D(gamma, c_h)
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations3D) = True()
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations3D)
-    ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
+    return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
 end
 function varnames(::typeof(cons2prim), ::IdealGlmMhdEquations3D)
-    ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
+    return ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
 end
 function default_analysis_integrals(::IdealGlmMhdEquations3D)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+    return (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
 # Helper function to extract the magnetic field vector from the conservative variables
@@ -272,7 +272,7 @@ Non-symmetric two-point flux discretizing the nonconservative (source) term of
 Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations3D`](@ref).
 
-On curvilinear meshes, the implementation differs from the reference since we use the averaged 
+On curvilinear meshes, the implementation differs from the reference since we use the averaged
 normal direction for the metrics dealiasing.
 
 ## References
@@ -384,11 +384,13 @@ local normal direction compared to the averaged one used in [`flux_nonconservati
 The two other flux functions with the same name return either the local
 or symmetric portion of the non-conservative flux based on the type of the
 nonconservative_type argument, employing multiple dispatch. They are used to
-compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 
 ## References
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+  Discretizations of Non-Conservative Systems.
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
+  [arXiv: 2211.14009](https://doi.org/10.48550/arXiv.2211.14009).
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                                          orientation::Integer,
@@ -493,8 +495,11 @@ end
 Local part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
-This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+  Discretizations of Non-Conservative Systems.
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
+  [arXiv: 2211.14009](https://doi.org/10.48550/arXiv.2211.14009).
+
+This function is used to compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll,
                                                                          orientation::Integer,
@@ -615,8 +620,11 @@ end
 Symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
-This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+  Discretizations of Non-Conservative Systems.
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
+  [arXiv: 2211.14009](https://doi.org/10.48550/arXiv.2211.14009).
+
+This function is used to compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                                          orientation::Integer,
@@ -1451,7 +1459,8 @@ end
 end
 
 @inline function density(u, equations::IdealGlmMhdEquations3D)
-    return u[1]
+    rho = u[1]
+    return rho
 end
 
 @inline function velocity(u, equations::IdealGlmMhdEquations3D)
@@ -1468,13 +1477,25 @@ end
     return v
 end
 
+@doc raw"""
+    pressure(u, equations::IdealGlmMhdEquations3D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} - \frac{1}{2} \psi^2 \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2}
+  \left[\rho \Vert v \Vert_2^2  + \Vert B \Vert_2^2 + \psi^2 \right] \right)
+\end{aligned}
+```
+"""
 @inline function pressure(u, equations::IdealGlmMhdEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2)
-         -
-         0.5f0 * psi^2)
+    p = (equations.gamma - 1) * (rho_e -
+         0.5f0 *
+         ((rho_v1^2 + rho_v2^2 + rho_v3^2) / rho +
+          (B1^2 + B2^2 + B3^2) + psi^2))
     return p
 end
 
@@ -1494,12 +1515,10 @@ end
 
 @inline function density_pressure(u, equations::IdealGlmMhdEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2)
-         -
-         0.5f0 * psi^2)
-    return rho * p
+    rho_times_p = (equations.gamma - 1) * (rho * rho_e -
+                   0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2 +
+                    rho * (B1^2 + B2^2 + B3^2 + psi^2)))
+    return rho_times_p
 end
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue

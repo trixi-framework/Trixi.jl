@@ -79,7 +79,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                  mesh::P4estMesh{3},
                  equations, dg::DGSEM, cache, semi)
     @unpack boundaries = cache
-    @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
+    @unpack node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
     @unpack variable, boundary_symbols = surface_variable

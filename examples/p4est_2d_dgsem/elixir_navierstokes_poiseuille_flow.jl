@@ -69,8 +69,8 @@ bs_hyperbolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition), # 
 velocity_bc_inflow = NoSlip((x, t, equations) -> SVector(v_in, 0))
 # Use isothermal for inflow - adiabatic should also work
 heat_bc_inflow = Isothermal() do x, t, equations_parabolic
-    temperature(initial_condition(x, t, equations_parabolic),
-                equations_parabolic)
+    return temperature(initial_condition(x, t, equations_parabolic),
+                       equations_parabolic)
 end
 bc_parabolic_inflow = BoundaryConditionNavierStokesWall(velocity_bc_inflow, heat_bc_inflow)
 

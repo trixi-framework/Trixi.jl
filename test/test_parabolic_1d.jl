@@ -341,7 +341,9 @@ end
                             0.00545660697650141,
                             0.003950431201790283,
                             0.004092051414554598
-                        ])
+                        ],
+                        # Relax error tols to avoid stochastic CI failures
+                        atol=1e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

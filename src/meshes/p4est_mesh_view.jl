@@ -136,6 +136,7 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
         file["boundary_names"] = mesh.parent.boundary_names .|> String
+        return nothing
     end
 
     return filename

@@ -1,26 +1,26 @@
 """
     reconstruction_constant(u_ll, u_lr, u_rl, u_rr,
-                            x_interfaces,
+                            sc_interface_coords,
                             node_index, limiter, dg)
 
-Returns the constant "reconstructed" values `u_lr, u_rl` at the interface `x_interfaces[node_index - 1]`.
+Returns the constant "reconstructed" values `u_lr, u_rl` at the interface `sc_interface_coords[node_index - 1]`.
 Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
 Formally first order accurate.
 If a first-order finite volume scheme is desired, [`VolumeIntegralPureLGLFiniteVolume`](@ref) is an
 equivalent, but more efficient choice.
 """
 @inline function reconstruction_constant(u_ll, u_lr, u_rl, u_rr,
-                                         x_interfaces, node_index,
+                                         sc_interface_coords, node_index,
                                          limiter, dg)
     return u_lr, u_rl
 end
 
 # Helper functions for reconstructions below
 @inline function reconstruction_linear(u_lr, u_rl, s_l, s_r,
-                                       x_lr, x_rl, x_interfaces, node_index)
+                                       x_lr, x_rl, sc_interface_coords, node_index)
     # Linear reconstruction at the interface
-    u_lr = u_lr + s_l * (x_interfaces[node_index - 1] - x_lr)
-    u_rl = u_rl + s_r * (x_interfaces[node_index - 1] - x_rl)
+    u_lr = u_lr + s_l * (sc_interface_coords[node_index - 1] - x_lr)
+    u_rl = u_rl + s_r * (sc_interface_coords[node_index - 1] - x_rl)
 
     return u_lr, u_rl
 end
@@ -53,10 +53,10 @@ end
 
 """
     reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
-                           x_interfaces, node_index,
+                           sc_interface_coords, node_index,
                            limiter, dg::DGSEM)
 
-Returns the reconstructed values `u_lr, u_rl` at the interface `x_interfaces[node_index - 1]`.
+Returns the reconstructed values `u_lr, u_rl` at the interface `sc_interface_coords[node_index - 1]`.
 Computes limited (linear) slopes on the subcells for a DGSEM element.
 Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
 
@@ -77,7 +77,7 @@ This approach corresponds to equation (79) described in
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 @inline function reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
-                                        x_interfaces, node_index,
+                                        sc_interface_coords, node_index,
                                         limiter, dg::DGSEM)
     @unpack nodes = dg.basis
     x_lr = nodes[node_index - 1]
@@ -107,15 +107,15 @@ This approach corresponds to equation (79) described in
     end
 
     return reconstruction_linear(u_lr, u_rl, s_l, s_r,
-                                 x_lr, x_rl, x_interfaces, node_index)
+                                 x_lr, x_rl, sc_interface_coords, node_index)
 end
 
 """
     reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
-                            x_interfaces, node_index,
+                            sc_interface_coords, node_index,
                             limiter, dg::DGSEM)
 
-Returns the reconstructed values `u_lr, u_rl` at the interface `x_interfaces[node_index - 1]`.
+Returns the reconstructed values `u_lr, u_rl` at the interface `sc_interface_coords[node_index - 1]`.
 Computes limited (linear) slopes on the *inner* subcells for a DGSEM element.
 Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
 
@@ -136,7 +136,7 @@ This approach corresponds to equation (78) described in
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 @inline function reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
-                                         x_interfaces, node_index,
+                                         sc_interface_coords, node_index,
                                          limiter, dg::DGSEM)
     @unpack nodes = dg.basis
     x_lr = nodes[node_index - 1]
@@ -168,7 +168,7 @@ This approach corresponds to equation (78) described in
     end
 
     return reconstruction_linear(u_lr, u_rl, s_l, s_r,
-                                 x_lr, x_rl, x_interfaces, node_index)
+                                 x_lr, x_rl, sc_interface_coords, node_index)
 end
 
 """

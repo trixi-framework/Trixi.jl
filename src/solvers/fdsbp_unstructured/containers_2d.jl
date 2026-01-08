@@ -33,7 +33,7 @@ end
 function calc_metric_terms!(jacobian_matrix, element,
                             D_SBP::SummationByPartsOperators.UpwindOperators,
                             node_coordinates)
-    calc_metric_terms!(jacobian_matrix, element, D_SBP.central, node_coordinates)
+    return calc_metric_terms!(jacobian_matrix, element, D_SBP.central, node_coordinates)
 end
 
 # construct the metric terms for a FDSBP element "block". Directly use the derivative matrix

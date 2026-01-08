@@ -17,20 +17,21 @@ values are shown. When the returned callback is executed directly, the current t
 """
 function SummaryCallback(reset_threads = true)
     function initialize(cb, u, t, integrator)
-        initialize_summary_callback(cb, u, t, integrator;
-                                    reset_threads)
+        return initialize_summary_callback(cb, u, t, integrator;
+                                           reset_threads)
     end
     # At the end of the simulation, the timer is printed
-    DiscreteCallback(summary_callback, summary_callback,
-                     save_positions = (false, false),
-                     initialize = initialize,
-                     finalize = finalize_summary_callback)
+    return DiscreteCallback(summary_callback, summary_callback,
+                            save_positions = (false, false),
+                            initialize = initialize,
+                            finalize = finalize_summary_callback)
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
     @nospecialize cb # reduce precompilation time
 
     print(io, "SummaryCallback")
+    return nothing
 end
 
 # Format a key/value pair for output from the SummaryCallback
@@ -64,7 +65,7 @@ function format_key_value_line(key::AbstractString, value::AbstractString, key_w
     return line
 end
 function format_key_value_line(key, value, args...; kwargs...)
-    format_key_value_line(string(key), string(value), args...; kwargs...)
+    return format_key_value_line(string(key), string(value), args...; kwargs...)
 end
 
 # Squeeze a string to fit into a maximum width by deleting characters from the center
@@ -93,6 +94,7 @@ function summary_box(io::IO, heading, setup = [])
         summary_line(io, key, value)
     end
     summary_footer(io)
+    return nothing
 end
 
 function summary_header(io, heading; total_width = 100, indentation_level = 0)
@@ -109,6 +111,7 @@ function summary_header(io, heading; total_width = 100, indentation_level = 0)
     println(io, "│ " * heading * " "^(total_width - length(heading) - 4) * " │")
     println(io,
             "│ " * "═"^length(heading) * " "^(total_width - length(heading) - 4) * " │")
+    return nothing
 end
 
 function summary_line(io, key, value; key_width = 30, total_width = 100,
@@ -124,6 +127,7 @@ function summary_line(io, key, value; key_width = 30, total_width = 100,
                               indentation_level = indentation_level)
 
     println(io, s)
+    return nothing
 end
 
 function summary_footer(io; total_width = 100, indentation_level = 0)
@@ -137,10 +141,11 @@ function summary_footer(io; total_width = 100, indentation_level = 0)
     end
 
     print(io, s)
+    return nothing
 end
 
 @inline function increment_indent(io)
-    IOContext(io, :indentation_level => get(io, :indentation_level, 0) + 1)
+    return IOContext(io, :indentation_level => get(io, :indentation_level, 0) + 1)
 end
 
 # Print information about the current simulation setup
@@ -179,6 +184,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         foreach(callbacks.continuous_callbacks) do cb
             show(io_context, MIME"text/plain"(), cb)
             println(io, "\n")
+            return nothing
         end
         foreach(callbacks.discrete_callbacks) do cb
             # Do not show ourselves
@@ -237,6 +243,7 @@ function print_summary_semidiscretization(io::IO, semi::AbstractSemidiscretizati
     println(io, "\n")
     show(io, MIME"text/plain"(), solver)
     println(io, "\n")
+    return nothing
 end
 
 function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Condition,

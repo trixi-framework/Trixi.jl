@@ -26,8 +26,10 @@ function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations3D)
     r_0 = 0.3
     lambda = exp(5.0 / delta_0 * (r - r_0))
 
-    prim_inner = SVector(1.2, 0.1, 0.0, 0.1, 0.9, 1.0, 1.0, 1.0, 0.0)
-    prim_outer = SVector(1.2, 0.2, -0.4, 0.2, 0.3, 1.0, 1.0, 1.0, 0.0)
+    p_inner = 0.9
+    p_outer = 5e-2
+    prim_inner = SVector(1.2, 0.1, 0.0, 0.1, p_inner, 1.0, 1.0, 1.0, 0.0)
+    prim_outer = SVector(1.2, 0.2, -0.4, 0.2, p_outer, 1.0, 1.0, 1.0, 0.0)
     prim_vars = (prim_inner + lambda * prim_outer) / (1.0 + lambda)
 
     return prim2cons(prim_vars, equations)
@@ -77,8 +79,6 @@ trees_per_dimension = (2, 2, 2)
 mesh = P4estMesh(trees_per_dimension,
                  polydeg = 3,
                  mapping = mapping,
-                 # coordinates_min = (0.0, 0.0, 0.0),
-                 # coordinates_max = (3.0, 3.0, 3.0),
                  initial_refinement_level = 2,
                  periodicity = true)
 
@@ -121,4 +121,4 @@ stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  ode_default_options()..., callback = callbacks);
+                  callback = callbacks);

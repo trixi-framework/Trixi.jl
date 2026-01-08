@@ -231,7 +231,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
     sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
-    Trixi.integrate(energy_total, sol.u[end], semi)
+    return Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
 k_values = range(0.9, 1.1, length = 101)
@@ -281,7 +281,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
     sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
-    Trixi.integrate(energy_total, sol.u[end], semi)
+    return Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
 k = 1.0

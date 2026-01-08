@@ -40,7 +40,7 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::Dict, cache)
                                                              boundary_conditions,
                                                              boundary_symbol_indices)
 
-    initialize!(container, cache)
+    return initialize!(container, cache)
 end
 
 function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N},

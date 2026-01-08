@@ -9,7 +9,6 @@
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
-    # TODO: Taal compare performance of different types
     A4d = Array{uEltype, 4}
     fstar_primary_threaded = A4d[A4d(undef, nvariables(equations),
                                      nnodes(mortar_l2), nnodes(mortar_l2), 4)
@@ -375,7 +374,7 @@ end
 
 function prolong2boundaries!(cache, u,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack boundaries = cache
     index_range = eachnode(dg)
 

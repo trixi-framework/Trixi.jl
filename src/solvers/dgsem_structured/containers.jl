@@ -13,7 +13,7 @@ struct StructuredElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     left_neighbors::Array{Int, 2} # [orientation, elements]
 
     # Jacobian matrix of the transformation
-    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
+    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix
     jacobian_matrix::Array{RealT, NDIMSP3}
 
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
@@ -70,6 +70,18 @@ function Base.eltype(::StructuredElementContainer{NDIMS, RealT, uEltype}) where 
                                                                                  }
     return uEltype
 end
+
+# Essentially equivalent to `get_contravariant_vector` and `get_node_coords`
+@inline function get_normal_vector(normal_vectors, indices...)
+    # Returns SVector{NDIMS} where NDIMS is 2 or 3.
+    # Can be deduced at compile time from (number of dims - 2) from `normal_vectors` since
+    # for 2d we have 4 dims (2 two dims for nodes) - 2 => 2
+    # and for 3d we have 5 dims (3 three dims for nodes) - 2 = > 3
+    return SVector(ntuple(@inline(dim->normal_vectors[dim, indices...]),
+                          Val(ndims(normal_vectors) - 2)))
+end
+
+@inline storage_type(::AbstractNormalVectorContainer) = Array
 
 include("containers_1d.jl")
 include("containers_2d.jl")

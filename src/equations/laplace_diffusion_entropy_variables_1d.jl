@@ -1,7 +1,8 @@
 function LaplaceDiffusionEntropyVariables1D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusionEntropyVariables{1, typeof(equations_hyperbolic),
-                                     nvariables(equations_hyperbolic),
-                                     typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+    return LaplaceDiffusionEntropyVariables{1, typeof(equations_hyperbolic),
+                                            nvariables(equations_hyperbolic),
+                                            typeof(diffusivity)}(diffusivity,
+                                                                 equations_hyperbolic)
 end
 
 # Note that here, `u` should be the transformed entropy variables, and 

@@ -89,6 +89,7 @@ end
 
     # Clip the maximum amount of FV allowed
     alpha[element] = min(alpha_max, alpha_element)
+    return nothing
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha

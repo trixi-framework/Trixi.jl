@@ -32,6 +32,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:AveragingCallback})
     @unpack tspan = averaging_callback
 
     print(io, "AveragingCallback(tspan=", tspan, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -119,11 +120,11 @@ function save_averaging_file(averaging_callback, semi::AbstractSemidiscretizatio
     # Create output directory if it doesn't exist
     mkpath(averaging_callback.output_directory)
 
-    save_averaging_file(averaging_callback, mesh_equations_solver_cache(semi)...)
+    return save_averaging_file(averaging_callback, mesh_equations_solver_cache(semi)...)
 end
 
 function load_averaging_file(averaging_file, semi::AbstractSemidiscretization)
-    load_averaging_file(averaging_file, mesh_equations_solver_cache(semi)...)
+    return load_averaging_file(averaging_file, mesh_equations_solver_cache(semi)...)
 end
 
 include("averaging_dg.jl")

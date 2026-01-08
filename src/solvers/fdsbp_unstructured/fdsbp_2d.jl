@@ -16,11 +16,12 @@ function create_cache(mesh::UnstructuredMesh2D, equations, dg::FDSBP, RealT, uEl
 
     boundaries = init_boundaries(mesh, elements)
 
+    # Container cache
     cache = (; elements, interfaces, boundaries)
 
-    # Add specialized parts of the cache required to for efficient flux computations
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 
     return cache
 end

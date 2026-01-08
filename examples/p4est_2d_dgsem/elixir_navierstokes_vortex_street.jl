@@ -157,9 +157,11 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+# Moderate number of threads (e.g. 4) advisable to speed things up
+ode_alg = RDPK3SpFSAL49(thread = Trixi.True())
 time_int_tol = 1e-7
-sol = solve(ode,
-            # Moderate number of threads (e.g. 4) advisable to speed things up
-            RDPK3SpFSAL49(thread = Trixi.True());
+sol = solve(ode, ode_alg;
+            # not necessary, added for overwriting in tests
+            adaptive = true, dt = 1.4e-3,
             abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

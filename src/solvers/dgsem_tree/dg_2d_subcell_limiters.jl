@@ -7,26 +7,16 @@
 
 function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                       equations, volume_integral::VolumeIntegralSubcellLimiting,
-                      dg::DG, uEltype)
+                      dg::DG, cache_containers, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                         dg, uEltype)
+                         dg, cache_containers, uEltype)
+
+    fhat1_L_threaded, fhat1_R_threaded,
+    fhat2_L_threaded, fhat2_R_threaded = create_f_threaded(mesh, equations, dg,
+                                                           uEltype)
 
     A3d = Array{uEltype, 3}
-
-    fhat1_L_threaded = A3d[A3d(undef, nvariables(equations),
-                               nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fhat2_L_threaded = A3d[A3d(undef, nvariables(equations),
-                               nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
-    fhat1_R_threaded = A3d[A3d(undef, nvariables(equations),
-                               nnodes(dg) + 1, nnodes(dg))
-                           for _ in 1:Threads.maxthreadid()]
-    fhat2_R_threaded = A3d[A3d(undef, nvariables(equations),
-                               nnodes(dg), nnodes(dg) + 1)
-                           for _ in 1:Threads.maxthreadid()]
-
     flux_temp_threaded = A3d[A3d(undef, nvariables(equations),
                                  nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
@@ -61,7 +51,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
     end
 
     return (; cache..., antidiffusive_fluxes,
-            fhat1_L_threaded, fhat2_L_threaded, fhat1_R_threaded, fhat2_R_threaded,
+            fhat1_L_threaded, fhat1_R_threaded,
+            fhat2_L_threaded, fhat2_R_threaded,
             flux_temp_threaded, fhat_temp_threaded)
 end
 
@@ -177,11 +168,6 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
-    fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))
-    fhat1_R[:, 1, :] .= zero(eltype(fhat1_R))
-    fhat1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_R))
-
     for j in eachnode(dg), i in 1:(nnodes(dg) - 1), v in eachvariable(equations)
         fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
         fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
@@ -203,11 +189,6 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    fhat2_L[:, :, 1] .= zero(eltype(fhat2_L))
-    fhat2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_L))
-    fhat2_R[:, :, 1] .= zero(eltype(fhat2_R))
-    fhat2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_R))
-
     for j in 1:(nnodes(dg) - 1), i in eachnode(dg), v in eachvariable(equations)
         fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
         fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
@@ -294,11 +275,6 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
-    fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))
-    fhat1_R[:, 1, :] .= zero(eltype(fhat1_R))
-    fhat1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_R))
-
     fhat_temp[:, 1, :] .= zero(eltype(fhat1_L))
     fhat_noncons_temp[:, :, 1, :] .= zero(eltype(fhat1_L))
 
@@ -365,11 +341,6 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    fhat2_L[:, :, 1] .= zero(eltype(fhat2_L))
-    fhat2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_L))
-    fhat2_R[:, :, 1] .= zero(eltype(fhat2_R))
-    fhat2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_R))
-
     fhat_temp[:, :, 1] .= zero(eltype(fhat1_L))
     fhat_noncons_temp[:, :, :, 1] .= zero(eltype(fhat1_L))
 
@@ -485,11 +456,6 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    fhat1_L[:, 1, :] .= zero(eltype(fhat1_L))
-    fhat1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_L))
-    fhat1_R[:, 1, :] .= zero(eltype(fhat1_R))
-    fhat1_R[:, nnodes(dg) + 1, :] .= zero(eltype(fhat1_R))
-
     fhat_temp[:, 1, :] .= zero(eltype(fhat1_L))
     fhat_noncons_temp[:, :, 1, :] .= zero(eltype(fhat1_L))
 
@@ -589,11 +555,6 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    fhat2_L[:, :, 1] .= zero(eltype(fhat2_L))
-    fhat2_L[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_L))
-    fhat2_R[:, :, 1] .= zero(eltype(fhat2_R))
-    fhat2_R[:, :, nnodes(dg) + 1] .= zero(eltype(fhat2_R))
-
     fhat_temp[:, :, 1] .= zero(eltype(fhat1_L))
     fhat_noncons_temp[:, :, :, 1] .= zero(eltype(fhat1_L))
 

@@ -42,7 +42,7 @@ struct HypDiffN3Erk3Sstar52 <: SimpleAlgorithm3Sstar
                     1.0221535725056414E+00, 1.4280257701954349E+00,
                     7.1581334196229851E-01)
 
-        new(gamma1, gamma2, gamma3, beta, delta, c)
+        return new(gamma1, gamma2, gamma3, beta, delta, c)
     end
 end
 
@@ -93,7 +93,7 @@ struct ParsaniKetchesonDeconinck3Sstar94 <: SimpleAlgorithm3Sstar
                     1.6659419385562171E+00, 9.7152778807463247E-01,
                     9.0515694340066954E-01)
 
-        new(gamma1, gamma2, gamma3, beta, delta, c)
+        return new(gamma1, gamma2, gamma3, beta, delta, c)
     end
 end
 
@@ -126,7 +126,7 @@ struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
         c = SVector(0.0000000000000000E+00, 7.2366074728360086E-01,
                     5.9236433182015646E-01)
 
-        new(gamma1, gamma2, gamma3, beta, delta, c)
+        return new(gamma1, gamma2, gamma3, beta, delta, c)
     end
 end
 

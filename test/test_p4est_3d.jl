@@ -170,6 +170,30 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_free_stream.jl (VolumeIntegralPureLGLFiniteVolume)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
+                        volume_integral=VolumeIntegralPureLGLFiniteVolume(flux_hllc),
+                        cfl=1.0,
+                        l2=[
+                            1.9974155101075348e-15,
+                            1.1961083306610996e-14,
+                            1.2872974022570237e-14,
+                            1.5462968285712546e-14,
+                            2.6094715468434938e-14
+                        ],
+                        linf=[
+                            2.828848266744899e-13,
+                            1.6810441927361808e-12,
+                            2.784633634789202e-12,
+                            2.8425040099477883e-12,
+                            3.7339020764193265e-12
+                        ],
+                        tspan=(0.0, 0.03))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_free_stream_extruded.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
                         l2=[
@@ -228,7 +252,7 @@ end
                             Float32(2.298161660974074e-14),
                             Float32(6.039613253960852e-14)
                         ],
-                        RealT=Float32)
+                        RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -353,7 +377,7 @@ end
 @trixi_testset "elixir_euler_sedov_sc_subcell.jl (local bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
-                        local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal,
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
                         l2=[
                             0.16504564013491585,
@@ -572,7 +596,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
-                        local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal,
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
                         l2=[
                             0.03390196416615077,
@@ -724,26 +748,26 @@ end
 @trixi_testset "elixir_mhd_shockcapturing_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
                         l2=[
-                            0.0059340191538310005,
-                            0.006283749821992117,
-                            0.00776614780511013,
-                            0.006308928588096081,
-                            0.02307409839907803,
-                            0.005395582058152679,
-                            0.007206446732909664,
-                            0.0054239694752144145,
-                            1.0267069826457686e-5
+                            0.006729931970167595,
+                            0.008638393158639436,
+                            0.008978257148101689,
+                            0.0085466685190268,
+                            0.0285664608641833,
+                            0.005796806835751598,
+                            0.007485378539184046,
+                            0.005846216235895686,
+                            1.116115482859488e-5
                         ],
                         linf=[
-                            0.26892628360831483,
-                            0.23437156515448437,
-                            0.3609031724258315,
-                            0.22466728194150376,
-                            0.8703707153009601,
-                            0.2442543980664369,
-                            0.21250673584918245,
-                            0.23503747011075915,
-                            0.0011551893939651886
+                            0.31507940417652525,
+                            0.27581230560179737,
+                            0.5096527712168957,
+                            0.2900021150087706,
+                            0.9484970527977867,
+                            0.2591599747174065,
+                            0.22934145164154485,
+                            0.2868673643088755,
+                            0.0013663401454538622
                         ],
                         tspan=(0.0, 0.04))
     # Ensure that we do not have excessive memory allocations
