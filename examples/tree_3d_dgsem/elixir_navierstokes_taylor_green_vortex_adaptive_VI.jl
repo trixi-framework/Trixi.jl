@@ -49,7 +49,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
 # `target_decay` governs the tolerated entropy increase due to the weak-form
 # volume integral before switching to the stabilized version
-indicator = IndicatorEntropyDecay(target_decay = 0)
+indicator = IndicatorEntropyDecay(target_decay = 5e-3)
 # Adaptive volume integral using the entropy increase indicator to perform the 
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,
@@ -82,10 +82,13 @@ analysis_interval = 10
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      save_analysis = true,
                                      analysis_errors = Symbol[],
-                                     analysis_integrals = (energy_kinetic,
-                                                           enstrophy))
+                                     extra_analysis_integrals = (energy_kinetic,
+                                                                 entropy,
+                                                                 enstrophy))
 
 alive_callback = AliveCallback(alive_interval = 50)
+
+entropy_decay_callback = Trixi.EntropyIndicatorUpdateStepCB(indicator = indicator)
 
 callbacks = CallbackSet(summary_callback,
                         alive_callback,
