@@ -83,8 +83,7 @@ function update_target_decay!(indicator::IndicatorEntropyDecay, scaling,
         if n_cells_wf > 0
             indicator.target_decay = -dS / n_cells_wf * scaling
         end
-    else
-        indicator.target_decay = 0
+        # TODO: Reset back to 0 if dS <= 0?
     end
 
     return nothing
