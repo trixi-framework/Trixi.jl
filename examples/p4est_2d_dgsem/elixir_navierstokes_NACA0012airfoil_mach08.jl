@@ -31,7 +31,7 @@ aoa() = 10.0 * pi / 180.0 # 10 degree angle of attack
 l_inf() = 1.0
 mach_inf() = 0.8
 u_inf(equations) = mach_inf() * sqrt(equations.gamma * p_inf() / rho_inf())
-@inline function initial_condition_mach08_flow(x, t, equations)
+@inline function initial_condition_mach08_flow(x, t, equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
     gamma = equations.gamma
     u_inf = mach_inf() * sqrt(gamma * p_inf() / rho_inf())
@@ -96,7 +96,7 @@ end
 
 velocity_bc_square = NoSlip((x, t, equations_parabolic) -> velocities_initial_condition_mach08_flow(x,
                                                                                                     t,
-                                                                                                    equations))
+                                                                                                    equations_parabolic.equations_hyperbolic))
 
 heat_bc_square = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_square = BoundaryConditionNavierStokesWall(velocity_bc_square,
@@ -118,7 +118,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers
 
 # Run for a long time to reach a state where forces stabilize up to 3 digits
-tspan = (0.0, 10.0)
+tspan = (0.0, 1e-3)
 ode = semidiscretize(semi, tspan)
 
 # Callbacks
