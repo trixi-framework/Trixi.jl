@@ -661,6 +661,40 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_mhd_shockcapturing_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
+                        l2=[
+                            0.006729931970167595,
+                            0.008638393158639436,
+                            0.008978257148101689,
+                            0.0085466685190268,
+                            0.0285664608641833,
+                            0.005796806835751598,
+                            0.007485378539184046,
+                            0.005846216235895686,
+                            1.116115482859488e-5
+                        ],
+                        linf=[
+                            0.31507940417652525,
+                            0.27581230560179737,
+                            0.5096527712168957,
+                            0.2900021150087706,
+                            0.9484970527977867,
+                            0.2591599747174065,
+                            0.22934145164154485,
+                            0.2868673643088755,
+                            0.0013663401454538622
+                        ],
+                        tspan=(0.0, 0.04))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
+
 @trixi_testset "elixir_mhd_amr_entropy_bounded.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_amr_entropy_bounded.jl"),
                         l2=[
