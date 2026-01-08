@@ -89,7 +89,7 @@ heat_airfoil = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_conditions_airfoil = BoundaryConditionNavierStokesWall(velocity_airfoil,
                                                                 heat_airfoil)
 
-function velocities_initial_condition_mach08_flow(x, t, equations)
+function velocities_initial_condition_mach08_flow(x, t, equations::CompressibleEulerEquations2D)
     u_cons = initial_condition_mach08_flow(x, t, equations)
     return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
 end
