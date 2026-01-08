@@ -953,7 +953,7 @@ Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
 
     The expected callback signature is as follows:
 
-      `adapt_callback(forest, ltreeid, scheme, tree_class, lelemntid, elements, is_family, user_data)`
+      `adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_family, elements, user_data)`
         # Arguments
         - `forest`: Pointer to the analyzed forest.
         - `ltreeid`: Local index of the current tree where the analyzed elements are part of.
