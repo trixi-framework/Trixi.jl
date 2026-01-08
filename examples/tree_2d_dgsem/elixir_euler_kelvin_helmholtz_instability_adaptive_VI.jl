@@ -44,6 +44,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 # If the entropy production of the weak form is lower than that of the
 # flux-differencing form, we use the flux-differencing form to stabilize the solution.
 indicator = IndicatorEntropyComparison(equations, basis)
+#indicator = IndicatorEntropyDecay(target_decay = 0.0)
 
 # Adaptive volume integral using the entropy production comparison indicator to perform the 
 # stabilized/EC volume integral when needed and keeping the weak form if it is more diffusive.
@@ -83,7 +84,9 @@ stepsize_callback = StepsizeCallback(cfl = 1.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        stepsize_callback)
+                        stepsize_callback,
+                        #Trixi.EntropyIndicatorUpdateStepCB(indicator = indicator)
+                        )
 
 ###############################################################################
 # run the simulation
