@@ -514,11 +514,7 @@ end
 
 # Multiple calc_sources! to resolve method ambiguities
 function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
-                                 mesh, equations_parabolic, dg::DGMulti, cache)
-    return nothing
-end
-function calc_sources_parabolic(du, u, gradients, t, source_terms::Nothing,
-                                mesh, equations_parabolic, dg::DGMultiFluxDiffSBP, cache)
+                                 mesh, equations_parabolic, dg::Union{<:DGMulti, <:DGMultiFluxDiffSBP}, cache)
     return nothing
 end
 
