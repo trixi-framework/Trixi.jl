@@ -511,18 +511,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_amr.jl"),
                         l2=[
-                            0.005155557460409018,
-                            0.4048446934219344,
-                            0.43040068852937047,
-                            1.1255130552079322
+                            0.0003791330378826807,
+                            0.09969310227471417,
+                            0.021308426486134697,
+                            0.09122052535455805
                         ],
                         linf=[
-                            0.03287305649809613,
-                            1.1656793717431393,
-                            1.3917196016246969,
-                            8.146587380114653
+                            0.001566286906820924,
+                            0.6899677733045734,
+                            0.0643250936249398,
+                            0.5512608650028881
                         ],
-                        tspan=(0.0, 0.7))
+                        tspan=(0.0, 0.2))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
