@@ -585,8 +585,8 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_rayleigh_taylor.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_rayleigh_taylor.jl"),
+@trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_rayleigh_taylor_instability.jl"),
                         l2=[
                             0.007290813668312186,
                             0.00032168285224052305,
