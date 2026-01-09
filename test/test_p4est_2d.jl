@@ -585,6 +585,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_rayleigh_taylor.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_rayleigh_taylor.jl"),
+                        l2=[
+                            0.007290813668312186,
+                            0.00032168285224052305,
+                            0.0009191169884741496,
+                            0.0059324910604102036
+                        ],
+                        linf=[
+                            0.2009480447339369,
+                            0.0029037602030083545,
+                            0.011238318557050292,
+                            0.0378915915560567
+                        ],
+                        time_int_tol=1e-11,
+                        tspan=(0.0, 0.01))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_eulergravity_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
                         l2=[
