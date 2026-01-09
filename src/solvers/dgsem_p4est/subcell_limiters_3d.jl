@@ -17,6 +17,9 @@
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
+        var_min[:, :, :, element] .= typemax(eltype(var_min))
+        var_max[:, :, :, element] .= typemin(eltype(var_max))
+
         # Calculate bounds at Gauss-Lobatto nodes
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, k, element]
