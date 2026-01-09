@@ -24,9 +24,9 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
 
     # Setup based on example 35.1.4 in https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
     r0 = 0.21875f0 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-    # r0 = 0.5 # = more reasonable setup
     E = 1
-    p0_inner = 3 * (equations.gamma - 1) * E / (3 * convert(RealT, pi) * r0^2)
+    nu = 3 # dims
+    p0_inner = 3 * (equations.gamma - 1) * E / ((nu + 1) * convert(RealT, pi) * r0^nu)
     p0_outer = convert(RealT, 1.0e-5) # = true Sedov setup
 
     # Calculate primitive variables
@@ -69,7 +69,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 5.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -100,7 +100,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-stepsize_callback = StepsizeCallback(cfl = 0.6)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
