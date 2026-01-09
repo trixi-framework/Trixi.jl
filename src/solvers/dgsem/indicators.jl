@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+# Abstract supertype of indicators used for AMR, shock capturing, and
+# adaptive volume-integral selection
 abstract type AbstractIndicator end
 
 function create_cache(typ::Type{IndicatorType},
@@ -270,6 +272,136 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
             "indicator variable" => indicator.variable
         ]
         summary_box(io, "IndicatorMax", setup)
+    end
+end
+
+@doc raw"""
+    IndicatorEntropyComparison()
+
+This indicator checks the difference in mathematical [`entropy`](@ref) (``S``) due to the application
+of the weak-form and flux-differencing volume integral. In particular, the indicator computes
+```math
+\Delta S = \dot{S}_\mathrm{WF} - \dot{S}_\mathrm{VI} =
+\int_{\Omega_m} 
+\frac{\partial S}{\partial \boldsymbol{u}}
+\cdot 
+[\dot{\boldsymbol u}_\mathrm{WF} - \dot{\boldsymbol u}_\mathrm{VI}]
+\mathrm{d} \Omega_m
+```
+for the currently processed element/cell ``m``.
+Here, ``\dot{\boldsymbol u}_\mathrm{WF}`` is the change in the DG right-hand-side
+due to the weak-form volume integral only,
+and ``\dot{\boldsymbol u}_\mathrm{VI}`` is the change in the DG right-hand-side
+due to the flux-differencing volume integral only.
+
+For ``\Delta S < 0`` the weak form volume integral is more entropy-diffusive than the
+flux-differencing volume integral, and thus the weak form update is used.
+Otherwise, the flux-differencing volume integral with proven stability properties
+is used to compute the volume integral in the ``m``-th element/cell.
+
+Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
+the most entropy-diffusive volume integral for every cell/element ``m``.
+
+!!! note
+    This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
+    for instance.
+"""
+struct IndicatorEntropyComparison{dUElementThreaded <: AbstractArray} <:
+       AbstractIndicator
+    du_element_threaded::dUElementThreaded
+
+    function IndicatorEntropyComparison(::AbstractEquations{NDIMS, NVARS},
+                                        basis) where {NDIMS, NVARS}
+        uEltype = real(basis)
+        # Required dimensions: Variables and Nodes...
+        AT = Array{uEltype, NDIMS + 1}
+        du_element_threaded = AT[AT(undef, NVARS,
+                                    ntuple(_ -> nnodes(basis), NDIMS)...)
+                                 for _ in 1:Threads.maxthreadid()]
+
+        return new{typeof(du_element_threaded)}(du_element_threaded)
+    end
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyComparison)
+    @nospecialize indicator # reduce precompilation time
+
+    print(io, "IndicatorEntropyComparison()")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyComparison)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = []
+        summary_box(io, "IndicatorEntropyComparison", setup)
+    end
+end
+
+@doc raw"""
+    IndicatorEntropyDecay(; target_decay=0.0)
+
+This indicator checks the increase in the mathematical [`entropy`](@ref) (``S``) due to the application
+of the weak-form volume integral. In particular, the indicator computes
+```math
+\dot{S}_\mathrm{WF} = 
+\int_{\Omega_m} 
+\frac{\partial S}{\partial \boldsymbol{u}}
+\cdot 
+\dot{\boldsymbol u}_\mathrm{WF}
+\mathrm{d} \Omega_m
+```
+for the currently processed element/cell ``m``, where ``\dot{\boldsymbol u}_\mathrm{WF}`` is the change 
+in the DG right-hand-side due to the weak-form volume integral only.
+
+``\dot{S}_\mathrm{WF}`` is then compared against `target_decay`, and if it exceeds this value, the indicator
+returns `true` for this element/cell, indicating that a more stable volume integral should be
+used there.
+
+This indicator can be supplied to the stage/step callbacks
+[`EntropyIndicatorUpdateStageCB`](@ref)/[`EntropyIndicatorUpdateStepCB`](@ref) to adaptively adjust `target_decay`
+based on the observed global entropy production during a Runge-Kutta stage/step.
+
+Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
+more advanced/(entropy) stable volume integral for the troubled cell/element ``m``.
+
+!!! note
+    This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
+    for instance.
+"""
+mutable struct IndicatorEntropyDecay{RealT <: Real} <:
+               AbstractIndicator
+    target_decay::RealT
+    n_cells_fluxdiff_threaded::Vector{Int}
+end
+
+function IndicatorEntropyDecay(; target_decay = 0.0)
+    n_cells_fluxdiff_threaded = [0 for _ in 1:Threads.maxthreadid()]
+    return IndicatorEntropyDecay{typeof(target_decay)}(target_decay,
+                                                       n_cells_fluxdiff_threaded)
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyDecay)
+    @nospecialize indicator # reduce precompilation time
+
+    print(io, "IndicatorEntropyDecay(")
+    print(io, ", target_decay=", indicator.target_decay, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyDecay)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "target_decay" => indicator.target_decay
+        ]
+        summary_box(io, "IndicatorEntropyDecay", setup)
     end
 end
 end # @muladd

@@ -270,6 +270,59 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+"""
+    VolumeIntegralAdaptive(;
+                           volume_integral_default = VolumeIntegralWeakForm(),
+                           volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
+                           indicator = IndicatorEntropyDecay())
+
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
+
+Possible combinations:
+- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyDecay`](@ref)
+- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralShockCapturingHG`](@ref), and `nothing` (indicator taken from `VolumeIntegralShockCapturingHG`)
+"""
+struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
+                              Indicator} <: AbstractVolumeIntegral
+    volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
+    volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
+    indicator::Indicator
+end
+
+function VolumeIntegralAdaptive(;
+                                volume_integral_default = VolumeIntegralWeakForm(),
+                                volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
+                                indicator = IndicatorEntropyDecay())
+    return VolumeIntegralAdaptive{typeof(volume_integral_default),
+                                  typeof(volume_integral_stabilized),
+                                  typeof(indicator)}(volume_integral_default,
+                                                     volume_integral_stabilized,
+                                                     indicator)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralAdaptive)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralAdaptive")
+        summary_line(io, "volume integral default",
+                     integral.volume_integral_default)
+        summary_line(io, "volume integral stabilized",
+                     integral.volume_integral_stabilized)
+        if integral.indicator === nothing
+            summary_line(io, "indicator", integral.indicator)
+        else
+            summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
+            show(increment_indent(io), mime, integral.indicator)
+        end
+        summary_footer(io)
+    end
+end
+
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.
