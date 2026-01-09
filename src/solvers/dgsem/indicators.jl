@@ -342,7 +342,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyCompar
 end
 
 @doc raw"""
-    IndicatorEntropyDecay(; target_decay=0)
+    IndicatorEntropyDecay(; target_decay=0.0)
 
 This indicator checks the increase in the mathematical [`entropy`](@ref) (``S``) due to the application
 of the weak-form volume integral. In particular, the indicator computes
@@ -379,7 +379,7 @@ mutable struct IndicatorEntropyDecay{RealT <: Real} <:
     n_cells_fluxdiff_threaded::Vector{Int}
 end
 
-function IndicatorEntropyDecay(; target_decay = 0)
+function IndicatorEntropyDecay(; target_decay = 0.0)
     n_cells_fluxdiff_threaded = [0 for _ in 1:Threads.maxthreadid()]
     return IndicatorEntropyDecay{typeof(target_decay)}(target_decay,
                                                        n_cells_fluxdiff_threaded)
