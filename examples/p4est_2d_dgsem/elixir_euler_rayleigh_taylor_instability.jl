@@ -3,6 +3,7 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
@@ -63,7 +64,7 @@ surface_flux = flux_hll
 volume_flux = flux_ranocha
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 0.5,
-                                         alpha_min = 0.001,
+                                         alpha_min = 0.01, # Relatively large value, i.e., limit late!
                                          alpha_smooth = true,
                                          variable = density)
 
@@ -75,8 +76,8 @@ volume_integral = VolumeIntegralShockCapturingRRG(basis, indicator_sc;
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (0.25, 1.0) # maximum coordinates (max(x), max(y))
+coordinates_min = (0.0, 0.0) # (min(x), min(y))
+coordinates_max = (0.25, 1.0) # (max(x), max(y))
 
 num_elements_per_dimension = 2
 trees_per_dimension = (num_elements_per_dimension, num_elements_per_dimension * 4)
@@ -160,4 +161,5 @@ callbacks = CallbackSet(summary_callback,
 time_int_tol = 1e-6
 sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
             abstol = time_int_tol, reltol = time_int_tol,
+            adaptive = true, dt = 1e-3, # needed only for tests/CI
             ode_default_options()..., callback = callbacks);
