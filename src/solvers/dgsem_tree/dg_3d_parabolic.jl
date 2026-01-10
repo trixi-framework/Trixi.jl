@@ -58,7 +58,7 @@ function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{3},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
     flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
 
     @threaded for element in eachelement(dg, cache)
@@ -72,17 +72,17 @@ function calc_volume_integral!(du, flux_viscous,
                                         i, j, k, element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node,
+                multiply_add_to_node_vars!(du, derivative_hat[ii, i], flux_1_node,
                                            equations_parabolic, dg, ii, j, k, element)
             end
 
             for jj in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux_2_node,
+                multiply_add_to_node_vars!(du, derivative_hat[jj, j], flux_2_node,
                                            equations_parabolic, dg, i, jj, k, element)
             end
 
             for kk in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_dhat[kk, k], flux_3_node,
+                multiply_add_to_node_vars!(du, derivative_hat[kk, k], flux_3_node,
                                            equations_parabolic, dg, i, j, kk, element)
             end
         end
@@ -938,7 +938,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                         mesh::TreeMesh{3}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DGSEM, cache)
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
     gradients_x, gradients_y, gradients_z = gradients
 
     @threaded for element in eachelement(dg, cache)
@@ -949,19 +949,19 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                    i, j, k, element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
+                multiply_add_to_node_vars!(gradients_x, derivative_hat[ii, i],
                                            u_node, equations_parabolic, dg,
                                            ii, j, k, element)
             end
 
             for jj in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
+                multiply_add_to_node_vars!(gradients_y, derivative_hat[jj, j],
                                            u_node, equations_parabolic, dg,
                                            i, jj, k, element)
             end
 
             for kk in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_z, derivative_dhat[kk, k],
+                multiply_add_to_node_vars!(gradients_z, derivative_hat[kk, k],
                                            u_node, equations_parabolic, dg,
                                            i, j, kk, element)
             end
@@ -1013,7 +1013,7 @@ function calc_gradient_surface_integral!(gradients,
                                          mesh::TreeMesh{3}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack boundary_interpolation_entries = dg.basis
     @unpack surface_flux_values = cache.elements
 
     gradients_x, gradients_y, gradients_z = gradients
@@ -1022,8 +1022,8 @@ function calc_gradient_surface_integral!(gradients,
     # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor_1 = boundary_interpolation_entries[1]
+    factor_2 = boundary_interpolation_entries[2]
     @threaded for element in eachelement(dg, cache)
         for m in eachnode(dg), l in eachnode(dg)
             for v in eachvariable(equations_parabolic)
