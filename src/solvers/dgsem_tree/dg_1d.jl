@@ -36,8 +36,7 @@ end
 # and called from the basic `create_cache` method at the top.
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             VolumeIntegralShockCapturingHG},
+                      volume_integral::AbstractVolumeIntegralSubcell,
                       dg::DG, cache_containers, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
                   uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
@@ -234,7 +233,7 @@ end
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                               nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
-                              x_interfaces, reconstruction_mode, slope_limiter,
+                              sc_interface_coords, reconstruction_mode, slope_limiter,
                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -244,7 +243,7 @@ end
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     calcflux_fvO2!(fstar1_L, fstar1_R, u, mesh, nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
-                   x_interfaces, reconstruction_mode, slope_limiter)
+                   sc_interface_coords, reconstruction_mode, slope_limiter)
 
     # Calculate FV volume integral contribution
     for i in eachnode(dg)
@@ -312,7 +311,7 @@ end
                                 mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
-                                x_interfaces, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter)
     for i in 2:nnodes(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         #             Reference element:
         #  -1 ------------------0------------------ 1 -> x
@@ -359,7 +358,7 @@ end
 
         ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       x_interfaces, i,
+                                       sc_interface_coords, i,
                                        slope_limiter, dg)
 
         ## Convert primitive variables back to conservative variables ##

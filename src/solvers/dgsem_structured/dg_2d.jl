@@ -7,8 +7,7 @@
 
 function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
-                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             VolumeIntegralShockCapturingHG},
+                      volume_integral::AbstractVolumeIntegralSubcell,
                       dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
@@ -345,7 +344,7 @@ end
                                             P4estMesh{2}, T8codeMesh{2}},
                                 have_nonconservative_terms::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
-                                x_interfaces, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
     # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
@@ -373,7 +372,7 @@ end
 
         ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       x_interfaces, i,
+                                       sc_interface_coords, i,
                                        slope_limiter, dg)
 
         # Fetch precomputed freestream-preserving normal vector
@@ -402,7 +401,7 @@ end
                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       x_interfaces, j,
+                                       sc_interface_coords, j,
                                        slope_limiter, dg)
 
         # We access j - 1 here since the normal vector for j = 1 is not used and stored
