@@ -245,3 +245,48 @@ See for reference page 70 in
         return zero(sl)
     end
 end
+
+"""
+    Koren(sl, sr)
+
+**Asymmetric** limiter by Barry Koren, originally proposed in Chapter 5.2.2. of
+
+- B. Koren (1993)
+  A robust upwind discretization method for advection, diffusion and source terms.
+  In: C.B. Vreugdenhil, B. Koren (eds): Numerical Methods for Advection-Diffusion Problems.
+  Notes on Numerical Fluid Mechanics, Vol 15. Braunschweig/Wiesbaden.
+  [URL](https://ir.cwi.nl/pub/2269/2269D.pdf)
+
+A version in left/right slopes `sl, sr` is given by equations (14) and (15) in
+- P. Jenny (2020)
+  Time adaptive conservative finite volume method.
+  [DOI:10.1016/j.jcp.2019.109067](https://doi.org/10.1016/j.jcp.2019.109067)
+
+This limiter is biased for positive (right-going) velocities.
+For the flipped version, which is biased for negative (left-going) velocities,
+see [`Koren_flipped`](@ref).
+"""
+@inline function Koren(sl, sr)
+    return minmod(2 * minmod(sl, sr), (sl + 2 * sr) / 3)
+end
+
+"""
+    Koren_flipped(sl, sr)
+
+**Asymmetric** limiter by Barry Koren, flipped version biased for negative (left-going) velocities.
+See [`Koren`](@ref) for references.
+"""
+@inline function Koren_flipped(sl, sr)
+    return Koren(sr, sl)
+end
+
+"""
+    Koren_symmetric(sl, sr)
+
+**Symmetric** version of the Koren limiter by Barry Koren.
+Puts equal weight on left and right slopes.
+See [`Koren`](@ref) for references.
+"""
+@inline function Koren_symmetric(sl, sr)
+    return minmod(2 * minmod(sl, sr), minmod(sl + 2 * sr, 2 * sl + sr) / 3)
+end
