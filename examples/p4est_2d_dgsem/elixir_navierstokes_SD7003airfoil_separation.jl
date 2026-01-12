@@ -51,42 +51,53 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = VolumeIntegra
                                          indicator = nothing) # Indicator taken from `volume_integral_stabilized`
 
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
-               volume_integral = volume_integral_stabilized) # Just using FD actually crashes for this configuration!
+               volume_integral = volume_integral) # Just using FD actually crashes for this configuration!
 
-#mesh_file = "/home/daniel/Sciebo/Job/Doktorand/Content/Meshes/HighOrderCFDWorkshop/C1.2_quadgrids/naca_ref2_quadr_relabel.inp"
-mesh_file = "/storage/home/daniel/Meshes/HighOrderCFDWorkshop/C1.2_quadgrids/naca_ref2_quadr_relabel.inp"
+###############################################################################
+# Get the uncurved mesh from a file (downloads the file if not available locally)
 
-boundary_symbols = [:Airfoil, :Inflow, :Outflow]
-mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols, initial_refinement_level = 1)
+# Get quadratic meshfile
+mesh_file_name = "SD7003_2D_Quadratic.inp"
 
-bc_farfield = BoundaryConditionDirichlet(initial_condition)
+mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/bd2aa20f7e6839848476a0e87ede9f69/raw/1bc8078b4a57634819dc27010f716e68a225c9c6/SD7003_2D_Quadratic.inp",
+                           joinpath(@__DIR__, mesh_file_name))
 
-boundary_conditions = Dict(:Inflow => bc_farfield,
-                           :Outflow => bc_farfield,
-                           :Airfoil => boundary_condition_slip_wall)
+# There is also a linear mesh file available at
+# https://gist.githubusercontent.com/DanielDoehring/375df933da8a2081f58588529bed21f0/raw/18592aa90f1c86287b4f742fd405baf55c3cf133/SD7003_2D_Linear.inp
+
+boundary_symbols = [:Airfoil, :FarField]
+mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
+
+boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
 
 velocity_bc_airfoil = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
 heat_bc = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_airfoil = BoundaryConditionNavierStokesWall(velocity_bc_airfoil, heat_bc)
 
-boundary_conditions_para = Dict(:Inflow => bc_farfield,
-                                :Outflow => bc_farfield,
+boundary_conditions_hyp = Dict(:FarField => boundary_condition_free_stream,
+                               :Airfoil => boundary_condition_slip_wall)
+
+boundary_conditions_para = Dict(:FarField => boundary_condition_free_stream,
                                 :Airfoil => boundary_condition_airfoil)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             boundary_conditions = (boundary_conditions,
+                                             boundary_conditions = (boundary_conditions_hyp,
                                                                     boundary_conditions_para))
 
 ###############################################################################
-# ODE solvers
+# ODE solvers, callbacks etc.
 
 t_c = airfoil_cord_length / U_inf()
-tspan = (0.0, 25.0 * t_c)
+tspan = (0.0, 25 * t_c)
 
-ode = semidiscretize(semi, tspan)
+#ode = semidiscretize(semi, tspan)
 
-# Callbacks
+restart_file = "restart_SD7003_separation_t5.h5"
+restart_filename = joinpath("out", restart_file)
+
+tspan = (load_time(restart_filename), 25 * t_c)
+ode = semidiscretize(semi, tspan, restart_filename)
 
 summary_callback = SummaryCallback()
 
@@ -124,13 +135,21 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 alive_callback = AliveCallback(alive_interval = 50)
 
 amr_indicator = shock_indicator
+
+@inline function v1(u, equations::CompressibleEulerEquations2D)
+    rho, rho_v1, _, _ = u
+    return rho_v1 / rho
+end
+amr_indicator = IndicatorLöhner(semi, variable = v1)
+
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 0,
-                                      med_level = 1, med_threshold = 0.05, # 1
-                                      max_level = 3, max_threshold = 0.1)  # 3
+                                      med_level = 1, med_threshold = 0.1,
+                                      max_level = 3, max_threshold = 0.3)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 40)
+                           interval = 30,
+                           adapt_initial_condition = false)
 
 save_restart = SaveRestartCallback(interval = save_sol_interval,
                                    save_final_restart = true)
@@ -140,11 +159,14 @@ callbacks = CallbackSet(summary_callback,
                         alive_callback,
                         save_solution,
                         save_restart,
-                        amr_callback,
+                        amr_callback
                         )
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(thread = Trixi.True());
+ode_algorithm = SSPRK43(thread = Trixi.True())
+
+sol = solve(ode, ode_algorithm;
+            abstol = 1e-5, reltol = 1e-5,
             ode_default_options()..., callback = callbacks)
