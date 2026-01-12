@@ -89,15 +89,14 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 t_c = airfoil_cord_length / U_inf()
-tspan = (0.0, 25 * t_c)
+tspan = (0.0, 5 * t_c)
 
-#ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, tspan)
 
-restart_file = "restart_SD7003_separation_t5.h5"
-restart_filename = joinpath("out", restart_file)
-
+#=
 tspan = (load_time(restart_filename), 25 * t_c)
 ode = semidiscretize(semi, tspan, restart_filename)
+=#
 
 summary_callback = SummaryCallback()
 
@@ -157,9 +156,9 @@ save_restart = SaveRestartCallback(interval = save_sol_interval,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, 
                         alive_callback,
+                        #amr_callback,
                         save_solution,
-                        save_restart,
-                        amr_callback
+                        save_restart
                         )
 
 ###############################################################################
