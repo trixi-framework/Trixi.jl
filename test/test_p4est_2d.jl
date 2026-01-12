@@ -625,16 +625,16 @@ end
 
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
-                        l2=[1.0513414461545583e-5, 1.0517900957166411e-6,
-                            1.0517900957304043e-6, 1.511816606372376e-6,
-                            1.0443997728645063e-6, 7.879639064990798e-7,
-                            7.879639065049896e-7, 1.0628631669056271e-6,
-                            4.3382328912336153e-7],
-                        linf=[4.255466285174592e-5, 1.0029706745823264e-5,
-                            1.0029706747467781e-5, 1.2122265939010224e-5,
-                            5.4791097160444835e-6, 5.18922042269665e-6,
-                            5.189220422141538e-6, 9.552667261422676e-6,
-                            1.4237578427628152e-6])
+                        l2=[1.0513414461455308e-5, 1.0517900957064215e-6,
+                            1.0517900957294453e-6, 1.5118166063746164e-6,
+                            1.0443997728655552e-6, 7.879639065135079e-7,
+                            7.879639064974571e-7,1.0628631669044688e-6,
+                            4.338232891005933e-7],
+                        linf=[4.255466285196796e-5, 1.0029706747197165e-5,
+                              1.0029706746697564e-5, 1.2122265939315535e-5,
+                              5.479109717598796e-6, 5.189220423029717e-6,
+                              5.1892204214754045e-6, 9.552667261436554e-6,
+                              1.4237578425562423e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -643,24 +643,25 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
 
-    @trixi_testset "elixir_euler_mhd_coupled.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
-                            l2=[0.009862595305604965,
-                                0.011874205535856063,
-                                5.0185914245237475e-6,
-                                0.0,
-                                0.024657539839658474,
-                                0.0,
-                                0.0,
-                                0.0,
-                                0.0,
-                                0.0098589277826056,
-                                0.011870558900297097,
-                                6.882386285170543e-6,
-                                0.024648257743835045
-                            ],
-                            linf=[0.013719847889148373,
+@trixi_testset "elixir_euler_mhd_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
+                        l2=[0.009862595305604965,
+                            0.011874205535856063,
+                            5.0185914245237475e-6,
+                            0.0,
+                            0.024657539839658474,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0098589277826056,
+                            0.011870558900297097,
+                            6.882386285170543e-6,
+                            0.024648257743835045
+                        ],
+                        linf=[0.013719847889148373,
                                 0.01678917375613853,
                                 2.933466212909218e-5,
                                 0.0,
@@ -669,13 +670,15 @@ end
                                 0.0,
                                 0.0,
                                 0.0,
-                                0.001651262488701531
-                            ],
-                            tspan=(0.0, 0.02))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+                                0.01368217970493435,
+                                0.016790901855796785,
+                                3.091328454846926e-5,
+                                0.034236712653821444
+                        ],
+                        tspan=(0.0, 0.02))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
