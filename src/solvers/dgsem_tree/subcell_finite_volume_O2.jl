@@ -134,8 +134,8 @@ The supplied `limiter` governs the choice of slopes given the nodal values
     4) [`vanLeer`](@ref)
     5) [`Koren_symmetric`](@ref)
 **Asymmetric** limiters are also available, e.g.,
-    1) [`Koren`](@ref) for positive (right-going) velocities
-    2) [`Koren_flipped`](@ref) for negative (left-going) velocities
+    1) [`Koren`](@ref) for dominantly positive velocities
+    2) [`Koren_flipped`](@ref) for dominantly negative velocities
 
 For the outer, i.e., boundary subcells, constant values are used, i.e, no reconstruction.
 This reduces the order of the scheme below 2.
