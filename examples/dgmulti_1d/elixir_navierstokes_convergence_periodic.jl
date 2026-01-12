@@ -125,7 +125,7 @@ callbacks = CallbackSet(summary_callback, alive_callback,
 
 ###############################################################################
 # run the simulation
-
 time_int_tol = 1e-6
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(); adaptive = true, dt = 1e-3,
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

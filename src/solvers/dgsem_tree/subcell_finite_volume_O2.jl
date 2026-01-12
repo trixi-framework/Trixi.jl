@@ -210,7 +210,7 @@ For reference, see for instance Eq. (6.29) in
 """
 @inline function monotonized_central(sl, sr)
     # Use recursive property of minmod function
-    return minmod(0.5f0 * (sl + sr), minmod(2 * sl, 2 * sr))
+    return minmod(0.5f0 * (sl + sr), 2 * minmod(sl, sr))
 end
 
 """
