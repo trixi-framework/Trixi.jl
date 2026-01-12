@@ -17,10 +17,9 @@ volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-coordinates_min = -1.0 # minimum coordinate
-coordinates_max = 1.0 # maximum coordinate
+coordinates_min = -1.0
+coordinates_max = 1.0
 
-# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 n_cells_max = 30_000)
