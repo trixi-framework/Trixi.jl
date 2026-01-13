@@ -55,7 +55,18 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
                                                                                              dg,
                                                                                              uEltype)
 
-    cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_global)
+    # Initialize coupled mortars container
+    coupled_mortars = init_coupled_mortars(mesh, equations, dg.basis, elements)
+
+    # Extract and populate coupled mortars
+    coupled_mortar_indices, local_neighbor_ids_list, local_neighbor_positions_list, global_neighbor_ids_list = extract_coupled_mortars(mesh,
+                                                                                                                                        mortars_parent)
+    populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent,
+                             coupled_mortar_indices, local_neighbor_ids_list,
+                             local_neighbor_positions_list, global_neighbor_ids_list)
+
+    cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_global,
+             coupled_mortars)
 
     # Add specialized parts of the cache required to compute the volume integral etc.
     cache = (; cache...,
@@ -82,8 +93,10 @@ end
 end
 
 include("containers.jl")
+include("containers_coupled.jl")
 
 include("dg_2d.jl")
+include("dg_2d_coupled.jl")
 include("dg_2d_parabolic.jl")
 
 include("dg_3d.jl")

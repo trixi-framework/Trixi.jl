@@ -230,6 +230,112 @@ function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
     return neighbor_ids_global
 end
 
+"""
+    extract_coupled_mortars(mesh::P4estMeshView, mortars_parent)
+
+Extract mortars from parent mesh that lie on the boundary of this mesh view.
+A mortar is at the view boundary if its large element and small elements
+are split across the view boundary.
+
+Returns indices of mortars that cross the view boundary and information about
+which elements are local vs. remote.
+"""
+function extract_coupled_mortars(mesh::P4estMeshView, mortars_parent)
+    # For minimal prototype: find mortars where elements are split across view boundary
+    coupled_mortar_indices = Int[]
+    local_neighbor_ids_list = Vector{Int}[]
+    local_neighbor_positions_list = Vector{Int}[]
+    global_neighbor_ids_list = Vector{Int}[]
+
+    # In 2D: mortars have 3 neighbors [small_1, small_2, large]
+    n_small = 2^(ndims(mesh) - 1)  # 2 in 2D, 4 in 3D
+
+    for mortar_id in 1:nmortars(mortars_parent)
+        # Get neighbor IDs from parent mortar
+        neighbor_ids = mortars_parent.neighbor_ids[:, mortar_id]
+
+        large_id = neighbor_ids[end]
+        small_ids = neighbor_ids[1:n_small]
+
+        # Check if mortar crosses view boundary
+        large_in_view = large_id in mesh.cell_ids
+        small_in_view = [id in mesh.cell_ids for id in small_ids]
+
+        # Mortar is "coupled" if elements are split across views
+        # XOR: either large is in view but not all small, or vice versa
+        if large_in_view ⊻ any(small_in_view)
+            push!(coupled_mortar_indices, mortar_id)
+
+            # Collect locally available elements
+            local_neighbor_ids = Int[]
+            local_neighbor_positions = Int[]
+            global_neighbor_ids = Int[]
+
+            # Add small elements that are in this view
+            for (pos, (small_id, in_view)) in enumerate(zip(small_ids, small_in_view))
+                if in_view
+                    push!(local_neighbor_ids, global_element_id_to_local(small_id, mesh))
+                    push!(local_neighbor_positions, pos)
+                    push!(global_neighbor_ids, small_id)
+                end
+            end
+
+            # Add large element if in this view
+            if large_in_view
+                push!(local_neighbor_ids, global_element_id_to_local(large_id, mesh))
+                push!(local_neighbor_positions, n_small + 1)  # 3 in 2D, 5 in 3D
+                push!(global_neighbor_ids, large_id)
+            end
+
+            push!(local_neighbor_ids_list, local_neighbor_ids)
+            push!(local_neighbor_positions_list, local_neighbor_positions)
+            push!(global_neighbor_ids_list, global_neighbor_ids)
+        end
+    end
+
+    return coupled_mortar_indices, local_neighbor_ids_list,
+           local_neighbor_positions_list, global_neighbor_ids_list
+end
+
+"""
+    populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent,
+                             coupled_mortar_indices, local_neighbor_ids_list,
+                             local_neighbor_positions_list, global_neighbor_ids_list)
+
+Populate the coupled mortar container with data from parent mortars.
+"""
+function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent,
+                                  coupled_mortar_indices,
+                                  local_neighbor_ids_list,
+                                  local_neighbor_positions_list,
+                                  global_neighbor_ids_list)
+    n_coupled = length(coupled_mortar_indices)
+
+    if n_coupled == 0
+        return coupled_mortars
+    end
+
+    # Resize container
+    resize!(coupled_mortars, n_coupled)
+
+    # Fill container with data
+    for (idx, mortar_id) in enumerate(coupled_mortar_indices)
+        coupled_mortars.local_neighbor_ids[idx] = local_neighbor_ids_list[idx]
+        coupled_mortars.local_neighbor_positions[idx] = local_neighbor_positions_list[idx]
+        coupled_mortars.global_neighbor_ids[idx] = global_neighbor_ids_list[idx]
+
+        # Copy node indices from parent mortar
+        coupled_mortars.node_indices[1, idx] = mortars_parent.node_indices[1, mortar_id]
+        coupled_mortars.node_indices[2, idx] = mortars_parent.node_indices[2, mortar_id]
+
+        # Note: Normal directions are computed on-demand from the mesh during flux computation
+        # Regular P4estMortarContainer doesn't store normal_directions (only MPI version does)
+        # So we don't copy them here - they'll be computed when needed
+    end
+
+    return coupled_mortars
+end
+
 # Translate the interface indices into boundary names.
 function node_indices_to_name(node_index)
     if node_index == (:end, :i_forward)

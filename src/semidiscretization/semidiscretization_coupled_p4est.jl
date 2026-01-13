@@ -237,6 +237,43 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         rhs!(du_loc, u_loc, u_global, semi, semi_, t)
     end
 
+    # Handle coupled mortars (hanging nodes at mesh view boundaries)
+    foreach_enumerate(semi.semis) do (i, semi_)
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
+
+        # Check if this mesh view has coupled mortars
+        if isdefined(cache, :coupled_mortars) && ncoupledmortars(cache.coupled_mortars) > 0
+            u_loc = get_system_u_ode(u_ode, i, semi)
+            du_loc = get_system_u_ode(du_ode, i, semi)
+
+            # Wrap to get correct array structure
+            u = wrap_array(u_loc, mesh, equations, solver, cache)
+            du = wrap_array(du_loc, mesh, equations, solver, cache)
+
+            # Prolong local elements to coupled mortars
+            @trixi_timeit timer() "prolong2coupledmortars" prolong2coupledmortars!(cache,
+                                                                                   u,
+                                                                                   mesh,
+                                                                                   equations,
+                                                                                   solver.mortar_l2,
+                                                                                   solver)
+
+            # Compute and apply coupled mortar fluxes
+            @trixi_timeit timer() "coupled mortar flux" begin
+                calc_coupled_mortar_flux!(cache.elements.surface_flux_values,
+                                        mesh,
+                                        have_nonconservative_terms(equations),
+                                        equations,
+                                        solver.mortar_l2,
+                                        solver.surface_integral,
+                                        solver,
+                                        cache,
+                                        u_global,
+                                        semi)
+            end
+        end
+    end
+
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 
