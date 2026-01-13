@@ -16,7 +16,7 @@
                                        u::AbstractArray{<:Any, 5}, t, semi, equations)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
-    @threaded for element in eachelement(dg, cache)
+    for element in eachelement(dg, cache)
         # Calculate bounds at Gauss-Lobatto nodes
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, k, element]
