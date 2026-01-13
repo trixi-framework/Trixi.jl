@@ -205,6 +205,7 @@ end
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation3D) = u
+@inline prim2cons(u, equation::LinearScalarAdvectionEquation3D) = u
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
