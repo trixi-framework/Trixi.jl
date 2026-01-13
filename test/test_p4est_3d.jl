@@ -348,7 +348,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl (positivity bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         l2=[
                             0.1942700455652903,
@@ -363,6 +363,34 @@ end
                             1.888570026369125,
                             1.8885700263691252,
                             4.9712792944452096
+                        ],
+                        tspan=(0.0, 0.3),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
+
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl (local bounds)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                             min)],
+                        l2=[
+                            0.1915318005244781,
+                            0.07411152361873617,
+                            0.07411152361862065,
+                            0.07411152361857419,
+                            0.3671429874699181
+                        ],
+                        linf=[
+                            1.4038193878721086,
+                            1.3396575223347014,
+                            1.3396575223496925,
+                            1.3396575223283882,
+                            4.824249071367561
                         ],
                         tspan=(0.0, 0.3),)
     # Ensure that we do not have excessive memory allocations
