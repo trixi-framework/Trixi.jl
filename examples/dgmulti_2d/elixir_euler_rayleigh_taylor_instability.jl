@@ -30,8 +30,6 @@ defined below.
 @inline function initial_condition_rayleigh_taylor_instability(x, t,
                                                                equations::CompressibleEulerEquations2D,
                                                                slope = 1000)
-    tol = 1e2 * eps()
-
     if x[2] < 0.5
         p = 2 * x[2] + 1
     else
