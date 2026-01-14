@@ -134,7 +134,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
                                 1.2910938760258899,
                                 6.473385481404865
                             ],
-                            tspan=(0.0, 1.0),)
+                            tspan=(0.0, 1.0))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         if VERSION >= v"1.12"
