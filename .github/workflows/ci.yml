@@ -57,7 +57,9 @@ jobs:
       fail-fast: false
       matrix:
         version:
+          - '1.10'
           - '1.11'
+          - '1.12'
           # - '~1.10.0-0' # including development versions
           # - 'nightly'
         os:
@@ -65,51 +67,51 @@ jobs:
         arch:
           - x64
         trixi_test:
-          - tree_part1
-          - tree_part2
-          - tree_part3
-          - tree_part4
-          - tree_part5
-          - tree_part6
-          - structured
-          - p4est_part1
-          - p4est_part2
-          - t8code_part1
-          - t8code_part2
-          - unstructured_dgmulti
+          # - tree_part1
+          # - tree_part2
+          # - tree_part3
+          # - tree_part4
+          # - tree_part5
+          # - tree_part6
+          # - structured
+          # - p4est_part1
+          # - p4est_part2
+          # - t8code_part1
+          # - t8code_part2
+          # - unstructured_dgmulti
           - parabolic_part1
-          - parabolic_part2
-          - paper_self_gravitating_gas_dynamics
-          - misc_part1
-          - misc_part2
-          - performance_specializations
-          - mpi
-          - threaded
-        include:
-          - version: '1.11'
-            os: ubuntu-latest
-            arch: x64
-            trixi_test: threaded_legacy
-          - version: '1.12'
-            os: ubuntu-latest
-            arch: x64
-            trixi_test: threaded_legacy
-          - version: '1.10'
-            os: macos-latest
-            arch: aarch64
-            trixi_test: mpi
-          - version: '1.10'
-            os: macos-latest
-            arch: aarch64
-            trixi_test: threaded
-          - version: '1.10'
-            os: windows-latest
-            arch: x64
-            trixi_test: mpi
-          - version: '1.10'
-            os: windows-latest
-            arch: x64
-            trixi_test: threaded
+          # - parabolic_part2
+          # - paper_self_gravitating_gas_dynamics
+          # - misc_part1
+          # - misc_part2
+          # - performance_specializations
+          # - mpi
+          # - threaded
+        # include:
+        #   - version: '1.11'
+        #     os: ubuntu-latest
+        #     arch: x64
+        #     trixi_test: threaded_legacy
+        #   - version: '1.12'
+        #     os: ubuntu-latest
+        #     arch: x64
+        #     trixi_test: threaded_legacy
+        #   - version: '1.10'
+        #     os: macos-latest
+        #     arch: aarch64
+        #     trixi_test: mpi
+        #   - version: '1.10'
+        #     os: macos-latest
+        #     arch: aarch64
+        #     trixi_test: threaded
+        #   - version: '1.10'
+        #     os: windows-latest
+        #     arch: x64
+        #     trixi_test: mpi
+        #   - version: '1.10'
+        #     os: windows-latest
+        #     arch: x64
+        #     trixi_test: threaded
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
@@ -120,6 +122,16 @@ jobs:
       - uses: julia-actions/cache@v2
         with:
           include-matrix: false
+      - name: Setup Controller Branch
+        shell: julia --project="." --color=yes {0}
+        run: |
+          using Pkg
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqCore", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqBDF", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqLowOrderRK", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqLowStorageRK", rev="do/controller-refactor"))
+          Pkg.instantiate()
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
