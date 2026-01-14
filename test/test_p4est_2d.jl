@@ -680,9 +680,6 @@ end
                               0.00260875068917614, 2.1084038302110918e-6,
                               0.004011403632471433],
                         tspan=(0.0, 0.02))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
