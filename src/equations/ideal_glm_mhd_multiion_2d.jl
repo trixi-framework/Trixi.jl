@@ -629,34 +629,21 @@ end
         vk2_minus_avg = 0.5f0 * (vk2_minus_ll + vk2_minus_rr)
         vk3_minus_avg = 0.5f0 * (vk3_minus_ll + vk3_minus_rr)
 
-        vk_minus_avg = SVector((vk1_minus_avg, vk2_minus_avg, vk3_minus_avg))
-        B_avg = SVector((B1_avg, B2_avg, B3_avg))
-        B_ll = SVector((B1_ll, B2_ll, B3_ll))
-        #         f5 += dot(B_ll, cross(vk_minus_avg, B_avg)) ⋅ normal_direction
-        f5 += dot(B_ll, cross(vk_minus_avg, B_avg)) *
-              dot(normal_direction, normal_direction)
-        #         f5 += (B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
-        #                B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) *
-        #               normal_direction[1]
-        #         f5 += (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
-        #                B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) *
-        #               normal_direction[2]
+        # Compute multi-ion term (vanishes for NCOMP==1)
+        # This is the projection of B_ll ⋅ (v_minus × B_avg) onto the normal direction
+        f5 += (B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
+               B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) *
+              normal_direction[1]
+        f5 += (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
+               B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) *
+              normal_direction[2]
 
-        # Compute Godunov-Powell term
-        GP_term = charge_ratio_ll[k] *
-                  (B_ll * dot(B_avg, SVector((normal_direction..., 0))))
-        f2 = GP_term[1]
-        f3 = GP_term[2]
-        f4 = GP_term[3]
-
-        #         f2 += charge_ratio_ll[k] * B1_ll *
-        #               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
-        #         f3 += charge_ratio_ll[k] * B2_ll *
-        #               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
-        #         f4 += charge_ratio_ll[k] * B3_ll *
-        #               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
-        f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
-              (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
+        # Compute Godunov-Powell term (ADD to f2, f3, f4, not overwrite!)
+        B_dot_n = B1_avg * normal_direction[1] + B2_avg * normal_direction[2]
+        f2 += charge_ratio_ll[k] * B1_ll * B_dot_n
+        f3 += charge_ratio_ll[k] * B2_ll * B_dot_n
+        f4 += charge_ratio_ll[k] * B3_ll * B_dot_n
+        f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B_dot_n
 
         # Compute GLM term for the energy
         f5 += v1_plus_ll * psi_ll * psi_avg * normal_direction[1]
@@ -1305,13 +1292,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2, T},
         # MHD part
         f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg -
                0.5f0 * vk1_plus_mag_avg * normal_direction[1] -
-               0.5f0 * vk2_plus_mag_avg +
-               normal_direction[2] +
+               0.5f0 * vk2_plus_mag_avg * normal_direction[2] +
                (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) *
                vel_dot_mag_avg                # Same terms as in Derigs (but with v_plus)
                + f9 * psi_avg -
                equations.c_h *
-               (psi_B1_avg * normal_direction[1] + psi_B1_avg * normal_direction[2]) # GLM term
+               (psi_B1_avg * normal_direction[1] + psi_B2_avg * normal_direction[2]) # GLM term
                +
                0.5f0 *
                (vk1_plus_avg * normal_direction[1] + vk2_plus_avg * normal_direction[2]) *
