@@ -68,7 +68,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/bd
 boundary_symbols = [:Airfoil, :FarField]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
 
-restart_filename = "out/restart_000920000.h5"
+restart_filename = "out/restart_000240000.h5"
 mesh = load_mesh(restart_filename)
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
@@ -93,11 +93,11 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 t_c = airfoil_cord_length / U_inf()
 
-#tspan = (0.0, 15 * t_c)
+#tspan = (0.0, 50 * t_c)
 #ode = semidiscretize(semi, tspan)
 
 
-tspan = (load_time(restart_filename), 25 * t_c)
+tspan = (load_time(restart_filename), 60 * t_c)
 ode = semidiscretize(semi, tspan, restart_filename)
 
 
@@ -159,7 +159,7 @@ save_restart = SaveRestartCallback(interval = save_sol_interval,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, 
                         alive_callback,
-                        amr_callback,
+                        #amr_callback,
                         #save_solution,
                         save_restart
                         )
@@ -169,7 +169,7 @@ callbacks = CallbackSet(summary_callback,
 
 ode_algorithm = SSPRK43(thread = Trixi.True())
 
-tols = 5e-5
+tols = 5e-5 # Not sure if low or high tols lead to better performance here
 sol = solve(ode, ode_algorithm;
-            abstol = tols, reltol = tols,
+            abstol = tols, reltol = tols, dt = 4e-6,
             ode_default_options()..., callback = callbacks)
