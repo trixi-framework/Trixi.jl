@@ -186,4 +186,43 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
 
     return alpha
 end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{1},
+                      basis::LobattoLegendreBasis)
+    alpha = Vector{real(basis)}()
+    return (; alpha, basis.weights)
+end
+
+# this method is used when the indicator is constructed as for AMR
+function create_cache(type::Type{IndicatorClamp}, mesh, equations::AbstractEquations{1},
+                      dg::DGSEM, cache)
+    cache = create_cache(type, equations, dg.basis)
+end
+
+function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 3},
+                                           mesh, equations, dg::DGSEM, cache;
+                                           kwargs...)
+    @unpack alpha, weights = indicator_clamp.cache
+    resize!(alpha, nelements(dg, cache))
+
+    @threaded for element in eachelement(dg, cache)
+        mean = zero(real(dg.basis))
+
+        for i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, element)
+            mean += indicator_clamp.variable(u_local, equations) *
+                    weights[i]
+        end
+        mean *= 0.5 # Divide by reference element length
+
+        if indicator_clamp.min <= mean <= indicator_clamp.max
+            alpha[element] = 1.0
+        else
+            alpha[element] = -1.0
+        end
+    end
+
+    return alpha
+end
 end # @muladd
