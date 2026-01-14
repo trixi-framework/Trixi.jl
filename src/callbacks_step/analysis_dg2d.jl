@@ -242,7 +242,9 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate(func::Func, u,
-                   mesh::AbstractMesh{2},
+                   mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                               UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
+                               T8codeMesh{2}}
                    equations, dg::DG, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, element, equations, dg
@@ -270,7 +272,8 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::AbstractMesh{2},
+                 mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                             UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}}},
                  equations, dg::DG, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
