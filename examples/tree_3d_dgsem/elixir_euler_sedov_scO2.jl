@@ -75,7 +75,6 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(alive_interval = 20)
 
-
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max = 1.0,
                                           alpha_min = 0.0,
