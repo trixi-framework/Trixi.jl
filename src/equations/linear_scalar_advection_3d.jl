@@ -203,7 +203,7 @@ Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_stru
     return abs.(equation.advection_velocity)
 end
 
-# Convert conservative variables to primitive
+# Convert conservative variables to primitive and vice-versa
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation3D) = u
 @inline prim2cons(u, equation::LinearScalarAdvectionEquation3D) = u
 
