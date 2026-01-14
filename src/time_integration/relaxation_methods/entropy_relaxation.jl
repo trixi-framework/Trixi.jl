@@ -6,7 +6,7 @@
 #! format: noindent
 
 @inline function integrate_w_dot_stage(stage, u_stage,
-                                       mesh::AbstractMesh{1},
+                                       mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                        equations, dg::DG, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
@@ -22,7 +22,9 @@
 end
 
 @inline function integrate_w_dot_stage(stage, u_stage,
-                                       mesh::AbstractMesh{2},
+                                       mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                   UnstructuredMesh2D, P4estMesh{2},
+                                                   T8codeMesh{2}},
                                        equations, dg::DG, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
@@ -38,7 +40,8 @@ end
 end
 
 @inline function integrate_w_dot_stage(stage, u_stage,
-                                       mesh::AbstractMesh{3},
+                                       mesh::Union{TreeMesh{3}, StructuredMesh{3},
+                                                   P4estMesh{3}, T8codeMesh{3}},
                                        equations, dg::DG, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
