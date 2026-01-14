@@ -385,8 +385,7 @@ end
     return nothing
 end
 
-@inline function fv_kernel!(du, u,
-                            mesh::AbstractMesh{2},
+@inline function fv_kernel!(du, u, mesh::AbstractMesh{2},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache

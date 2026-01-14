@@ -243,8 +243,7 @@ function check_periodicity_mesh_boundary_conditions_z(mesh, z_neg, z_pos)
     end
 end
 
-function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
-                                                                StructuredMesh{1}},
+function check_periodicity_mesh_boundary_conditions(mesh::AbstractMesh{1},
                                                     boundary_conditions::Union{NamedTuple,
                                                                                Tuple})
     return check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
