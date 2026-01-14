@@ -68,8 +68,8 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/bd
 boundary_symbols = [:Airfoil, :FarField]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
 
-restart_filename = "out/restart_000240000.h5"
-mesh = load_mesh(restart_filename)
+#restart_filename = "out/restart_000240000.h5"
+#mesh = load_mesh(restart_filename)
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
 
@@ -93,17 +93,17 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 t_c = airfoil_cord_length / U_inf()
 
-#tspan = (0.0, 50 * t_c)
-#ode = semidiscretize(semi, tspan)
+tspan = (0.0, 50 * t_c)
+ode = semidiscretize(semi, tspan)
 
 
-tspan = (load_time(restart_filename), 60 * t_c)
-ode = semidiscretize(semi, tspan, restart_filename)
+#tspan = (load_time(restart_filename), 60 * t_c)
+#ode = semidiscretize(semi, tspan, restart_filename)
 
 
 summary_callback = SummaryCallback()
 
-save_sol_interval = 20_000
+save_sol_interval = 100_000
 save_solution = SaveSolutionCallback(interval = save_sol_interval,
                                      save_initial_solution = false,
                                      save_final_solution = true)
