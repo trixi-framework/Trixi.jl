@@ -9,17 +9,17 @@ for human readability.
 ## Changes in the v0.13 lifecycle
 
 #### Added
-- Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582] and [#2647]).
+- Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582], [#2647], [#2688], [#2722]).
   In the new version, IDP positivity limiting for conservative variables (using
   the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) and nonlinear
-  variables (using `positivity_variables_nonlinear`) is supported.
-  `BoundsCheckCallback` is not supported in 3D yet.
+  variables (using `positivity_variables_nonlinear`) is supported. Moreover, subcell shock-capturing
+  (local limiting) for nonlinear variables is supported as well.
 - Optimized 2D and 3D kernels for nonconservative fluxes with `P4estMesh` were added ([#2653], [#2663]).
   The optimized kernel can be enabled via the trait `Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)`.
   When the trait is set to `Trixi.True()`, a single method has to be defined, that computes and returns the tuple
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_ll, u_rr)` and
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_rr, u_ll)`.
-- Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]). 
+- Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]).
 
 ## Changes when updating to v0.13 from v0.12.x
 
