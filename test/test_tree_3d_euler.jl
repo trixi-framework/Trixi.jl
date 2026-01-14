@@ -228,7 +228,7 @@ end
                             0.2749304638368023,
                             1.4053942765487641
                         ],
-                        maxiters=10,)
+                        maxiters=10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

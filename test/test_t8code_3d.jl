@@ -192,7 +192,7 @@ mkdir(outdir)
                                 3.3228975127030935e-13,
                                 9.592326932761353e-13
                             ],
-                            tspan=(0.0, 0.1), atol=5.0e-13,)
+                            tspan=(0.0, 0.1), atol=5.0e-13)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -295,7 +295,7 @@ mkdir(outdir)
                             ],
                             tspan=(0.0, 1e2),
                             # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                            abstol=1.0e-9, reltol=1.0e-9,)
+                            abstol=1.0e-9, reltol=1.0e-9)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
