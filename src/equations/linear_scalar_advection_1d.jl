@@ -225,7 +225,7 @@ end
     return a < 0 ? flux(u, orientation, equations) : SVector(zero(RealT))
 end
 
-# Convert conservative variables to primitive
+# Convert conservative variables to primitive and vice versa
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation1D) = u
 @inline prim2cons(u, equation::LinearScalarAdvectionEquation1D) = u
 
