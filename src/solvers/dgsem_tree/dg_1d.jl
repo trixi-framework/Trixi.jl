@@ -35,7 +35,7 @@ end
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
 
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+function create_cache(mesh::AbstractMesh{1}, equations,
                       volume_integral::AbstractVolumeIntegralSubcell,
                       dg::DG, cache_containers, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
@@ -117,7 +117,7 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
 @inline function weak_form_kernel!(du, u,
-                                   element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                   element, mesh::AbstractMesh{1},
                                    have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -139,7 +139,7 @@ end
 
 @inline function flux_differencing_kernel!(du, u,
                                            element,
-                                           mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                           mesh::AbstractMesh{1},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -169,7 +169,7 @@ end
 
 @inline function flux_differencing_kernel!(du, u,
                                            element,
-                                           mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                           mesh::AbstractMesh{1},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -204,7 +204,7 @@ end
 end
 
 @inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                            mesh::AbstractMesh{1},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
@@ -230,7 +230,7 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                              mesh::AbstractMesh{1},
                               nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -262,7 +262,7 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
-                              mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                              mesh::AbstractMesh{1},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     for i in 2:nnodes(dg)
@@ -308,7 +308,7 @@ end
 # "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. Part II: Subcell finite volume shock capturing"
 # [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, u,
-                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                mesh::AbstractMesh{1},
                                 nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter)
@@ -585,7 +585,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function calc_surface_integral!(du, u, mesh::AbstractMesh{1},
                                 equations, surface_integral, dg::DGSEM, cache)
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements

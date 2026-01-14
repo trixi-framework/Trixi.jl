@@ -264,10 +264,8 @@ function integrate_via_indices(func::Func, u,
     return integral
 end
 
-function integrate(func::Func, u,
-                   mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                               T8codeMesh{3}},
-                   equations, dg::DG, cache; normalize = true) where {Func}
+function integrate(func::Func, u, mesh::AbstractMesh{3},
+                   equations, dg::DGSEM, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, k, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, k, element)
@@ -275,10 +273,8 @@ function integrate(func::Func, u,
     end
 end
 
-function integrate(func::Func, u,
-                   mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                   equations, equations_parabolic,
-                   dg::DGSEM,
+function integrate(func::Func, u, mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                   equations, equations_parabolic, dg::DGSEM,
                    cache, cache_parabolic; normalize = true) where {Func}
     gradients_x, gradients_y, gradients_z = cache_parabolic.viscous_container.gradients
     integrate_via_indices(u, mesh, equations, dg, cache;
@@ -296,9 +292,8 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                             T8codeMesh{3}},
-                 equations, dg::DG, cache)
+                 mesh::AbstractMesh{3},
+                 equations, dg::DGSEM, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, k, element, equations, dg, du
