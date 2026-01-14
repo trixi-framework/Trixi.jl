@@ -26,7 +26,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     seriestype --> :heatmap
 
     # Return data for plotting
-    x, y, data[variable_id]
+    return x, y, data[variable_id]
 end
 
 # Visualize the mesh in a 2D plot
@@ -47,7 +47,7 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
     linewidth --> 1
 
     # Return data for plotting
-    mesh_vertices_x, mesh_vertices_y
+    return mesh_vertices_x, mesh_vertices_y
 end
 
 # Visualize the mesh in a 2D plot
@@ -69,7 +69,7 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any,
     linewidth --> 1
 
     # Return data for plotting
-    mesh_vertices_x, mesh_vertices_y
+    return mesh_vertices_x, mesh_vertices_y
 end
 
 # Plot all available variables at once for convenience
@@ -121,7 +121,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{1}})
     xguide --> _get_guide(orientation_x)
 
     # Return data for plotting
-    x, data[:, variable_id]
+    return x, data[:, variable_id]
 end
 
 # Plot the mesh as vertical lines from a PlotMesh object.
@@ -139,7 +139,7 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{1}})
     linewidth --> 1
 
     # Return data for plotting
-    mesh_vertices_x
+    return mesh_vertices_x
 end
 
 # Create a plot directly from a TrixiODESolution for convenience

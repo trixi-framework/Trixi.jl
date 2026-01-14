@@ -367,7 +367,7 @@ end
                             2.4216027326405487
                         ],
                         tspan=(0.0, 0.5),
-                        initial_refinement_level=4,)
+                        initial_refinement_level=4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -402,16 +402,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.4227549115123529,
-                            0.14825759222652649,
-                            0.14825759222682933,
-                            0.6164668313131949
+                            0.4227191130908862,
+                            0.14825292449073538,
+                            0.14822591031295396,
+                            0.6164645445036752
                         ],
                         linf=[
-                            1.6391908143728386,
-                            0.8344433355906021,
-                            0.8344433355966195,
-                            6.450305752671201
+                            1.6394237885082292,
+                            0.8374761298606049,
+                            0.8322520901940953,
+                            6.4503170484248855
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
@@ -663,7 +663,7 @@ end
                             47.284459667934684
                         ],
                         tspan=(0.0, 1.0),
-                        dt=2.5e-2, adaptive=false,)
+                        dt=2.5e-2, adaptive=false)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -682,6 +682,26 @@ end
                             2993.6445033486402,
                             8.031723414357423,
                             1.1918867260293828e6
+                        ],
+                        tspan=(0.0, 1.0e-7))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_astro_jet_amr_scO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_amr_scO2.jl"),
+                        l2=[
+                            0.011443079784345214,
+                            10.241451663574527,
+                            0.003617158399146703,
+                            4089.5052326255754
+                        ],
+                        linf=[
+                            3.454389963699461,
+                            3142.415249478047,
+                            7.337729728348691,
+                            1.2527931359048043e6
                         ],
                         tspan=(0.0, 1.0e-7))
     # Ensure that we do not have excessive memory allocations

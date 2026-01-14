@@ -30,7 +30,7 @@ end
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
 function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
-                        boundary_conditions_parabolic, source_terms,
+                        boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack viscous_container = cache_parabolic
     @unpack u_transformed, gradients, flux_viscous = viscous_container
@@ -137,6 +137,11 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
         apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
     end
 
+    @trixi_timeit timer() "source terms parabolic" begin
+        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
+                                equations_parabolic, dg, cache)
+    end
+
     return nothing
 end
 
@@ -161,7 +166,9 @@ function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{2}, P4estMe
     return nothing
 end
 
-# This is the version used when calculating the divergence of the viscous fluxes
+# This is the version used when calculating the divergence of the viscous fluxes.
+# Identical to weak-form volume integral/kernel for the purely hyperbolic case,
+# except that the fluxes are here already precomputed in `calc_viscous_fluxes!`
 function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{2},
                                equations_parabolic::AbstractEquationsParabolic,
@@ -920,16 +927,23 @@ function calc_gradient_surface_integral!(gradients,
     return nothing
 end
 
-# Calculate the gradient of the transformed variables
-function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{2},
-                        equations_parabolic, boundary_conditions_parabolic,
-                        dg::DG, parabolic_scheme, cache)
+function reset_gradients!(gradients::NTuple{2}, dg::DG, cache)
     gradients_x, gradients_y = gradients
 
+    reset_du!(gradients_x, dg, cache)
+    reset_du!(gradients_y, dg, cache)
+
+    return nothing
+end
+
+# Calculate the gradient of the transformed variables
+function calc_gradient!(gradients, u_transformed, t,
+                        mesh::Union{TreeMesh{2}, TreeMesh{3}},
+                        equations_parabolic, boundary_conditions_parabolic,
+                        dg::DG, parabolic_scheme, cache)
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
-        reset_du!(gradients_x, dg, cache)
-        reset_du!(gradients_y, dg, cache)
+        reset_gradients!(gradients, dg, cache)
     end
 
     # Calculate volume integral
@@ -988,11 +1002,22 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{2},
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg,
-                                  cache)
-        apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg,
+        apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
                                   cache)
     end
+
+    return nothing
+end
+
+function apply_jacobian_parabolic!(gradients::NTuple{2}, mesh::AbstractMesh{2},
+                                   equations_parabolic::AbstractEquationsParabolic,
+                                   dg::DG, cache)
+    gradients_x, gradients_y = gradients
+
+    apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg,
+                              cache)
+    apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg,
+                              cache)
 
     return nothing
 end
@@ -1001,7 +1026,7 @@ end
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
-function apply_jacobian_parabolic!(du, mesh::TreeMesh{2},
+function apply_jacobian_parabolic!(du::AbstractArray, mesh::TreeMesh{2},
                                    equations::AbstractEquationsParabolic, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
@@ -1012,6 +1037,38 @@ function apply_jacobian_parabolic!(du, mesh::TreeMesh{2},
             for v in eachvariable(equations)
                 du[v, i, j, element] *= factor
             end
+        end
+    end
+
+    return nothing
+end
+
+# Need dimension specific version to avoid error at dispatching
+function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
+                                 equations_parabolic::AbstractEquations{2}, dg::DG,
+                                 cache)
+    return nothing
+end
+
+function calc_sources_parabolic!(du, u, gradients, t, source_terms,
+                                 equations_parabolic::AbstractEquations{2}, dg::DG,
+                                 cache)
+    @unpack node_coordinates = cache.elements
+    equations = equations_parabolic.equations_hyperbolic
+
+    @threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            gradients_x_local = get_node_vars(gradients[1], equations, dg, i, j,
+                                              element)
+            gradients_y_local = get_node_vars(gradients[2], equations, dg, i, j,
+                                              element)
+            gradients_local = (gradients_x_local, gradients_y_local)
+            x_local = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, element)
+            du_local = source_terms(u_local, gradients_local, x_local, t,
+                                    equations_parabolic)
+            add_to_node_vars!(du, du_local, equations, dg, i, j, element)
         end
     end
 

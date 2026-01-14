@@ -228,7 +228,7 @@ end
                             0.2749304638368023,
                             1.4053942765487641
                         ],
-                        maxiters=10,)
+                        maxiters=10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -449,6 +449,28 @@ end
                         ],
                         tspan=(0.0, 0.01),
                         surface_flux=flux_hlle)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_sedov_scO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_scO2.jl"),
+                        l2=[
+                            0.00700044366656764,
+                            0.018962720270366887,
+                            0.01896272027036692,
+                            0.018962720270366863,
+                            0.21537167091542966
+                        ],
+                        linf=[
+                            0.6040987203417612,
+                            2.26892456902628,
+                            2.2689245690262805,
+                            2.2689245690262805,
+                            14.089789344124894
+                        ],
+                        tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

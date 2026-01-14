@@ -28,7 +28,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_free_stream.jl"),
                         l2=[1.2908196366970896e-14],
                         linf=[1.0262901639634947e-12],
-                        atol=8e-13,)
+                        atol=8e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
