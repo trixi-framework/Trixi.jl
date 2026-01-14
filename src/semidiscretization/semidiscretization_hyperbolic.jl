@@ -107,7 +107,7 @@ end
 
 # resolve ambiguities with definitions below
 function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
-                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
+                                    mesh::AbstractMesh{1}, solver,
                                     cache)
     return boundary_conditions
 end
@@ -127,7 +127,7 @@ end
 # allow passing a single BC that get converted into a tuple of BCs
 # on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions,
-                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
+                                    mesh::AbstractMesh{1}, solver,
                                     cache)
     return (; x_neg = boundary_conditions, x_pos = boundary_conditions)
 end
@@ -150,7 +150,7 @@ end
 # allow passing a tuple of BCs that get converted into a named tuple to make it
 # self-documenting on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions::NTuple{2, Any},
-                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
+                                    mesh::AbstractMesh{1}, solver,
                                     cache)
     return (; x_neg = boundary_conditions[1], x_pos = boundary_conditions[2])
 end
@@ -173,7 +173,7 @@ end
 # allow passing named tuples of BCs constructed in an arbitrary order
 # on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
-                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
+                                    mesh::AbstractMesh{1}, solver,
                                     cache) where {Keys, ValueTypes <: NTuple{2, Any}}
     @unpack x_neg, x_pos = boundary_conditions
     return (; x_neg, x_pos)
