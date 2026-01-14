@@ -81,7 +81,8 @@ function calc_volume_integral!(du, u, mesh,
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{AbstractMesh{1}, AbstractMesh{2},
+                               mesh::Union{TreeMesh{1}, StructuredMesh{1},
+                                           TreeMesh{2}, StructuredMesh{2}, P4estMesh{2},
                                            TreeMesh{3}},
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingRRG,
