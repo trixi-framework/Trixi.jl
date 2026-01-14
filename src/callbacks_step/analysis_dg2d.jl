@@ -241,8 +241,7 @@ function integrate_via_indices(func::Func, u,
     return integral
 end
 
-function integrate(func::Func, u,
-                   mesh::AbstractMesh{2},
+function integrate(func::Func, u, mesh::AbstractMesh{2},
                    equations, dg::DGSEM, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, element, equations, dg
@@ -251,10 +250,8 @@ function integrate(func::Func, u,
     end
 end
 
-function integrate(func::Func, u,
-                   mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                   equations, equations_parabolic,
-                   dg::DGSEM,
+function integrate(func::Func, u, mesh::Union{TreeMesh{2}, P4estMesh{2}},
+                   equations, equations_parabolic, dg::DGSEM,
                    cache, cache_parabolic; normalize = true) where {Func}
     gradients_x, gradients_y = cache_parabolic.viscous_container.gradients
     integrate_via_indices(u, mesh, equations, dg, cache;

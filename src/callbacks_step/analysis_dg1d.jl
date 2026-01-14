@@ -171,8 +171,7 @@ function integrate_via_indices(func::Func, u,
     return integral
 end
 
-function integrate(func::Func, u,
-                   mesh::AbstractMesh{1},
+function integrate(func::Func, u, mesh::AbstractMesh{1},
                    equations, dg::DGSEM, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, element, equations, dg
