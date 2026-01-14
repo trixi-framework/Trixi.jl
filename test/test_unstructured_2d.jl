@@ -191,7 +191,7 @@ end
                             0.0005656680962440319,
                             0.0013910024779804075
                         ],
-                        tspan=(0.0, 0.2),)
+                        tspan=(0.0, 0.2))
     # Extra test that the `TimeSeries` callback creates reasonable data
     point_data_1 = time_series.affect!.point_data[1]
     @test all(isapprox.(point_data_1[1:4],
