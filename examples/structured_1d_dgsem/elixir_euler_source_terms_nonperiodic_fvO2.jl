@@ -22,6 +22,7 @@ basis = LobattoLegendreBasis(polydeg)
 surface_flux = flux_hll
 volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                       volume_flux_fv = surface_flux,
+                                                      # switch to `reconstruction_O2_full` for full 2nd order convergence
                                                       reconstruction_mode = reconstruction_O2_inner,
                                                       slope_limiter = vanLeer)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
