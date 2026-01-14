@@ -7,7 +7,8 @@ using Trixi
 equations = CompressibleEulerEquations3D(1.4)
 
 """
-    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
+    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
+
 The Sedov blast wave setup based on example 35.1.4 from Flash
 - https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 """
