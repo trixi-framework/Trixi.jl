@@ -137,9 +137,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::AbstractMesh{1},
+@inline function flux_differencing_kernel!(du, u, element, mesh::AbstractMesh{1},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -167,9 +165,7 @@ end
     end
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::AbstractMesh{1},
+@inline function flux_differencing_kernel!(du, u, element, mesh::AbstractMesh{1},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
