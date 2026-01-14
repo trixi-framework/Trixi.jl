@@ -613,7 +613,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
 end
 
 @trixi_testset "elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl (local bounds)" begin
@@ -622,6 +622,7 @@ end
                         local_twosided_variables_cons=["rho"],
                         local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal,
                                                              min)],
+                        max_iterations_newton=30,
                         l2=[
                             0.03390196416615077,
                             0.027635852530635028,
@@ -630,10 +631,10 @@ end
                             0.08398670497514621
                         ],
                         linf=[
-                            0.16264620832647103,
+                            0.1626462053447677,
                             0.17331631520536006,
                             0.18420209957841727,
-                            0.1578396641384181,
+                            0.15783966108549974,
                             0.34195502332901295
                         ])
     # Ensure that we do not have excessive memory allocations
