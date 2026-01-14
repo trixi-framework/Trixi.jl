@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-@inline function check_bounds(u, equations::AbstractEquations{2}, # only works for 2D
+@inline function check_bounds(u, equations::AbstractEquations{2},
                               solver, cache, limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
