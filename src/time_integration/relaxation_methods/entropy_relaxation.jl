@@ -7,7 +7,7 @@
 
 @inline function integrate_w_dot_stage(stage, u_stage,
                                        mesh::AbstractMesh{1},
-                                       equations, dg::DGSEM, cache)
+                                       equations, dg::Union{DGSEM, FDSBP}, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
         integrate_via_indices(u_stage, mesh, equations, dg, cache,
@@ -23,7 +23,7 @@ end
 
 @inline function integrate_w_dot_stage(stage, u_stage,
                                        mesh::AbstractMesh{2},
-                                       equations, dg::DGSEM, cache)
+                                       equations, dg::Union{DGSEM, FDSBP}, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
         integrate_via_indices(u_stage, mesh, equations, dg, cache,
@@ -39,7 +39,7 @@ end
 
 @inline function integrate_w_dot_stage(stage, u_stage,
                                        mesh::AbstractMesh{3},
-                                       equations, dg::DGSEM, cache)
+                                       equations, dg::Union{DGSEM, FDSBP}, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
         integrate_via_indices(u_stage, mesh, equations, dg, cache,
