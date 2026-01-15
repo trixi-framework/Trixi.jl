@@ -38,7 +38,7 @@ Because of this, the primitive variables are also defined to be `V, v1, T` (inst
 mass basis unless otherewise specified.     
 """
 struct NonIdealCompressibleEulerEquations1D{EoS_T <: AbstractEquationOfState} <:
-       AbstractCompressibleEulerEquations{1, 3}    
+       AbstractCompressibleEulerEquations{1, 3}
     equation_of_state::EoS_T
 end
 
@@ -52,7 +52,8 @@ varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("V", "v
 
 A constant initial condition to test free-stream preservation.
 """
-function initial_condition_constant(x, t, equations::NonIdealCompressibleEulerEquations1D)
+function initial_condition_constant(x, t,
+                                    equations::NonIdealCompressibleEulerEquations1D)
     RealT = eltype(x)
     rho = 1
     rho_v1 = convert(RealT, 0.1)
@@ -84,7 +85,8 @@ Should be used together with [`TreeMesh`](@ref).
 end
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation::Integer, equations::NonIdealCompressibleEulerEquations1D)
+@inline function flux(u, orientation::Integer,
+                      equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
 
     rho, rho_v1, rho_E = u
@@ -106,7 +108,7 @@ end
 
     eos = equations.equation_of_state
     c_ll = speed_of_sound(V_ll, T_ll, eos)
-    c_rr = speed_of_sound(V_rr, T_rr, eos)    
+    c_rr = speed_of_sound(V_rr, T_rr, eos)
     λ_min = v1_ll - c_ll
     λ_max = v1_rr + c_rr
 
@@ -121,11 +123,11 @@ end
 
     v_mag_ll = abs(v1_ll)
     v_mag_rr = abs(v1_rr)
-    
+
     # Calculate primitive variables and speed of sound
     eos = equations.equation_of_state
     c_ll = speed_of_sound(V_ll, T_ll, eos)
-    c_rr = speed_of_sound(V_rr, T_rr, eos)    
+    c_rr = speed_of_sound(V_rr, T_rr, eos)
 
     return max(v_mag_ll + c_ll, v_mag_rr + c_rr)
 end
@@ -139,7 +141,7 @@ end
     # Calculate primitive variables and speed of sound
     eos = equations.equation_of_state
     c_ll = speed_of_sound(V_ll, T_ll, eos)
-    c_rr = speed_of_sound(V_rr, T_rr, eos)   
+    c_rr = speed_of_sound(V_rr, T_rr, eos)
 
     λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
     λ_max = max(v1_ll + c_ll, v1_rr + c_rr)
@@ -165,7 +167,7 @@ end
     V = inv(rho)
     v1 = rho_v1 * V
     e = (rho_E - 0.5 * rho_v1 * v1) * V
-    T = temperature(V, e, eos)    
+    T = temperature(V, e, eos)
 
     return SVector(V, v1, T)
 end
@@ -202,7 +204,7 @@ where `s` is the specific entropy determined by the equation of state.
     eos = equations.equation_of_state
     V, v1, T = cons2prim(u, equations)
     rho = u[1]
-    S = -rho * specific_entropy(V, T, eos) 
+    S = -rho * specific_entropy(V, T, eos)
     return S
 end
 
@@ -215,5 +217,4 @@ Default entropy is the mathematical entropy
 @inline function entropy(cons, equations::NonIdealCompressibleEulerEquations1D)
     return entropy_math(cons, equations)
 end
-
 end # @muladd

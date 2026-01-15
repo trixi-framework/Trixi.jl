@@ -503,9 +503,9 @@ end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl" begin
     mean_convergence = convergence_test(@__MODULE__,
-                                    joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                                "elixir_euler_nonideal_density_wave.jl"),
-                                    3, initial_refinement_level = 3)
+                                        joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                                 "elixir_euler_nonideal_density_wave.jl"),
+                                        3, initial_refinement_level = 3)
 
     @test isapprox(mean_convergence[:l2], [4.31664, 4.78633, 4.28456], rtol = 0.05)
 
@@ -515,15 +515,24 @@ end
 end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl with ideal gas" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem", "elixir_euler_nonideal_density_wave.jl"),
-                            eos = IdealGas(1.4), tspan = (0.0, 0.1), 
-                        l2 = [4.572238675002162e-5, 4.572238675006431e-6, 2.2861193337425137e-7], linf = [9.083503726636799e-5, 9.083503726865783e-6, 4.54175189901207e-7])
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        eos=IdealGas(1.4), tspan=(0.0, 0.1),
+                        l2=[
+                            4.572238675002162e-5,
+                            4.572238675006431e-6,
+                            2.2861193337425137e-7
+                        ],
+                        linf=[
+                            9.083503726636799e-5,
+                            9.083503726865783e-6,
+                            4.54175189901207e-7
+                        ])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-
 end
 
 end # module

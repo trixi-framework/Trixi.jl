@@ -22,14 +22,14 @@ end
 function pressure(V, T, eos::IdealGas)
     (; R) = eos
     rho = inv(V)
-    p = rho * R * T 
+    p = rho * R * T
     return p
 end
 
-function internal_energy(V, T, eos::IdealGas) 
+function internal_energy(V, T, eos::IdealGas)
     (; cv) = eos
     e = cv * T
-    return e 
+    return e
 end
 
 function specific_entropy(V, T, eos::IdealGas)
@@ -48,4 +48,3 @@ end
 ################################################
 #        additional helper functions
 ################################################
-

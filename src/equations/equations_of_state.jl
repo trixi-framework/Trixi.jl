@@ -24,7 +24,7 @@ function gibbs_free_energy(V, T, eos)
     p = pressure(V, T, eos)
     e = internal_energy(V, T, eos)
     h = e + p * V
-    return h - T * s 
+    return h - T * s
 end
 
 # calculates dpdV_T, dpdT_V
@@ -49,15 +49,14 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0)
         de = internal_energy(V, T, eos) - e
 
         # c_v = dedT_V > 0, which should guarantee convergence of this iteration
-        dedT_V = heat_capacity_constant_volume(V, T, eos) 
+        dedT_V = heat_capacity_constant_volume(V, T, eos)
 
         T = T - de / dedT_V
-        iter += 1 
+        iter += 1
     end
-    if iter==100
-        println("Warning: nonlinear solve in `temperature(V, T, eos)` did not converge. " * 
+    if iter == 100
+        println("Warning: nonlinear solve in `temperature(V, T, eos)` did not converge. " *
                 "Final states: iter = $iter, V, e = $V, $e with de = $de")
     end
     return T
 end
-
