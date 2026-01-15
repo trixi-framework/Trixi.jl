@@ -930,8 +930,8 @@ end
 function reset_gradients!(gradients::NTuple{2}, dg::DG, cache)
     gradients_x, gradients_y = gradients
 
-    reset_du!(gradients_x, dg, cache)
-    reset_du!(gradients_y, dg, cache)
+    set_zero!(gradients_x, dg, cache)
+    set_zero!(gradients_y, dg, cache)
 
     return nothing
 end
