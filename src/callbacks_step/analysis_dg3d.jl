@@ -265,7 +265,8 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate(func::Func, u, mesh::AbstractMesh{3},
-                   equations, dg::DGSEM, cache; normalize = true) where {Func}
+                   equations, dg::Union{DGSEM, FDSBP}, cache;
+                   normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, k, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, k, element)
@@ -293,7 +294,7 @@ end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::AbstractMesh{3},
-                 equations, dg::DGSEM, cache)
+                 equations, dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, k, element, equations, dg, du
