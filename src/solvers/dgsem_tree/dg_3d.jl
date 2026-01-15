@@ -158,8 +158,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element, mesh::TreeMesh{3},
+@inline function flux_differencing_kernel!(du, u, element, mesh::TreeMesh{3},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -209,8 +208,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element, mesh::TreeMesh{3},
+@inline function flux_differencing_kernel!(du, u, element, mesh::TreeMesh{3},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -262,9 +260,7 @@ end
     return nothing
 end
 
-@inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                        T8codeMesh{3}},
+@inline function fv_kernel!(du, u, mesh::AbstractMesh{3},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache
@@ -301,9 +297,7 @@ end
     return nothing
 end
 
-@inline function fvO2_kernel!(du, u,
-                              mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                          T8codeMesh{3}},
+@inline function fvO2_kernel!(du, u, mesh::AbstractMesh{3},
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
