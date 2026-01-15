@@ -52,7 +52,8 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0)
     while abs(de) / abs(e) > tol && iter < 100
         de = internal_energy(V, T, eos) - e
 
-        # c_v = de_dT_V > 0, which should guarantee convergence of this iteration
+        # for thermodynamically admissible states, c_v = de_dT_V > 0, which should 
+        # guarantee convergence of this iteration.
         de_dT_V = heat_capacity_constant_volume(V, T, eos)
 
         T = T - de / de_dT_V
