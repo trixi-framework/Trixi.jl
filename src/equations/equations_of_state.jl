@@ -13,7 +13,7 @@ is required to calculate wavespeed estimates for e.g., local Lax-Friedrichs flux
 abstract type AbstractEquationOfState end
 
 include("equation_of_state_ideal_gas.jl")
-# include("equation_of_state_vdw.jl")
+include("equation_of_state_vdw.jl")
 
 #####
 # Some general fallback routines are provided below

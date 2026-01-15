@@ -5,24 +5,30 @@ using Trixi: ForwardDiff
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-eos = IdealGas(1.4)
+#eos = IdealGas(1.4)
+eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
 function initial_condition_density_wave(x, t, equations::NonIdealCompressibleEulerEquations1D)
-    rho = 1 + 0.5 * sin(pi * x[1])
     v1 = 0.1
+    rho = 1 + 0.5 * sin(pi * (x[1] - v1 * t))
     p = 10.0
 
     V = inv(rho)
 
     # invert for temperature given p, V
-    tol = 10 * eps()
     T = 1.0
+    tol = 100 * eps(T)
     dp = pressure(V, T, eos) - p
-    while abs(dp) / abs(p) > tol 
+    iter = 1
+    while abs(dp) / abs(p) > tol && iter < 100
         dp = pressure(V, T, eos) - p
         dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
         T = T - dp / dpdT_V
+        iter += 1
+    end
+    if iter == 100
+        println("Warning: solver for temperature(V, p) did not converge")
     end
 
     return prim2cons(SVector(V, v1, T), equations)
@@ -72,4 +78,5 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
-plot(PlotData1D(sol, solution_variables=cons2cons)["rho"])            
+# using Plots
+# plot(PlotData1D(sol, solution_variables=cons2cons)["rho"])            
