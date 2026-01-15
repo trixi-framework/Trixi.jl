@@ -344,9 +344,8 @@ end
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
     Trixi.delete_connectivity!(c::MyContainer, first, last) = c
     function Trixi.reset_data_structures!(c::MyContainer)
-        (c.data = Vector{Int}(undef,
-                              c.capacity + 1);
-         c)
+        c.data = Vector{Int}(undef, c.capacity + 1)
+        return c
     end
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
         return (c1.capacity == c2.capacity &&
@@ -447,7 +446,7 @@ end
     @test_nowarn show(stdout, indicator_hg)
 
     limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
-                                    true, [(Trixi.entropy_guermond_etal, min)], "cache",
+                                    true, [(entropy_guermond_etal, min)], "cache",
                                     1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
@@ -2566,6 +2565,27 @@ end
 
     # Test van Leer zero case
     @test vanLeer(0.0, 0.0) == 0.0
+
+    sl = -1.0
+    sr = -2.0
+    @test Koren(sl, sr) == -5 / 3
+    @test Koren(sl, sr) == Koren_flipped(sr, sl)
+    @test Koren_symmetric(sl, sr) == -4 / 3
+
+    sl = 0.0
+    @test Koren(sl, sr) == 0.0
+    @test Koren(sl, sr) == Koren_flipped(sr, sl)
+    @test Koren_symmetric(sl, sr) == 0.0
+
+    sr = 2.0
+    @test Koren(sl, sr) == 0.0
+    @test Koren(sl, sr) == Koren_flipped(sr, sl)
+    @test Koren_symmetric(sl, sr) == 0.0
+
+    sl = 1.0
+    @test Koren(sl, sr) == 5 / 3
+    @test Koren(sl, sr) == Koren_flipped(sr, sl)
+    @test Koren_symmetric(sl, sr) == 4 / 3
 end
 
 # Velocity functions are present in many equations and are tested here

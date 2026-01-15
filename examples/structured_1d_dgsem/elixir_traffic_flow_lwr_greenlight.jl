@@ -39,7 +39,7 @@ function boundary_condition_outflow(u_inner, orientation, normal_direction, x, t
                                     surface_flux_function,
                                     equations::TrafficFlowLWREquations1D)
     # Calculate the boundary flux entirely from the internal solution state
-    flux(u_inner, orientation, equations)
+    return flux(u_inner, orientation, equations)
 end
 
 boundary_conditions = (x_neg = boundary_condition_inflow,

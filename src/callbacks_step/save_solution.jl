@@ -21,7 +21,7 @@ of integration time by adding additional (shortened) time steps where necessary 
 at a single point to a set of solution variables. The first parameter passed
 to `solution_variables` will be the set of conservative variables
 and the second parameter is the equation struct.
-    
+
 Additional nodal variables such as vorticity or the Mach number can be saved by passing a tuple of symbols
 to `extra_node_variables`, e.g., `extra_node_variables = (:vorticity, :mach)`.
 In that case the function `get_node_variable` must be defined for each symbol in the tuple.
@@ -57,6 +57,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
     save_solution_callback = cb.affect!
     print(io, "SaveSolutionCallback(interval=", save_solution_callback.interval_or_dt,
           ")")
+    return nothing
 end
 
 function Base.show(io::IO,
@@ -66,6 +67,7 @@ function Base.show(io::IO,
 
     save_solution_callback = cb.affect!.affect!
     print(io, "SaveSolutionCallback(dt=", save_solution_callback.interval_or_dt, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -157,7 +159,7 @@ function initialize_save_cb!(cb, u, t, integrator)
     # The SaveSolutionCallback is either cb.affect! (with DiscreteCallback)
     # or cb.affect!.affect! (with PeriodicCallback).
     # Let recursive dispatch handle this.
-    initialize_save_cb!(cb.affect!, u, t, integrator)
+    return initialize_save_cb!(cb.affect!, u, t, integrator)
 end
 
 function initialize_save_cb!(solution_callback::SaveSolutionCallback, u, t, integrator)
@@ -191,7 +193,7 @@ function save_mesh(semi::AbstractSemidiscretization, output_directory, timestep 
     return mesh.current_filename
 end
 
-# Save mesh for a DGMultiMesh, which requires passing the `basis` as an argument to 
+# Save mesh for a DGMultiMesh, which requires passing the `basis` as an argument to
 # save_mesh_file
 function save_mesh(semi::Union{SemidiscretizationHyperbolic{<:DGMultiMesh},
                                SemidiscretizationHyperbolicParabolic{<:DGMultiMesh}},
@@ -258,12 +260,12 @@ end
         callbacks = integrator.opts.callback
         if callbacks isa CallbackSet
             foreach(callbacks.continuous_callbacks) do cb
-                get_element_variables!(element_variables, u_ode, semi, cb;
-                                       t = integrator.t, iter = iter)
+                return get_element_variables!(element_variables, u_ode, semi, cb;
+                                              t = integrator.t, iter = iter)
             end
             foreach(callbacks.discrete_callbacks) do cb
-                get_element_variables!(element_variables, u_ode, semi, cb;
-                                       t = integrator.t, iter = iter)
+                return get_element_variables!(element_variables, u_ode, semi, cb;
+                                              t = integrator.t, iter = iter)
             end
         end
     end

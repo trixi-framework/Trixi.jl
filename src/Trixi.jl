@@ -248,7 +248,8 @@ export density, pressure, density_pressure, velocity, temperature,
        global_mean_vars,
        equilibrium_distribution,
        waterheight, waterheight_pressure
-export entropy, energy_total, energy_kinetic, energy_internal,
+export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
+       energy_total, energy_kinetic, energy_internal,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
 export lake_at_rest_error
@@ -264,7 +265,8 @@ export DG,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
-       VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
+       IndicatorHennemannGassner,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
@@ -273,6 +275,7 @@ export DG,
 export reconstruction_O2_inner, reconstruction_O2_full,
        reconstruction_constant,
        minmod, monotonized_central, superbee, vanLeer,
+       Koren, Koren_flipped, Koren_symmetric,
        central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,

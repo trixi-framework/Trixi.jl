@@ -193,7 +193,7 @@ end
                             1.4104095258528071e-14
                         ],
                         linf=[1.9539925233402755e-14, 2e-12, 4.8e-12, 4e-12],
-                        atol=2.0e-12,)
+                        atol=2.0e-12)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -238,7 +238,7 @@ end
                             4.246603069191224e-14,
                             5.861977570020827e-14
                         ],
-                        atol=2.0e-12,)
+                        atol=2.0e-12)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -435,7 +435,7 @@ end
                             2.3258078438689673,
                             2.1577683028925416
                         ],
-                        tspan=(0.0, 0.3),)
+                        tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -476,7 +476,7 @@ end
                             17.750333649853616
                         ],
                         tspan=(0.0, 0.0001),
-                        rtol=1.0e-7,)
+                        rtol=1.0e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -496,7 +496,7 @@ end
                             24.241610279839758,
                             561.0630401858057
                         ],
-                        tspan=(0.0, 0.0001),)
+                        tspan=(0.0, 0.0001))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -516,7 +516,28 @@ end
                             6.857777546171545,
                             31.749285097390576
                         ],
-                        tspan=(0.0, 0.001),)
+                        tspan=(0.0, 0.001))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_supersonic_cylinder_scO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_supersonic_cylinder_scO2.jl"),
+                        l2=[
+                            0.029314031292054992,
+                            0.053506886526450186,
+                            0.03543104168310674,
+                            0.21538892425489486
+                        ],
+                        linf=[
+                            4.159114155336756,
+                            4.200427029096135,
+                            7.397166897133932,
+                            33.18602863132469
+                        ],
+                        tspan=(0.0, 0.001))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -559,6 +580,28 @@ end
                             9.031153939238115
                         ],
                         tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_rayleigh_taylor_instability.jl"),
+                        l2=[
+                            0.007290831134233476,
+                            0.00032168283766678804,
+                            0.0009191166290059234,
+                            0.005932490752668048
+                        ],
+                        linf=[
+                            0.2009479114319186,
+                            0.0029037572745886633,
+                            0.011238185106232687,
+                            0.03789118403273761
+                        ],
+                        adaptive=false, dt=1e-4,
+                        tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -771,7 +814,7 @@ end
                         base_level=0, med_level=1, max_level=1,
                         tspan=(0.0, 0.0001),
                         adapt_initial_condition=false,
-                        adapt_initial_condition_only_refine=false,)
+                        adapt_initial_condition_only_refine=false)
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -830,7 +873,7 @@ end
                             0.8266797080712205,
                             3.9792506230548317
                         ],
-                        tspan=(0.0, 0.1),)
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
