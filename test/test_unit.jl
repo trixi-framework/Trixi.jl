@@ -2565,6 +2565,27 @@ end
 
     # Test van Leer zero case
     @test vanLeer(0.0, 0.0) == 0.0
+
+    sl = -1.0
+    sr = -2.0
+    @test Koren(sl, sr) == -5 / 3
+    @test Koren(sl, sr) == Koren_flipped(sr, sl)
+    @test Koren_symmetric(sl, sr) == -4 / 3
+
+    sl = 0.0
+    @test Koren(sl, sr) == 0.0
+    @test Koren(sl, sr) == Koren_flipped(sr, sl)
+    @test Koren_symmetric(sl, sr) == 0.0
+
+    sr = 2.0
+    @test Koren(sl, sr) == 0.0
+    @test Koren(sl, sr) == Koren_flipped(sr, sl)
+    @test Koren_symmetric(sl, sr) == 0.0
+
+    sl = 1.0
+    @test Koren(sl, sr) == 5 / 3
+    @test Koren(sl, sr) == Koren_flipped(sr, sl)
+    @test Koren_symmetric(sl, sr) == 4 / 3
 end
 
 # Velocity functions are present in many equations and are tested here

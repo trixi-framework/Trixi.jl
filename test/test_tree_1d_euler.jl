@@ -286,7 +286,7 @@ end
                             2.6650170188241047
                         ],
                         shock_indicator_variable=pressure,
-                        cfl=0.2,)
+                        cfl=0.2)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -301,7 +301,7 @@ end
                             2.666689753470263
                         ],
                         shock_indicator_variable=density,
-                        cfl=0.2,)
+                        cfl=0.2)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
