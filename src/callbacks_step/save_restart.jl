@@ -189,10 +189,7 @@ function load_adaptive_time_integrator!(integrator, restart_file::AbstractString
             controller.errold = read(attributes(file)["time_integrator_qold"])
         end
         if hasproperty(controller, :dt_factor) # PID controller cache
-            beta1, beta2, beta3 = controller.controller.beta # = integrator.controller_cache.controller
-            alg = integrator.alg
-            k = min(alg_order(alg), alg_adaptive_order(alg)) + 1
-            controller.dt_factor = err1^(beta1 / k) * err2^(beta2 / k) * err3^(beta3 / k)
+            controller.dt_factor = read(attributes(file)["time_integrator_qold"])
         end
         integrator.dtpropose = read(attributes(file)["time_integrator_dtpropose"])
         # Accept step to use dtpropose already in the first step
