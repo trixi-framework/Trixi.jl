@@ -35,7 +35,7 @@ Similarly, the internal energy is specified by `e = e(V, T)`.
 
 Because of this, the primitive variables are also defined to be `V, v1, T` (instead of 
 `rho, v1, p` for `CompressibleEulerEquations1D`). The implementation also assumes 
-mass basis unless otherewise specified.     
+mass basis unless otherwise specified.     
 """
 struct NonIdealCompressibleEulerEquations1D{EoS_T <: AbstractEquationOfState} <:
        AbstractCompressibleEulerEquations{1, 3}

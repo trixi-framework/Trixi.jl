@@ -5,19 +5,23 @@ the following four functions:
 - `internal_energy(V, T, eos)`
 - `specific_entropy(V, T, eos)`
 - `speed_of_sound(V, T, eos)`
-where `eos = equations.equation_of_state`. 
-
-`specific_entropy` is required only to calculate `dSdt`, and `speed_of_sound` 
-is required to calculate wavespeed estimates for e.g., local Lax-Friedrichs fluxes. 
+where `eos = equations.equation_of_state`. `specific_entropy` is required to calculate the 
+mathematical entropy and entropy variables, and `speed_of_sound` is required to calculate 
+wavespeed estimates for e.g., local Lax-Friedrichs fluxes. 
+    
+Additional functions can also be specialized to particular equations of state to improve 
+efficiency. 
 """
 abstract type AbstractEquationOfState end
 
 include("equation_of_state_ideal_gas.jl")
 include("equation_of_state_vdw.jl")
 
-#####
+#######################################################
+#
 # Some general fallback routines are provided below
-#####
+# 
+#######################################################
 
 function gibbs_free_energy(V, T, eos)
     s = specific_entropy(V, T, eos)
@@ -48,14 +52,14 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0)
     while abs(de) / abs(e) > tol && iter < 100
         de = internal_energy(V, T, eos) - e
 
-        # c_v = dedT_V > 0, which should guarantee convergence of this iteration
-        dedT_V = heat_capacity_constant_volume(V, T, eos)
+        # c_v = de_dT_V > 0, which should guarantee convergence of this iteration
+        de_dT_V = heat_capacity_constant_volume(V, T, eos)
 
-        T = T - de / dedT_V
+        T = T - de / de_dT_V
         iter += 1
     end
     if iter == 100
-        println("Warning: nonlinear solve in `temperature(V, T, eos)` did not converge. " *
+        println("Warning: nonlinear solve in `temperature(V, T, eos)` did not converge within 100 iterations. " *
                 "Final states: iter = $iter, V, e = $V, $e with de = $de")
     end
     return T
