@@ -84,27 +84,3 @@ SparseMatrixColorings = "0.4.21"
 StableRNGs = "1.0.2"
 Test = "1"
 TrixiTest = "0.2.1"
-
-[sources.OrdinaryDiffEq]
-rev = "do/controller-refactor"
-url = "https://github.com/termi-official/OrdinaryDiffEq.jl-fork"
-
-[sources.OrdinaryDiffEqBDF]
-rev = "do/controller-refactor"
-subdir = "lib/OrdinaryDiffEqBDF"
-url = "https://github.com/termi-official/OrdinaryDiffEq.jl-fork"
-
-[sources.OrdinaryDiffEqCore]
-rev = "do/controller-refactor"
-subdir = "lib/OrdinaryDiffEqCore"
-url = "https://github.com/termi-official/OrdinaryDiffEq.jl-fork"
-
-[sources.OrdinaryDiffEqLowOrderRK]
-rev = "do/controller-refactor"
-subdir = "lib/OrdinaryDiffEqLowOrderRK"
-url = "https://github.com/termi-official/OrdinaryDiffEq.jl-fork"
-
-[sources.OrdinaryDiffEqLowStorageRK]
-rev = "do/controller-refactor"
-subdir = "lib/OrdinaryDiffEqLowStorageRK"
-url = "https://github.com/termi-official/OrdinaryDiffEq.jl-fork"
