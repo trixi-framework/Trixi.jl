@@ -5,7 +5,6 @@ using Trixi: ForwardDiff
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-#eos = IdealGas(1.4)
 eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
@@ -36,12 +35,12 @@ end
 
 initial_condition = initial_condition_density_wave
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_central)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 3,
                 n_cells_max = 30_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
