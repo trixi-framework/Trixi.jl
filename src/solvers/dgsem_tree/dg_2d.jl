@@ -70,8 +70,7 @@ function create_f_threaded(mesh::AbstractMesh{2}, equations,
 end
 
 function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             VolumeIntegralShockCapturingHG},
+                      volume_integral::AbstractVolumeIntegralSubcell,
                       dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
@@ -85,7 +84,6 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
-    # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -294,7 +292,7 @@ end
                                           T8codeMesh{2}},
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
-                              x_interfaces, reconstruction_mode, slope_limiter,
+                              sc_interface_coords, reconstruction_mode, slope_limiter,
                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -307,7 +305,7 @@ end
     calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
                    have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
-                   x_interfaces, reconstruction_mode, slope_limiter)
+                   sc_interface_coords, reconstruction_mode, slope_limiter)
 
     # Calculate FV volume integral contribution
     for j in eachnode(dg), i in eachnode(dg)
@@ -327,7 +325,7 @@ end
                                 mesh::TreeMesh{2},
                                 have_nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
-                                x_interfaces, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter)
     for j in eachnode(dg), i in 2:nnodes(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
@@ -354,7 +352,7 @@ end
 
         ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       x_interfaces, i,
+                                       sc_interface_coords, i,
                                        slope_limiter, dg)
 
         ## Convert primitive variables back to conservative variables ##
@@ -376,7 +374,7 @@ end
                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       x_interfaces, j,
+                                       sc_interface_coords, j,
                                        slope_limiter, dg)
 
         flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
