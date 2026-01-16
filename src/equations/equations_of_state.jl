@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 @doc raw"""
     AbstractEquationOfState
 
@@ -72,3 +79,4 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
     end
     return T
 end
+end # @muladd
