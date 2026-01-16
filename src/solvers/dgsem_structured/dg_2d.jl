@@ -27,8 +27,7 @@ see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
-@inline function volume_kernel!(du, u,
-                                element,
+@inline function volume_kernel!(du, u, element,
                                 mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                             UnstructuredMesh2D, P4estMesh{2},
                                             P4estMeshView{2}, T8codeMesh{2}},
