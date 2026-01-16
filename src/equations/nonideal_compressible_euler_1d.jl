@@ -12,12 +12,12 @@ The compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-    \rho \\ \rho v_1 \\ \rho E
+    \rho \\ \rho v_1 \\ \rho e_total
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-    \rho v_1 \\ \rho v_1^2 + p \\ (\rho E + p) v_1
+    \rho v_1 \\ \rho v_1^2 + p \\ (\rho e_total + p) v_1
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -26,7 +26,7 @@ The compressible Euler equations
 ```
 for a gas with pressure ``p`` specified by some equation of state in one space dimension.
 
-Here, ``\rho`` is the density, ``v_1`` the velocity, ``E`` the specific total energy, 
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_total`` the specific total energy, 
 and the pressure ``p`` is given in terms of specific volume ``V = 1/\rho`` and temperature ``T``
 by some user-specified equation of state (EOS)
 (see [`pressure(V, T, eos::IdealGas)`](@ref), [`pressure(V, T, eos::VanDerWaals)`](@ref)) as
@@ -47,7 +47,7 @@ struct NonIdealCompressibleEulerEquations1D{EoS <: AbstractEquationOfState} <:
 end
 
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations1D)
-    return ("rho", "rho_v1", "rho_e")
+    return ("rho", "rho_v1", "rho_e_total")
 end
 varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("V", "v1", "T")
 
@@ -94,14 +94,14 @@ end
                       equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
 
-    _, rho_v1, rho_E = u
+    _, rho_v1, rho_e_total = u
     V, v1, T = cons2prim(u, equations)
     p = pressure(V, T, eos)
 
     # Ignore orientation since it is always "1" in 1D
     f1 = rho_v1
     f2 = rho_v1 * v1 + p
-    f3 = (rho_E + p) * v1
+    f3 = (rho_e_total + p) * v1
     return SVector(f1, f2, f3)
 end
 
@@ -167,11 +167,11 @@ end
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    rho, rho_v1, rho_E = u
+    rho, rho_v1, rho_e_total = u
 
     V = inv(rho)
     v1 = rho_v1 * V
-    e = (rho_E - 0.5 * rho_v1 * v1) * V
+    e = (rho_e_total - 0.5 * rho_v1 * v1) * V
     T = temperature(V, e, eos)
 
     return SVector(V, v1, T)
@@ -192,8 +192,8 @@ end
     rho = inv(V)
     rho_v1 = rho * v1
     e = energy_internal(V, T, eos)
-    rho_E = rho * e + 0.5 * rho_v1 * v1
-    return SVector(rho, rho_v1, rho_E)
+    rho_e_total = rho * e + 0.5 * rho_v1 * v1
+    return SVector(rho, rho_v1, rho_e_total)
 end
 
 @doc raw"""
