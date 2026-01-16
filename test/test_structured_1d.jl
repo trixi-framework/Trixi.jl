@@ -276,6 +276,34 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_mhd_alfwen_wave_flux_reconstruction.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfwen_wave_flux_reconstruction.jl"),
+                        l2=[
+                            3.1431048929857218e-9,
+                            1.526501068725121e-11,
+                            1.6213021267988713e-7,
+                            1.6213021286693225e-7,
+                            1.4037020038207181e-9,
+                            1.1963224165731985e-16,
+                            1.621337972816071e-7,
+                            1.621337971872733e-7
+                        ],
+                        linf=[
+                            9.087569141641438e-9,
+                            2.5222604051576493e-11,
+                            3.619952636339637e-7,
+                            3.6199526385499623e-7,
+                            4.200817582677985e-9,
+                            2.220446049250313e-16,
+                            3.6199719448388835e-7,
+                            3.619971941878536e-7
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
