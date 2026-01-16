@@ -839,10 +839,12 @@ function calc_correction_matrix(nodes, polydeg, ::Val{:g_DG})
         dP_Km1 = dP_Km1_normalized / sqrt(K - 1 + 0.5)
         dP_K = dP_K_normalized / sqrt(K + 0.5)
 
-        # Use "left Radau" polynomial [Eq. (A.17)] for right correction function derivative:
+        # Use "left Radau" polynomial (0 at -1, 1 at 1).
+        # See [Eq. (A.17)] for right correction function derivative
         correction_matrix[i, 2] = 0.5 * (dP_Km1 + dP_K)
 
-        # Use "right" Radau polynomial [Eq. (4.1)] for left correction function derivative:
+        # Use "right" Radau polynomial (1 at -1, 0 at ).
+        # See [Eq. (4.1)] for left correction function derivative:
         correction_matrix[i, 1] = (-1)^K / 2 * (dP_K - dP_Km1)
     end
 
