@@ -521,25 +521,47 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl with ideal gas" begin
+@trixi_testset "elixir_euler_nonideal_density_wave.jl with FluxHLL(min_max_speed_davis)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
-                        eos=IdealGas(1.4), tspan=(0.0, 0.1),
+                        surface_flux=FluxHLL(min_max_speed_davis), tspan=(0.0, 0.1),
                         l2=[
-                            4.572238675002162e-5,
-                            4.572238675006431e-6,
-                            2.2861193337425137e-7
+                            7.167268496711242e-5,
+                            5.2305205608634944e-5,
+                            0.003511214352313455
                         ],
                         linf=[
-                            9.083503726636799e-5,
-                            9.083503726865783e-6,
-                            4.54175189901207e-7
+                            0.00025426725892341295,
+                            0.0002606497395930829,
+                            0.010007819676602026
                         ])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl with ideal gas" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        eos=IdealGas(1.4), surface_flux=FluxHLL(min_max_speed_naive),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            4.5722592525355665e-5,
+                            4.572259252601982e-6,
+                            2.2861296102376542e-7
+                        ],
+                        linf=[
+                            9.083779053276064e-5,
+                            9.083779053398189e-6,
+                            4.54188960219426e-7
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 end
 
 end # module
