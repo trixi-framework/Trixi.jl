@@ -46,9 +46,9 @@ end
     return ForwardDiff.derivative(T -> energy_internal(V, T, eos), T)
 end
 
-function calc_pressure_derivatives(model, V, T)
-    dpdV_T = ForwardDiff.derivative(V -> Clapeyron.VT_pressure(model, V, T), V)
-    dpdT_V = ForwardDiff.derivative(T -> Clapeyron.VT_pressure(model, V, T), T)
+function calc_pressure_derivatives(V, T, eos)
+    dpdV_T = ForwardDiff.derivative(V -> pressure(V, T, eos), V)
+    dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
     return dpdT_V, dpdV_T
 end
 
