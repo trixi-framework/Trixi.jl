@@ -821,35 +821,29 @@ vandermonde_legendre(nodes, RealT = Float64) = vandermonde_legendre(nodes,
                                                                     length(nodes) - 1,
                                                                     RealT)
 
-# Calculate correction matrix for Flux Reconstruction method
-# This implements Huynh's DG correction function (c = c_DG)
-# which corresponds to g_DG(xi) in Huynh (2007)
-function calc_correction_matrix(nodes, polydeg)
+# Calculate correction matrix for Flux Reconstruction method.
+# This implements Huynh's DG correction function g = g_DG = g_{DG, K}.
+function calc_correction_matrix(nodes, polydeg, ::Val{:g_DG})
     RealT = eltype(nodes)
-    nnodes_ = polydeg + 1
-    correction_matrix = zeros(RealT, nnodes_, 2)
+    K = polydeg + 1 # notation from Huynh (2007)
+    correction_matrix = zeros(RealT, K, 2)
 
-    # For Huynh's DG correction, the correction function is the Radau polynomial
-    # which is 1 at one boundary and 0 at all other nodes.
-    # Left Radau polynomial:  g_L(xi) = (-1)^N / 2 * (P_N(xi) - P_{N+1}(xi))  [1 at -1, 0 at +1]
-    # Right Radau polynomial: g_R(xi) = 1/2 * (P_N(xi) + P_{N+1}(xi))         [0 at -1, 1 at +1]
-    # where P_N is the standard (unnormalized) Legendre polynomial of degree N = polydeg
-    for i in 1:nnodes_
+    for i in 1:K
         xi = nodes[i]
         # Note: legendre_polynomial_and_derivative returns normalized polynomials
         # (multiplied by sqrt(N + 0.5)), so we need to undo that normalization
-        _, dP_N_normalized = legendre_polynomial_and_derivative(polydeg, xi)
-        _, dP_Np1_normalized = legendre_polynomial_and_derivative(polydeg + 1, xi)
+        _, dP_Km1_normalized = legendre_polynomial_and_derivative(K - 1, xi)
+        _, dP_K_normalized = legendre_polynomial_and_derivative(K, xi)
 
         # Undo the normalization to get standard Legendre polynomial derivatives
-        dP_N = dP_N_normalized / sqrt(polydeg + 0.5)
-        dP_Np1 = dP_Np1_normalized / sqrt(polydeg + 1.5)
+        dP_Km1 = dP_Km1_normalized / sqrt(K - 1 + 0.5)
+        dP_K = dP_K_normalized / sqrt(K + 0.5)
 
-        # Left correction function derivative: g_L'(xi) = (-1)^N / 2 * (P_N'(xi) - P_{N+1}'(xi))
-        correction_matrix[i, 1] = ((-1)^polydeg) * 0.5 * (dP_N - dP_Np1)
+        # Use "left Radau" polynomial [Eq. (A.17)] for right correction function derivative:
+        correction_matrix[i, 2] = 0.5 * (dP_Km1 + dP_K)
 
-        # Right correction function derivative: g_R'(xi) = 1/2 * (P_N'(xi) + P_{N+1}'(xi))
-        correction_matrix[i, 2] = 0.5 * (dP_N + dP_Np1)
+        # Use "right" Radau polynomial [Eq. (4.1)] for left correction function derivative:
+        correction_matrix[i, 1] = (-1)^K / 2 * (dP_K - dP_Km1)
     end
 
     return correction_matrix

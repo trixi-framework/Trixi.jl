@@ -577,7 +577,9 @@ struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
 end
 
 """
-    SurfaceIntegralFluxReconstruction(basis; surface_flux=flux_central)
+    SurfaceIntegralFluxReconstruction(basis;
+                                      surface_flux=flux_central,
+                                      correction_type=Val(:g_DG))
 
 Correct fluxes at element interfaces using the Flux Reconstruction (FR) approach
 by Huynh (2007) to achieve C⁰ flux-continuity across element interfaces.
@@ -601,14 +603,19 @@ struct SurfaceIntegralFluxReconstruction{SurfaceFlux, CorrectionMatrix} <:
        AbstractSurfaceIntegral
     surface_flux::SurfaceFlux
     # Derivatives at solution points of the correction functions g_l, g_r.
-    # g_l is stored in fist column, g_r in second column.
+    # g_l is stored in first column, g_r in second column.
     correction_matrix::CorrectionMatrix
 end
 
-function SurfaceIntegralFluxReconstruction(basis; surface_flux = flux_central)
+function SurfaceIntegralFluxReconstruction(basis;
+                                           surface_flux = flux_central,
+                                           correction_type = Val(:g_DG))
     # Compute correction matrix based on the basis nodes and polynomial degree
-    correction_matrix = calc_correction_matrix(basis.nodes, polydeg(basis))
-    return SurfaceIntegralFluxReconstruction{typeof(surface_flux), typeof(correction_matrix)}(surface_flux, correction_matrix)
+    correction_matrix = calc_correction_matrix(basis.nodes, polydeg(basis),
+                                               correction_type)
+    return SurfaceIntegralFluxReconstruction{typeof(surface_flux),
+                                             typeof(correction_matrix)}(surface_flux,
+                                                                        correction_matrix)
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
