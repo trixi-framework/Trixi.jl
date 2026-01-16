@@ -2,7 +2,6 @@ module TestExamples1DEuler
 
 using Test
 using Trixi
-using LinearAlgebra: norm
 
 include("test_trixi.jl")
 
@@ -567,6 +566,8 @@ end
                   initial_condition = Trixi.initial_condition_density_wave,
                   surface_flux = FluxHLL(min_max_speed_naive),
                   tspan = (0.0, 0.1))
+
+    using LinearAlgebra: norm
     @test norm(sol.u[end] - sol_nonideal.u[end]) < 10 * eps() * length(sol.u[end])
 
     # Ensure that we do not have excessive memory allocations
