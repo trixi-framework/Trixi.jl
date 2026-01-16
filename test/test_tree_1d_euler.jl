@@ -2,6 +2,7 @@ module TestExamples1DEuler
 
 using Test
 using Trixi
+using LinearAlgebra: norm
 
 include("test_trixi.jl")
 
