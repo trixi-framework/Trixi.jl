@@ -79,5 +79,4 @@ function temperature(V, e, eos::IdealGas)
     T = e / cv
     return T
 end
-
 end # @muladd
