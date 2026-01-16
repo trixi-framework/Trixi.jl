@@ -503,7 +503,7 @@ end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl" begin
     mean_convergence = convergence_test(@__MODULE__,
-                                        joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                        joinpath(EXAMPLES_DIR,
                                                  "elixir_euler_nonideal_density_wave.jl"),
                                         3, initial_refinement_level = 3)
 
@@ -515,7 +515,7 @@ end
 end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl with ideal gas" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
                         eos=IdealGas(1.4), tspan=(0.0, 0.1),
                         l2=[
