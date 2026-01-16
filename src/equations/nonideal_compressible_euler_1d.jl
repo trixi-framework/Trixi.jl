@@ -91,6 +91,99 @@ end
     return SVector(f1, f2, f3)
 end
 
+"""
+    flux_terashima_etal(u_ll, u_rr, orientation::Int,
+                        equations::NonIdealCompressibleEulerEquations1D)
+
+Approximately pressure equilibrium conserving (APEC) flux from 
+"Approximately pressure-equilibrium-preserving scheme for fully conservative 
+simulations of compressible multi-species and real-fluid interfacial flows" 
+by Terashima, Ly, Ihme (2025). https://doi.org/10.1016/j.jcp.2024.11370 1
+
+"""
+function flux_terashima_etal(u_ll, u_rr, orientation::Int,
+                             equations::NonIdealCompressibleEulerEquations1D)
+    eos = equations.equation_of_state
+    V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
+    V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
+
+    rho_ll = u_ll[1]
+    rho_rr = u_rr[1]
+    rho_e_ll = internal_energy_density(u_ll, equations)
+    rho_e_rr = internal_energy_density(u_rr, equations)
+    p_ll = pressure(V_ll, T_ll, eos)
+    p_rr = pressure(V_rr, T_rr, eos)
+
+    rho_avg = 0.5f0 * (rho_ll + rho_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    rho_e_avg = 0.5f0 * (rho_e_ll + rho_e_rr)
+    p_v1_avg = 0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
+
+    # chain rule from Terashima    
+    drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
+    drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
+    rho_e_v1_avg = (rho_e_avg -
+                    0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) * (rho_rr - rho_ll)) *
+                   v1_avg
+
+    # Ignore orientation since it is always "1" in 1D
+    f_rho = rho_avg * v1_avg
+    f_rho_v1 = rho_avg * v1_avg * v1_avg + p_avg
+    f_rho_E = rho_e_v1_avg + rho_avg * 0.5f0 * (v1_ll * v1_rr) * v1_avg + p_v1_avg
+
+    return SVector(f_rho, f_rho_v1, f_rho_E)
+end
+
+"""
+    flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
+                                equations::NonIdealCompressibleEulerEquations1D)
+
+A version of the central flux which uses the approximately pressure equilibrium conserving 
+(APEC) internal energy correction of 
+"Approximately pressure-equilibrium-preserving scheme for fully conservative 
+simulations of compressible multi-species and real-fluid interfacial flows" 
+by Terashima, Ly, Ihme (2025). https://doi.org/10.1016/j.jcp.2024.11370 
+"""
+function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
+                                     equations::NonIdealCompressibleEulerEquations1D)
+    eos = equations.equation_of_state
+    V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
+    V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
+
+    rho_ll, rho_v1_ll, _ = u_ll
+    rho_rr, rho_v1_rr, _ = u_rr
+    rho_e_ll = internal_energy_density(u_ll, equations)
+    rho_e_rr = internal_energy_density(u_rr, equations)
+    p_ll = pressure(V_ll, T_ll, eos)
+    p_rr = pressure(V_rr, T_rr, eos)
+
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    rho_e_avg = 0.5f0 * (rho_e_ll + rho_e_rr)
+
+    # chain rule from Terashima    
+    drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
+    drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
+    rho_e_v1_avg = (rho_e_avg -
+                    0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) * (rho_rr - rho_ll)) *
+                   v1_avg
+
+    # Ignore orientation since it is always "1" in 1D
+    f_rho = 0.5 * (rho_v1_ll + rho_v1_rr)
+    f_rho_v1 = 0.5 * (rho_v1_ll * v1_ll + rho_v1_rr * v1_rr) + p_avg
+
+    # calculate internal energy (with APEC correction) and kinetic energy 
+    # contributions separately in energy equation
+    ke_ll = 0.5 * v1_ll^2
+    ke_rr = 0.5 * v1_rr^2
+    f_rho_E = rho_e_v1_avg +
+              0.5 * (rho_v1_ll * ke_ll + rho_v1_rr * ke_rr) +
+              0.5 * (p_ll * v1_ll + p_rr * v1_rr)
+
+    return SVector(f_rho, f_rho_v1, f_rho_E)
+end
+
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::NonIdealCompressibleEulerEquations1D)
