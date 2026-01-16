@@ -773,7 +773,7 @@ end
     @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
           cons2entropy(u, equations)
     @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
-    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)    
+    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
 end
 
 @timed_testset "StepsizeCallback" begin
