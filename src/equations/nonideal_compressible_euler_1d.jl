@@ -24,14 +24,12 @@ The compressible Euler equations
     0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-for a gas with pressure ``p`` specified by some equation of state
-(see [`AbstractEquationOfState`](@ref), [`IdealGasEquationOfState`](@ref), [`VanDerWaalsEquationOfState`](@ref))
-in one space dimension.
+for a gas with pressure ``p`` specified by some equation of state in one space dimension.
 
 Here, ``\rho`` is the density, ``v_1`` the velocity, ``E`` the specific total energy, 
-and the pressure (see [`pressure(V, T, eos::IdealGas)`](@ref), [`pressure(V, T, eos::VanDerWaals)`](@ref))
-is given in terms of specific volume `V = inv(rho)` and temperature `T`
+and the pressure ``p`` is given in terms of specific volume ``V = 1/\rho`` and temperature ``T``
 by some user-specified equation of state (EOS)
+(see [`pressure(V, T, eos::IdealGas)`](@ref), [`pressure(V, T, eos::VanDerWaals)`](@ref)) as
 ```math
 p = p(V, T)
 ```
