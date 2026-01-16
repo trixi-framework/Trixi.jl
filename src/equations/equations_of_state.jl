@@ -39,14 +39,24 @@ end
     return ForwardDiff.derivative(T -> energy_internal(V, T, eos), T)
 end
 
-# calculate the temperature as a function of specific volume `V` and internal energy `e`
-# by using Newton's method to determine `T` such that `energy_internal(V, T, eos) = e`.
-function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0)
-    tol = 10 * eps()
+eos_newton_tol(eos::AbstractEquationOfState) = 10 * eps()
+
+"""
+    temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0, tol = eos_newton_tol(eos),
+                maxiter = 100)
+
+
+Calculates the temperature as a function of specific volume `V` and internal energy `e`
+by using Newton's method to determine `T` such that `energy_internal(V, T, eos) = e`.
+Note that the tolerance may need to be adjusted based on the specific equation of state. 
+"""
+function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
+                     tol = eos_newton_tol(eos),
+                     maxiter = 100)
     T = initial_T
     de = energy_internal(V, T, eos) - e
     iter = 1
-    while abs(de) / abs(e) > tol && iter < 100
+    while abs(de) / abs(e) > tol && iter < maxiter
         de = energy_internal(V, T, eos) - e
 
         # for thermodynamically admissible states, c_v = de_dT_V > 0, which should 
@@ -57,7 +67,7 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0)
         iter += 1
     end
     if iter == 100
-        println("Warning: nonlinear solve in `temperature(V, T, eos)` did not converge within 100 iterations. " *
+        println("Warning: nonlinear solve in `temperature(V, T, eos)` did not converge within $maxiter iterations. " *
                 "Final states: iter = $iter, V, e = $V, $e with de = $de")
     end
     return T
