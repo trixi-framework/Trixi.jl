@@ -372,13 +372,10 @@ more advanced/(entropy) stable volume integral for the troubled cell/element ``m
 mutable struct IndicatorEntropyDecay{RealT <: Real} <:
                AbstractIndicator
     target_decay::RealT
-    n_cells_fluxdiff_threaded::Vector{Int}
 end
 
 function IndicatorEntropyDecay(; target_decay = 0.0)
-    n_cells_fluxdiff_threaded = [0 for _ in 1:Threads.maxthreadid()]
-    return IndicatorEntropyDecay{typeof(target_decay)}(target_decay,
-                                                       n_cells_fluxdiff_threaded)
+    return IndicatorEntropyDecay{typeof(target_decay)}(target_decay)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyDecay)
