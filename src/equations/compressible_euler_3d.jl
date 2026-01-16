@@ -1797,19 +1797,17 @@ end
 @inline function cons2entropy_guermond_etal(u, equations::CompressibleEulerEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e = u
 
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
-    v_square = v1^2 + v2^2 + v3^2
-    inv_rho_gammap1 = (1 / rho)^(equations.gamma + 1)
+    inv_rho = 1 / rho
+    v_square_rho = (rho_v1^2 + rho_v2^2 + rho_v3^2) * inv_rho
+    inv_rho_gammap1 = inv_rho^(equations.gamma + 1)
 
     # The derivative vector for the modified specific entropy of Guermond et al.
     w1 = inv_rho_gammap1 *
-         (0.5f0 * rho * (equations.gamma + 1) * v_square - equations.gamma * rho_e)
+         (0.5f0 * (equations.gamma + 1) * v_square_rho - equations.gamma * rho_e)
     w2 = -rho_v1 * inv_rho_gammap1
     w3 = -rho_v2 * inv_rho_gammap1
     w4 = -rho_v3 * inv_rho_gammap1
-    w5 = (1 / rho)^equations.gamma
+    w5 = inv_rho^equations.gamma
 
     return SVector(w1, w2, w3, w4, w5)
 end
