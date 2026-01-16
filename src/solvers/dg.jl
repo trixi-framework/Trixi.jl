@@ -274,13 +274,13 @@ end
     VolumeIntegralAdaptive(;
                            volume_integral_default = VolumeIntegralWeakForm(),
                            volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
-                           indicator = IndicatorEntropyDecay())
+                           indicator = IndicatorEntropyComparison())
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
 
 Possible combinations:
-- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyDecay`](@ref)
+- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyComparison()`](@ref) or [`IndicatorEntropyDecay`](@ref)
 - [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralShockCapturingHG`](@ref), and `nothing` (indicator taken from `VolumeIntegralShockCapturingHG`)
 """
 struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
@@ -293,7 +293,7 @@ end
 function VolumeIntegralAdaptive(;
                                 volume_integral_default = VolumeIntegralWeakForm(),
                                 volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
-                                indicator = IndicatorEntropyDecay())
+                                indicator = IndicatorEntropyComparison())
     return VolumeIntegralAdaptive{typeof(volume_integral_default),
                                   typeof(volume_integral_stabilized),
                                   typeof(indicator)}(volume_integral_default,
