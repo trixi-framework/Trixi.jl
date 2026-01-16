@@ -8,11 +8,14 @@ using Trixi: ForwardDiff
 eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
+# the default amplitude and frequency k are chosen to be consistent with 
+# initial_condition_density_wave for CompressibleEulerEquations1D
 function initial_condition_density_wave(x, t,
-                                        equations::NonIdealCompressibleEulerEquations1D)
+                                        equations::NonIdealCompressibleEulerEquations1D;
+                                        amplitude = 0.98, k = 2)
     v1 = 0.1
-    rho = 1 + 0.5 * sin(pi * (x[1] - v1 * t))
-    p = 10.0
+    rho = 1 + amplitude * sin(k * pi * (x[1] - v1 * t))
+    p = 20.0
 
     V = inv(rho)
 

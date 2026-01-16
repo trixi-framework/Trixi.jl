@@ -506,14 +506,14 @@ end
                                  "elixir_euler_nonideal_density_wave.jl"),
                         tspan=(0.0, 0.1),
                         l2=[
-                            7.286913401825591e-5,
-                            5.34303887566311e-5,
-                            0.003571648870380331
+                            0.0015588934102678423,
+                            0.0003742341750148338,
+                            0.06751527068762786
                         ],
                         linf=[
-                            0.0002452699378829859,
-                            0.0002907556176190429,
-                            0.010577510634327325
+                            0.002915446030492097,
+                            0.0007398343306145305,
+                            0.19630387991431064
                         ])
 
     # Ensure that we do not have excessive memory allocations
@@ -526,14 +526,14 @@ end
                                  "elixir_euler_nonideal_density_wave.jl"),
                         surface_flux=FluxHLL(min_max_speed_davis), tspan=(0.0, 0.1),
                         l2=[
-                            7.167268496711242e-5,
-                            5.2305205608634944e-5,
-                            0.003511214352313455
+                            0.001560204102149942,
+                            0.0003730629606214752,
+                            0.06761471309660204
                         ],
                         linf=[
-                            0.00025426725892341295,
-                            0.0002606497395930829,
-                            0.010007819676602026
+                            0.0029288236477780227,
+                            0.0007326399340998047,
+                            0.19711518375221715
                         ])
 
     # Ensure that we do not have excessive memory allocations
@@ -547,15 +547,26 @@ end
                         eos=IdealGas(1.4), surface_flux=FluxHLL(min_max_speed_naive),
                         tspan=(0.0, 0.1),
                         l2=[
-                            4.5722592525355665e-5,
-                            4.572259252601982e-6,
-                            2.2861296102376542e-7
+                            0.001422862066298697,
+                            0.00014228620662995602,
+                            7.1143103323789825e-6
                         ],
                         linf=[
-                            9.083779053276064e-5,
-                            9.083779053398189e-6,
-                            4.54188960219426e-7
+                            0.0023347309200370883,
+                            0.00023347309200390763,
+                            1.1673654647381682e-5
                         ])
+
+    # check that the IdealGas EOS recovers the same solution as 
+    # CompressibleEulerEquations1D
+    sol_nonideal = deepcopy(sol)
+    trixi_include(joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_density_wave.jl"),
+                  equations = CompressibleEulerEquations1D(1.4),
+                  initial_condition = Trixi.initial_condition_density_wave,
+                  surface_flux = FluxHLL(min_max_speed_naive),
+                  tspan = (0.0, 0.1))
+    @test norm(sol.u[end] - sol_nonideal.u[end]) < 10 * eps() * length(sol.u[end])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
