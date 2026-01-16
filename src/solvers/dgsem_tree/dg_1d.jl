@@ -138,7 +138,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 end
 
 # Strong form kernel for Flux Reconstruction method
-# Uses the (negated) derivative matrix D instead of the (negated) weak form matrix Dhat
+# Uses the derivative matrix D instead of the weak form matrix Dhat
 @inline function strong_form_kernel!(du, u,
                                      element,
                                      mesh::Union{TreeMesh{1}, StructuredMesh{1}},
