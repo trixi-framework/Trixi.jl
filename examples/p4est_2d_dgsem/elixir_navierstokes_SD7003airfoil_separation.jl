@@ -42,15 +42,15 @@ shock_indicator = IndicatorHennemannGassner(equations, basis,
                                             alpha_min = 0.001,
                                             alpha_smooth = true,
                                             variable = density_pressure)
-volume_integral_stabilized = VolumeIntegralShockCapturingHG(shock_indicator;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+
+volume_integral_stabilized = VolumeIntegralShockCapturingRRG(basis, shock_indicator;
+                                                             volume_flux_dg = volume_flux,
+                                                             volume_flux_fv = surface_flux,
+                                                             slope_limiter = minmod)
 
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = VolumeIntegralWeakForm(),
                                          volume_integral_stabilized = volume_integral_stabilized,
                                          indicator = nothing) # Indicator taken from `volume_integral_stabilized`
-
-# TODO: Try RRG!
 
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral) # Just using FD actually crashes for this configuration!
@@ -98,8 +98,7 @@ t_c = airfoil_cord_length / U_inf()
 tspan = (0.0, 50 * t_c) # Non-AMR
 #ode = semidiscretize(semi, tspan)
 
-
-tspan = (load_time(restart_filename), 65 * t_c)
+tspan = (load_time(restart_filename), 65 * t_c) # 65 at restart file
 ode = semidiscretize(semi, tspan, restart_filename)
 
 
@@ -146,11 +145,6 @@ amr_indicator = shock_indicator
 end
 amr_indicator = IndicatorLöhner(semi, variable = v1)
 
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 0,
-                                      med_level = 1, med_threshold = 0.1,
-                                      max_level = 3, max_threshold = 0.3)
-
 amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, shock_indicator,
                                               base_level = 0,
                                               med_level = 1, med_threshold = 0.1,
@@ -169,7 +163,7 @@ callbacks = CallbackSet(summary_callback,
                         alive_callback,
                         amr_callback,
                         #save_solution,
-                        save_restart
+                        #save_restart
                         )
 
 ###############################################################################
