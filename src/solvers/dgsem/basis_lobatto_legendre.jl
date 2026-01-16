@@ -40,19 +40,19 @@ function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
     nodes = SVector{<:Any, RealT}(basis.nodes)
     weights = SVector{<:Any, RealT}(basis.weights)
     inverse_weights = SVector{<:Any, RealT}(basis.inverse_weights)
-    boundary_interpolation_entries = adapt(to, basis.boundary_interpolation_entries)
+    boundary_interpolation = adapt(to, basis.boundary_interpolation)
     derivative_matrix = adapt(to, basis.derivative_matrix)
     derivative_split = adapt(to, basis.derivative_split)
     derivative_split_transpose = adapt(to, basis.derivative_split_transpose)
     derivative_hat = adapt(to, basis.derivative_hat)
     return LobattoLegendreBasis{RealT, nnodes(basis), typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
-                                typeof(boundary_interpolation_entries),
+                                typeof(boundary_interpolation),
                                 typeof(derivative_matrix)}(nodes,
                                                            weights,
                                                            inverse_weights,
                                                            inverse_vandermonde_legendre,
-                                                           boundary_interpolation_entries,
+                                                           boundary_interpolation,
                                                            derivative_matrix,
                                                            derivative_split,
                                                            derivative_split_transpose,
