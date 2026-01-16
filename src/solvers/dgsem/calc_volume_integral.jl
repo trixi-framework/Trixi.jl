@@ -19,10 +19,12 @@ function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
+    volume_term_matrix = dg.basis.derivative_dhat
+
     @threaded for element in eachelement(dg, cache)
-        weak_form_kernel!(du, u, element, mesh,
-                          have_nonconservative_terms, equations,
-                          dg, cache)
+        volume_kernel!(du, u, element, mesh,
+                       have_nonconservative_terms, equations,
+                       volume_term_matrix, dg, cache)
     end
 
     return nothing
@@ -32,10 +34,12 @@ function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralStrongForm,
                                dg::DGSEM, cache)
+    volume_term_matrix = dg.basis.derivative
+
     @threaded for element in eachelement(dg, cache)
-        strong_form_kernel!(du, u, element, mesh,
-                            have_nonconservative_terms, equations,
-                            dg, cache)
+        volume_kernel!(du, u, element, mesh,
+                       have_nonconservative_terms, equations,
+                       volume_term_matrix, dg, cache)
     end
 
     return nothing
