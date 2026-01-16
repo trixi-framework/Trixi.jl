@@ -26,27 +26,6 @@ function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}
     return cache
 end
 
-#     index_to_start_step_2d(index::Symbol, index_range)
-#
-# Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
-# return `index_start, index_step`, i.e., a tuple containing
-# - `index_start`, an index value to begin a loop
-# - `index_step`,  an index step to update during a loop
-# The resulting indices translate surface indices to volume indices.
-#
-# !!! warning
-#     This assumes that loops using the return values are written as
-#
-#     i_volume_start, i_volume_step = index_to_start_step_2d(symbolic_index_i, index_range)
-#     j_volume_start, j_volume_step = index_to_start_step_2d(symbolic_index_j, index_range)
-#
-#     i_volume, j_volume = i_volume_start, j_volume_start
-#     for i_surface in index_range
-#       # do stuff with `i_surface` and `(i_volume, j_volume)`
-#
-#       i_volume += i_volume_step
-#       j_volume += j_volume_step
-#     end
 @inline function index_to_start_step_2d(index::Symbol, index_range)
     index_begin = first(index_range)
     index_end = last(index_range)
@@ -934,6 +913,75 @@ function calc_surface_integral!(du, u,
                                                  factor_2)
             end
         end
+    end
+
+    return nothing
+end
+
+function rhs!(du, u, t, u_global, semis,
+              mesh::P4estMeshView{2},
+              equations,
+              boundary_conditions, source_terms::Source,
+              dg::DG, cache) where {Source}
+    # Reset du
+    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+
+    # Calculate volume integral
+    @trixi_timeit timer() "volume integral" begin
+        calc_volume_integral!(du, u, mesh,
+                              have_nonconservative_terms(equations), equations,
+                              dg.volume_integral, dg, cache)
+    end
+
+    # Prolong solution to interfaces
+    @trixi_timeit timer() "prolong2interfaces" begin
+        prolong2interfaces!(cache, u, mesh, equations, dg)
+    end
+
+    # Calculate interface fluxes
+    @trixi_timeit timer() "interface flux" begin
+        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg, cache)
+    end
+
+    # Prolong solution to boundaries
+    @trixi_timeit timer() "prolong2boundaries" begin
+        prolong2boundaries!(cache, u, u_global, semis, mesh, equations,
+                            dg.surface_integral, dg)
+    end
+
+    # Calculate boundary fluxes
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+                            dg.surface_integral, dg, u_global)
+    end
+
+    # Prolong solution to mortars
+    @trixi_timeit timer() "prolong2mortars" begin
+        prolong2mortars!(cache, u, mesh, equations,
+                         dg.mortar, dg)
+    end
+
+    # Calculate mortar fluxes
+    @trixi_timeit timer() "mortar flux" begin
+        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+                          have_nonconservative_terms(equations), equations,
+                          dg.mortar, dg.surface_integral, dg, cache)
+    end
+
+    # Calculate surface integrals
+    @trixi_timeit timer() "surface integral" begin
+        calc_surface_integral!(du, u, mesh, equations,
+                               dg.surface_integral, dg, cache)
+    end
+
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+
+    # Calculate source terms
+    @trixi_timeit timer() "source terms" begin
+        calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
 
     return nothing
