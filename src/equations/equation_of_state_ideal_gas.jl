@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 @doc raw"""
     IdealGas{RealT} <: AbstractEquationOfState
 
@@ -30,7 +37,7 @@ end
     pressure(V, T, eos::IdealGas)
 
 Computes pressure for an ideal gas from primitive variables (see [`NonIdealCompressibleEulerEquations1D`](@ref))
-    specific volume `V` and temperature `T`.
+specific volume `V` and temperature `T`.
 """
 function pressure(V, T, eos::IdealGas)
     (; R) = eos
@@ -63,3 +70,13 @@ function speed_of_sound(V, T, eos::IdealGas)
     c2 = gamma * p * V
     return sqrt(c2)
 end
+
+# This is not a required interface function, but specializing it 
+# if an explicit function is available can improve performance.
+# For general EOS, this is calculated via a Newton solve. 
+function temperature(V, e, eos::IdealGas)
+    (; cv) = eos
+    T = e / cv
+    return T
+end
+end # @muladd

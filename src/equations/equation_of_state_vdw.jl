@@ -13,13 +13,19 @@ given by the pressure and internal energy relations
 ```math
 p = \frac{\rho R T}{1 - \rho b} - a \rho^2, \quad e = c_v T - a \rho
 ```
-with ``c_v = \frac{R}{\gamma - 1}``.
+with ``c_v = \frac{R}{\gamma - 1}``. This corresponds to the "simple 
+van der Waals" fluid with constant `c_v`, which can be found on p28 of 
+https://math.berkeley.edu/~evans/entropy.and.PDE.pdf. 
+
+See also "An oscillation free shock-capturing method for compressible van 
+der Waals supercritical fluid flows" by Pantano, Saurel, and Schmitt (2017). 
+https://doi.org/10.1016/j.jcp.2017.01.057
 """
 struct VanDerWaals{RealT} <: AbstractEquationOfState
     a::RealT
     b::RealT
-    R::RealT
     gamma::RealT
+    R::RealT
     cv::RealT
 end
 
@@ -32,7 +38,7 @@ By default, van der Waals parameters are for N2.
 function VanDerWaals(; a = 174.64049524257663, b = 0.001381308696129041,
                      gamma = 5 / 3, R = 296.8390795484912)
     cv = R / (gamma - 1)
-    return VanDerWaals(promote(a, b, R, gamma, cv)...)
+    return VanDerWaals(promote(a, b, gamma, R, cv)...)
 end
 
 """
@@ -70,7 +76,7 @@ function specific_entropy(V, T, eos::VanDerWaals)
     return s
 end
 
-# this formula is taken from (A.26) in the paper "An oscillation free 
+# This formula is taken from (A.26) in the paper "An oscillation free 
 # shock-capturing method for compressible van der Waals supercritical 
 # fluid flows" by Pantano, Saurel, and Schmitt (2017). 
 # https://doi.org/10.1016/j.jcp.2017.01.057
@@ -80,5 +86,15 @@ function speed_of_sound(V, T, eos::VanDerWaals)
     e = energy_internal(V, T, eos)
     c2 = gamma * (gamma - 1) * (e + rho * a) / (1 - rho * b)^2 - 2 * a * rho
     return sqrt(c2)
+end
+
+# This is not a required interface function, but specializing it 
+# if an explicit function is available can improve performance.
+# For general EOS, this is calculated via a Newton solve. 
+function temperature(V, e, eos::VanDerWaals)
+    (; cv, a) = eos
+    rho = inv(V)
+    T = (e + a * rho) / cv
+    return T
 end
 end # @muladd

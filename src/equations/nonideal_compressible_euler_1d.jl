@@ -52,20 +52,6 @@ end
 varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("V", "v1", "T")
 
 """
-    initial_condition_constant(x, t, equations::NonIdealCompressibleEulerEquations1D)
-
-A constant initial condition to test free-stream preservation.
-"""
-function initial_condition_constant(x, t,
-                                    equations::NonIdealCompressibleEulerEquations1D)
-    RealT = eltype(x)
-    rho = 1
-    rho_v1 = convert(RealT, 0.1)
-    rho_e = 10
-    return SVector(rho, rho_v1, rho_e)
-end
-
-"""
     boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
                                  surface_flux_function, equations::NonIdealCompressibleEulerEquations1D)
 
