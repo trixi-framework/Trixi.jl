@@ -472,42 +472,6 @@ end
 end
 
 # inlined version of the boundary flux calculation along a physical interface
-# Currently this is only a dummy function to keep the test quiet.
-# TODO: Implement correct flux taking the global u vector into account.
-@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::P4estMeshView{2},
-                                     nonconservative_terms::False, equations,
-                                     surface_integral, dg::DG, cache,
-                                     i_index, j_index,
-                                     node_index, direction_index, element_index,
-                                     boundary_index)
-    @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
-    @unpack surface_flux = surface_integral
-
-    # Extract solution data from boundary container
-    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
-
-    # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, element_index)
-
-    # Coordinates at boundary node
-    x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, element_index)
-
-    # TODO: We need a proper flux calculation here.
-    flux_ = zeros(nvariables(equations))
-
-    # Copy flux to element storage in the correct orientation
-    for v in eachvariable(equations)
-        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
-    end
-
-    return nothing
-end
-
-# inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::P4estMeshView{2},
                                      nonconservative_terms, equations,
