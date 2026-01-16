@@ -56,6 +56,15 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
 end
 
 """
+    VolumeIntegralStrongForm()
+
+The classical strong form volume integral type for FD/DG
+and DG/Flux Reconstruction (FR) methods.
+"""
+struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
+create_cache(mesh, equations, ::VolumeIntegralStrongForm, dg, uEltype) = NamedTuple()
+
+"""
     VolumeIntegralWeakForm()
 
 The classical weak form volume integral type for DG methods as explained in
@@ -80,15 +89,6 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
 create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
-
-"""
-    VolumeIntegralStrongForm()
-
-The classical strong form volume integral type for FD/DG
-and DG/Flux Reconstruction (FR) methods.
-"""
-struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
-create_cache(mesh, equations, ::VolumeIntegralStrongForm, dg, uEltype) = NamedTuple()
 
 """
     VolumeIntegralFluxDifferencing(volume_flux)
@@ -581,9 +581,8 @@ Currently supported correction functions are:
 ## References
 
 - Huynh (2007)
-  "A Flux Reconstruction Approach to High-Order Schemes Including Discontinuous 
-  Galerkin Methods"
-  [AIAA Paper 2007-4079](https://doi.org/10.2514/6.2007-4079)
+  "A Flux Reconstruction Approach to High-Order Schemes Including Discontinuous Galerkin Methods"
+  [DOI: 10.2514/6.2007-4079](https://doi.org/10.2514/6.2007-4079)
 
 - Vincent, Castonguay, Jameson (2011)
   "A New Class of High-Order Energy Stable Flux Reconstruction Schemes"
@@ -592,16 +591,16 @@ Currently supported correction functions are:
 struct SurfaceIntegralFluxReconstruction{SurfaceFlux, CorrectionMatrix} <:
        AbstractSurfaceIntegral
     surface_flux::SurfaceFlux
-    # Derivatives at solution points of the correction functions g_l, g_r.
-    # g_l is stored in first column, g_r in second column.
+    # Derivatives at solution points of the correction functions g_L, g_R.
+    # g_L is stored in first column, g_R in second column.
     correction_matrix::CorrectionMatrix
 end
 
 function SurfaceIntegralFluxReconstruction(basis;
                                            surface_flux = flux_central,
                                            correction_function = Val(:g_DG))
-    # Compute correction matrix based on the basis nodes and polynomial degree
-    correction_matrix = calc_correction_matrix(basis.nodes, polydeg(basis),
+    # Compute correction matrix based on the basis and chosen correction function
+    correction_matrix = calc_correction_matrix(basis,
                                                correction_function)
     return SurfaceIntegralFluxReconstruction{typeof(surface_flux),
                                              typeof(correction_matrix)}(surface_flux,

@@ -9,9 +9,10 @@
 ### see `SurfaceIntegralFluxReconstruction`.                               ###  
 
 # Implements Huynh's DG correction function g = g_DG = g_{DG, K}.
-function calc_correction_matrix(nodes, polydeg, ::Val{:g_DG})
+function calc_correction_matrix(basis, ::Val{:g_DG})
+    nodes = basis.nodes
     RealT = eltype(nodes)
-    K = polydeg + 1 # notation from Huynh (2007)
+    K = nnodes(basis) # notation from Huynh (2007)
     correction_matrix = zeros(RealT, K, 2)
 
     for i in 1:K
@@ -40,9 +41,10 @@ function calc_correction_matrix(nodes, polydeg, ::Val{:g_DG})
 end
 
 # Implements Huynh's `g_2` correction function.
-function calc_correction_matrix(nodes, polydeg, ::Val{:g_2})
+function calc_correction_matrix(basis, ::Val{:g_2})
+    nodes = basis.nodes
     RealT = eltype(nodes)
-    K = polydeg + 1 # notation from Huynh (2007)
+    K = nnodes(basis) # notation from Huynh (2007)
     correction_matrix = zeros(RealT, K, 2)
 
     for i in 1:K
