@@ -7,6 +7,8 @@ using LinearAlgebra: norm, dot
 using SparseArrays
 using DelimitedFiles: readdlm
 
+using ForwardDiff
+
 # Use Convex and ECOS to load the extension that extends functions for testing
 # PERK Single p2 Constructors
 using Convex: Convex
