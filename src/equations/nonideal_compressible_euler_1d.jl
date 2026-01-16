@@ -24,7 +24,7 @@ The compressible Euler equations
 0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-for an ideal gas with ratio of specific heats `gamma` in one space dimension.
+for a gas with pressure specified by some equation of state in one space dimension.
 Here, ``\rho`` is the density, ``v_1`` the velocity, ``E`` the specific total energy, 
 and the pressure in terms of specific volume `V = inv(rho)` and temperature `T` is given 
 by some user-specified equation of state (EOS)
