@@ -351,18 +351,18 @@ end
 @trixi_testset "elixir_euler_sedov_sc_subcell.jl (positivity bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         l2=[
-                            0.1942700455652903,
-                            0.07557644365785855,
-                            0.07557644365785836,
-                            0.07557644365785698,
-                            0.3713893635249306
+                            0.19427117014566905,
+                            0.07557679851688888,
+                            0.07557679851688896,
+                            0.07557679851688917,
+                            0.3713893373335463
                         ],
                         linf=[
-                            2.7542157588958798,
-                            1.8885700263691245,
-                            1.888570026369125,
-                            1.8885700263691252,
-                            4.9712792944452096
+                            2.754292081408987,
+                            1.888627709320322,
+                            1.8886277093203232,
+                            1.888627709320322,
+                            4.971280431903264
                         ],
                         tspan=(0.0, 0.3),)
     # Ensure that we do not have excessive memory allocations
@@ -379,7 +379,6 @@ end
                         local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
                         max_iterations_newton=40,
-                        newton_tolerances=(1.0e-14, 1.0e-15),
                         l2=[
                             0.19153085678321066,
                             0.07411109384422779,
