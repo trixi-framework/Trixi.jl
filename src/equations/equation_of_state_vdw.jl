@@ -37,7 +37,10 @@ end
 
 function specific_entropy(V, T, eos::VanDerWaals)
     (; cv, b, R) = eos
-    s = cv * log(T) + R * log(V - b) # + s0 = -319.1595051898981 for consistency with Clapeyron.jl
+
+    # The specific entropy is defined up to some reference value. The value 
+    # s0 = -319.1595051898981 recovers the specific entropy defined in Clapeyron.jl
+    s = cv * log(T) + R * log(V - b)
     return s
 end
 
