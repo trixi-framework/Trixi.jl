@@ -820,34 +820,4 @@ end
 vandermonde_legendre(nodes, RealT = Float64) = vandermonde_legendre(nodes,
                                                                     length(nodes) - 1,
                                                                     RealT)
-
-# Calculate correction matrix for Flux Reconstruction method.
-# This implements Huynh's DG correction function g = g_DG = g_{DG, K}.
-function calc_correction_matrix(nodes, polydeg, ::Val{:g_DG})
-    RealT = eltype(nodes)
-    K = polydeg + 1 # notation from Huynh (2007)
-    correction_matrix = zeros(RealT, K, 2)
-
-    for i in 1:K
-        xi = nodes[i]
-        # Note: legendre_polynomial_and_derivative returns normalized polynomials
-        # (multiplied by sqrt(N + 0.5)), so we need to undo that normalization
-        _, dP_Km1_normalized = legendre_polynomial_and_derivative(K - 1, xi)
-        _, dP_K_normalized = legendre_polynomial_and_derivative(K, xi)
-
-        # Undo the normalization to get standard Legendre polynomial derivatives
-        dP_Km1 = dP_Km1_normalized / sqrt(K - 1 + 0.5)
-        dP_K = dP_K_normalized / sqrt(K + 0.5)
-
-        # Use "left Radau" polynomial (0 at -1, 1 at 1).
-        # See [Eq. (A.17)] for right correction function derivative
-        correction_matrix[i, 2] = 0.5 * (dP_Km1 + dP_K)
-
-        # Use "right" Radau polynomial (1 at -1, 0 at ).
-        # See [Eq. (4.1)] for left correction function derivative:
-        correction_matrix[i, 1] = (-1)^K / 2 * (dP_K - dP_Km1)
-    end
-
-    return correction_matrix
-end
 end # @muladd

@@ -646,11 +646,10 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     # 0 at all other solution points, ensuring C⁰ continuity of the flux across element interfaces.
     # The correction is: (f* - f) * dg/dxi where g is the correction function
     @threaded for element in eachelement(dg, cache)
-        # Calculate flux at boundaries from solution for the correction term
+        # Obtain analytical fluxes at boundaries
         u_left = get_node_vars(u, equations, dg, 1, element)
         u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
 
-        # Obtain analytical fluxes at boundaries
         flux_left = flux(u_left, 1, equations)
         flux_right = flux(u_right, 1, equations)
 
@@ -663,8 +662,9 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
             # g_L is the left Radau polynomial (1 at left boundary, 0 at right)
             # g_R is the right Radau polynomial (0 at left boundary, 1 at right)
             for i in eachnode(dg)
-                du[v, i, element] += (correction_left * correction_matrix[i, 1] +
-                                      correction_right * correction_matrix[i, 2])
+                du[v, i, element] = du[v, i, element] +
+                                    (correction_left * correction_matrix[i, 1] +
+                                     correction_right * correction_matrix[i, 2])
             end
         end
     end

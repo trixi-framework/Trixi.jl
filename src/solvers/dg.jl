@@ -84,8 +84,8 @@ create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTupl
 """
     VolumeIntegralStrongForm()
 
-The classical strong form volume integral type for FD/DG methods.
-Should be used in conjunction with [`SurfaceIntegralFluxReconstruction`](@ref).
+The classical strong form volume integral type for FD/DG
+and DG/Flux Reconstruction (FR) methods.
 """
 struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
 create_cache(mesh, equations, ::VolumeIntegralStrongForm, dg, uEltype) = NamedTuple()
@@ -558,35 +558,25 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
     end
 end
 
-# TODO: FD. Should this definition live in a different file because it is
-# not strictly a DG method?
-"""
-    SurfaceIntegralUpwind(splitting)
-
-Couple elements with upwind simultaneous approximation terms (SATs)
-that use a particular flux `splitting`, e.g.,
-[`splitting_steger_warming`](@ref).
-
-See also [`VolumeIntegralUpwind`](@ref).
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
-"""
-struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
-    splitting::FluxSplitting
-end
-
-"""
+@doc raw"""
     SurfaceIntegralFluxReconstruction(basis;
                                       surface_flux=flux_central,
                                       correction_type=Val(:g_DG))
 
 Correct fluxes at element interfaces using the Flux Reconstruction (FR) approach
 by Huynh (2007) to achieve C⁰ flux-continuity across element interfaces.
-The FR method applies interface corrections using correction functions that are
-zero at all solution points except the boundaries.
+The FR method applies interface corrections using correction functions ``g_L, g_R`` that are
+zero at all solution points except the left/right boundaries, respectively.
 
-Must be used in conjunction with [`VolumeIntegralStrongForm`](@ref).
+!!! note
+    Must be used in conjunction with [`VolumeIntegralStrongForm`](@ref).
+
+## Correction Functions
+Correction functions have different stability properties, i.e., CFL limits.
+
+Currently supported correction functions are:
+- `Val(:g_DG)`. Corresponds to Standard DG scheme (default).
+- `Val(:g_2)`. Corresponds to Spectral Difference scheme.
 
 ## References
 
@@ -595,9 +585,9 @@ Must be used in conjunction with [`VolumeIntegralStrongForm`](@ref).
   Galerkin Methods"
   [AIAA Paper 2007-4079](https://doi.org/10.2514/6.2007-4079)
 
-- De Grazia, Mengaldo, Moxey, Vincent, and Sherwin (2014)
-  "Connections between the discontinuous Galerkin method and high-order flux reconstruction schemes"
-  [DOI: 10.1002/fld.3915](https://doi.org/10.1002/fld.3915)
+- Vincent, Castonguay, Jameson (2011)
+  "A New Class of High-Order Energy Stable Flux Reconstruction Schemes"
+  [DOI: 10.1007/s10915-010-9420-z](https://doi.org/10.1007/s10915-010-9420-z)
 """
 struct SurfaceIntegralFluxReconstruction{SurfaceFlux, CorrectionMatrix} <:
        AbstractSurfaceIntegral
@@ -631,6 +621,24 @@ function Base.show(io::IO, ::MIME"text/plain",
         ]
         summary_box(io, "SurfaceIntegralFluxReconstruction", setup)
     end
+end
+
+# TODO: FD. Should this definition live in a different file because it is
+# not strictly a DG method?
+"""
+    SurfaceIntegralUpwind(splitting)
+
+Couple elements with upwind simultaneous approximation terms (SATs)
+that use a particular flux `splitting`, e.g.,
+[`splitting_steger_warming`](@ref).
+
+See also [`VolumeIntegralUpwind`](@ref).
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+"""
+struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
+    splitting::FluxSplitting
 end
 
 function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)

@@ -13,10 +13,13 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 # Create DG solver with Flux Reconstruction surface integral
 # The volume integral remains the standard weak form
 polydeg = 3
-basis = LobattoLegendreBasis(3)
+basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = flux_lax_friedrichs
-surface_integral = SurfaceIntegralFluxReconstruction(basis, surface_flux = surface_flux)
+correction_type = :g_2
+surface_integral = SurfaceIntegralFluxReconstruction(basis,
+                                                     surface_flux = surface_flux,
+                                                     correction_type = Val(correction_type))
 
 solver = DGSEM(polydeg = polydeg,
                surface_integral = surface_integral,
@@ -28,7 +31,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 n_cells_max = 30_000)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+                                    solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -43,7 +47,13 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.9)
+# Note **smaller** CFL number compared to weak form
+if correction_type == :g_DG
+    cfl = 0.9
+elseif correction_type == :g_2
+    cfl = 1.7
+end
+stepsize_callback = StepsizeCallback(cfl = cfl)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
