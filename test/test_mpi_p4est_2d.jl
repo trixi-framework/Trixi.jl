@@ -193,7 +193,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                                 0.21575881133569155,
                                 0.01967917976620703
                             ],
-                            tspan=(0.0, 0.25),)
+                            tspan=(0.0, 0.25))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -225,7 +225,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                             0.2453908414271658,
                             0.019597656830548395
                         ],
-                        tspan=(0.0, 0.25), trees_per_dimension=(1, 1),)
+                        tspan=(0.0, 0.25), trees_per_dimension=(1, 1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
