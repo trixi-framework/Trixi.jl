@@ -50,6 +50,8 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = VolumeIntegra
                                          volume_integral_stabilized = volume_integral_stabilized,
                                          indicator = nothing) # Indicator taken from `volume_integral_stabilized`
 
+# TODO: Try RRG!
+
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral) # Just using FD actually crashes for this configuration!
 
@@ -68,7 +70,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/bd
 boundary_symbols = [:Airfoil, :FarField]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
 
-restart_filename = "out/restart_000600000.h5"
+restart_filename = "out/restart_000960622.h5"
 mesh = load_mesh(restart_filename)
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
@@ -97,7 +99,7 @@ tspan = (0.0, 50 * t_c) # Non-AMR
 #ode = semidiscretize(semi, tspan)
 
 
-tspan = (load_time(restart_filename), 75 * t_c)
+tspan = (load_time(restart_filename), 65 * t_c)
 ode = semidiscretize(semi, tspan, restart_filename)
 
 
@@ -149,6 +151,12 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       med_level = 1, med_threshold = 0.1,
                                       max_level = 3, max_threshold = 0.3)
 
+amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, shock_indicator,
+                                              base_level = 0,
+                                              med_level = 1, med_threshold = 0.1,
+                                              max_level = 2, max_threshold = 0.3,
+                                              max_threshold_secondary = shock_indicator.alpha_max)                                      
+
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 100,
                            adapt_initial_condition = false)
@@ -172,4 +180,5 @@ ode_algorithm = SSPRK43(thread = Trixi.True())
 tols = 5e-5 # Not sure if low or high tols lead to better performance here
 sol = solve(ode, ode_algorithm;
             abstol = tols, reltol = tols, dt = 4e-6,
+            maxiters = Inf,
             ode_default_options()..., callback = callbacks)
