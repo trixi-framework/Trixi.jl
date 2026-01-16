@@ -9,7 +9,7 @@ the following four functions:
 - `speed_of_sound(V, T, eos)`
 
 where `eos = equations.equation_of_state`.
-`specific_entropy` is required to calculate the  mathematical entropy and entropy variables,
+`specific_entropy` is required to calculate the mathematical entropy and entropy variables,
 and `speed_of_sound` is required to calculate wavespeed estimates for e.g., [`FluxLaxFriedrichs`](@ref).
     
 Additional functions can also be specialized to particular equations of state to improve 
@@ -52,8 +52,7 @@ by using Newton's method to determine `T` such that `energy_internal(V, T, eos) 
 Note that the tolerance may need to be adjusted based on the specific equation of state. 
 """
 function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
-                     tol = eos_newton_tol(eos),
-                     maxiter = 100)
+                     tol = eos_newton_tol(eos), maxiter = 100)
     T = initial_T
     de = energy_internal(V, T, eos) - e
     iter = 1

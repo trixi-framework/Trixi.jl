@@ -61,8 +61,8 @@ function initial_condition_constant(x, t,
     RealT = eltype(x)
     rho = 1
     rho_v1 = convert(RealT, 0.1)
-    rho_e = 10
-    return SVector(rho, rho_v1, rho_e)
+    rho_e_total = 10
+    return SVector(rho, rho_v1, rho_e_total)
 end
 
 """

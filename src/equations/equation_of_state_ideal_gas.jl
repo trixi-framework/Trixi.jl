@@ -30,7 +30,7 @@ end
     pressure(V, T, eos::IdealGas)
 
 Computes pressure for an ideal gas from primitive variables (see [`NonIdealCompressibleEulerEquations1D`](@ref))
-    specific volume `V` and temperature `T`.
+specific volume `V` and temperature `T`.
 """
 function pressure(V, T, eos::IdealGas)
     (; R) = eos

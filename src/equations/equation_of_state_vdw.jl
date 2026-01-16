@@ -18,8 +18,8 @@ with ``c_v = \frac{R}{\gamma - 1}``.
 struct VanDerWaals{RealT} <: AbstractEquationOfState
     a::RealT
     b::RealT
-    R::RealT
     gamma::RealT
+    R::RealT
     cv::RealT
 end
 
@@ -32,7 +32,7 @@ By default, van der Waals parameters are for N2.
 function VanDerWaals(; a = 174.64049524257663, b = 0.001381308696129041,
                      gamma = 5 / 3, R = 296.8390795484912)
     cv = R / (gamma - 1)
-    return VanDerWaals(promote(a, b, R, gamma, cv)...)
+    return VanDerWaals(promote(a, b, gamma, R, cv)...)
 end
 
 """
@@ -70,7 +70,7 @@ function specific_entropy(V, T, eos::VanDerWaals)
     return s
 end
 
-# this formula is taken from (A.26) in the paper "An oscillation free 
+# This formula is taken from (A.26) in the paper "An oscillation free 
 # shock-capturing method for compressible van der Waals supercritical 
 # fluid flows" by Pantano, Saurel, and Schmitt (2017). 
 # https://doi.org/10.1016/j.jcp.2017.01.057

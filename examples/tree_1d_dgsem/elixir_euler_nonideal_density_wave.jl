@@ -13,15 +13,16 @@ equations = NonIdealCompressibleEulerEquations1D(eos)
 function initial_condition_density_wave(x, t,
                                         equations::NonIdealCompressibleEulerEquations1D;
                                         amplitude = 0.98, k = 2)
-    v1 = 0.1
-    rho = 1 + amplitude * sin(k * pi * (x[1] - v1 * t))
-    p = 20.0
+    RealT = eltype(x)
+    v1 = convert(RealT, 0.1)
+    rho = 1 + convert(RealT, amplitude) * sinpi(k * (x[1] - v1 * t))
+    p = 20
 
     V = inv(rho)
 
     # invert for temperature given p, V
-    T = 1.0
-    tol = 100 * eps(T)
+    T = 1
+    tol = 100 * eps(RealT)
     dp = pressure(V, T, eos) - p
     iter = 1
     while abs(dp) / abs(p) > tol && iter < 100
