@@ -410,13 +410,13 @@ end
     p = pressure(u, equations)
     # Form of the internal energy depends on gas type
     if equations.gamma == 1 # isothermal gas
-        internal_energy = equations.kappa * log(rho)
+        energy_internal = equations.kappa * log(rho)
     else # equations.gamma > 1 # polytropic gas
-        internal_energy = equations.kappa * rho^(equations.gamma - 1) /
+        energy_internal = equations.kappa * rho^(equations.gamma - 1) /
                           (equations.gamma - 1)
     end
 
-    w1 = internal_energy + p / rho - 0.5f0 * v_square
+    w1 = energy_internal + p / rho - 0.5f0 * v_square
     w2 = v1
     w3 = v2
 

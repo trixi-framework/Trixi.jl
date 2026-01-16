@@ -12,34 +12,40 @@ The compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \\ \rho v_1 \\ \rho E
+    \rho \\ \rho v_1 \\ \rho E
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-\rho v_1 \\ \rho v_1^2 + p \\ (\rho E + p) v_1
+    \rho v_1 \\ \rho v_1^2 + p \\ (\rho E + p) v_1
 \end{pmatrix}
 =
 \begin{pmatrix}
-0 \\ 0 \\ 0
+    0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-for a gas with pressure specified by some equation of state in one space dimension.
+for a gas with pressure ``p`` specified by some equation of state
+(see [`AbstractEquationOfState`](@ref), [`IdealGasEquationOfState`](@ref), [`VanDerWaalsEquationOfState`](@ref))
+in one space dimension.
+
 Here, ``\rho`` is the density, ``v_1`` the velocity, ``E`` the specific total energy, 
-and the pressure in terms of specific volume `V = inv(rho)` and temperature `T` is given 
+and the pressure (see [`pressure(V, T, eos::IdealGas)`](@ref), [`pressure(V, T, eos::VanDerWaals)`](@ref))
+is given in terms of specific volume `V = inv(rho)` and temperature `T`
 by some user-specified equation of state (EOS)
 ```math
-p = p(V, T),
+p = p(V, T)
 ```
-Similarly, the internal energy is specified by `e = e(V, T)`. 
+
+Similarly, the internal energy is specified by `e = energy_internal(V, T, eos)`, see
+[`energy_internal(V, T, eos::IdealGas)`](@ref), [`energy_internal(V, T, eos::VanDerWaals)`](@ref).
 
 Because of this, the primitive variables are also defined to be `V, v1, T` (instead of 
 `rho, v1, p` for `CompressibleEulerEquations1D`). The implementation also assumes 
 mass basis unless otherwise specified.     
 """
-struct NonIdealCompressibleEulerEquations1D{EoS_T <: AbstractEquationOfState} <:
+struct NonIdealCompressibleEulerEquations1D{EoS <: AbstractEquationOfState} <:
        AbstractCompressibleEulerEquations{1, 3}
-    equation_of_state::EoS_T
+    equation_of_state::EoS
 end
 
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations1D)
@@ -64,6 +70,7 @@ end
 """
     boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
                                  surface_flux_function, equations::NonIdealCompressibleEulerEquations1D)
+
 Determine the boundary numerical surface flux for a slip wall condition.
 Imposes a zero normal velocity at the wall.
 Density and pressure are taken from the internal solution state and pressure.
@@ -74,7 +81,7 @@ Should be used together with [`TreeMesh`](@ref).
                                               surface_flux_function,
                                               equations::NonIdealCompressibleEulerEquations1D)
     # compute the primitive variables
-    rho_local, v_normal, p_local = cons2prim(u_inner, equations)
+    _, v_normal, p_local = cons2prim(u_inner, equations)
 
     if isodd(direction) # flip sign of normal to make it outward pointing
         v_normal *= -1
@@ -89,7 +96,7 @@ end
                       equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
 
-    rho, rho_v1, rho_E = u
+    _, rho_v1, rho_E = u
     V, v1, T = cons2prim(u, equations)
     p = pressure(V, T, eos)
 
@@ -186,7 +193,7 @@ end
     V, v1, T = prim
     rho = inv(V)
     rho_v1 = rho * v1
-    e = internal_energy(V, T, eos)
+    e = energy_internal(V, T, eos)
     rho_E = rho * e + 0.5 * rho_v1 * v1
     return SVector(rho, rho_v1, rho_E)
 end
@@ -202,17 +209,17 @@ where `s` is the specific entropy determined by the equation of state.
 """
 @inline function entropy_math(u, equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    V, v1, T = cons2prim(u, equations)
+    V, _, T = cons2prim(u, equations)
     rho = u[1]
     S = -rho * specific_entropy(V, T, eos)
     return S
 end
 
 """
-    entropy(cons, equations::AbstractCompressibleEulerEquations)
+    entropy(cons, equations::NonIdealCompressibleEulerEquations1D)
 
 Default entropy is the mathematical entropy
-[`entropy_math(cons, equations::AbstractCompressibleEulerEquations)`](@ref).
+[`entropy_math(cons, equations::NonIdealCompressibleEulerEquations1D)`](@ref).
 """
 @inline function entropy(cons, equations::NonIdealCompressibleEulerEquations1D)
     return entropy_math(cons, equations)

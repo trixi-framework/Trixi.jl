@@ -5,7 +5,16 @@
 @muladd begin
 #! format: noindent
 
-# assume mass basis for simplicity 
+@doc raw"""
+    VanDerWaals{RealT} <: AbstractEquationOfState
+
+This defines the van der Waals equation of state
+given by the pressure and internal energy relations
+```math
+p = \frac{\rho R T}{1 - \rho b} - a \rho^2, \quad e = c_v T - a \rho
+```
+with ``c_v = \frac{R}{\gamma - 1}``.
+"""
 struct VanDerWaals{RealT} <: AbstractEquationOfState
     a::RealT
     b::RealT
@@ -14,13 +23,24 @@ struct VanDerWaals{RealT} <: AbstractEquationOfState
     cv::RealT
 end
 
-# by default, van der Waals parameters are for N2
+"""
+    VanDerWaals(; a = 174.64049524257663, b = 0.001381308696129041,
+                gamma = 5 / 3, R = 296.8390795484912)
+
+By default, van der Waals parameters are for N2.
+"""
 function VanDerWaals(; a = 174.64049524257663, b = 0.001381308696129041,
                      gamma = 5 / 3, R = 296.8390795484912)
     cv = R / (gamma - 1)
     return VanDerWaals(promote(a, b, R, gamma, cv)...)
 end
 
+"""
+    pressure(V, T, eos::VanDerWaals)
+
+Computes pressure for a van der Waals gas from specific volume `V` and temperature `T`,
+see also [`NonIdealCompressibleEulerEquations1D`](@ref).
+"""
 function pressure(V, T, eos::VanDerWaals)
     (; a, b, R) = eos
     rho = inv(V)
@@ -28,7 +48,13 @@ function pressure(V, T, eos::VanDerWaals)
     return p
 end
 
-function internal_energy(V, T, eos::VanDerWaals)
+"""
+    energy_internal(V, T, eos::VanDerWaals)
+
+Computes internal energy for a van der Waals gas from specific volume `V` and temperature `T` as
+``e = c_v T - a \rho``.
+"""
+function energy_internal(V, T, eos::VanDerWaals)
     (; cv, a) = eos
     rho = inv(V)
     e = cv * T - a * rho
@@ -47,7 +73,7 @@ end
 function speed_of_sound(V, T, eos::VanDerWaals)
     (; a, b, gamma) = eos
     rho = inv(V)
-    e = internal_energy(V, T, eos)
+    e = energy_internal(V, T, eos)
     c2 = gamma * (gamma - 1) * (e + rho * a) / (1 - rho * b)^2 - 2 * a * rho
     return sqrt(c2)
 end

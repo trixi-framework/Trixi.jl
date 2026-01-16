@@ -1,9 +1,12 @@
 @doc raw"""
-    This defines the polytropic ideal gas equation of state
-    given by the pressure and internal energy relations
+    IdealGas{RealT} <: AbstractEquationOfState
+
+This defines the polytropic ideal gas equation of state
+given by the pressure and internal energy relations
 ```math
-p = rho * R * T, e = cv * T
+p = \rho R T, \quad e = c_v T
 ```
+with ``c_v = \frac{R}{\gamma - 1}``.
 """
 struct IdealGas{RealT} <: AbstractEquationOfState
     gamma::RealT
@@ -11,14 +14,24 @@ struct IdealGas{RealT} <: AbstractEquationOfState
     cv::RealT
 end
 
-# If not specified, `R` is taken to be the gas constant for air. However, the 
-# precise value does not matter since eliminating temperature yields non-dimensional
-# formulas in terms of only `gamma`. 
+"""
+    IdealGas(gamma = 1.4, R = 287)
+
+If not specified, `R` is taken to be the gas constant for air. However, the 
+precise value does not matter since eliminating temperature yields non-dimensional
+formulas in terms of only `gamma`. 
+"""
 function IdealGas(gamma = 1.4, R = 287)
     cv = R / (gamma - 1)
     return IdealGas(promote(gamma, R, cv)...)
 end
 
+"""
+    pressure(V, T, eos::IdealGas)
+
+Computes pressure for an ideal gas from primitive variables (see [`NonIdealCompressibleEulerEquations1D`](@ref))
+    specific volume `V` and temperature `T`.
+"""
 function pressure(V, T, eos::IdealGas)
     (; R) = eos
     rho = inv(V)
@@ -26,7 +39,13 @@ function pressure(V, T, eos::IdealGas)
     return p
 end
 
-function internal_energy(V, T, eos::IdealGas)
+"""
+    energy_internal(V, T, eos::IdealGas)
+
+Computes internal energy for an ideal gas from specific volume `V` and temperature `T` as
+``e = c_v T``.
+"""
+function energy_internal(V, T, eos::IdealGas)
     (; cv) = eos
     e = cv * T
     return e
@@ -44,7 +63,3 @@ function speed_of_sound(V, T, eos::IdealGas)
     c2 = gamma * p * V
     return sqrt(c2)
 end
-
-################################################
-#        additional helper functions
-################################################

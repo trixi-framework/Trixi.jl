@@ -1,13 +1,16 @@
 @doc raw"""
-    The interface for an `AbstractEquationOfState` requires specifying
+    AbstractEquationOfState
+
+The interface for an `AbstractEquationOfState` requires specifying
 the following four functions: 
 - `pressure(V, T, eos)`
-- `internal_energy(V, T, eos)`
+- `energy_internal(V, T, eos)`
 - `specific_entropy(V, T, eos)`
 - `speed_of_sound(V, T, eos)`
-where `eos = equations.equation_of_state`. `specific_entropy` is required to calculate the 
-mathematical entropy and entropy variables, and `speed_of_sound` is required to calculate 
-wavespeed estimates for e.g., local Lax-Friedrichs fluxes. 
+
+where `eos = equations.equation_of_state`.
+`specific_entropy` is required to calculate the  mathematical entropy and entropy variables,
+and `speed_of_sound` is required to calculate wavespeed estimates for e.g., [`FluxLaxFriedrichs`](@ref).
     
 Additional functions can also be specialized to particular equations of state to improve 
 efficiency. 
@@ -26,24 +29,25 @@ include("equation_of_state_vdw.jl")
 function gibbs_free_energy(V, T, eos)
     s = specific_entropy(V, T, eos)
     p = pressure(V, T, eos)
-    e = internal_energy(V, T, eos)
+    e = energy_internal(V, T, eos)
     h = e + p * V
     return h - T * s
 end
 
+# compute c_v = de/dT
 @inline function heat_capacity_constant_volume(V, T, eos::AbstractEquationOfState)
-    return ForwardDiff.derivative(T -> internal_energy(V, T, eos), T)
+    return ForwardDiff.derivative(T -> energy_internal(V, T, eos), T)
 end
 
 # calculate the temperature as a function of specific volume `V` and internal energy `e`
-# by using Newton's method to determine `T` such that `internal_energy(V, T, eos) = e`.
+# by using Newton's method to determine `T` such that `energy_internal(V, T, eos) = e`.
 function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0)
     tol = 10 * eps()
     T = initial_T
-    de = internal_energy(V, T, eos) - e
+    de = energy_internal(V, T, eos) - e
     iter = 1
     while abs(de) / abs(e) > tol && iter < 100
-        de = internal_energy(V, T, eos) - e
+        de = energy_internal(V, T, eos) - e
 
         # for thermodynamically admissible states, c_v = de_dT_V > 0, which should 
         # guarantee convergence of this iteration.

@@ -795,7 +795,12 @@ end
     return 0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end
 
-# Calculate internal energy for a conservative state `cons`
+"""
+    energy_internal(cons, equations::AbstractIdealGlmMhdEquations)
+
+Calculate internal energy for a conservative state `cons` as the difference
+between total energy and kinetic + magnetic energies.
+"""
 @inline function energy_internal(cons, equations::IdealGlmMhdEquations1D)
     return (energy_total(cons, equations)
             -
@@ -804,7 +809,7 @@ end
             energy_magnetic(cons, equations))
 end
 
-# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
+# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons`
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations1D)
     return (cons[2] * cons[6] + cons[3] * cons[7] + cons[4] * cons[8]) / cons[1]
 end
