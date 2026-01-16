@@ -764,6 +764,13 @@ end
     end
 end
 
+@timed_testset "Test nonideal compressible Euler entropy" begin
+    eos = VanDerWaals(; a = 10, b = 0.01, R=287, gamma = 1.4)
+    equations = NonIdealCompressibleEulerEquations1D(eos)
+    u = prim2cons(SVector(2.0, 0.1, 10.0), equations)
+    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈ cons2entropy(u, equations)
+end
+
 @timed_testset "StepsizeCallback" begin
     # Ensure a proper error is thrown if used with adaptive time integration schemes
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
