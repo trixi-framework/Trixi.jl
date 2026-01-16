@@ -70,6 +70,10 @@ function specific_entropy(V, T, eos::VanDerWaals)
     return s
 end
 
+# this formula is taken from (A.26) in the paper "An oscillation free 
+# shock-capturing method for compressible van der Waals supercritical 
+# fluid flows" by Pantano, Saurel, and Schmitt (2017). 
+# https://doi.org/10.1016/j.jcp.2017.01.057
 function speed_of_sound(V, T, eos::VanDerWaals)
     (; a, b, gamma) = eos
     rho = inv(V)
