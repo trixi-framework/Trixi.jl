@@ -774,6 +774,13 @@ end
           cons2entropy(u, equations)
     @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+
+    # check that the fallback temperature and specialized temperature 
+    # return the same value 
+    V, v1, T = cons2prim(u, equations)
+    e = energy_internal(V, T, eos)
+    @test temperature(V, e, eos) ≈
+          invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
 end
 
 @timed_testset "StepsizeCallback" begin
