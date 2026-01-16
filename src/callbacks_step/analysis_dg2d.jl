@@ -185,6 +185,27 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# used in `calc_entropy_change_element`
+function integrate_element_ref(func::Func, u, element,
+                               mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
+                               args...) where {Func}
+    @unpack weights = dg.basis
+
+    # Initialize integral with zeros of the right shape
+    integral = zero(func(u, 1, 1, 1, equations, dg, args...))
+
+    # Use quadrature to numerically integrate element.
+    # We do not multiply with the Jacobian to stay in reference space.
+    # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
+    # the time derivative of entropy, see `calc_entropy_change_element`.
+    for j in eachnode(dg), i in eachnode(dg)
+        integral += weights[i] * weights[j] *
+                    func(u, i, j, element, equations, dg, args...)
+    end
+
+    return integral
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
@@ -214,8 +235,8 @@ function integrate_via_indices(func::Func, u,
                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                            UnstructuredMesh2D, P4estMesh{2},
                                            T8codeMesh{2}},
-                               equations,
-                               dg::DGSEM, cache, args...; normalize = true) where {Func}
+                               equations, dg::DGSEM, cache,
+                               args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
