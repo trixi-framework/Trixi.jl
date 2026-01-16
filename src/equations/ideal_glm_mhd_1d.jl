@@ -789,7 +789,7 @@ Default entropy is the mathematical entropy
     return 0.5f0 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
 end
 
-# Calculate the magnetic energy for a conservative state `cons'.
+# Calculate the magnetic energy for a conservative state `cons`.
 #  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
 @inline function energy_magnetic(cons, ::IdealGlmMhdEquations1D)
     return 0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
