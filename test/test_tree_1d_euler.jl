@@ -502,12 +502,19 @@ end
 end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl" begin
-    mean_convergence = convergence_test(@__MODULE__,
-                                        joinpath(EXAMPLES_DIR,
-                                                 "elixir_euler_nonideal_density_wave.jl"),
-                                        3, initial_refinement_level = 3)
-
-    @test isapprox(mean_convergence[:l2], [4.31664, 4.78633, 4.28456], rtol = 0.05)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.0014455251184177067,
+                            0.00013913263972132486,
+                            0.05885337316113668
+                        ],
+                        linf=[
+                            0.006398094477253258,
+                            0.0006812697403103529,
+                            0.25849830799577944
+                        ])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
