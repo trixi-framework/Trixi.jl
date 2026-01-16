@@ -84,9 +84,7 @@ stepsize_callback = StepsizeCallback(cfl = 1.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        stepsize_callback,
-                        #Trixi.EntropyIndicatorUpdateStepCB(indicator = indicator)
-                        )
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation

@@ -64,7 +64,6 @@ include("stepsize.jl")
 include("glm_speed.jl")
 include("lbm_collision.jl")
 include("euler_acoustics_coupling.jl")
-include("entropy_indicator_update.jl")
 
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
 # when using `trixi_include` or `test_trixi_include`

@@ -88,8 +88,6 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(alive_interval = 50)
 
-entropy_decay_callback = Trixi.EntropyIndicatorUpdateStepCB(indicator = indicator)
-
 callbacks = CallbackSet(summary_callback,
                         alive_callback,
                         analysis_callback)

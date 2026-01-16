@@ -361,10 +361,6 @@ in the DG right-hand-side due to the weak-form volume integral only.
 returns `true` for this element/cell, indicating that a more stable volume integral should be
 used there.
 
-This indicator can be supplied to the stage/step callbacks
-[`EntropyIndicatorUpdateStageCB`](@ref)/[`EntropyIndicatorUpdateStepCB`](@ref) to adaptively adjust `target_decay`
-based on the observed global entropy production during a Runge-Kutta stage/step.
-
 Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
 more advanced/(entropy) stable volume integral for the troubled cell/element ``m``.
 
