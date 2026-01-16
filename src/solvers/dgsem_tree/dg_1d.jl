@@ -659,8 +659,6 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
             correction_right = surface_flux_values[v, 2, element] - flux_right[v]
 
             # Apply corrections using correction function derivatives
-            # g_L is the left Radau polynomial (1 at left boundary, 0 at right)
-            # g_R is the right Radau polynomial (0 at left boundary, 1 at right)
             for i in eachnode(dg)
                 du[v, i, element] = du[v, i, element] +
                                     (correction_left * correction_matrix[i, 1] +
