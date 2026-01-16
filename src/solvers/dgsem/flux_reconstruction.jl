@@ -8,7 +8,7 @@
 ### Calculate correction matrices for the Flux Reconstruction (FR) method, ###
 ### see `SurfaceIntegralFluxReconstruction`.                               ###  
 
-# Implements Huynh's DG correction function g = g_DG = g_{DG, K}.
+# Implements Huynh's `g_DG` correction function.
 function calc_correction_matrix(basis, ::Val{:g_DG})
     nodes = basis.nodes
     RealT = eltype(nodes)
