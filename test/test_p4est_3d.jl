@@ -378,7 +378,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
-                        max_iterations_newton=20,
+                        max_iterations_newton=40,
                         newton_tolerances=(1.0e-14, 1.0e-15),
                         l2=[
                             0.19153085678321066,
