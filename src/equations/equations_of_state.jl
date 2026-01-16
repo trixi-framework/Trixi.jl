@@ -59,7 +59,6 @@ eos_newton_tol(eos::AbstractEquationOfState) = 10 * eps()
     temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0, tol = eos_newton_tol(eos),
                 maxiter = 100)
 
-
 Calculates the temperature as a function of specific volume `V` and internal energy `e`
 by using Newton's method to determine `T` such that `energy_internal(V, T, eos) = e`.
 Note that the tolerance may need to be adjusted based on the specific equation of state. 
