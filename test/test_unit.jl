@@ -766,12 +766,14 @@ end
     end
 end
 
-@timed_testset "Test nonideal compressible Euler entropy" begin
+@timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations1D(eos)
     u = prim2cons(SVector(2.0, 0.1, 10.0), equations)
     @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
           cons2entropy(u, equations)
+    @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)    
 end
 
 @timed_testset "StepsizeCallback" begin
