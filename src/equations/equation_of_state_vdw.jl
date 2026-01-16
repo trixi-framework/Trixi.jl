@@ -81,4 +81,15 @@ function speed_of_sound(V, T, eos::VanDerWaals)
     c2 = gamma * (gamma - 1) * (e + rho * a) / (1 - rho * b)^2 - 2 * a * rho
     return sqrt(c2)
 end
+
+# This is not a required interface function, but specializing it 
+# if an explicit function is available can improve performance.
+# For general EOS, this is calculated via a Newton solve. 
+function temperature(V, e, eos::VanDerWaals)
+    (; cv, a) = eos
+    rho = inv(V)
+    T = (e + a * rho) / cv
+    return T
+end
+
 end # @muladd
