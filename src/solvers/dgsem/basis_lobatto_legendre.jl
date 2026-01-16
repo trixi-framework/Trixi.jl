@@ -17,7 +17,7 @@ This exceptional case is currently only supported for TreeMesh!
 struct LobattoLegendreBasis{RealT <: Real, NNODES,
                             VectorT <: AbstractVector{RealT},
                             InverseVandermondeLegendre <: AbstractMatrix{RealT},
-                            VectorT2 <: AbstractVector{RealT},
+                            BoundaryMatrix <: AbstractMatrix{RealT},
                             DerivativeMatrix <: AbstractMatrix{RealT}} <:
        AbstractBasisSBP{RealT}
     nodes::VectorT
@@ -25,7 +25,7 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     inverse_weights::VectorT
 
     inverse_vandermonde_legendre::InverseVandermondeLegendre
-    boundary_interpolation_entries::VectorT2 # Compressed form of "Lhat"
+    boundary_interpolation::BoundaryMatrix # Compressed form of "Lhat"
 
     derivative_matrix::DerivativeMatrix # strong form derivative matrix "D"
     derivative_split::DerivativeMatrix # strong form derivative matrix minus boundary terms
@@ -70,10 +70,6 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     boundary_interpolation = zeros(RealT, nnodes_, 2)
     boundary_interpolation[:, 1] = calc_Lhat(-one(RealT), nodes_, weights_)
     boundary_interpolation[:, 2] = calc_Lhat(one(RealT), nodes_, weights_)
-    # Currently only used parts in the code
-    boundary_interpolation_entries = zeros(RealT, 2)
-    boundary_interpolation_entries[1] = boundary_interpolation[1, 1]
-    boundary_interpolation_entries[2] = boundary_interpolation[end, 2]
 
     derivative_matrix = polynomial_derivative_matrix(nodes_)
     derivative_split = calc_Dsplit(nodes_, weights_)
@@ -93,11 +89,11 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
-                                typeof(boundary_interpolation_entries),
+                                typeof(boundary_interpolation),
                                 typeof(derivative_matrix)}(nodes, weights,
                                                            inverse_weights,
                                                            inverse_vandermonde_legendre,
-                                                           boundary_interpolation_entries,
+                                                           boundary_interpolation,
                                                            derivative_matrix,
                                                            derivative_split,
                                                            derivative_split_transpose,

@@ -908,15 +908,15 @@ function calc_gradient_surface_integral!(gradients,
                                          mesh::P4estMesh{3}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack boundary_interpolation_entries = dg.basis
+    @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
     @unpack contravariant_vectors = cache.elements
 
     # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation_entries[1]
-    factor_2 = boundary_interpolation_entries[2]
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg), m in eachnode(dg)
             for v in eachvariable(equations_parabolic)

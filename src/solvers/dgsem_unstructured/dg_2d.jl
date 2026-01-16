@@ -479,11 +479,11 @@ end
 # Therefore, we require a different surface integral routine here despite their similar structure.
 function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral, dg::DGSEM, cache)
-    @unpack boundary_interpolation_entries = dg.basis
+    @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
-    factor_1 = boundary_interpolation_entries[1]
-    factor_2 = boundary_interpolation_entries[2]
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg), v in eachvariable(equations)
             # surface contribution along local sides 2 and 4 (fixed x and y varies)
