@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 # assume mass basis for simplicity 
 struct VanDerWaals{RealT} <: AbstractEquationOfState
     a::RealT
@@ -41,3 +48,4 @@ function speed_of_sound(V, T, eos::VanDerWaals)
     c2 = gamma * (gamma - 1) * (e + rho * a) / (1 - rho * b)^2 - 2 * a * rho
     return sqrt(c2)
 end
+end # @muladd
