@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    NonIdealCompressibleEulerEquations1D(gamma)
+    NonIdealCompressibleEulerEquations1D(equation_of_state)
 
 The compressible Euler equations
 ```math
