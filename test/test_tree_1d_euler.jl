@@ -561,7 +561,6 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-
 end
 
 end # module

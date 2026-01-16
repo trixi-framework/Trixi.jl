@@ -765,10 +765,11 @@ end
 end
 
 @timed_testset "Test nonideal compressible Euler entropy" begin
-    eos = VanDerWaals(; a = 10, b = 0.01, R=287, gamma = 1.4)
+    eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations1D(eos)
     u = prim2cons(SVector(2.0, 0.1, 10.0), equations)
-    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈ cons2entropy(u, equations)
+    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
+          cons2entropy(u, equations)
 end
 
 @timed_testset "StepsizeCallback" begin
