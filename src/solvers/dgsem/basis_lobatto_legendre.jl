@@ -529,9 +529,8 @@ function barycentric_weights(nodes)
     return weights
 end
 
-# Calculate Lhat = M^{-1} * B.
-# Note that this is the negated version of the matrix that shows up on the RHS of the
-# DG update multiplying the two-point numerical surface flux evaluations.
+# Calculate M^{-1} * L(x), where L(x) is the Lagrange polynomial
+# vector at point x.
 function calc_Lhat(x, nodes, weights)
     n_nodes = length(nodes)
     wbary = barycentric_weights(nodes)
