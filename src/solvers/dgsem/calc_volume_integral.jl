@@ -204,10 +204,6 @@ function calc_volume_integral!(du, u, mesh,
                                                        mesh, equations, dg, cache)
 
         entropy_delta = entropy_delta_WF - entropy_delta_FD
-        #=
-        entropy_delta = calc_entropy_delta(du_element_WF, du, u, element,
-                                           mesh, equations, dg, cache)
-        =#
         if entropy_delta < 0 # Use weak form if it is more stable
             @views du[.., element] .= du_element_WF
         end

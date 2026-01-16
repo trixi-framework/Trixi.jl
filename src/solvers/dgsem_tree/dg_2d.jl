@@ -1160,20 +1160,4 @@ function calc_sources!(du, u, t, source_terms,
 
     return nothing
 end
-
-function calc_entropy_delta(du_element_wf, du_FD, u, element,
-                            mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
-    @unpack weights = dg.basis
-
-    entropy_delta = zero(eltype(du_element_wf))
-    for j in eachnode(dg), i in eachnode(dg)
-        w_node = cons2entropy(get_node_vars(u, equations, dg, i, j, element), equations)
-        # Need to negate `du` to obtain DG RHS, thus we combine the minus signs from the subtraction
-        # TODO: Need to pre-allocate storage for this approach to be efficient!
-        @views difference = du_FD[:, i, j, element] .- du_element_wf[:, i, j]
-        entropy_delta += weights[i] * weights[j] * dot(w_node, difference)
-    end
-
-    return entropy_delta
-end
 end # @muladd
