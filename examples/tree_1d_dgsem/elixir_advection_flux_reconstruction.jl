@@ -10,16 +10,14 @@ using Trixi
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
-# Create DG solver with Flux Reconstruction surface integral
-# The volume integral remains the standard weak form
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = flux_lax_friedrichs
-correction_type = :g_2
+correction_function = Val(:g_DG)
 surface_integral = SurfaceIntegralFluxReconstruction(basis,
                                                      surface_flux = surface_flux,
-                                                     correction_type = Val(correction_type))
+                                                     correction_function = correction_function)
 
 solver = DGSEM(polydeg = polydeg,
                surface_integral = surface_integral,
@@ -48,12 +46,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # Note **smaller** CFL number compared to weak form
-if correction_type == :g_DG
-    cfl = 0.9
-elseif correction_type == :g_2
-    cfl = 1.7
-end
-stepsize_callback = StepsizeCallback(cfl = cfl)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

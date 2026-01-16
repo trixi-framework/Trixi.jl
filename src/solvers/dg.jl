@@ -561,7 +561,7 @@ end
 @doc raw"""
     SurfaceIntegralFluxReconstruction(basis;
                                       surface_flux=flux_central,
-                                      correction_type=Val(:g_DG))
+                                      correction_function=Val(:g_DG))
 
 Correct fluxes at element interfaces using the Flux Reconstruction (FR) approach
 by Huynh (2007) to achieve C⁰ flux-continuity across element interfaces.
@@ -576,7 +576,7 @@ Correction functions have different stability properties, i.e., CFL limits.
 
 Currently supported correction functions are:
 - `Val(:g_DG)`. Corresponds to Standard DG scheme (default).
-- `Val(:g_2)`. Corresponds to Spectral Difference scheme.
+- `Val(:g_2)`. Lumped Lobatto scheme from Huynh (2007).
 
 ## References
 
@@ -599,10 +599,10 @@ end
 
 function SurfaceIntegralFluxReconstruction(basis;
                                            surface_flux = flux_central,
-                                           correction_type = Val(:g_DG))
+                                           correction_function = Val(:g_DG))
     # Compute correction matrix based on the basis nodes and polynomial degree
     correction_matrix = calc_correction_matrix(basis.nodes, polydeg(basis),
-                                               correction_type)
+                                               correction_function)
     return SurfaceIntegralFluxReconstruction{typeof(surface_flux),
                                              typeof(correction_matrix)}(surface_flux,
                                                                         correction_matrix)

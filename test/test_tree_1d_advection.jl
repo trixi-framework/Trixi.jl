@@ -128,6 +128,26 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_advection_flux_reconstruction.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_flux_reconstruction.jl"),
+                        l2=[8.918951210296105e-5], linf=[0.0005098653715788215])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_flux_reconstruction.jl (g_2)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_flux_reconstruction.jl"),
+                        correction_function=Val(:g_2),
+                        cfl=1.7,
+                        l2=[0.00010036055371206059], linf=[0.00046609399369468285])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 end
 
 end # module

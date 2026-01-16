@@ -5,9 +5,10 @@
 @muladd begin
 #! format: noindent
 
-# Calculate correction matrix for the Flux Reconstruction (FR) method,
-# see `SurfaceIntegralFluxReconstruction`.
-# This implements Huynh's DG correction function g = g_DG = g_{DG, K}.
+### Calculate correction matrices for the Flux Reconstruction (FR) method, ###
+### see `SurfaceIntegralFluxReconstruction`.                               ###  
+
+# Implements Huynh's DG correction function g = g_DG = g_{DG, K}.
 function calc_correction_matrix(nodes, polydeg, ::Val{:g_DG})
     RealT = eltype(nodes)
     K = polydeg + 1 # notation from Huynh (2007)
@@ -38,9 +39,7 @@ function calc_correction_matrix(nodes, polydeg, ::Val{:g_DG})
     return correction_matrix
 end
 
-# Calculate correction matrix for the Flux Reconstruction (FR) method,
-# see `SurfaceIntegralFluxReconstruction`.
-# This implements the g_2 correction function (also called Spectral Difference method).
+# Implements Huynh's `g_2` correction function.
 function calc_correction_matrix(nodes, polydeg, ::Val{:g_2})
     RealT = eltype(nodes)
     K = polydeg + 1 # notation from Huynh (2007)

@@ -268,7 +268,8 @@ export DG,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
        IndicatorHennemannGassner,
        VolumeIntegralUpwind,
-       SurfaceIntegralWeakForm, SurfaceIntegralStrongForm, SurfaceIntegralFluxReconstruction,
+       SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
+       SurfaceIntegralFluxReconstruction,
        SurfaceIntegralUpwind,
        MortarL2
 
