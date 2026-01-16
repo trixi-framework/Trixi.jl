@@ -58,8 +58,8 @@ end
 """
     VolumeIntegralStrongForm()
 
-The classical strong form volume integral type for FD/DG
-and DG/Flux Reconstruction (FR) methods.
+The classical strong form volume integral type for Finite Difference (FD),
+Discontinuous Galerkin (DG), and Flux Reconstruction (FR) methods.
 """
 struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
 create_cache(mesh, equations, ::VolumeIntegralStrongForm, dg, uEltype) = NamedTuple()
