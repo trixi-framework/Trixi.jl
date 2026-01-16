@@ -12,10 +12,13 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = flux_hlle
-correction_function = Val(:g_2) # Huynh's g_2 correction function
+correction_function = Val(:g_DG) # Classic strong form DG
 surface_integral = SurfaceIntegralFluxReconstruction(basis,
                                                      surface_flux = surface_flux,
                                                      correction_function = correction_function)
+solver = DGSEM(polydeg = polydeg,
+               surface_integral = surface_integral,
+               volume_integral = VolumeIntegralStrongForm())
 
 coordinates_min = 0.0
 coordinates_max = 1.0
@@ -38,7 +41,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 1.1)
+stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

@@ -10,8 +10,8 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
-surface_flux = flux_lax_friedrichs
-correction_function = Val(:g_DG)
+surface_flux = flux_godunov
+correction_function = Val(:g_2) # Huynh's g_2 correction function
 surface_integral = SurfaceIntegralFluxReconstruction(basis,
                                                      surface_flux = surface_flux,
                                                      correction_function = correction_function)
@@ -42,8 +42,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# Note **smaller** CFL number compared to weak form
-stepsize_callback = StepsizeCallback(cfl = 0.9)
+stepsize_callback = StepsizeCallback(cfl = 1.7)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
