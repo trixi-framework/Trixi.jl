@@ -31,13 +31,6 @@ function gibbs_free_energy(V, T, eos)
     return h - T * s
 end
 
-# calculates dpdV_T, dpdT_V
-@inline function calc_pressure_derivatives(V, T, eos::AbstractEquationOfState)
-    dpdV_T = ForwardDiff.derivative(V -> pressure(V, T, eos), V)
-    dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
-    return dpdV_T, dpdT_V
-end
-
 @inline function heat_capacity_constant_volume(V, T, eos::AbstractEquationOfState)
     return ForwardDiff.derivative(T -> internal_energy(V, T, eos), T)
 end
