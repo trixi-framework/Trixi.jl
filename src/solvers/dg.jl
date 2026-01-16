@@ -56,13 +56,6 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
 end
 
 """
-    VolumeIntegralStrongForm()
-
-The classical strong form volume integral type for FD/DG methods.
-"""
-struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
-
-"""
     VolumeIntegralWeakForm()
 
 The classical weak form volume integral type for DG methods as explained in
@@ -87,6 +80,15 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
 create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
+
+"""
+    VolumeIntegralStrongForm()
+
+The classical strong form volume integral type for FD/DG methods.
+Should be used in conjunction with [`SurfaceIntegralFluxReconstruction`](@ref).
+"""
+struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
+create_cache(mesh, equations, ::VolumeIntegralStrongForm, dg, uEltype) = NamedTuple()
 
 """
     VolumeIntegralFluxDifferencing(volume_flux)
@@ -572,6 +574,56 @@ See also [`VolumeIntegralUpwind`](@ref).
 """
 struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
     splitting::FluxSplitting
+end
+
+"""
+    SurfaceIntegralFluxReconstruction(basis; surface_flux=flux_central)
+
+Correct fluxes at element interfaces using the Flux Reconstruction (FR) approach
+by Huynh (2007) to achieve C⁰ flux-continuity across element interfaces.
+The FR method applies interface corrections using correction functions that are
+zero at all solution points except the boundaries.
+
+Must be used in conjunction with [`VolumeIntegralStrongForm`](@ref).
+
+## References
+
+- Huynh (2007)
+  "A Flux Reconstruction Approach to High-Order Schemes Including Discontinuous 
+  Galerkin Methods"
+  [AIAA Paper 2007-4079](https://doi.org/10.2514/6.2007-4079)
+
+- De Grazia, Mengaldo, Moxey, Vincent, and Sherwin (2014)
+  "Connections between the discontinuous Galerkin method and high-order flux reconstruction schemes"
+  [DOI: 10.1002/fld.3915](https://doi.org/10.1002/fld.3915)
+"""
+struct SurfaceIntegralFluxReconstruction{SurfaceFlux, CorrectionMatrix} <:
+       AbstractSurfaceIntegral
+    surface_flux::SurfaceFlux
+    # Derivatives at solution points of the correction functions g_l, g_r.
+    # g_l is stored in fist column, g_r in second column.
+    correction_matrix::CorrectionMatrix
+end
+
+function SurfaceIntegralFluxReconstruction(basis; surface_flux = flux_central)
+    # Compute correction matrix based on the basis nodes and polynomial degree
+    correction_matrix = calc_correction_matrix(basis.nodes, polydeg(basis))
+    return SurfaceIntegralFluxReconstruction{typeof(surface_flux), typeof(correction_matrix)}(surface_flux, correction_matrix)
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   integral::SurfaceIntegralFluxReconstruction)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        setup = [
+            "surface flux" => integral.surface_flux,
+            "correction matrix" => integral.correction_matrix
+        ]
+        summary_box(io, "SurfaceIntegralFluxReconstruction", setup)
+    end
 end
 
 function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)

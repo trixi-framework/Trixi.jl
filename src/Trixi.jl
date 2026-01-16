@@ -269,7 +269,7 @@ export DG,
        IndicatorHennemannGassner,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
-       SurfaceIntegralUpwind,
+       SurfaceIntegralUpwind, SurfaceIntegralFluxReconstruction,
        MortarL2
 
 export reconstruction_O2_inner, reconstruction_O2_full,

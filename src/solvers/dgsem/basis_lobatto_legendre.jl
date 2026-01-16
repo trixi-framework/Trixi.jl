@@ -820,4 +820,38 @@ end
 vandermonde_legendre(nodes, RealT = Float64) = vandermonde_legendre(nodes,
                                                                     length(nodes) - 1,
                                                                     RealT)
+
+# Calculate correction matrix for Flux Reconstruction method
+# This implements Huynh's DG correction function (c = c_DG)
+# which corresponds to g_DG(xi) in Huynh (2007)
+function calc_correction_matrix(nodes, polydeg)
+    RealT = eltype(nodes)
+    nnodes_ = polydeg + 1
+    correction_matrix = zeros(RealT, nnodes_, 2)
+
+    # For Huynh's DG correction, the correction function is the Radau polynomial
+    # which is 1 at one boundary and 0 at all other nodes.
+    # Left Radau polynomial:  g_L(xi) = (-1)^N / 2 * (P_N(xi) - P_{N+1}(xi))  [1 at -1, 0 at +1]
+    # Right Radau polynomial: g_R(xi) = 1/2 * (P_N(xi) + P_{N+1}(xi))         [0 at -1, 1 at +1]
+    # where P_N is the standard (unnormalized) Legendre polynomial of degree N = polydeg
+    for i in 1:nnodes_
+        xi = nodes[i]
+        # Note: legendre_polynomial_and_derivative returns normalized polynomials
+        # (multiplied by sqrt(N + 0.5)), so we need to undo that normalization
+        _, dP_N_normalized = legendre_polynomial_and_derivative(polydeg, xi)
+        _, dP_Np1_normalized = legendre_polynomial_and_derivative(polydeg + 1, xi)
+
+        # Undo the normalization to get standard Legendre polynomial derivatives
+        dP_N = dP_N_normalized / sqrt(polydeg + 0.5)
+        dP_Np1 = dP_Np1_normalized / sqrt(polydeg + 1.5)
+
+        # Left correction function derivative: g_L'(xi) = (-1)^N / 2 * (P_N'(xi) - P_{N+1}'(xi))
+        correction_matrix[i, 1] = ((-1)^polydeg) * 0.5 * (dP_N - dP_Np1)
+
+        # Right correction function derivative: g_R'(xi) = 1/2 * (P_N'(xi) + P_{N+1}'(xi))
+        correction_matrix[i, 2] = 0.5 * (dP_N + dP_Np1)
+    end
+
+    return correction_matrix
+end
 end # @muladd

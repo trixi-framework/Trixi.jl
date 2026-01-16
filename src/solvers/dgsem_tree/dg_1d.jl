@@ -137,6 +137,30 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
+# Strong form kernel for Flux Reconstruction method
+# Uses the (negated) derivative matrix D instead of the (negated) weak form matrix Dhat
+@inline function strong_form_kernel!(du, u,
+                                     element,
+                                     mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                     have_nonconservative_terms::False, equations,
+                                     dg::DGSEM, cache, alpha = true)
+    # true * [some floating point value] == [exactly the same floating point value]
+    # This can (hopefully) be optimized away due to constant propagation.
+    @unpack derivative_matrix = dg.basis
+
+    for i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, element)
+
+        flux1 = flux(u_node, 1, equations)
+        for ii in eachnode(dg)
+            multiply_add_to_node_vars!(du, alpha * derivative_matrix[ii, i], flux1,
+                                       equations, dg, ii, element)
+        end
+    end
+
+    return nothing
+end
+
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
@@ -605,6 +629,43 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
             # surface at +x
             du[v, nnodes(dg), element] = (du[v, nnodes(dg), element] +
                                           surface_flux_values[v, 2, element] * factor_2)
+        end
+    end
+
+    return nothing
+end
+
+function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                equations,
+                                surface_integral::SurfaceIntegralFluxReconstruction,
+                                dg::DGSEM, cache)
+    @unpack correction_matrix = surface_integral
+    @unpack surface_flux_values = cache.elements
+
+    # The correction functions are designed such that they are 1 at one boundary and 
+    # 0 at all other solution points, ensuring C⁰ continuity of the flux across element interfaces.
+    # The correction is: (f* - f) * dg/dxi where g is the correction function
+    @threaded for element in eachelement(dg, cache)
+        # Calculate flux at boundaries from solution for the correction term
+        u_left = get_node_vars(u, equations, dg, 1, element)
+        u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
+
+        # Obtain analytical fluxes at boundaries
+        flux_left = flux(u_left, 1, equations)
+        flux_right = flux(u_right, 1, equations)
+
+        for v in eachvariable(equations)
+            # Correction terms: (f_num - f_ana) at each boundary
+            correction_left = surface_flux_values[v, 1, element] - flux_left[v]
+            correction_right = surface_flux_values[v, 2, element] - flux_right[v]
+
+            # Apply corrections using correction function derivatives
+            # g_L is the left Radau polynomial (1 at left boundary, 0 at right)
+            # g_R is the right Radau polynomial (0 at left boundary, 1 at right)
+            for i in eachnode(dg)
+                du[v, i, element] += (correction_left * correction_matrix[i, 1] +
+                                      correction_right * correction_matrix[i, 2])
+            end
         end
     end
 
