@@ -39,6 +39,7 @@ end
     return ForwardDiff.derivative(T -> energy_internal(V, T, eos), T)
 end
 
+# relative tolerance for the Newton solver for temperature
 eos_newton_tol(eos::AbstractEquationOfState) = 10 * eps()
 
 """
@@ -56,7 +57,7 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
     T = initial_T
     de = energy_internal(V, T, eos) - e
     iter = 1
-    while abs(de) / abs(e) > tol && iter < maxiter
+    while abs(de) > tol * abs(e) && iter < maxiter
         de = energy_internal(V, T, eos) - e
 
         # for thermodynamically admissible states, c_v = de_dT_V > 0, which should 
