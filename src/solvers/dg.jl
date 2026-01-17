@@ -568,9 +568,9 @@ by Huynh (2007) to achieve C⁰ flux-continuity across element interfaces.
 The FR method applies interface corrections using correction functions ``g_L, g_R`` that are
 zero at all solution points except the left/right boundaries, respectively.
 
-Strictly speaking, this renders the FR approach not a pure surface operation anymore,
+Strictly speaking, this renders the FR surface integral not a pure surface operation anymore,
 as the corrections are applied to all solution points inside the element.
-Since the corrections are based on surface flux differences only, we still categorize this
+Since the corrections are based on surface terms only, we still categorize this
 as a surface integral which is a natural building block of the DG method as implemented in Trixi.jl.
 
 !!! note
