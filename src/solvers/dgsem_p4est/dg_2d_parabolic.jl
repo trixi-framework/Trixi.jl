@@ -964,7 +964,6 @@ function calc_gradient_surface_integral!(gradients,
 
     gradients_x, gradients_y = gradients
 
-    # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     factor_1 = boundary_interpolation[1, 1]

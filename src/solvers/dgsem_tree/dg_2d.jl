@@ -1086,8 +1086,9 @@ function calc_surface_integral!(du, u,
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
-    # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop to increase performance.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * B and the missing "-" is taken care of by `apply_jacobian!`.
+    #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     factor_1 = boundary_interpolation[1, 1]
@@ -1127,7 +1128,8 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
 
     @threaded for element in eachelement(dg, cache)
         # Negative sign included to account for the negated surface and volume terms,
-        # see e.g. the computation of `derivative_hat` in the basis setup.
+        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
         for j in eachnode(dg), i in eachnode(dg)
