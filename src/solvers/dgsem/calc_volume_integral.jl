@@ -34,7 +34,7 @@ function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralStrongForm,
                                dg::DGSEM, cache)
-    volume_term_matrix = dg.basis.derivative
+    volume_term_matrix = dg.basis.derivative_matrix
 
     @threaded for element in eachelement(dg, cache)
         volume_kernel!(du, u, element, mesh,

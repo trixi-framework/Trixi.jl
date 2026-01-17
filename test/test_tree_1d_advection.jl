@@ -132,7 +132,7 @@ end
 @trixi_testset "elixir_advection_flux_reconstruction.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_flux_reconstruction.jl"),
-                        l2=[0.00010036055371209849], linf=[0.00046609399369557103])
+                        l2=[9.804542826057945e-5], linf=[0.0004798144872548704])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
