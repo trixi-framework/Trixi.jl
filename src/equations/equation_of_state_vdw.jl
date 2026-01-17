@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    VanDerWaals{RealT} <: AbstractEquationOfState
+    VanDerWaals{RealT <: Real} <: AbstractEquationOfState
 
 This defines the van der Waals equation of state
 given by the pressure and internal energy relations
@@ -21,7 +21,7 @@ See also "An oscillation free shock-capturing method for compressible van
 der Waals supercritical fluid flows" by Pantano, Saurel, and Schmitt (2017). 
 https://doi.org/10.1016/j.jcp.2017.01.057
 """
-struct VanDerWaals{RealT} <: AbstractEquationOfState
+struct VanDerWaals{RealT <: Real} <: AbstractEquationOfState
     a::RealT
     b::RealT
     gamma::RealT
