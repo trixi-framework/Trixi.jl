@@ -603,7 +603,7 @@ end
 
 function SurfaceIntegralFluxReconstruction(basis;
                                            surface_flux = flux_central,
-                                           correction_function = Val(:g_DG))
+                                           correction_function = correction_function_DG())
     # Compute correction matrix based on the basis and chosen correction function
     g_derivative_matrix = calc_correction_matrix(basis,
                                                  correction_function...)

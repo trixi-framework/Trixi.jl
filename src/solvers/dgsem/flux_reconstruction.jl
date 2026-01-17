@@ -11,7 +11,7 @@
 @doc raw"""
     correction_function_DG(c)
 
-Returns `(Val(:g_DG),)` representing the "Lumped Lobatto" correction function ```g_\mathrm{DG}``.
+Returns `(Val(:g_DG),)` representing the "Lumped Lobatto" correction function ``g_\mathrm{DG}``.
 Must be supplied to [`SurfaceIntegralFluxReconstruction`](@ref) as the
 `correction_function` keyword argument.
 
