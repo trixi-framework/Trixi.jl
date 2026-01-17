@@ -51,30 +51,6 @@ function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations1D)
 end
 varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("V", "v1", "T")
 
-"""
-    boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
-                                 surface_flux_function, equations::NonIdealCompressibleEulerEquations1D)
-
-Determine the boundary numerical surface flux for a slip wall condition.
-Imposes a zero normal velocity at the wall.
-Density and pressure are taken from the internal solution state and pressure.
-Should be used together with [`TreeMesh`](@ref).
-"""
-@inline function boundary_condition_slip_wall(u_inner, orientation,
-                                              direction, x, t,
-                                              surface_flux_function,
-                                              equations::NonIdealCompressibleEulerEquations1D)
-    # compute the primitive variables
-    _, v_normal, p_local = cons2prim(u_inner, equations)
-
-    if isodd(direction) # flip sign of normal to make it outward pointing
-        v_normal *= -1
-    end
-
-    # For the slip wall we directly set the flux as the normal velocity is zero
-    return SVector(0, p_local, 0)
-end
-
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::NonIdealCompressibleEulerEquations1D)
