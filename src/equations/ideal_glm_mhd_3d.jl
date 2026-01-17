@@ -1587,7 +1587,7 @@ end
     return 0.5f0 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
 end
 
-# Calculate the magnetic energy for a conservative state `cons'.
+# Calculate the magnetic energy for a conservative state `cons`.
 #  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
 @inline function energy_magnetic(cons, ::IdealGlmMhdEquations3D)
     return 0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
@@ -1612,7 +1612,7 @@ end
     return true
 end
 
-# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
+# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons`
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations3D)
     return (cons[2] * cons[6] + cons[3] * cons[7] + cons[4] * cons[8]) / cons[1]
 end

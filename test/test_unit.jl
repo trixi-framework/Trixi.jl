@@ -7,6 +7,8 @@ using LinearAlgebra: norm, dot
 using SparseArrays
 using DelimitedFiles: readdlm
 
+using ForwardDiff
+
 # Use Convex and ECOS to load the extension that extends functions for testing
 # PERK Single p2 Constructors
 using Convex: Convex
@@ -762,6 +764,23 @@ end
                                                                   surface_fluxes,
                                                                   equations)))
     end
+end
+
+@timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
+    eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
+    equations = NonIdealCompressibleEulerEquations1D(eos)
+    u = prim2cons(SVector(2.0, 0.1, 10.0), equations)
+    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
+          cons2entropy(u, equations)
+    @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+
+    # check that the fallback temperature and specialized temperature 
+    # return the same value 
+    V, v1, T = cons2prim(u, equations)
+    e = energy_internal(V, T, eos)
+    @test temperature(V, e, eos) ≈
+          invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
 end
 
 @timed_testset "StepsizeCallback" begin
