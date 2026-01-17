@@ -8,10 +8,10 @@ equations = IdealGlmMhdEquations1D(gamma)
 
 initial_condition = initial_condition_convergence_test
 
-polydeg = 3
+polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
-surface_flux = flux_hlle
+surface_flux = flux_hllc
 correction_function = Val(:g_DG) # Classic strong form DG
 surface_integral = SurfaceIntegralFluxReconstruction(basis,
                                                      surface_flux = surface_flux,
@@ -22,7 +22,7 @@ solver = DGSEM(polydeg = polydeg,
 
 coordinates_min = 0.0
 coordinates_max = 1.0
-cells_per_dimension = (16,)
+cells_per_dimension = (6,)
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -41,7 +41,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.8)
+stepsize_callback = StepsizeCallback(cfl = 0.7)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -52,5 +52,4 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0,
-            ode_default_options()..., callback = callbacks);
+            dt = 1.0, ode_default_options()..., callback = callbacks);
