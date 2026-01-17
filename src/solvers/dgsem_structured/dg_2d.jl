@@ -724,7 +724,7 @@ function apply_jacobian!(du,
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             # Negative sign included to account for the negated surface and volume terms,
-            # see e.g. the computation of `derivative_hat` and `Lhat` in the basis setup.
+            # see e.g. the computation of `derivative_hat` in the basis setup.
             factor = -inverse_jacobian[i, j, element]
 
             for v in eachvariable(equations)
