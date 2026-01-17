@@ -11,7 +11,7 @@
 @doc raw"""
     correction_function_DG(c)
 
-Returns a symbol representing the "Lumped Lobatto" correction function ```g_\mathrm{DG}``.
+Returns `Val(:g_DG)` representing the "Lumped Lobatto" correction function ```g_\mathrm{DG}``.
 Must be supplied to [`SurfaceIntegralFluxReconstruction`](@ref) as the
 `correction_function` keyword argument.
 
@@ -61,7 +61,7 @@ end
 @doc raw"""
     correction_function_2(c)
 
-Returns a symbol representing the "Lumped Lobatto" correction function ``g_2``.
+Returns `Val(:g_2)` representing the "Lumped Lobatto" correction function ``g_2``.
 Must be supplied to [`SurfaceIntegralFluxReconstruction`](@ref) as the
 `correction_function` keyword argument.
 
@@ -119,7 +119,7 @@ end
 @doc raw"""
     correction_function_ESFR(c)
 
-Returns a tuple representing the Energy Stable Flux Reconstruction (ESFR)
+Returns a `(Val(:g_ESFR), c)` representing the Energy Stable Flux Reconstruction (ESFR)
 correction function with parameter `c`.
 Must be supplied to [`SurfaceIntegralFluxReconstruction`](@ref) as the
 `correction_function` keyword argument.
@@ -138,40 +138,8 @@ Choices for c are :
 """
 correction_function_ESFR(c) = (Val(:g_ESFR), c)
 
-# Implements eq. (3.24) in Vincent et al. (2011)
-#a_k(k) = factorial(2 * k) / (2^k * (factorial(k))^2)
-# Aims to be a more numerically stable version of `a_k` by eliminating one `factorial(k)` operation
-a_k_mod(k) = factorial(2 * k) / (2^k * factorial(k))
-
-"""
-    c_SD(k)
-
-Returns the value of the parameter `c` for the Spectral Difference (SD) correction function
-for polynomial degree `k`.
-Must be supplied to [`correction_function_ESFR`](@ref).
-
-## Reference
-
-- Vincent, Castonguay, Jameson (2011)
-  "A New Class of High-Order Energy Stable Flux Reconstruction Schemes"
-  [DOI: 10.1007/s10915-010-9420-z](https://doi.org/10.1007/s10915-010-9420-z)
-"""
-function c_SD(k)
-    #return (2 * k) / ( (2 * k + 1) * (k + 1) * (a_k(k) * factorial(k))^2 )
-    return (2 * k) / ((2 * k + 1) * (k + 1) * a_k_mod(k)^2)
-end
-
-"""
-    c_HU(k)
-
-Returns the value of the parameter `c` for Huynh's `g_2` correction function
-for polynomial degree `k`.
-Must be supplied to [`correction_function_ESFR`](@ref).
-"""
-function c_HU(k)
-    #return (2 * (k + 1))/((2 * k + 1) * k * (a_k(k) * factorial(k))^2) # eq. (3.54
-    return (2 * (k + 1)) / ((2 * k + 1) * k * a_k_mod(k)^2) # eq. (3.54
-end
+#a_k(k) = factorial(2 * k) / (2^k * (factorial(k))^2) # eq. (3.24)
+a_k_mod(k) = factorial(2 * k) / (2^k * factorial(k)) # more stable version
 
 """
     c_min_ESFR(k)
@@ -188,15 +156,45 @@ Must be supplied to [`correction_function_ESFR`](@ref).
 """
 function c_min_ESFR(k)
     #return -2 / ((2 * k + 1) * (a_k(k) * factorial(k))^2) # eq. (3.28)
-    return -2 / ((2 * k + 1) * a_k_mod(k)^2)
+    return -2 / ((2 * k + 1) * a_k_mod(k)^2) # more stable version
+end
+
+"""
+    c_SD(k)
+
+Returns the value of the parameter `c` for the Spectral Difference (SD) correction function
+for polynomial degree `k`.
+Must be supplied to [`correction_function_ESFR`](@ref).
+
+## Reference
+
+- Vincent, Castonguay, Jameson (2011)
+  "A New Class of High-Order Energy Stable Flux Reconstruction Schemes"
+  [DOI: 10.1007/s10915-010-9420-z](https://doi.org/10.1007/s10915-010-9420-z)
+"""
+function c_SD(k)
+    #return (2 * k) / ( (2 * k + 1) * (k + 1) * (a_k(k) * factorial(k))^2 ) # eq. (3.50)
+    return (2 * k) / ((2 * k + 1) * (k + 1) * a_k_mod(k)^2) # more stable version
+end
+
+"""
+    c_HU(k)
+
+Returns the value of the parameter `c` for Huynh's `g_2` correction function
+for polynomial degree `k`.
+Must be supplied to [`correction_function_ESFR`](@ref).
+"""
+function c_HU(k)
+    #return (2 * (k + 1))/((2 * k + 1) * k * (a_k(k) * factorial(k))^2) # eq. (3.54
+    return (2 * (k + 1)) / ((2 * k + 1) * k * a_k_mod(k)^2) # more stable version
 end
 
 # The ESFR schemes form a one-parameter family controlled by the parameter `c`.
 # Special cases:
+# - c > c_min_ESFR: Lower bound for stability
 # - c = 0: recovers the DG scheme (equivalent to g_DG)
 # - c = c_SD: recovers the Spectral Difference (SD) scheme
-# TODO: Huynh's g_2
-# - c = c_min_ESFR: Lower bound for stability; need c > c_min_ESFR
+# - c = c_HU: recovers Huynh's g_2 scheme (equivalent to g_2)
 function calc_correction_matrix(basis, ::Val{:g_ESFR}, c)
     nodes = basis.nodes
     RealT = eltype(nodes)
@@ -204,9 +202,8 @@ function calc_correction_matrix(basis, ::Val{:g_ESFR}, c)
     k = N - 1 # notation from Vincent et al. (2011)
     g_derivative_matrix = zeros(RealT, N, 2)
 
-    #eta_k = c * (2 * k + 1) * (a_k(k) * factorial(k))^2 # eq. (3.45) in Vincent et al. (2011)
-    # More numerically stable version (eliminate one `factorial(k)` operation):
-    #eta_k = c * (2 * k + 1) * a_k_mod(k)^2
+    #eta_k = c * (2 * k + 1) * (a_k(k) * factorial(k))^2 # eq. (3.45)
+    #eta_k = c * (2 * k + 1) * a_k_mod(k)^2 # more stable version
 
     for i in 1:N
         xi = nodes[i]
@@ -225,12 +222,10 @@ function calc_correction_matrix(basis, ::Val{:g_ESFR}, c)
         eta_term = (eta_k * dL_km1 + dL_kp1) / (1 + eta_k)
 
         # Left correction function derivative (at ξ = -1 boundary)
-        # See eq. (3.46) in Vincent et al. (2011)
-        g_derivative_matrix[i, 1] = (-1)^k / 2 * (dL_k - eta_term)
+        g_derivative_matrix[i, 1] = (-1)^k / 2 * (dL_k - eta_term) # eq. (3.46)
 
         # Right correction function derivative (at ξ = +1 boundary)
-        # See eq. (3.47) in Vincent et al. (2011)
-        g_derivative_matrix[i, 2] = 0.5 * (dL_k + eta_term)
+        g_derivative_matrix[i, 2] = 0.5 * (dL_k + eta_term) # eq. (3.47)
     end
 
     return g_derivative_matrix
