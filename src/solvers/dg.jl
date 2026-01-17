@@ -597,7 +597,7 @@ struct SurfaceIntegralFluxReconstruction{SurfaceFlux, CorrectionMatrix} <:
        AbstractSurfaceIntegral
     surface_flux::SurfaceFlux
     # Derivatives at solution points of the correction functions g_L, g_R.
-    # g_L is stored in first column, g_R in second column.
+    # g_L' is stored in first column, g_R' in second column.
     g_derivative_matrix::CorrectionMatrix
 end
 
