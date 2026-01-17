@@ -582,7 +582,6 @@ Correction functions have different stability properties, i.e., CFL limits.
 Currently supported correction functions are:
 - [`correction_function_DG()`](@ref). Corresponds to Standard strong form DG scheme.
 - [`correction_function_2()`](@ref). Lumped Lobatto scheme from Huynh (2007).
-- [`correction_function_ESFR(c)`](@ref). Energy Stable Flux Reconstruction for `c` larger than [`c_min_ESFR(polydeg)`](@ref).
 
 ## References
 
