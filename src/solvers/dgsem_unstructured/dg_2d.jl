@@ -478,7 +478,8 @@ end
 #                  3                                  1
 # Therefore, we require a different surface integral routine here despite their similar structure.
 function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
-                                equations, surface_integral, dg::DGSEM, cache)
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM, cache)
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
