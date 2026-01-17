@@ -580,8 +580,9 @@ as a surface integral which is a natural building block of the DG method as impl
 Correction functions have different stability properties, i.e., CFL limits.
 
 Currently supported correction functions are:
-- `Val(:g_DG)`. Corresponds to Standard strong form DG scheme.
-- `Val(:g_2)`. Lumped Lobatto scheme from Huynh (2007).
+- [`correction_function_DG`](@ref). Corresponds to Standard strong form DG scheme.
+- [`correction_function_2`](@ref). Lumped Lobatto scheme from Huynh (2007).
+- [`correction_function_ESFR`](@ref). Energy Stable Flux Reconstruction for `c` larger than [`c_min_ESFR`](@ref).
 
 ## References
 
@@ -606,7 +607,7 @@ function SurfaceIntegralFluxReconstruction(basis;
                                            correction_function = Val(:g_DG))
     # Compute correction matrix based on the basis and chosen correction function
     g_derivative_matrix = calc_correction_matrix(basis,
-                                                 correction_function)
+                                                 correction_function...)
     return SurfaceIntegralFluxReconstruction{typeof(surface_flux),
                                              typeof(g_derivative_matrix)}(surface_flux,
                                                                           g_derivative_matrix)

@@ -12,7 +12,8 @@ polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = flux_hllc
-correction_function = Val(:g_DG) # Classic strong form DG
+correction_function = correction_function_DG() # Classic strong form DG
+
 surface_integral = SurfaceIntegralFluxReconstruction(basis,
                                                      surface_flux = surface_flux,
                                                      correction_function = correction_function)

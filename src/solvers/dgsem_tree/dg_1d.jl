@@ -652,6 +652,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
         flux_L = flux(u_L, 1, equations)
         flux_R = flux(u_R, 1, equations)
 
+        # TODO: Could do batched treatment over variables to enable e.g. vectorization
         for v in eachvariable(equations)
             # Correction terms: (f_num - f_ana) at each boundary
             Delta_L = surface_flux_values[v, 1, element] - flux_L[v]

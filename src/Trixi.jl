@@ -270,6 +270,8 @@ export DG,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralFluxReconstruction,
+       correction_function_DG, correction_function_2,
+       correction_function_ESFR, c_min_ESFR, c_SD, c_HU,
        SurfaceIntegralUpwind,
        MortarL2
 

@@ -11,7 +11,7 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 surface_flux = flux_godunov
-correction_function = Val(:g_2) # Huynh's g_2 correction function
+correction_function = correction_function_2() # Huynh's g_2 correction function
 surface_integral = SurfaceIntegralFluxReconstruction(basis,
                                                      surface_flux = surface_flux,
                                                      correction_function = correction_function)
