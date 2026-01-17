@@ -638,30 +638,32 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
                                 equations,
                                 surface_integral::SurfaceIntegralFluxReconstruction,
                                 dg::DGSEM, cache)
-    @unpack correction_matrix = surface_integral
+    @unpack g_derivative_matrix = surface_integral
     @unpack surface_flux_values = cache.elements
 
-    # The correction functions are designed such that they are 1 at one boundary and 
+    # The correction functions are designed such that they are 1 at the left/right boundary and 
     # 0 at all other solution points, ensuring C⁰ continuity of the flux across element interfaces.
-    # The correction is: (f* - f) * dg/dxi where g is the correction function
+    # The correction is: (f* - f)|_boundary * (dg/dxi)|xi_i with correction function g.
     @threaded for element in eachelement(dg, cache)
         # Obtain analytical fluxes at boundaries
-        u_left = get_node_vars(u, equations, dg, 1, element)
-        u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
+        u_L = get_node_vars(u, equations, dg, 1, element)
+        u_R = get_node_vars(u, equations, dg, nnodes(dg), element)
 
-        flux_left = flux(u_left, 1, equations)
-        flux_right = flux(u_right, 1, equations)
+        flux_L = flux(u_L, 1, equations)
+        flux_R = flux(u_R, 1, equations)
 
         for v in eachvariable(equations)
             # Correction terms: (f_num - f_ana) at each boundary
-            correction_left = surface_flux_values[v, 1, element] - flux_left[v]
-            correction_right = surface_flux_values[v, 2, element] - flux_right[v]
+            Delta_L = surface_flux_values[v, 1, element] - flux_L[v]
+            Delta_R = surface_flux_values[v, 2, element] - flux_R[v]
 
-            # Apply corrections using correction function derivatives
+            # Apply corrections to ALL nodes (also interior ones!) using
+            # the derivatives of the correction function.
+            # The signs (- for left, + for right) are accounted for in g_L', g_R'.
             for i in eachnode(dg)
                 du[v, i, element] = du[v, i, element] +
-                                    (correction_left * correction_matrix[i, 1] +
-                                     correction_right * correction_matrix[i, 2])
+                                    (Delta_L * g_derivative_matrix[i, 1] +
+                                     Delta_R * g_derivative_matrix[i, 2])
             end
         end
     end

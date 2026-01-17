@@ -65,6 +65,12 @@ function DGSEM(; RealT = Float64,
                surface_integral = SurfaceIntegralWeakForm(surface_flux),
                volume_integral = VolumeIntegralWeakForm())
     basis = LobattoLegendreBasis(RealT, polydeg)
+
+    if surface_integral isa SurfaceIntegralFluxReconstruction &&
+       !(volume_integral isa VolumeIntegralStrongForm)
+        throw(ArgumentError("`SurfaceIntegralFluxReconstruction` requires `VolumeIntegralStrongForm`."))
+    end
+
     return DGSEM(basis, surface_integral, volume_integral)
 end
 

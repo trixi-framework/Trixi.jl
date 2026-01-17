@@ -761,13 +761,16 @@ end
 """
     legendre_polynomial_and_derivative(N::Int, x::Real)
 
-Computes the Legendre polynomial of degree `N` and its derivative at `x`.
+Computes the normalized (multiplied by sqrt(N + 0.5)) Legendre polynomial 
+of degree `N` and its derivative at `x`.
 This implements algorithm 22 "LegendrePolynomialAndDerivative" from the book
 
 - David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
   Algorithms for scientists and engineers.
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+
+with additional normalization.
 """
 function legendre_polynomial_and_derivative(N::Int, x::Real)
     RealT = typeof(x)

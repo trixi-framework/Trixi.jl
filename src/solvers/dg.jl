@@ -568,6 +568,11 @@ by Huynh (2007) to achieve C⁰ flux-continuity across element interfaces.
 The FR method applies interface corrections using correction functions ``g_L, g_R`` that are
 zero at all solution points except the left/right boundaries, respectively.
 
+Strictly speaking, this renders the FR approach not a pure surface operation anymore,
+as the corrections are applied to all solution points inside the element.
+Since the corrections are based on surface flux differences only, we still categorize this
+as a surface integral which is a natural building block of the DG method as implemented in Trixi.jl.
+
 !!! note
     Must be used in conjunction with [`VolumeIntegralStrongForm`](@ref).
 
@@ -575,7 +580,7 @@ zero at all solution points except the left/right boundaries, respectively.
 Correction functions have different stability properties, i.e., CFL limits.
 
 Currently supported correction functions are:
-- `Val(:g_DG)`. Corresponds to Standard DG scheme (default).
+- `Val(:g_DG)`. Corresponds to Standard strong form DG scheme.
 - `Val(:g_2)`. Lumped Lobatto scheme from Huynh (2007).
 
 ## References
@@ -593,18 +598,18 @@ struct SurfaceIntegralFluxReconstruction{SurfaceFlux, CorrectionMatrix} <:
     surface_flux::SurfaceFlux
     # Derivatives at solution points of the correction functions g_L, g_R.
     # g_L is stored in first column, g_R in second column.
-    correction_matrix::CorrectionMatrix
+    g_derivative_matrix::CorrectionMatrix
 end
 
 function SurfaceIntegralFluxReconstruction(basis;
                                            surface_flux = flux_central,
                                            correction_function = Val(:g_DG))
     # Compute correction matrix based on the basis and chosen correction function
-    correction_matrix = calc_correction_matrix(basis,
-                                               correction_function)
+    g_derivative_matrix = calc_correction_matrix(basis,
+                                                 correction_function)
     return SurfaceIntegralFluxReconstruction{typeof(surface_flux),
-                                             typeof(correction_matrix)}(surface_flux,
-                                                                        correction_matrix)
+                                             typeof(g_derivative_matrix)}(surface_flux,
+                                                                          g_derivative_matrix)
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -616,7 +621,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         setup = [
             "surface flux" => integral.surface_flux,
-            "correction matrix" => integral.correction_matrix
+            "g' matrix = [g_L', g_R']" => integral.g_derivative_matrix
         ]
         summary_box(io, "SurfaceIntegralFluxReconstruction", setup)
     end

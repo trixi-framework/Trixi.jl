@@ -5,20 +5,23 @@
 @muladd begin
 #! format: noindent
 
-### Calculate correction matrices for the Flux Reconstruction (FR) method, ###
-### see `SurfaceIntegralFluxReconstruction`.                               ###  
+# Calculate correction matrices for the Flux Reconstruction (FR) method,
+# see `SurfaceIntegralFluxReconstruction`. 
 
-# Implements Huynh's `g_DG` correction function.
+# Implements Huynh's `g_DG` correction function, see
+# - Huynh (2007)
+#  "A Flux Reconstruction Approach to High-Order Schemes IncludingDiscontinuous Galerkin Methods"
+#  [DOI: 10.2514/6.2007-4079](https://doi.org/10.2514/6.2007-4079)
 function calc_correction_matrix(basis, ::Val{:g_DG})
     nodes = basis.nodes
     RealT = eltype(nodes)
     K = nnodes(basis) # notation from Huynh (2007)
-    correction_matrix = zeros(RealT, K, 2)
+    g_derivative_matrix = zeros(RealT, K, 2)
 
     for i in 1:K
         xi = nodes[i]
-        # Note: legendre_polynomial_and_derivative returns normalized polynomials
-        # (multiplied by sqrt(N + 0.5)), so we need to undo that normalization
+        # `legendre_polynomial_and_derivative` returns "normalized" (multiplied by sqrt(K + 0.5)) 
+        # polynomial and derivative
         _, dL_Km1_normalized = legendre_polynomial_and_derivative(K - 1, xi)
         _, dL_K_normalized = legendre_polynomial_and_derivative(K, xi)
 
@@ -26,31 +29,34 @@ function calc_correction_matrix(basis, ::Val{:g_DG})
         dL_Km1 = dL_Km1_normalized / sqrt(K - 1 + 0.5)
         dL_K = dL_K_normalized / sqrt(K + 0.5)
 
-        # Use right Radau polynomial (1 at -1, 0 at 1).
+        # Use right Radau polynomial R_R (1 at -1, 0 at 1).
         # See eq. (4.1) for left correction function:
         dR_RK = (-1)^K / 2 * (dL_K - dL_Km1) # right Radau polynomial degree K
-        correction_matrix[i, 1] = dR_RK
+        g_derivative_matrix[i, 1] = dR_RK
 
-        # Use left Radau polynomial (0 at -1, 1 at 1).
+        # Use left Radau polynomial R_L (0 at -1, 1 at 1).
         # See eq. (A.17) for right correction function:
         dR_LK = 0.5 * (dL_Km1 + dL_K) # left Radau polynomial degree K
-        correction_matrix[i, 2] = dR_LK
+        g_derivative_matrix[i, 2] = dR_LK
     end
 
-    return correction_matrix
+    return g_derivative_matrix
 end
 
-# Implements Huynh's `g_2` correction function.
+# Implements Huynh's `g_2` correction function, see
+# - Huynh (2007)
+#  "A Flux Reconstruction Approach to High-Order Schemes IncludingDiscontinuous Galerkin Methods"
+#  [DOI: 10.2514/6.2007-4079](https://doi.org/10.2514/6.2007-4079)
 function calc_correction_matrix(basis, ::Val{:g_2})
     nodes = basis.nodes
     RealT = eltype(nodes)
     K = nnodes(basis) # notation from Huynh (2007)
-    correction_matrix = zeros(RealT, K, 2)
+    g_derivative_matrix = zeros(RealT, K, 2)
 
     for i in 1:K
         xi = nodes[i]
-        # Note: legendre_polynomial_and_derivative returns normalized polynomials
-        # (multiplied by sqrt(N + 0.5)), so we need to undo that normalization
+        # `legendre_polynomial_and_derivative` returns "normalized" (multiplied by sqrt(K + 0.5)) 
+        # polynomial and derivative
         _, dL_Km2_normalized = legendre_polynomial_and_derivative(K - 2, xi)
         _, dL_Km1_normalized = legendre_polynomial_and_derivative(K - 1, xi)
         _, dL_K_normalized = legendre_polynomial_and_derivative(K, xi)
@@ -60,22 +66,23 @@ function calc_correction_matrix(basis, ::Val{:g_2})
         dL_Km1 = dL_Km1_normalized / sqrt(K - 1 + 0.5)
         dL_K = dL_K_normalized / sqrt(K + 0.5)
 
-        # Build derivatives of right Radau polynomials
+        # Build derivatives of right Radau polynomials R_R
         dR_RKm1 = (-1)^(K - 1) / 2 * (dL_Km1 - dL_Km2) # right Radau polynomial degree K-1
         dR_RK = (-1)^K / 2 * (dL_K - dL_Km1) # right Radau polynomial degree K
 
-        # Use "right" Radau polynomial (1 at -1, 0 at 1).
+        # Use "right" Radau polynomial R_R (1 at -1, 0 at 1).
         # See eq. (4.4) for left correction function g_2 = g_{2, L}:
-        correction_matrix[i, 1] = ((K - 1) * dR_RK + K * dR_RKm1) / (2 * K - 1)
+        g_derivative_matrix[i, 1] = ((K - 1) * dR_RK + K * dR_RKm1) / (2 * K - 1)
 
-        # Build derivatives of left Radau polynomials
+        # Build derivatives of left Radau polynomials R_L
         dR_LKm1 = 0.5 * (dL_Km2 + dL_Km1) # left Radau polynomial degree K-1
         dR_LK = 0.5 * (dL_Km1 + dL_K) # left Radau polynomial degree K
 
-        # Use "left" Radau polynomial (0 at -1, 1 at 1).
-        correction_matrix[i, 2] = ((K - 1) * dR_LK - K * dR_LKm1) / (2 * K - 1)
+        # Use "left" Radau polynomial R_L (0 at -1, 1 at 1).
+        # This is eq. (4.4) with left instead of right Radau polynomials:
+        g_derivative_matrix[i, 2] = ((K - 1) * dR_LK - K * dR_LKm1) / (2 * K - 1)
     end
 
-    return correction_matrix
+    return g_derivative_matrix
 end
 end # @muladd
