@@ -9,7 +9,7 @@
 # see `SurfaceIntegralFluxReconstruction`. 
 
 @doc raw"""
-    correction_function_DG(c)
+    correction_function_DG()
 
 Returns `(Val(:g_DG),)` representing the "Lumped Lobatto" correction function ``g_\mathrm{DG}``.
 Must be supplied to [`SurfaceIntegralFluxReconstruction`](@ref) as the
@@ -55,7 +55,7 @@ function calc_correction_matrix(basis, ::Val{:g_DG})
 end
 
 @doc raw"""
-    correction_function_2(c)
+    correction_function_2()
 
 Returns `(Val(:g_2),)` representing the "Lumped Lobatto" correction function ``g_2``.
 Must be supplied to [`SurfaceIntegralFluxReconstruction`](@ref) as the
