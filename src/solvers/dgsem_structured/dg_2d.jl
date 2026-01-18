@@ -36,7 +36,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
 
     for j in eachnode(dg), i in eachnode(dg)
@@ -50,7 +50,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i],
                                        contravariant_flux1, equations, dg,
                                        ii, j, element)
         end
@@ -60,7 +60,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
                                        contravariant_flux2, equations, dg,
                                        i, jj, element)
         end
@@ -719,6 +719,9 @@ function apply_jacobian!(du,
 
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
+            # Negative sign included to account for the negated surface and volume terms,
+            # see e.g. the computation of `derivative_hat` in the basis setup and 
+            # the comment in `calc_surface_integral!`.
             factor = -inverse_jacobian[i, j, element]
 
             for v in eachvariable(equations)

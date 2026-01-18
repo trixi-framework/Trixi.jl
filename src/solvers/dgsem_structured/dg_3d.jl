@@ -38,7 +38,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -54,7 +54,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                                     i, j, k, element)
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i],
                                        contravariant_flux1, equations, dg,
                                        ii, j, k, element)
         end
@@ -65,7 +65,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                                     i, j, k, element)
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
                                        contravariant_flux2, equations, dg,
                                        i, jj, k, element)
         end
@@ -76,7 +76,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                                     i, j, k, element)
         contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
         for kk in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[kk, k],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[kk, k],
                                        contravariant_flux3, equations, dg,
                                        i, j, kk, element)
         end
@@ -814,9 +814,14 @@ end
 function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            factor = -cache.elements.inverse_jacobian[i, j, k, element]
+            # Negative sign included to account for the negated surface and volume terms,
+            # see e.g. the computation of `derivative_hat` in the basis setup and 
+            # the comment in `calc_surface_integral!`.
+            factor = -inverse_jacobian[i, j, k, element]
 
             for v in eachvariable(equations)
                 du[v, i, j, k, element] *= factor
