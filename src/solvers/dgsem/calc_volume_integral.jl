@@ -19,7 +19,7 @@ function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
-    volume_term_matrix = dg.basis.derivative_dhat
+    volume_term_matrix = dg.basis.derivative_hat
 
     @threaded for element in eachelement(dg, cache)
         volume_kernel!(du, u, element, mesh,
