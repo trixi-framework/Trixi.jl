@@ -870,17 +870,15 @@ function calc_gradient_surface_integral!(gradients,
                                          mesh::TreeMesh{2}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack boundary_interpolation_entries = dg.basis
+    @unpack boundary_interpolation_factor = dg.basis
     @unpack surface_flux_values = cache.elements
 
     gradients_x, gradients_y = gradients
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation_entries[1]
-    factor_2 = boundary_interpolation_entries[2]
+    factor = boundary_interpolation_factor # = factor_1 = factor_2 due to symmetric interpolation points
 
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
@@ -892,7 +890,7 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, 1,
                                                                      element] *
-                                                 factor_1)
+                                                 factor)
 
                 # surface at +x
                 gradients_x[v, nnodes(dg), l, element] = (gradients_x[v,
@@ -901,7 +899,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, 2,
                                                                               element] *
-                                                          factor_2)
+                                                          factor)
 
                 # surface at -y
                 gradients_y[v, l, 1, element] = (gradients_y[v,
@@ -910,7 +908,7 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, 3,
                                                                      element] *
-                                                 factor_1)
+                                                 factor)
 
                 # surface at +y
                 gradients_y[v, l, nnodes(dg), element] = (gradients_y[v,
@@ -919,7 +917,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, 4,
                                                                               element] *
-                                                          factor_2)
+                                                          factor)
             end
         end
     end
