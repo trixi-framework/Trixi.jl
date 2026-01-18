@@ -40,7 +40,7 @@ analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      # Need to overwrite default integrals since 
                                      # calculation of `l2_divb` and `linf_divb` is not implemented for 
-                                     # StructuredMesh{1}
+                                     # `StructuredMesh{1}`
                                      analysis_integrals = (Trixi.entropy_timederivative,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
