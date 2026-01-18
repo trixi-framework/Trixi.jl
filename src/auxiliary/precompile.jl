@@ -181,8 +181,6 @@ function _precompile_manual_()
                                     StaticArrays.SVector{nnodes_, RealT},
                                     # InverseVandermondeLegendre
                                     Matrix{RealT},
-                                    # boundary_interpolation_factor
-                                    RealT,
                                     # DerivativeMatrix
                                     #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
                                     Matrix{RealT}}
