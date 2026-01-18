@@ -984,7 +984,8 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, 1,
                                                                      element] *
-                                                 factor * normal_direction_x)
+                                                 factor *
+                                                 normal_direction_x)
 
                 # surface at +x
                 normal_direction_x, _ = get_normal_direction(2,
@@ -1011,7 +1012,8 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, 3,
                                                                      element] *
-                                                 factor * normal_direction_x)
+                                                 factor *
+                                                 normal_direction_x)
 
                 # surface at +y
                 normal_direction_x, _ = get_normal_direction(4,
@@ -1040,7 +1042,8 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, 1,
                                                                      element] *
-                                                 factor * normal_direction_y)
+                                                 factor *
+                                                 normal_direction_y)
 
                 # surface at +x
                 _, normal_direction_y = get_normal_direction(2,
@@ -1067,7 +1070,8 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, 3,
                                                                      element] *
-                                                 factor * normal_direction_y)
+                                                 factor *
+                                                 normal_direction_y)
 
                 # surface at +y
                 _, normal_direction_y = get_normal_direction(4,
