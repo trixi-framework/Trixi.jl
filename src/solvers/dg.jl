@@ -62,7 +62,6 @@ The classical strong form volume integral type for Finite Difference (FD),
 Discontinuous Galerkin (DG), and Flux Reconstruction (FR) methods.
 """
 struct VolumeIntegralStrongForm <: AbstractVolumeIntegral end
-create_cache(mesh, equations, ::VolumeIntegralStrongForm, dg, uEltype) = NamedTuple()
 
 """
     VolumeIntegralWeakForm()
@@ -87,8 +86,6 @@ see [`VolumeIntegralFluxDifferencing`](@ref).
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
-
-create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
 
 """
     VolumeIntegralFluxDifferencing(volume_flux)
