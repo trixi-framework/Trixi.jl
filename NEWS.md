@@ -9,7 +9,7 @@ for human readability.
 ## Changes in the v0.13 lifecycle
 
 #### Added
-- Initial 1D implementation for the Flux Reconstruction (FR) method as in the 2007 paper by Huynh ([#2???]).
+- Initial 1D implementation for the Flux Reconstruction (FR) method as in the 2007 paper by Huynh ([#2742]).
 - Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582] and [#2647]).
   In the new version, IDP positivity limiting for conservative variables (using
   the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) and nonlinear
