@@ -11,12 +11,12 @@
 The interface for an `AbstractEquationOfState` requires specifying
 the following four functions: 
 - `pressure(V, T, eos)`
-- `energy_internal(V, T, eos)`
-- `specific_entropy(V, T, eos)`
+- `energy_internal(V, T, eos)`, the specific internal energy
+- `entropy_specific(V, T, eos)`, the specific entropy
 - `speed_of_sound(V, T, eos)`
 
 where `eos = equations.equation_of_state`.
-`specific_entropy` is required to calculate the mathematical entropy and entropy variables,
+`entropy_specific` is required to calculate the mathematical entropy and entropy variables,
 and `speed_of_sound` is required to calculate wavespeed estimates for e.g., [`FluxLaxFriedrichs`](@ref).
     
 Additional functions can also be specialized to particular equations of state to improve 
@@ -34,7 +34,7 @@ include("equation_of_state_vdw.jl")
 #######################################################
 
 function gibbs_free_energy(V, T, eos)
-    s = specific_entropy(V, T, eos)
+    s = entropy_specific(V, T, eos)
     p = pressure(V, T, eos)
     e = energy_internal(V, T, eos)
     h = e + p * V

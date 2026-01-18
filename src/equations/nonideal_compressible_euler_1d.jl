@@ -171,7 +171,7 @@ where `s` is the specific entropy determined by the equation of state.
     eos = equations.equation_of_state
     V, _, T = cons2prim(u, equations)
     rho = u[1]
-    S = -rho * specific_entropy(V, T, eos)
+    S = -rho * entropy_specific(V, T, eos)
     return S
 end
 

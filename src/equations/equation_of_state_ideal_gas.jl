@@ -58,7 +58,7 @@ function energy_internal(V, T, eos::IdealGas)
     return e
 end
 
-function specific_entropy(V, T, eos::IdealGas)
+function entropy_specific(V, T, eos::IdealGas)
     (; cv, R) = eos
     s = cv * log(T) + R * log(V)
     return s

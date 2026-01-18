@@ -67,7 +67,7 @@ function energy_internal(V, T, eos::VanDerWaals)
     return e
 end
 
-function specific_entropy(V, T, eos::VanDerWaals)
+function entropy_specific(V, T, eos::VanDerWaals)
     (; cv, b, R) = eos
 
     # The specific entropy is defined up to some reference value. The value 
