@@ -15,11 +15,11 @@ p = \frac{\rho R T}{1 - \rho b} - a \rho^2, \quad e = c_v T - a \rho
 ```
 with ``c_v = \frac{R}{\gamma - 1}``. This corresponds to the "simple 
 van der Waals" fluid with constant `c_v`, which can be found on p28 of 
-https://math.berkeley.edu/~evans/entropy.and.PDE.pdf. 
+<https://math.berkeley.edu/~evans/entropy.and.PDE.pdf>. 
 
 See also "An oscillation free shock-capturing method for compressible van 
 der Waals supercritical fluid flows" by Pantano, Saurel, and Schmitt (2017). 
-https://doi.org/10.1016/j.jcp.2017.01.057
+<https://doi.org/10.1016/j.jcp.2017.01.057>
 """
 struct VanDerWaals{RealT <: Real} <: AbstractEquationOfState
     a::RealT

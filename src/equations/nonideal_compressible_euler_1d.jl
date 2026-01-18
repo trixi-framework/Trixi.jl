@@ -144,7 +144,7 @@ end
     V, v1, T = cons2prim(u, equations)
     eos = equations.equation_of_state
     gibbs = gibbs_free_energy(V, T, eos)
-    return inv(T) * SVector(gibbs - 0.5 * v1^2, v1, -1)
+    return inv(T) * SVector(gibbs - 0.5f0 * v1^2, v1, -1)
 end
 
 # Convert primitive to conservative variables
@@ -154,7 +154,7 @@ end
     rho = inv(V)
     rho_v1 = rho * v1
     e = energy_internal(V, T, eos)
-    rho_e_total = rho * e + 0.5 * rho_v1 * v1
+    rho_e_total = rho * e + 0.5f0 * rho_v1 * v1
     return SVector(rho, rho_v1, rho_e_total)
 end
 
