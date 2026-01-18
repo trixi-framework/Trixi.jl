@@ -12,12 +12,12 @@ The compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-    \rho \\ \rho v_1 \\ \rho e_total
+    \rho \\ \rho v_1 \\ \rho e_{total}
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-    \rho v_1 \\ \rho v_1^2 + p \\ (\rho e_total + p) v_1
+    \rho v_1 \\ \rho v_1^2 + p \\ (\rho e_{total} + p) v_1
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -26,7 +26,7 @@ The compressible Euler equations
 ```
 for a gas with pressure ``p`` specified by some equation of state in one space dimension.
 
-Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_total`` the specific total energy, 
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_{total}`` the specific total energy, 
 and the pressure ``p`` is given in terms of specific volume ``V = 1/\rho`` and temperature ``T``
 by some user-specified equation of state (EOS)
 (see [`pressure(V, T, eos::IdealGas)`](@ref), [`pressure(V, T, eos::VanDerWaals)`](@ref)) as
