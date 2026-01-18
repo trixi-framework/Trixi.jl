@@ -94,7 +94,7 @@ function scan_method!(lines, m::Method, modules)
     end
 end
 
-function check_no_boxes(modules = Set(["Trixi"]))
+function number_of_boxes(modules = Set(["Trixi"]))
     format = "markdown"
     lines = Vector{NamedTuple}()
     Base.visit(Core.methodtable) do m
@@ -130,12 +130,16 @@ function check_no_boxes(modules = Set(["Trixi"]))
         end
     end
 
-    return isempty(lines)
+    return length(lines)
 end
 
 ################################################################################
 
 @testset "No Core.Box" begin
     # Too complicated to adapt to v1.11-, skip it in that case.
-    @test check_no_boxes() skip=(VERSION < v"1.12")
+    if VERSION < v"1.12"
+        @info "Skipping Core.Box check on Julia versions < 1.12"
+        return
+    end
+    @test number_of_boxes() == 33
 end
