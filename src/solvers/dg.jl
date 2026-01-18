@@ -574,11 +574,11 @@ Since the corrections are based on surface terms only, we still categorize this
 as a surface integral which is a natural building block of the DG method as implemented in Trixi.jl.
 
 !!! note
-    Must be used in conjunction with [`VolumeIntegralStrongForm`](@ref).
+    Must be used together with [`VolumeIntegralStrongForm`](@ref).
 
 ## Correction Functions
 Correction functions have different stability properties,
-e.g. regarding timestep restrictions (CFL).
+for instance regarding timestep restrictions (CFL).
 
 Currently supported correction functions are:
 - [`correction_function_DG()`](@ref): ``g_\mathrm{DG}``. Corresponds to standard strong form DG scheme.
