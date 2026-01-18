@@ -94,7 +94,7 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
                                 typeof(derivative_matrix)}(nodes, weights,
                                                            inverse_weights,
                                                            inverse_vandermonde_legendre,
-                                                           boundary_interpolation_entries,
+                                                           boundary_interpolation_factor,
                                                            derivative_matrix,
                                                            derivative_split,
                                                            derivative_split_transpose,
