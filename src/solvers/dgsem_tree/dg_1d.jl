@@ -633,20 +633,22 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
         flux_L = flux(u_L, 1, equations)
         flux_R = flux(u_R, 1, equations)
 
-        # TODO: Could do batched treatment over variables to enable e.g. vectorization.
-        # Requires `_threaded` datastructures, though.
+        # We reuse `surface_flux_values` to store the correction terms (f_num - f_ana)
         for v in eachvariable(equations)
-            # Correction terms: (f_num - f_ana) at each boundary
-            Delta_L = surface_flux_values[v, 1, element] - flux_L[v]
-            Delta_R = surface_flux_values[v, 2, element] - flux_R[v]
+            surface_flux_values[v, 1, element] -= flux_L[v] # = Delta_L
+            surface_flux_values[v, 2, element] -= flux_R[v] # = Delta_R
+        end
 
-            # Apply corrections to ALL nodes (also interior ones!) using
-            # the derivatives of the correction function.
-            # The signs (- for left, + for right) are accounted for in g_L', g_R'.
-            for i in eachnode(dg)
+        # Apply corrections to ALL nodes (also interior ones!) using
+        # the derivatives of the correction function.
+        # The signs (- for left, + for right) are accounted for in g_L', g_R'.
+        for i in eachnode(dg)
+            g_L_i = g_derivative_matrix[i, 1]
+            g_R_i = g_derivative_matrix[i, 2]
+            for v in eachvariable(equations)
                 du[v, i, element] = du[v, i, element] +
-                                    (Delta_L * g_derivative_matrix[i, 1] +
-                                     Delta_R * g_derivative_matrix[i, 2])
+                                    (surface_flux_values[v, 1, element] * g_L_i +
+                                     surface_flux_values[v, 2, element] * g_R_i)
             end
         end
     end
