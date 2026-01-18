@@ -5,6 +5,13 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.14 from v0.13.x
+
+#### Changed
+
+- Limiters for second order finite volume subcell scheme changed to snake case:
+  `vanLeer` => `vanleer`,
+  `Koren` => `koren`, `Koren_symmetric` => `koren_symmetric`, `Koren_flipped` => `koren_flipped`
 
 ## Changes in the v0.13 lifecycle
 
