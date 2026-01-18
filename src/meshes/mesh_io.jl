@@ -173,6 +173,14 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
     # Save the complete connectivity and `p4est` data to disk.
     save_p4est!(p4est_file, mesh.p4est)
 
+    # Save the mesh attributes to an HDF5 file
+    save_p4est_mesh_attributes(filename, mesh, p4est_filename)
+
+    return filename
+end
+
+function save_p4est_mesh_attributes(filename, mesh::P4estMesh,
+                                    p4est_filename)
     # Open file (clobber existing content)
     h5open(filename, "w") do file
         # Add context information as attributes
@@ -181,17 +189,19 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
         attributes(file)["p4est_file"] = p4est_filename
 
         file["tree_node_coordinates"] = mesh.tree_node_coordinates
-        file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
-        # to increase the runtime performance
-        # but HDF5 can only handle plain arrays
+        # The mesh uses `SVector`s for the nodes to increase the
+        # runtime performance but HDF5 can only handle plain arrays.
+        # Thus, we convert the nodes to a Vector here.
+        file["nodes"] = Vector(mesh.nodes)
         file["boundary_names"] = mesh.boundary_names .|> String
         return nothing
     end
 
-    return filename
+    return nothing
 end
 
-function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::True)
+function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
+                        mpi_parallel::True)
     # Create output directory (if it does not exist)
     mpi_isroot() && mkpath(output_directory)
 
@@ -214,20 +224,8 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
         return filename
     end
 
-    # Open file (clobber existing content)
-    h5open(filename, "w") do file
-        # Add context information as attributes
-        attributes(file)["mesh_type"] = get_name(mesh)
-        attributes(file)["ndims"] = ndims(mesh)
-        attributes(file)["p4est_file"] = p4est_filename
-
-        file["tree_node_coordinates"] = mesh.tree_node_coordinates
-        file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
-        # to increase the runtime performance
-        # but HDF5 can only handle plain arrays
-        file["boundary_names"] = mesh.boundary_names .|> String
-        return nothing
-    end
+    # Save the mesh attributes to an HDF5 file
+    save_p4est_mesh_attributes(filename, mesh, p4est_filename)
 
     return filename
 end
