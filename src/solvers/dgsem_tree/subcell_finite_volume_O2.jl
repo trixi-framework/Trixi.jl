@@ -293,9 +293,8 @@ end
 """
     koren_symmetric(sl, sr)
 
-**Symmetric** version of the koren limiter by Barry Koren.
+**Symmetric** version of the [`koren`](@ref) limiter by Barry Koren.
 Puts equal weight on left and right slopes.
-See [`koren`](@ref) for references.
 """
 @inline function koren_symmetric(sl, sr)
     return minmod(2 * minmod(sl, sr), minmod(sl + 2 * sr, 2 * sl + sr) / 3)
