@@ -9,9 +9,7 @@ for human readability.
 
 #### Changed
 
-- Limiters for second order finite volume subcell scheme changed to snake case:
-  `vanLeer` => `vanleer`,
-  `Koren` => `koren`, `Koren_symmetric` => `koren_symmetric`, `Koren_flipped` => `koren_flipped`
+- van Leer's limiters changed to snake case: `vanLeer` => `vanleer`
 
 ## Changes in the v0.13 lifecycle
 

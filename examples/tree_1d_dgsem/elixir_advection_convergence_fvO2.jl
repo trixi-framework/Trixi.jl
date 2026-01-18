@@ -13,7 +13,7 @@ surface_flux = flux_godunov
 volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                       volume_flux_fv = surface_flux,
                                                       reconstruction_mode = reconstruction_O2_full,
-                                                      slope_limiter = koren)
+                                                      slope_limiter = Koren)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
