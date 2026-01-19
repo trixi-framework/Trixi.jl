@@ -1,5 +1,5 @@
 # Package extension for adding CUDA-based features to Trixi.jl
-module TrixiCUDAExt
+module CUDAExt
 
 import CUDA: CuArray
 import Trixi
