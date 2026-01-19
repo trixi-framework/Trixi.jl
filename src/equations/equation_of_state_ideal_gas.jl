@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    IdealGas{RealT} <: AbstractEquationOfState
+    IdealGas{RealT <: Real} <: AbstractEquationOfState
 
 This defines the polytropic ideal gas equation of state
 given by the pressure and internal energy relations
@@ -15,7 +15,7 @@ p = \rho R T, \quad e = c_v T
 ```
 with ``c_v = \frac{R}{\gamma - 1}``.
 """
-struct IdealGas{RealT} <: AbstractEquationOfState
+struct IdealGas{RealT <: Real} <: AbstractEquationOfState
     gamma::RealT
     R::RealT
     cv::RealT
@@ -58,7 +58,7 @@ function energy_internal(V, T, eos::IdealGas)
     return e
 end
 
-function specific_entropy(V, T, eos::IdealGas)
+function entropy_specific(V, T, eos::IdealGas)
     (; cv, R) = eos
     s = cv * log(T) + R * log(V)
     return s
