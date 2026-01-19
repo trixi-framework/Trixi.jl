@@ -66,7 +66,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
     # need to interpolate solutions *and* gradients to the surfaces.
 
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     # This calls the specialized version for the viscous fluxes from
