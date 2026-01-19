@@ -10,7 +10,7 @@ for human readability.
 #### Changed
 
 - van Leer's limiters changed to snake case: `vanLeer` => `vanleer`
-- A couple `struct`s have been made completely immutable, or only a couple fields thereof. Most notably, `save_solution.condition.save_initial_solution` where `save_solution isa SavesolutionCallback` can now longer be directly changed. Instead, the `@reset` macro from [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) is used in the elixirs instead.
+- A couple `struct`s have been made completely immutable, or only a couple fields thereof. Most notably, `save_solution.condition.save_initial_solution` where `save_solution isa SavesolutionCallback` can no longer be directly changed. Instead, the `@reset` macro from [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) is used in the elixirs.
 
 ## Changes in the v0.13 lifecycle
 
