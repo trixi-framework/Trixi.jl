@@ -67,7 +67,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # need to interpolate solutions *and* gradients to the surfaces.
 
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral.
     # This calls the specialized version for the viscous fluxes from
@@ -928,8 +928,8 @@ end
 function reset_gradients!(gradients::NTuple{2}, dg::DG, cache)
     gradients_x, gradients_y = gradients
 
-    reset_du!(gradients_x, dg, cache)
-    reset_du!(gradients_y, dg, cache)
+    set_zero!(gradients_x, dg, cache)
+    set_zero!(gradients_y, dg, cache)
 
     return nothing
 end
