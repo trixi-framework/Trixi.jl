@@ -274,8 +274,8 @@ export DG,
 
 export reconstruction_O2_inner, reconstruction_O2_full,
        reconstruction_constant,
-       minmod, monotonized_central, superbee, vanLeer,
-       Koren, Koren_flipped, Koren_symmetric,
+       minmod, monotonized_central, superbee, vanleer,
+       koren, koren_flipped, koren_symmetric,
        central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
