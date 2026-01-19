@@ -44,9 +44,9 @@ end
 function reset_gradients!(gradients::NTuple{3}, dg::DG, cache)
     gradients_x, gradients_y, gradients_z = gradients
 
-    reset_du!(gradients_x, dg, cache)
-    reset_du!(gradients_y, dg, cache)
-    reset_du!(gradients_z, dg, cache)
+    set_zero!(gradients_x, dg, cache)
+    set_zero!(gradients_y, dg, cache)
+    set_zero!(gradients_z, dg, cache)
 
     return nothing
 end

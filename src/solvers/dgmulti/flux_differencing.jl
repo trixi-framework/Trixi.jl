@@ -618,7 +618,7 @@ end
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
 function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # this function evaluates the solution at volume and face quadrature points (which was previously
     # done in `prolong2interfaces` and `calc_volume_integral`)
@@ -664,7 +664,7 @@ end
 function rhs!(du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
                                                                   have_nonconservative_terms(equations),
