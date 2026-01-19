@@ -5,6 +5,11 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.14 from v0.13.x
+
+#### Changed
+
+- van Leer's limiters changed to snake case: `vanLeer` => `vanleer`
 
 ## Changes when updating to v0.14 from v0.13.x
 
