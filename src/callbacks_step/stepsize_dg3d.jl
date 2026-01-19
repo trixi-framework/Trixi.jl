@@ -31,7 +31,7 @@ function max_dt(backend::Nothing, u, t, mesh::TreeMesh{3},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::TreeMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{3},
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
@@ -152,7 +152,7 @@ function max_scaled_speed_element(u,
     return max_lambda1 + max_lambda2 + max_lambda3
 end
 
-function max_dt(u, t,
+function max_dt(backend::Nothing, u, t,
                 mesh::P4estMesh{3}, # Parabolic terms currently only for `TreeMesh` and `P4estMesh`
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
@@ -249,7 +249,7 @@ function max_dt(backend, u, t,
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t,
+function max_dt(backend::Nothing, u, t,
                 mesh::P4estMesh{3}, # Parabolic terms currently only for `TreeMesh` and `P4estMesh`
                 constant_diffusivity::True, equations,
                 equations_parabolic::AbstractEquationsParabolic,

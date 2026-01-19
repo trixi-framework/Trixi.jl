@@ -80,7 +80,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1},
                                            TreeMesh{2}, StructuredMesh{2}, P4estMesh{2},
                                            UnstructuredMesh2D, T8codeMesh{2},
@@ -143,7 +143,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1},
                                            TreeMesh{2}, StructuredMesh{2}, P4estMesh{2},
                                            UnstructuredMesh2D, T8codeMesh{2},

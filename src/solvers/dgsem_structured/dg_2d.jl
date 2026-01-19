@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function calc_volume_integral!(::Nothing, du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                            UnstructuredMesh2D, P4estMesh{2},
                                            P4estMeshView{2}, T8codeMesh{2}},
@@ -83,7 +83,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                                contravariant_vectors, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
 
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
