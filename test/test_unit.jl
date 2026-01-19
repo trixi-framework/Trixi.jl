@@ -2546,65 +2546,65 @@ end
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
-    @test vanLeer(sl, sr) == 0.0
+    @test vanleer(sl, sr) == 0.0
 
     sr = 0.5
     @test minmod(sl, sr) == 0.5
     @test monotonized_central(sl, sr) == 0.75
     @test superbee(sl, sr) == 1.0
-    @test isapprox(vanLeer(sl, sr), 2 / 3)
+    @test isapprox(vanleer(sl, sr), 2 / 3)
 
     sl = -1.0
     sr = 0.0
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
-    @test vanLeer(sl, sr) == 0.0
+    @test vanleer(sl, sr) == 0.0
 
     sr = -0.8
     @test minmod(sl, sr) == -0.8
     @test monotonized_central(sl, sr) == -0.9
     @test superbee(sl, sr) == -1.0
-    @test isapprox(vanLeer(sl, sr), -8 / 9)
+    @test isapprox(vanleer(sl, sr), -8 / 9)
 
     # Test symmetry
     @test minmod(sr, sl) == -0.8
     @test monotonized_central(sr, sl) == -0.9
     @test superbee(sr, sl) == -1.0
-    @test isapprox(vanLeer(sr, sl), -8 / 9)
+    @test isapprox(vanleer(sr, sl), -8 / 9)
 
     sl = 1.0
     sr = 0.0
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
-    @test vanLeer(sl, sr) == 0.0
+    @test vanleer(sl, sr) == 0.0
 
     @test central_slope(sl, sr) == 0.5
 
     # Test van Leer zero case
-    @test vanLeer(0.0, 0.0) == 0.0
+    @test vanleer(0.0, 0.0) == 0.0
 
     sl = -1.0
     sr = -2.0
-    @test Koren(sl, sr) == -5 / 3
-    @test Koren(sl, sr) == Koren_flipped(sr, sl)
-    @test Koren_symmetric(sl, sr) == -4 / 3
+    @test koren(sl, sr) == -5 / 3
+    @test koren(sl, sr) == koren_flipped(sr, sl)
+    @test koren_symmetric(sl, sr) == -4 / 3
 
     sl = 0.0
-    @test Koren(sl, sr) == 0.0
-    @test Koren(sl, sr) == Koren_flipped(sr, sl)
-    @test Koren_symmetric(sl, sr) == 0.0
+    @test koren(sl, sr) == 0.0
+    @test koren(sl, sr) == koren_flipped(sr, sl)
+    @test koren_symmetric(sl, sr) == 0.0
 
     sr = 2.0
-    @test Koren(sl, sr) == 0.0
-    @test Koren(sl, sr) == Koren_flipped(sr, sl)
-    @test Koren_symmetric(sl, sr) == 0.0
+    @test koren(sl, sr) == 0.0
+    @test koren(sl, sr) == koren_flipped(sr, sl)
+    @test koren_symmetric(sl, sr) == 0.0
 
     sl = 1.0
-    @test Koren(sl, sr) == 5 / 3
-    @test Koren(sl, sr) == Koren_flipped(sr, sl)
-    @test Koren_symmetric(sl, sr) == 4 / 3
+    @test koren(sl, sr) == 5 / 3
+    @test koren(sl, sr) == koren_flipped(sr, sl)
+    @test koren_symmetric(sl, sr) == 4 / 3
 end
 
 # Velocity functions are present in many equations and are tested here
