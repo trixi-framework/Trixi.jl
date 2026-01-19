@@ -47,6 +47,8 @@ end
     weak_form_kernel_element!(du, u, element, meshT,
                               have_nonconservative_terms, equations,
                               dg, contravariant_vectors)
+end
+
 function create_cache(mesh::Union{StructuredMesh{3},
                                   P4estMesh{3}, T8codeMesh{3}},
                       equations,
