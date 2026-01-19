@@ -67,7 +67,7 @@ The supplied `limiter` governs the choice of slopes given the nodal values
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
-    4) [`vanLeer`](@ref)
+    4) [`vanleer`](@ref)
     5) [`koren_symmetric`](@ref)
 **Asymmetric** limiters are also available, e.g.,
     1) [`koren`](@ref) for positive (right-going) velocities
@@ -131,7 +131,7 @@ The supplied `limiter` governs the choice of slopes given the nodal values
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
-    4) [`vanLeer`](@ref)
+    4) [`vanleer`](@ref)
     5) [`koren_symmetric`](@ref)
 **Asymmetric** limiters are also available, e.g.,
     1) [`koren`](@ref) for dominantly positive velocities
@@ -239,7 +239,7 @@ For reference, see for instance Eq. (6.28) in
 end
 
 """
-    vanLeer(sl, sr)
+    vanleer(sl, sr)
 
 Symmetric limiter by van Leer.
 See for reference page 70 in 
@@ -248,7 +248,7 @@ See for reference page 70 in
   Numerical methods for conservation laws and related equations.
   [Link](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf)
 """
-@inline function vanLeer(sl, sr)
+@inline function vanleer(sl, sr)
     if abs(sl) + abs(sr) > zero(sl)
         return (abs(sr) * sl + abs(sl) * sr) / (abs(sl) + abs(sr))
     else
