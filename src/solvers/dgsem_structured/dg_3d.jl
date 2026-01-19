@@ -604,7 +604,7 @@ end
 
         contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
                                             prim2cons(u_r, equations),
-                                            normal_direction, equations) # orientation 3: z direction
+                                            normal_direction, equations)
 
         set_node_vars!(fstar3_L, contravariant_flux, equations, dg, i, j, k)
         set_node_vars!(fstar3_R, contravariant_flux, equations, dg, i, j, k)
