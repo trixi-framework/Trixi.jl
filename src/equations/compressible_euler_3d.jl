@@ -49,15 +49,15 @@ struct CompressibleEulerEquations3D{RealT <: Real} <:
 
     function CompressibleEulerEquations3D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations3D)
-    ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
+    return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
 end
 function varnames(::typeof(cons2prim), ::CompressibleEulerEquations3D)
-    ("rho", "v1", "v2", "v3", "p")
+    return ("rho", "v1", "v2", "v3", "p")
 end
 
 # Set initial conditions at physical location `x` for time `t`
@@ -1882,7 +1882,7 @@ end
 
 # Default entropy is the mathematical entropy
 @inline function entropy(cons, equations::CompressibleEulerEquations3D)
-    entropy_math(cons, equations)
+    return entropy_math(cons, equations)
 end
 
 # Calculate total energy for a conservative state `cons`
@@ -1897,5 +1897,13 @@ end
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleEulerEquations3D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
+end
+
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::CompressibleEulerEquations3D)
+    if u[1] <= 0 || pressure(u, equations) <= 0
+        return false
+    end
+    return true
 end
 end # @muladd

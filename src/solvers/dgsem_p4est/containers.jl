@@ -19,7 +19,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     node_coordinates::ArrayRealTNDIMSP2 # [orientation, node_i, node_j, node_k, element]
 
     # Jacobian matrix of the transformation
-    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
+    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix
     jacobian_matrix::ArrayRealTNDIMSP3
 
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
@@ -40,7 +40,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
 end
 
 @inline function nelements(elements::P4estElementContainer)
-    size(elements.node_coordinates, ndims(elements) + 2)
+    return size(elements.node_coordinates, ndims(elements) + 2)
 end
 @inline Base.ndims(::P4estElementContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estElementContainer{NDIMS, RealT, uEltype}) where {
@@ -161,7 +161,7 @@ end
 
 function Adapt.parent_type(::Type{<:P4estElementContainer{<:Any, <:Any, <:Any, <:Any,
                                                           <:Any, <:Any, ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -234,7 +234,7 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
 end
 
 @inline function ninterfaces(interfaces::P4estInterfaceContainer)
-    size(interfaces.neighbor_ids, 2)
+    return size(interfaces.neighbor_ids, 2)
 end
 @inline Base.ndims(::P4estInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estInterfaceContainer{NDIMS, uEltype}) where {NDIMS,
@@ -312,7 +312,7 @@ end
 
 function Adapt.parent_type(::Type{<:P4estInterfaceContainer{<:Any, <:Any, <:Any,
                                                             ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -355,12 +355,12 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
 end
 
 @inline function nboundaries(boundaries::P4estBoundaryContainer)
-    length(boundaries.neighbor_ids)
+    return length(boundaries.neighbor_ids)
 end
 @inline Base.ndims(::P4estBoundaryContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estBoundaryContainer{NDIMS, uEltype}) where {NDIMS,
                                                                               uEltype}
-    uEltype
+    return uEltype
 end
 
 # See explanation of Base.resize! for the element container
@@ -458,7 +458,7 @@ function init_boundaries_iter_face_inner(info_pw, boundaries, boundary_id, mesh)
 end
 
 function Adapt.parent_type(::Type{<:P4estBoundaryContainer{<:Any, <:Any, <:Any, ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -525,7 +525,7 @@ end
 @inline Base.ndims(::P4estMortarContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estMortarContainer{NDIMS, uEltype}) where {NDIMS,
                                                                             uEltype}
-    uEltype
+    return uEltype
 end
 
 # See explanation of Base.resize! for the element container
@@ -600,7 +600,7 @@ end
 
 function Adapt.parent_type(::Type{<:P4estMortarContainer{<:Any, <:Any, <:Any, <:Any,
                                                          ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -632,6 +632,12 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
+    if dg.volume_integral isa AbstractVolumeIntegralSubcell
+        @unpack normal_vectors = cache
+        resize!(normal_vectors, ncells(mesh))
+        init_normal_vectors!(normal_vectors, mesh, dg, cache)
+    end
+
     required = count_required_surfaces(mesh)
 
     # resize interfaces container
@@ -643,16 +649,12 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     resize!(boundaries, required.boundaries)
 
     # re-initialize mortars container
-    if hasproperty(cache, :mortars) # cache_parabolic does not carry mortars
-        @unpack mortars = cache
-        resize!(mortars, required.mortars)
+    @unpack mortars = cache
+    resize!(mortars, required.mortars)
 
-        # re-initialize containers together to reduce
-        # the number of iterations over the mesh in `p4est`
-        init_surfaces!(interfaces, mortars, boundaries, mesh)
-    else
-        init_surfaces!(interfaces, nothing, boundaries, mesh)
-    end
+    # re-initialize containers together to reduce
+    # the number of iterations over the mesh in `p4est`
+    return init_surfaces!(interfaces, mortars, boundaries, mesh)
 end
 
 # A helper struct used in initialization methods below
@@ -679,7 +681,7 @@ function init_surfaces_iter_face(info, user_data)
     data = unsafe_pointer_to_objref(Ptr{InitSurfacesIterFaceUserData}(user_data))
 
     # Function barrier because the unpacked user_data above is type-unstable
-    init_surfaces_iter_face_inner(info, data)
+    return init_surfaces_iter_face_inner(info, data)
 end
 
 # 2D

@@ -18,14 +18,14 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=8.311947673061856e-6,
-                        linf=6.627000273229378e-5,)
+                        linf=6.627000273229378e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
-    # TODO: remake ignores the mesh itself as well
+    # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
 
     @test ode.u0 isa Array
@@ -44,7 +44,7 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
-                        RealT=Float32,
+                        RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
     # # Ensure that we do not have excessive memory allocations
@@ -53,7 +53,7 @@ end
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
-    # TODO: remake ignores the mesh itself as well
+    # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
 
     @test ode.u0 isa CuArray

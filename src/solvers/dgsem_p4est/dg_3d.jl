@@ -9,7 +9,6 @@
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
-    # TODO: Taal compare performance of different types
     A4d = Array{uEltype, 4}
     fstar_primary_threaded = A4d[A4d(undef, nvariables(equations),
                                      nnodes(mortar_l2), nnodes(mortar_l2), 4)
@@ -455,7 +454,7 @@ end
 
 function prolong2boundaries!(cache, u,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack boundaries = cache
     index_range = eachnode(dg)
 
@@ -1053,7 +1052,10 @@ function calc_surface_integral_element!(du,
                                         surface_integral::SurfaceIntegralWeakForm,
                                         dg::DGSEM, surface_flux_values, element)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop to increase performance.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     # TODO GPU: dg is adapted, accessing scalars outside of kernel is therefor not useful

@@ -69,12 +69,12 @@ function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2, <:Real},
 end
 
 function varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D)
-    ("v1_prime", "v2_prime", "p_prime_scaled",
-     "v1_mean", "v2_mean", "c_mean", "rho_mean")
+    return ("v1_prime", "v2_prime", "p_prime_scaled",
+            "v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 function varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D)
-    ("v1_prime", "v2_prime", "p_prime",
-     "v1_mean", "v2_mean", "c_mean", "rho_mean")
+    return ("v1_prime", "v2_prime", "p_prime",
+            "v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 
 # Convenience functions for retrieving state variables and mean variables
@@ -87,10 +87,10 @@ function cons2mean(u, equations::AcousticPerturbationEquations2D)
 end
 
 function varnames(::typeof(cons2state), ::AcousticPerturbationEquations2D)
-    ("v1_prime", "v2_prime", "p_prime_scaled")
+    return ("v1_prime", "v2_prime", "p_prime_scaled")
 end
 function varnames(::typeof(cons2mean), ::AcousticPerturbationEquations2D)
-    ("v1_mean", "v2_mean", "c_mean", "rho_mean")
+    return ("v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 
 """
@@ -399,6 +399,24 @@ end
     return SVector(diss[1], diss[2], diss[3], z, z, z, z)
 end
 
+"""
+    have_constant_speed(::AcousticPerturbationEquations2D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref).
+
+The acoustic perturbation equations are in principle linear for **constant** mean flow fields.
+However, the mean flow variables are part of the solution vector in
+[`AcousticPerturbationEquations2D`](@ref) and only the **global** mean flow variables are constant,
+similar to the [`LinearizedEulerEquations2D`](@ref).
+
+Moreover, when coupling to the [`CompressibleEulerEquations2D`](@ref) equations via 
+[`SemidiscretizationEulerAcoustics`](@ref), the mean field variables are updated
+on the fly, see [`EulerAcousticsCouplingCallback`](@ref).
+
+# Returns
+- `False()`
+"""
 @inline have_constant_speed(::AcousticPerturbationEquations2D) = False()
 
 @inline function max_abs_speeds(u, equations::AcousticPerturbationEquations2D)

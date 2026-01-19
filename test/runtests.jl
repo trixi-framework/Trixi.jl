@@ -6,7 +6,9 @@ using MPI: mpiexec
 # By default, we just run the threaded tests since they are relatively cheap
 # and test a good amount of different functionality.
 const TRIXI_TEST = get(ENV, "TRIXI_TEST", "threaded")
-const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
+# Some GitHub CI runners may have not much RAM and just 3 virtual CPU cores.
+# In this case, we do not want to use all of the cores to speed-up CI.
+const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS - 1, 2, 3)
 const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 
 @time @testset "Trixi.jl tests" begin
@@ -21,6 +23,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         # We provide a `--heap-size-hint` to avoid/reduce out-of-memory errors during CI testing
         mpiexec() do cmd
             run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G $(abspath("test_mpi.jl"))`)
+            return nothing
         end
     end
 
@@ -99,10 +102,8 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_aqua.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part1"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations"
         include("test_performance_specializations_2d.jl")
-    end
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part2"
         include("test_performance_specializations_3d.jl")
     end
 

@@ -10,7 +10,6 @@
 function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                       equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
-    # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -399,7 +398,7 @@ end
 
 function prolong2boundaries!(cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack boundaries = cache
     index_range = eachnode(dg)
 
@@ -746,7 +745,8 @@ end
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, dg, node_index)
-    set_node_vars!(fstar_secondary[position_index], flux, equations, dg, node_index)
+    return set_node_vars!(fstar_secondary[position_index], flux, equations, dg,
+                          node_index)
 end
 
 # Inlined version of the mortar flux computation on small elements for equations with conservative and
@@ -899,12 +899,16 @@ function calc_surface_integral_per_element!(du,
                                             surface_integral::SurfaceIntegralWeakForm,
                                             dg::DGSEM, surface_flux_values,
                                             element)
+
     # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop (outside this function) 
-    # to increase performance. We also use explicit assignments instead of `+=`
-    # to let `@muladd` turn these into FMAs (see comment at the top of the file).
-    factor_1 = dg.basis.boundary_interpolation[1, 1]
-    factor_2 = dg.basis.boundary_interpolation[nnodes(dg), 2]
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
     for l in eachnode(dg)
         for v in eachvariable(equations)
             # surface at -x

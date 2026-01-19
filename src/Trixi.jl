@@ -249,11 +249,13 @@ export density, pressure, density_pressure, velocity, temperature,
        global_mean_vars,
        equilibrium_distribution,
        waterheight, waterheight_pressure
-export entropy, energy_total, energy_kinetic, energy_internal,
+export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
+       energy_total, energy_kinetic, energy_internal,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
 export lake_at_rest_error
 export ncomponents, eachcomponent
+export have_constant_speed
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
        P4estMeshView, P4estMeshCubedSphere, T8codeMesh
@@ -264,7 +266,8 @@ export DG,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
-       VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
+       IndicatorHennemannGassner,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
@@ -272,7 +275,8 @@ export DG,
 
 export reconstruction_O2_inner, reconstruction_O2_full,
        reconstruction_constant,
-       minmod, monotonized_central, superbee, vanLeer,
+       minmod, monotonized_central, superbee, vanleer,
+       koren, koren_flipped, koren_symmetric,
        central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
@@ -285,6 +289,7 @@ export nelements, nnodes, nvariables,
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
 export SemidiscretizationHyperbolicParabolic
+export have_constant_diffusivity, max_diffusivity
 
 export SemidiscretizationEulerAcoustics
 
@@ -321,7 +326,7 @@ export ode_norm, ode_unstable_check
 
 export convergence_test,
        jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
-       linear_structure
+       linear_structure, linear_structure_parabolic
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 
