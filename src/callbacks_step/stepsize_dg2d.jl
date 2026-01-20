@@ -171,7 +171,7 @@ function max_scaled_speed_per_element(u,
                                       constant_speed::False, equations, dg::DG,
                                       contravariant_vectors, inverse_jacobian,
                                       element)
-    max_lambda1 = max_lambda2 = zero(max_scaled_speed)
+    max_lambda1 = max_lambda2 = zero(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         lambda1, lambda2 = max_abs_speeds(u_node, equations)
