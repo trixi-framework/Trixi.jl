@@ -323,36 +323,6 @@ end
     @test_allocations(Trixi.Trixi.rhs_parabolic!, semi, sol, 100)
 end
 
-@trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex_adaptive_VI.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
-                                 "elixir_navierstokes_taylor_green_vortex_adaptive_VI.jl"),
-                        initial_refinement_level=2, tspan=(0.0, 0.25),
-                        l2=[
-                            0.00025277437085701344,
-                            0.015813681889834622,
-                            0.01581367689419439,
-                            0.022039832572529207,
-                            0.033165554641698854
-                        ],
-                        linf=[
-                            0.000994258634907208,
-                            0.0516609733346378,
-                            0.05166038540980501,
-                            0.07714824037940708,
-                            0.2040139370290035
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-
-    # Test/cover `show`
-    @test_nowarn show(stdout, indicator)
-    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
-                      indicator)
-    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
-                      indicator)
-end
-
 @trixi_testset "P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),

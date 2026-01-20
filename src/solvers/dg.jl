@@ -280,8 +280,7 @@ end
     This code is experimental and may change in any future release.
 
 Possible combinations:
-- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyDiffusion()`](@ref) or [`IndicatorEntropyDecay`](@ref)
-- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralShockCapturingHG`](@ref), and `nothing` (indicator taken from `VolumeIntegralShockCapturingHG`)
+- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyDiffusion()`](@ref)
 """
 struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
                               Indicator} <: AbstractVolumeIntegral
