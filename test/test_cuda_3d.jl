@@ -49,7 +49,7 @@ end
                         # Expected errors similar to reference on CPU
                         l2=[Float32(0.00016263963870641478)],
                         linf=[Float32(0.0014537194925779984)],
-                        RealT=Float32,
+                        RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
     @test real(ode.p.solver) == Float32
