@@ -174,7 +174,7 @@ function calc_volume_integral!(du, u, mesh,
                                cache) where {
                                              VolumeIntegralFD <:
                                              VolumeIntegralFluxDifferencing,
-                                             Indicator <: IndicatorEntropyComparison}
+                                             Indicator <: IndicatorEntropyDiffusion}
     @unpack volume_integral_default, volume_integral_stabilized = volume_integral
     @unpack du_element_threaded = volume_integral.indicator
 

@@ -43,7 +43,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 # entropy-conserving flux-differencing volume integral.
 # If the entropy production of the weak form is lower than that of the
 # flux-differencing form, we use the flux-differencing form to stabilize the solution.
-indicator = IndicatorEntropyComparison(equations, basis)
+indicator = IndicatorEntropyDiffusion(equations, basis)
 #indicator = IndicatorEntropyDecay(target_decay = 0.0)
 
 # Adaptive volume integral using the entropy production comparison indicator to perform the 

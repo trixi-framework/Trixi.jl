@@ -276,7 +276,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 @doc raw"""
-    IndicatorEntropyComparison()
+    IndicatorEntropyDiffusion()
 
 This indicator checks the difference in mathematical [`entropy`](@ref) (``S``) due to the application
 of the weak-form and flux-differencing volume integral. In particular, the indicator computes
@@ -307,11 +307,11 @@ the most entropy-diffusive volume integral for every cell/element ``m``.
     possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
     for instance.
 """
-struct IndicatorEntropyComparison{dUElementThreaded <: AbstractArray} <:
+struct IndicatorEntropyDiffusion{dUElementThreaded <: AbstractArray} <:
        AbstractIndicator
     du_element_threaded::dUElementThreaded
 
-    function IndicatorEntropyComparison(::AbstractEquations{NDIMS, NVARS},
+    function IndicatorEntropyDiffusion(::AbstractEquations{NDIMS, NVARS},
                                         basis) where {NDIMS, NVARS}
         uEltype = real(basis)
         # Required dimensions: Variables and Nodes...
@@ -324,20 +324,20 @@ struct IndicatorEntropyComparison{dUElementThreaded <: AbstractArray} <:
     end
 end
 
-function Base.show(io::IO, indicator::IndicatorEntropyComparison)
+function Base.show(io::IO, indicator::IndicatorEntropyDiffusion)
     @nospecialize indicator # reduce precompilation time
 
-    print(io, "IndicatorEntropyComparison()")
+    print(io, "IndicatorEntropyDiffusion()")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyComparison)
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyDiffusion)
     @nospecialize indicator # reduce precompilation time
 
     if get(io, :compact, false)
         show(io, indicator)
     else
         setup = []
-        summary_box(io, "IndicatorEntropyComparison", setup)
+        summary_box(io, "IndicatorEntropyDiffusion", setup)
     end
 end
 
