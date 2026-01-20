@@ -200,12 +200,12 @@ function max_dt(backend::Nothing, u, t,
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
+        max_scaled_speed_loc = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
                                                   equations, dg, contravariant_vectors,
                                                   inverse_jacobian, element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
-        max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
+        max_scaled_speed = Base.max(max_scaled_speed, max_scaled_speed_loc)
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
@@ -283,7 +283,7 @@ function max_scaled_speed_per_element(u,
                                       constant_speed::True, equations, dg::DG,
                                       contravariant_vectors, inverse_jacobian,
                                       element)
-    max_lambda1_loc = max_lambda2_loc = nextfloat(zero(eltype(u)))
+    max_scaled_speed = zero(eltype(u))
     max_lambda1, max_lambda2 = max_abs_speeds(equations)
     for j in eachnode(dg), i in eachnode(dg)
         # Local speeds transformed to the reference element
@@ -296,11 +296,12 @@ function max_scaled_speed_per_element(u,
 
         inv_jacobian = abs(inverse_jacobian[i, j, element])
 
-        max_lambda1_loc = max(max_lambda1_loc, inv_jacobian * lambda1_transformed)
-        max_lambda2_loc = max(max_lambda2_loc, inv_jacobian * lambda2_transformed)
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian *
+                                    (lambda1_transformed + lambda2_transformed))
     end
 
-    return max_lambda1_loc + max_lambda2_loc
+    return max_scaled_speed
 end
 
 function max_dt(backend::Nothing, u, t,
