@@ -200,9 +200,11 @@ function max_dt(backend::Nothing, u, t,
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_scaled_speed_loc = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
-                                                  equations, dg, contravariant_vectors,
-                                                  inverse_jacobian, element)
+        max_scaled_speed_loc = max_scaled_speed_per_element(u, typeof(mesh),
+                                                            constant_speed,
+                                                            equations, dg,
+                                                            contravariant_vectors,
+                                                            inverse_jacobian, element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
         max_scaled_speed = Base.max(max_scaled_speed, max_scaled_speed_loc)
