@@ -66,9 +66,9 @@ end
 
 @trixi_testset "elixir_euler_flux_diff.jl (convergence)" begin
     using Trixi: convergence_test
-    mean_convergence = convergence_test(@__MODULE__,
-                                        joinpath(EXAMPLES_DIR,
-                                                 "elixir_euler_flux_diff.jl"), 3)
+    mean_convergence, _ = convergence_test(@__MODULE__,
+                                           joinpath(EXAMPLES_DIR,
+                                                    "elixir_euler_flux_diff.jl"), 3)
     @test isapprox(mean_convergence[:l2],
                    [4.1558759698638434, 3.977911306037128, 4.041421206468769],
                    rtol = 0.05)

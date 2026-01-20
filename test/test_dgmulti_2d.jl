@@ -262,9 +262,9 @@ end
 
 @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     using Trixi: convergence_test
-    mean_convergence = convergence_test(@__MODULE__,
-                                        joinpath(EXAMPLES_DIR,
-                                                 "elixir_euler_weakform.jl"), 2)
+    mean_convergence, _ = convergence_test(@__MODULE__,
+                                           joinpath(EXAMPLES_DIR,
+                                                    "elixir_euler_weakform.jl"), 2)
     @test isapprox(mean_convergence[:l2],
                    [
                        4.243843382379403,
