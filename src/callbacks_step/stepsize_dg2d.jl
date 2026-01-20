@@ -29,7 +29,7 @@ function max_dt(backend::Nothing, u, t, mesh::TreeMesh{2},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::TreeMesh{2},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{2},
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
