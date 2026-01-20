@@ -285,7 +285,7 @@ of the weak-form and flux-differencing volume integral. In particular, the indic
 \int_{\Omega_m} 
 \frac{\partial S}{\partial \boldsymbol{u}}
 \cdot 
-[\dot{\boldsymbol u}_\mathrm{WF} - \dot{\boldsymbol u}_\mathrm{VI}]
+\left[\dot{\boldsymbol u}_\mathrm{WF} - \dot{\boldsymbol u}_\mathrm{VI}\right]
 \mathrm{d} \Omega_m
 ```
 for the currently processed element/cell ``m``.
@@ -303,9 +303,19 @@ Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which t
 the most entropy-diffusive volume integral for every cell/element ``m``.
 
 !!! note
-    This indicator is **not implemented as an AMR indicator**, i.e., it is currently **not
+    This indicator is **not implemented as an AMR indicator**, i.e., it is **not
     possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
     for instance.
+
+The logic behind this indicator is similar to the "companion" scheme
+approach proposed in Chapter 5 of
+
+- Carpenter, Fisher, Nielsen, and Frankel (2014)
+  "Entropy Stable Spectral Collocation Schemes for the Navier-Stokes Equations: Discontinuous Interfaces"
+  [DOI: 10.1137/130932193](https://doi.org/10.1137/130932193)
+
+Here, we thus equip the flux-differencing volume integral with a "companion" weak-form
+volume integral.
 """
 struct IndicatorEntropyDiffusion{dUElementThreaded <: AbstractArray} <:
        AbstractIndicator
