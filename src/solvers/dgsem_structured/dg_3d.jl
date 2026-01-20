@@ -530,7 +530,7 @@ end
 
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                                 fstar3_L, fstar3_R, u,
-                                mesh::StructuredMesh{3},
+                                mesh::Union{StructuredMesh{3}, P4estMesh{3}},
                                 have_nonconservative_terms::False,
                                 equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
