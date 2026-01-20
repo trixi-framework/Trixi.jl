@@ -9,12 +9,19 @@ for human readability.
 
 #### Changed
 
+- `convergence_test` now returns both the mean convergence rates and the full errors matrix ([#2743]).
+
+## Changes when updating to v0.14 from v0.13.x
+
+#### Changed
+
 - van Leer's limiters changed to snake case: `vanLeer` => `vanleer`
 - A couple `struct`s have been made completely immutable, or only a couple fields thereof. Most notably, `save_solution.condition.save_initial_solution` where `save_solution isa SavesolutionCallback` can no longer be directly changed. Instead, the `@reset` macro from [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) is used in the elixirs.
 
 ## Changes in the v0.13 lifecycle
 
 #### Added
+
 - Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582] and [#2647]).
   In the new version, IDP positivity limiting for conservative variables (using
   the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) and nonlinear
@@ -25,7 +32,7 @@ for human readability.
   When the trait is set to `Trixi.True()`, a single method has to be defined, that computes and returns the tuple
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_ll, u_rr)` and
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_rr, u_ll)`.
-- Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]). 
+- Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]).
 
 ## Changes when updating to v0.13 from v0.12.x
 
