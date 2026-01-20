@@ -138,26 +138,13 @@ function calc_volume_integral!(du, u,
     return nothing
 end
 
-# Calculate ∫_el (∂S/∂u ⋅ ∂u/∂t) dΩ_el
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where "e" is an element
 function calc_entropy_change_element(du, u, element,
                                      mesh::AbstractMesh{2}, equations, dg, cache)
     return integrate_element_ref(u, element, mesh, equations, dg, cache,
                                  du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
-        # Minus sign because of the flipped sign in the DG RHS.
-        # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
-        # in `integrate_element_ref`.
-        -dot(cons2entropy(u_node, equations), du_node)
-    end
-end
-
-function calc_entropy_change_element(du, u, element,
-                                     mesh::AbstractMesh{3}, equations, dg, cache)
-    return integrate_element_ref(u, element, mesh, equations, dg, cache,
-                                 du) do u, i, j, k, element, equations, dg, du
-        u_node = get_node_vars(u, equations, dg, i, j, k, element)
-        du_node = get_node_vars(du, equations, dg, i, j, k, element)
         # Minus sign because of the flipped sign in the DG RHS.
         # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
         # in `integrate_element_ref`.
