@@ -384,11 +384,13 @@ function _precompile_manual_()
     # end
     # end
     @assert Base.precompile(Tuple{typeof(SummaryCallback)})
-    @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback),
-                                                   typeof(Trixi.summary_callback),
-                                                   typeof(Trixi.initialize_summary_callback),
-                                                   typeof(SciMLBase.FINALIZE_DEFAULT),
-                                                   typeof(nothing)}})
+    # Note: The DiscreteCallback type signature may vary across SciMLBase versions,
+    # so we don't assert success here.
+    Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback),
+                                           typeof(Trixi.summary_callback),
+                                           typeof(Trixi.initialize_summary_callback),
+                                           typeof(SciMLBase.FINALIZE_DEFAULT),
+                                           typeof(nothing)}})
     @assert Base.precompile(Tuple{typeof(summary_box), Base.TTY, String,
                                   Vector{Pair{String, Any}}})
     # TODO: AMRCallback, ControllerThreeLevel, indicators
@@ -521,15 +523,17 @@ function _precompile_manual_()
                                       SemidiscretizationHyperbolic})
 
         # callbacks
+        # Note: The DiscreteCallback type signature may vary across SciMLBase versions,
+        # so we don't assert success here.
         summary_callback_type = DiscreteCallback{typeof(Trixi.summary_callback),
                                                  typeof(Trixi.summary_callback),
                                                  typeof(Trixi.initialize_summary_callback),
                                                  typeof(SciMLBase.FINALIZE_DEFAULT),
                                                  typeof(nothing)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, summary_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      summary_callback_type})
-        @assert Base.precompile(Tuple{summary_callback_type, Base.TTY})
+        Base.precompile(Tuple{typeof(show), Base.TTY, summary_callback_type})
+        Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
+                              summary_callback_type})
+        Base.precompile(Tuple{summary_callback_type, Base.TTY})
 
         # TODO: SteadyStateCallback, AnalysisCallback
 
@@ -537,9 +541,9 @@ function _precompile_manual_()
                                                typeof(Trixi.initialize!),
                                                typeof(SciMLBase.FINALIZE_DEFAULT),
                                                typeof(nothing)}
-        @assert Base.precompile(Tuple{typeof(show), Base.TTY, alive_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      alive_callback_type})
+        Base.precompile(Tuple{typeof(show), Base.TTY, alive_callback_type})
+        Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
+                              alive_callback_type})
 
         restart_callback_type = DiscreteCallback{SaveRestartCallback, SaveRestartCallback,
                                                  typeof(Trixi.initialize!),

@@ -80,6 +80,17 @@ function ViscoResistiveMhd2D(equations::IdealGlmMhdEquations2D;
                           equations, gradient_variables)
 end
 
+# We specialize this function to compute gradients of primitive variables instead of
+# conservative variables.
+function gradient_variable_transformation(::ViscoResistiveMhd2D{GradientVariablesPrimitive})
+    cons2prim
+end
+
+# Delegate cons2prim to the hyperbolic equations
+@inline function cons2prim(u, equations::ViscoResistiveMhd2D)
+    cons2prim(u, equations.equations_hyperbolic)
+end
+
 # Explicit formulas for the diffusive MHD fluxes are available, e.g., in Section 2
 # of the paper by Rueda-Ramírez, Hennemann, Hindenlang, Winters, and Gassner
 # "An Entropy Stable Nodal Discontinuous Galerkin Method for the resistive
@@ -184,6 +195,6 @@ end
 
 # Calculate the magnetic energy for a conservative state `cons'.
 @inline function energy_magnetic_mhd(cons, ::ViscoResistiveMhd2D)
-    return 0.5 * (cons[5]^2 + cons[6]^2)
+    return 0.5 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end
 end # @muladd
