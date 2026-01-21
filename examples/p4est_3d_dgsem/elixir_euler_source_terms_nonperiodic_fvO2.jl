@@ -29,12 +29,34 @@ volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-coordinates_min = (0.0, 0.0, 0.0)
-coordinates_max = (2.0, 2.0, 2.0)
+function mapping(xi, eta, zeta)
+    # Don't transform input variables between -1 and 1 onto [0,3] to obtain curved boundaries
+    # xi = 1.5 * xi_ + 1.5
+    # eta = 1.5 * eta_ + 1.5
+    # zeta = 1.5 * zeta_ + 1.5
+
+    y = eta +
+        1 / 6 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
+         cos(0.5 * pi * (2 * eta - 3) / 3) *
+         cos(0.5 * pi * (2 * zeta - 3) / 3))
+
+    x = xi +
+        1 / 6 * (cos(0.5 * pi * (2 * xi - 3) / 3) *
+         cos(2 * pi * (2 * y - 3) / 3) *
+         cos(0.5 * pi * (2 * zeta - 3) / 3))
+
+    z = zeta +
+        1 / 6 * (cos(0.5 * pi * (2 * x - 3) / 3) *
+         cos(pi * (2 * y - 3) / 3) *
+         cos(0.5 * pi * (2 * zeta - 3) / 3))
+
+    return SVector(x, y, z)
+end
+
 trees_per_dimension = (2, 2, 2)
 
-mesh = P4estMesh(trees_per_dimension, polydeg = polydeg, coordinates_min = coordinates_min,
-                 coordinates_max = coordinates_max, initial_refinement_level = 2,
+mesh = P4estMesh(trees_per_dimension, polydeg = polydeg, mapping = mapping,
+                 initial_refinement_level = 1,
                  periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
