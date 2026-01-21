@@ -377,7 +377,7 @@ end
 @trixi_testset "elixir_euler_sedov_sc_subcell.jl (local bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
-                        local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal,
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
                         l2=[
                             0.16504564013491585,
@@ -626,7 +626,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
-                        local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal,
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
                         max_iterations_newton=30,
                         l2=[
