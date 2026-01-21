@@ -5,6 +5,13 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.14 lifecycle
+
+#### Added
+- Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733]).
+  In the new version, local (minimum or maximum) limiting for nonlinear variables (using
+  the keyword `local_onesided_variables_nonlinear` in `SubcellLimiterIDP()`) is supported.
+
 ## Changes when updating to v0.14 from v0.13.x
 
 #### Changed
@@ -18,8 +25,7 @@ for human readability.
 - Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582], [#2647], [#2688], [#2722]).
   In the new version, IDP positivity limiting for conservative variables (using
   the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) and nonlinear
-  variables (using `positivity_variables_nonlinear`) is supported. Moreover, subcell shock-capturing
-  (local limiting) for nonlinear variables is supported as well.
+  variables (using `positivity_variables_nonlinear`) is supported.
 - Optimized 2D and 3D kernels for nonconservative fluxes with `P4estMesh` were added ([#2653], [#2663]).
   The optimized kernel can be enabled via the trait `Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)`.
   When the trait is set to `Trixi.True()`, a single method has to be defined, that computes and returns the tuple
