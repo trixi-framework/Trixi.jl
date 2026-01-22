@@ -15,7 +15,7 @@ end
 # The following `calc_volume_integral!` functions are
 # dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
 
-function calc_volume_integral!(du, u, mesh,
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -28,7 +28,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh,
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -41,7 +41,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh,
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -80,7 +80,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1},
                                            TreeMesh{2}, StructuredMesh{2}, P4estMesh{2},
                                            UnstructuredMesh2D, T8codeMesh{2},
@@ -127,7 +127,7 @@ function calc_volume_integral!(du, u,
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh,
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)
@@ -143,7 +143,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1},
                                            TreeMesh{2}, StructuredMesh{2}, P4estMesh{2},
                                            UnstructuredMesh2D, T8codeMesh{2},

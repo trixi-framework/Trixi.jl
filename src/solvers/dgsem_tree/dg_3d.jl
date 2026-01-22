@@ -518,7 +518,8 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u, mesh::TreeMesh{3}, equations, dg::DG)
+function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equations,
+                             dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -556,7 +557,7 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{3}, equations, dg::DG)
     return nothing
 end
 
-function calc_interface_flux!(surface_flux_values,
+function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{3},
                               have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
@@ -591,7 +592,7 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function calc_interface_flux!(surface_flux_values,
+function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{3},
                               have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
@@ -1332,7 +1333,8 @@ end
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{3}, StructuredMesh{3}},
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::Union{TreeMesh{3}, StructuredMesh{3}},
                                 equations, surface_integral, dg::DGSEM, cache)
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
@@ -1387,7 +1389,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{3}, StructuredMesh{3
     return nothing
 end
 
-function apply_jacobian!(du, mesh::TreeMesh{3},
+function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{3},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 

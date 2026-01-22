@@ -240,7 +240,7 @@ function dt_polydeg_scaling(dg::DGMulti{3, <:Wedge, <:TensorProductWedge})
 end
 
 # for the stepsize callback
-function max_dt(u, t, mesh::DGMultiMesh,
+function max_dt(backend::Nothing, u, t, mesh::DGMultiMesh,
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DGMulti{NDIMS},
@@ -269,7 +269,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     return 2 * dt_min * dt_polydeg_scaling(dg)
 end
 
-function max_dt(u, t, mesh::DGMultiMesh,
+function max_dt(backend::Nothing, u, t, mesh::DGMultiMesh,
                 constant_diffusivity::True, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DGMulti{NDIMS},
@@ -298,7 +298,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 # for the stepsize callback
-function max_dt(u, t, mesh::DGMultiMesh,
+function max_dt(backend, u, t, mesh::DGMultiMesh,
                 constant_speed::False, equations, dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
     @unpack md = mesh
@@ -321,7 +321,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     return 2 * dt_min * dt_polydeg_scaling(dg)
 end
 
-function max_dt(u, t, mesh::DGMultiMesh,
+function max_dt(backend, u, t, mesh::DGMultiMesh,
                 constant_speed::True, equations, dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
     @unpack md = mesh
@@ -720,7 +720,7 @@ function calc_sources!(du, u, t, source_terms,
     return nothing
 end
 
-function rhs!(du, u, t, mesh, equations,
+function rhs!(backend, du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)

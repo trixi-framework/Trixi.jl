@@ -35,7 +35,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
     return cache
 end
 
-function rhs!(du, u, t,
+function rhs!(backend, du, u, t,
               mesh::UnstructuredMesh2D, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
@@ -44,7 +44,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
@@ -80,7 +80,8 @@ function rhs!(du, u, t,
 
     # Apply Jacobian from mapping to reference element
     #  Note! this routine is reused from dgsem_structured/dg_2d.jl
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin

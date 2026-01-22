@@ -5,6 +5,50 @@
 @muladd begin
 #! format: noindent
 
+function calc_volume_integral!(backend::Nothing, du, u,
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+    @unpack contravariant_vectors = cache.elements
+    @threaded for element in eachelement(dg, cache)
+        weak_form_kernel_element!(du, u, element, typeof(mesh),
+                                  have_nonconservative_terms, equations,
+                                  dg, contravariant_vectors)
+    end
+    return nothing
+end
+
+function calc_volume_integral!(backend::Backend, du, u,
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+    nelements(dg, cache) == 0 && return nothing
+    @unpack contravariant_vectors = cache.elements
+
+    kernel! = weak_form_KAkernel!(backend)
+    kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations, dg,
+            contravariant_vectors,
+            ndrange = nelements(dg, cache))
+    return nothing
+end
+
+@kernel function weak_form_KAkernel!(du, u,
+                                     meshT::Type{<:Union{StructuredMesh{3},
+                                                         P4estMesh{3},
+                                                         T8codeMesh{3}}},
+                                     have_nonconservative_terms,
+                                     equations,
+                                     dg::DGSEM, contravariant_vectors)
+    element = @index(Global)
+    weak_form_kernel_element!(du, u, element, meshT,
+                              have_nonconservative_terms, equations,
+                              dg, contravariant_vectors)
+end
+
 function create_cache(mesh::Union{StructuredMesh{3},
                                   P4estMesh{3}, T8codeMesh{3}},
                       equations,
@@ -30,16 +74,17 @@ see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
-@inline function weak_form_kernel!(du, u,
-                                   element,
-                                   mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                               T8codeMesh{3}},
-                                   have_nonconservative_terms::False, equations,
-                                   dg::DGSEM, cache, alpha = true)
+@inline function weak_form_kernel_element!(du, u,
+                                           element,
+                                           ::Type{<:Union{StructuredMesh{3},
+                                                          P4estMesh{3},
+                                                          T8codeMesh{3}}},
+                                           have_nonconservative_terms::False, equations,
+                                           dg::DGSEM, contravariant_vectors,
+                                           alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_hat = dg.basis
-    @unpack contravariant_vectors = cache.elements
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -815,24 +860,48 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
     return nothing
 end
 
-function apply_jacobian!(du,
+function apply_jacobian!(backend::Nothing, du,
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                         equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+    @threaded for element in eachelement(dg, cache)
+        apply_jacobian_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
+                                element)
+    end
+    return nothing
+end
+
+function apply_jacobian!(backend::Backend, du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            # Negative sign included to account for the negated surface and volume terms,
-            # see e.g. the computation of `derivative_hat` in the basis setup and 
-            # the comment in `calc_surface_integral!`.
-            factor = -inverse_jacobian[i, j, k, element]
+    kernel! = apply_jacobian_KAkernel!(backend)
+    kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
+            ndrange = nelements(cache.elements))
+    return nothing
+end
 
-            for v in eachvariable(equations)
-                du[v, i, j, k, element] *= factor
-            end
+@kernel function apply_jacobian_KAkernel!(du, meshT, equations, dg::DG,
+                                          inverse_jacobian)
+    element = @index(Global)
+    apply_jacobian_element!(du, meshT, equations, dg, inverse_jacobian, element)
+end
+
+function apply_jacobian_element!(du,
+                                 ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                                T8codeMesh{3}}},
+                                 equations, dg, inverse_jacobian, element)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        # Negative sign included to account for the negated surface and volume terms,
+        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # the comment in `calc_surface_integral!`.
+        factor = -inverse_jacobian[i, j, k, element]
+
+        for v in eachvariable(equations)
+            du[v, i, j, k, element] *= factor
         end
     end
-
     return nothing
 end
 end # @muladd
