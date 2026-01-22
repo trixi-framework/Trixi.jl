@@ -212,6 +212,43 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "NonIdeal Compressible Euler 1D" begin
+        for RealT in (Float32, Float64)
+            # set gamma = 2 for the coupling convergence test
+            equations = @inferred NonIdealCompressibleEulerEquations1D(IdealGas(RealT(2)))
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT), one(RealT))
+            orientation = 1
+            direction = 1
+
+            surface_flux_function = flux_lax_friedrichs
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred prim2cons(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            # TODO: if entropy2cons is implemented, add a test
+
+            @test typeof(@inferred density(u, equations)) == RealT
+            @test typeof(@inferred velocity(u, equations)) == RealT
+            @test typeof(@inferred velocity(u, orientation, equations)) == RealT
+            @test typeof(@inferred pressure(u, equations)) == RealT
+            @test typeof(@inferred density_pressure(u, equations)) == RealT
+            @test typeof(@inferred entropy(cons, equations)) == RealT
+            @test typeof(@inferred energy_internal(cons, equations)) == RealT
+        end
+    end
+
     @timed_testset "Compressible Euler 2D" begin
         for RealT in (Float32, Float64)
             # set gamma = 2 for the coupling convergence test
