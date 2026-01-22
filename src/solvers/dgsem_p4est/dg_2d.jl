@@ -921,6 +921,9 @@ function calc_surface_integral!(du, u,
     return nothing
 end
 
+# Call this for coupled P4estMeshView simulations.
+# The coupling calculations require global information, which is why
+# the additional variable u_global is needed, compared to non-coupled systems.
 function rhs!(du, u, t, u_global, semis,
               mesh::P4estMeshView{2},
               equations,
