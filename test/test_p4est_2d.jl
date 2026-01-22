@@ -116,7 +116,7 @@ end
                         linf=[0.0009605782290112996, 0.0009605782290100784])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    #     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
 
     # Ensure we cover the calculation of the node coordinates
     node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
