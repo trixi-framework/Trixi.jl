@@ -212,7 +212,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-        @timed_testset "NonIdeal Compressible Euler 1D" begin
+    @timed_testset "NonIdeal Compressible Euler 1D" begin
         for RealT in (Float32, Float64)
             # set gamma = 2 for the coupling convergence test
             equations = @inferred NonIdealCompressibleEulerEquations1D(IdealGas(RealT(2)))

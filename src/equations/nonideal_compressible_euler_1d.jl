@@ -238,5 +238,4 @@ end
     e = energy_internal(V, T, eos)
     return e
 end
-
 end # @muladd
