@@ -255,7 +255,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                                                                                    u,
                                                                                    mesh,
                                                                                    equations,
-                                                                                   solver.mortar_l2,
+                                                                                   solver.mortar,
                                                                                    solver)
 
             # Compute and apply coupled mortar fluxes
@@ -264,7 +264,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                                         mesh,
                                         have_nonconservative_terms(equations),
                                         equations,
-                                        solver.mortar_l2,
+                                        solver.mortar,
                                         solver.surface_integral,
                                         solver,
                                         cache,
