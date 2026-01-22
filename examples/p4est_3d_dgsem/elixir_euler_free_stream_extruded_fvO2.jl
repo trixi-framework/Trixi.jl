@@ -10,7 +10,7 @@ initial_condition = initial_condition_constant
 
 boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
 
-polydeg = 3
+polydeg = 3 # governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)
 surface_flux = flux_lax_friedrichs
 
