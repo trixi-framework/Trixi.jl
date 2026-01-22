@@ -782,6 +782,7 @@ end
           cons2entropy(u, equations)
     @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+
     @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
 

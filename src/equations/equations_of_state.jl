@@ -29,7 +29,7 @@ include("equation_of_state_vdw.jl")
 
 #######################################################
 #
-# Some EOS-agnostic routines are provide_d below
+# Some general fallback routines are provided below
 # 
 #######################################################
 
