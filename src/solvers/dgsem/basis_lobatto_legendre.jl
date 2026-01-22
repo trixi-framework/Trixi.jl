@@ -24,7 +24,6 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     inverse_weights::VectorT
 
     inverse_vandermonde_legendre::InverseVandermondeLegendre
-    boundary_interpolation_factor::RealT # Compressed form of "Lhat"
 
     derivative_matrix::DerivativeMatrix # strong form derivative matrix "D"
     derivative_split::DerivativeMatrix # strong form derivative matrix minus boundary terms
@@ -39,7 +38,6 @@ function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
     nodes = SVector{<:Any, RealT}(basis.nodes)
     weights = SVector{<:Any, RealT}(basis.weights)
     inverse_weights = SVector{<:Any, RealT}(basis.inverse_weights)
-    boundary_interpolation_factor = adapt(to, basis.boundary_interpolation_factor)
     derivative_matrix = adapt(to, basis.derivative_matrix)
     derivative_split = adapt(to, basis.derivative_split)
     derivative_split_transpose = adapt(to, basis.derivative_split_transpose)
@@ -50,7 +48,6 @@ function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
                                                            weights,
                                                            inverse_weights,
                                                            inverse_vandermonde_legendre,
-                                                           boundary_interpolation_factor,
                                                            derivative_matrix,
                                                            derivative_split,
                                                            derivative_split_transpose,
@@ -64,14 +61,6 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     inverse_weights_ = inv.(weights_)
 
     _, inverse_vandermonde_legendre = vandermonde_legendre(nodes_, RealT)
-
-    boundary_interpolation = zeros(RealT, nnodes_, 2)
-    boundary_interpolation[:, 1] = calc_Lhat(-one(RealT), nodes_, weights_)
-    boundary_interpolation[:, 2] = calc_Lhat(one(RealT), nodes_, weights_)
-    # Currently only used entry in the code
-    boundary_interpolation_factor = boundary_interpolation[1, 1]
-    # Check symmetry
-    @assert boundary_interpolation[1, 1] == boundary_interpolation[end, 2]
 
     derivative_matrix = polynomial_derivative_matrix(nodes_)
     derivative_split = calc_Dsplit(nodes_, weights_)
@@ -94,7 +83,6 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
                                 typeof(derivative_matrix)}(nodes, weights,
                                                            inverse_weights,
                                                            inverse_vandermonde_legendre,
-                                                           boundary_interpolation_factor,
                                                            derivative_matrix,
                                                            derivative_split,
                                                            derivative_split_transpose,

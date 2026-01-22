@@ -761,7 +761,7 @@ function calc_surface_integral!(du, u,
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
-    @unpack boundary_interpolation_factor = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
@@ -771,29 +771,29 @@ function calc_surface_integral!(du, u,
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor = boundary_interpolation_factor # = factor_1 = factor_2 due to symmetric interpolation points
+    boundary_interpolation = inverse_weights[1] # Equivalent to boundary interpolation matrix at x = -1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, element] = (du[v, 1, l, element] +
                                         surface_flux_values[v, l, 1, element] *
-                                        factor)
+                                        boundary_interpolation)
 
                 # surface at +x
                 du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
                                                  surface_flux_values[v, l, 2, element] *
-                                                 factor)
+                                                 boundary_interpolation)
 
                 # surface at -y
                 du[v, l, 1, element] = (du[v, l, 1, element] +
                                         surface_flux_values[v, l, 3, element] *
-                                        factor)
+                                        boundary_interpolation)
 
                 # surface at +y
                 du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
                                                  surface_flux_values[v, l, 4, element] *
-                                                 factor)
+                                                 boundary_interpolation)
             end
         end
     end
