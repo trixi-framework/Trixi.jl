@@ -29,7 +29,7 @@ include("equation_of_state_vdw.jl")
 
 #######################################################
 #
-# Some EOS-agnostic routines are provided below
+# Some EOS-agnostic routines are provide_d below
 # 
 #######################################################
 
@@ -99,8 +99,8 @@ end
 
     dpdT_V, dpdV_T = calc_pressure_derivatives(V, T, eos)
     dpdrho_T = dpdV_T * (-V / rho) # V = inv(rho), so dVdrho = -1/rho^2 = -V^2. 
-    dedV_T = T * dpdT_V - pressure(V, T, eos)
-    drho_e_drho_T = e + rho * dedV_T * (-V / rho) # d(rho_e)/drho_|T = e + rho * dedV|T * dVdrho
+    de_dV_T = T * dpdT_V - pressure(V, T, eos)
+    drho_e_drho_T = e + rho * de_dV_T * (-V / rho) # d(rho_e)/drho_|T = e + rho * de_dV|T * dVdrho
 
     c_v = heat_capacity_constant_volume(V, T, eos)
     return ((-rho * c_v) / (dpdT_V) * dpdrho_T + drho_e_drho_T)
