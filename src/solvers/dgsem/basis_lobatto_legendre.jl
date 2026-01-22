@@ -520,6 +520,8 @@ end
 
 # Calculate M^{-1} * L(x), where L(x) is the Lagrange polynomial
 # vector at point x.
+# Not required for the DGSEM with LGL basis, as boundary evaluations
+# collapse to boundary node evaluations.
 function calc_Lhat(x, nodes, weights)
     n_nodes = length(nodes)
     wbary = barycentric_weights(nodes)
