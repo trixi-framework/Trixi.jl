@@ -47,6 +47,7 @@ end
     return ForwardDiff.derivative(T -> energy_internal(V, T, eos), T)
 end
 
+# this is used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
 function calc_pressure_derivatives(V, T, eos)
     dpdV_T = ForwardDiff.derivative(V -> pressure(V, T, eos), V)
     dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
