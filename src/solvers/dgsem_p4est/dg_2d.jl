@@ -927,7 +927,7 @@ function rhs!(du, u, t, u_global, semis,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
