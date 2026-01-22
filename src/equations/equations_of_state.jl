@@ -26,6 +26,7 @@ abstract type AbstractEquationOfState end
 
 include("equation_of_state_ideal_gas.jl")
 include("equation_of_state_vdw.jl")
+include("equation_of_state_peng_robinson.jl")
 
 #######################################################
 #
@@ -69,7 +70,8 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
         # guarantee convergence of this iteration.
         de_dT_V = heat_capacity_constant_volume(V, T, eos)
 
-        T = T - de / de_dT_V
+        # guard against negative temperatures
+        T = max(tol, T - de / de_dT_V) 
         iter += 1
     end
     if iter == maxiter
