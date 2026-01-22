@@ -489,7 +489,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
     #
     # We also use explicit assignments instead of `+=` and `-=` to let `@muladd`
     # turn these into FMAs (see comment at the top of the file).
-    boundary_interpolation = inverse_weights[1] # Equivalent to boundary interpolation matrix at x = -1
+    boundary_interpolation = inverse_weights[1] # Equivalent to boundary interpolation matrix x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg), v in eachvariable(equations)
             # surface contribution along local sides 2 and 4 (fixed x and y varies)
