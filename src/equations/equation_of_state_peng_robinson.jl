@@ -128,6 +128,15 @@ function speed_of_sound(V, T, eos::PengRobinson)
     return sqrt(c2)
 end
 
+function calc_pressure_derivatives(V, T, eos::PengRobinson)
+    (; R, b) = eos
+    denom = (V^2 + 2 * b * V - b^2)
+    RdivVb = R / (V - b)
+    dpdT_V = RdivVb - da(T, eos) / denom
+    dpdV_T = -RdivVb * T / (V - b) * (1 - 2 * a(T, eos) / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
+    return dpdT_V, dpdV_T
+end
+
 # The following are auxiliary functions used in calculating the PR EOS
 @inline function a(T, eos::PengRobinson)
     (; a0, kappa, T0) = eos
