@@ -30,7 +30,7 @@ include("equation_of_state_peng_robinson.jl")
 
 #######################################################
 #
-# Some general fallback routines are provided below
+# Some EOS-agnostic routines are provided below
 # 
 #######################################################
 
@@ -45,6 +45,12 @@ end
 # compute c_v = de/dT
 @inline function heat_capacity_constant_volume(V, T, eos::AbstractEquationOfState)
     return ForwardDiff.derivative(T -> energy_internal(V, T, eos), T)
+end
+
+function calc_pressure_derivatives(V, T, eos)
+    dpdV_T = ForwardDiff.derivative(V -> pressure(V, T, eos), V)
+    dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
+    return dpdT_V, dpdV_T
 end
 
 # relative tolerance for the Newton solver for temperature
@@ -79,5 +85,26 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
                 "Final states: iter = $iter, V, e = $V, $e with de = $de")
     end
     return T
+end
+
+@inline function internal_energy_density(u,
+                                         equations::NonIdealCompressibleEulerEquations1D)
+    rho, rho_v1, rho_e_total = u
+    rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
+    return rho_e
+end
+
+# helper function used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
+@inline function drho_e_drho_at_const_p(V, T, eos)
+    rho = inv(V)
+    e = energy_internal(V, T, eos)
+
+    dpdT_V, dpdV_T = calc_pressure_derivatives(V, T, eos)
+    dpdrho_T = dpdV_T * (-V / rho) # V = inv(rho), so dVdrho = -1/rho^2 = -V^2. 
+    dedV_T = T * dpdT_V - pressure(V, T, eos)
+    drho_e_drho_T = e + rho * dedV_T * (-V / rho) # d(rho_e)/drho_|T = e + rho * dedV|T * dVdrho
+
+    c_v = heat_capacity_constant_volume(V, T, eos)
+    return ((-rho * c_v) / (dpdT_V) * dpdrho_T + drho_e_drho_T)
 end
 end # @muladd
