@@ -111,12 +111,4 @@ function calc_pressure_derivatives(V, T, eos::VanDerWaals)
     return dpdT_V, -dpdrho_T / V^2
 end
 
-function calc_pressure_derivatives(V, T, eos::VanDerWaals)
-    (; a, b, R) = model
-    rho = inv(V)
-    dpdT_V = rho * R / (1 - rho * b)
-    dpdrho_T = (R * T) / (1 - b * rho) + (R * T * b * rho) / ((1 - b * rho)^2) -
-               2 * a * rho
-    return dpdT_V, -dpdrho_T / V^2
-end
 end # @muladd
