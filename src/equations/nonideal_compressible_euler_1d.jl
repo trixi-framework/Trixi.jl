@@ -99,6 +99,22 @@ end
     return max(v_mag_ll + c_ll, v_mag_rr + c_rr)
 end
 
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                     equations::NonIdealCompressibleEulerEquations1D)
+    V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
+    V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
+
+    v_mag_ll = abs(v1_ll)
+    v_mag_rr = abs(v1_rr)
+
+    # Calculate primitive variables and speed of sound
+    eos = equations.equation_of_state
+    c_ll = speed_of_sound(V_ll, T_ll, eos)
+    c_rr = speed_of_sound(V_rr, T_rr, eos)
+
+    return max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+end
+
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::NonIdealCompressibleEulerEquations1D)
@@ -133,7 +149,7 @@ end
 
     V = inv(rho)
     v1 = rho_v1 * V
-    e = (rho_e_total - 0.5 * rho_v1 * v1) * V
+    e = (rho_e_total - 0.5f0 * rho_v1 * v1) * V
     T = temperature(V, e, eos)
 
     return SVector(V, v1, T)
@@ -184,4 +200,43 @@ Default entropy is the mathematical entropy
 @inline function entropy(cons, equations::NonIdealCompressibleEulerEquations1D)
     return entropy_math(cons, equations)
 end
+
+@inline function density(u, equations::NonIdealCompressibleEulerEquations1D)
+    rho = u[1]
+    return rho
+end
+
+@inline function velocity(u, orientation_or_normal,
+                          equations::NonIdealCompressibleEulerEquations1D)
+    return velocity(u, equations)
+end
+
+@inline function velocity(u, equations::NonIdealCompressibleEulerEquations1D)
+    rho = u[1]
+    v1 = u[2] / rho
+    return v1
+end
+
+@inline function pressure(u, equations::NonIdealCompressibleEulerEquations1D)
+    eos = equations.equation_of_state
+    V, _, T = cons2prim(u, equations)
+    p = pressure(V, T, eos)
+    return p
+end
+
+@inline function density_pressure(u, equations::NonIdealCompressibleEulerEquations1D)
+    eos = equations.equation_of_state
+    rho = u[1]
+    V, _, T = cons2prim(u, equations)
+    p = pressure(V, T, eos)
+    return rho * p
+end
+
+@inline function energy_internal(u, equations::NonIdealCompressibleEulerEquations1D)
+    eos = equations.equation_of_state
+    V, _, T = cons2prim(u, equations)
+    e = energy_internal(V, T, eos)
+    return e
+end
+
 end # @muladd
