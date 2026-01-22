@@ -107,7 +107,7 @@ function rhs!(du, u, t,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
@@ -182,7 +182,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
 
     # Calculate volume terms in one element
     for j in eachnode(dg), i in eachnode(dg)
@@ -190,13 +190,13 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 
         flux1 = flux(u_node, 1, equations)
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i], flux1,
                                        equations, dg, ii, j, element)
         end
 
         flux2 = flux(u_node, 2, equations)
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j], flux2,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j], flux2,
                                        equations, dg, i, jj, element)
         end
     end
@@ -1086,8 +1086,10 @@ function calc_surface_integral!(du, u,
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
-    # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop to increase performance.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     factor_1 = boundary_interpolation[1, 1]
@@ -1126,6 +1128,9 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
+        # Negative sign included to account for the negated surface and volume terms,
+        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
         for j in eachnode(dg), i in eachnode(dg)

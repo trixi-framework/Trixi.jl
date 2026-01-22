@@ -58,7 +58,7 @@ end
                                  "elixir_advection_amr_unstructured_curved.jl"),
                         l2=[1.6163120948209677e-5],
                         linf=[0.0010572201890564834],
-                        tspan=(0.0, 1.0),)
+                        tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -119,7 +119,7 @@ end
                             0.0024800222220195955,
                             0.00830424488849335
                         ],
-                        tspan=(0.0, 0.01),)
+                        tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -320,7 +320,7 @@ end
                             0.45574161423218573,
                             0.8099577682187109
                         ],
-                        tspan=(0.0, 0.2),)
+                        tspan=(0.0, 0.2))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -343,7 +343,7 @@ end
                             0.7999141641954051
                         ],
                         tspan=(0.0, 0.2),
-                        volume_flux=flux_chandrashekar,)
+                        volume_flux=flux_chandrashekar)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -365,7 +365,7 @@ end
                             3.21754792e-01,
                             4.76151527e+00
                         ],
-                        tspan=(0.0, 0.3),)
+                        tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -387,7 +387,7 @@ end
                             1.8885700263691252,
                             4.9712792944452096
                         ],
-                        tspan=(0.0, 0.3),)
+                        tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -438,7 +438,7 @@ end
                             0.00016833038543762058
                         ],
                         # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                        abstol=1.0e-11, reltol=1.0e-11,)
+                        abstol=1.0e-11, reltol=1.0e-11)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -461,7 +461,7 @@ end
                             0.0005129931254772464,
                             0.7942778058932163
                         ],
-                        tspan=(0.0, 2e2),)
+                        tspan=(0.0, 2e2))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -486,7 +486,7 @@ end
                         ],
                         tspan=(0.0, 1e2),
                         # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                        abstol=1.0e-9, reltol=1.0e-9,)
+                        abstol=1.0e-9, reltol=1.0e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -617,7 +617,7 @@ end
                             0.005104176909383168,
                             9.738081186490818e-6
                         ],
-                        tspan=(0.0, 0.25),)
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -648,7 +648,7 @@ end
                             0.005010126350015381,
                             6.309149507784953e-5
                         ],
-                        tspan=(0.0, 0.25),)
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -678,7 +678,7 @@ end
                             0.16808957604979002,
                             0.0005083795485317637
                         ],
-                        tspan=(0.0, 0.04),)
+                        tspan=(0.0, 0.04))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -742,7 +742,7 @@ end
                             0.18947822281424997,
                             0.0005083794158781671
                         ],
-                        tspan=(0.0, 0.04),)
+                        tspan=(0.0, 0.04))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -781,7 +781,7 @@ end
                             0.5955002383710662,
                             3.1811162616598985
                         ],
-                        tspan=(0.0, 0.025),)
+                        tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
