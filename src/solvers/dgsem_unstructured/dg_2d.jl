@@ -40,7 +40,7 @@ function rhs!(du, u, t,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
@@ -480,22 +480,31 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg), v in eachvariable(equations)
             # surface contribution along local sides 2 and 4 (fixed x and y varies)
-            du[v, 1, l, element] += (surface_flux_values[v, l, 4, element]
-                                     *
-                                     boundary_interpolation[1, 1])
-            du[v, nnodes(dg), l, element] += (surface_flux_values[v, l, 2, element]
-                                              *
-                                              boundary_interpolation[nnodes(dg), 2])
+            du[v, 1, l, element] = du[v, 1, l, element] +
+                                   surface_flux_values[v, l, 4, element] *
+                                   factor_1
+            du[v, nnodes(dg), l, element] = du[v, nnodes(dg), l, element] +
+                                            surface_flux_values[v, l, 2, element] *
+                                            factor_2
             # surface contribution along local sides 1 and 3 (fixed y and x varies)
-            du[v, l, 1, element] += (surface_flux_values[v, l, 1, element]
-                                     *
-                                     boundary_interpolation[1, 1])
-            du[v, l, nnodes(dg), element] += (surface_flux_values[v, l, 3, element]
-                                              *
-                                              boundary_interpolation[nnodes(dg), 2])
+            du[v, l, 1, element] = du[v, l, 1, element] +
+                                   surface_flux_values[v, l, 1, element] *
+                                   factor_1
+            du[v, l, nnodes(dg), element] = du[v, l, nnodes(dg), element] +
+                                            surface_flux_values[v, l, 3, element] *
+                                            factor_2
         end
     end
 
