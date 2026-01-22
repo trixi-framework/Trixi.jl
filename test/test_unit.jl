@@ -769,7 +769,15 @@ end
 @timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations1D(eos)
-    u = prim2cons(SVector(2.0, 0.1, 10.0), equations)
+    q = SVector(2.0, 0.1, 10.0) 
+    V, v1, T = q
+    u = prim2cons(q, equations)
+
+    @test density(u, equations) ≈ 0.5
+    @test velocity(u, equations) ≈ 0.1    
+    @test density_pressure(u, equations) ≈ u[1] * pressure(V, T, eos)
+    @test energy_internal(u, equations) ≈ energy_internal(V, T, eos)
+    
     @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
           cons2entropy(u, equations)
     @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
