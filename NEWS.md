@@ -9,6 +9,7 @@ for human readability.
 
 #### Added 
 - Added `NonIdealCompressibleEulerEquations1D`, which allows users to specify a non-ideal equation of state. Currently `IdealGas` and `VanDerWaals` are supported ([#2739]). 
+- Added the APEC fluxes of `flux_terashima_etal` and `flux_central_terashima_etal` from [Terashima, Ly, Ihme (2025)](https://doi.org/10.1016/j.jcp.2024.113701). 
 
 #### Changed
 
