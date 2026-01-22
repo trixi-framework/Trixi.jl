@@ -110,5 +110,4 @@ function calc_pressure_derivatives(V, T, eos::VanDerWaals)
                2 * a * rho
     return dpdT_V, -dpdrho_T / V^2
 end
-
 end # @muladd
