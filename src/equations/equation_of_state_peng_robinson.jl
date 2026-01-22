@@ -43,7 +43,7 @@ struct PengRobinson{RealT <: Real} <: AbstractEquationOfState
         inv2sqrt2b = inv(2 * sqrt(2) * b)
         one_minus_sqrt2_b = (1 - sqrt(2)) * b
         one_plus_sqrt2_b = (1 + sqrt(2)) * b
-        return new{typeof(R)}(R, a0, b, cv0, kappa, T0, 
+        return new{typeof(R)}(R, a0, b, cv0, kappa, T0,
                               inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b)
     end
 end
@@ -55,13 +55,13 @@ By default, the Peng-Robinson parameters are in mass basis for N2.
 """
 function PengRobinson(; RealT = Float64)
     Rgas = 8.31446261815324
-    molar_mass_N2 = .02801 * 1000 # kg/m3
+    molar_mass_N2 = 0.02801 * 1000 # kg/m3
     R = Rgas * 1000 / molar_mass_N2
     pc = 3.40e6
-    Tc = 126.2 
+    Tc = 126.2
     omega = 0.0372
     cv0 = 743.2
-    b = .077796 * R * Tc / pc
+    b = 0.077796 * R * Tc / pc
     a0 = 0.457236 * (R * Tc)^2 / pc
     kappa = 0.37464 + 1.54226 * omega - 0.26992 * omega^2
     return PengRobinson(RealT.((R, a0, b, cv0, kappa, Tc))...)
@@ -75,7 +75,7 @@ see also [`NonIdealCompressibleEulerEquations1D`](@ref).
 """
 function pressure(V, T, eos::PengRobinson)
     (; R, b) = eos
-    p = R * T / (V - b) - a(T, eos) / (V^2 + 2 * b * V - b^2) 
+    p = R * T / (V - b) - a(T, eos) / (V^2 + 2 * b * V - b^2)
     return p
 end
 
@@ -105,12 +105,12 @@ function entropy_specific(V, T, eos::PengRobinson)
     # The specific entropy is defined up to some reference value s0, which is
     # arbitrarily set to zero here.
     K1 = calc_K1(V, eos)
-    return cv0 * log(T) + R * log(V - b)- da(T, eos) * K1
+    return cv0 * log(T) + R * log(V - b) - da(T, eos) * K1
 end
 
 function speed_of_sound(V, T, eos::PengRobinson)
     (; cv0, R, b) = eos
- 
+
     dpdT_V, dpdV_T = calc_pressure_derivatives(V, T, eos)
 
     # calculate ratio of specific heats
@@ -133,7 +133,8 @@ function calc_pressure_derivatives(V, T, eos::PengRobinson)
     denom = (V^2 + 2 * b * V - b^2)
     RdivVb = R / (V - b)
     dpdT_V = RdivVb - da(T, eos) / denom
-    dpdV_T = -RdivVb * T / (V - b) * (1 - 2 * a(T, eos) / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
+    dpdV_T = -RdivVb * T / (V - b) *
+             (1 - 2 * a(T, eos) / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
     return dpdT_V, dpdV_T
 end
 
@@ -145,10 +146,9 @@ end
 @inline da(T, eos) = ForwardDiff.derivative(T -> a(T, eos), T)
 @inline d2a(T, eos) = ForwardDiff.derivative(T -> da(T, eos), T)
 
-@inline function calc_K1(V, eos::PengRobinson) 
+@inline function calc_K1(V, eos::PengRobinson)
     (; inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b) = eos
     K1 = inv2sqrt2b * log((V + one_minus_sqrt2_b) / (V + one_plus_sqrt2_b))
     return K1
 end
-
 end # @muladd
