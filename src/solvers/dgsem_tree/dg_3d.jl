@@ -1343,7 +1343,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{3}, StructuredMesh{3
     #
     # We also use explicit assignments instead of `+=` and `-=` to let `@muladd`
     # turn these into FMAs (see comment at the top of the file).
-    boundary_interpolation = inverse_weights[1] # Equivalent to boundary interpolation matrix x = ±1
+    boundary_interpolation = inverse_weights[1] # For LGL basis: Identical to boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for m in eachnode(dg), l in eachnode(dg)
             for v in eachvariable(equations)
