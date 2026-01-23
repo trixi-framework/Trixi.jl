@@ -1083,7 +1083,7 @@ function calc_surface_integral!(du, u,
                                             StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DG, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # This computes the **negative** surface integral contribution,
@@ -1092,30 +1092,29 @@ function calc_surface_integral!(du, u,
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, element] = (du[v, 1, l, element] -
                                         surface_flux_values[v, l, 1, element] *
-                                        factor_1)
+                                        factor)
 
                 # surface at +x
                 du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
                                                  surface_flux_values[v, l, 2, element] *
-                                                 factor_2)
+                                                 factor)
 
                 # surface at -y
                 du[v, l, 1, element] = (du[v, l, 1, element] -
                                         surface_flux_values[v, l, 3, element] *
-                                        factor_1)
+                                        factor)
 
                 # surface at +y
                 du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
                                                  surface_flux_values[v, l, 4, element] *
-                                                 factor_2)
+                                                 factor)
             end
         end
     end
