@@ -55,7 +55,8 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral_stabilized)
 
 ###############################################################################
-mesh_file = "/home/daniel/git/Paper_AdaptiveVolTerm/Data/RAE2822_Transonic/RAE2822.inp"
+#mesh_file = "/home/daniel/git/Paper_AdaptiveVolTerm/Data/RAE2822_Transonic/RAE2822.inp"
+mesh_file = "/storage/home/daniel/RAE2822/RAE2822.inp"
 
 # There is also a linear mesh file available at
 # https://gist.githubusercontent.com/DanielDoehring/375df933da8a2081f58588529bed21f0/raw/18592aa90f1c86287b4f742fd405baf55c3cf133/SD7003_2D_Linear.inp
@@ -94,10 +95,13 @@ t_c = airfoil_cord_length / U_inf()
 tspan = (0.0, 50 * t_c) # Non-AMR
 ode = semidiscretize(semi, tspan)
 
+restart_filename = "out/restart_000200000.h5"
+tspan = (load_time(restart_filename), 50 * t_c)
+ode = semidiscretize(semi, tspan, restart_filename)
 
 summary_callback = SummaryCallback()
 
-save_sol_interval = 100_000
+save_sol_interval = 20_000
 save_solution = SaveSolutionCallback(interval = save_sol_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true)
@@ -145,7 +149,7 @@ amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, shock_indicat
                                               max_threshold_secondary = shock_indicator.alpha_max)                                      
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 100,
+                           interval = 50,
                            adapt_initial_condition = false)
 
 save_restart = SaveRestartCallback(interval = save_sol_interval,
@@ -154,7 +158,7 @@ save_restart = SaveRestartCallback(interval = save_sol_interval,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, 
                         alive_callback,
-                        #amr_callback,
+                        amr_callback,
                         #save_solution,
                         save_restart
                         )
@@ -166,6 +170,6 @@ ode_algorithm = SSPRK43(thread = Trixi.True())
 
 tols = 5e-5 # Not sure if low or high tols lead to better performance here
 sol = solve(ode, ode_algorithm;
-            abstol = tols, reltol = tols, dt = 4e-6,
+            abstol = tols, reltol = tols, dt = 1e-6,
             maxiters = Inf,
             ode_default_options()..., callback = callbacks)
