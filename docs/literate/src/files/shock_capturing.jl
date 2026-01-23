@@ -12,9 +12,10 @@
 # [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935). In
 # [Rueda-Ramírez et al. (2021)](https://doi.org/10.1016/j.jcp.2021.110580) you find the extension to
 # the systems with non-conservative terms, such as the compressible magnetohydrodynamics (MHD) equations.
+# Furthermore, the latter paper introduces also second-order subcell finite volume stabilization.
 
 # The strategy for a shock-capturing method presented by Hennemann et al. is based on a hybrid blending
-# of a high-order DG method with a low-order variant. The low-order subcell finite volume (FV) method is created
+# of a high-order DG method with a low-order variant. The low-order subcell first order finite volume (FV) method is created
 # directly with the Legendre-Gauss-Lobatto (LGL) nodes already used for the high-order DGSEM.
 # Then, the final method is a convex combination with regulating indicator $\alpha$ of these two methods.
 
@@ -35,7 +36,19 @@
 #                                                  volume_flux_fv=volume_flux_fv)
 # ````
 
-# We now focus on a choice of the shock capturing indicator `indicator_sc`.
+# The volume integral employing second-order FV stabilization is constructed similarly:
+# ````julia
+# volume_integral = VolumeIntegralShockCapturingRRG(basis, indicator_sc;
+#                                                   volume_flux_dg=flux_central,
+#                                                   volume_flux_fv=flux_lax_friedrichs,
+#                                                   slope_limiter=minmod)
+# ````
+# In addition to the parameters of the HG method, the DG `basis` **must** be supplied here.
+# The `slope_limiter` keyword argument is optional and defaults to `minmod`.
+# A list of supported slope limiters can be found in the reference of [`VolumeIntegralShockCapturingRRG`](@ref).
+
+# We now focus on a choice of the shock capturing indicator `indicator_sc`, which can be used for both
+# the first-order and the second-order FV stabilization.
 # A possible indicator is $\alpha_{HG}$ presented by Hennemann et al. (p.10), which depends on the
 # current approximation with modal coefficients $\{m_j\}_{j=0}^N$ of a given `variable`.
 
@@ -255,9 +268,9 @@ plot(sol)
 # The default value for the corresponding parameter $c=$ `exp_entropy_decrease_max` is set to $-10^{-13}$, i.e., slightly less than zero to
 # avoid spurious limiter actions for cells in which the entropy remains effectively constant.
 # Other values can be specified by setting the `exp_entropy_decrease_max` keyword in the constructor of the limiter:
-# ```julia
+# ````julia
 # stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max=-1e-9)
-# ```
+# ````
 # Smaller values (larger in absolute value) for `exp_entropy_decrease_max` relax the entropy increase requirement and are thus less diffusive.
 # On the other hand, for larger values (smaller in absolute value) of `exp_entropy_decrease_max` the limiter acts more often and the solution becomes more diffusive.
 #
