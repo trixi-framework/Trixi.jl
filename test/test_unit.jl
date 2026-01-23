@@ -285,6 +285,20 @@ end
         @test Trixi.gauss_nodes_weights(3)[2] ≈ [5 / 9, 8 / 9, 5 / 9]
     end
 
+    @testset "boundary interpolation" begin
+        for p in 1:7
+            basis = LobattoLegendreBasis(p)
+            nodes = basis.nodes
+            weights = basis.weights
+
+            Lhat_minus1 = Trixi.calc_Lhat(-1.0, nodes, weights)
+            @test basis.inverse_weights[1] == Lhat_minus1[1]
+
+            Lhat_plus1 = Trixi.calc_Lhat(1.0, nodes, weights)
+            @test basis.inverse_weights[p + 1] == Lhat_plus1[p + 1]
+        end
+    end
+
     @testset "multiply_dimensionwise" begin
         nodes_in = [0.0, 0.5, 1.0]
         nodes_out = [0.0, 1 / 3, 2 / 3, 1.0]
@@ -783,12 +797,23 @@ end
     @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
 
+    @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
+
     # check that the fallback temperature and specialized temperature 
     # return the same value 
     V, v1, T = cons2prim(u, equations)
     e = energy_internal(V, T, eos)
     @test temperature(V, e, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
+
+    # check that fallback calc_pressure_derivatives matches specialized routines
+    @test calc_pressure_derivatives(V, T, eos)[1] ≈
+          invoke(calc_pressure_derivatives,
+                 Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[1]
+    @test calc_pressure_derivatives(V, T, eos)[2] ≈
+          invoke(calc_pressure_derivatives,
+                 Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
 end
 
 @timed_testset "StepsizeCallback" begin

@@ -69,7 +69,7 @@ The supplied `limiter` governs the choice of slopes given the nodal values
     3) [`superbee`](@ref)
     4) [`vanleer`](@ref)
     5) [`koren_symmetric`](@ref)
-**Asymmetric** limiters are also available, e.g.,
+**Asymmetric** TVD limiters are also available, e.g.,
     1) [`koren`](@ref) for positive (right-going) velocities
     2) [`koren_flipped`](@ref) for negative (left-going) velocities
 
