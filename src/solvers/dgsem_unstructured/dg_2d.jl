@@ -477,7 +477,7 @@ end
 # Therefore, we require a different surface integral routine here despite their similar structure.
 function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral, dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
@@ -485,26 +485,26 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
     # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
     # and the missing "-" is taken care of by `apply_jacobian!`.
     #
-    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
-    # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    # We also use explicit assignments instead of `+=` and `-=` to let `@muladd`
+    # turn these into FMAs (see comment at the top of the file).
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg), v in eachvariable(equations)
             # surface contribution along local sides 2 and 4 (fixed x and y varies)
             du[v, 1, l, element] = du[v, 1, l, element] +
                                    surface_flux_values[v, l, 4, element] *
-                                   factor_1
+                                   factor
             du[v, nnodes(dg), l, element] = du[v, nnodes(dg), l, element] +
                                             surface_flux_values[v, l, 2, element] *
-                                            factor_2
+                                            factor
+
             # surface contribution along local sides 1 and 3 (fixed y and x varies)
             du[v, l, 1, element] = du[v, l, 1, element] +
                                    surface_flux_values[v, l, 1, element] *
-                                   factor_1
+                                   factor
             du[v, l, nnodes(dg), element] = du[v, l, nnodes(dg), element] +
                                             surface_flux_values[v, l, 3, element] *
-                                            factor_2
+                                            factor
         end
     end
 

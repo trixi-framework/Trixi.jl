@@ -82,9 +82,9 @@ end
 # The implementation of nonconservative terms uses a single "nonconservative flux"
 # function `flux_nonconservative`. It will basically be applied in a loop of the
 # form
-# ```julia
+# ````julia
 # du_m(D, u) = sum(D[m, l] * flux_nonconservative(u[m], u[l], 1, equations)) # orientation 1: x
-# ```
+# ````
 # where `D` is the derivative matrix and `u` contains the nodal solution values.
 
 # Now, we can run a simple simulation using a DGSEM discretization.
