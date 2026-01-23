@@ -131,26 +131,26 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         flux1 = flux(u_node, 1, equations)
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i], flux1,
                                        equations, dg, ii, j, k, element)
         end
 
         flux2 = flux(u_node, 2, equations)
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j], flux2,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j], flux2,
                                        equations, dg, i, jj, k, element)
         end
 
         flux3 = flux(u_node, 3, equations)
         for kk in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[kk, k], flux3,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[kk, k], flux3,
                                        equations, dg, i, j, kk, element)
         end
     end
@@ -1334,49 +1334,54 @@ end
 
 function calc_surface_integral!(du, u, mesh::Union{TreeMesh{3}, StructuredMesh{3}},
                                 equations, surface_integral, dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
-    # Access the factors only once before beginning the loop to increase performance.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
     # We also use explicit assignments instead of `+=` and `-=` to let `@muladd`
     # turn these into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for m in eachnode(dg), l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, m, element] = (du[v, 1, l, m, element] -
-                                           surface_flux_values[v, l, m, 1, element] *
-                                           factor_1)
+                                           surface_flux_values[v, l, m, 1,
+                                                               element] *
+                                           factor)
 
                 # surface at +x
                 du[v, nnodes(dg), l, m, element] = (du[v, nnodes(dg), l, m, element] +
                                                     surface_flux_values[v, l, m, 2,
                                                                         element] *
-                                                    factor_2)
+                                                    factor)
 
                 # surface at -y
                 du[v, l, 1, m, element] = (du[v, l, 1, m, element] -
-                                           surface_flux_values[v, l, m, 3, element] *
-                                           factor_1)
+                                           surface_flux_values[v, l, m, 3,
+                                                               element] *
+                                           factor)
 
                 # surface at +y
                 du[v, l, nnodes(dg), m, element] = (du[v, l, nnodes(dg), m, element] +
                                                     surface_flux_values[v, l, m, 4,
                                                                         element] *
-                                                    factor_2)
+                                                    factor)
 
                 # surface at -z
                 du[v, l, m, 1, element] = (du[v, l, m, 1, element] -
-                                           surface_flux_values[v, l, m, 5, element] *
-                                           factor_1)
+                                           surface_flux_values[v, l, m, 5,
+                                                               element] *
+                                           factor)
 
                 # surface at +z
                 du[v, l, m, nnodes(dg), element] = (du[v, l, m, nnodes(dg), element] +
                                                     surface_flux_values[v, l, m, 6,
                                                                         element] *
-                                                    factor_2)
+                                                    factor)
             end
         end
     end
@@ -1389,6 +1394,9 @@ function apply_jacobian!(du, mesh::TreeMesh{3},
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
+        # Negative sign included to account for the negated surface and volume terms,
+        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)

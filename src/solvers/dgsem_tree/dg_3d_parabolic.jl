@@ -44,9 +44,9 @@ end
 function reset_gradients!(gradients::NTuple{3}, dg::DG, cache)
     gradients_x, gradients_y, gradients_z = gradients
 
-    reset_du!(gradients_x, dg, cache)
-    reset_du!(gradients_y, dg, cache)
-    reset_du!(gradients_z, dg, cache)
+    set_zero!(gradients_x, dg, cache)
+    set_zero!(gradients_y, dg, cache)
+    set_zero!(gradients_z, dg, cache)
 
     return nothing
 end
@@ -58,7 +58,7 @@ function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{3},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
     flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
 
     @threaded for element in eachelement(dg, cache)
@@ -72,17 +72,17 @@ function calc_volume_integral!(du, flux_viscous,
                                         i, j, k, element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node,
+                multiply_add_to_node_vars!(du, derivative_hat[ii, i], flux_1_node,
                                            equations_parabolic, dg, ii, j, k, element)
             end
 
             for jj in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux_2_node,
+                multiply_add_to_node_vars!(du, derivative_hat[jj, j], flux_2_node,
                                            equations_parabolic, dg, i, jj, k, element)
             end
 
             for kk in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_dhat[kk, k], flux_3_node,
+                multiply_add_to_node_vars!(du, derivative_hat[kk, k], flux_3_node,
                                            equations_parabolic, dg, i, j, kk, element)
             end
         end
@@ -938,7 +938,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                         mesh::TreeMesh{3}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DGSEM, cache)
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
     gradients_x, gradients_y, gradients_z = gradients
 
     @threaded for element in eachelement(dg, cache)
@@ -949,19 +949,19 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                    i, j, k, element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
+                multiply_add_to_node_vars!(gradients_x, derivative_hat[ii, i],
                                            u_node, equations_parabolic, dg,
                                            ii, j, k, element)
             end
 
             for jj in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
+                multiply_add_to_node_vars!(gradients_y, derivative_hat[jj, j],
                                            u_node, equations_parabolic, dg,
                                            i, jj, k, element)
             end
 
             for kk in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_z, derivative_dhat[kk, k],
+                multiply_add_to_node_vars!(gradients_z, derivative_hat[kk, k],
                                            u_node, equations_parabolic, dg,
                                            i, j, kk, element)
             end
@@ -1013,17 +1013,15 @@ function calc_gradient_surface_integral!(gradients,
                                          mesh::TreeMesh{3}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     gradients_x, gradients_y, gradients_z = gradients
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for m in eachnode(dg), l in eachnode(dg)
             for v in eachvariable(equations_parabolic)
@@ -1038,7 +1036,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                         m,
                                                                         1,
                                                                         element] *
-                                                    factor_1)
+                                                    factor)
 
                 # surface at +x
                 gradients_x[v, nnodes(dg), l, m, element] = (gradients_x[v,
@@ -1051,7 +1049,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                                  m,
                                                                                  2,
                                                                                  element] *
-                                                             factor_2)
+                                                             factor)
 
                 # surface at -y
                 gradients_y[v, l, 1, m, element] = (gradients_y[v,
@@ -1064,7 +1062,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                         m,
                                                                         3,
                                                                         element] *
-                                                    factor_1)
+                                                    factor)
 
                 # surface at +y
                 gradients_y[v, l, nnodes(dg), m, element] = (gradients_y[v,
@@ -1077,7 +1075,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                                  m,
                                                                                  4,
                                                                                  element] *
-                                                             factor_2)
+                                                             factor)
 
                 # surface at -z
                 gradients_z[v, l, m, 1, element] = (gradients_z[v,
@@ -1090,7 +1088,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                         m,
                                                                         5,
                                                                         element] *
-                                                    factor_1)
+                                                    factor)
 
                 # surface at +z
                 gradients_z[v, l, m, nnodes(dg), element] = (gradients_z[v,
@@ -1103,7 +1101,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                                  m,
                                                                                  6,
                                                                                  element] *
-                                                             factor_2)
+                                                             factor)
             end
         end
     end
