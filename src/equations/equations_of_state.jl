@@ -85,15 +85,8 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
     return T
 end
 
-@inline function internal_energy_density(u,
-                                         equations::NonIdealCompressibleEulerEquations1D)
-    rho, rho_v1, rho_e_total = u
-    rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
-    return rho_e
-end
-
 # helper function used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
-@inline function drho_e_drho_at_const_p(V, T, eos)
+@inline function drho_e_drho_at_const_p(V, T, ::AbstractEquationOfState)
     rho = inv(V)
     e = energy_internal(V, T, eos)
 

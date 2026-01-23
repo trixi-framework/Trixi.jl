@@ -331,4 +331,12 @@ end
     e = energy_internal(V, T, eos)
     return e
 end
+
+@inline function internal_energy_density(u,
+                                         equations::NonIdealCompressibleEulerEquations1D)
+    rho, rho_v1, rho_e_total = u
+    rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
+    return rho_e
+end
+
 end # @muladd
