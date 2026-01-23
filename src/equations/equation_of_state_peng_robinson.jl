@@ -67,6 +67,11 @@ function PengRobinson(; RealT = Float64)
     return PengRobinson(RealT.((R, a0, b, cv0, kappa, Tc))...)
 end
 
+# the default tolerance of 10 * eps() does not converge for most Peng-Robinson examples,
+# so we choose a looser tolerance here. Researchers at the US Naval Research Lab noted 
+# that they typically just use 8 fixed Newton iterations for Peng-Robinson.
+eos_newton_tol(eos::PengRobinson) = 1e-8
+
 """
     pressure(V, T, eos::PengRobinson)
 
