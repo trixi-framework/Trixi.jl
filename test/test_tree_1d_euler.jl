@@ -620,4 +620,24 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_nonideal_transcritical_wave.jl with Peng Robinson" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_transcritical_wave.jl"),
+                        solver=DGSEM(polydeg = 3,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_terashima_etal),
+                                     surface_flux = flux_lax_friedrichs),
+                        tspan=(0.0, 0.001),
+                        # note that rho_e_total errors are large because pressure is 5e6
+                        l2=[2.5190796911050598e-5, 0.0013782564599067785, 7.045132422388037],
+                        linf=[
+                            0.00014865356020266063,
+                            0.00764166860608384,
+                            27.349332988262177
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 end # module

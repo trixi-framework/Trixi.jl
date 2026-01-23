@@ -16,8 +16,9 @@ function initial_condition_transcritical_wave(x, t,
     RealT = eltype(x)
 
     rho_min, rho_max = 56.9, 793.1
-    rho = 0.5 * (rho_min + rho_max) + 0.5 * (rho_max - rho_min) * sin(2 * pi * x[1])
     v1 = 100
+    rho = 0.5 * (rho_min + rho_max) +
+          0.5 * (rho_max - rho_min) * sin(2 * pi * (x[1] - v1 * t))
     p = 5e6
 
     V = inv(rho)
