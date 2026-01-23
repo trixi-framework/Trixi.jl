@@ -941,7 +941,7 @@ function calc_surface_integral!(du, u,
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    boundary_interpolation = inverse_weights[1] # For LGL basis: Identical to boundary interpolation at x = ±1
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for m in eachnode(dg), l in eachnode(dg)
             for v in eachvariable(equations)
@@ -949,37 +949,37 @@ function calc_surface_integral!(du, u,
                 du[v, 1, l, m, element] = (du[v, 1, l, m, element] +
                                            surface_flux_values[v, l, m, 1,
                                                                element] *
-                                           boundary_interpolation)
+                                           factor)
 
                 # surface at +x
                 du[v, nnodes(dg), l, m, element] = (du[v, nnodes(dg), l, m, element] +
                                                     surface_flux_values[v, l, m, 2,
                                                                         element] *
-                                                    boundary_interpolation)
+                                                    factor)
 
                 # surface at -y
                 du[v, l, 1, m, element] = (du[v, l, 1, m, element] +
                                            surface_flux_values[v, l, m, 3,
                                                                element] *
-                                           boundary_interpolation)
+                                           factor)
 
                 # surface at +y
                 du[v, l, nnodes(dg), m, element] = (du[v, l, nnodes(dg), m, element] +
                                                     surface_flux_values[v, l, m, 4,
                                                                         element] *
-                                                    boundary_interpolation)
+                                                    factor)
 
                 # surface at -z
                 du[v, l, m, 1, element] = (du[v, l, m, 1, element] +
                                            surface_flux_values[v, l, m, 5,
                                                                element] *
-                                           boundary_interpolation)
+                                           factor)
 
                 # surface at +z
                 du[v, l, m, nnodes(dg), element] = (du[v, l, m, nnodes(dg), element] +
                                                     surface_flux_values[v, l, m, 6,
                                                                         element] *
-                                                    boundary_interpolation)
+                                                    factor)
             end
         end
     end

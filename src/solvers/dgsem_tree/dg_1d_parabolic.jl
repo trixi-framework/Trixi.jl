@@ -451,18 +451,18 @@ function calc_gradient_surface_integral!(gradients,
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    boundary_interpolation = inverse_weights[1] # For LGL basis: Identical to boundary interpolation at x = ±1
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations_parabolic)
             # surface at -x
             gradients[v, 1, element] = (gradients[v, 1, element] -
                                         surface_flux_values[v, 1, element] *
-                                        boundary_interpolation)
+                                        factor)
 
             # surface at +x
             gradients[v, nnodes(dg), element] = (gradients[v, nnodes(dg), element] +
                                                  surface_flux_values[v, 2, element] *
-                                                 boundary_interpolation)
+                                                 factor)
         end
     end
 

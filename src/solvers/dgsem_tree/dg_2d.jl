@@ -1092,29 +1092,29 @@ function calc_surface_integral!(du, u,
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    boundary_interpolation = inverse_weights[1] # For LGL basis: Identical to boundary interpolation at x = ±1
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, element] = (du[v, 1, l, element] -
                                         surface_flux_values[v, l, 1, element] *
-                                        boundary_interpolation)
+                                        factor)
 
                 # surface at +x
                 du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
                                                  surface_flux_values[v, l, 2, element] *
-                                                 boundary_interpolation)
+                                                 factor)
 
                 # surface at -y
                 du[v, l, 1, element] = (du[v, l, 1, element] -
                                         surface_flux_values[v, l, 3, element] *
-                                        boundary_interpolation)
+                                        factor)
 
                 # surface at +y
                 du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
                                                  surface_flux_values[v, l, 4, element] *
-                                                 boundary_interpolation)
+                                                 factor)
             end
         end
     end

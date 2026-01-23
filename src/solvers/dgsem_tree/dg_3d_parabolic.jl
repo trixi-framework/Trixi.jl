@@ -1021,7 +1021,7 @@ function calc_gradient_surface_integral!(gradients,
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    boundary_interpolation = inverse_weights[1] # For LGL basis: Identical to boundary interpolation at x = ±1
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for m in eachnode(dg), l in eachnode(dg)
             for v in eachvariable(equations_parabolic)
@@ -1036,7 +1036,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                         m,
                                                                         1,
                                                                         element] *
-                                                    boundary_interpolation)
+                                                    factor)
 
                 # surface at +x
                 gradients_x[v, nnodes(dg), l, m, element] = (gradients_x[v,
@@ -1049,7 +1049,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                                  m,
                                                                                  2,
                                                                                  element] *
-                                                             boundary_interpolation)
+                                                             factor)
 
                 # surface at -y
                 gradients_y[v, l, 1, m, element] = (gradients_y[v,
@@ -1062,7 +1062,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                         m,
                                                                         3,
                                                                         element] *
-                                                    boundary_interpolation)
+                                                    factor)
 
                 # surface at +y
                 gradients_y[v, l, nnodes(dg), m, element] = (gradients_y[v,
@@ -1075,7 +1075,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                                  m,
                                                                                  4,
                                                                                  element] *
-                                                             boundary_interpolation)
+                                                             factor)
 
                 # surface at -z
                 gradients_z[v, l, m, 1, element] = (gradients_z[v,
@@ -1088,7 +1088,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                         m,
                                                                         5,
                                                                         element] *
-                                                    boundary_interpolation)
+                                                    factor)
 
                 # surface at +z
                 gradients_z[v, l, m, nnodes(dg), element] = (gradients_z[v,
@@ -1101,7 +1101,7 @@ function calc_gradient_surface_integral!(gradients,
                                                                                  m,
                                                                                  6,
                                                                                  element] *
-                                                             boundary_interpolation)
+                                                             factor)
             end
         end
     end
