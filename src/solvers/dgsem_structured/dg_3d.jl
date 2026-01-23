@@ -528,6 +528,92 @@ end
     return nothing
 end
 
+@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                fstar3_L, fstar3_R, u,
+                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                            T8codeMesh{3}},
+                                have_nonconservative_terms::False,
+                                equations,
+                                volume_flux_fv, dg::DGSEM, element, cache,
+                                sc_interface_coords, reconstruction_mode, slope_limiter)
+    @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
+
+    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, k, element),
+                         equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, k, element),
+                         equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
+                         equations)
+
+        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j, k,
+                                       element), equations)
+
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       sc_interface_coords, i,
+                                       slope_limiter, dg)
+
+        normal_direction = get_normal_vector(normal_vectors_1, i - 1, j, k, element)
+
+        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
+                                            prim2cons(u_r, equations),
+                                            normal_direction, equations)
+
+        set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j, k)
+    end
+
+    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), k, element),
+                         equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, k, element),
+                         equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
+                         equations)
+        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1), k,
+                                       element), equations)
+
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       sc_interface_coords, j,
+                                       slope_limiter, dg)
+
+        normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, k, element)
+
+        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
+                                            prim2cons(u_r, equations),
+                                            normal_direction, equations)
+
+        set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j, k)
+    end
+
+    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, i, j, max(1, k - 2), element),
+                         equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j, k - 1, element),
+                         equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
+                         equations)
+        u_rr = cons2prim(get_node_vars(u, equations, dg, i, j, min(nnodes(dg), k + 1),
+                                       element), equations)
+
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       sc_interface_coords, k,
+                                       slope_limiter, dg)
+
+        normal_direction = get_normal_vector(normal_vectors_3, i, j, k - 1, element)
+
+        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
+                                            prim2cons(u_r, equations),
+                                            normal_direction, equations)
+
+        set_node_vars!(fstar3_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar3_R, contravariant_flux, equations, dg, i, j, k)
+    end
+
+    return nothing
+end
+
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{3},
                               have_nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
