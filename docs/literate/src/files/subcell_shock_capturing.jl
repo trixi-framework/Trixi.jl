@@ -258,10 +258,10 @@ plot(sol)
 # in every RK stage. If added to the tuple of stage callbacks like
 # ````julia
 # stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
-# ```
+# ````
 # and passed to the time integration method, a summary is added to the final console output.
 # For the given example, this summary shows that all bounds are met at all times.
-# ```
+# ````
 # ────────────────────────────────────────────────────────────────────────────────────────────────────
 # Maximum deviation from bounds:
 # ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -269,7 +269,7 @@ plot(sol)
 # - lower bound: 0.0
 # - upper bound: 0.0
 # ────────────────────────────────────────────────────────────────────────────────────────────────────
-# ```
+# ````
 
 # Moreover, it is also possible to monitor the bounds deviations incurred during the simulations.
 # To do that use the parameter `save_errors = true`, such that the instant deviations are written

@@ -139,7 +139,7 @@
 # ````julia
 # using Trixi, OrdinaryDiffEq
 # trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
-# ```
+# ````
 using Trixi, OrdinaryDiffEqLowStorageRK #hide #md
 trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")); #hide #md
 

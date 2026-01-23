@@ -135,7 +135,7 @@
 # Then, the limiter is added to the time integration method in the `solve` function. For instance, like
 # ````julia
 # CarpenterKennedy2N54(stage_limiter!, williamson_condition=false)
-# ```
+# ````
 # or
 # ````julia
 # SSPRK43(stage_limiter!).

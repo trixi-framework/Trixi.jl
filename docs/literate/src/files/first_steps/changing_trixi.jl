@@ -37,7 +37,7 @@
 #   julia --project=.
 #   ```
 # - Now run the following commands to install all relevant packages:
-#   ````julia
+#   ```julia
 #   using Pkg; Pkg.develop(PackageSpec(path="..")) # Tell Julia to use the local Trixi.jl clone
 #   Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Plots"]) # Install additional packages
 #   ```
