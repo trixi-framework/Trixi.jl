@@ -808,11 +808,11 @@ end
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
 
     # check that fallback calc_pressure_derivatives matches specialized routines
-    @test calc_pressure_derivatives(V, T, eos)[1] ≈
-          invoke(calc_pressure_derivatives,
+    @test Trixi.calc_pressure_derivatives(V, T, eos)[1] ≈
+          invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[1]
-    @test calc_pressure_derivatives(V, T, eos)[2] ≈
-          invoke(calc_pressure_derivatives,
+    @test Trixi.calc_pressure_derivatives(V, T, eos)[2] ≈
+          invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
 end
 
