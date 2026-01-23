@@ -285,6 +285,20 @@ end
         @test Trixi.gauss_nodes_weights(3)[2] ≈ [5 / 9, 8 / 9, 5 / 9]
     end
 
+    @testset "boundary interpolation" begin
+        for p in 1:7
+            basis = LobattoLegendreBasis(p)
+            nodes = basis.nodes
+            weights = basis.weights
+
+            Lhat_minus1 = Trixi.calc_Lhat(-1.0, nodes, weights)
+            @test basis.inverse_weights[1] == Lhat_minus1[1]
+
+            Lhat_plus1 = Trixi.calc_Lhat(1.0, nodes, weights)
+            @test basis.inverse_weights[p + 1] == Lhat_plus1[p + 1]
+        end
+    end
+
     @testset "multiply_dimensionwise" begin
         nodes_in = [0.0, 0.5, 1.0]
         nodes_out = [0.0, 1 / 3, 2 / 3, 1.0]
