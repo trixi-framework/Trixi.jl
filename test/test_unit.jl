@@ -792,6 +792,14 @@ end
     e = energy_internal(V, T, eos)
     @test temperature(V, e, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
+
+    # check that fallback calc_pressure_derivatives matches specialized routines
+    @test calc_pressure_derivatives(V, T, eos)[1] ≈
+          invoke(calc_pressure_derivatives,
+                 Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[1]
+    @test calc_pressure_derivatives(V, T, eos)[2] ≈
+          invoke(calc_pressure_derivatives,
+                 Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
 end
 
 @timed_testset "StepsizeCallback" begin
