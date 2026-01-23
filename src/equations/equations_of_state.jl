@@ -86,7 +86,7 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
 end
 
 # helper function used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
-@inline function drho_e_drho_at_const_p(V, T, ::AbstractEquationOfState)
+@inline function drho_e_drho_at_const_p(V, T, eos::AbstractEquationOfState)
     rho = inv(V)
     e = energy_internal(V, T, eos)
 
