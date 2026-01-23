@@ -29,9 +29,9 @@
 #-
 # Therefore, subcell limiting with the IDP limiter requires the use of a Trixi-intern
 # time integration SSPRK method called with
-# ```julia
+# ````julia
 # Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...);
-# ```
+# ````
 #-
 # Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher)
 # [`Trixi.SimpleSSPRK33`](@ref) is implemented.
@@ -256,7 +256,7 @@ plot(sol)
 # Because of that, Trixi.jl supports a bounds checking routine implemented using the stage
 # callback [`BoundsCheckCallback`](@ref). It checks all target bounds for fulfillment
 # in every RK stage. If added to the tuple of stage callbacks like
-# ```julia
+# ````julia
 # stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 # ```
 # and passed to the time integration method, a summary is added to the final console output.
@@ -274,7 +274,7 @@ plot(sol)
 # Moreover, it is also possible to monitor the bounds deviations incurred during the simulations.
 # To do that use the parameter `save_errors = true`, such that the instant deviations are written
 # to `deviations.txt` in `output_directory` every `interval` time steps.
-# ```julia
+# ````julia
 # BoundsCheckCallback(save_errors = true, output_directory = "out", interval = 100)
 # ```
 # Then, for the given example the deviations file contains all daviations for the current

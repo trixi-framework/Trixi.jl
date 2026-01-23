@@ -5,9 +5,9 @@
 # from the SciML ecosystem.
 # The interface to these packages is the `solve(...)` function. It always requires an ODE problem and
 # a time integration algorithm as input parameters.
-# ```julia
+# ````julia
 # solve(ode, alg; kwargs...);
-# ```
+# ````
 # In Trixi.jl, the ODE problem is created by `semidiscretize(semi, tspan)` for a semidiscretization
 # `semi` and the time span `tspan`. In particular, [`semidiscretize`](@ref) returns an `ODEProblem`
 # used by OrdinaryDiffEq.jl.
@@ -56,21 +56,21 @@
 
 # Trixi.jl provides such a CFL-based step size control. It is implemented as the callback
 # [`StepsizeCallback`](@ref).
-# ```julia
+# ````julia
 # stepsize_callback = StepsizeCallback(; cfl=1.0)
-# ```
+# ````
 # A suitable CFL number depends on many parameters such as the chosen grid, the integration
 # algorithm and the polynomial degree of the spatial DG discretization. So, the optimal number
 # for an example is mostly determined experimentally.
 
 # You can add this CFL-based step size control to your simulation like any other callback.
-# ```julia
+# ````julia
 # callbacks = CallbackSet(stepsize_callback)
 # alg = CarpenterKennedy2N54(williamson_condition=false)
 # solve(ode, alg;
 #       dt=1.0 # solve needs some value here but it will be overwritten by the stepsize_callback
 #       callback=callbacks);
-# ```
+# ````
 
 # You can find simple examples with a CFL-based step size control for instance in the elixirs
 # [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl)

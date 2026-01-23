@@ -186,13 +186,13 @@ plot!(getmesh(pd))
 # Moreover, the plot shows the mesh structure resulting from our transformation mapping.
 
 # Of course, you can also use other mappings as for instance shifts by $(x, y)$
-# ```julia
+# ````julia
 # mapping(xi, eta) = SVector(xi + x, eta + y)
-# ```
+# ````
 # or rotations with a rotation matrix $T$
-# ```julia
+# ````julia
 # mapping(xi, eta) = T * SVector(xi, eta).
-# ```
+# ````
 
 # For more curved mesh mappings, please have a look at some
 # [elixirs for `StructuredMesh`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples).
