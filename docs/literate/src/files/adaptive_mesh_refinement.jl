@@ -23,9 +23,9 @@
 # `IndicatorLöhner` (also callable with `IndicatorLoehner`) is an interpretation and adaptation of
 # a FEM indicator by [Löhner (1987)](https://doi.org/10.1016/0045-7825(87)90098-3) and estimates a
 # weighted second derivative of a specified variable locally.
-# ````julia
+# ```julia
 # amr_indicator = IndicatorLöhner(semi, variable=variable)
-# ````
+# ```
 # All indicators have the parameter `variable` which is used to specify the variable for the
 # indicator calculation. You can use for instance `density`, `pressure` or `density_pressure`
 # for the compressible Euler equations. Moreover, you have the option to use simply the first
@@ -35,20 +35,20 @@
 # `IndicatorHennemannGassner`, also used as a shock-capturing indicator, was developed by
 # [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935) and is explained in detail
 # in the [tutorial about shock-capturing](@ref shock_capturing). It can be constructed as follows.
-# ````julia
+# ```julia
 # amr_indicator = IndicatorHennemannGassner(semi,
 #                                           alpha_max=0.5,
 #                                           alpha_min=0.001,
 #                                           alpha_smooth=true,
 #                                           variable=variable)
-# ````
+# ```
 
 # Another indicator is the very basic `IndicatorMax`. It indicates the maximal value of a variable
 # and is therefore mostly used for verification and testing. But it might be useful for the basic
 # understanding of the implementation of indicators and AMR in Trixi.jl.
-# ````julia
+# ```julia
 # amr_indicator = IndicatorMax(semi, variable=variable)
-# ````
+# ```
 
 # ### Controllers
 # The spatial discretization into elements is tree-based for both AMR supporting mesh types `TreeMesh`
@@ -62,12 +62,12 @@
 # to the initial level of refinement, for indicator values above the threshold `med_threshold`
 # and equally, a maximal level `max_level` for values above `max_threshold`.
 # This variant of controller is called [`ControllerThreeLevel`](@ref) in Trixi.jl.
-# ````julia
+# ```julia
 # amr_controller = ControllerThreeLevel(semi, amr_indicator;
 #                                       base_level=4,
 #                                       med_level=5, med_threshold=0.1,
 #                                       max_level=6, max_threshold=0.6)
-# ````
+# ```
 # You can also set `med_level=0` to use the current level as target, see the docstring of
 # [`ControllerThreeLevel`](@ref).
 
@@ -76,13 +76,13 @@
 # The second indicator with its own maximum threshold adds the property, that the target level is set to
 # `max_level` additionally if this indicator's value is greater than `max_threshold_secondary`.
 # This is for instance used to assure that a shock has always the maximum refinement level.
-# ````julia
+# ```julia
 # amr_controller = ControllerThreeLevelCombined(semi, indicator_primary, indicator_secondary;
 #                                               base_level=2,
 #                                               med_level=6, med_threshold=0.0003,
 #                                               max_level=8, max_threshold=0.003,
 #                                               max_threshold_secondary=0.3)
-# ````
+# ```
 # This controller is for instance used in
 # [`elixir_euler_astro_jet_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_astro_jet_amr.jl).
 
@@ -94,12 +94,12 @@
 # Adaptive mesh refinement will be performed every `interval` time steps. `adapt_initial_condition` indicates
 # whether the initial condition already should be adapted before the first time step. And with
 # `adapt_initial_condition_only_refine=true` the mesh is only refined at the beginning but not coarsened.
-# ````julia
+# ```julia
 # amr_callback = AMRCallback(semi, amr_controller,
 #                            interval=5,
 #                            adapt_initial_condition=true,
 #                            adapt_initial_condition_only_refine=true)
-# ````
+# ```
 
 # # Exemplary simulation
 # Here, we want to implement a simple AMR simulation of the 2D linear advection equation for a Gaussian pulse.

@@ -532,20 +532,18 @@ end
                                 fstar3_L, fstar3_R, u,
                                 mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                             T8codeMesh{3}},
-                                have_nonconservative_terms::False,
-                                equations,
+                                have_nonconservative_terms::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter)
     @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, k, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, k, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
-                         equations)
-
+        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, k,
+                                       element), equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, k,
+                                       element), equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k,
+                                       element), equations)
         u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j, k,
                                        element), equations)
 
@@ -564,12 +562,12 @@ end
     end
 
     for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), k, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, k, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
-                         equations)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), k,
+                                       element), equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, k,
+                                       element), equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k,
+                                       element), equations)
         u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1), k,
                                        element), equations)
 
@@ -588,12 +586,12 @@ end
     end
 
     for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, j, max(1, k - 2), element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j, k - 1, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
-                         equations)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, i, j, max(1, k - 2),
+                                       element), equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j, k - 1,
+                                       element), equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k,
+                                       element), equations)
         u_rr = cons2prim(get_node_vars(u, equations, dg, i, j, min(nnodes(dg), k + 1),
                                        element), equations)
 

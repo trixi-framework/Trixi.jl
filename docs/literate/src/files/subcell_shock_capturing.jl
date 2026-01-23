@@ -29,9 +29,9 @@
 #-
 # Therefore, subcell limiting with the IDP limiter requires the use of a Trixi-intern
 # time integration SSPRK method called with
-# ````julia
+# ```julia
 # Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...);
-# ````
+# ```
 #-
 # Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher)
 # [`Trixi.SimpleSSPRK33`](@ref) is implemented.
@@ -256,12 +256,12 @@ plot(sol)
 # Because of that, Trixi.jl supports a bounds checking routine implemented using the stage
 # callback [`BoundsCheckCallback`](@ref). It checks all target bounds for fulfillment
 # in every RK stage. If added to the tuple of stage callbacks like
-# ````julia
+# ```julia
 # stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
-# ````
+# ```
 # and passed to the time integration method, a summary is added to the final console output.
 # For the given example, this summary shows that all bounds are met at all times.
-# ````
+# ```
 # ────────────────────────────────────────────────────────────────────────────────────────────────────
 # Maximum deviation from bounds:
 # ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -269,17 +269,17 @@ plot(sol)
 # - lower bound: 0.0
 # - upper bound: 0.0
 # ────────────────────────────────────────────────────────────────────────────────────────────────────
-# ````
+# ```
 
 # Moreover, it is also possible to monitor the bounds deviations incurred during the simulations.
 # To do that use the parameter `save_errors = true`, such that the instant deviations are written
 # to `deviations.txt` in `output_directory` every `interval` time steps.
-# ````julia
+# ```julia
 # BoundsCheckCallback(save_errors = true, output_directory = "out", interval = 100)
-# ````
+# ```
 # Then, for the given example the deviations file contains all daviations for the current
 # timestep and simulation time.
-# ````
+# ```
 # iter, simu_time, rho_min, rho_max
 # 100, 0.29103427131404924, 0.0, 0.0
 # 200, 0.5980281923063808, 0.0, 0.0
@@ -287,4 +287,4 @@ plot(sol)
 # 400, 1.3630295622683186, 0.0, 0.0
 # 500, 1.8344999624013498, 0.0, 0.0
 # 532, 1.9974179806990118, 0.0, 0.0
-# ````
+# ```
