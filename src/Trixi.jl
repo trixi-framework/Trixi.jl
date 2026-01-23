@@ -148,6 +148,7 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("semidiscretization/semidiscretization_coupled_p4est.jl")
 include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
@@ -233,7 +234,7 @@ export boundary_condition_do_nothing,
        BoundaryConditionNavierStokesWall,
        NoSlip, Slip,
        Adiabatic, Isothermal,
-       BoundaryConditionCoupled
+       BoundaryConditionCoupled, BoundaryConditionCoupledP4est
 
 export initial_condition_convergence_test, source_terms_convergence_test,
        source_terms_lorentz, source_terms_collision_ion_electron,
@@ -300,14 +301,14 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk53_3Sstar!,
        timestep_gravity_carpenter_kennedy_erk54_2N!
 
-export SemidiscretizationCoupled
+export SemidiscretizationCoupled, SemidiscretizationCoupledP4est
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AveragingCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
-       TrivialCallback, AnalysisCallbackCoupled,
+       TrivialCallback, AnalysisCallbackCoupled, AnalysisCallbackCoupledP4est,
        AnalysisSurfaceIntegral, DragCoefficientPressure2D, LiftCoefficientPressure2D,
        DragCoefficientShearStress2D, LiftCoefficientShearStress2D,
        DragCoefficientPressure3D, LiftCoefficientPressure3D
