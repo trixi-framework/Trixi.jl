@@ -276,10 +276,10 @@ plot(sol)
 # to `deviations.txt` in `output_directory` every `interval` time steps.
 # ````julia
 # BoundsCheckCallback(save_errors = true, output_directory = "out", interval = 100)
-# ```
+# ````
 # Then, for the given example the deviations file contains all daviations for the current
 # timestep and simulation time.
-# ```
+# ````
 # iter, simu_time, rho_min, rho_max
 # 100, 0.29103427131404924, 0.0, 0.0
 # 200, 0.5980281923063808, 0.0, 0.0
@@ -287,4 +287,4 @@ plot(sol)
 # 400, 1.3630295622683186, 0.0, 0.0
 # 500, 1.8344999624013498, 0.0, 0.0
 # 532, 1.9974179806990118, 0.0, 0.0
-# ```
+# ````
