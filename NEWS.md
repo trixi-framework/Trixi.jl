@@ -7,10 +7,16 @@ for human readability.
 
 ## Changes in the v0.14 lifecycle
 
-#### Added
+#### Added 
+- Added `NonIdealCompressibleEulerEquations1D`, which allows users to specify a non-ideal equation of state. Currently `IdealGas` and `VanDerWaals` are supported ([#2739]). 
+- Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
+  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on 
+  3D meshes for conservative systems ([#2734], [#2755]).
 - Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733]).
   In the new version, local (minimum or maximum) limiting for nonlinear variables (using
   the keyword `local_onesided_variables_nonlinear` in `SubcellLimiterIDP()`) is supported.
+
+#### Changed
 
 ## Changes when updating to v0.14 from v0.13.x
 
@@ -32,6 +38,9 @@ for human readability.
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_ll, u_rr)` and
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_rr, u_ll)`.
 - Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]).
+- Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
+  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on 
+  1D & 2D meshes for conservative systems ([#2022], [#2695], [#2718]).
 
 ## Changes when updating to v0.13 from v0.12.x
 

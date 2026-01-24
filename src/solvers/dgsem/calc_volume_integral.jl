@@ -80,11 +80,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{1}, StructuredMesh{1},
-                                           TreeMesh{2}, StructuredMesh{2}, P4estMesh{2},
-                                           UnstructuredMesh2D, T8codeMesh{2},
-                                           TreeMesh{3}},
+function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingRRG,
                                dg::DGSEM, cache)
@@ -143,11 +139,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{1}, StructuredMesh{1},
-                                           TreeMesh{2}, StructuredMesh{2}, P4estMesh{2},
-                                           UnstructuredMesh2D, T8codeMesh{2},
-                                           TreeMesh{3}},
+function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                dg::DGSEM, cache)
