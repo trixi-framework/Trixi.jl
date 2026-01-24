@@ -27,8 +27,7 @@ function calc_error_norms(func, u, t, analyzer,
     return sqrt.(component_l2_errors ./ total_volume), component_linf_errors
 end
 
-function integrate(func::Func, u,
-                   mesh::DGMultiMesh,
+function integrate(func::Func, u, mesh::DGMultiMesh,
                    equations, dg::DGMulti, cache; normalize = true) where {Func}
     rd = dg.basis
     md = mesh.md
