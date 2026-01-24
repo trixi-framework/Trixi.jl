@@ -10,21 +10,23 @@ equations = CompressibleEulerEquations2D(gamma())
 Re = 6.5 * 10^6
 airfoil_cord_length = 1.0
 
-U_inf() = 0.725
+# See https://www1.grc.nasa.gov/wp-content/uploads/case_c2.1.pdf
+# Also https://arrow.utias.utoronto.ca/~myano/papers/yd_2012_how_c22_rae.pdf for Mach number plot
+U_inf() = 0.734
 rho_inf() = gamma() # => p_inf = 1.0
 
 mu() = rho_inf() * U_inf() * airfoil_cord_length / Re
-prandtl_number() = 0.72
+prandtl_number() = 0.71
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
 p_inf() = 1.0
 mach_inf() = U_inf()
-aoa() = deg2rad(2.92) # 2.92 Degree angle of attack
+aoa() = deg2rad(2.79) # 2.79 Degree angle of attack
 
 @inline function initial_condition_mach085_flow(x, t, equations)
-    v1 = 0.7240586861517873
-    v2 = 0.03693262796156907
+    v1 = 0.73312995164809
+    v2 = 0.03572777625978245
 
     prim = SVector(1.4, v1, v2, 1.0)
     return prim2cons(prim, equations)
@@ -34,7 +36,7 @@ initial_condition = initial_condition_mach085_flow
 surface_flux = flux_hll
 volume_flux = flux_ranocha
 
-polydeg = 3
+polydeg = 2 # 3
 basis = LobattoLegendreBasis(polydeg)
 shock_indicator = IndicatorHennemannGassner(equations, basis,
                                             alpha_max = 1.0,
@@ -52,7 +54,7 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = VolumeIntegra
                                          indicator = nothing) # Indicator taken from `volume_integral_stabilized`
 
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
-               volume_integral = volume_integral_stabilized)
+               volume_integral = volume_integral)
 
 ###############################################################################
 #mesh_file = "/home/daniel/git/Paper_AdaptiveVolTerm/Data/RAE2822_Transonic/RAE2822.inp"
@@ -63,6 +65,9 @@ mesh_file = "/storage/home/daniel/RAE2822/RAE2822.inp"
 
 boundary_symbols = [:airfoil, :inlet, :outlet, :top, :bottom]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
+
+restart_filename = "out/restart_000120000.h5"
+#mesh = load_mesh(restart_filename)
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
 
@@ -95,7 +100,6 @@ t_c = airfoil_cord_length / U_inf()
 tspan = (0.0, 50 * t_c) # Non-AMR
 ode = semidiscretize(semi, tspan)
 
-restart_filename = "out/restart_000200000.h5"
 tspan = (load_time(restart_filename), 50 * t_c)
 ode = semidiscretize(semi, tspan, restart_filename)
 
