@@ -212,7 +212,7 @@ slope limiter `slope_limiter` and the
 The amount of blending is determined by the `indicator`, e.g.,
 [`IndicatorHennemannGassner`](@ref).
 
-**Symmetric ** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
+**Symmetric** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
@@ -348,7 +348,7 @@ For the DG-subcells at the boundaries, two options are available:
    The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
    In the reference below, this is the recommended reconstruction mode and is thus used by default.
 
-**Symmetric ** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
+**Symmetric** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
