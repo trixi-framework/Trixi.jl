@@ -11,6 +11,16 @@ for human readability.
 
 - `convergence_test` now returns both the mean convergence rates and the full errors matrix ([#2753]).
 
+## Changes in the v0.14 lifecycle
+
+#### Added 
+- Added `NonIdealCompressibleEulerEquations1D`, which allows users to specify a non-ideal equation of state. Currently `IdealGas` and `VanDerWaals` are supported ([#2739]). 
+- Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
+  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on 
+  3D meshes for conservative systems ([#2734], [#2755]).
+
+#### Changed
+
 ## Changes when updating to v0.14 from v0.13.x
 
 #### Changed
@@ -32,7 +42,10 @@ for human readability.
   When the trait is set to `Trixi.True()`, a single method has to be defined, that computes and returns the tuple
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_ll, u_rr)` and
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_rr, u_ll)`.
-- Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]).
+- Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]). 
+- Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
+  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on 
+  1D & 2D meshes for conservative systems ([#2022], [#2695], [#2718]).
 
 ## Changes when updating to v0.13 from v0.12.x
 
