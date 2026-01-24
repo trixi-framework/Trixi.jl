@@ -333,7 +333,8 @@ end
     return p
 end
 
-@inline function density_pressure(u, equations::AbstractNonIdealCompressibleEulerEquations)
+@inline function density_pressure(u,
+                                  equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
     rho = u[1]
     q = cons2prim(u, equations)
@@ -343,7 +344,8 @@ end
     return rho * p
 end
 
-@inline function energy_internal(u, equations::AbstractNonIdealCompressibleEulerEquations)
+@inline function energy_internal(u,
+                                 equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
     q = cons2prim(u, equations)
     V = first(q)
