@@ -28,7 +28,7 @@ function initial_condition_density_wave(x, t,
     while abs(dp) / abs(p) > tol && iter < 100
         dp = pressure(V, T, eos) - p
         dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
-        T = T - dp / dpdT_V
+        T = max(tol, T - dp / dpdT_V)
         iter += 1
     end
     if iter == 100
