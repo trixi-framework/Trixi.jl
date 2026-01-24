@@ -42,7 +42,7 @@ Because of this, the primitive variables are also defined to be `V, v1, T` (inst
 mass basis unless otherwise specified.     
 """
 struct NonIdealCompressibleEulerEquations1D{EoS <: AbstractEquationOfState} <:
-       AbstractCompressibleEulerEquations{1, 3}
+       AbstractNonIdealCompressibleEulerEquations{1, 3}
     equation_of_state::EoS
 end
 
@@ -288,25 +288,27 @@ S = -\rho s
 ```
 where `s` is the specific entropy determined by the equation of state.
 """
-@inline function entropy_math(u, equations::NonIdealCompressibleEulerEquations1D)
+@inline function entropy_math(u, equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
-    V, _, T = cons2prim(u, equations)
+    q = cons2prim(u, equations)
+    V = first(q)
+    T = last(q)
     rho = u[1]
     S = -rho * entropy_specific(V, T, eos)
     return S
 end
 
 """
-    entropy(cons, equations::NonIdealCompressibleEulerEquations1D)
+    entropy(cons, equations::AbstractNonIdealEulerEquations)
 
 Default entropy is the mathematical entropy
-[`entropy_math(cons, equations::NonIdealCompressibleEulerEquations1D)`](@ref).
+[`entropy_math(cons, equations::AbstractNonIdealEulerEquations)`](@ref).
 """
-@inline function entropy(cons, equations::NonIdealCompressibleEulerEquations1D)
+@inline function entropy(cons, equations::AbstractNonIdealCompressibleEulerEquations)
     return entropy_math(cons, equations)
 end
 
-@inline function density(u, equations::NonIdealCompressibleEulerEquations1D)
+@inline function density(u, equations::AbstractNonIdealCompressibleEulerEquations)
     rho = u[1]
     return rho
 end
@@ -322,24 +324,30 @@ end
     return v1
 end
 
-@inline function pressure(u, equations::NonIdealCompressibleEulerEquations1D)
+@inline function pressure(u, equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
-    V, _, T = cons2prim(u, equations)
+    q = cons2prim(u, equations)
+    V = first(q)
+    T = last(q)
     p = pressure(V, T, eos)
     return p
 end
 
-@inline function density_pressure(u, equations::NonIdealCompressibleEulerEquations1D)
+@inline function density_pressure(u, equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
     rho = u[1]
-    V, _, T = cons2prim(u, equations)
+    q = cons2prim(u, equations)
+    V = first(q)
+    T = last(q)
     p = pressure(V, T, eos)
     return rho * p
 end
 
-@inline function energy_internal(u, equations::NonIdealCompressibleEulerEquations1D)
+@inline function energy_internal(u, equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
-    V, _, T = cons2prim(u, equations)
+    q = cons2prim(u, equations)
+    V = first(q)
+    T = last(q)
     e = energy_internal(V, T, eos)
     return e
 end
