@@ -513,9 +513,9 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_density_wave_adaptive_VI.jl" begin
+@trixi_testset "elixir_euler_density_wave_adaptive_vol_int.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_density_wave_adaptive_VI.jl"),
+                                 "elixir_euler_density_wave_adaptive_vol_int.jl"),
                         l2=[
                             0.034677655030611376,
                             0.00346776550306035,
@@ -639,9 +639,9 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_VI.jl" begin
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_VI.jl"),
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
                         tspan=(0.0, 0.1),
                         l2=[
                             0.026078588204610408,
