@@ -54,6 +54,15 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations,
     return analyze_convergence(errors, iterations, (@invokelatest mod.semi))
 end
 
+"""
+    calc_mean_convergence(eocs)
+
+Calculate the mean convergence rates from the given experimental orders of convergence `eocs`.
+The `eocs` are expected to be in the format returned by `convergence_test`, i.e., a `Dict` where
+the keys are the error types (e.g., `:l2`, `:linf`) and the values are matrices with the EOCs for each
+variable in the columns and the iterations in the rows.
+Returns a `Dict` with the same keys as `eocs` and the mean convergence rates for all variables as values.
+"""
 function calc_mean_convergence(eocs)
     return Dict(kind => [sum(eocs[kind][:, v]) / length(eocs[kind][:, v])
                          for v in 1:size(eocs[kind], 2)]
