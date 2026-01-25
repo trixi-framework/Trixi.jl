@@ -792,7 +792,7 @@ function analyze_convergence(errors_coupled, iterations,
         variablenames = varnames(cons2cons, equations)
 
         eocs[i], errorsmatrix[i] = analyze_convergence(errors[i], iterations,
-                                                                  variablenames)
+                                                       variablenames)
     end
 
     return eocs, errorsmatrix
