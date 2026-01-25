@@ -47,7 +47,7 @@ Because of this, the primitive variables are also defined to be `V, v1, v2, T` (
 mass basis unless otherwise specified.     
 """
 struct NonIdealCompressibleEulerEquations2D{EoS <: AbstractEquationOfState} <:
-       AbstractCompressibleEulerEquations{2, 4}
+       AbstractNonIdealCompressibleEulerEquations{2, 4}
     equation_of_state::EoS
 end
 
