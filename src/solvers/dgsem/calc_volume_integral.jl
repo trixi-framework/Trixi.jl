@@ -136,7 +136,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where element 'e' is kept in reference space
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 function entropy_change_reference_element(du, u, element,
                                           mesh::AbstractMesh{2}, equations, dg, cache)
     return integrate_reference_element(u, element, mesh, equations, dg, cache,
