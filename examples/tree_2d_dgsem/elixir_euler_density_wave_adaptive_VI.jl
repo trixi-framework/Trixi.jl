@@ -5,10 +5,10 @@ using Trixi
 # semidiscretization of the compressible Euler equations
 equations = CompressibleEulerEquations2D(1.4)
 
-# We repeat test case for stability of EC fluxes from paper
-#- Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2020)
-#  Stability issues of entropy-stable and/or split-form high-order schemes
-#  [DOI: 10.1007/s10915-021-01720-8](https://doi.org/10.1007/s10915-021-01720-8)
+# We repeat test case for linear stability of EC fluxes from the paper
+# - Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2020)
+#   Stability issues of entropy-stable and/or split-form high-order schemes
+#   [DOI: 10.1007/s10915-021-01720-8](https://doi.org/10.1007/s10915-021-01720-8)
 initial_condition = initial_condition_density_wave
 
 surface_flux = flux_lax_friedrichs
@@ -60,7 +60,8 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.9) # In the paper, CFL = 0.05 is used
+# In the paper, CFL = 0.05 is used. Same observations recovered for CFL = 0.9, though.
+stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
