@@ -71,14 +71,14 @@ end
     flux_terashima_etal(u_ll, u_rr, orientation::Int,
                         equations::NonIdealCompressibleEulerEquations1D)
 
-Approximately pressure equilibrium conserving (APEC) flux from 
+Approximately pressure equilibrium preserving with conservation (APEC) flux from 
 "Approximately pressure-equilibrium-preserving scheme for fully conservative 
 simulations of compressible multi-species and real-fluid interfacial flows" 
-by Terashima, Ly, Ihme (2025). https://doi.org/10.1016/j.jcp.2024.11370 1
+by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370 1>
 
 """
-function flux_terashima_etal(u_ll, u_rr, orientation::Int,
-                             equations::NonIdealCompressibleEulerEquations1D)
+@inline function flux_terashima_etal(u_ll, u_rr, orientation::Int,
+                                     equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
     V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
     V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
@@ -115,14 +115,14 @@ end
     flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
                                 equations::NonIdealCompressibleEulerEquations1D)
 
-A version of the central flux which uses the approximately pressure equilibrium conserving 
+A version of the central flux which uses the pressure equilibrium preserving with conservation
 (APEC) internal energy correction of 
 "Approximately pressure-equilibrium-preserving scheme for fully conservative 
 simulations of compressible multi-species and real-fluid interfacial flows" 
-by Terashima, Ly, Ihme (2025). https://doi.org/10.1016/j.jcp.2024.11370 
+by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
 """
-function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
-                                     equations::NonIdealCompressibleEulerEquations1D)
+@inline function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
+                                             equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
     V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
     V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
@@ -146,16 +146,16 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
                    v1_avg
 
     # Ignore orientation since it is always "1" in 1D
-    f_rho = 0.5 * (rho_v1_ll + rho_v1_rr)
-    f_rho_v1 = 0.5 * (rho_v1_ll * v1_ll + rho_v1_rr * v1_rr) + p_avg
+    f_rho = 0.5f0 * (rho_v1_ll + rho_v1_rr)
+    f_rho_v1 = 0.5f0 * (rho_v1_ll * v1_ll + rho_v1_rr * v1_rr) + p_avg
 
     # calculate internal energy (with APEC correction) and kinetic energy 
-    # contributions separately in energy equation
-    ke_ll = 0.5 * v1_ll^2
-    ke_rr = 0.5 * v1_rr^2
+    # contributions separately in the energy equation
+    ke_ll = 0.5f0 * v1_ll^2
+    ke_rr = 0.5f0 * v1_rr^2
     f_rho_E = rho_e_v1_avg +
-              0.5 * (rho_v1_ll * ke_ll + rho_v1_rr * ke_rr) +
-              0.5 * (p_ll * v1_ll + p_rr * v1_rr)
+              0.5f0 * (rho_v1_ll * ke_ll + rho_v1_rr * ke_rr) +
+              0.5f0 * (p_ll * v1_ll + p_rr * v1_rr)
 
     return SVector(f_rho, f_rho_v1, f_rho_E)
 end
