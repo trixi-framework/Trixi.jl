@@ -183,6 +183,8 @@ export AcousticPerturbationEquations2D,
        LinearElasticityEquations1D,
        PassiveTracerEquations
 
+export NonIdealCompressibleEulerEquations1D, IdealGas, VanDerWaals
+
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
        LaplaceDiffusionEntropyVariables3D,
@@ -266,7 +268,8 @@ export DG,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
-       VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
+       IndicatorHennemannGassner,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
@@ -274,7 +277,8 @@ export DG,
 
 export reconstruction_O2_inner, reconstruction_O2_full,
        reconstruction_constant,
-       minmod, monotonized_central, superbee, vanLeer,
+       minmod, monotonized_central, superbee, vanleer,
+       koren, koren_flipped, koren_symmetric,
        central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,

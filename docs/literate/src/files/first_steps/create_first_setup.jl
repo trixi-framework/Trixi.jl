@@ -78,9 +78,9 @@ solver = DGSEM(polydeg = 3)
 # initial conditions for [`LinearScalarAdvectionEquation2D`](@ref) can be found in
 # [`src/equations/linear_scalar_advection_2d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/linear_scalar_advection_2d.jl).
 # If you want to use, for example, a Gaussian pulse, it can be used as follows:
-# ```julia
+# ````julia
 # initial_conditions = initial_condition_gauss
-# ```
+# ````
 # But to show you how an arbitrary initial condition can be implemented in a way suitable for
 # Trixi.jl, we define our own initial conditions.
 # ```math
@@ -215,9 +215,9 @@ using Plots
 
 # As was shown in the [Getting started](@ref getting_started) section, you can plot all
 # variables from the system of equations by executing the following.
-# ```julia
+# ````julia
 # plot(sol)
-# ```
+# ````
 # Alternatively, you can configure the plot more precisely. Trixi.jl provides a special data type,
 # [`PlotData2D`](@ref), to extract the visualization data from the solution.
 
@@ -250,10 +250,10 @@ plot!(getmesh(pd))
 # [ParaView](https://www.paraview.org) or [VisIt](https://visit.llnl.gov) to plot the solution.
 
 # If you haven't added Trixi2Vtk.jl to your project yet, you can add it as follows.
-# ```julia
+# ````julia
 # import Pkg
 # Pkg.add(["Trixi2Vtk"])
-# ```
+# ````
 # Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000000032.h5` with
 # the final solution using the [`trixi2vtk`](@ref) function saving the resulting file in the
 # `out` folder.
