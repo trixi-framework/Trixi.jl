@@ -232,8 +232,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                 surface_flux_function = flux_lax_friedrichs
 
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
-                @test eltype(@inferred flux_terashima_etal(u, u, orientation, equations)) == RealT                
-                @test eltype(@inferred flux_central_terashima_etal(u, u, orientation, equations)) == RealT                                
+                @test eltype(@inferred flux_terashima_etal(u, u, orientation, equations)) ==
+                      RealT
+                @test eltype(@inferred flux_central_terashima_etal(u, u, orientation,
+                                                                   equations)) == RealT
                 @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
                                                            equations)) ==
                       RealT
