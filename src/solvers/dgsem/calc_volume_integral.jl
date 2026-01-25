@@ -15,12 +15,13 @@ end
 function create_cache(mesh, equations,
                       volume_integral::VolumeIntegralAdaptive,
                       dg::DG, cache_containers, uEltype)
-    # This assumes that `volume_integral.volume_integral_default` needs no special cache!
-    @assert volume_integral.volume_integral_default isa VolumeIntegralWeakForm
-
-    return create_cache(mesh, equations,
-                        volume_integral.volume_integral_stabilized,
-                        dg, cache_containers, uEltype)
+    cache1 = create_cache(mesh, equations,
+                          volume_integral.volume_integral_default,
+                          dg, cache_containers, uEltype)
+    cache2 = create_cache(mesh, equations,
+                          volume_integral.volume_integral_stabilized,
+                          dg, cache_containers, uEltype)
+    return (; cache1..., cache2...)
 end
 
 # The following `calc_volume_integral!` functions are
