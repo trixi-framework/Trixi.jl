@@ -93,11 +93,12 @@ varnames(::typeof(density_velocity_pressure), ::NonIdealCompressibleEulerEquatio
     return SVector(f1, f2, f3, f4)
 end
 
-# Calculate 1D flux for a single point
+# Calculate 2D flux for a single point
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
 
+    rho = first(u)
     rho_e_total = last(u)
     V, v1, v2, T = cons2prim(u, equations)
     p = pressure(V, T, eos)
