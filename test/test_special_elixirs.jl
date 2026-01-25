@@ -45,9 +45,11 @@ EXAMPLES_DIR = examples_dir()
                                             "structured_2d_dgsem",
                                             "elixir_advection_coupled.jl"),
                                    3)
-        mean_convergence = Trixi.calc_mean_convergence(eocs)
-        @test isapprox(mean_convergence[1][:l2], [4.0], rtol = 0.05)
-        @test isapprox(mean_convergence[2][:l2], [4.0], rtol = 0.05)
+        for i in Trixi.eachsystem(semi)
+            mean_convergence = Trixi.calc_mean_convergence(eocs[i])
+            @test isapprox(mean_convergence[:l2], [4.0], rtol = 0.05)
+            @test isapprox(mean_convergence[:l2], [4.0], rtol = 0.05)
+        end
     end
 
     @timed_testset "p4est_2d_dgsem" begin
