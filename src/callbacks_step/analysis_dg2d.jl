@@ -186,9 +186,9 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 # used in `calc_entropy_change_element`
-function integrate_element_ref(func::Func, u, element,
-                               mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
-                               args...) where {Func}
+function integrate_reference_element(func::Func, u, element,
+                                     mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
+                                     args...) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
