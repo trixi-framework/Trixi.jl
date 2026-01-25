@@ -277,6 +277,8 @@ function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
                            0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
                            (rho_rr - rho_ll))
 
+    ke_avg = 0.5f0 * ((v1_ll * v1_rr) + (v2_ll * v2_rr))
+
     f_rho = rho_avg * v_dot_n_avg
     f_rho_v1 = f_rho * v1_avg + p_avg * normal_direction[1]
     f_rho_v2 = f_rho * v2_avg + p_avg * normal_direction[2]
@@ -342,6 +344,54 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
 
     return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)
 end
+
+function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::NonIdealCompressibleEulerEquations2D)
+    eos = equations.equation_of_state
+    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
+    rho_e_ll = internal_energy_density(u_ll, equations)
+    rho_e_rr = internal_energy_density(u_rr, equations)
+    p_ll = pressure(V_ll, T_ll, eos)
+    p_rr = pressure(V_rr, T_rr, eos)
+
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+    v_dot_n_avg = 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
+
+    rho_avg = 0.5f0 * (rho_ll + rho_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    rho_e_avg = 0.5f0 * (rho_e_ll + rho_e_rr)
+    p_v_dot_n_avg = 0.5f0 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
+
+    # chain rule from Terashima    
+    drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
+    drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
+    rho_e_avg_corrected = (rho_e_avg -
+                           0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
+                           (rho_rr - rho_ll))
+
+    # calculate internal energy (with APEC correction) and kinetic energy 
+    # contributions separately in energy equation
+    ke_ll = 0.5f0 * (v1_ll^2 + v2_ll^2)
+    ke_rr = 0.5f0 * (v1_rr^2 + v2_rr^2)
+
+    rho_v_dot_n_ll = rho_ll * v_dot_n_ll
+    rho_v_dot_n_rr = rho_rr * v_dot_n_rr    
+    f_rho = 0.5f0 * (rho_v_dot_n_ll + rho_v_dot_n_rr)
+    f_rho_v1 = 0.5f0 * (rho_v_dot_n_ll * v1_ll + rho_v_dot_n_rr * v1_rr) + p_avg * normal_direction[1]
+    f_rho_v2 = 0.5f0 * (rho_v_dot_n_ll * v2_ll + rho_v_dot_n_rr * v2_rr) + p_avg * normal_direction[2]
+    f_rho_E = rho_e_avg_corrected * v_dot_n_avg +
+                0.5f0 * (rho_v_dot_n_ll * ke_ll + rho_v_dot_n_rr * ke_rr) +
+                0.5f0 * (p_ll * v_dot_n_ll + p_rr * v_dot_n_rr)
+    return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)
+end
+
 
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
@@ -409,6 +459,32 @@ end
     return max(v_mag_ll + c_ll, v_mag_rr + c_rr)
 end
 
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::NonIdealCompressibleEulerEquations2D)
+    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+
+    # Calculate normal velocities and sound speeds
+    # left
+    v_ll = (v1_ll * normal_direction[1]
+            +
+            v2_ll * normal_direction[2])
+
+    # right
+    v_rr = (v1_rr * normal_direction[1]
+            +
+            v2_rr * normal_direction[2])
+
+    # Calculate primitive variables and speed of sound
+    eos = equations.equation_of_state
+    c_ll = speed_of_sound(V_ll, T_ll, eos)
+    c_rr = speed_of_sound(V_rr, T_rr, eos)
+            
+    norm_ = norm(normal_direction)
+    return max(abs(v_ll) + c_ll * norm_,
+               abs(v_rr) + c_rr * norm_)
+end
+
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::NonIdealCompressibleEulerEquations2D)
     V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
@@ -425,6 +501,26 @@ end
 
     v_mag_ll = abs(v_ll)
     v_mag_rr = abs(v_rr)
+
+    # Calculate primitive variables and speed of sound
+    eos = equations.equation_of_state
+    c_ll = speed_of_sound(V_ll, T_ll, eos)
+    c_rr = speed_of_sound(V_rr, T_rr, eos)
+
+    return max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+end
+
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::NonIdealCompressibleEulerEquations2D)
+    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+
+    # Get the velocity value in the appropriate direction
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    v_mag_ll = abs(v_dot_n_ll)
+    v_mag_rr = abs(v_dot_n_rr)
 
     # Calculate primitive variables and speed of sound
     eos = equations.equation_of_state
