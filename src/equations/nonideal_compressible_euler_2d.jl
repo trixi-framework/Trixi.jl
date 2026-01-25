@@ -132,7 +132,7 @@ Should be used together with [`TreeMesh`](@ref).
     end
 
     # compute and return the flux using `boundary_condition_slip_wall` routine below
-    return boundary_condition_slip_wall(u_inner, normal_direction, direction,
+    return boundary_condition_slip_wall(u_inner, normal_direction,
                                         x, t, surface_flux_function, equations)
 end
 
@@ -149,17 +149,13 @@ Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), 
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t, surface_flux_function,
                                               equations::NonIdealCompressibleEulerEquations2D)
-    norm_ = norm(normal_direction)
-    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-    normal = normal_direction / norm_
-
     p = pressure(u_inner, equations)
 
     # For the slip wall we directly set the flux as the normal velocity is zero
     return SVector(0,
-                   p * normal[1],
-                   p * normal[2],
-                   0) * norm_
+                   p * normal_direction[1],
+                   p * normal_direction[2],
+                   0)
 end
 
 """
