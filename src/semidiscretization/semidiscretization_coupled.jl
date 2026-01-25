@@ -777,7 +777,7 @@ function analyze_convergence(errors_coupled, iterations,
         append!(errors[i][:linf], errors_coupled[:linf][first:last])
     end
 
-    eoc_mean_values = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
+    eocs = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
     errorsmatrix = Vector{Dict{Symbol, Matrix{Float64}}}(undef, nsystems(semi_coupled))
     for i in eachsystem(semi_coupled)
         # Use visual cues to separate output from multiple systems
@@ -791,10 +791,10 @@ function analyze_convergence(errors_coupled, iterations,
         _, equations, _, _ = mesh_equations_solver_cache(semi)
         variablenames = varnames(cons2cons, equations)
 
-        eoc_mean_values[i], errorsmatrix[i] = analyze_convergence(errors[i], iterations,
+        eocs[i], errorsmatrix[i] = analyze_convergence(errors[i], iterations,
                                                                   variablenames)
     end
 
-    return eoc_mean_values, errorsmatrix
+    return eocs, errorsmatrix
 end
 end # @muladd

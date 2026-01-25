@@ -265,6 +265,7 @@ end
     mean_convergence, _ = convergence_test(@__MODULE__,
                                            joinpath(EXAMPLES_DIR,
                                                     "elixir_euler_weakform.jl"), 2)
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
     @test isapprox(mean_convergence[:l2],
                    [
                        4.243843382379403,

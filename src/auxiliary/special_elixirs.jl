@@ -54,6 +54,12 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations,
     return analyze_convergence(errors, iterations, (@invokelatest mod.semi))
 end
 
+function calc_mean_convergence(eocs)
+    return Dict(kind => [sum(eocs[kind][:, v]) / length(eocs[kind][:, v])
+                         for v in 1:size(eocs[kind], 2)]
+                for kind in keys(eocs))
+end
+
 # Analyze convergence for any semidiscretization
 # Note: this intermediate method is to allow dispatching on the semidiscretization
 function analyze_convergence(errors, iterations, semi::AbstractSemidiscretization)
@@ -77,8 +83,7 @@ function analyze_convergence(errors, iterations,
     eocs = Dict(kind => log.(error[2:end, :] ./ error[1:(end - 1), :]) ./ log(1 / 2)
                 for (kind, error) in errorsmatrix)
 
-    eoc_mean_values = Dict{Symbol, Any}()
-    eoc_mean_values[:variables] = variablenames
+    eoc_mean_values = calc_mean_convergence(eocs)
 
     for (kind, error) in errorsmatrix
         println(kind)
@@ -112,18 +117,15 @@ function analyze_convergence(errors, iterations,
         println("")
 
         # Print mean EOCs
-        mean_values = zeros(eltype(errors[:l2]), nvariables)
         for v in 1:nvariables
-            mean_values[v] = sum(eocs[kind][:, v]) ./ length(eocs[kind][:, v])
             @printf("%-10s", "mean")
-            @printf("%-10.2f", mean_values[v])
+            @printf("%-10.2f", eoc_mean_values[kind][v])
         end
-        eoc_mean_values[kind] = mean_values
         println("")
         println("-"^100)
     end
 
-    return eoc_mean_values, errorsmatrix
+    return eocs, errorsmatrix
 end
 
 function convergence_test(elixir::AbstractString, iterations, RealT = Float64;
