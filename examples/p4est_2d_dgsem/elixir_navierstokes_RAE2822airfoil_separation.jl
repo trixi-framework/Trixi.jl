@@ -58,15 +58,15 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 
 ###############################################################################
 #mesh_file = "/home/daniel/git/Paper_AdaptiveVolTerm/Data/RAE2822_Transonic/RAE2822.inp"
-mesh_file = "/storage/home/daniel/RAE2822/RAE2822.inp"
+mesh_file = "/storage/home/daniel/RAE2822/HiCFD_Meshes/rae2822_level3.inp"
 
 # There is also a linear mesh file available at
 # https://gist.githubusercontent.com/DanielDoehring/375df933da8a2081f58588529bed21f0/raw/18592aa90f1c86287b4f742fd405baf55c3cf133/SD7003_2D_Linear.inp
 
-boundary_symbols = [:airfoil, :inlet, :outlet, :top, :bottom]
+boundary_symbols = [:WallBoundary, :FarfieldBoundary]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
 
-restart_filename = "out/restart_000120000.h5"
+#restart_filename = "out/restart_000120000.h5"
 #mesh = load_mesh(restart_filename)
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
@@ -75,17 +75,11 @@ velocity_bc_airfoil = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
 heat_bc = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_airfoil = BoundaryConditionNavierStokesWall(velocity_bc_airfoil, heat_bc)
 
-boundary_conditions_hyp = Dict(:inlet => boundary_condition_free_stream,
-                               :outlet => boundary_condition_free_stream,
-                               :top => boundary_condition_free_stream,
-                               :bottom => boundary_condition_free_stream,
-                               :airfoil => boundary_condition_slip_wall)
+boundary_conditions_hyp = Dict(:FarfieldBoundary => boundary_condition_free_stream,
+                               :WallBoundary => boundary_condition_slip_wall)
 
-boundary_conditions_para = Dict(:inlet => boundary_condition_free_stream,
-                                :outlet => boundary_condition_free_stream,
-                                :top => boundary_condition_free_stream,
-                                :bottom => boundary_condition_free_stream,
-                                :airfoil => boundary_condition_airfoil)
+boundary_conditions_para = Dict(:FarfieldBoundary => boundary_condition_free_stream,
+                                :WallBoundary => boundary_condition_airfoil)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
@@ -100,12 +94,12 @@ t_c = airfoil_cord_length / U_inf()
 tspan = (0.0, 50 * t_c) # Non-AMR
 ode = semidiscretize(semi, tspan)
 
-tspan = (load_time(restart_filename), 50 * t_c)
-ode = semidiscretize(semi, tspan, restart_filename)
+#tspan = (load_time(restart_filename), 50 * t_c)
+#ode = semidiscretize(semi, tspan, restart_filename)
 
 summary_callback = SummaryCallback()
 
-save_sol_interval = 20_000
+save_sol_interval = 50_000
 save_solution = SaveSolutionCallback(interval = save_sol_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true)
@@ -136,7 +130,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      =#
                                     )
 
-alive_callback = AliveCallback(alive_interval = 100)
+alive_callback = AliveCallback(alive_interval = 200)
 
 amr_indicator = shock_indicator
 
@@ -162,7 +156,7 @@ save_restart = SaveRestartCallback(interval = save_sol_interval,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, 
                         alive_callback,
-                        amr_callback,
+                        #amr_callback,
                         #save_solution,
                         save_restart
                         )
