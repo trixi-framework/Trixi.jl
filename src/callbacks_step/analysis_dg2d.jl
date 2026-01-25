@@ -185,7 +185,7 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-# used in `calc_entropy_change_element`
+# used in `entropy_change_reference_element`
 function integrate_reference_element(func::Func, u, element,
                                      mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
                                      args...) where {Func}
@@ -197,7 +197,7 @@ function integrate_reference_element(func::Func, u, element,
     # Use quadrature to numerically integrate element.
     # We do not multiply with the Jacobian to stay in reference space.
     # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
-    # the time derivative of entropy, see `calc_entropy_change_element`.
+    # the time derivative of entropy, see `entropy_change_reference_element`.
     for j in eachnode(dg), i in eachnode(dg)
         element_integral += weights[i] * weights[j] *
                             func(u, i, j, element, equations, dg, args...)

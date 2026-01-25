@@ -60,7 +60,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.9) # In paper, CFL = 0.05 is used
+stepsize_callback = StepsizeCallback(cfl = 0.9) # In the paper, CFL = 0.05 is used
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

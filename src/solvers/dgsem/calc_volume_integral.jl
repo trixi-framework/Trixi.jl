@@ -134,16 +134,16 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where "e" is an element
-function calc_entropy_change_element(du, u, element,
-                                     mesh::AbstractMesh{2}, equations, dg, cache)
-    return integrate_element_ref(u, element, mesh, equations, dg, cache,
-                                 du) do u, i, j, element, equations, dg, du
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where element 'e' is kept in reference space
+function entropy_change_reference_element(du, u, element,
+                                          mesh::AbstractMesh{2}, equations, dg, cache)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
-        # Minus sign because of the flipped sign in the DG RHS.
+        # Minus sign because of the flipped sign of the volume term in the DG RHS.
         # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
-        # in `integrate_element_ref`.
+        # in `integrate_reference_element`.
         -dot(cons2entropy(u_node, equations), du_node)
     end
 end
@@ -168,8 +168,8 @@ function calc_volume_integral!(du, u, mesh,
                           dg, cache)
 
         # Compute entropy production of WF volume integral
-        entropy_delta_WF = calc_entropy_change_element(du, u, element,
-                                                       mesh, equations, dg, cache)
+        entropy_delta_WF = entropy_change_reference_element(du, u, element,
+                                                            mesh, equations, dg, cache)
         # Store weak form result
         du_element_WF = du_element_threaded[Threads.threadid()]
         @views du_element_WF .= du[.., element]
@@ -184,8 +184,8 @@ function calc_volume_integral!(du, u, mesh,
                                   dg, cache)
 
         # Compute entropy production of FD volume integral
-        entropy_delta_FD = calc_entropy_change_element(du, u, element,
-                                                       mesh, equations, dg, cache)
+        entropy_delta_FD = entropy_change_reference_element(du, u, element,
+                                                            mesh, equations, dg, cache)
 
         entropy_delta = entropy_delta_WF - entropy_delta_FD
         if entropy_delta < 0 # Use weak form if it is more stable
