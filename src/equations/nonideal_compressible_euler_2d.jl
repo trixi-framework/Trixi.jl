@@ -382,16 +382,17 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
     ke_rr = 0.5f0 * (v1_rr^2 + v2_rr^2)
 
     rho_v_dot_n_ll = rho_ll * v_dot_n_ll
-    rho_v_dot_n_rr = rho_rr * v_dot_n_rr    
+    rho_v_dot_n_rr = rho_rr * v_dot_n_rr
     f_rho = 0.5f0 * (rho_v_dot_n_ll + rho_v_dot_n_rr)
-    f_rho_v1 = 0.5f0 * (rho_v_dot_n_ll * v1_ll + rho_v_dot_n_rr * v1_rr) + p_avg * normal_direction[1]
-    f_rho_v2 = 0.5f0 * (rho_v_dot_n_ll * v2_ll + rho_v_dot_n_rr * v2_rr) + p_avg * normal_direction[2]
+    f_rho_v1 = 0.5f0 * (rho_v_dot_n_ll * v1_ll + rho_v_dot_n_rr * v1_rr) +
+               p_avg * normal_direction[1]
+    f_rho_v2 = 0.5f0 * (rho_v_dot_n_ll * v2_ll + rho_v_dot_n_rr * v2_rr) +
+               p_avg * normal_direction[2]
     f_rho_E = rho_e_avg_corrected * v_dot_n_avg +
-                0.5f0 * (rho_v_dot_n_ll * ke_ll + rho_v_dot_n_rr * ke_rr) +
-                0.5f0 * (p_ll * v_dot_n_ll + p_rr * v_dot_n_rr)
+              0.5f0 * (rho_v_dot_n_ll * ke_ll + rho_v_dot_n_rr * ke_rr) +
+              0.5f0 * (p_ll * v_dot_n_ll + p_rr * v_dot_n_rr)
     return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)
 end
-
 
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
@@ -479,7 +480,7 @@ end
     eos = equations.equation_of_state
     c_ll = speed_of_sound(V_ll, T_ll, eos)
     c_rr = speed_of_sound(V_rr, T_rr, eos)
-            
+
     norm_ = norm(normal_direction)
     return max(abs(v_ll) + c_ll * norm_,
                abs(v_rr) + c_rr * norm_)

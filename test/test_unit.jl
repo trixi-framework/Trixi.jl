@@ -831,28 +831,34 @@ end
     @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
           cons2entropy(u, equations)
     for orientation in (1, 2)
-        @test flux_lax_friedrichs(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
 
-        @test flux_terashima_etal(u, u, orientation, equations) ≈ flux(u, orientation, equations)
-        @test flux_central_terashima_etal(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_terashima_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+        @test flux_central_terashima_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
     end
 
     normal_direction = SVector(1, 2) / norm(SVector(1, 2))
-    @test flux(u, normal_direction, equations) ≈ flux(u, 1, equations) * normal_direction[1] + 
-        flux(u, 2, equations) * normal_direction[2]
+    @test flux(u, normal_direction, equations) ≈
+          flux(u, 1, equations) * normal_direction[1] +
+          flux(u, 2, equations) * normal_direction[2]
 
     u_ll = u
     u_rr = prim2cons(SVector(2.5, 0.2, 0.1, 8.0), equations)
-    @test flux_terashima_etal(u_ll, u_rr, normal_direction, equations) ≈ 
-        flux_terashima_etal(u_ll, u_rr, 1, equations) * normal_direction[1] + 
-        flux_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
-    @test flux_central_terashima_etal(u_ll, u_rr, normal_direction, equations) ≈ 
-        flux_central_terashima_etal(u_ll, u_rr, 1, equations) * normal_direction[1] + 
-        flux_central_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
-    
-    @test flux_lax_friedrichs(u_ll, u_rr, 1, equations) ≈ flux_lax_friedrichs(u_ll, u_rr, SVector(1, 0), equations) 
-    @test flux_lax_friedrichs(u_ll, u_rr, 2, equations) ≈ flux_lax_friedrichs(u_ll, u_rr, SVector(0, 1), equations)     
+    @test flux_terashima_etal(u_ll, u_rr, normal_direction, equations) ≈
+          flux_terashima_etal(u_ll, u_rr, 1, equations) * normal_direction[1] +
+          flux_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
+    @test flux_central_terashima_etal(u_ll, u_rr, normal_direction, equations) ≈
+          flux_central_terashima_etal(u_ll, u_rr, 1, equations) * normal_direction[1] +
+          flux_central_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
+
+    @test flux_lax_friedrichs(u_ll, u_rr, 1, equations) ≈
+          flux_lax_friedrichs(u_ll, u_rr, SVector(1, 0), equations)
+    @test flux_lax_friedrichs(u_ll, u_rr, 2, equations) ≈
+          flux_lax_friedrichs(u_ll, u_rr, SVector(0, 1), equations)
 
     # check that the fallback temperature and specialized temperature 
     # return the same value 
