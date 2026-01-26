@@ -11,7 +11,7 @@
 The interface for an `AbstractEquationOfState` requires specifying
 the following four functions: 
 - `pressure(V, T, eos)`
-- `energy_internal(V, T, eos)`, the specific internal energy
+- `energy_internal_specific(V, T, eos)`, the specific internal energy
 - `entropy_specific(V, T, eos)`, the specific entropy
 - `speed_of_sound(V, T, eos)`
 
@@ -37,14 +37,14 @@ include("equation_of_state_peng_robinson.jl")
 function gibbs_free_energy(V, T, eos)
     s = entropy_specific(V, T, eos)
     p = pressure(V, T, eos)
-    e = energy_internal(V, T, eos)
+    e = energy_internal_specific(V, T, eos)
     h = e + p * V
     return h - T * s
 end
 
 # compute c_v = de/dT
 @inline function heat_capacity_constant_volume(V, T, eos::AbstractEquationOfState)
-    return ForwardDiff.derivative(T -> energy_internal(V, T, eos), T)
+    return ForwardDiff.derivative(T -> energy_internal_specific(V, T, eos), T)
 end
 
 # this is used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
@@ -65,17 +65,17 @@ eos_newton_maxiter(eos) = 100
                 maxiter = 100)
 
 Calculates the temperature as a function of specific volume `V` and internal energy `e`
-by using Newton's method to determine `T` such that `energy_internal(V, T, eos) = e`.
+by using Newton's method to determine `T` such that `energy_internal_specific(V, T, eos) = e`.
 Note that the tolerance may need to be adjusted based on the specific equation of state. 
 """
 function temperature(V, e, eos::AbstractEquationOfState;
                      initial_T = eos_initial_temperature(V, e, eos),
                      tol = eos_newton_tol(eos), maxiter = eos_newton_maxiter(eos))
     T = initial_T
-    de = energy_internal(V, T, eos) - e
+    de = energy_internal_specific(V, T, eos) - e
     iter = 1
     while abs(de) > tol * abs(e) && iter < maxiter
-        de = energy_internal(V, T, eos) - e
+        de = energy_internal_specific(V, T, eos) - e
 
         # for thermodynamically admissible states, c_v = de_dT_V > 0, which should 
         # guarantee convergence of this iteration.
@@ -95,7 +95,7 @@ end
 # helper function used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
 @inline function drho_e_drho_at_const_p(V, T, eos::AbstractEquationOfState)
     rho = inv(V)
-    e = energy_internal(V, T, eos)
+    e = energy_internal_specific(V, T, eos)
 
     dpdT_V, dpdV_T = calc_pressure_derivatives(V, T, eos)
     dpdrho_T = dpdV_T * (-V / rho) # V = inv(rho), so dVdrho = -1/rho^2 = -V^2. 
