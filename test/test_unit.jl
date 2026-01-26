@@ -816,6 +816,60 @@ end
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
 end
 
+@timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
+    eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
+    equations = NonIdealCompressibleEulerEquations2D(eos)
+    q = SVector(2.0, 0.1, 0.2, 10.0)
+    V, v1, v2, T = q
+    u = prim2cons(q, equations)
+
+    @test density(u, equations) ≈ 0.5
+    @test velocity(u, equations) ≈ SVector(0.1, 0.2)
+    @test density_pressure(u, equations) ≈ u[1] * pressure(V, T, eos)
+    @test energy_internal(u, equations) ≈ energy_internal(V, T, eos)
+
+    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
+          cons2entropy(u, equations)
+    for orientation in (1, 2)
+        @test flux_lax_friedrichs(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+
+        @test flux_terashima_etal(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+        @test flux_central_terashima_etal(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+    end
+
+    normal_direction = SVector(1, 2) / norm(SVector(1, 2))
+    @test flux(u, normal_direction, equations) ≈ flux(u, 1, equations) * normal_direction[1] + 
+        flux(u, 2, equations) * normal_direction[2]
+
+    u_ll = u
+    u_rr = prim2cons(SVector(2.5, 0.2, 0.1, 8.0), equations)
+    @test flux_terashima_etal(u_ll, u_rr, normal_direction, equations) ≈ 
+        flux_terashima_etal(u_ll, u_rr, 1, equations) * normal_direction[1] + 
+        flux_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
+    @test flux_central_terashima_etal(u_ll, u_rr, normal_direction, equations) ≈ 
+        flux_central_terashima_etal(u_ll, u_rr, 1, equations) * normal_direction[1] + 
+        flux_central_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
+    
+    @test flux_lax_friedrichs(u_ll, u_rr, 1, equations) ≈ flux_lax_friedrichs(u_ll, u_rr, SVector(1, 0), equations) 
+    @test flux_lax_friedrichs(u_ll, u_rr, 2, equations) ≈ flux_lax_friedrichs(u_ll, u_rr, SVector(0, 1), equations)     
+
+    # check that the fallback temperature and specialized temperature 
+    # return the same value 
+    V, v1, v2, T = cons2prim(u, equations)
+    e = energy_internal(V, T, eos)
+    @test temperature(V, e, eos) ≈
+          invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
+
+    # check that fallback calc_pressure_derivatives matches specialized routines
+    @test Trixi.calc_pressure_derivatives(V, T, eos)[1] ≈
+          invoke(Trixi.calc_pressure_derivatives,
+                 Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[1]
+    @test Trixi.calc_pressure_derivatives(V, T, eos)[2] ≈
+          invoke(Trixi.calc_pressure_derivatives,
+                 Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
+end
+
 @timed_testset "StepsizeCallback" begin
     # Ensure a proper error is thrown if used with adaptive time integration schemes
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
