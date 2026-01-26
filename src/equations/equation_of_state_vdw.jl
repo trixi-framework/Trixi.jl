@@ -97,4 +97,17 @@ function temperature(V, e, eos::VanDerWaals)
     T = (e + a * rho) / cv
     return T
 end
+
+# This is not a required interface function, but specializing it 
+# if an explicit function is available can improve performance.
+function calc_pressure_derivatives(V, T, eos::VanDerWaals)
+    (; a, b, R) = eos
+    rho = inv(V)
+    RT = R * T
+    one_minus_b_rho = (1 - b * rho)
+    dpdT_V = rho * R / one_minus_b_rho
+    dpdrho_T = (RT / one_minus_b_rho + (RT * b * rho) / (one_minus_b_rho^2) -
+                2 * a * rho)
+    return dpdT_V, -dpdrho_T / V^2
+end
 end # @muladd
