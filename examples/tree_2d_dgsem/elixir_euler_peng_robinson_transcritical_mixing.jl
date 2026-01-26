@@ -29,13 +29,6 @@ function initial_condition_transcritical_mixing(x, t,
     Tc = eos.T0 # this value is 126.2 for N2
     T = Tc * (3 * A - A * tanh(y / delta))
 
-    # B = (y > 0) ? 3/8 : -3/8
-    # epsilon = 0.1
-    # delta = 1 / 15
-    # u0 = 20 # m/s       
-    # T0 = 110 # K
-    # T = T0 * (1 + B * tanh(y / delta)) # from Coppola 
-
     tol = Trixi.eos_newton_tol(eos)
 
     # invert for V given p, T. Initialize V so that the denominator 
@@ -72,8 +65,7 @@ cells_per_dimension = (32, 16)
 coordinates_min = (-0.5, -0.25)
 coordinates_max = (0.5, 0.25)
 mesh = StructuredMesh(cells_per_dimension,
-                      coordinates_min,
-                      coordinates_max,
+                      coordinates_min, coordinates_max,
                       periodicity = (true, false))
 
 boundary_conditions = (x_neg = boundary_condition_periodic,
@@ -101,14 +93,13 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 stepsize_callback = StepsizeCallback(cfl = 0.25)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback)
+                        analysis_callback, alive_callback,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
 solver = CarpenterKennedy2N54(williamson_condition = false)
-solver = SSPRK43()
 sol = solve(ode, solver;
-            dt = 1e-7, abstol = 1e-6, reltol = 1e-4,
-            # dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
