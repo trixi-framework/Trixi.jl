@@ -3399,7 +3399,6 @@ end
     @test semi_named.boundary_conditions.x_pos === Trixi.boundary_condition_periodic
 end
 end
-
 end
 
 end #module

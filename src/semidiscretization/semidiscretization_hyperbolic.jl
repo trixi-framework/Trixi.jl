@@ -323,7 +323,8 @@ end
 
 # Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh by converting to Dict
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
-                                    mesh::Union{P4estMesh, UnstructuredMesh2D, T8codeMesh},
+                                    mesh::Union{P4estMesh, UnstructuredMesh2D,
+                                                T8codeMesh},
                                     solver, cache)
     # Convert NamedTuple to Dict
     boundary_dict = Dict{Symbol, Any}()
