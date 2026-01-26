@@ -34,8 +34,8 @@ by some user-specified equation of state (EOS)
 p = p(V, T)
 ```
 
-Similarly, the internal energy is specified by `e = energy_internal_specific(V, T, eos)`, see
-[`energy_internal_specific(V, T, eos::IdealGas)`](@ref), [`energy_internal_specific(V, T, eos::VanDerWaals)`](@ref).
+Similarly, the internal energy is specified by `e = energy_internal(V, T, eos)`, see
+[`energy_internal(V, T, eos::IdealGas)`](@ref), [`energy_internal(V, T, eos::VanDerWaals)`](@ref).
 
 Because of this, the primitive variables are also defined to be `V, v1, T` (instead of 
 `rho, v1, p` for `CompressibleEulerEquations1D`). The implementation also assumes 
@@ -287,7 +287,7 @@ end
     V, v1, T = prim
     rho = inv(V)
     rho_v1 = rho * v1
-    e = energy_internal_specific(V, T, eos)
+    e = energy_internal(V, T, eos)
     rho_e_total = rho * e + 0.5f0 * rho_v1 * v1
     return SVector(rho, rho_v1, rho_e_total)
 end
@@ -357,13 +357,13 @@ end
     return rho * p
 end
 
-@inline function energy_internal_specific(u,
-                                          equations::NonIdealCompressibleEulerEquations1D)
+@inline function energy_internal(u,
+                                 equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
     q = cons2prim(u, equations)
     V = first(q)
     T = last(q)
-    e = energy_internal_specific(V, T, eos)
+    e = energy_internal(V, T, eos)
     return e
 end
 

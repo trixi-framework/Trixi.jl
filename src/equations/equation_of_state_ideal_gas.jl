@@ -47,12 +47,12 @@ function pressure(V, T, eos::IdealGas)
 end
 
 """
-    energy_internal_specific(V, T, eos::IdealGas)
+    energy_internal(V, T, eos::IdealGas)
 
 Computes internal energy for an ideal gas from specific volume `V` and temperature `T` as
 ``e = c_v T``.
 """
-function energy_internal_specific(V, T, eos::IdealGas)
+function energy_internal(V, T, eos::IdealGas)
     (; cv) = eos
     e = cv * T
     return e
