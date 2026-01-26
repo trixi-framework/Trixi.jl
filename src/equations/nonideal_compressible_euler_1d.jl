@@ -347,7 +347,7 @@ end
 end
 
 @inline function energy_internal(u,
-                                         equations::NonIdealCompressibleEulerEquations1D)
+                                 equations::NonIdealCompressibleEulerEquations1D)
     rho, rho_v1, rho_e_total = u
     rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
     return rho_e
