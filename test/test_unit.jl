@@ -3026,6 +3026,46 @@ end
 @testset "Boundary conditions unification" begin
 #! format: noindent
 
+@timed_testset "TreeMesh 1D" begin
+    equations = LinearScalarAdvectionEquation1D(0.2)
+
+    mesh = TreeMesh(-1.0, 1.0,
+                    initial_refinement_level = 2,
+                    n_cells_max = 10_000,
+                    periodicity = false)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with Dict
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_dict.boundary_conditions.x_neg === boundary_condition
+    @test semi_dict.boundary_conditions.x_pos === boundary_condition
+
+    # Test with NamedTuple
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_named.boundary_conditions.x_neg === boundary_condition
+    @test semi_named.boundary_conditions.x_pos === boundary_condition
+end
+
 @timed_testset "TreeMesh 2D" begin
     equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
 
@@ -3072,6 +3112,101 @@ end
     @test semi_named.boundary_conditions.x_pos === boundary_condition
     @test semi_named.boundary_conditions.y_neg === boundary_condition
     @test semi_named.boundary_conditions.y_pos === boundary_condition
+end
+
+@timed_testset "TreeMesh 3D" begin
+    equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+    mesh = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                    initial_refinement_level = 2,
+                    n_cells_max = 10_000,
+                    periodicity = false)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with Dict
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition,
+                                    :y_neg => boundary_condition,
+                                    :y_pos => boundary_condition,
+                                    :z_neg => boundary_condition,
+                                    :z_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_dict.boundary_conditions.x_neg === boundary_condition
+    @test semi_dict.boundary_conditions.x_pos === boundary_condition
+    @test semi_dict.boundary_conditions.y_neg === boundary_condition
+    @test semi_dict.boundary_conditions.y_pos === boundary_condition
+    @test semi_dict.boundary_conditions.z_neg === boundary_condition
+    @test semi_dict.boundary_conditions.z_pos === boundary_condition
+
+    # Test with NamedTuple
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition,
+                                 y_neg = boundary_condition,
+                                 y_pos = boundary_condition,
+                                 z_neg = boundary_condition,
+                                 z_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_named.boundary_conditions.x_neg === boundary_condition
+    @test semi_named.boundary_conditions.x_pos === boundary_condition
+    @test semi_named.boundary_conditions.y_neg === boundary_condition
+    @test semi_named.boundary_conditions.y_pos === boundary_condition
+    @test semi_named.boundary_conditions.z_neg === boundary_condition
+    @test semi_named.boundary_conditions.z_pos === boundary_condition
+end
+
+@timed_testset "StructuredMesh 1D" begin
+    equations = LinearScalarAdvectionEquation1D(0.2)
+
+    mapping(xi) = (xi,)
+
+    mesh = StructuredMesh(4, mapping, periodicity = false)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with Dict
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_dict.boundary_conditions.x_neg === boundary_condition
+    @test semi_dict.boundary_conditions.x_pos === boundary_condition
+
+    # Test with NamedTuple
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_named.boundary_conditions.x_neg === boundary_condition
+    @test semi_named.boundary_conditions.x_pos === boundary_condition
 end
 
 @timed_testset "StructuredMesh 2D" begin
@@ -3121,7 +3256,62 @@ end
     @test semi_named.boundary_conditions.y_pos === boundary_condition
 end
 
-@timed_testset "P4estMesh" begin
+@timed_testset "StructuredMesh 3D" begin
+    equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+    mapping(xi, eta, zeta) = (xi, eta, zeta)
+
+    mesh = StructuredMesh((4, 4, 4), mapping, periodicity = false)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with Dict
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition,
+                                    :y_neg => boundary_condition,
+                                    :y_pos => boundary_condition,
+                                    :z_neg => boundary_condition,
+                                    :z_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_dict.boundary_conditions.x_neg === boundary_condition
+    @test semi_dict.boundary_conditions.x_pos === boundary_condition
+    @test semi_dict.boundary_conditions.y_neg === boundary_condition
+    @test semi_dict.boundary_conditions.y_pos === boundary_condition
+    @test semi_dict.boundary_conditions.z_neg === boundary_condition
+    @test semi_dict.boundary_conditions.z_pos === boundary_condition
+
+    # Test with NamedTuple
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition,
+                                 y_neg = boundary_condition,
+                                 y_pos = boundary_condition,
+                                 z_neg = boundary_condition,
+                                 z_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_named.boundary_conditions.x_neg === boundary_condition
+    @test semi_named.boundary_conditions.x_pos === boundary_condition
+    @test semi_named.boundary_conditions.y_neg === boundary_condition
+    @test semi_named.boundary_conditions.y_pos === boundary_condition
+    @test semi_named.boundary_conditions.z_neg === boundary_condition
+    @test semi_named.boundary_conditions.z_pos === boundary_condition
+end
+
+@timed_testset "P4estMesh 2D" begin
     equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
 
     trees_per_dimension = (2, 2)
@@ -3155,6 +3345,54 @@ end
                                     :x_pos => boundary_condition,
                                     :y_neg => boundary_condition,
                                     :y_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions - P4estMesh stores them in a special sorted structure
+    @test semi_dict.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
+end
+
+@timed_testset "P4estMesh 3D" begin
+    equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+    trees_per_dimension = (2, 2, 2)
+    mesh = P4estMesh(trees_per_dimension, polydeg = 1,
+                     coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0),
+                     periodicity = (false, false, false),
+                     initial_refinement_level = 0)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with NamedTuple
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition,
+                                 y_neg = boundary_condition,
+                                 y_pos = boundary_condition,
+                                 z_neg = boundary_condition,
+                                 z_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions - P4estMesh stores them in a special sorted structure
+    @test semi_named.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
+
+    # Test with Dict
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition,
+                                    :y_neg => boundary_condition,
+                                    :y_pos => boundary_condition,
+                                    :z_neg => boundary_condition,
+                                    :z_pos => boundary_condition)
 
     semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
                                                           initial_condition,
@@ -3260,6 +3498,54 @@ end
     @test semi_dict.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
 end
 
+@timed_testset "T8codeMesh 3D" begin
+    equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+    trees_per_dimension = (2, 2, 2)
+    mesh = T8codeMesh(trees_per_dimension, polydeg = 1,
+                      coordinates_min = (-1.0, -1.0, -1.0),
+                      coordinates_max = (1.0, 1.0, 1.0),
+                      periodicity = (false, false, false),
+                      initial_refinement_level = 0)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with NamedTuple
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition,
+                                 y_neg = boundary_condition,
+                                 y_pos = boundary_condition,
+                                 z_neg = boundary_condition,
+                                 z_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions - T8codeMesh stores them in a special sorted structure
+    @test semi_named.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
+
+    # Test with Dict
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition,
+                                    :y_neg => boundary_condition,
+                                    :y_pos => boundary_condition,
+                                    :z_neg => boundary_condition,
+                                    :z_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions - T8codeMesh stores them in a special sorted structure
+    @test semi_dict.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
+end
+
 @timed_testset "UnstructuredMesh2D" begin
     equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
 
@@ -3306,7 +3592,48 @@ end
     @test semi_dict.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
 end
 
-@timed_testset "TreeMesh with partially periodic boundaries" begin
+@timed_testset "TreeMesh 1D with partial periodicity" begin
+    equations = LinearScalarAdvectionEquation1D(0.2)
+
+    # Non-periodic mesh
+    mesh = TreeMesh(-1.0, 1.0,
+                    initial_refinement_level = 2,
+                    n_cells_max = 10_000,
+                    periodicity = false)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with partial Dict - both boundaries specified
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_dict.boundary_conditions.x_neg === boundary_condition
+    @test semi_dict.boundary_conditions.x_pos === boundary_condition
+
+    # Test with partial NamedTuple
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_named.boundary_conditions.x_neg === boundary_condition
+    @test semi_named.boundary_conditions.x_pos === boundary_condition
+end
+
+@timed_testset "TreeMesh 2D with partially periodic boundaries" begin
     equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
 
     # Mesh with x non-periodic, y periodic
@@ -3353,7 +3680,102 @@ end
     @test semi_named.boundary_conditions.y_pos === Trixi.boundary_condition_periodic
 end
 
-@timed_testset "StructuredMesh with partially periodic boundaries" begin
+@timed_testset "TreeMesh 3D with partially periodic boundaries" begin
+    equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+    # Mesh with x, y non-periodic, z periodic
+    mesh = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                    initial_refinement_level = 2,
+                    n_cells_max = 10_000,
+                    periodicity = (false, false, true))
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with Dict - only specify non-periodic boundaries
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition,
+                                    :y_neg => boundary_condition,
+                                    :y_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_dict.boundary_conditions.x_neg === boundary_condition
+    @test semi_dict.boundary_conditions.x_pos === boundary_condition
+    @test semi_dict.boundary_conditions.y_neg === boundary_condition
+    @test semi_dict.boundary_conditions.y_pos === boundary_condition
+    # z boundaries should be filled with periodic BCs
+    @test semi_dict.boundary_conditions.z_neg === Trixi.boundary_condition_periodic
+    @test semi_dict.boundary_conditions.z_pos === Trixi.boundary_condition_periodic
+
+    # Test with NamedTuple - only specify non-periodic boundaries
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition,
+                                 y_neg = boundary_condition,
+                                 y_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_named.boundary_conditions.x_neg === boundary_condition
+    @test semi_named.boundary_conditions.x_pos === boundary_condition
+    @test semi_named.boundary_conditions.y_neg === boundary_condition
+    @test semi_named.boundary_conditions.y_pos === boundary_condition
+    # z boundaries should be filled with periodic BCs
+    @test semi_named.boundary_conditions.z_neg === Trixi.boundary_condition_periodic
+    @test semi_named.boundary_conditions.z_pos === Trixi.boundary_condition_periodic
+end
+
+@timed_testset "StructuredMesh 1D with periodicity" begin
+    equations = LinearScalarAdvectionEquation1D(0.2)
+
+    mapping(xi) = (xi,)
+
+    # Non-periodic mesh
+    mesh = StructuredMesh(4, mapping, periodicity = false)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with Dict - both boundaries specified
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_dict.boundary_conditions.x_neg === boundary_condition
+    @test semi_dict.boundary_conditions.x_pos === boundary_condition
+
+    # Test with NamedTuple
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_named.boundary_conditions.x_neg === boundary_condition
+    @test semi_named.boundary_conditions.x_pos === boundary_condition
+end
+
+@timed_testset "StructuredMesh 2D with partially periodic boundaries" begin
     equations = CompressibleEulerEquations2D(1.4)
 
     mapping(xi, eta) = (xi, eta)
@@ -3394,6 +3816,60 @@ end
     # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.y_neg === boundary_condition
     @test semi_named.boundary_conditions.y_pos === boundary_condition
+    # x boundaries should be filled with periodic BCs
+    @test semi_named.boundary_conditions.x_neg === Trixi.boundary_condition_periodic
+    @test semi_named.boundary_conditions.x_pos === Trixi.boundary_condition_periodic
+end
+
+@timed_testset "StructuredMesh 3D with partially periodic boundaries" begin
+    equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+    mapping(xi, eta, zeta) = (xi, eta, zeta)
+
+    # Mesh with x periodic, y and z non-periodic
+    mesh = StructuredMesh((4, 4, 4), mapping, periodicity = (true, false, false))
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with Dict - only specify non-periodic boundaries
+    boundary_conditions_dict = Dict(:y_neg => boundary_condition,
+                                    :y_pos => boundary_condition,
+                                    :z_neg => boundary_condition,
+                                    :z_pos => boundary_condition)
+
+    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver,
+                                                          boundary_conditions = boundary_conditions_dict)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_dict.boundary_conditions.y_neg === boundary_condition
+    @test semi_dict.boundary_conditions.y_pos === boundary_condition
+    @test semi_dict.boundary_conditions.z_neg === boundary_condition
+    @test semi_dict.boundary_conditions.z_pos === boundary_condition
+    # x boundaries should be filled with periodic BCs
+    @test semi_dict.boundary_conditions.x_neg === Trixi.boundary_condition_periodic
+    @test semi_dict.boundary_conditions.x_pos === Trixi.boundary_condition_periodic
+
+    # Test with NamedTuple - only specify non-periodic boundaries
+    boundary_conditions_named = (y_neg = boundary_condition,
+                                 y_pos = boundary_condition,
+                                 z_neg = boundary_condition,
+                                 z_pos = boundary_condition)
+
+    semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
+                                                           initial_condition,
+                                                           solver,
+                                                           boundary_conditions = boundary_conditions_named)
+
+    # Verify boundary conditions were stored correctly
+    @test semi_named.boundary_conditions.y_neg === boundary_condition
+    @test semi_named.boundary_conditions.y_pos === boundary_condition
+    @test semi_named.boundary_conditions.z_neg === boundary_condition
+    @test semi_named.boundary_conditions.z_pos === boundary_condition
     # x boundaries should be filled with periodic BCs
     @test semi_named.boundary_conditions.x_neg === Trixi.boundary_condition_periodic
     @test semi_named.boundary_conditions.x_pos === Trixi.boundary_condition_periodic
