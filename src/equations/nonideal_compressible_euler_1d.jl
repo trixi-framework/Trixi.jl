@@ -85,8 +85,8 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370 1>
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -136,8 +136,8 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
 
     rho_ll, rho_v1_ll, _ = u_ll
     rho_rr, rho_v1_rr, _ = u_rr
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -346,7 +346,7 @@ end
     return e
 end
 
-@inline function internal_energy_density(u,
+@inline function energy_internal(u,
                                          equations::NonIdealCompressibleEulerEquations1D)
     rho, rho_v1, rho_e_total = u
     rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
