@@ -46,6 +46,12 @@ end
     return ForwardDiff.derivative(T -> energy_internal(V, T, eos), T)
 end
 
+function calc_pressure_derivatives(V, T, eos)
+    dpdV_T = ForwardDiff.derivative(V -> pressure(V, T, eos), V)
+    dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
+    return dpdT_V, dpdV_T
+end
+
 # relative tolerance for the Newton solver for temperature
 eos_newton_tol(eos::AbstractEquationOfState) = 10 * eps()
 
@@ -77,5 +83,19 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
                 "Final states: iter = $iter, V, e = $V, $e with de = $de")
     end
     return T
+end
+
+# helper function used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
+@inline function drho_e_drho_at_const_p(V, T, eos::AbstractEquationOfState)
+    rho = inv(V)
+    e = energy_internal(V, T, eos)
+
+    dpdT_V, dpdV_T = calc_pressure_derivatives(V, T, eos)
+    dpdrho_T = dpdV_T * (-V / rho) # V = inv(rho), so dVdrho = -1/rho^2 = -V^2. 
+    de_dV_T = T * dpdT_V - pressure(V, T, eos)
+    drho_e_drho_T = e + rho * de_dV_T * (-V / rho) # d(rho_e)/drho_|T = e + rho * de_dV|T * dVdrho
+
+    c_v = heat_capacity_constant_volume(V, T, eos)
+    return ((-rho * c_v) / (dpdT_V) * dpdrho_T + drho_e_drho_T)
 end
 end # @muladd
