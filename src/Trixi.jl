@@ -148,6 +148,7 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("semidiscretization/semidiscretization_split.jl")
 include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
@@ -292,6 +293,8 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integ
 
 export SemidiscretizationHyperbolicParabolic
 export have_constant_diffusivity, max_diffusivity
+
+export SemidiscretizationHyperbolicSplit
 
 export SemidiscretizationEulerAcoustics
 
