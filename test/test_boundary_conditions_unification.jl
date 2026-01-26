@@ -150,6 +150,80 @@ end
                                               boundary_conditions = boundary_conditions_named)
 end
 
+
+@timed_testset "T8codeMesh 2D" begin
+    equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
+
+    trees_per_dimension = (2, 2)
+    mesh = T8codeMesh(trees_per_dimension, polydeg = 1,
+                      coordinates_min = (-1.0, -1.0),
+                      coordinates_max = (1.0, 1.0),
+                      periodicity = (false, false),
+                      initial_refinement_level = 0)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with NamedTuple
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition,
+                                 y_neg = boundary_condition,
+                                 y_pos = boundary_condition)
+
+    @test_nowarn SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                              solver,
+                                              boundary_conditions = boundary_conditions_named)
+
+    # Test with Dict
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition,
+                                    :y_neg => boundary_condition,
+                                    :y_pos => boundary_condition)
+
+    @test_nowarn SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                              solver,
+                                              boundary_conditions = boundary_conditions_dict)
+end
+
+@timed_testset "UnstructuredMesh2D" begin
+    equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
+
+    # Use the unstructured mesh file from examples
+    mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/52056f1487853fab63b7f4ed7f171c80/raw/9d573387dfdbb8bce2a55db7246f4207663ac07f/mesh_trixi_unstructured_mesh_docs.mesh",
+                               joinpath(@__DIR__, "mesh_trixi_unstructured_mesh_docs.mesh"))
+
+    mesh = UnstructuredMesh2D(mesh_file, periodicity = false)
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with NamedTuple
+    boundary_conditions_named = (Bezier = boundary_condition,
+                                 Slant = boundary_condition,
+                                 Right = boundary_condition,
+                                 Bottom = boundary_condition,
+                                 Top = boundary_condition)
+
+    @test_nowarn SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                              solver,
+                                              boundary_conditions = boundary_conditions_named)
+
+    # Test with Dict
+    boundary_conditions_dict = Dict(:Bezier => boundary_condition,
+                                    :Slant => boundary_condition,
+                                    :Right => boundary_condition,
+                                    :Bottom => boundary_condition,
+                                    :Top => boundary_condition)
+
+    @test_nowarn SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                              solver,
+                                              boundary_conditions = boundary_conditions_dict)
+end
+
 @timed_testset "TreeMesh with partially periodic boundaries" begin
     equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
 
