@@ -96,7 +96,13 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370 1>
     rho_e_avg = 0.5f0 * (rho_e_ll + rho_e_rr)
     p_v1_avg = 0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
 
-    # chain rule from Terashima    
+    # chain rule from Terashima
+    # Note that `drho_e_drho_p`, i.e., the derivative of the
+    # internal energy density with respect to the density at
+    # constant pressure is zero for an ideal gas EOS. Thus,
+    # the following mean value reduces to
+    #   rho_e_v1_avg = rho_e_avg * v1_avg
+    # for an ideal gas EOS.
     drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
     rho_e_v1_avg = (rho_e_avg -
@@ -106,6 +112,7 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370 1>
     # Ignore orientation since it is always "1" in 1D
     f_rho = rho_avg * v1_avg
     f_rho_v1 = rho_avg * v1_avg * v1_avg + p_avg
+    # Note that the additional "average" is a product and not v1_avg
     f_rho_E = rho_e_v1_avg + rho_avg * 0.5f0 * (v1_ll * v1_rr) * v1_avg + p_v1_avg
 
     return SVector(f_rho, f_rho_v1, f_rho_E)
@@ -138,7 +145,13 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
     p_avg = 0.5f0 * (p_ll + p_rr)
     rho_e_avg = 0.5f0 * (rho_e_ll + rho_e_rr)
 
-    # chain rule from Terashima    
+    # chain rule from Terashima
+    # Note that `drho_e_drho_p`, i.e., the derivative of the
+    # internal energy density with respect to the density at
+    # constant pressure is zero for an ideal gas EOS. Thus,
+    # the following mean value reduces to
+    #   rho_e_v1_avg = rho_e_avg * v1_avg
+    # for an ideal gas EOS.
     drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
     rho_e_v1_avg = (rho_e_avg -
