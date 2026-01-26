@@ -338,7 +338,8 @@ end
     return rho * p
 end
 
-@inline function energy_internal_specific(u, equations::NonIdealCompressibleEulerEquations1D)
+@inline function energy_internal_specific(u,
+                                          equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
     V, _, T = cons2prim(u, equations)
     e = energy_internal_specific(V, T, eos)
