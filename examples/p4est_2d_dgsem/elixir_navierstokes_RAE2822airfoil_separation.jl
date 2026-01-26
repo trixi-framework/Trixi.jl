@@ -1,4 +1,5 @@
 using OrdinaryDiffEqSSPRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -36,7 +37,7 @@ initial_condition = initial_condition_mach085_flow
 surface_flux = flux_hll
 volume_flux = flux_ranocha
 
-polydeg = 2 # 3
+polydeg = 2 # 3 required to have advantages of WF over FD ?
 basis = LobattoLegendreBasis(polydeg)
 shock_indicator = IndicatorHennemannGassner(equations, basis,
                                             alpha_max = 1.0,
@@ -57,16 +58,12 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
 ###############################################################################
-#mesh_file = "/home/daniel/git/Paper_AdaptiveVolTerm/Data/RAE2822_Transonic/RAE2822.inp"
 mesh_file = "/storage/home/daniel/RAE2822/HiCFD_Meshes/rae2822_level3.inp"
-
-# There is also a linear mesh file available at
-# https://gist.githubusercontent.com/DanielDoehring/375df933da8a2081f58588529bed21f0/raw/18592aa90f1c86287b4f742fd405baf55c3cf133/SD7003_2D_Linear.inp
 
 boundary_symbols = [:WallBoundary, :FarfieldBoundary]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
 
-#restart_filename = "out/restart_000120000.h5"
+restart_filename = "out/restart_000450000.h5"
 #mesh = load_mesh(restart_filename)
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
@@ -94,8 +91,8 @@ t_c = airfoil_cord_length / U_inf()
 tspan = (0.0, 50 * t_c) # Non-AMR
 ode = semidiscretize(semi, tspan)
 
-#tspan = (load_time(restart_filename), 50 * t_c)
-#ode = semidiscretize(semi, tspan, restart_filename)
+tspan = (load_time(restart_filename), 100 * t_c)
+ode = semidiscretize(semi, tspan, restart_filename)
 
 summary_callback = SummaryCallback()
 
@@ -117,7 +114,7 @@ pressure_coefficient = AnalysisSurfacePointwise(force_boundary_names,
                                                 SurfacePressureCoefficient(p_inf(), rho_inf(),
                                                                            U_inf(), l_inf))
 =#
-analysis_interval = 400                                                                     
+analysis_interval = 100_000                                                    
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
                                      analysis_errors = Symbol[],
@@ -164,10 +161,14 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+ode_algorithm = SSPRK432(thread = Trixi.True())
 ode_algorithm = SSPRK43(thread = Trixi.True())
 
-tols = 5e-5 # Not sure if low or high tols lead to better performance here
+#ode_algorithm = CKLLSRK43_2(thread = Trixi.True())
+#ode_algorithm = RDPK3SpFSAL35(thread = Trixi.True())
+
+tols = 1e-3 # Not sure if low or high tols lead to better performance here
 sol = solve(ode, ode_algorithm;
-            abstol = tols, reltol = tols, dt = 1e-6,
+            abstol = tols, reltol = tols, dt = 3e-6,
             maxiters = Inf,
             ode_default_options()..., callback = callbacks)
