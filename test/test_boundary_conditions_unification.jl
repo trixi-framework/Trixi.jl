@@ -149,6 +149,67 @@ end
                                               dg,
                                               boundary_conditions = boundary_conditions_named)
 end
+
+@timed_testset "TreeMesh with partially periodic boundaries" begin
+    equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
+
+    # Mesh with x non-periodic, y periodic
+    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                    initial_refinement_level = 2,
+                    n_cells_max = 10_000,
+                    periodicity = (false, true))
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with Dict - only specify non-periodic boundaries
+    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
+                                    :x_pos => boundary_condition)
+
+    @test_nowarn SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                              solver,
+                                              boundary_conditions = boundary_conditions_dict)
+
+    # Test with NamedTuple - only specify non-periodic boundaries
+    boundary_conditions_named = (x_neg = boundary_condition,
+                                 x_pos = boundary_condition)
+
+    @test_nowarn SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                              solver,
+                                              boundary_conditions = boundary_conditions_named)
+end
+
+@timed_testset "StructuredMesh with partially periodic boundaries" begin
+    equations = CompressibleEulerEquations2D(1.4)
+
+    mapping(xi, eta) = (xi, eta)
+
+    # Mesh with x periodic, y non-periodic
+    mesh = StructuredMesh((4, 4), mapping, periodicity = (true, false))
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    initial_condition = initial_condition_convergence_test
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+
+    # Test with Dict - only specify non-periodic boundaries
+    boundary_conditions_dict = Dict(:y_neg => boundary_condition,
+                                    :y_pos => boundary_condition)
+
+    @test_nowarn SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                              solver,
+                                              boundary_conditions = boundary_conditions_dict)
+
+    # Test with NamedTuple - only specify non-periodic boundaries
+    boundary_conditions_named = (y_neg = boundary_condition,
+                                 y_pos = boundary_condition)
+
+    @test_nowarn SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                              solver,
+                                              boundary_conditions = boundary_conditions_named)
+end
 end
 
 end # module
