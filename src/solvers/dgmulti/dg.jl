@@ -139,11 +139,17 @@ end
 wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
-                                    mesh::DGMultiMesh,
-                                    dg::DGMulti,
+                                    mesh::DGMultiMesh, dg::DGMulti,
                                     cache) where {Keys, ValueTypes <: NTuple{N, Any}
                                                   } where {N}
     return boundary_conditions
+end
+
+# Allow Dict for DGMultiMesh by converting to NamedTuple
+function digest_boundary_conditions(boundary_conditions::Dict,
+                                    mesh::DGMultiMesh, dg::DGMulti, cache)
+    # Convert Dict to NamedTuple
+    return NamedTuple(boundary_conditions)
 end
 
 # Allocate nested array type for DGMulti solution storage.

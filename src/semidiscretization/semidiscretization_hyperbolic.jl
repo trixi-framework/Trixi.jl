@@ -193,6 +193,69 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
     return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
+# Allow Dict for TreeMesh and StructuredMesh by converting to NamedTuple
+function digest_boundary_conditions(boundary_conditions::Dict,
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
+                                    cache)
+    # Convert Dict to NamedTuple with expected keys
+    x_neg = get(boundary_conditions, :x_neg, nothing)
+    x_pos = get(boundary_conditions, :x_pos, nothing)
+
+    if isnothing(x_neg) || isnothing(x_pos)
+        error("For TreeMesh and StructuredMesh in 1D, boundary conditions must specify :x_neg and :x_pos")
+    end
+
+    return (; x_neg, x_pos)
+end
+
+function digest_boundary_conditions(boundary_conditions::Dict,
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
+                                    cache)
+    # Convert Dict to NamedTuple with expected keys
+    x_neg = get(boundary_conditions, :x_neg, nothing)
+    x_pos = get(boundary_conditions, :x_pos, nothing)
+    y_neg = get(boundary_conditions, :y_neg, nothing)
+    y_pos = get(boundary_conditions, :y_pos, nothing)
+
+    if isnothing(x_neg) || isnothing(x_pos) || isnothing(y_neg) || isnothing(y_pos)
+        error("For TreeMesh and StructuredMesh in 2D, boundary conditions must specify :x_neg, :x_pos, :y_neg, :y_pos")
+    end
+
+    return (; x_neg, x_pos, y_neg, y_pos)
+end
+
+function digest_boundary_conditions(boundary_conditions::Dict,
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
+                                    cache)
+    # Convert Dict to NamedTuple with expected keys
+    x_neg = get(boundary_conditions, :x_neg, nothing)
+    x_pos = get(boundary_conditions, :x_pos, nothing)
+    y_neg = get(boundary_conditions, :y_neg, nothing)
+    y_pos = get(boundary_conditions, :y_pos, nothing)
+    z_neg = get(boundary_conditions, :z_neg, nothing)
+    z_pos = get(boundary_conditions, :z_pos, nothing)
+
+    if isnothing(x_neg) || isnothing(x_pos) || isnothing(y_neg) ||
+       isnothing(y_pos) || isnothing(z_neg) || isnothing(z_pos)
+        error("For TreeMesh and StructuredMesh in 3D, boundary conditions must specify :x_neg, :x_pos, :y_neg, :y_pos, :z_neg, :z_pos")
+    end
+
+    return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
+end
+
+# Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh by converting to Dict
+function digest_boundary_conditions(boundary_conditions::NamedTuple,
+                                    mesh::Union{P4estMesh, UnstructuredMesh2D, T8codeMesh},
+                                    solver, cache)
+    # Convert NamedTuple to Dict
+    boundary_dict = Dict{Symbol, Any}()
+    for (key, value) in pairs(boundary_conditions)
+        boundary_dict[key] = value
+    end
+
+    return UnstructuredSortedBoundaryTypes(boundary_dict, cache)
+end
+
 # sort the boundary conditions from a dictionary and into tuples
 function digest_boundary_conditions(boundary_conditions::Dict, mesh, solver, cache)
     return UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
