@@ -381,6 +381,8 @@ function initial_condition_density_wave(x, t,
                                         equations::NonIdealCompressibleEulerEquations1D;
                                         amplitude = 0.98, k = 2)
     RealT = eltype(x)
+    eos = equations.equation_of_state
+
     v1 = convert(RealT, 0.1)
     rho = 1 + convert(RealT, amplitude) * sinpi(k * (x[1] - v1 * t))
     p = 20
@@ -443,15 +445,16 @@ end
 # for simulations of transcritical real-fluid flows" by Ma, Ihme (2017).
 # <https://doi.org/10.1016/j.jcp.2017.03.022>
 function initial_condition_transcritical_shock(x, t,
-                                              equations::NonIdealCompressibleEulerEquations1D{<:PengRobinson})
+                                               equations::NonIdealCompressibleEulerEquations1D{<:PengRobinson})
     RealT = eltype(x)
+    eos = equations.equation_of_state
 
     if x[1] < 0
         rho, v1, p = SVector(800, 0, 60e6)
     else
-        rho, v1, p = SVector(80, 0, 6e6) 
+        rho, v1, p = SVector(80, 0, 6e6)
     end
-    
+
     V = inv(rho)
 
     # invert for temperature given p, V
