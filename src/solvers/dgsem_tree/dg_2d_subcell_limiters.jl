@@ -60,7 +60,7 @@ function calc_mortar_weights(equations::AbstractEquations{2},
                              basis::LobattoLegendreBasis, RealT)
     n_nodes = nnodes(basis)
     mortar_weights = zeros(RealT, n_nodes, n_nodes, 2) # [node_i (large element), node_i (small element), small element]
-    mortar_weights_sums = zeros(RealT, n_nodes, 2)     # [node, left (=1) or large (=2) element]
+    mortar_weights_sums = zeros(RealT, n_nodes, 2)     # [node, small (1) or large (2) element]
 
     calc_mortar_weights!(equations, mortar_weights, n_nodes, RealT)
 
