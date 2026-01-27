@@ -1478,6 +1478,8 @@ end
     B1, B2, B3 = magnetic_field(cons, equations)
     psi = divergence_cleaning_field(cons, equations)
 
+    norm_squared = (normal_direction[1]^2 + normal_direction[2]^2)
+
     c_f = zero(real(equations))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
@@ -1497,13 +1499,15 @@ end
         b2 = B2 * inv_sqrt_rho
         b3 = B3 * inv_sqrt_rho
         b_square = b1^2 + b2^2 + b3^2
+        # Properly normalize the magnetic field projection onto the unit normal
+        b_dot_n_squared = (b1 * normal_direction[1] + b2 * normal_direction[2])^2 /
+                          norm_squared
 
         c_f = max(c_f,
-                  sqrt(0.5f0 * (a_square + b_square) +
-                       0.5f0 *
-                       sqrt((a_square + b_square)^2 -
-                            4 * a_square *
-                            (b1 * normal_direction[1] + b2 * normal_direction[2])^2)))
+                  sqrt((0.5f0 * (a_square + b_square) +
+                        0.5f0 *
+                        sqrt((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
+                       norm_squared))
     end
 
     return c_f
