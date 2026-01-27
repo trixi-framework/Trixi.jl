@@ -1052,6 +1052,48 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_mhdmultiion_ec.jl with local Lax-Friedrichs at the surface" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
+                        l2=[
+                            0.003819023519156827,
+                            0.0038190538808229066,
+                            0.003919930695884498,
+                            0.0013361417518419582,
+                            0.0019343902245997572,
+                            0.0019333112274355774,
+                            0.00015845732131087009,
+                            0.016665782959823666,
+                            0.0026894005988067037,
+                            0.0028511017615652063,
+                            0.0028472947019430274,
+                            0.0006337872045691708,
+                            0.011548689776042632,
+                            2.286431442285862e-6
+                        ],
+                        linf=[
+                            0.09419896066556777,
+                            0.09420058867598291,
+                            0.11323307896398238,
+                            0.04495576740053292,
+                            0.08310737422097081,
+                            0.08078061790140298,
+                            0.003797643762882506,
+                            0.7352983249359513,
+                            0.09395502284263912,
+                            0.1662953130688809,
+                            0.12440909208369816,
+                            0.015232315287051565,
+                            0.6076682879787012,
+                            0.0004880320660495433
+                        ],
+                        tspan=(0.0, 0.002),
+                        surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
+                                      flux_nonconservative_central))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_coupled.jl"),
                         l2=[
