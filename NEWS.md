@@ -9,9 +9,13 @@ for human readability.
 
 #### Added 
 - Added `NonIdealCompressibleEulerEquations1D`, which allows users to specify a non-ideal equation of state. Currently `IdealGas` and `VanDerWaals` are supported ([#2739]). 
+- Added the APEC (approximate pressure equilibrium preserving with conservation) fluxes of `flux_terashima_etal` and `flux_central_terashima_etal` from [Terashima, Ly, Ihme (2025)](https://doi.org/10.1016/j.jcp.2024.113701) ([#2756]). 
 - Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
   stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on 
   3D meshes for conservative systems ([#2734], [#2755]).
+- Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733]).
+  In the new version, local (minimum or maximum) limiting for nonlinear variables (using
+  the keyword `local_onesided_variables_nonlinear` in `SubcellLimiterIDP()`) is supported.
 
 #### Changed
 
@@ -25,17 +29,16 @@ for human readability.
 ## Changes in the v0.13 lifecycle
 
 #### Added
-- Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582] and [#2647]).
+- Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582], [#2647], [#2688], [#2722]).
   In the new version, IDP positivity limiting for conservative variables (using
   the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) and nonlinear
   variables (using `positivity_variables_nonlinear`) is supported.
-  `BoundsCheckCallback` is not supported in 3D yet.
 - Optimized 2D and 3D kernels for nonconservative fluxes with `P4estMesh` were added ([#2653], [#2663]).
   The optimized kernel can be enabled via the trait `Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)`.
   When the trait is set to `Trixi.True()`, a single method has to be defined, that computes and returns the tuple
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_ll, u_rr)` and
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_rr, u_ll)`.
-- Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]). 
+- Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]).
 - Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
   stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on 
   1D & 2D meshes for conservative systems ([#2022], [#2695], [#2718]).

@@ -19,6 +19,26 @@
     # `@batch` here to allow a possible redefinition of `@threaded` without creating errors here.
     # See also https://github.com/trixi-framework/Trixi.jl/pull/1888#discussion_r1537785293.
 
+    if local_onesided
+        for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+            key = Symbol(string(variable), "_", string(min_or_max))
+            deviation = idp_bounds_delta_local[key]
+            sign_ = min_or_max(1.0, -1.0)
+            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+                for k in eachnode(solver), j in eachnode(solver), i in eachnode(solver)
+                    v = variable(get_node_vars(u, equations, solver, i, j, k, element),
+                                 equations)
+                    # Note: We always save the absolute deviations >= 0 and therefore use the
+                    # `max` operator for lower and upper bounds. The different directions of
+                    # upper and lower bounds are considered with `sign_`.
+                    deviation = max(deviation,
+                                    sign_ *
+                                    (v - variable_bounds[key][i, j, k, element]))
+                end
+            end
+            idp_bounds_delta_local[key] = deviation
+        end
+    end
     if positivity
         for v in limiter.positivity_variables_cons
             key = Symbol(string(v), "_min")
