@@ -69,10 +69,10 @@
 # - Execute the following commands to install all mentioned packages. Please note that the
 #   installation process involves downloading and precompiling the source code, which may take
 #   some time depending on your machine.
-#   ```julia
+#   ````julia
 #   import Pkg
 #   Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Plots", "Trixi"])
-#   ```
+#   ````
 # - On Windows, the firewall may request permission to install packages.
 
 # Besides Trixi.jl you have now installed additional packages:
@@ -136,10 +136,10 @@
 
 # Start Julia in a terminal and execute the following code:
 
-# ```julia
+# ````julia
 # using Trixi, OrdinaryDiffEq
 # trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
-# ```
+# ````
 using Trixi, OrdinaryDiffEqLowStorageRK #hide #md
 trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")); #hide #md
 
@@ -190,14 +190,14 @@ get_examples()
 
 # - Open the downloaded file `elixir_euler_ec.jl` with a text editor.
 # - Go to the line with the following code:
-#   ```julia
+#   ````julia
 #   initial_condition = initial_condition_weak_blast_wave
-#   ```
+#   ````
 #   Here, [`initial_condition_weak_blast_wave`](@ref) is used as the initial condition.
 # - Comment out the line using the `#` symbol:
-#   ```julia
+#   ````julia
 #   # initial_condition = initial_condition_weak_blast_wave
-#   ```
+#   ````
 # - Now you can create your own initial conditions. Add the following code after the
 #   commented line:
 
@@ -214,12 +214,12 @@ nothing; #hide #md
 
 # - Execute the following code one more time, but instead of `path/to/file` paste the path to the
 #   `elixir_euler_ec.jl` file that you just edited.
-#   ```julia
+#   ````julia
 #   using Trixi
 #   trixi_include(path/to/file);
 #   using Plots
 #   plot(sol)
-#   ```
+#   ````
 # Then you will obtain a new solution from running the simulation with a different initial
 # condition.
 
@@ -233,14 +233,14 @@ p4 = plot(pd["p"], clim = (10, 30)) #hide #md
 plot(p1, p2, p3, p4) #hide #md
 
 # To get exactly the same picture execute the following.
-# ```julia
+# ````julia
 # pd = PlotData2D(sol)
 # p1 = plot(pd["rho"])
 # p2 = plot(pd["v1"], clim=(0.05, 0.15))
 # p3 = plot(pd["v2"], clim=(0.15, 0.25))
 # p4 = plot(pd["p"], clim=(10, 30))
 # plot(p1, p2, p3, p4)
-# ```
+# ````
 
 # Feel free to make further changes to the initial condition to observe different solutions.
 

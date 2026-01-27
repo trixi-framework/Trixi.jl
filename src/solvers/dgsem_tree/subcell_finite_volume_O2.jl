@@ -63,13 +63,13 @@ Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](
 The supplied `limiter` governs the choice of slopes given the nodal values
 `u_ll`, `u_lr`, `u_rl`, and `u_rr` at the (Gauss-Lobatto Legendre) nodes.
 
-**Symmetric ** total-Variation-Diminishing (TVD) choices for the limiter are
+**Symmetric** total-Variation-Diminishing (TVD) choices for the limiter are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
     4) [`vanleer`](@ref)
     5) [`koren_symmetric`](@ref)
-**Asymmetric** limiters are also available, e.g.,
+**Asymmetric** TVD limiters are also available, e.g.,
     1) [`koren`](@ref) for positive (right-going) velocities
     2) [`koren_flipped`](@ref) for negative (left-going) velocities
 
@@ -127,7 +127,7 @@ Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](
 The supplied `limiter` governs the choice of slopes given the nodal values
 `u_ll`, `u_lr`, `u_rl`, and `u_rr` at the (Gauss-Lobatto Legendre) nodes.
 
-**Symmetric ** total-Variation-Diminishing (TVD) choices for the limiter are
+**Symmetric** total-Variation-Diminishing (TVD) choices for the limiter are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)

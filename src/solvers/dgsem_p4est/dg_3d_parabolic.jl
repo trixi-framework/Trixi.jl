@@ -908,15 +908,13 @@ function calc_gradient_surface_integral!(gradients,
                                          mesh::P4estMesh{3}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
     @unpack contravariant_vectors = cache.elements
 
-    # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg), m in eachnode(dg)
             for v in eachvariable(equations_parabolic)
@@ -932,7 +930,8 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, m, 1,
                                                                      element] *
-                                                 factor_1 * normal_direction[dim])
+                                                 factor *
+                                                 normal_direction[dim])
 
                     # surface at +x
                     normal_direction = get_normal_direction(2, contravariant_vectors,
@@ -944,7 +943,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, m, 2,
                                                                               element] *
-                                                          factor_2 *
+                                                          factor *
                                                           normal_direction[dim])
 
                     # surface at -y
@@ -957,7 +956,8 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, m, 3,
                                                                      element] *
-                                                 factor_1 * normal_direction[dim])
+                                                 factor *
+                                                 normal_direction[dim])
 
                     # surface at +y
                     normal_direction = get_normal_direction(4, contravariant_vectors,
@@ -969,7 +969,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, m, 4,
                                                                               element] *
-                                                          factor_2 *
+                                                          factor *
                                                           normal_direction[dim])
 
                     # surface at -z
@@ -982,7 +982,8 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, m, 5,
                                                                      element] *
-                                                 factor_1 * normal_direction[dim])
+                                                 factor *
+                                                 normal_direction[dim])
 
                     # surface at +z
                     normal_direction = get_normal_direction(6, contravariant_vectors,
@@ -994,7 +995,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, m, 6,
                                                                               element] *
-                                                          factor_2 *
+                                                          factor *
                                                           normal_direction[dim])
                 end
             end
