@@ -296,6 +296,10 @@ the volume integral.
 the amount of the subcell FV added in. This can be used to add shock capturing-like 
 behavior. 
 
+The use of `VolumeIntegralEntropyCorrection` requires either
+    `entropy_potential(u, orientation, equations)` for TreeMesh, or
+    `entropy_potential(u, normal_direction, equations)` for other mesh types
+to be defined. 
 """
 struct VolumeIntegralEntropyCorrection{VolumeFluxDG, VolumeFluxFV, Indicator} <:
        AbstractVolumeIntegralShockCapturing
