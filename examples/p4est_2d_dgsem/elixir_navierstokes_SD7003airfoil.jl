@@ -64,11 +64,11 @@ velocity_bc_airfoil = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
 heat_bc = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_airfoil = BoundaryConditionNavierStokesWall(velocity_bc_airfoil, heat_bc)
 
-boundary_conditions_hyp = Dict(:FarField => boundary_condition_free_stream,
-                               :Airfoil => boundary_condition_slip_wall)
+boundary_conditions_hyp = (; FarField = boundary_condition_free_stream,
+                            Airfoil = boundary_condition_slip_wall)
 
-boundary_conditions_para = Dict(:FarField => boundary_condition_free_stream,
-                                :Airfoil => boundary_condition_airfoil)
+boundary_conditions_para = (; FarField = boundary_condition_free_stream,
+                             Airfoil = boundary_condition_airfoil)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
