@@ -351,4 +351,12 @@ end
     rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
     return rho_e
 end
+
+@inline function entropy_potential(u, orientation::Int, equations::NonIdealCompressibleEulerEquations1D)
+    eos = equations.equation_of_state
+    V, v1, T = cons2prim(u, equations)
+    p = pressure(V, T, eos)
+    return p * v1 / T
+end
+
 end # @muladd
