@@ -402,9 +402,9 @@ function print_boundary_conditions(io,
                                    semi::SemiHypMeshBCSolver{<:Any,
                                                              <:UnstructuredSortedBoundaryTypes})
     @unpack boundary_conditions = semi
-    @unpack boundary_dictionary = boundary_conditions
-    summary_line(io, "boundary conditions", length(boundary_dictionary))
-    for (boundary_name, boundary_condition) in boundary_dictionary
+    @unpack boundary_conditions = boundary_conditions
+    summary_line(io, "boundary conditions", length(boundary_conditions))
+    for (boundary_name, boundary_condition) in pairs(boundary_conditions)
         summary_line(increment_indent(io), boundary_name, typeof(boundary_condition))
     end
 end

@@ -92,7 +92,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     _boundary_indices = Vector{Any}(nothing, N)
     for j in 1:N
         indices_for_current_type = Int[]
-        for (test_name, test_condition) in boundary_conditions
+        for (test_name, test_condition) in pairs(boundary_conditions)
             temp_indices = findall(x -> x === test_name, cache.boundaries.name)
             if test_condition === boundary_condition_types[j]
                 indices_for_current_type = vcat(indices_for_current_type, temp_indices)
@@ -113,7 +113,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     boundary_types_container.boundary_indices = Tuple(_boundary_indices)
 
     # Store boundary indices per symbol (required for force computations, for instance)
-    for (symbol, _) in boundary_conditions
+    for (symbol, _) in pairs(boundary_conditions)
         indices = findall(x -> x === symbol, cache.boundaries.name)
         # Store the indices in `boundary_symbol_indices` dictionary
         boundary_types_container.boundary_symbol_indices[symbol] = sort!(indices)
