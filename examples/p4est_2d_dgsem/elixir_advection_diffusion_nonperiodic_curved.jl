@@ -17,7 +17,7 @@ equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 #   [DOI](https://doi.org/10.1007/978-3-319-41640-3_6).
 function initial_condition_eriksson_johnson(x, t, equations)
     l = 4
-    epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
+    epsilon = diffusivity() # NOTE: this requires epsilon <= 1/16 due to sqrt
     lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)

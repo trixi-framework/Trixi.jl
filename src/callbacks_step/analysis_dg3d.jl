@@ -267,7 +267,8 @@ end
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                T8codeMesh{3}},
-                   equations, dg::DG, cache; normalize = true) where {Func}
+                   equations, dg::Union{DGSEM, FDSBP}, cache;
+                   normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, k, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, k, element)
@@ -277,8 +278,7 @@ end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                   equations, equations_parabolic,
-                   dg::DGSEM,
+                   equations, equations_parabolic, dg::DGSEM,
                    cache, cache_parabolic; normalize = true) where {Func}
     gradients_x, gradients_y, gradients_z = cache_parabolic.viscous_container.gradients
     integrate_via_indices(u, mesh, equations, dg, cache;
@@ -298,13 +298,13 @@ end
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},
-                 equations, dg::DG, cache)
+                 equations, dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, k, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         du_node = get_node_vars(du, equations, dg, i, j, k, element)
-        dot(cons2entropy(u_node, equations), du_node)
+        return dot(cons2entropy(u_node, equations), du_node)
     end
 end
 
@@ -329,7 +329,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
                      derivative_matrix[k, l] * B_ijl[3])
         end
         divb *= cache.elements.inverse_jacobian[element]
-        divb^2
+        return divb^2
     end |> sqrt
 end
 
@@ -367,7 +367,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
                      (Ja31 * B_ijl[1] + Ja32 * B_ijl[2] + Ja33 * B_ijl[3]))
         end
         divb *= cache.elements.inverse_jacobian[i, j, k, element]
-        divb^2
+        return divb^2
     end |> sqrt
 end
 

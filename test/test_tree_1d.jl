@@ -52,6 +52,9 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Maxwell
     include("test_tree_1d_maxwell.jl")
 
+    # Linear elasticity
+    include("test_tree_1d_linear_elasticity.jl")
+
     # Passive tracers
     include("test_tree_1d_passive_tracers.jl")
 end
@@ -189,6 +192,7 @@ end
                                   summary_callback = TrivialCallback(),
                                   analysis_callback = TrivialCallback(),
                                   alive_callback = TrivialCallback())
+                    return nothing
                 end
             end
             output = read(fname, String)
@@ -205,10 +209,10 @@ end
     @testset "compressible Euler" begin
         eqn = CompressibleEulerEquations1D(1.4)
 
-        @test isapprox(Trixi.entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
+        @test isapprox(entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
                        1.9740810260220094)
-        @test isapprox(Trixi.entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
-        @test isapprox(Trixi.entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+        @test isapprox(entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+        @test isapprox(entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
 
         @test isapprox(energy_total([1.0, 2.0, 20.0], eqn), 20.0)
         @test isapprox(energy_kinetic([1.0, 2.0, 20.0], eqn), 2.0)
@@ -270,7 +274,7 @@ end
         x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
         scalar = sin(x0)
         advection_velocity = 2 + cos(x[1])
-        SVector(scalar, advection_velocity)
+        return SVector(scalar, advection_velocity)
     end
 
     # Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries

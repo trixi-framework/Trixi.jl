@@ -8,13 +8,6 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-# you can either use a single function to impose the BCs weakly in all
-# 1*ndims == 2 directions or you can pass a tuple containing BCs for
-# each direction
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (x_neg = boundary_condition,
-                       x_pos = boundary_condition)
-
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
@@ -30,6 +23,16 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 10_000,
                 periodicity = false)
+
+# you can either use a single function to impose the BCs weakly in all
+# 2*ndims == 2 directions or you can pass a tuple containing BCs for
+# each direction
+# Assign a single boundary condition to all boundaries
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+# Alternatively, you can use
+# boundary_conditions = (x_neg = boundary_condition,
+#                        x_pos = boundary_condition)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test,

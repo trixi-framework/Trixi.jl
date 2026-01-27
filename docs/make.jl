@@ -90,6 +90,7 @@ files = [
     "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",
     "Parabolic terms" => "parabolic_terms.jl",
     "Adding new parabolic terms" => "adding_new_parabolic_terms.jl",
+    "Adding parabolic source terms" => "parabolic_source_terms.jl",
     # Topic: meshes
     "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
@@ -182,4 +183,7 @@ makedocs(
 deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
            deploy_repo = "github.com/trixi-framework/TrixiDocumentation",
            devbranch = "main",
-           push_preview = true)
+           # Only push previews if all the relevant environment variables are non-empty.
+           push_preview = all(!isempty,
+                              (get(ENV, "GITHUB_TOKEN", ""),
+                               get(ENV, "DOCUMENTER_KEY", ""))))

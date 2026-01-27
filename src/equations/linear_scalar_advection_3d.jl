@@ -20,11 +20,11 @@ struct LinearScalarAdvectionEquation3D{RealT <: Real} <:
 end
 
 function LinearScalarAdvectionEquation3D(a::NTuple{3, <:Real})
-    LinearScalarAdvectionEquation3D(SVector(a))
+    return LinearScalarAdvectionEquation3D(SVector(a))
 end
 
 function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
-    LinearScalarAdvectionEquation3D(SVector(a1, a2, a3))
+    return LinearScalarAdvectionEquation3D(SVector(a1, a2, a3))
 end
 
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = ("scalar",)
@@ -188,25 +188,35 @@ function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
     end
 end
 
+"""
+    have_constant_speed(::LinearScalarAdvectionEquation3D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = True()
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation3D)
     return abs.(equation.advection_velocity)
 end
 
-# Convert conservative variables to primitive
+# Convert conservative variables to primitive and vice-versa
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation3D) = u
+@inline prim2cons(u, equation::LinearScalarAdvectionEquation3D) = u
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
 
-# Calculate entropy for a conservative state `cons`
+# Calculate entropy for a conservative state `u`
 @inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation3D) = entropy(u[1], equation)
 
-# Calculate total energy for a conservative state `cons`
+# Calculate total energy for a conservative state `u`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation3D)
-    energy_total(u[1], equation)
+    return energy_total(u[1], equation)
 end
 end # @muladd

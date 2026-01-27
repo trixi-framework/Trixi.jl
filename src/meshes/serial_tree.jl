@@ -26,6 +26,9 @@
 # way. Also, depth-first ordering *might* not by guaranteed during
 # refinement/coarsening operations.
 mutable struct SerialTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
+    const capacity::Int
+    length::Int
+
     parent_ids::Vector{Int}
     child_ids::Matrix{Int}
     neighbor_ids::Matrix{Int}
@@ -33,38 +36,29 @@ mutable struct SerialTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
     coordinates::Matrix{RealT}
     original_cell_ids::Vector{Int}
 
-    capacity::Int
-    length::Int
-    dummy::Int
-
     center_level_0::SVector{NDIMS, RealT}
     length_level_0::RealT
     periodicity::NTuple{NDIMS, Bool}
 
     function SerialTree{NDIMS, RealT}(capacity::Integer) where {NDIMS, RealT <: Real}
-        # Verify that NDIMS is an integer
         @assert NDIMS isa Integer
 
-        # Create instance
-        t = new()
+        parent_ids = fill(typemin(Int), capacity + 1)
+        child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
+        neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
+        levels = fill(typemin(Int), capacity + 1)
+        coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1)
+        original_cell_ids = fill(typemin(Int), capacity + 1)
 
-        # Initialize fields with defaults
-        # Note: length as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
-        t.parent_ids = fill(typemin(Int), capacity + 1)
-        t.child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
-        t.neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
-        t.levels = fill(typemin(Int), capacity + 1)
-        t.coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1) # `NaN` is of type Float64
-        t.original_cell_ids = fill(typemin(Int), capacity + 1)
+        center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
+        length_level_0 = convert(RealT, NaN)
+        periodicity = ntuple(_ -> false, NDIMS)
 
-        t.capacity = capacity
-        t.length = 0
-        t.dummy = capacity + 1
-
-        t.center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
-        t.length_level_0 = convert(RealT, NaN)
-
-        return t
+        return new(capacity, 0, # length
+                   parent_ids, child_ids, neighbor_ids,
+                   levels, coordinates, original_cell_ids,
+                   center_level_0, length_level_0,
+                   periodicity)
     end
 end
 
@@ -87,11 +81,11 @@ end
 # Constructors accepting a single number as center (as opposed to an array) for 1D
 function SerialTree{1, RealT}(cap::Int, center::RealT, len::RealT,
                               periodicity = true) where {RealT <: Real}
-    SerialTree{1, RealT}(cap, [center], len, periodicity)
+    return SerialTree{1, RealT}(cap, [center], len, periodicity)
 end
 function SerialTree{1}(cap::Int, center::RealT, len::RealT,
                        periodicity = true) where {RealT <: Real}
-    SerialTree{1, RealT}(cap, [center], len, periodicity)
+    return SerialTree{1, RealT}(cap, [center], len, periodicity)
 end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
@@ -152,10 +146,10 @@ function Base.show(io::IO, ::MIME"text/plain", t::SerialTree)
     println(io, "t.original_cell_ids[1:l] = $(t.original_cell_ids[1:l])")
     println(io, "t.capacity = $(t.capacity)")
     println(io, "t.length = $(t.length)")
-    println(io, "t.dummy = $(t.dummy)")
     println(io, "t.center_level_0 = $(t.center_level_0)")
     println(io, "t.length_level_0 = $(t.length_level_0)")
     println(io, '*'^20)
+    return nothing
 end
 
 # Set information for child cell `child_id` based on parent cell `cell_id` (except neighbors)
@@ -205,8 +199,8 @@ function raw_copy!(target::SerialTree, source::SerialTree, first::Int, last::Int
     copy_data!(target.levels, source.levels, first, last, destination)
     copy_data!(target.coordinates, source.coordinates, first, last, destination,
                ndims(target))
-    copy_data!(target.original_cell_ids, source.original_cell_ids, first, last,
-               destination)
+    return copy_data!(target.original_cell_ids, source.original_cell_ids, first, last,
+                      destination)
 end
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
@@ -219,6 +213,6 @@ function reset_data_structures!(t::SerialTree{NDIMS, RealT}) where {NDIMS, RealT
     t.coordinates = Matrix{RealT}(undef, NDIMS, t.capacity + 1)
     t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
 
-    invalidate!(t, 1, capacity(t) + 1)
+    return invalidate!(t, 1, capacity(t) + 1)
 end
 end # @muladd

@@ -92,17 +92,17 @@ end
 # Convenience method to copy a single element
 function Trixi.copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
                      destination::Int)
-    Trixi.copy!(target, source, from, from, destination)
+    return Trixi.copy!(target, source, from, from, destination)
 end
 
 # Convenience method for copies within a single container
 function Trixi.copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-    Trixi.copy!(c, c, first, last, destination)
+    return Trixi.copy!(c, c, first, last, destination)
 end
 
 # Convenience method for copying a single element within a single container
 function Trixi.copy!(c::AbstractContainer, from::Int, destination::Int)
-    Trixi.copy!(c, c, from, from, destination)
+    return Trixi.copy!(c, c, from, from, destination)
 end
 
 # Move elements in a way that preserves connectivity.
@@ -136,7 +136,7 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
     return c
 end
 function move!(c::AbstractContainer, from::Int, destination::Int)
-    move!(c, from, from, destination)
+    return move!(c, from, from, destination)
 end
 
 # Default implementation for moving a single element
@@ -147,34 +147,6 @@ end
 # Default implementation for invalidating a single element
 function invalidate!(c::AbstractContainer, id::Int)
     return invalidate!(c, id, id)
-end
-
-# Swap two elements in a container while preserving element connectivity.
-function swap!(c::AbstractContainer, a::Int, b::Int)
-    @assert 1<=a<=length(c) "a out of range"
-    @assert 1<=b<=length(c) "b out of range"
-
-    # Return if swap would be a no-op
-    if a == b
-        return c
-    end
-
-    # Move a to dummy location
-    raw_copy!(c, a, c.dummy)
-    move_connectivity!(c, a, c.dummy)
-
-    # Move b to a
-    raw_copy!(c, b, a)
-    move_connectivity!(c, b, a)
-
-    # Move from dummy location to b
-    raw_copy!(c, c.dummy, b)
-    move_connectivity!(c, c.dummy, b)
-
-    # Invalidate dummy to be sure
-    invalidate!(c, c.dummy)
-
-    return c
 end
 
 # Insert blank elements in container, shifting the following elements back.
@@ -209,25 +181,6 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
     return c
 end
 
-# Erase elements from container, deleting their connectivity and then invalidating their data.
-# TODO: Shall we extend Base.deleteat! or Base.delete! ?
-function erase!(c::AbstractContainer, first::Int, last::Int)
-    @assert 1<=first<=length(c) "First cell out of range"
-    @assert 1<=last<=length(c) "Last cell out of range"
-
-    # Return if eraseure would be a no-op
-    if last < first
-        return c
-    end
-
-    # Delete connectivity and invalidate cells
-    delete_connectivity!(c, first, last)
-    invalidate!(c, first, last)
-
-    return c
-end
-erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
-
 # Remove cells and shift existing cells forward to close the gap
 function remove_shift!(c::AbstractContainer, first::Int, last::Int)
     @assert 1<=first<=length(c) "First cell out of range"
@@ -257,44 +210,6 @@ function remove_shift!(c::AbstractContainer, first::Int, last::Int)
 end
 remove_shift!(c::AbstractContainer, id::Int) = remove_shift!(c, id, id)
 
-# Remove cells and fill gap with cells from the end of the container (to reduce copy operations)
-function remove_fill!(c::AbstractContainer, first::Int, last::Int)
-    @assert 1<=first<=length(c) "First cell out of range"
-    @assert 1<=last<=length(c) "Last cell out of range"
-
-    # Return if removal would be a no-op
-    if last < first
-        return c
-    end
-
-    # Delete connectivity of cells to be removed and then invalidate them
-    delete_connectivity!(c, first, last)
-    invalidate!(c, first, last)
-
-    # Copy cells from end (unless last is already the last cell)
-    count = last - first + 1
-    if last < length(c)
-        move!(c, max(length(c) - count + 1, last + 1), length(c), first)
-    end
-
-    # Reduce length
-    c.length -= count
-
-    return c
-end
-
-# Reset container to zero-length and with a new capacity
-function reset!(c::AbstractContainer, capacity::Int)
-    @assert capacity >= 0
-
-    c.capacity = capacity
-    c.length = 0
-    c.dummy = capacity + 1
-    reset_data_structures!(c)
-
-    return c
-end
-
 # Invalidate all elements and set length to zero.
 function clear!(c::AbstractContainer)
     invalidate!(c)
@@ -305,23 +220,25 @@ end
 
 # Helpful overloads for `raw_copy`
 function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-    raw_copy!(c, c, first, last, destination)
+    return raw_copy!(c, c, first, last, destination)
 end
 function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
                    destination::Int)
-    raw_copy!(target, source, from, from, destination)
+    return raw_copy!(target, source, from, from, destination)
 end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
-    raw_copy!(c, c, from, from, destination)
+    return raw_copy!(c, c, from, from, destination)
 end
 
 # Trixi storage types must implement these two Adapt.jl methods
 function Adapt.adapt_structure(to, c::AbstractContainer)
     error("Interface: Must implement Adapt.adapt_structure(to, ::$(typeof(c)))")
+    return nothing
 end
 
 function Adapt.parent_type(C::Type{<:AbstractContainer})
     error("Interface: Must implement Adapt.parent_type(::Type{$C}")
+    return nothing
 end
 
 function Adapt.unwrap_type(C::Type{<:AbstractContainer})
@@ -340,23 +257,16 @@ end
 
 function storage_type(T::Type)
     error("Interface: Must implement storage_type(::Type{$T}")
+    return nothing
 end
 
 function storage_type(::Type{<:Array})
-    Array
+    return Array
 end
 
 function storage_type(C::Type{<:AbstractContainer})
     return storage_type(Adapt.unwrap_type(C))
 end
-
-abstract type AbstractTreeBoundaryContainer <: AbstractContainer end
-
-@inline nvariables(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 2)
-# Return number of boundaries
-@inline nboundaries(boundaries::AbstractTreeBoundaryContainer) = length(boundaries.orientations)
-# For 2D and 3D. 1D Hard-coded to 1
-@inline nnodes(boundaries::AbstractTreeBoundaryContainer) = size(boundaries.u, 3)
 
 # backend handling
 """
@@ -413,39 +323,39 @@ struct TrixiAdaptor{Storage, RealT} end
 Adapt `x` to the storage type `Storage` and real type `RealT`.
 """
 function trixi_adapt(Storage, RealT, x)
-    adapt(TrixiAdaptor{Storage, RealT}(), x)
+    return adapt(TrixiAdaptor{Storage, RealT}(), x)
 end
 
 # Custom rules
 # 1. handling of StaticArrays
 function Adapt.adapt_storage(::TrixiAdaptor{<:Any, RealT},
                              x::StaticArrays.StaticArray) where {RealT}
-    StaticArrays.similar_type(x, RealT)(x)
+    return StaticArrays.similar_type(x, RealT)(x)
 end
 
 # 2. Handling of Arrays
 function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
                              x::AbstractArray{T}) where {Storage, RealT,
                                                          T <: AbstractFloat}
-    adapt(Storage{RealT}, x)
+    return adapt(Storage{RealT}, x)
 end
 
 function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
                              x::AbstractArray{T}) where {Storage, RealT,
                                                          T <: StaticArrays.StaticArray}
-    adapt(Storage{StaticArrays.similar_type(T, RealT)}, x)
+    return adapt(Storage{StaticArrays.similar_type(T, RealT)}, x)
 end
 
 # Our threaded cache contains MArray, it is unlikely that we would want to adapt those
 function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
                              x::Array{T}) where {Storage, RealT,
                                                  T <: StaticArrays.MArray}
-    adapt(Array{StaticArrays.similar_type(T, RealT)}, x)
+    return adapt(Array{StaticArrays.similar_type(T, RealT)}, x)
 end
 
 function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
                              x::AbstractArray) where {Storage, RealT}
-    adapt(Storage, x)
+    return adapt(Storage, x)
 end
 
 # 3. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again

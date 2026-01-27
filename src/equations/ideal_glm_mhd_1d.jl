@@ -8,8 +8,30 @@
 @doc raw"""
     IdealGlmMhdEquations1D(gamma)
 
-The ideal compressible GLM-MHD equations for an ideal gas with ratio of
-specific heats `gamma` in one space dimension.
+The ideal compressible GLM-MHD equations
+```math
+\frac{\partial}{\partial t}
+\begin{pmatrix}
+\rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\ \rho e \\ B_1 \\ B_2 \\ B_3
+\end{pmatrix}
++
+\frac{\partial}{\partial x}
+\begin{pmatrix}
+\rho v_1 \\ \rho v_1^2 + p + \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - B_1^2 \\ \rho v_1 v_2 - B_1 B_2 \\ \rho v_1 v_3 - B_1 B_3
+\\ (\frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 + \frac{\gamma p}{\gamma - 1} + \Vert \mathbf{B} \Vert_2 ^2) v_1 - B_1 (\mathbf{v} \cdot \mathbf{B})
+\\ 0 \\ v_1 B_2 - v_2 B_1 \\ v_1 B_3 - v_3 B_1
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0
+\end{pmatrix}
+```
+for an ideal gas in one space dimension.
+Here, ``\mathbf{v}`` is the velocity, ``\mathbf{B}`` the magnetic field, ``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 \right)
+```
+the pressure and ``\gamma`` the heat capacity ratio.
 
 !!! note
     There is no divergence cleaning variable `psi` because the divergence-free constraint
@@ -21,19 +43,19 @@ struct IdealGlmMhdEquations1D{RealT <: Real} <: AbstractIdealGlmMhdEquations{1, 
 
     function IdealGlmMhdEquations1D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations1D) = False()
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations1D)
-    ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3")
+    return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3")
 end
 function varnames(::typeof(cons2prim), ::IdealGlmMhdEquations1D)
-    ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3")
+    return ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3")
 end
 function default_analysis_integrals(::IdealGlmMhdEquations1D)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+    return (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
 """
@@ -572,7 +594,7 @@ end
 end
 
 @inline function density(u, equations::IdealGlmMhdEquations1D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
+    rho = u[1]
     return rho
 end
 
@@ -590,20 +612,33 @@ end
     return v
 end
 
+@doc raw"""
+    pressure(u, equations::IdealGlmMhdEquations1D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2} 
+  \left[\rho \Vert v \Vert_2^2  + \Vert B \Vert_2^2 \right] \right)
+\end{aligned}
+```
+"""
 @inline function pressure(u, equations::IdealGlmMhdEquations1D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2))
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 *
+                 ((rho_v1^2 + rho_v2^2 + rho_v3^2) / rho +
+                  B1^2 + B2^2 + B3^2))
     return p
 end
 
 @inline function density_pressure(u, equations::IdealGlmMhdEquations1D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2))
-    return rho * p
+    rho_times_p = (equations.gamma - 1) * (rho * rho_e -
+                   0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2 +
+                    rho * (B1^2 + B2^2 + B3^2)))
+    return rho_times_p
 end
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
@@ -700,7 +735,15 @@ as given by
     return v1_roe, c_f_roe
 end
 
-# Calculate thermodynamic entropy for a conservative state `cons`
+@doc raw"""
+    entropy_thermodynamic(cons, equations::AbstractIdealGlmMhdEquations)
+
+Calculate thermodynamic entropy for a conservative state `cons` as
+
+```math
+s = \log(p) - \gamma \log(\rho)
+```
+"""
 @inline function entropy_thermodynamic(cons, equations::IdealGlmMhdEquations1D)
     # Pressure
     p = (equations.gamma - 1) *
@@ -714,14 +757,28 @@ end
     return s
 end
 
-# Calculate mathematical entropy for a conservative state `cons`
+@doc raw"""
+    entropy_math(cons, equations::AbstractIdealGlmMhdEquations)
+
+Calculate mathematical entropy for a conservative state `cons` as
+```math
+S = -\frac{\rho s}{\gamma - 1}
+```
+where `s` is the thermodynamic entropy calculated by
+[`entropy_thermodynamic(cons, equations::AbstractIdealGlmMhdEquations)`](@ref).
+"""
 @inline function entropy_math(cons, equations::IdealGlmMhdEquations1D)
     S = -entropy_thermodynamic(cons, equations) * cons[1] / (equations.gamma - 1)
 
     return S
 end
 
-# Default entropy is the mathematical entropy
+"""
+    entropy(cons, equations::AbstractIdealGlmMhdEquations)
+
+Default entropy is the mathematical entropy
+[`entropy_math(cons, equations::AbstractIdealGlmMhdEquations)`](@ref).
+"""
 @inline entropy(cons, equations::IdealGlmMhdEquations1D) = entropy_math(cons, equations)
 
 # Calculate total energy for a conservative state `cons`
@@ -732,13 +789,18 @@ end
     return 0.5f0 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
 end
 
-# Calculate the magnetic energy for a conservative state `cons'.
+# Calculate the magnetic energy for a conservative state `cons`.
 #  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
 @inline function energy_magnetic(cons, ::IdealGlmMhdEquations1D)
     return 0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end
 
-# Calculate internal energy for a conservative state `cons`
+"""
+    energy_internal(cons, equations::AbstractIdealGlmMhdEquations)
+
+Calculate internal energy for a conservative state `cons` as the difference
+between total energy and kinetic + magnetic energies.
+"""
 @inline function energy_internal(cons, equations::IdealGlmMhdEquations1D)
     return (energy_total(cons, equations)
             -
@@ -747,7 +809,7 @@ end
             energy_magnetic(cons, equations))
 end
 
-# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
+# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons`
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations1D)
     return (cons[2] * cons[6] + cons[3] * cons[7] + cons[4] * cons[8]) / cons[1]
 end

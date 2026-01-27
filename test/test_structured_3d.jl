@@ -28,7 +28,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_free_stream.jl"),
                         l2=[1.2908196366970896e-14],
                         linf=[1.0262901639634947e-12],
-                        atol=8e-13,)
+                        atol=8e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -147,6 +147,28 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
+                        l2=[
+                            0.046860892952192236,
+                            0.04269641872975366,
+                            0.04269641872975368,
+                            0.042696418729753556,
+                            0.1443421265167028
+                        ],
+                        linf=[
+                            0.42250001347847244,
+                            0.2975151811754566,
+                            0.29751518117545483,
+                            0.29751518117545617,
+                            0.3982472383589144
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
@@ -163,7 +185,7 @@ end
                             0.19313636558790004,
                             0.707563913727584
                         ],
-                        tspan=(0.0, 0.25),)
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -247,7 +269,7 @@ end
                             0.02116105422516923, 0.03419432640106229,
                             0.020324891223351533],
                         surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
-                                      flux_nonconservative_powell),)
+                                      flux_nonconservative_powell))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -265,7 +287,7 @@ end
                             0.9620943261873176, 0.181632512204141,
                             0.15995711137712265, 0.1791807940466812,
                             0.015138421396338456],
-                        tspan=(0.0, 0.25),)
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

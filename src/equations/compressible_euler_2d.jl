@@ -44,12 +44,12 @@ struct CompressibleEulerEquations2D{RealT <: Real} <:
 
     function CompressibleEulerEquations2D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations2D)
-    ("rho", "rho_v1", "rho_v2", "rho_e")
+    return ("rho", "rho_v1", "rho_v2", "rho_e")
 end
 varnames(::typeof(cons2prim), ::CompressibleEulerEquations2D) = ("rho", "v1", "v2", "p")
 
@@ -99,6 +99,14 @@ end
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquations2D)
@@ -2205,7 +2213,7 @@ end
 
 # Default entropy is the mathematical entropy
 @inline function entropy(cons, equations::CompressibleEulerEquations2D)
-    entropy_math(cons, equations)
+    return entropy_math(cons, equations)
 end
 
 # Calculate total energy for a conservative state `cons`
@@ -2224,8 +2232,7 @@ end
 
 # State validation for Newton-bisection method of subcell IDP limiting
 @inline function Base.isvalid(u, equations::CompressibleEulerEquations2D)
-    p = pressure(u, equations)
-    if u[1] <= 0 || p <= 0
+    if u[1] <= 0 || pressure(u, equations) <= 0
         return false
     end
     return true

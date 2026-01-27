@@ -30,7 +30,7 @@ end
                         # Expected errors are taken from elixir_advection_basic.jl
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
-                        RealT=Float32)
+                        RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -220,7 +220,7 @@ end
                         linf=[0.0015194252169410394],
                         rtol=5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
                         elixir_file="elixir_advection_waving_flag.jl",
-                        restart_file="restart_000000021.h5",)
+                        restart_file="restart_000000021.h5")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -231,7 +231,7 @@ end
                         l2=[7.841217436552029e-15],
                         linf=[1.0857981180834031e-13],
                         elixir_file="elixir_advection_free_stream.jl",
-                        restart_file="restart_000000036.h5",)
+                        restart_file="restart_000000036.h5")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -252,6 +252,29 @@ end
                             0.009326212633131492,
                             0.008372785091578683,
                             0.011242647117379434
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_convergence_implicit_sparse_jacobian.jl with flux_ranocha" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_implicit_sparse_jacobian.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = surface_flux,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)),
+                        tspan=(0.0, 1.0),
+                        l2=[
+                            0.002488034310310255,
+                            0.002537347299714133,
+                            0.002533529761212216,
+                            0.0030150881617191675
+                        ],
+                        linf=[
+                            0.005844630331331979,
+                            0.005507186931414498,
+                            0.005377359689946237,
+                            0.00631648929531492
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -517,6 +540,26 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
+                        l2=[
+                            0.0027535201954222072,
+                            0.0017808463145373606,
+                            0.0017808463145373874,
+                            0.005589356782700206
+                        ],
+                        linf=[
+                            0.010801198634897702,
+                            0.00787469718577416,
+                            0.007874697185775936,
+                            0.02417877751394304
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_vortex_perk4.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_perk4.jl"),
                         l2=[
@@ -708,6 +751,45 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_eulerpolytropic_convergence.jl sparsity detection" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_eulerpolytropic_convergence.jl"),
+                        surface_flux=flux_lax_friedrichs,
+                        tspan=(0.0, 0.0))
+
+    import SparseConnectivityTracer: TracerSparsityDetector,
+                                     jacobian_eltype,
+                                     jacobian_sparsity
+
+    jac_detector = TracerSparsityDetector()
+    # We need to construct the semidiscretization with the correct
+    # sparsity-detection ready datatype, which is retrieved here
+    jac_eltype = jacobian_eltype(real(solver), jac_detector)
+
+    # Semidiscretization for sparsity pattern detection
+    semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
+                                                 initial_condition,
+                                                 solver,
+                                                 source_terms = source_terms_convergence_test,
+                                                 uEltype = jac_eltype) # Need to supply Jacobian element type
+
+    # Call `semidiscretize` to create the ODE problem to have access to the
+    # initial condition based on which the sparsity pattern is computed
+    ode_jac_type = semidiscretize(semi_jac_type, tspan)
+    u0_ode = ode_jac_type.u0
+    du_ode = similar(u0_ode)
+
+    ###############################################################################
+    ### Compute the Jacobian sparsity pattern ###
+
+    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    rhs_wrapped! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+                                                  tspan[1])
+
+    @test_nowarn jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
+end
+
 @trixi_testset "elixir_eulerpolytropic_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_ec.jl"),
                         l2=[
@@ -760,7 +842,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
                         linf=[1.0771947577311836, 1.9143913544309838, 2.149549109115789],
-                        tspan=(0.0, 0.1),)
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -783,7 +865,7 @@ end
                             0.8344372248051408,
                             0.8344372248051408
                         ],
-                        tspan=(0.0, 0.1),)
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

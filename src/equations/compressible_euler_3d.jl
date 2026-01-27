@@ -49,15 +49,15 @@ struct CompressibleEulerEquations3D{RealT <: Real} <:
 
     function CompressibleEulerEquations3D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations3D)
-    ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
+    return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
 end
 function varnames(::typeof(cons2prim), ::CompressibleEulerEquations3D)
-    ("rho", "v1", "v2", "v3", "p")
+    return ("rho", "v1", "v2", "v3", "p")
 end
 
 # Set initial conditions at physical location `x` for time `t`
@@ -106,6 +106,14 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquations3D)
@@ -1783,6 +1791,27 @@ end
     return SVector(w1, w2, w3, w4, w5)
 end
 
+# Transformation from conservative variables u to entropy vector ds_0/du,
+# using the modified specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
+# Note: This is *not* the "conventional" specific entropy s = ln(p / rho^(gamma)).
+@inline function cons2entropy_guermond_etal(u, equations::CompressibleEulerEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = u
+
+    inv_rho = 1 / rho
+    v_square_rho = (rho_v1^2 + rho_v2^2 + rho_v3^2) * inv_rho
+    inv_rho_gammap1 = inv_rho^(equations.gamma + 1)
+
+    # The derivative vector for the modified specific entropy of Guermond et al.
+    w1 = inv_rho_gammap1 *
+         (0.5f0 * (equations.gamma + 1) * v_square_rho - equations.gamma * rho_e)
+    w2 = -rho_v1 * inv_rho_gammap1
+    w3 = -rho_v2 * inv_rho_gammap1
+    w4 = -rho_v3 * inv_rho_gammap1
+    w5 = inv_rho^equations.gamma
+
+    return SVector(w1, w2, w3, w4, w5)
+end
+
 @inline function entropy2cons(w, equations::CompressibleEulerEquations3D)
     # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
     # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
@@ -1872,9 +1901,37 @@ end
     return S
 end
 
+@doc raw"""
+    entropy_guermond_etal(u, equations::CompressibleEulerEquations3D)
+
+Calculate the modified specific entropy of Guermond et al. (2019):
+```math
+s_0 = p * \rho^{-\gamma} / (\gamma-1).
+```
+Note: This is *not* the "conventional" specific entropy ``s = ln(p / \rho^\gamma)``.
+- Guermond at al. (2019)
+  Invariant domain preserving discretization-independent schemes and convex limiting for hyperbolic systems.
+  [DOI: 10.1016/j.cma.2018.11.036](https://doi.org/10.1016/j.cma.2018.11.036)
+"""
+@inline function entropy_guermond_etal(u, equations::CompressibleEulerEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = u
+
+    # Modified specific entropy from Guermond et al. (2019)
+    s = (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho) *
+        (1 / rho)^equations.gamma
+
+    return s
+end
+
+# Transformation from conservative variables u to d(s)/d(u)
+@inline function gradient_conservative(::typeof(entropy_guermond_etal),
+                                       u, equations::CompressibleEulerEquations3D)
+    return cons2entropy_guermond_etal(u, equations)
+end
+
 # Default entropy is the mathematical entropy
 @inline function entropy(cons, equations::CompressibleEulerEquations3D)
-    entropy_math(cons, equations)
+    return entropy_math(cons, equations)
 end
 
 # Calculate total energy for a conservative state `cons`
@@ -1889,5 +1946,13 @@ end
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleEulerEquations3D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
+end
+
+# State validation for Newton-bisection method of subcell IDP limiting
+@inline function Base.isvalid(u, equations::CompressibleEulerEquations3D)
+    if u[1] <= 0 || pressure(u, equations) <= 0
+        return false
+    end
+    return true
 end
 end # @muladd
