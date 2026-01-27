@@ -30,7 +30,7 @@ function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations
 end
 initial_condition = initial_condition_astro_jet
 
-boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_astro_jet),
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition_astro_jet),
                        x_pos = BoundaryConditionDirichlet(initial_condition_astro_jet),
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
@@ -40,7 +40,7 @@ boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_astr
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive) # HLLC needs more shock capturing (alpha_max)
 volume_flux = flux_ranocha # works with Chandrashekar flux as well

@@ -31,7 +31,7 @@ coordinates_max = (2.0, 1.0)
 
 cells_per_dimension = (64, 32)
 
-boundary_conditions = (x_neg = boundary_condition_periodic,
+boundary_conditions = (; x_neg = boundary_condition_periodic,
                        x_pos = boundary_condition_periodic,
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)

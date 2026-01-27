@@ -12,7 +12,7 @@ source_terms = source_terms_convergence_test
 
 # Boundary conditions are specified as a NamedTuple
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (all = boundary_condition,)
+boundary_conditions = (; all = boundary_condition,)
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.

@@ -31,7 +31,7 @@ function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations
 end
 initial_condition = initial_condition_astro_jet
 
-boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_astro_jet),
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition_astro_jet),
                        x_pos = BoundaryConditionDirichlet(initial_condition_astro_jet),
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)

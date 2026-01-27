@@ -38,14 +38,14 @@ mesh = StructuredMesh(cells_per_dimension,
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition),
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
                        x_pos = BoundaryConditionDirichlet(initial_condition),
                        y_neg = BoundaryConditionDirichlet(initial_condition),
                        y_pos = BoundaryConditionDirichlet(initial_condition))

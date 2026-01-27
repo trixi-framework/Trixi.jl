@@ -64,7 +64,8 @@ end
 Trixi.adapt!(mesh, adapt_callback)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = (all = BoundaryConditionDirichlet(initial_condition),))
+                                    boundary_conditions = (;
+                                                           all = BoundaryConditionDirichlet(initial_condition),))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

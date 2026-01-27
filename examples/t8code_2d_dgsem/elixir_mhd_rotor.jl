@@ -82,7 +82,7 @@ mesh = T8codeMesh(mesh_file, 2; polydeg = 4,
                   initial_refinement_level = 1)
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (all = boundary_condition,)
+boundary_conditions = (; all = boundary_condition,)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)

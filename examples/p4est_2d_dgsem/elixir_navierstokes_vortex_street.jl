@@ -53,7 +53,7 @@ bc_freestream = BoundaryConditionDirichlet(initial_condition)
 # Since this mesh is been generated using the symmetry feature of
 # HOHQMesh.jl (https://trixi-framework.github.io/HOHQMesh.jl/stable/tutorials/symmetric_mesh/)
 # the mirrored boundaries are named with a "_R" suffix.
-boundary_conditions = (Circle = boundary_condition_slip_wall, # top half of the cylinder
+boundary_conditions = (; Circle = boundary_condition_slip_wall, # top half of the cylinder
                        Circle_R = boundary_condition_slip_wall, # bottom half of the cylinder
                        Top = bc_freestream,
                        Top_R = bc_freestream, # aka bottom

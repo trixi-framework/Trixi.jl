@@ -72,7 +72,7 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
     # Calculate boundary flux (u_inner is "left" of boundary, u_boundary is "right" of boundary)
     return surface_flux_function(u_inner, u_boundary, orientation, equations)
 end
-boundary_conditions = (x_neg = boundary_condition_periodic,
+boundary_conditions = (; x_neg = boundary_condition_periodic,
                        x_pos = boundary_condition_periodic,
                        y_neg = boundary_condition_noslip_wall,
                        y_pos = boundary_condition_couette)

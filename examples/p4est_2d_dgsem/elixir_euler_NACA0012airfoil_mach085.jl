@@ -67,7 +67,7 @@ mesh = P4estMesh{2}(mesh_file)
     return flux_hll(u_inner, u_boundary, normal_direction, equations)
 end
 
-boundary_conditions = (Left = boundary_condition_subsonic_constant,
+boundary_conditions = (; Left = boundary_condition_subsonic_constant,
                        Right = boundary_condition_subsonic_constant,
                        Top = boundary_condition_subsonic_constant,
                        Bottom = boundary_condition_subsonic_constant,

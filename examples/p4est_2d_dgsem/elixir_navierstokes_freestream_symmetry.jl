@@ -32,7 +32,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (false, true))
 
-boundary_conditions = (x_neg = boundary_condition_slip_wall,
+boundary_conditions = (; x_neg = boundary_condition_slip_wall,
                        x_pos = boundary_condition_slip_wall)
 
 # The "Slip" boundary condition rotates all velocities into tangential direction
