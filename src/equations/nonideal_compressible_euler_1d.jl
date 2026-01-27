@@ -352,11 +352,11 @@ end
     return rho_e
 end
 
-@inline function entropy_potential(u, orientation::Int, equations::NonIdealCompressibleEulerEquations1D)
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
     V, v1, T = cons2prim(u, equations)
     p = pressure(V, T, eos)
     return p * v1 / T
 end
-
 end # @muladd
