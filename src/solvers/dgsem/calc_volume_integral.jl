@@ -12,6 +12,19 @@ function create_cache(mesh, equations,
     return NamedTuple()
 end
 
+function create_cache(mesh, equations,
+                      volume_integral::VolumeIntegralAdaptive,
+                      dg::DG, cache_containers, uEltype)
+    cache_default = create_cache(mesh, equations,
+                                 volume_integral.volume_integral_default,
+                                 dg, cache_containers, uEltype)
+    cache_stabilized = create_cache(mesh, equations,
+                                    volume_integral.volume_integral_stabilized,
+                                    dg, cache_containers, uEltype)
+
+    return (; cache_default..., cache_stabilized...)
+end
+
 # The following `calc_volume_integral!` functions are
 # dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
 
@@ -117,6 +130,68 @@ function calc_volume_integral!(du, u, mesh,
                          # `reconstruction_O2_inner` is needed for limiting effect
                          sc_interface_coords, reconstruction_O2_inner, slope_limiter,
                          alpha_element)
+        end
+    end
+
+    return nothing
+end
+
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
+function entropy_change_reference_element(du, u, element,
+                                          mesh::AbstractMesh{2}, equations, dg, cache)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du) do u, i, j, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        du_node = get_node_vars(du, equations, dg, i, j, element)
+        # Minus sign because of the flipped sign of the volume term in the DG RHS.
+        # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
+        # in `integrate_reference_element`.
+        -dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
+function calc_volume_integral!(du, u, mesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
+                                                                       VolumeIntegralFD,
+                                                                       Indicator},
+                               dg::DGSEM,
+                               cache) where {
+                                             VolumeIntegralFD <:
+                                             VolumeIntegralFluxDifferencing,
+                                             Indicator <: IndicatorEntropyDiffusion}
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    @unpack du_element_threaded = volume_integral.indicator
+
+    @threaded for element in eachelement(dg, cache)
+        # Compute weak form volume integral
+        weak_form_kernel!(du, u, element, mesh,
+                          have_nonconservative_terms, equations,
+                          dg, cache)
+
+        # Compute entropy production of WF volume integral
+        entropy_delta_WF = entropy_change_reference_element(du, u, element,
+                                                            mesh, equations, dg, cache)
+        # Store weak form result
+        du_element_WF = du_element_threaded[Threads.threadid()]
+        @views du_element_WF .= du[.., element]
+
+        # Reset weak form volume integral 
+        du[.., element] .= zero(eltype(du))
+
+        # Recompute using entropy-conservative volume integral
+        flux_differencing_kernel!(du, u, element, mesh,
+                                  have_nonconservative_terms, equations,
+                                  volume_integral_stabilized.volume_flux,
+                                  dg, cache)
+
+        # Compute entropy production of FD volume integral
+        entropy_delta_FD = entropy_change_reference_element(du, u, element,
+                                                            mesh, equations, dg, cache)
+
+        entropy_delta = entropy_delta_WF - entropy_delta_FD
+        if entropy_delta < 0 # Use weak form if it is more stable
+            @views du[.., element] .= du_element_WF
         end
     end
 

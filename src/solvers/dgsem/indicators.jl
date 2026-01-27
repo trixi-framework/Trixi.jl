@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+# Abstract supertype of indicators used for AMR, shock capturing, and
+# adaptive volume-integral selection
 abstract type AbstractIndicator end
 
 function create_cache(typ::Type{IndicatorType},
@@ -270,6 +272,82 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
             "indicator variable" => indicator.variable
         ]
         summary_box(io, "IndicatorMax", setup)
+    end
+end
+
+@doc raw"""
+    IndicatorEntropyDiffusion()
+
+This indicator checks the difference in mathematical [`entropy`](@ref) (``S``) due to the application
+of the weak-form and flux-differencing volume integral. In particular, the indicator computes
+```math
+\Delta S = \dot{S}_\mathrm{WF} - \dot{S}_\mathrm{VI} =
+\int_{\Omega_m} 
+\frac{\partial S}{\partial \boldsymbol{u}}
+\cdot 
+\left[\dot{\boldsymbol u}_\mathrm{WF} - \dot{\boldsymbol u}_\mathrm{VI}\right]
+\mathrm{d} \Omega_m
+```
+for the currently processed element/cell ``m``.
+Here, ``\dot{\boldsymbol u}_\mathrm{WF}`` is the change in the DG right-hand-side
+due to the weak-form volume integral only,
+and ``\dot{\boldsymbol u}_\mathrm{VI}`` is the change in the DG right-hand-side
+due to the flux-differencing volume integral only.
+
+For ``\Delta S < 0`` the weak form volume integral is more entropy-diffusive than the
+flux-differencing volume integral, and thus the weak form update is used.
+Otherwise, the flux-differencing volume integral with proven stability properties
+is used to compute the volume integral in the ``m``-th element/cell.
+
+Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
+the most entropy-diffusive volume integral for every cell/element ``m``.
+
+!!! note
+    This indicator is **not implemented as an AMR indicator**, i.e., it is **not
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
+    for instance.
+
+The logic behind this indicator is similar to the "companion" scheme
+approach proposed in Chapter 5 of
+
+- Carpenter, Fisher, Nielsen, and Frankel (2014)
+  "Entropy Stable Spectral Collocation Schemes for the Navier-Stokes Equations: Discontinuous Interfaces"
+  [DOI: 10.1137/130932193](https://doi.org/10.1137/130932193)
+
+Here, we thus equip the flux-differencing volume integral with a "companion" weak-form
+volume integral.
+"""
+struct IndicatorEntropyDiffusion{dUElementThreaded <: AbstractArray} <:
+       AbstractIndicator
+    du_element_threaded::dUElementThreaded
+
+    function IndicatorEntropyDiffusion(::AbstractEquations{NDIMS, NVARS},
+                                       basis) where {NDIMS, NVARS}
+        uEltype = real(basis)
+        # Required dimensions: Variables + NDIMS (for nodes)
+        AT = Array{uEltype, NDIMS + 1}
+        du_element_threaded = AT[AT(undef, NVARS,
+                                    ntuple(_ -> nnodes(basis), NDIMS)...)
+                                 for _ in 1:Threads.maxthreadid()]
+
+        return new{typeof(du_element_threaded)}(du_element_threaded)
+    end
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyDiffusion)
+    @nospecialize indicator # reduce precompilation time
+
+    print(io, "IndicatorEntropyDiffusion()")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyDiffusion)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = []
+        summary_box(io, "IndicatorEntropyDiffusion", setup)
     end
 end
 end # @muladd
