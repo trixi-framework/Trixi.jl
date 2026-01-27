@@ -2327,7 +2327,8 @@ end
         normal_directions = [SVector(1.0, 0.0), SVector(0.0, 1.0), SVector(0.5, -0.5)]
         for normal_direction in normal_directions
             @test flux(u_ll, normal_direction, equations) isa SVector
-            @test length(flux(u_ll, normal_direction, equations)) == nvariables(equations)
+            @test length(flux(u_ll, normal_direction, equations)) ==
+                  nvariables(equations)
         end
     end
 
