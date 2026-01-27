@@ -24,13 +24,13 @@ end
 initial_condition = uniform_flow_state
 
 boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
-boundary_conditions = Dict(:Body => boundary_condition_uniform_flow,
-                           :Button1 => boundary_condition_slip_wall,
-                           :Button2 => boundary_condition_slip_wall,
-                           :Eye1 => boundary_condition_slip_wall,
-                           :Eye2 => boundary_condition_slip_wall,
-                           :Smile => boundary_condition_slip_wall,
-                           :Bowtie => boundary_condition_slip_wall)
+boundary_conditions = (; Body = boundary_condition_uniform_flow,
+                       Button1 = boundary_condition_slip_wall,
+                       Button2 = boundary_condition_slip_wall,
+                       Eye1 = boundary_condition_slip_wall,
+                       Eye2 = boundary_condition_slip_wall,
+                       Smile = boundary_condition_slip_wall,
+                       Bowtie = boundary_condition_slip_wall)
 
 volume_flux = flux_ranocha
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -38,7 +38,7 @@ volume_flux = flux_ranocha
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 5, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))

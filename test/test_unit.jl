@@ -3039,20 +3039,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition
-
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition)
 
@@ -3061,7 +3047,6 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.x_neg === boundary_condition
     @test semi_named.boundary_conditions.x_pos === boundary_condition
 end
@@ -3079,24 +3064,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition,
-                                    :y_neg => boundary_condition,
-                                    :y_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition
-    @test semi_dict.boundary_conditions.y_neg === boundary_condition
-    @test semi_dict.boundary_conditions.y_pos === boundary_condition
-
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition,
                                  y_neg = boundary_condition,
@@ -3107,7 +3074,6 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.x_neg === boundary_condition
     @test semi_named.boundary_conditions.x_pos === boundary_condition
     @test semi_named.boundary_conditions.y_neg === boundary_condition
@@ -3127,28 +3093,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition,
-                                    :y_neg => boundary_condition,
-                                    :y_pos => boundary_condition,
-                                    :z_neg => boundary_condition,
-                                    :z_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition
-    @test semi_dict.boundary_conditions.y_neg === boundary_condition
-    @test semi_dict.boundary_conditions.y_pos === boundary_condition
-    @test semi_dict.boundary_conditions.z_neg === boundary_condition
-    @test semi_dict.boundary_conditions.z_pos === boundary_condition
-
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition,
                                  y_neg = boundary_condition,
@@ -3161,7 +3105,6 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.x_neg === boundary_condition
     @test semi_named.boundary_conditions.x_pos === boundary_condition
     @test semi_named.boundary_conditions.y_neg === boundary_condition
@@ -3182,20 +3125,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition
-
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition)
 
@@ -3204,7 +3133,6 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.x_neg === boundary_condition
     @test semi_named.boundary_conditions.x_pos === boundary_condition
 end
@@ -3221,24 +3149,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition,
-                                    :y_neg => boundary_condition,
-                                    :y_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition
-    @test semi_dict.boundary_conditions.y_neg === boundary_condition
-    @test semi_dict.boundary_conditions.y_pos === boundary_condition
-
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition,
                                  y_neg = boundary_condition,
@@ -3249,7 +3159,6 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.x_neg === boundary_condition
     @test semi_named.boundary_conditions.x_pos === boundary_condition
     @test semi_named.boundary_conditions.y_neg === boundary_condition
@@ -3268,28 +3177,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition,
-                                    :y_neg => boundary_condition,
-                                    :y_pos => boundary_condition,
-                                    :z_neg => boundary_condition,
-                                    :z_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition
-    @test semi_dict.boundary_conditions.y_neg === boundary_condition
-    @test semi_dict.boundary_conditions.y_pos === boundary_condition
-    @test semi_dict.boundary_conditions.z_neg === boundary_condition
-    @test semi_dict.boundary_conditions.z_pos === boundary_condition
-
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition,
                                  y_neg = boundary_condition,
@@ -3302,7 +3189,6 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.x_neg === boundary_condition
     @test semi_named.boundary_conditions.x_pos === boundary_condition
     @test semi_named.boundary_conditions.y_neg === boundary_condition
@@ -3326,7 +3212,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition,
                                  y_neg = boundary_condition,
@@ -3337,22 +3222,7 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions - P4estMesh stores them in a special sorted structure
     @test semi_named.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
-
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition,
-                                    :y_neg => boundary_condition,
-                                    :y_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions - P4estMesh stores them in a special sorted structure
-    @test semi_dict.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
 end
 
 @timed_testset "P4estMesh 3D" begin
@@ -3370,7 +3240,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition,
                                  y_neg = boundary_condition,
@@ -3383,24 +3252,7 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions - P4estMesh stores them in a special sorted structure
     @test semi_named.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
-
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition,
-                                    :y_neg => boundary_condition,
-                                    :y_pos => boundary_condition,
-                                    :z_neg => boundary_condition,
-                                    :z_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions - P4estMesh stores them in a special sorted structure
-    @test semi_dict.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
 end
 
 @timed_testset "DGMultiMesh" begin
@@ -3423,22 +3275,6 @@ end
 
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict
-    boundary_conditions_dict = Dict(:top => boundary_condition,
-                                    :rest => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          dg,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored (DGMultiMesh uses NamedTuple internally)
-    @test haskey(semi_dict.boundary_conditions, :top)
-    @test haskey(semi_dict.boundary_conditions, :rest)
-    @test semi_dict.boundary_conditions.top === boundary_condition
-    @test semi_dict.boundary_conditions.rest === boundary_condition
-
-    # Test with NamedTuple
     boundary_conditions_named = (top = boundary_condition,
                                  rest = boundary_condition)
 
@@ -3447,7 +3283,6 @@ end
                                                            dg,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored
     @test haskey(semi_named.boundary_conditions, :top)
     @test haskey(semi_named.boundary_conditions, :rest)
     @test semi_named.boundary_conditions.top === boundary_condition
@@ -3469,7 +3304,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition,
                                  y_neg = boundary_condition,
@@ -3480,22 +3314,7 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions - T8codeMesh stores them in a special sorted structure
     @test semi_named.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
-
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition,
-                                    :y_neg => boundary_condition,
-                                    :y_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions - T8codeMesh stores them in a special sorted structure
-    @test semi_dict.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
 end
 
 @timed_testset "T8codeMesh 3D" begin
@@ -3513,7 +3332,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition,
                                  y_neg = boundary_condition,
@@ -3526,24 +3344,7 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions - T8codeMesh stores them in a special sorted structure
     @test semi_named.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
-
-    # Test with Dict
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition,
-                                    :y_neg => boundary_condition,
-                                    :y_pos => boundary_condition,
-                                    :z_neg => boundary_condition,
-                                    :z_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions - T8codeMesh stores them in a special sorted structure
-    @test semi_dict.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
 end
 
 @timed_testset "UnstructuredMesh2D" begin
@@ -3561,7 +3362,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with NamedTuple
     boundary_conditions_named = (Bezier = boundary_condition,
                                  Slant = boundary_condition,
                                  Right = boundary_condition,
@@ -3573,23 +3373,7 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions - UnstructuredMesh2D stores them in a special sorted structure
     @test semi_named.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
-
-    # Test with Dict
-    boundary_conditions_dict = Dict(:Bezier => boundary_condition,
-                                    :Slant => boundary_condition,
-                                    :Right => boundary_condition,
-                                    :Bottom => boundary_condition,
-                                    :Top => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions - UnstructuredMesh2D stores them in a special sorted structure
-    @test semi_dict.boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
 end
 
 @timed_testset "TreeMesh 1D with partial periodicity" begin
@@ -3605,19 +3389,6 @@ end
 
     initial_condition = initial_condition_convergence_test
 
-    # Test with partial Dict - both boundaries specified
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition_periodic)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition_periodic
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition_periodic
-
-    # Test with partial NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition_periodic,)
 
     semi_named = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
@@ -3644,23 +3415,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict - only specify non-periodic boundaries
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition
-    # y boundaries should be filled with periodic BCs
-    @test semi_dict.boundary_conditions.y_neg === Trixi.boundary_condition_periodic
-    @test semi_dict.boundary_conditions.y_pos === Trixi.boundary_condition_periodic
-
-    # Test with NamedTuple - only specify non-periodic boundaries
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition)
 
@@ -3669,10 +3423,8 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.x_neg === boundary_condition
     @test semi_named.boundary_conditions.x_pos === boundary_condition
-    # y boundaries should be filled with periodic BCs
     @test semi_named.boundary_conditions.y_neg === Trixi.boundary_condition_periodic
     @test semi_named.boundary_conditions.y_pos === Trixi.boundary_condition_periodic
 end
@@ -3691,27 +3443,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict - only specify non-periodic boundaries
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition,
-                                    :y_neg => boundary_condition,
-                                    :y_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition
-    @test semi_dict.boundary_conditions.y_neg === boundary_condition
-    @test semi_dict.boundary_conditions.y_pos === boundary_condition
-    # z boundaries should be filled with periodic BCs
-    @test semi_dict.boundary_conditions.z_neg === Trixi.boundary_condition_periodic
-    @test semi_dict.boundary_conditions.z_pos === Trixi.boundary_condition_periodic
-
-    # Test with NamedTuple - only specify non-periodic boundaries
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition,
                                  y_neg = boundary_condition,
@@ -3745,20 +3476,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict - both boundaries specified
-    boundary_conditions_dict = Dict(:x_neg => boundary_condition,
-                                    :x_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.x_neg === boundary_condition
-    @test semi_dict.boundary_conditions.x_pos === boundary_condition
-
-    # Test with NamedTuple
     boundary_conditions_named = (x_neg = boundary_condition,
                                  x_pos = boundary_condition)
 
@@ -3767,7 +3484,6 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.x_neg === boundary_condition
     @test semi_named.boundary_conditions.x_pos === boundary_condition
 end
@@ -3785,23 +3501,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict - only specify non-periodic boundaries
-    boundary_conditions_dict = Dict(:y_neg => boundary_condition,
-                                    :y_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.y_neg === boundary_condition
-    @test semi_dict.boundary_conditions.y_pos === boundary_condition
-    # x boundaries should be filled with periodic BCs
-    @test semi_dict.boundary_conditions.x_neg === Trixi.boundary_condition_periodic
-    @test semi_dict.boundary_conditions.x_pos === Trixi.boundary_condition_periodic
-
-    # Test with NamedTuple - only specify non-periodic boundaries
     boundary_conditions_named = (y_neg = boundary_condition,
                                  y_pos = boundary_condition)
 
@@ -3831,27 +3530,6 @@ end
     initial_condition = initial_condition_convergence_test
     boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-    # Test with Dict - only specify non-periodic boundaries
-    boundary_conditions_dict = Dict(:y_neg => boundary_condition,
-                                    :y_pos => boundary_condition,
-                                    :z_neg => boundary_condition,
-                                    :z_pos => boundary_condition)
-
-    semi_dict = @test_nowarn SemidiscretizationHyperbolic(mesh, equations,
-                                                          initial_condition,
-                                                          solver,
-                                                          boundary_conditions = boundary_conditions_dict)
-
-    # Verify boundary conditions were stored correctly
-    @test semi_dict.boundary_conditions.y_neg === boundary_condition
-    @test semi_dict.boundary_conditions.y_pos === boundary_condition
-    @test semi_dict.boundary_conditions.z_neg === boundary_condition
-    @test semi_dict.boundary_conditions.z_pos === boundary_condition
-    # x boundaries should be filled with periodic BCs
-    @test semi_dict.boundary_conditions.x_neg === Trixi.boundary_condition_periodic
-    @test semi_dict.boundary_conditions.x_pos === Trixi.boundary_condition_periodic
-
-    # Test with NamedTuple - only specify non-periodic boundaries
     boundary_conditions_named = (y_neg = boundary_condition,
                                  y_pos = boundary_condition,
                                  z_neg = boundary_condition,
@@ -3862,12 +3540,10 @@ end
                                                            solver,
                                                            boundary_conditions = boundary_conditions_named)
 
-    # Verify boundary conditions were stored correctly
     @test semi_named.boundary_conditions.y_neg === boundary_condition
     @test semi_named.boundary_conditions.y_pos === boundary_condition
     @test semi_named.boundary_conditions.z_neg === boundary_condition
     @test semi_named.boundary_conditions.z_pos === boundary_condition
-    # x boundaries should be filled with periodic BCs
     @test semi_named.boundary_conditions.x_neg === Trixi.boundary_condition_periodic
     @test semi_named.boundary_conditions.x_pos === Trixi.boundary_condition_periodic
 end

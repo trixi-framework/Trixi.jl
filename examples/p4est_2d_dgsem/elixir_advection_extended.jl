@@ -9,12 +9,12 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
-# BCs must be passed as Dict
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:x_neg => boundary_condition,
-                           :x_pos => boundary_condition,
-                           :y_neg => boundary_condition,
-                           :y_pos => boundary_condition)
+# Boundary conditions as a NamedTuple
+boundary_conditions = (; x_neg = boundary_condition,
+                       x_pos = boundary_condition,
+                       y_neg = boundary_condition,
+                       y_pos = boundary_condition)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)

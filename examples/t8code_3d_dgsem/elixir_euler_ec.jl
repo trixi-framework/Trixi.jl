@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations3D(5 / 3)
 
 initial_condition = initial_condition_weak_blast_wave
 
-boundary_conditions = Dict(:all => boundary_condition_slip_wall)
+boundary_conditions = (; all = boundary_condition_slip_wall)
 
 # Get the DG approximation space
 
@@ -70,7 +70,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # Add `:thermodynamic_entropy` to `extra_node_variables` tuple ...
 extra_node_variables = (:thermodynamic_entropy,)
 
-# ... and specify the function `get_node_variable` for this symbol, 
+# ... and specify the function `get_node_variable` for this symbol,
 # with first argument matching the symbol (turned into a type via `Val`) for dispatching.
 function Trixi.get_node_variable(::Val{:thermodynamic_entropy}, u, mesh, equations,
                                  dg, cache)

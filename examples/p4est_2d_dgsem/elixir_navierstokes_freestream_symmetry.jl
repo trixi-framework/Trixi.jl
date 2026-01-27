@@ -32,8 +32,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (false, true))
 
-boundary_conditions = Dict(:x_neg => boundary_condition_slip_wall,
-                           :x_pos => boundary_condition_slip_wall)
+boundary_conditions = (x_neg = boundary_condition_slip_wall,
+                       x_pos = boundary_condition_slip_wall)
 
 # The "Slip" boundary condition rotates all velocities into tangential direction
 # and thus acts as a symmetry plane.
@@ -42,8 +42,8 @@ heat_bc = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
 boundary_condition_y = BoundaryConditionNavierStokesWall(velocity_bc,
                                                          heat_bc)
 
-boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_y,
-                                     :x_pos => boundary_condition_y)
+boundary_conditions_parabolic = (x_neg = boundary_condition_y,
+                                 x_pos = boundary_condition_y)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;

@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_constant
 
-boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
 
 polydeg = 3 # governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)

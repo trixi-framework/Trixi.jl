@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations3D(5 / 3)
 
 initial_condition = initial_condition_weak_blast_wave
 
-boundary_conditions = Dict(:all => boundary_condition_slip_wall)
+boundary_conditions = (; all = boundary_condition_slip_wall)
 
 # Get the DG approximation space
 

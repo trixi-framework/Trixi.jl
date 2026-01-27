@@ -145,13 +145,6 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
     return boundary_conditions
 end
 
-# Allow Dict for DGMultiMesh by converting to NamedTuple
-function digest_boundary_conditions(boundary_conditions::Dict,
-                                    mesh::DGMultiMesh, dg::DGMulti, cache)
-    # Convert Dict to NamedTuple
-    return NamedTuple(boundary_conditions)
-end
-
 # Allocate nested array type for DGMulti solution storage.
 function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
     # store components as separate arrays, combine via StructArrays

@@ -52,11 +52,11 @@ end
     return flux(u_inner, normal_direction, equations)
 end
 
-boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
-                           :Circle => boundary_condition_slip_wall,
-                           :Top => boundary_condition_slip_wall,
-                           :Right => boundary_condition_outflow,
-                           :Left => boundary_condition_supersonic_inflow)
+boundary_conditions = (; Bottom = boundary_condition_slip_wall,
+                       Circle = boundary_condition_slip_wall,
+                       Top = boundary_condition_slip_wall,
+                       Right = boundary_condition_outflow,
+                       Left = boundary_condition_supersonic_inflow)
 
 volume_flux = flux_ranocha_turbo
 surface_flux = flux_lax_friedrichs

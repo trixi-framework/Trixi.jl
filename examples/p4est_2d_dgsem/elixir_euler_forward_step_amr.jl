@@ -78,12 +78,12 @@ boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_mach3_f
     return flux
 end
 
-boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
-                           :Step_Front => boundary_condition_slip_wall,
-                           :Step_Top => boundary_condition_slip_wall,
-                           :Top => boundary_condition_slip_wall,
-                           :Right => boundary_condition_outflow,
-                           :Left => boundary_condition_inflow)
+boundary_conditions = (; Bottom = boundary_condition_slip_wall,
+                       Step_Front = boundary_condition_slip_wall,
+                       Step_Top = boundary_condition_slip_wall,
+                       Top = boundary_condition_slip_wall,
+                       Right = boundary_condition_outflow,
+                       Left = boundary_condition_inflow)
 
 volume_flux = flux_ranocha
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -91,7 +91,7 @@ volume_flux = flux_ranocha
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 

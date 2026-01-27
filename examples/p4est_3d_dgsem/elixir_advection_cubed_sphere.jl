@@ -13,8 +13,8 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:inside => boundary_condition,
-                           :outside => boundary_condition)
+boundary_conditions = (; inside = boundary_condition,
+                       outside = boundary_condition)
 
 trees_per_face_dim = 5 # number of trees in the first two local dimensions of each face
 sphere_layers = 3 # number of trees in the third local dimension of each face

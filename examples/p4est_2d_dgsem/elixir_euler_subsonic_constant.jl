@@ -64,10 +64,10 @@ initial_condition = initial_condition_subsonic
     return flux(u_surface, normal_direction, equations)
 end
 
-boundary_conditions = Dict(:x_neg => boundary_condition_outflow_general,
-                           :x_pos => boundary_condition_outflow_general,
-                           :y_neg => boundary_condition_outflow_general,
-                           :y_pos => boundary_condition_outflow_general)
+boundary_conditions = (x_neg = boundary_condition_outflow_general,
+                       x_pos = boundary_condition_outflow_general,
+                       y_neg = boundary_condition_outflow_general,
+                       y_pos = boundary_condition_outflow_general)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
