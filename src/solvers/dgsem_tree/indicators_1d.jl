@@ -194,8 +194,12 @@ function create_cache(::Type{IndicatorEntropyCorrection},
     uEltype = real(basis)
     MVec = MMatrix{nvariables(equations), nnodes(basis), uEltype}
 
+    # stores the blending coefficients 
+    alpha = Vector{uEltype}()
+
+    # container for elementwise volume integrals
     indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
-    return (; indicator_threaded)
+    return (; alpha, indicator_threaded)
 end
 end # @muladd

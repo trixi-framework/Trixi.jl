@@ -281,15 +281,21 @@ function Base.show(io::IO, mime::MIME"text/plain",
 end
 
 """
-    VolumeIntegralEntropyCorrection(volume_flux_dg=flux_central,
+    VolumeIntegralEntropyCorrection(equations, basis;
+                                    volume_flux_dg=flux_central,
                                     volume_flux_fv=flux_lax_friedrichs, 
-                                    indicator=nothing)
+                                    scaling = true)
 
 Entropy correction volume integral type for DG methods using a convex blending of
 the **first-order** finite volume method with numerical flux `volume_flux_fv` and the
 [`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
 The amount of blending is determined by the violation of a cell entropy equality by
-the volume integral
+the volume integral. 
+
+`scaling ≥ 1` arbitrarily scales the blending parameter by a constant, increasing 
+the amount of the subcell FV added in. This can be used to add shock capturing-like 
+behavior. 
+
 """
 struct VolumeIntegralEntropyCorrection{VolumeFluxDG, VolumeFluxFV, Indicator} <:
        AbstractVolumeIntegralShockCapturing
@@ -300,8 +306,9 @@ end
 
 function VolumeIntegralEntropyCorrection(equations, basis;
                                          volume_flux_dg = flux_central,
-                                         volume_flux_fv = flux_lax_friedrichs)
-    indicator = IndicatorEntropyCorrection(equations, basis)
+                                         volume_flux_fv = flux_lax_friedrichs,
+                                         scaling = true)
+    indicator = IndicatorEntropyCorrection(equations, basis; scaling)
     return VolumeIntegralEntropyCorrection{typeof(volume_flux_dg),
                                            typeof(volume_flux_fv),
                                            typeof(indicator)}(volume_flux_dg,
@@ -328,7 +335,8 @@ end
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralEntropyCorrection,
                                 dg, cache)
-    # do nothing                                
+    element_variables[:indicator_shock_capturing] = volume_integral.indicator.cache.alpha
+    return nothing
 end
 
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and

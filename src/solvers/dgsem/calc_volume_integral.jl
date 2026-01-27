@@ -164,6 +164,9 @@ function calc_volume_integral!(du, u, mesh,
                                dg::DGSEM, cache)
     (; volume_flux_dg, volume_flux_fv, indicator) = volume_integral
     du_element_threaded = indicator.cache.indicator_threaded
+    (; scaling) = indicator
+    (; alpha) = indicator.cache
+    resize!(alpha, nelements(dg, cache))
 
     @threaded for element in eachelement(dg, cache)
         flux_differencing_kernel!(du, u, element, mesh,
@@ -180,6 +183,8 @@ function calc_volume_integral!(du, u, mesh,
         surface_integral_entropy_potential = surface_integral(entropy_potential, u,
                                                               element, mesh, equations,
                                                               dg, cache)
+
+        # this quantity should be ≥ 0 for an entropy stable discretization                                                              
         entropy_residual = volume_integral_entropy_vars +
                            surface_integral_entropy_potential
 
@@ -205,8 +210,12 @@ function calc_volume_integral!(du, u, mesh,
                                                                       mesh, equations,
                                                                       dg, cache)
 
-            # calculate blending factor
-            theta = min(1, regularized_ratio(entropy_residual, entropy_dissipation))
+            # calculate blending factor 
+            ratio = regularized_ratio(entropy_residual, entropy_dissipation)
+            theta = max(0, min(1, scaling * ratio))
+
+            # save blending coefficient for visualization
+            alpha[element] = theta
 
             # blend the high order method back in 
             @views du[.., element] .= du[.., element] .+ (1 - theta) * du_element

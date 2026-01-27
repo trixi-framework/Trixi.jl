@@ -274,21 +274,30 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 """
-    IndicatorEntropyCorrection(equations::AbstractEquations)
+    IndicatorEntropyCorrection(equations::AbstractEquations, basis; 
+                               scaling=true)
 
-Indicator used for entropy correction using subcell FV schemes.
+Indicator used for entropy correction using subcell FV schemes, where the 
+blending is determined so that the volume integral entropy production is the 
+same or more than that of an EC scheme. 
+
+`scaling ≥ 1` arbitrarily scales the blending parameter by a constant, increasing 
+the amount of the subcell FV added in. This can be used to add shock capturing-like 
+behavior. 
 
 See also [`VolumeIntegralEntropyCorrection`](@ref).
 """
-struct IndicatorEntropyCorrection{Cache} <: AbstractIndicator
+struct IndicatorEntropyCorrection{Cache, ScalingT} <: AbstractIndicator
     cache::Cache
+    scaling::ScalingT
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorEntropyCorrection(equations::AbstractEquations,
-                                    basis::LobattoLegendreBasis)
+                                    basis::LobattoLegendreBasis;
+                                    scaling = true)
     cache = create_cache(IndicatorEntropyCorrection, equations, basis)
-    return IndicatorEntropyCorrection{typeof(cache)}(cache)
+    return IndicatorEntropyCorrection{typeof(cache), typeof(scaling)}(cache, scaling)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyCorrection)

@@ -141,12 +141,12 @@ function integrate_against_entropy_variables(du_local, u, element,
     return integral
 end
 
-# calculate surface integral of func(u, equations) * normal
+# calculate surface integral of func(u, orientation, equations) * normal
 function surface_integral(func::Func, u, element, mesh::TreeMesh{1}, equations,
                           dg::DGSEM, cache) where {Func}
     u_left = get_node_vars(u, equations, dg, 1, element)
     u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
-    surface_integral = (func(u_right, equations) - func(u_left, equations))
+    surface_integral = (func(u_right, 1, equations) - func(u_left, 1, equations))
     return surface_integral
 end
 
