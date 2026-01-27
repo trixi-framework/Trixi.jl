@@ -1148,7 +1148,8 @@ of total energy and kinetic energy.
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
 
-@inline function entropy_potential(u, equations::CompressibleEulerEquations1D)
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerEquations1D)
     return u[2]
 end
 end # @muladd
