@@ -1,5 +1,5 @@
 using OrdinaryDiffEqSSPRK
-using OrdinaryDiffEqLowStorageRK
+#using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -63,7 +63,7 @@ mesh_file = "/storage/home/daniel/RAE2822/HiCFD_Meshes/rae2822_level3.inp"
 boundary_symbols = [:WallBoundary, :FarfieldBoundary]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
 
-restart_filename = "out/restart_000450000.h5"
+restart_filename = "out/restart_000050000.h5"
 #mesh = load_mesh(restart_filename)
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
@@ -167,7 +167,7 @@ ode_algorithm = SSPRK43(thread = Trixi.True())
 #ode_algorithm = CKLLSRK43_2(thread = Trixi.True())
 #ode_algorithm = RDPK3SpFSAL35(thread = Trixi.True())
 
-tols = 1e-3 # Not sure if low or high tols lead to better performance here
+tols = 1e-4 # Not sure if low or high tols lead to better performance here
 sol = solve(ode, ode_algorithm;
             abstol = tols, reltol = tols, dt = 3e-6,
             maxiters = Inf,
