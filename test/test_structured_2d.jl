@@ -1012,6 +1012,46 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
+@trixi_testset "elixir_mhdmultiion_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
+                        l2=[
+                            0.0012066648540331743,
+                            0.0012067353037637021,
+                            0.001565945133934976,
+                            0.0013583047647386013,
+                            0.002012330709092805,
+                            0.002011735652414687,
+                            4.804141396921128e-5,
+                            0.017144773483322162,
+                            0.0027255273008884038,
+                            0.0028808581074575073,
+                            0.002878844497429858,
+                            0.0001918657806542395,
+                            0.01192557018138304,
+                            5.734428494985238e-8
+                        ],
+                        linf=[
+                            0.09869868922102043,
+                            0.09738409553073302,
+                            0.13455453913183213,
+                            0.0531174980140629,
+                            0.09357843816730584,
+                            0.0935876797704686,
+                            0.004823249474484352,
+                            0.8721038035636122,
+                            0.1097449573261321,
+                            0.15984957975732655,
+                            0.1367207696465591,
+                            0.01919363515215181,
+                            0.7126360641881493,
+                            1.1240374854420315e-5
+                        ],
+                        tspan=(0.0, 0.002))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_coupled.jl"),
                         l2=[
