@@ -256,18 +256,12 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple,
     return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
-# Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh by converting to Dict
+# Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
                                     mesh::Union{P4estMesh, UnstructuredMesh2D,
                                                 T8codeMesh},
                                     solver, cache)
-    # Convert NamedTuple to Dict
-    boundary_dict = Dict{Symbol, Any}()
-    for (key, value) in pairs(boundary_conditions)
-        boundary_dict[key] = value
-    end
-
-    return UnstructuredSortedBoundaryTypes(boundary_dict, cache)
+    return UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
 end
 
 function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, solver,
