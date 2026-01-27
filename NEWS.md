@@ -13,8 +13,10 @@ for human readability.
 - Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
   stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on
   3D meshes for conservative systems ([#2734], [#2755]).
-- Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733], TODO).
-  In the new version, local (minimum and/or maximum) limiting for conservative variables (using the keyword `local_twosided_variables_cons` in `SubcellLimiterIDP()`) and nonlinear variables (using `local_onesided_variables_nonlinear`) is supported.
+- Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733], [#2763]).
+  In the new version, local (minimum and/or maximum) limiting for conservative variables (using the
+  keyword `local_twosided_variables_cons` in `SubcellLimiterIDP()`) and nonlinear variables
+  (using `local_onesided_variables_nonlinear`) is supported.
 
 #### Changed
 
