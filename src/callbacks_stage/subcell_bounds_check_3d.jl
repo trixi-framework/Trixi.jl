@@ -19,6 +19,33 @@
     # `@batch` here to allow a possible redefinition of `@threaded` without creating errors here.
     # See also https://github.com/trixi-framework/Trixi.jl/pull/1888#discussion_r1537785293.
 
+    if local_twosided
+        for v in limiter.local_twosided_variables_cons
+            v_string = string(v)
+            key_min = Symbol(v_string, "_min")
+            key_max = Symbol(v_string, "_max")
+            deviation_min = idp_bounds_delta_local[key_min]
+            deviation_max = idp_bounds_delta_local[key_max]
+            @batch reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(solver,
+                                                                                                     cache)
+                for k in eachnode(solver), j in eachnode(solver), i in eachnode(solver)
+                    var = u[v, i, j, k, element]
+                    # Note: We always save the absolute deviations >= 0 and therefore use the
+                    # `max` operator for the lower and upper bound. The different directions of
+                    # upper and lower bound are considered in their calculations with a
+                    # different sign.
+                    deviation_min = max(deviation_min,
+                                        variable_bounds[key_min][i, j, k, element] -
+                                        var)
+                    deviation_max = max(deviation_max,
+                                        var -
+                                        variable_bounds[key_max][i, j, k, element])
+                end
+            end
+            idp_bounds_delta_local[key_min] = deviation_min
+            idp_bounds_delta_local[key_max] = deviation_max
+        end
+    end
     if local_onesided
         for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
             key = Symbol(string(variable), "_", string(min_or_max))
@@ -41,6 +68,9 @@
     end
     if positivity
         for v in limiter.positivity_variables_cons
+            if v in limiter.local_twosided_variables_cons
+                continue
+            end
             key = Symbol(string(v), "_min")
             deviation = idp_bounds_delta_local[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)

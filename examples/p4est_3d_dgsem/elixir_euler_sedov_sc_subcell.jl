@@ -45,6 +45,7 @@ basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
+                                local_twosided_variables_cons = [],
                                 local_onesided_variables_nonlinear = [],
                                 max_iterations_newton = 25)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
