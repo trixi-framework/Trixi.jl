@@ -120,6 +120,16 @@ jobs:
       - uses: julia-actions/cache@v2
         with:
           include-matrix: false
+      - name: Setup Controller Branch
+        shell: julia --project="." --color=yes {0}
+        run: |
+          using Pkg
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqCore", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqBDF", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqLowOrderRK", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqLowStorageRK", rev="do/controller-refactor"))
+          Pkg.instantiate()
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''

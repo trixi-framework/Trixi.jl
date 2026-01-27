@@ -71,6 +71,16 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v2
+      - name: Setup Controller Branch
+        shell: julia --project="." --color=yes {0}
+        run: |
+          using Pkg
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqCore", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqBDF", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqLowOrderRK", rev="do/controller-refactor"))
+          Pkg.add(PackageSpec(url="https://github.com/termi-official/OrdinaryDiffEq.jl/", subdir = "lib/OrdinaryDiffEqLowStorageRK", rev="do/controller-refactor"))
+          Pkg.instantiate()
       - uses: julia-actions/julia-buildpkg@v1
       - name: Retrieve downstream package
         # Note: we retrieve the current `main` branch of the downstream package to ensure
