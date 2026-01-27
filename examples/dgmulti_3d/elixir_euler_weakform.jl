@@ -18,8 +18,8 @@ cells_per_dimension = (4, 4, 4)
 mesh = DGMultiMesh(dg, cells_per_dimension, is_on_boundary = is_on_boundary)
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (; :top => boundary_condition_convergence_test,
-                       :rest => boundary_condition_convergence_test)
+boundary_conditions = (; top = boundary_condition_convergence_test,
+                       rest = boundary_condition_convergence_test)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms,

@@ -21,7 +21,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
@@ -196,10 +196,10 @@ boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_to
                                                                   heat_bc_top_bottom)
 
 # define inviscid boundary conditions
-boundary_conditions = (; :top_bottom => boundary_condition_slip_wall)
+boundary_conditions = (; top_bottom = boundary_condition_slip_wall)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; :top_bottom => boundary_condition_top_bottom)
+boundary_conditions_parabolic = (; top_bottom = boundary_condition_top_bottom)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, dg;
