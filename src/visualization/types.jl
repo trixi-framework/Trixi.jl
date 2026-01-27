@@ -85,6 +85,24 @@ function Base.show(io::IO, pd::PlotData2DCartesian)
     return nothing
 end
 
+# holds plotting information for contour lines for StructuredMesh2D
+struct ContourData2D{DataType, NodeType, VariableNames} <: AbstractPlotData{2}
+    x::NodeType
+    y::NodeType
+    data::DataType
+    variable_names::VariableNames
+end
+
+function Base.show(io::IO, pd::ContourData2D)
+    @nospecialize pd
+    print(io, "ContourData2D{",
+          typeof(pd.x), ",",
+          typeof(pd.y), ",",
+          typeof(pd.data), ",",
+          typeof(pd.variable_names),
+          "}(<x>, <y>, <data>, <variable_names>)")
+end
+
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
 struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
                               VariableNames, PlottingTriangulation} <:
@@ -435,6 +453,69 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     transform_to_solution_variables!(ufp, solution_variables_, equations)
 
     return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+end
+
+function ContourData2D(sol::TrixiODESolution; kwargs...)
+    return ContourData2D(sol.u[end], sol.prob.p; kwargs...)
+end
+
+function ContourData2D(u, semi; kwargs...)
+    return ContourData2D(wrap_array_native(u, semi),
+                         mesh_equations_solver_cache(semi)...;
+                         kwargs...)
+end
+
+function ContourData2D(u, mesh::StructuredMesh{2}, equations, dg::DGSEM, cache;
+                       solution_variables = nothing)
+    @unpack cells_per_dimension = mesh
+    @unpack node_coordinates = cache.elements
+    @assert ndims(mesh)==2 "Input must be two-dimensional."
+    RealT = eltype(first(u))
+    polydeg = Trixi.polydeg(dg)
+    nx = polydeg * cells_per_dimension[1] + 1
+    ny = polydeg * cells_per_dimension[2] + 1
+    xcontour = zeros(RealT, ny, nx)
+    ycontour = zeros(RealT, ny, nx)
+    nvars = nvariables(equations)
+    data = zeros(RealT, nvars, ny, nx)
+
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+    jstart = 1
+    for j in 1:ny
+        if mod(j, polydeg + 1) == 1 && j != 1
+            jstart += 1
+        end
+
+        iterator = (1 + cells_per_dimension[1] * (jstart - 1)):(cells_per_dimension[1] * jstart)
+        i = 1
+        for element in iterator
+            for ilocal in 1:(polydeg + 1)
+                jlocal = mod(j, polydeg + 1)
+                jlocal = jlocal == 0 ? polydeg + 1 : jlocal
+
+                if (j > polydeg + 1) && (j % (polydeg + 1) != 0)
+                    jlocal += 1
+                end
+
+                if (jlocal == 1 && j == 1) || (jlocal != 1 && j != 1)
+                    if (element != 1) && (mod(element, cells_per_dimension[1]) != 1) &&
+                       (ilocal == 1)
+
+                    else
+                        xcontour[j, i] = node_coordinates[1, ilocal, jlocal, element]
+                        ycontour[j, i] = node_coordinates[2, ilocal, jlocal, element]
+
+                        uloc = u[:, ilocal, jlocal, element]
+                        data[:, j, i] .= solution_variables_(uloc, equations)
+                        i += 1
+                    end
+                end
+            end
+        end
+    end
+
+    variable_names = SVector(varnames(solution_variables_, equations))
+    return ContourData2D(xcontour, ycontour, data, variable_names)
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
