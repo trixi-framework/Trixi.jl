@@ -19,7 +19,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
@@ -198,16 +198,16 @@ boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_to
 boundary_condition_left_right = BoundaryConditionDirichlet(initial_condition_navier_stokes_convergence_test)
 
 # define inviscid boundary conditions
-boundary_conditions = Dict(:x_neg => boundary_condition_left_right,
-                           :x_pos => boundary_condition_left_right,
-                           :y_neg => boundary_condition_slip_wall,
-                           :y_pos => boundary_condition_slip_wall)
+boundary_conditions = (; x_neg = boundary_condition_left_right,
+                       x_pos = boundary_condition_left_right,
+                       y_neg = boundary_condition_slip_wall,
+                       y_pos = boundary_condition_slip_wall)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_left_right,
-                                     :x_pos => boundary_condition_left_right,
-                                     :y_neg => boundary_condition_top_bottom,
-                                     :y_pos => boundary_condition_top_bottom)
+boundary_conditions_parabolic = (; x_neg = boundary_condition_left_right,
+                                 x_pos = boundary_condition_left_right,
+                                 y_neg = boundary_condition_top_bottom,
+                                 y_pos = boundary_condition_top_bottom)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;

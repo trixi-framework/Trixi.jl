@@ -53,7 +53,7 @@ function initial_condition_gaussian_impact(x, t, equations::LinearElasticityEqua
     # Smooth rectangle using tanh transitions
     # Left edge: transition from 0 to 1 at x = -width/2
     left_transition = 0.5 * (1 + tanh((x[1] + impact_width() / 2) / edge_smoothing))
-    # Right edge: transition from 1 to 0 at x = +width/2  
+    # Right edge: transition from 1 to 0 at x = +width/2
     right_transition = 0.5 * (1 - tanh((x[1] - impact_width() / 2) / edge_smoothing))
 
     # Combine both transitions to create smooth rectangle
@@ -68,7 +68,7 @@ end
 
 boundary_condition_dirichlet = BoundaryConditionDirichlet(initial_condition_gaussian_impact)
 
-boundary_conditions = (x_neg = boundary_condition_dirichlet,
+boundary_conditions = (; x_neg = boundary_condition_dirichlet,
                        x_pos = boundary_condition_dirichlet)
 
 initial_condition = initial_condition_gaussian_impact

@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_constant
 
-boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
 
 # Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
 # The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
@@ -19,7 +19,7 @@ boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition)
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())

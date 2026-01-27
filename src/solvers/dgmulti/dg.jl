@@ -139,8 +139,7 @@ end
 wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
-                                    mesh::DGMultiMesh,
-                                    dg::DGMulti,
+                                    mesh::DGMultiMesh, dg::DGMulti,
                                     cache) where {Keys, ValueTypes <: NTuple{N, Any}
                                                   } where {N}
     return boundary_conditions

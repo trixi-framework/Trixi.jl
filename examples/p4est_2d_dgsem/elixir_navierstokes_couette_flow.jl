@@ -56,11 +56,11 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x
 end
 
 ### Hyperbolic boundary conditions ###
-bs_hyperbolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition), # Weakly enforced inflow BC
-                     :x_pos => boundary_condition_outflow, # Free outflow/extended domain
-                     # Top/Bottom of channel: Walls
-                     :y_neg => boundary_condition_slip_wall,
-                     :y_pos => boundary_condition_slip_wall)
+bs_hyperbolic = (; x_neg = BoundaryConditionDirichlet(initial_condition), # Weakly enforced inflow BC
+                 x_pos = boundary_condition_outflow, # Free outflow/extended domain
+                 # Top/Bottom of channel: Walls
+                 y_neg = boundary_condition_slip_wall,
+                 y_pos = boundary_condition_slip_wall)
 
 ### Parabolic boundary conditions ###
 
@@ -96,10 +96,10 @@ end
     return flux_inner
 end
 
-bcs_parabolic = Dict(:x_neg => bc_parabolic_top_left,
-                     :x_pos => boundary_condition_copy,
-                     :y_neg => boundary_condition_bottom,
-                     :y_pos => bc_parabolic_top_left)
+bcs_parabolic = (; x_neg = bc_parabolic_top_left,
+                 x_pos = boundary_condition_copy,
+                 y_neg = boundary_condition_bottom,
+                 y_pos = bc_parabolic_top_left)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 

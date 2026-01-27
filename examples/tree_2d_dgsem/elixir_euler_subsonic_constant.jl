@@ -47,7 +47,7 @@ initial_condition = initial_condition_subsonic
     return flux(u_surface, orientation, equations)
 end
 
-boundary_conditions = (x_neg = boundary_condition_outflow_general,
+boundary_conditions = (; x_neg = boundary_condition_outflow_general,
                        x_pos = boundary_condition_outflow_general,
                        y_neg = boundary_condition_outflow_general,
                        y_pos = boundary_condition_outflow_general)

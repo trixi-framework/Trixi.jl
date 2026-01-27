@@ -40,8 +40,8 @@ boundary_symbols = [:PhysicalSurface1, :PhysicalSurface2]
 mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, initial_refinement_level = 0,
                     boundary_symbols = boundary_symbols)
 
-boundary_conditions = Dict(:PhysicalSurface1 => BoundaryConditionDirichlet(initial_condition),
-                           :PhysicalSurface2 => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (; PhysicalSurface1 = BoundaryConditionDirichlet(initial_condition),
+                       PhysicalSurface2 = BoundaryConditionDirichlet(initial_condition))
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,

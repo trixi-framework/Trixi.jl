@@ -29,16 +29,16 @@ boundary_condition_zero = BoundaryConditionDirichlet((x, t, equations_parabolic)
 boundary_condition_neumann_zero = BoundaryConditionNeumann((x, t, equations_parabolic) -> SVector(0.0))
 
 # define inviscid boundary conditions
-boundary_conditions = (; :left => boundary_condition_left,
-                       :bottom => boundary_condition_zero,
-                       :top => boundary_condition_do_nothing,
-                       :right => boundary_condition_do_nothing)
+boundary_conditions = (; left = boundary_condition_left,
+                       bottom = boundary_condition_zero,
+                       top = boundary_condition_do_nothing,
+                       right = boundary_condition_do_nothing)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; :left => boundary_condition_left,
-                                 :bottom => boundary_condition_zero,
-                                 :top => boundary_condition_zero,
-                                 :right => boundary_condition_neumann_zero)
+boundary_conditions_parabolic = (; left = boundary_condition_left,
+                                 bottom = boundary_condition_zero,
+                                 top = boundary_condition_zero,
+                                 right = boundary_condition_neumann_zero)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, dg;

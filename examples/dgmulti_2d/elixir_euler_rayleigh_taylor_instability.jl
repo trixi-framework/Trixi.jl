@@ -69,7 +69,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
                    periodicity = (true, false))
 
 initial_condition = initial_condition_rayleigh_taylor_instability
-boundary_conditions = (; :entire_boundary => boundary_condition_slip_wall)
+boundary_conditions = (; entire_boundary = boundary_condition_slip_wall)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     source_terms = source_terms_rayleigh_taylor_instability,

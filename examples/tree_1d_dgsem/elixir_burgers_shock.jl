@@ -52,7 +52,7 @@ function boundary_condition_outflow(u_inner, orientation, direction, x, t,
     return flux(u_inner, orientation, equations)
 end
 
-boundary_conditions = (x_neg = boundary_condition_inflow,
+boundary_conditions = (; x_neg = boundary_condition_inflow,
                        x_pos = boundary_condition_outflow)
 
 initial_condition = initial_condition_shock

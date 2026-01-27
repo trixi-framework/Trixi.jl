@@ -37,7 +37,7 @@ end
 initial_condition = initial_condition_sedov_blast_wave
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (x_neg = boundary_condition,
+boundary_conditions = (; x_neg = boundary_condition,
                        x_pos = boundary_condition,
                        y_neg = boundary_condition,
                        y_pos = boundary_condition)

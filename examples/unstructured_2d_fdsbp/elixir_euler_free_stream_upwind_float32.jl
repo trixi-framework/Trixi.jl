@@ -16,10 +16,10 @@ initial_condition = initial_condition_constant
 # Boundary conditions for free-stream preservation test
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
 
-boundary_conditions = Dict(:outerCircle => boundary_condition_free_stream,
-                           :cone1 => boundary_condition_free_stream,
-                           :cone2 => boundary_condition_free_stream,
-                           :iceCream => boundary_condition_free_stream)
+boundary_conditions = (; outerCircle = boundary_condition_free_stream,
+                       cone1 = boundary_condition_free_stream,
+                       cone2 = boundary_condition_free_stream,
+                       iceCream = boundary_condition_free_stream)
 
 ###############################################################################
 # Get the Upwind FDSBP approximation space
