@@ -63,7 +63,7 @@ mesh_file = "/storage/home/daniel/RAE2822/HiCFD_Meshes/rae2822_level3.inp"
 boundary_symbols = [:WallBoundary, :FarfieldBoundary]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
 
-restart_filename = "out/restart_000050000.h5"
+restart_filename = "out/restart_001750000.h5"
 #mesh = load_mesh(restart_filename)
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
@@ -91,7 +91,7 @@ t_c = airfoil_cord_length / U_inf()
 tspan = (0.0, 50 * t_c) # Non-AMR
 ode = semidiscretize(semi, tspan)
 
-tspan = (load_time(restart_filename), 100 * t_c)
+tspan = (load_time(restart_filename), 50 * t_c)
 ode = semidiscretize(semi, tspan, restart_filename)
 
 summary_callback = SummaryCallback()
