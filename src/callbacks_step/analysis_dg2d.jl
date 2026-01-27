@@ -185,6 +185,52 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# integrate `du_local` against the entropy variables evaluated at `u`
+function integrate_against_entropy_variables(du_local, u, element,
+                                             mesh::AbstractMesh{2},
+                                             equations, dg::DGSEM, cache, args...)
+    (; weights) = dg.basis
+
+    jacobian_1d = inv(cache.elements.inverse_jacobian[element]) # O(h) 
+
+    integral = zero(eltype(u))
+
+    for j in eachnode(dg), i in eachnode(dg)
+        du_node = get_node_vars(du_local, equations, dg, i, j)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        integral = integral +
+                   weights[i] * weights[j] *
+                   dot(cons2entropy(u_node, equations), du_node)
+    end
+    # return integral
+    return integral * jacobian_1d
+end
+
+# calculate surface integral of func(u, equations) * normal
+function surface_integral(func::Func, u, element, mesh::TreeMesh{2}, equations,
+                          dg::DGSEM, cache) where {Func}
+    surface_integral = zero(real(dg))
+    for ii in eachnode(dg)
+        # x direction
+        u_left = get_node_vars(u, equations, dg, 1, ii, element)
+        u_right = get_node_vars(u, equations, dg, nnodes(dg), ii, element)
+        surface_integral = surface_integral +
+                           dg.basis.weights[ii] *
+                           (func(u_right, 1, equations) - func(u_left, 1, equations))
+
+        # y direction
+        u_left = get_node_vars(u, equations, dg, ii, 1, element)
+        u_right = get_node_vars(u, equations, dg, ii, nnodes(dg), element)
+        surface_integral = surface_integral +
+                           dg.basis.weights[ii] *
+                           (func(u_right, 2, equations) - func(u_left, 2, equations))
+    end
+
+    # return surface_integral
+    jacobian_1d = inv(cache.elements.inverse_jacobian[element]) # O(h) 
+    return surface_integral * jacobian_1d
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
