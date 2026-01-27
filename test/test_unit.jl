@@ -2311,6 +2311,16 @@ end
             @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
                   max_abs_speed(u_ll, u_rr, orientation, equations)
         end
+
+        # Test flux with normal_direction.
+        normal_directions = [SVector(1.0, 0.0), SVector(0.0, 1.0), SVector(0.5, -0.5)]
+        for normal_direction in normal_directions
+            @test flux(u_ll, normal_direction, equations) isa SVector
+            # Test that flux with normal_direction is consistent with orientation-based flux
+            # for axis-aligned directions
+            @test flux(u_ll, SVector(1.0, 0.0), equations) ≈ flux(u_ll, 1, equations)
+            @test flux(u_ll, SVector(0.0, 1.0), equations) ≈ flux(u_ll, 2, equations)
+        end
     end
 
     @timed_testset "IdealGlmMhdMultiIonEquations3D" begin
