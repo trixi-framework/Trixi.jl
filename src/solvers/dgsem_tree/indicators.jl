@@ -272,4 +272,34 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
         summary_box(io, "IndicatorMax", setup)
     end
 end
+
+"""
+    IndicatorEntropyCorrection(equations::AbstractEquations)
+
+Indicator used for entropy correction using subcell FV schemes.
+
+See also [`VolumeIntegralEntropyCorrection`](@ref).
+"""
+struct IndicatorEntropyCorrection{Cache} <: AbstractIndicator
+    cache::Cache
+end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function IndicatorEntropyCorrection(equations::AbstractEquations,
+                                    basis::LobattoLegendreBasis)
+    cache = create_cache(IndicatorEntropyCorrection, equations, basis)
+    return IndicatorEntropyCorrection{typeof(cache)}(cache)
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyCorrection)
+    @nospecialize indicator # reduce precompilation time
+    print(io, "IndicatorEntropyCorrection")
+    return nothing
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyCorrection)
+    @nospecialize indicator # reduce precompilation time
+    summary_box(io, "IndicatorEntropyCorrection")
+    return nothing
+end
 end # @muladd

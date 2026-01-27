@@ -119,6 +119,37 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# integrate `du_local` against the entropy variables evaluated at `u`
+function integrate_against_entropy_variables(du_local, u, element,
+                                             mesh::AbstractMesh{1},
+                                             equations, dg::DGSEM, cache, args...)
+    (; weights) = dg.basis
+
+    # we integrate over the reference element since `du` is calculated by 
+    # a weak form-like volume integral, and should already be scaled by the 
+    # Jacobian factor. 
+
+    integral = zero(eltype(u))
+
+    for i in eachnode(dg)
+        du_node = get_node_vars(du_local, equations, dg, i)
+        u_node = get_node_vars(u, equations, dg, i, element)
+        integral = integral +
+                   weights[i] * dot(cons2entropy(u_node, equations), du_node)
+    end
+
+    return integral
+end
+
+# calculate surface integral of func(u, equations) * normal
+function surface_integral(func::Func, u, element, mesh::TreeMesh{1}, equations,
+                          dg::DGSEM, cache) where {Func}
+    u_left = get_node_vars(u, equations, dg, 1, element)
+    u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
+    surface_integral = (func(u_right, equations) - func(u_left, equations))
+    return surface_integral
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}

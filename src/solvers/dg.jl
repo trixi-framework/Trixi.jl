@@ -280,6 +280,57 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+"""
+    VolumeIntegralEntropyCorrection(volume_flux_dg=flux_central,
+                                    volume_flux_fv=flux_lax_friedrichs, 
+                                    indicator=nothing)
+
+Entropy correction volume integral type for DG methods using a convex blending of
+the **first-order** finite volume method with numerical flux `volume_flux_fv` and the
+[`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
+The amount of blending is determined by the violation of a cell entropy equality by
+the volume integral
+"""
+struct VolumeIntegralEntropyCorrection{VolumeFluxDG, VolumeFluxFV, Indicator} <:
+       AbstractVolumeIntegralShockCapturing
+    volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
+    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+    indicator::Indicator
+end
+
+function VolumeIntegralEntropyCorrection(equations, basis;
+                                         volume_flux_dg = flux_central,
+                                         volume_flux_fv = flux_lax_friedrichs)
+    indicator = IndicatorEntropyCorrection(equations, basis)
+    return VolumeIntegralEntropyCorrection{typeof(volume_flux_dg),
+                                           typeof(volume_flux_fv),
+                                           typeof(indicator)}(volume_flux_dg,
+                                                              volume_flux_fv,
+                                                              indicator)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralEntropyCorrection)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralEntropyCorrection")
+        summary_line(io, "volume flux DG", integral.volume_flux_dg)
+        summary_line(io, "volume flux FV", integral.volume_flux_fv)
+        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.indicator)
+        summary_footer(io)
+    end
+end
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralEntropyCorrection,
+                                dg, cache)
+    # do nothing                                
+end
+
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.
