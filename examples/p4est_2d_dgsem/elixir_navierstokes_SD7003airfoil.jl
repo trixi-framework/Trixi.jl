@@ -65,10 +65,10 @@ heat_bc = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_airfoil = BoundaryConditionNavierStokesWall(velocity_bc_airfoil, heat_bc)
 
 boundary_conditions_hyp = (; FarField = boundary_condition_free_stream,
-                            Airfoil = boundary_condition_slip_wall)
+                           Airfoil = boundary_condition_slip_wall)
 
 boundary_conditions_para = (; FarField = boundary_condition_free_stream,
-                             Airfoil = boundary_condition_airfoil)
+                            Airfoil = boundary_condition_airfoil)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;

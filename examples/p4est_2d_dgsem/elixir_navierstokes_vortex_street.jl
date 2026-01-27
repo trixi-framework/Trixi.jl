@@ -74,13 +74,13 @@ boundary_condition_cylinder = BoundaryConditionNavierStokesWall(velocity_bc_cyli
                                                                 heat_bc_cylinder)
 
 boundary_conditions_para = (; Circle = boundary_condition_cylinder, # top half of the cylinder
-                             Circle_R = boundary_condition_cylinder, # bottom half of the cylinder
-                             Top = boundary_condition_free,
-                             Top_R = boundary_condition_free, # aka bottom
-                             Right = boundary_condition_free,
-                                :Right_R => boundary_condition_free,
-                                :Left => boundary_condition_free,
-                                :Left_R => boundary_condition_free)
+                            Circle_R = boundary_condition_cylinder, # bottom half of the cylinder
+                            Top = boundary_condition_free,
+                            Top_R = boundary_condition_free, # aka bottom
+                            Right = boundary_condition_free,
+                            :Right_R => boundary_condition_free,
+                            :Left => boundary_condition_free,
+                            :Left_R => boundary_condition_free)
 # Standard DGSEM sufficient here
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 

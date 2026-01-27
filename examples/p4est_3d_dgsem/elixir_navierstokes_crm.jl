@@ -76,12 +76,12 @@ boundary_symbols = [:SYMMETRY,
 mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 
 boundary_conditions_hyp = (; SYMMETRY = boundary_condition_slip_wall, # slip wall allows for tangential velocity => Sufficient for symmetry
-                             FARFIELD = bc_farfield,
-                             OUTFLOW = bc_farfield, # We also use farfield for "outflow" boundary
-                             WING = boundary_condition_slip_wall,
-                             FUSELAGE = boundary_condition_slip_wall,
-                             WING_UP = boundary_condition_slip_wall,
-                             WING_LO = boundary_condition_slip_wall)
+                           FARFIELD = bc_farfield,
+                           OUTFLOW = bc_farfield, # We also use farfield for "outflow" boundary
+                           WING = boundary_condition_slip_wall,
+                           FUSELAGE = boundary_condition_slip_wall,
+                           WING_UP = boundary_condition_slip_wall,
+                           WING_LO = boundary_condition_slip_wall)
 
 velocity_bc_plane = NoSlip((x, t, equations) -> SVector(0.0, 0.0, 0.0))
 heat_bc = Adiabatic((x, t, equations) -> 0.0)
@@ -92,12 +92,12 @@ bc_body = BoundaryConditionNavierStokesWall(velocity_bc_plane, heat_bc)
 bc_symmetry_plane = BoundaryConditionNavierStokesWall(Slip(), heat_bc)
 
 boundary_conditions_para = (; SYMMETRY = bc_symmetry_plane,
-                             FARFIELD = bc_farfield,
-                             OUTFLOW = bc_farfield, # We also use farfield for "outflow" boundary
-                             WING = bc_body,
-                             FUSELAGE = bc_body,
-                             WING_UP = bc_body,
-                             WING_LO = bc_body)
+                            FARFIELD = bc_farfield,
+                            OUTFLOW = bc_farfield, # We also use farfield for "outflow" boundary
+                            WING = bc_body,
+                            FUSELAGE = bc_body,
+                            WING_UP = bc_body,
+                            WING_LO = bc_body)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
