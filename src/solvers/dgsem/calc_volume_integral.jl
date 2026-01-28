@@ -155,4 +155,73 @@ function calc_volume_integral!(du, u, mesh,
 
     return nothing
 end
+
+@inline regularized_ratio(a, b) = a * b / (1e-15 + b^2)
+
+function calc_volume_integral!(du, u, mesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralEntropyCorrection,
+                               dg::DGSEM, cache)
+    (; volume_flux_dg, volume_flux_fv, indicator) = volume_integral
+    du_element_threaded = indicator.cache.indicator_threaded
+    (; scaling) = indicator
+    (; alpha) = indicator.cache
+    resize!(alpha, nelements(dg, cache))
+
+    @threaded for element in eachelement(dg, cache)
+        flux_differencing_kernel!(du, u, element, mesh,
+                                  have_nonconservative_terms, equations,
+                                  volume_flux_dg, dg, cache)
+
+        # check entropy production of "high order" volume integral         
+        volume_integral_entropy_vars = integrate_against_entropy_variables(view(du, ..,
+                                                                                element),
+                                                                           u, element,
+                                                                           mesh,
+                                                                           equations,
+                                                                           dg, cache)
+        surface_integral_entropy_potential = surface_integral(entropy_potential, u,
+                                                              element, mesh, equations,
+                                                              dg, cache)
+
+        # this quantity should be ≥ 0 for an entropy stable discretization                                                              
+        entropy_residual = volume_integral_entropy_vars +
+                           surface_integral_entropy_potential
+
+        if entropy_residual < 0
+            # Store "high order" result
+            du_element = du_element_threaded[Threads.threadid()]
+            @views du_element .= du[.., element]
+
+            # Reset pure flux-differencing volume integral 
+            du[.., element] .= zero(eltype(du))
+
+            # Calculate FV volume integral contribution
+            fv_kernel!(du, u, mesh,
+                       have_nonconservative_terms, equations,
+                       volume_flux_fv, dg, cache, element)
+
+            # calculate difference between high and low order FV integral;
+            # this should be entropy dissipative if entropy_residual > 0.
+            @views du_element .= (du_element .- du[.., element])
+
+            entropy_dissipation = integrate_against_entropy_variables(du_element, u,
+                                                                      element,
+                                                                      mesh, equations,
+                                                                      dg, cache)
+
+            # calculate blending factor 
+            ratio = regularized_ratio(entropy_residual, entropy_dissipation)
+            theta = max(0, min(1, scaling * ratio))
+
+            # save blending coefficient for visualization
+            alpha[element] = theta
+
+            # blend the high order method back in 
+            @views du[.., element] .= du[.., element] .+ (1 - theta) * du_element
+        end
+    end
+
+    return nothing
+end
 end # @muladd
