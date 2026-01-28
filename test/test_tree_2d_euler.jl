@@ -609,23 +609,23 @@ end
                         local_twosided_variables_cons=["rho"],
                         cfl=0.5,
                         l2=[
-                            0.19657723128273924,
-                            0.09819990707800491,
-                            0.14969902881019737,
-                            0.07474283620648917
+                            0.19185209602478717,
+                            0.09515534096951954,
+                            0.13633655773802925,
+                            0.0732414323778663
                         ],
                         linf=[
-                            0.9087650823657859,
-                            0.48203285905738114,
-                            0.35330695561397685,
-                            0.3443844432700125
+                            0.8812860825078623,
+                            0.47063513971549836,
+                            0.29315653000200037,
+                            0.3380020196107205
                         ],
                         tspan=(0.0, 1.0),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] == "# iter, simu_time, rho_min, rho_max, pressure_min"
-    # Run takes 795 time steps
-    @test startswith(lines[end], "795")
+    # Run takes 495 time steps
+    @test startswith(lines[end], "495")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom

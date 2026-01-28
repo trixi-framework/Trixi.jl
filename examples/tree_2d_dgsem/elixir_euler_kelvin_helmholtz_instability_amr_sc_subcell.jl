@@ -38,7 +38,8 @@ basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
-                                local_twosided_variables_cons = []) # required for testing
+                                local_twosided_variables_cons = [], # required for testing
+                                max_iterations_newton = 30)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -48,7 +49,7 @@ solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
+                initial_refinement_level = 4,
                 n_cells_max = 100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -80,9 +81,9 @@ amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_smooth = false,
                                           variable = Trixi.density)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 4,
+                                      base_level = 3,
                                       med_level = 0, med_threshold = 0.0003,
-                                      max_level = 6, max_threshold = 0.003)
+                                      max_level = 5, max_threshold = 0.003)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
                            adapt_initial_condition = true,
