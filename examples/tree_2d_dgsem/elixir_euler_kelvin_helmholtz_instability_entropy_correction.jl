@@ -61,12 +61,13 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-###############################################################################
-# run the simulation
-
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback)
+
+###############################################################################
+# run the simulation
+
 sol = solve(ode, SSPRK43();
             abstol = 1e-6, reltol = 1e-4,
             ode_default_options()..., callback = callbacks);
