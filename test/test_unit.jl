@@ -438,6 +438,11 @@ end
     @test isnothing(display(c3d))
 end
 
+@timed_testset "DG IDP mortar container debug output" begin
+    c2d = Trixi.IDPMortarContainer2D{Float64}(1, 1, 1)
+    @test isnothing(display(c2d))
+end
+
 @timed_testset "TreeContainer1D nnodes(container)" begin
     capacity = 42
     n_variables = 9
@@ -622,7 +627,7 @@ end
 end
 
 # It is for many equations possible to compute ρ ⋅ p more efficiently
-# than computing the pressure (and density if needed) separately and then multiplying. 
+# than computing the pressure (and density if needed) separately and then multiplying.
 # This is due to the computation of the kinetic energy term, which usually involves
 # dividing the squared momenta by the density, an operation that can be avoided
 # when computing the product ρ ⋅ p directly.
@@ -800,8 +805,8 @@ end
     @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
 
-    # check that the fallback temperature and specialized temperature 
-    # return the same value 
+    # check that the fallback temperature and specialized temperature
+    # return the same value
     V, v1, T = cons2prim(u, equations)
     e = energy_internal(V, T, eos)
     @test temperature(V, e, eos) ≈
