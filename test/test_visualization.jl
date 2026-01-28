@@ -21,6 +21,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "Visualization tests" begin
 #! format: noindent
 
+
 # Run 2D tests with elixirs for all mesh types
 test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                        "elixir_euler_blast_wave_amr.jl"),
@@ -392,6 +393,107 @@ end
                 @test isapprox(prim, cons2prim(u, equations), atol = 5.0e-3)
             end
         end
+    end
+end
+
+
+@trixi_testset "PlotData2D Regression Test (Multi-Mesh)" begin
+        using Trixi
+        using StaticArrays
+
+        
+        equations = CompressibleEulerEquations2D(1.4)
+        solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+
+        function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
+            A = 1.0; Ms = 0.1; rho = 1.0
+            v1 = A * sin(x[1]) * cos(x[2])
+            v2 = -A * cos(x[1]) * sin(x[2])
+            p = (A / Ms)^2 * rho / equations.gamma
+            p = p + 1.0 / 16.0 * A^2 * rho * (cos(2 * x[1]) + 2 * cos(2 * x[2]) + 2 * cos(2 * x[1]) + cos(2 * x[2]))
+            return prim2cons(SVector(rho, v1, v2, p), equations)
+        end
+
+       
+        function verify_mesh(mesh, mesh_name)
+            # 1. Run Simulation (t=0.0 for exact match)
+            semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_taylor_green_vortex, solver)
+            ode = semidiscretize(semi, (0.0, 0.0))
+            
+            # 2. Create PlotData (Default output is Primitive: rho, v1, v2, p)
+            pd = @inferred PlotData2D(ode.u0, ode.p)
+            
+
+
+            # 3. Detect Layout & Iterate
+            
+            # Case A: Cartesian Grids (TreeMesh) -> pd.x is a Vector (Axis)
+            if pd.x isa AbstractVector
+                for i in eachindex(pd.x), j in eachindex(pd.y)
+                    # TreeMesh requires (y, x) swap due to internal storage
+                    x_coord = pd.x[i]
+                    y_coord = pd.y[j]
+                    
+                    # Data Access: [Variable][i, j]
+                    rho_p = pd.data[1][i, j]; v1_p = pd.data[2][i, j]
+                    v2_p  = pd.data[3][i, j]; p_p  = pd.data[4][i, j]
+                    
+                    # Exact Check 
+                    u_exact = initial_condition_taylor_green_vortex(SVector(y_coord, x_coord), 0.0, equations)
+                    prim_exact = cons2prim(u_exact, equations)
+                    
+                    @test isapprox(rho_p, prim_exact[1], atol=2e-3)
+                    @test isapprox(v1_p,  prim_exact[2], atol=2e-3)
+                    @test isapprox(v2_p,  prim_exact[3], atol=2e-3)
+                    @test isapprox(p_p,   prim_exact[4], atol=2e-3)
+                end
+            
+
+                
+            # Case B: Curved/Unstructured (Structured, P4est) -> pd.x is a Matrix (Coordinate Map)
+            else
+                for I in CartesianIndices(pd.x)
+                    
+                    x_coord = pd.x[I]
+                    y_coord = pd.y[I]
+                    
+                    
+                    if pd.data isa AbstractVector{<:AbstractMatrix} 
+                         rho_p = pd.data[1][I]; v1_p = pd.data[2][I]
+                         v2_p  = pd.data[3][I]; p_p  = pd.data[4][I]
+                    else 
+                         d = pd.data[I]
+                         rho_p = d[1]; v1_p = d[2]; v2_p = d[3]; p_p = d[4]
+                    end
+
+                    # Exact Check
+                    u_exact = initial_condition_taylor_green_vortex(SVector(x_coord, y_coord), 0.0, equations)
+                    prim_exact = cons2prim(u_exact, equations)
+                    
+                    @test isapprox(rho_p, prim_exact[1], atol=2e-3)
+                    @test isapprox(v1_p,  prim_exact[2], atol=2e-3)
+                    @test isapprox(v2_p,  prim_exact[3], atol=2e-3)
+                    @test isapprox(p_p,   prim_exact[4], atol=2e-3)
+                end
+            end
+        end
+
+        # --- Run Tests for All Meshes ---
+        
+    # 1. TreeMesh
+    mesh_tree = TreeMesh((-1.0, -1.0), (1.0, 1.0), n_cells_max=10^5, initial_refinement_level=3)
+    verify_mesh(mesh_tree, "TreeMesh")
+
+    # 2. StructuredMesh
+    mesh_struct = StructuredMesh((16, 16), (-1.0, -1.0), (1.0, 1.0))
+    verify_mesh(mesh_struct, "StructuredMesh")
+
+    # 3. P4estMesh (Conditional Check)
+    if isdefined(Main, :P4est) || isdefined(Trixi, :P4est)
+            mesh_p4est = P4estMesh((16, 16), polydeg=3, 
+                                coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0), 
+                                initial_refinement_level=0)
+            verify_mesh(mesh_p4est, "P4estMesh")
     end
 end
 
@@ -775,5 +877,16 @@ end
     @trixi_test_nowarn Trixi.iplot(sol)
 end
 end
+
+
+
+
+
+
+
+
+
+
+
 
 end #module
