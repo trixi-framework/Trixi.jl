@@ -546,7 +546,7 @@ end
                                                    mesh::TreeMesh{2}, var_index)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
-    (; orientations, large_sides, u_large, u_upper, u_lower) = cache.mortars
+    (; orientations, large_sides) = cache.mortars
     (; surface_flux_values, inverse_jacobian) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
 
@@ -559,9 +559,6 @@ end
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
-
-        # Get small side of mortar
-        small_side = large_sides[mortar] == 1 ? 2 : 1
 
         # Compute minimal bound
         var_min_upper = typemax(eltype(surface_flux_values))
