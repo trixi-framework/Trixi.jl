@@ -234,6 +234,60 @@ end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
 
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH, Mortar} <:
+       AbstractMortar{RealT}
+    positivity_variables_cons::Vector{Int}
+    mortar_l2::Mortar
+    # LENGTH = `2 * (NDIMS - 1) + 1`
+    mortar_weights::Array{RealT, LENGTH}     # [node_i (large), node_j (large), node_i (small), node_j (small), small_element]
+    mortar_weights_sums::Array{RealT, NDIMS} # [node_i, node_j, small (1) / large (2) element]
+end
+
+function MortarIDP(equations, basis::LobattoLegendreBasis;
+                   positivity_variables_cons = String[])
+    RealT = real(basis)
+    n_dims = ndims(equations)
+    nnodes_ = nnodes(basis)
+
+    mortar_l2 = MortarL2(basis)
+
+    mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis, RealT)
+
+    positivity_variables_cons_ = get_variable_index.(positivity_variables_cons,
+                                                     equations)
+
+    LobattoLegendreMortarIDP{RealT, nnodes_, n_dims,
+                             2 * (n_dims - 1) + 1, typeof(mortar_l2)}(positivity_variables_cons_,
+                                                                      mortar_l2,
+                                                                      mortar_weights,
+                                                                      mortar_weights_sums)
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarIDP(polydeg=", polydeg(mortar), ", positivity for ",
+          mortar.positivity_variables_cons, ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarIDP{", real(mortar),
+          "} with polynomials of degree ",
+          polydeg(mortar),
+          " and positivity limiting for conservative variables ",
+          mortar.positivity_variables_cons)
+end
+
+@inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortarIDP{RealT, NNODES}) where {RealT,
+                                                                                NNODES}
+    NNODES
+end
+
+@inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
+
 # TODO: We can create EC mortars along the lines of the following implementation.
 # abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
 
