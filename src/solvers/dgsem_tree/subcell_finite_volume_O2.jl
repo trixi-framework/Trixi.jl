@@ -63,15 +63,15 @@ Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](
 The supplied `limiter` governs the choice of slopes given the nodal values
 `u_ll`, `u_lr`, `u_rl`, and `u_rr` at the (Gauss-Lobatto Legendre) nodes.
 
-**Symmetric ** total-Variation-Diminishing (TVD) choices for the limiter are
+**Symmetric** total-Variation-Diminishing (TVD) choices for the limiter are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
-    4) [`vanLeer`](@ref)
-    5) [`Koren_symmetric`](@ref)
-**Asymmetric** limiters are also available, e.g.,
-    1) [`Koren`](@ref) for positive (right-going) velocities
-    2) [`Koren_flipped`](@ref) for negative (left-going) velocities
+    4) [`vanleer`](@ref)
+    5) [`koren_symmetric`](@ref)
+**Asymmetric** TVD limiters are also available, e.g.,
+    1) [`koren`](@ref) for positive (right-going) velocities
+    2) [`koren_flipped`](@ref) for negative (left-going) velocities
 
 The reconstructed slopes are for `reconstruction_O2_full` not limited at the cell boundaries.
 Formally second order accurate when used without a limiter, i.e., `limiter = `[`central_slope`](@ref).
@@ -127,15 +127,15 @@ Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](
 The supplied `limiter` governs the choice of slopes given the nodal values
 `u_ll`, `u_lr`, `u_rl`, and `u_rr` at the (Gauss-Lobatto Legendre) nodes.
 
-**Symmetric ** total-Variation-Diminishing (TVD) choices for the limiter are
+**Symmetric** total-Variation-Diminishing (TVD) choices for the limiter are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
-    4) [`vanLeer`](@ref)
-    5) [`Koren_symmetric`](@ref)
+    4) [`vanleer`](@ref)
+    5) [`koren_symmetric`](@ref)
 **Asymmetric** limiters are also available, e.g.,
-    1) [`Koren`](@ref) for dominantly positive velocities
-    2) [`Koren_flipped`](@ref) for dominantly negative velocities
+    1) [`koren`](@ref) for dominantly positive velocities
+    2) [`koren_flipped`](@ref) for dominantly negative velocities
 
 For the outer, i.e., boundary subcells, constant values are used, i.e, no reconstruction.
 This reduces the order of the scheme below 2.
@@ -239,7 +239,7 @@ For reference, see for instance Eq. (6.28) in
 end
 
 """
-    vanLeer(sl, sr)
+    vanleer(sl, sr)
 
 Symmetric limiter by van Leer.
 See for reference page 70 in 
@@ -248,7 +248,7 @@ See for reference page 70 in
   Numerical methods for conservation laws and related equations.
   [Link](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf)
 """
-@inline function vanLeer(sl, sr)
+@inline function vanleer(sl, sr)
     if abs(sl) + abs(sr) > zero(sl)
         return (abs(sr) * sl + abs(sl) * sr) / (abs(sl) + abs(sr))
     else
@@ -257,7 +257,7 @@ See for reference page 70 in
 end
 
 """
-    Koren(sl, sr)
+    koren(sl, sr)
 
 **Asymmetric** limiter by Barry Koren, originally proposed in Chapter 5.2.2. of
 
@@ -274,29 +274,28 @@ A version in left/right slopes `sl, sr` is given by equations (14) and (15) in
 
 This limiter is biased for positive (right-going) velocities.
 For the flipped version, which is biased for negative (left-going) velocities,
-see [`Koren_flipped`](@ref).
+see [`koren_flipped`](@ref).
 """
-@inline function Koren(sl, sr)
+@inline function koren(sl, sr)
     return minmod(2 * minmod(sl, sr), (sl + 2 * sr) / 3)
 end
 
 """
-    Koren_flipped(sl, sr)
+    koren_flipped(sl, sr)
 
 **Asymmetric** limiter by Barry Koren, flipped version biased for negative (left-going) velocities.
-See [`Koren`](@ref) for references.
+See [`koren`](@ref) for references.
 """
-@inline function Koren_flipped(sl, sr)
-    return Koren(sr, sl)
+@inline function koren_flipped(sl, sr)
+    return koren(sr, sl)
 end
 
 """
-    Koren_symmetric(sl, sr)
+    koren_symmetric(sl, sr)
 
-**Symmetric** version of the Koren limiter by Barry Koren.
+**Symmetric** version of the [`koren`](@ref) limiter by Barry Koren.
 Puts equal weight on left and right slopes.
-See [`Koren`](@ref) for references.
 """
-@inline function Koren_symmetric(sl, sr)
+@inline function koren_symmetric(sl, sr)
     return minmod(2 * minmod(sl, sr), minmod(sl + 2 * sr, 2 * sl + sr) / 3)
 end
