@@ -68,7 +68,9 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 tspan = (0.0, 1.0)
 initial_condition = initial_condition_daru
 periodicity = (false, false)
-mu() = 5e-3
+# mu() = 5e-3 # Re = 200
+# mu() = 2e-3 # Re = 500
+mu() = 1e-3 # Re = 1000
 
 # coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 # coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
@@ -78,34 +80,32 @@ mu() = 5e-3
 # # initial_condition = initial_condition_kelvin_helmholtz_instability
 # periodicity = (true, true)
 # # periodicity = (false, false)
-# mu() = 5e-3
 
 equations = CompressibleEulerEquations2D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesEntropy())
 
-# dg = DGSEM(polydeg = 2, surface_flux = FluxLaxFriedrichs(max_abs_speed),
+# dg = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed),
 #            volume_integral = VolumeIntegralWeakForm())
-#         #    volume_integral = VolumeIntegralFluxDifferencing(flux_shima_etal))
 
 surface_flux = FluxLaxFriedrichs(max_abs_speed)
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.5,
-                                         alpha_min = 0.001,
+                                         alpha_max = 0.25,
+                                         alpha_min = 0.000,
                                          alpha_smooth = true,
                                          variable = density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                #  volume_flux_dg = flux_shima_etal,
                                                  volume_flux_dg = flux_central,
                                                  volume_flux_fv = surface_flux)           
 dg = DGSEM(basis, surface_flux, volume_integral)
 
 
 # Create a uniformly refined mesh with periodic boundaries
+initial_refinement_level = 9
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 7,
+                initial_refinement_level = initial_refinement_level,
                 periodicity=periodicity, n_cells_max = 400_000) 
 
 # BC types
@@ -125,8 +125,8 @@ boundary_conditions_parabolic = (; x_neg = boundary_condition_noslip_wall,
                                    y_neg = boundary_condition_noslip_wall,
                                    y_pos = boundary_condition_noslip_wall)
 
-solver_parabolic = ViscousFormulationBassiRebay1()
-# solver_parabolic = ViscousFormulationLocalDG()
+# solver_parabolic = ViscousFormulationBassiRebay1()
+solver_parabolic = ViscousFormulationLocalDG()
 
 if all(mesh.tree.periodicity .== true)
     semi = SemidiscretizationArtificialViscosity(mesh, (equations, equations_parabolic),
@@ -159,34 +159,31 @@ end
 # Create ODE problem with time span `tspan`
 ode = semidiscretize(semi, tspan)
 
-# amr_controller = ControllerThreeLevel(semi, IndicatorLöhner(semi, variable = v1),
-#                                       base_level = 3,
-#                                       med_level = 5, med_threshold = 0.2,
-#                                       max_level = 7, max_threshold = 0.5)
-# amr_callback = AMRCallback(semi, amr_controller,
-#                            interval = 50,
-#                            adapt_initial_condition = true,
-#                            adapt_initial_condition_only_refine = true)
-
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 100)
-analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback) #, amr_callback)
+callbacks = CallbackSet(summary_callback, alive_callback)
+# analysis_interval = 1000
+# analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+# callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback) #, amr_callback)
 
 ###############################################################################
 # run the simulation
 
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-6, 1.0e-6),
-                                                     variables = (Trixi.density, pressure))
-solver = SSPRK43(stage_limiter!, stage_limiter!)
-# solver = SSPRK43()
+# stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-6, 1.0e-6),
+#                                                      variables = (Trixi.density, pressure))
+# solver = SSPRK43(stage_limiter!, stage_limiter!)
+solver = SSPRK43()
 
 sol = solve(ode, solver; abstol = 1e-6, reltol = 1e-4, 
             ode_default_options()..., callback = callbacks)
 
+using JLD2
+#@save "DaruTenaudRe1000_polydeg_3_elements_512.jld2" sol
+#@save "DaruTenaudRe1000_polydeg_$(Trixi.polydeg(dg.basis))_elements_$(2^initial_refinement_level).jld2" sol
+# @save "DaruTenaudRe1000_polydeg_$(Trixi.polydeg(dg.basis))_elements_$(2^initial_refinement_level)_shock_capturing_amax_p5.jld2" sol
+
 using Plots
-plot(PlotData2D(sol)["rho"])
+# plot(PlotData2D(sol)["rho"])
 
 u = Trixi.wrap_array(sol.u[end], semi)
 T = [Trixi.temperature(get_node_vars(u, equations, dg, i, j, elements), equations_parabolic) 
@@ -194,8 +191,7 @@ T = [Trixi.temperature(get_node_vars(u, equations, dg, i, j, elements), equation
 plot(ScalarPlotData2D(T, semi))
 plot!(clims=(0.4, 1.2), xlims=(0.4, 1.0), ylims=(0, 0.25))
 
-ECAV_coefficient = [semi.cache.artificial_viscosity.coefficients[elements]
-                  for i in eachnode(dg), j in eachnode(dg), elements in eachelement(dg, semi.cache)]
-plot(ScalarPlotData2D(ECAV_coefficient, semi))
+# ECAV_coefficient = [semi.cache.artificial_viscosity.coefficients[elements]
+#                   for i in eachnode(dg), j in eachnode(dg), elements in eachelement(dg, semi.cache)]
+# plot(ScalarPlotData2D(ECAV_coefficient, semi))
 
-# plot!(getmesh(PlotData2D(sol)))
