@@ -1148,7 +1148,7 @@ of total energy and kinetic energy.
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
 
-"""
+@doc raw"""
     entropy_potential(u, orientation::Int, equations::CompressibleEulerEquations1D)
 
 Calculate the entropy potential, which for the compressible Euler equations is simply 
