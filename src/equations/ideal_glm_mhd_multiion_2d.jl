@@ -607,14 +607,6 @@ end
         f3 = Tyx * normal_direction[1] + Tyy * normal_direction[2]
         f4 = Txz * normal_direction[1] + Tyz * normal_direction[2]
 
-        #         f2 = charge_ratio_ll[k] *
-        #              ((0.5f0 * mag_norm_avg - B1_avg * B1_avg + pe_mean) * normal_direction[1] +
-        #               (-B2_avg * B1_avg) * normal_direction[2])
-        #         f3 = charge_ratio_ll[k] * ((-B1_avg * B2_avg) * normal_direction[1] +
-        #               (-B2_avg * B2_avg + 0.5f0 * mag_norm_avg + pe_mean) * normal_direction[2])
-        #         f4 = charge_ratio_ll[k] * (-B1_avg * B3_avg * normal_direction[1] -
-        #               B2_avg * B3_avg * normal_direction[2])
-
         f5 = (vk1_plus_ll[k] * normal_direction[1] +
               vk2_plus_ll[k] * normal_direction[2]) * pe_mean
 
