@@ -202,7 +202,7 @@ function integrate_against_entropy_variables(du_local, u, element,
                    weights[i] * weights[j] *
                    dot(cons2entropy(u_node, equations), du_node)
     end
-    # return integral
+
     return integral * jacobian_1d
 end
 
@@ -226,7 +226,6 @@ function surface_integral(func::Func, u, element, mesh::TreeMesh{2}, equations,
                            (func(u_right, 2, equations) - func(u_left, 2, equations))
     end
 
-    # return surface_integral
     jacobian_1d = inv(cache.elements.inverse_jacobian[element]) # O(h) 
     return surface_integral * jacobian_1d
 end
