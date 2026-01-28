@@ -8,7 +8,7 @@ for human readability.
 ## Changes when updating to v0.15 from v0.14.x
 
 #### Changed
-- Renamed `energy_internal` for `NonIdealCompressibleEulerEquations1D` to `energy_internal_specific`. This makes `energy_internal` for `NonIdealCompressibleEulerEquations1D` consistent with the rest of Trixi.jl, where `energy_internal` refers to the specific internal energy scaled by density. 
+- Renamed `energy_internal` for `NonIdealCompressibleEulerEquations1D` to `energy_internal_specific` ([#2762]). This makes `energy_internal` for `NonIdealCompressibleEulerEquations1D` consistent with the rest of Trixi.jl, where `energy_internal` refers to the specific internal energy scaled by density. 
 
 ## Changes in the v0.14 lifecycle
 
