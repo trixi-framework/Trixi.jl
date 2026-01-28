@@ -1,4 +1,4 @@
-using OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -9,7 +9,8 @@ function initial_condition_modified_sod(x, t, equations::CompressibleEulerEquati
     if x[1] < 0.3
         return prim2cons(SVector(1, 0.75, 1), equations)
     else
-        return prim2cons(SVector(0.125, 0.0, 0.1), equations)
+        # this version of modified sod uses a 100x density and pressure jump
+        return prim2cons(SVector(0.0125, 0.0, 0.01), equations)
     end
 end
 
@@ -38,7 +39,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.20)
+tspan = (0.0, 0.2)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -53,16 +54,11 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.8)
-
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
-
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback)
+sol = solve(ode, SSPRK43();
+            abstol = 1e-6, reltol = 1e-4,
             ode_default_options()..., callback = callbacks);
