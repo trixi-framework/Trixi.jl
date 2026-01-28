@@ -581,6 +581,31 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (VolumeIntegralEntropyCorrection)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability.jl"),
+                        # adding `scaling = 2` increases the amount of subcell FV blended in by 
+                        # a factor of 2. If this is not added, the KHI simulation crashes with a 
+                        # positivity violation at some time t < 3.
+                        volume_integral=VolumeIntegralEntropyCorrection(equations,
+                                                                        basis;
+                                                                        volume_flux_dg = volume_flux,
+                                                                        volume_flux_fv = surface_flux,
+                                                                        scaling = 2.0),
+                        l2=[
+                            0.5598004443337804,
+                            0.19783160019699073,
+                            0.22886409540262306,
+                            0.17616905595853216
+                        ],
+                        linf=[
+                            2.2756723403007273,
+                            0.7899848710261611,
+                            0.7613239119300793,
+                            0.6332611254490705
+                        ])
+end
+
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
