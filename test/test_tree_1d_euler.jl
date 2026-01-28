@@ -620,6 +620,18 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_modified_sod_entropy_correction.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_modified_sod_entropy_correction.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[0.17918607115375737, 0.30210797213211904, 0.5919230042600214],
+                        linf=[0.6787210680110314, 0.8094457930038574, 1.9399759515642199])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_nonideal_density_wave.jl with entropy correction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
