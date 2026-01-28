@@ -34,8 +34,8 @@ by some user-specified equation of state (EOS)
 p = p(V, T)
 ```
 
-Similarly, the internal energy is specified by `e = energy_internal(V, T, eos)`, see
-[`energy_internal(V, T, eos::IdealGas)`](@ref), [`energy_internal(V, T, eos::VanDerWaals)`](@ref).
+Similarly, the internal energy is specified by `e = energy_internal_specific(V, T, eos)`, see
+[`energy_internal_specific(V, T, eos::IdealGas)`](@ref), [`energy_internal_specific(V, T, eos::VanDerWaals)`](@ref).
 
 Because of this, the primitive variables are also defined to be `V, v1, T` (instead of 
 `rho, v1, p` for `CompressibleEulerEquations1D`). The implementation also assumes 
@@ -85,8 +85,8 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370 1>
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -136,8 +136,8 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
 
     rho_ll, rho_v1_ll, _ = u_ll
     rho_rr, rho_v1_rr, _ = u_rr
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -275,7 +275,7 @@ end
     V, v1, T = prim
     rho = inv(V)
     rho_v1 = rho * v1
-    e = energy_internal(V, T, eos)
+    e = energy_internal_specific(V, T, eos)
     rho_e_total = rho * e + 0.5f0 * rho_v1 * v1
     return SVector(rho, rho_v1, rho_e_total)
 end
@@ -338,15 +338,16 @@ end
     return rho * p
 end
 
-@inline function energy_internal(u, equations::NonIdealCompressibleEulerEquations1D)
+@inline function energy_internal_specific(u,
+                                          equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
     V, _, T = cons2prim(u, equations)
-    e = energy_internal(V, T, eos)
+    e = energy_internal_specific(V, T, eos)
     return e
 end
 
-@inline function internal_energy_density(u,
-                                         equations::NonIdealCompressibleEulerEquations1D)
+@inline function energy_internal(u,
+                                 equations::NonIdealCompressibleEulerEquations1D)
     rho, rho_v1, rho_e_total = u
     rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
     return rho_e
