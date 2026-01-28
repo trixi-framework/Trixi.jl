@@ -110,6 +110,32 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_density_wave.jl with entropy correction" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
+                        solver=DGSEM(LobattoLegendreBasis(3),
+                                     flux_lax_friedrichs,
+                                     VolumeIntegralEntropyCorrection(equations,
+                                                                     LobattoLegendreBasis(3);
+                                                                     volume_flux_dg = volume_flux,
+                                                                     volume_flux_fv = surface_flux)),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.028712539480767976,
+                            0.0028712539480767085,
+                            0.00574250789615355,
+                            0.0007178134870171292
+                        ],
+                        linf=[
+                            0.07201294589822704,
+                            0.007201294589823409,
+                            0.014402589179645153,
+                            0.0018003236474513074
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
