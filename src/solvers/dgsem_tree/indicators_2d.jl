@@ -32,7 +32,8 @@ function create_cache(::Type{IndicatorEntropyCorrection},
     alpha = Vector{uEltype}()
 
     # container for elementwise volume integrals
-    indicator_threaded = [zeros(uEltype, nvariables(equations), nnodes(basis), nnodes(basis)) for _ in 1:Threads.maxthreadid()]
+    indicator_threaded = [zeros(uEltype, nvariables(equations), nnodes(basis),
+                                nnodes(basis)) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
 end
