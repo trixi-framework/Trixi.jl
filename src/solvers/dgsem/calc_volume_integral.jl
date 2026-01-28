@@ -193,7 +193,7 @@ function calc_volume_integral!(du, u, mesh,
             du_element = du_element_threaded[Threads.threadid()]
             @views du_element .= du[.., element]
 
-            # Reset weak form volume integral 
+            # Reset pure flux-differencing volume integral 
             du[.., element] .= zero(eltype(du))
 
             # Calculate FV volume integral contribution
