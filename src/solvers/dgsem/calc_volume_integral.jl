@@ -156,7 +156,7 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-@inline regularized_ratio(a, b) = a * b / (1e-15 + b^2)
+@inline regularized_ratio(a, b) = a * b / (eps(b) + b^2)
 
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
