@@ -593,6 +593,10 @@ end
     f[2] = 2 * v_plus_ll_normal * B2_avg
     f[3] = 2 * v_plus_ll_normal * B3_avg
 
+    # Compute B_dot_n_avg and v_dot_B_ll once (they are constant for all species)
+    B_dot_n_avg = B1_avg * normal_direction[1] + B2_avg * normal_direction[2]
+    v_dot_B_ll = v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll
+
     for k in eachcomponent(equations)
         # Compute term Lorentz term
         Txx = charge_ratio_ll[k] * (0.5f0 * mag_norm_avg - B1_avg^2 + pe_mean)
@@ -631,11 +635,10 @@ end
               normal_direction[2]
 
         # Compute Godunov-Powell term (ADD to f2, f3, f4, not overwrite!)
-        B_dot_n = B1_avg * normal_direction[1] + B2_avg * normal_direction[2]
-        f2 += charge_ratio_ll[k] * B1_ll * B_dot_n
-        f3 += charge_ratio_ll[k] * B2_ll * B_dot_n
-        f4 += charge_ratio_ll[k] * B3_ll * B_dot_n
-        f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B_dot_n
+        f2 += charge_ratio_ll[k] * B1_ll * B_dot_n_avg
+        f3 += charge_ratio_ll[k] * B2_ll * B_dot_n_avg
+        f4 += charge_ratio_ll[k] * B3_ll * B_dot_n_avg
+        f5 += v_dot_B_ll * B_dot_n_avg
 
         # Compute GLM term for the energy
         f5 += v1_plus_ll * psi_ll * psi_avg * normal_direction[1]
@@ -841,13 +844,18 @@ end
 
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
+    # Compute B_dot_n, v_dot_B_ll, and psi terms once (they are constant for all species)
+    B1_sum = B1_ll + B1_rr
+    B2_sum = B2_ll + B2_rr
+    B_dot_n = B1_sum * normal_direction[1] + B2_sum * normal_direction[2]
+    v_dot_B_ll = v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll
+    psi_sum = psi_ll + psi_rr
+
     # Entries of Godunov-Powell term for induction equation
-    f[1] = v1_plus_ll * (B1_ll + B1_rr) * normal_direction[1] +
-           v1_plus_ll * (B2_ll + B2_rr) * normal_direction[2]
-    f[2] = v2_plus_ll * (B1_ll + B1_rr) * normal_direction[1] +
-           v2_plus_ll * (B2_ll + B2_rr) * normal_direction[2]
-    f[3] = v3_plus_ll * (B1_ll + B1_rr) * normal_direction[1] +
-           v3_plus_ll * (B2_ll + B2_rr) * normal_direction[2]
+    f[1] = v1_plus_ll * B_dot_n
+    f[2] = v2_plus_ll * B_dot_n
+    f[3] = v3_plus_ll * B_dot_n
+
     for k in eachcomponent(equations)
         # Compute Lorentz term
         f2 = charge_ratio_ll[k] *
@@ -884,27 +892,21 @@ end
                 (vk2_minus_rr * B3_rr - vk3_minus_rr * B2_rr))) * normal_direction[2]
 
         # Compute Godunov-Powell term
-        f2 += charge_ratio_ll[k] * B1_ll * (B1_ll + B1_rr) * normal_direction[1] +
-              charge_ratio_ll[k] * B1_ll * (B2_ll + B2_rr) * normal_direction[2]
-        f3 += charge_ratio_ll[k] * B2_ll * (B1_ll + B1_rr) * normal_direction[1] +
-              charge_ratio_ll[k] * B2_ll * (B2_ll + B2_rr) * normal_direction[2]
-        f4 += charge_ratio_ll[k] * B3_ll * (B1_ll + B1_rr) * normal_direction[1] +
-              charge_ratio_ll[k] * B3_ll * (B2_ll + B2_rr) * normal_direction[2]
-        f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
-              (B1_ll + B1_rr) * normal_direction[1] +
-              (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
-              (B2_ll + B2_rr) * normal_direction[2]
+        f2 += charge_ratio_ll[k] * B1_ll * B_dot_n
+        f3 += charge_ratio_ll[k] * B2_ll * B_dot_n
+        f4 += charge_ratio_ll[k] * B3_ll * B_dot_n
+        f5 += v_dot_B_ll * B_dot_n
 
         # Compute GLM term for the energy
-        f5 += v1_plus_ll * psi_ll * (psi_ll + psi_rr) * normal_direction[1] +
-              v2_plus_ll * psi_ll * (psi_ll + psi_rr) * normal_direction[2]
+        f5 += (v1_plus_ll * normal_direction[1] + v2_plus_ll * normal_direction[2]) *
+              psi_ll * psi_sum
 
         # Append to the flux vector
         set_component!(f, k, 0, f2, f3, f4, f5, equations)
     end
     # Compute GLM term for psi
     f[end] = (v1_plus_ll * normal_direction[1] + v2_plus_ll * normal_direction[2]) *
-             (psi_ll + psi_rr)
+             psi_sum
 
     return SVector(f)
 end
@@ -1192,6 +1194,10 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2, T},
     psi_B1_avg = 0.5f0 * (B1_ll * psi_ll + B1_rr * psi_rr)
     psi_B2_avg = 0.5f0 * (B2_ll * psi_ll + B2_rr * psi_rr)
 
+    # Compute B_dot_n_avg and psi_B_dot_n_avg once (they are constant for all species)
+    B_dot_n_avg = B1_avg * normal_direction[1] + B2_avg * normal_direction[2]
+    psi_B_dot_n_avg = psi_B1_avg * normal_direction[1] + psi_B2_avg * normal_direction[2]
+
     # Magnetic field components from f^MHD
     f6 = (equations.c_h * psi_avg * normal_direction[1] +
           (v2_plus_avg * B1_avg - v1_plus_avg * B2_avg) * normal_direction[2])
@@ -1285,21 +1291,16 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2, T},
         f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg -
                0.5f0 * vk1_plus_mag_avg * normal_direction[1] -
                0.5f0 * vk2_plus_mag_avg * normal_direction[2] +
-               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) *
-               vel_dot_mag_avg                # Same terms as in Derigs (but with v_plus)
+               B_dot_n_avg * vel_dot_mag_avg     # Same terms as in Derigs (but with v_plus)
                + f9 * psi_avg -
-               equations.c_h *
-               (psi_B1_avg * normal_direction[1] + psi_B2_avg * normal_direction[2]) # GLM term
+               equations.c_h * psi_B_dot_n_avg   # GLM term
                +
                0.5f0 *
                (vk1_plus_avg * normal_direction[1] + vk2_plus_avg * normal_direction[2]) *
                mag_norm_avg -
-               vk1_plus_avg *
-               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * B1_avg -
-               vk2_plus_avg *
-               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * B2_avg -
-               vk3_plus_avg *
-               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * B3_avg   # Additional terms related to the Lorentz non-conservative term (momentum eqs)
+               vk1_plus_avg * B_dot_n_avg * B1_avg -
+               vk2_plus_avg * B_dot_n_avg * B2_avg -
+               vk3_plus_avg * B_dot_n_avg * B3_avg   # Additional terms related to the Lorentz non-conservative term (momentum eqs)
                -
                B2_avg * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) *
                normal_direction[1] -
