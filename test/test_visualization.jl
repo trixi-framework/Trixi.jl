@@ -21,7 +21,6 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "Visualization tests" begin
 #! format: noindent
 
-
 # Run 2D tests with elixirs for all mesh types
 test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                        "elixir_euler_blast_wave_amr.jl"),
@@ -877,16 +876,5 @@ end
     @trixi_test_nowarn Trixi.iplot(sol)
 end
 end
-
-
-
-
-
-
-
-
-
-
-
 
 end #module
