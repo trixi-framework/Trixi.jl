@@ -51,6 +51,18 @@ function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations1D)
 end
 varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("V", "v1", "T")
 
+# for plotting with PlotData1D(sol, solution_variables=density_velocity_pressure)
+@inline function density_velocity_pressure(u,
+                                           equations::NonIdealCompressibleEulerEquations1D)
+    eos = equations.equation_of_state
+    rho, rho_v1, rho_e_total = u
+    V, v1, T = cons2prim(u, equations)
+    return SVector(rho, v1, pressure(V, T, eos))
+end
+varnames(::typeof(density_velocity_pressure), ::NonIdealCompressibleEulerEquations1D) = ("rho",
+                                                                                         "v1",
+                                                                                         "p")
+
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::NonIdealCompressibleEulerEquations1D)
