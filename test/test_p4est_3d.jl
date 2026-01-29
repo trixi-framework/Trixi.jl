@@ -371,21 +371,50 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl (positivity bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         l2=[
-                            0.1942700455652903,
-                            0.07557644365785855,
-                            0.07557644365785836,
-                            0.07557644365785698,
-                            0.3713893635249306
+                            0.19427117014566905,
+                            0.07557679851688888,
+                            0.07557679851688896,
+                            0.07557679851688917,
+                            0.3713893373335463
                         ],
                         linf=[
-                            2.7542157588958798,
-                            1.8885700263691245,
-                            1.888570026369125,
-                            1.8885700263691252,
-                            4.9712792944452096
+                            2.754292081408987,
+                            1.888627709320322,
+                            1.8886277093203232,
+                            1.888627709320322,
+                            4.971280431903264
+                        ],
+                        tspan=(0.0, 0.3),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
+
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl (local bounds)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                             min)],
+                        max_iterations_newton=40,
+                        l2=[
+                            0.19153085678321066,
+                            0.07411109384422779,
+                            0.07411109384410808,
+                            0.07411109384406232,
+                            0.36714268468314665
+                        ],
+                        linf=[
+                            1.4037775549639524,
+                            1.339590863739464,
+                            1.3395908637591605,
+                            1.3395908637371077,
+                            4.824252924073932
                         ],
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
