@@ -1196,7 +1196,8 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2, T},
 
     # Compute B_dot_n_avg and psi_B_dot_n_avg once (they are constant for all species)
     B_dot_n_avg = B1_avg * normal_direction[1] + B2_avg * normal_direction[2]
-    psi_B_dot_n_avg = psi_B1_avg * normal_direction[1] + psi_B2_avg * normal_direction[2]
+    psi_B_dot_n_avg = psi_B1_avg * normal_direction[1] +
+                      psi_B2_avg * normal_direction[2]
 
     # Magnetic field components from f^MHD
     f6 = (equations.c_h * psi_avg * normal_direction[1] +
