@@ -624,8 +624,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_modified_sod_entropy_correction.jl"),
                         tspan=(0.0, 0.1),
-                        l2=[0.17918607115375737, 0.30210797213211904, 0.5919230042600214],
-                        linf=[0.6787210680110314, 0.8094457930038574, 1.9399759515642199])
+                        l2=[0.17918606870085826, 0.30210796226660624, 0.5919229714363661],
+                        linf=[0.6787210683498577, 0.8094457931331333, 1.939975952122447])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -637,20 +637,20 @@ end
                                  "elixir_euler_nonideal_density_wave.jl"),
                         solver=DGSEM(LobattoLegendreBasis(3),
                                      flux_lax_friedrichs,
-                                     VolumeIntegralEntropyCorrection(equations,
+                                     VolumeIntegralEntropyCorrection(CompressibleEulerEquations1D(1.4),
                                                                      LobattoLegendreBasis(3);
-                                                                     volume_flux_dg = volume_flux,
-                                                                     volume_flux_fv = surface_flux)),
+                                                                     volume_flux_dg = flux_central,
+                                                                     volume_flux_fv = flux_lax_friedrichs)),
                         tspan=(0.0, 0.1),
                         l2=[
-                            0.0014836428894376321,
-                            0.0002850707686431336,
-                            0.06261081503929328
+                            0.0017122131198510152,
+                            0.00036348851462487426,
+                            0.07342375186998892
                         ],
                         linf=[
-                            0.002700476173981947,
-                            0.0008496629031280178,
-                            0.17460023775242917
+                            0.0031904717833848295,
+                            0.0018240656867681004,
+                            0.21543232235424625
                         ])
 
     # Ensure that we do not have excessive memory allocations
