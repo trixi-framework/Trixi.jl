@@ -184,11 +184,12 @@ function calc_volume_integral!(du, u, mesh,
                                                               element, mesh, equations,
                                                               dg, cache)
 
-        # this quantity should be ≥ 0 for an entropy stable discretization                                                              
-        entropy_residual = volume_integral_entropy_vars +
-                           surface_integral_entropy_potential
+        # this quantity should be ≤ 0 for an entropy stable volume integral, and 
+        # exactly zero for an entropy conservative volume integral
+        entropy_residual = -(volume_integral_entropy_vars +
+                             surface_integral_entropy_potential)
 
-        if entropy_residual < 0
+        if entropy_residual > 0
             # Store "high order" result
             du_element = du_element_threaded[Threads.threadid()]
             @views du_element .= du[.., element]
@@ -211,8 +212,8 @@ function calc_volume_integral!(du, u, mesh,
                                                                       dg, cache)
 
             # calculate blending factor 
-            ratio = regularized_ratio(entropy_residual, entropy_dissipation)
-            theta = max(0, min(1, scaling * ratio))
+            ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
+            theta = min(1, scaling * ratio) # TODO: replacing this with a differentiable version of `min`
 
             # save blending coefficient for visualization
             alpha[element] = theta
