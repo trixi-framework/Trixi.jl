@@ -620,43 +620,4 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl (transcritical wave) with Peng Robinson" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_nonideal_density_wave.jl"),
-                        solver=DGSEM(polydeg = 3,
-                                     volume_integral = VolumeIntegralFluxDifferencing(flux_terashima_etal),
-                                     surface_flux = flux_lax_friedrichs),
-                        initial_condition=initial_condition_transcritical_wave,
-                        tspan=(0.0, 0.001),
-                        # note that rho_e_total errors are large because pressure is 5e6
-                        l2=[2.5190796911050598e-5, 0.0013782564599067785, 7.045132422388037],
-                        linf=[
-                            0.00014865356020266063,
-                            0.00764166860608384,
-                            27.349332988262177
-                        ])
-
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
-@trixi_testset "elixir_euler_nonideal_transcritical_shock.jl with Peng Robinson" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_nonideal_transcritical_shock.jl"),
-                        initial_condition=initial_condition_transcritical_wave,
-                        tspan=(0.0, 5e-5),
-                        # note that rho_e_total errors are large because pressure is 5e6
-                        l2=[3.205713931725666e-5, 0.0024557000949388375, 7.814075349831272],
-                        linf=[
-                            0.00015527262569037248,
-                            0.006962752362596802,
-                            25.366882726550102
-                        ])
-
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
 end # module
