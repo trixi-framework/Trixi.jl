@@ -26,6 +26,7 @@ abstract type AbstractEquationOfState end
 
 include("equation_of_state_ideal_gas.jl")
 include("equation_of_state_vdw.jl")
+include("equation_of_state_peng_robinson.jl")
 
 #######################################################
 #
@@ -46,14 +47,18 @@ end
     return ForwardDiff.derivative(T -> energy_internal(V, T, eos), T)
 end
 
+# this is used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
 function calc_pressure_derivatives(V, T, eos)
     dpdV_T = ForwardDiff.derivative(V -> pressure(V, T, eos), V)
     dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
     return dpdT_V, dpdV_T
 end
 
-# relative tolerance for the Newton solver for temperature
+# relative tolerance, initial guess, and maximum number of iterations 
+# for the Newton solver for temperature. 
 eos_newton_tol(eos::AbstractEquationOfState) = 10 * eps()
+eos_initial_temperature(V, e, eos::AbstractEquationOfState) = 1
+eos_newton_maxiter(eos) = 100
 
 """
     temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0, tol = eos_newton_tol(eos),
@@ -63,8 +68,9 @@ Calculates the temperature as a function of specific volume `V` and internal ene
 by using Newton's method to determine `T` such that `energy_internal(V, T, eos) = e`.
 Note that the tolerance may need to be adjusted based on the specific equation of state. 
 """
-function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
-                     tol = eos_newton_tol(eos), maxiter = 100)
+function temperature(V, e, eos::AbstractEquationOfState;
+                     initial_T = eos_initial_temperature(V, e, eos),
+                     tol = eos_newton_tol(eos), maxiter = eos_newton_maxiter(eos))
     T = initial_T
     de = energy_internal(V, T, eos) - e
     iter = 1
@@ -75,7 +81,8 @@ function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
         # guarantee convergence of this iteration.
         de_dT_V = heat_capacity_constant_volume(V, T, eos)
 
-        T = T - de / de_dT_V
+        # guard against negative temperatures
+        T = max(tol, T - de / de_dT_V)
         iter += 1
     end
     if iter == maxiter
