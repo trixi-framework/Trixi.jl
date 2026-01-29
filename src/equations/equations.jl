@@ -652,7 +652,6 @@ abstract type AbstractNonIdealCompressibleEulerEquations{NDIMS, NVARS} <:
               AbstractCompressibleEulerEquations{NDIMS, NVARS} end
 include("equations_of_state.jl")
 include("nonideal_compressible_euler_1d.jl")
-include("nonideal_compressible_euler_2d.jl")
 
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <:
