@@ -148,11 +148,12 @@ end
 function calc_pressure_derivatives(V, T, eos::PengRobinson)
     (; R, b) = eos
     denom = (V^2 + 2 * b * V - b^2)
-    RdivVb = R / (V - b)
+    a_T = peng_robinson_a(T, eos)
+    inv_V_minus_b = inv(V - b)
+    RdivVb = R * inv_V_minus_b
     dpdT_V = RdivVb - peng_robinson_da(T, eos) / denom
-    dpdV_T = -RdivVb * T / (V - b) *
-             (1 -
-              2 * peng_robinson_a(T, eos) / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
+    dpdV_T = -RdivVb * T * inv_V_minus_b *
+             (1 - 2 * a_T / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
     return dpdT_V, dpdV_T
 end
 
