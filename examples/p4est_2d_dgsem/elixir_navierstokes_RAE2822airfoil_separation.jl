@@ -1,5 +1,4 @@
 using OrdinaryDiffEqSSPRK
-#using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -34,10 +33,10 @@ aoa() = deg2rad(2.79) # 2.79 Degree angle of attack
 end
 initial_condition = initial_condition_mach085_flow
 
-surface_flux = flux_hll
+surface_flux = flux_hllc
 volume_flux = flux_ranocha
 
-polydeg = 2 # 3 required to have advantages of WF over FD ?
+polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 shock_indicator = IndicatorHennemannGassner(equations, basis,
                                             alpha_max = 1.0,
@@ -63,7 +62,7 @@ mesh_file = "/storage/home/daniel/RAE2822/HiCFD_Meshes/rae2822_level3.inp"
 boundary_symbols = [:WallBoundary, :FarfieldBoundary]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
 
-restart_filename = "out/restart_001750000.h5"
+restart_filename = "out/restart_k3_tc25.h5"
 #mesh = load_mesh(restart_filename)
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
@@ -88,15 +87,15 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 t_c = airfoil_cord_length / U_inf()
 
-tspan = (0.0, 50 * t_c) # Non-AMR
+tspan = (0.0, 25 * t_c)
 ode = semidiscretize(semi, tspan)
 
-tspan = (load_time(restart_filename), 50 * t_c)
+tspan = (load_time(restart_filename), 26 * t_c) # timings for one tc
 ode = semidiscretize(semi, tspan, restart_filename)
 
 summary_callback = SummaryCallback()
 
-save_sol_interval = 50_000
+save_sol_interval = 500_000
 save_solution = SaveSolutionCallback(interval = save_sol_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true)
@@ -114,7 +113,7 @@ pressure_coefficient = AnalysisSurfacePointwise(force_boundary_names,
                                                 SurfacePressureCoefficient(p_inf(), rho_inf(),
                                                                            U_inf(), l_inf))
 =#
-analysis_interval = 100_000                                                    
+analysis_interval = 100_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
                                      analysis_errors = Symbol[],
@@ -127,25 +126,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      =#
                                     )
 
-alive_callback = AliveCallback(alive_interval = 200)
-
-amr_indicator = shock_indicator
-
-@inline function v1(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, _, _ = u
-    return rho_v1 / rho
-end
-amr_indicator = IndicatorLöhner(semi, variable = v1)
-
-amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, shock_indicator,
-                                              base_level = 0,
-                                              med_level = 1, med_threshold = 0.1,
-                                              max_level = 2, max_threshold = 0.3,
-                                              max_threshold_secondary = shock_indicator.alpha_max)                                      
-
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 50,
-                           adapt_initial_condition = false)
+alive_callback = AliveCallback(alive_interval = 500)
 
 save_restart = SaveRestartCallback(interval = save_sol_interval,
                                    save_final_restart = true)
@@ -153,19 +134,14 @@ save_restart = SaveRestartCallback(interval = save_sol_interval,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, 
                         alive_callback,
-                        #amr_callback,
-                        #save_solution,
+                        save_solution,
                         save_restart
                         )
 
 ###############################################################################
 # run the simulation
 
-ode_algorithm = SSPRK432(thread = Trixi.True())
 ode_algorithm = SSPRK43(thread = Trixi.True())
-
-#ode_algorithm = CKLLSRK43_2(thread = Trixi.True())
-#ode_algorithm = RDPK3SpFSAL35(thread = Trixi.True())
 
 tols = 1e-4 # Not sure if low or high tols lead to better performance here
 sol = solve(ode, ode_algorithm;
