@@ -80,7 +80,7 @@ see also [`NonIdealCompressibleEulerEquations1D`](@ref).
 """
 function pressure(V, T, eos::PengRobinson)
     (; R, b) = eos
-    p = R * T / (V - b) - a(T, eos) / (V^2 + 2 * b * V - b^2)
+    p = R * T / (V - b) - peng_robinson_a(T, eos) / (V^2 + 2 * b * V - b^2)
     return p
 end
 
@@ -93,14 +93,14 @@ Computes internal energy for a Peng-Robinson gas from specific volume `V` and te
 function energy_internal(V, T, eos::PengRobinson)
     (; cv0) = eos
     K1 = calc_K1(V, eos)
-    e = cv0 * T + K1 * (a(T, eos) - T * da(T, eos))
+    e = cv0 * T + K1 * (peng_robinson_a(T, eos) - T * peng_robinson_da(T, eos))
     return e
 end
 
 @inline function heat_capacity_constant_volume(V, T, eos::PengRobinson)
     (; cv0) = eos
     K1 = calc_K1(V, eos)
-    cv = cv0 - K1 * T * d2a(T, eos)
+    cv = cv0 - K1 * T * peng_robinson_d2a(T, eos)
     return cv
 end
 
@@ -110,7 +110,7 @@ function entropy_specific(V, T, eos::PengRobinson)
     # The specific entropy is defined up to some reference value s0, which is
     # arbitrarily set to zero here.
     K1 = calc_K1(V, eos)
-    return cv0 * log(T) + R * log(V - b) - da(T, eos) * K1
+    return cv0 * log(T) + R * log(V - b) - peng_robinson_da(T, eos) * K1
 end
 
 function speed_of_sound(V, T, eos::PengRobinson)
@@ -120,7 +120,7 @@ function speed_of_sound(V, T, eos::PengRobinson)
 
     # calculate ratio of specific heats
     K1 = calc_K1(V, eos)
-    d2aT = d2a(T, eos)
+    d2aT = peng_robinson_d2a(T, eos)
     cp0 = cv0 + R
     cv = cv0 - K1 * T * d2aT
     cp = cp0 - R - K1 * T * d2aT - T * dpdT_V^2 / dpdV_T
@@ -137,19 +137,19 @@ function calc_pressure_derivatives(V, T, eos::PengRobinson)
     (; R, b) = eos
     denom = (V^2 + 2 * b * V - b^2)
     RdivVb = R / (V - b)
-    dpdT_V = RdivVb - da(T, eos) / denom
+    dpdT_V = RdivVb - peng_robinson_da(T, eos) / denom
     dpdV_T = -RdivVb * T / (V - b) *
-             (1 - 2 * a(T, eos) / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
+             (1 - 2 * peng_robinson_a(T, eos) / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
     return dpdT_V, dpdV_T
 end
 
 # The following are auxiliary functions used in calculating the PR EOS
-@inline function a(T, eos::PengRobinson)
+@inline function peng_robinson_a(T, eos::PengRobinson)
     (; a0, kappa, T0) = eos
     return a0 * (1 + kappa * (1 - sqrt(T / T0)))^2
 end
-@inline da(T, eos) = ForwardDiff.derivative(T -> a(T, eos), T)
-@inline d2a(T, eos) = ForwardDiff.derivative(T -> da(T, eos), T)
+@inline peng_robinson_da(T, eos) = ForwardDiff.derivative(T -> peng_robinson_a(T, eos), T)
+@inline peng_robinson_d2a(T, eos) = ForwardDiff.derivative(T -> peng_robinson_da(T, eos), T)
 
 @inline function calc_K1(V, eos::PengRobinson)
     (; inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b) = eos
