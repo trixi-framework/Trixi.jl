@@ -407,43 +407,6 @@ function initial_condition_density_wave(x, t,
     return prim2cons(SVector(V, v1, T), equations)
 end
 
-# The 1D Riemann problem from "An oscillation free shock-capturing method 
-# for compressible van der Waals supercritical fluid flows" by Pantano, 
-# Saurel, and Schmitt (2017). <https://doi.org/10.1016/j.jcp.2017.01.057>
-# 
-# This is intended to be run with the `VanDerWaals(; gamma=1.4)` eos until 
-# final time 14e-3 on the domain [-12, 12]. 
-function initial_condition_Riemann_problem(x, t,
-                                           equations::NonIdealCompressibleEulerEquations1D{<:VanDerWaals})
-    RealT = eltype(x)
-    eos = equations.equation_of_state
-
-    if x[1] < 0
-        rho, v1, p = SVector(497.417, 0, 4e7)
-    else
-        rho, v1, p = SVector(13.33117, 0, 4e6) # 6e6
-    end
-
-    V = inv(rho)
-
-    # invert for temperature given p, V
-    T = RealT(1.0)
-    tol = 100 * eps(RealT)
-    dp = pressure(V, T, eos) - p
-    iter = 1
-    while abs(dp) / abs(p) > tol && iter < 100
-        dp = pressure(V, T, eos) - p
-        dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
-        T = max(tol, T - dp / dpdT_V)
-        iter += 1
-    end
-    if iter == 100
-        println("Warning: solver for temperature(V, p) did not converge")
-    end
-
-    return prim2cons(SVector(V, v1, T), equations)
-end
-
 # the smooth Peng-Robinson N2 transcritical wave taken from "An entropy-stable hybrid scheme 
 # for simulations of transcritical real-fluid flows" by Ma, Ihme (2017).
 # <https://doi.org/10.1016/j.jcp.2017.03.022>
