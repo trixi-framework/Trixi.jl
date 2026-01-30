@@ -54,19 +54,41 @@ end
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations1D)
     return ("rho", "rho_v1", "rho_e_total")
 end
-varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("V", "v1", "T")
 
-# for plotting with PlotData1D(sol, solution_variables=density_velocity_pressure)
-@inline function density_velocity_pressure(u,
-                                           equations::NonIdealCompressibleEulerEquations1D)
+# returns density, velocity, and pressure
+@inline function cons2prim(u,
+                           equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
     rho, rho_v1, rho_e_total = u
-    V, v1, T = cons2prim(u, equations)
+    V, v1, T = cons2thermo(u, equations)
     return SVector(rho, v1, pressure(V, T, eos))
 end
-varnames(::typeof(density_velocity_pressure), ::NonIdealCompressibleEulerEquations1D) = ("rho",
-                                                                                         "v1",
-                                                                                         "p")
+
+varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("rho",
+                                                                         "v1",
+                                                                         "p")
+
+"""
+    function cons2thermo(u, equations::NonIdealCompressibleEulerEquations1D)
+        
+Convert conservative variables to specific volume, velocity, and temperature 
+variables `V, v1, T`. These are referred to as "thermodynamic" variables since
+equation of state routines are assumed to be evaluated in terms of `V` and `T`. 
+"""
+@inline function cons2thermo(u, equations::NonIdealCompressibleEulerEquations1D)
+    eos = equations.equation_of_state
+    rho, rho_v1, rho_e_total = u
+
+    V = inv(rho)
+    v1 = rho_v1 * V
+    e = (rho_e_total - 0.5f0 * rho_v1 * v1) * V
+    T = temperature(V, e, eos)
+
+    return SVector(V, v1, T)
+end
+
+varnames(::typeof(cons2thermo), ::NonIdealCompressibleEulerEquations1D) = ("V", "v1",
+                                                                           "T")
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
@@ -74,7 +96,7 @@ varnames(::typeof(density_velocity_pressure), ::NonIdealCompressibleEulerEquatio
     eos = equations.equation_of_state
 
     _, rho_v1, rho_e_total = u
-    V, v1, T = cons2prim(u, equations)
+    V, v1, T = cons2thermo(u, equations)
     p = pressure(V, T, eos)
 
     # Ignore orientation since it is always "1" in 1D
@@ -97,8 +119,8 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370 1>
 @inline function flux_terashima_etal(u_ll, u_rr, orientation::Int,
                                      equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, T_rr = cons2thermo(u_rr, equations)
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
@@ -148,8 +170,8 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
 @inline function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
                                              equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, T_rr = cons2thermo(u_rr, equations)
 
     rho_ll, rho_v1_ll, _ = u_ll
     rho_rr, rho_v1_rr, _ = u_rr
@@ -193,8 +215,8 @@ end
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::NonIdealCompressibleEulerEquations1D)
-    V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, T_rr = cons2thermo(u_rr, equations)
 
     eos = equations.equation_of_state
     c_ll = speed_of_sound(V_ll, T_ll, eos)
@@ -208,8 +230,8 @@ end
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::NonIdealCompressibleEulerEquations1D)
-    V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, T_rr = cons2thermo(u_rr, equations)
 
     v_mag_ll = abs(v1_ll)
     v_mag_rr = abs(v1_rr)
@@ -224,8 +246,8 @@ end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::NonIdealCompressibleEulerEquations1D)
-    V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, T_rr = cons2thermo(u_rr, equations)
 
     v_mag_ll = abs(v1_ll)
     v_mag_rr = abs(v1_rr)
@@ -241,8 +263,8 @@ end
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::NonIdealCompressibleEulerEquations1D)
-    V_ll, v1_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, T_rr = cons2thermo(u_rr, equations)
 
     # Calculate primitive variables and speed of sound
     eos = equations.equation_of_state
@@ -256,7 +278,7 @@ end
 end
 
 @inline function max_abs_speeds(u, equations::NonIdealCompressibleEulerEquations1D)
-    V, v1, T = cons2prim(u, equations)
+    V, v1, T = cons2thermo(u, equations)
 
     # Calculate primitive variables and speed of sound
     eos = equations.equation_of_state
@@ -265,22 +287,9 @@ end
     return (abs(v1) + c,)
 end
 
-# Convert conservative variables to primitive
-@inline function cons2prim(u, equations::NonIdealCompressibleEulerEquations1D)
-    eos = equations.equation_of_state
-    rho, rho_v1, rho_e_total = u
-
-    V = inv(rho)
-    v1 = rho_v1 * V
-    e = (rho_e_total - 0.5f0 * rho_v1 * v1) * V
-    T = temperature(V, e, eos)
-
-    return SVector(V, v1, T)
-end
-
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::NonIdealCompressibleEulerEquations1D)
-    V, v1, T = cons2prim(u, equations)
+    V, v1, T = cons2thermo(u, equations)
     eos = equations.equation_of_state
     gibbs = gibbs_free_energy(V, T, eos)
     return inv(T) * SVector(gibbs - 0.5f0 * v1^2, v1, -1)
@@ -308,7 +317,7 @@ where `s` is the specific entropy determined by the equation of state.
 """
 @inline function entropy_math(u, equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
-    q = cons2prim(u, equations)
+    q = cons2thermo(u, equations)
     V = first(q)
     T = last(q)
     rho = u[1]
@@ -344,7 +353,7 @@ end
 
 @inline function pressure(u, equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
-    q = cons2prim(u, equations)
+    q = cons2thermo(u, equations)
     V = first(q)
     T = last(q)
     p = pressure(V, T, eos)
@@ -355,7 +364,7 @@ end
                                   equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
     rho = u[1]
-    q = cons2prim(u, equations)
+    q = cons2thermo(u, equations)
     V = first(q)
     T = last(q)
     p = pressure(V, T, eos)
@@ -365,7 +374,7 @@ end
 @inline function energy_internal(u,
                                  equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
-    q = cons2prim(u, equations)
+    q = cons2thermo(u, equations)
     V = first(q)
     T = last(q)
     e = energy_internal(V, T, eos)
