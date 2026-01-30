@@ -13,20 +13,23 @@ given by the pressure and internal energy relations
 ```math
 p = \frac{R T}{V - b} - \frac{a(T)}{V^2 + 2bV - b^2}, \quad e = c_{v,0} T + K(a(T) - Ta'(T))
 ```
-where `V = inv(rho)` and auxiliary expressions for `a(T)` and `K` are given by 
+where ``V = inv(rho)`` and auxiliary expressions for ``a(T)`` and ``K`` are given by 
 ```math
 a(T) = a_0\left(1 + \kappa \left 1 - \sqrt{\frac{T}{T_0}}\right)\right)^2, \quad 
 K = \frac{1}{b 2\sqrt{2}} \log\left( \frac{V + (1 - b \sqrt{2})}{V + (1 + b\sqrt{2})}\right).
 ```
-Moreover, `c_v = c_{v,0} - K T a''(T)`. 
+Moreover, ``c_v = c_{v,0} - K T a''(T)``. 
 
-All expressions used here are taken from "An entropy-stable hybrid scheme for simulations 
-of transcritical real-fluid flows" by Ma, Lv, Ihme (2017).
-<https://doi.org/10.1016/j.jcp.2017.03.022>
+All expressions used here are taken from the following references:
 
-See also "Towards a fully well-balanced and entropy-stable scheme for the Euler equations with 
-gravity: preserving isentropic steady solutions" by Berthon, Michel-Dansac, and Thomann (2024). 
-<https://doi.org/10.1016/j.compfluid.2025.106853>
+- P. Ma, Y. Lv, M. Ihme (2017)
+  An entropy-stable hybrid scheme for simulations of transcritical real-fluid flows
+  [DOI: 10.1016/j.jcp.2017.03.022](https://doi.org/10.1016/j.jcp.2017.03.022)
+
+- V. Michel-Dansac, A. Thomann (2024)
+  Towards a fully well-balanced and entropy-stable scheme for the Euler equations with 
+  gravity: preserving isentropic steady solutions
+  [DOI: 10.1016/j.compfluid.2025.106853](https://doi.org/10.1016/j.compfluid.2025.106853)
 
 """
 struct PengRobinson{RealT <: Real} <: AbstractEquationOfState
@@ -35,28 +38,44 @@ struct PengRobinson{RealT <: Real} <: AbstractEquationOfState
     b::RealT
     cv0::RealT
     kappa::RealT
-    T0::RealT
+    Tc::RealT
     inv2sqrt2b::RealT
     one_minus_sqrt2_b::RealT
     one_plus_sqrt2_b::RealT
-    function PengRobinson(R, a0, b, cv0, kappa, T0)
-        inv2sqrt2b = inv(2 * sqrt(2) * b)
-        one_minus_sqrt2_b = (1 - sqrt(2)) * b
-        one_plus_sqrt2_b = (1 + sqrt(2)) * b
-        return new{typeof(R)}(R, a0, b, cv0, kappa, T0,
-                              inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b)
-    end
+end
+
+"""
+    PengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)
+
+Initializes a Peng-Robinson equation of state given values for physical constants. 
+Here, `R` is the universal gas constant, and the constants `a0, b, cv0, kappa, Tc` 
+follow the naming conventions in Section 2.2 of the following reference:
+
+- V. Michel-Dansac, A. Thomann (2025)
+  Towards a fully well-balanced and entropy-stable scheme for the Euler equations 
+  with gravity: General equations of state
+  [DOI: 10.1016/j.compfluid.2025.106853](https://doi.org/10.1016/j.compfluid.2025.106853)
+"""
+function PengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)
+    inv2sqrt2b = inv(2 * sqrt(2) * b)
+    one_minus_sqrt2_b = (1 - sqrt(2)) * b
+    one_plus_sqrt2_b = (1 + sqrt(2)) * b
+    return PengRobinson{typeof(a0)}(R, a0, b, cv0, kappa, Tc,
+                                    inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b)
 end
 
 """
     PengRobinson(; RealT = Float64)
 
-By default, the Peng-Robinson parameters are in mass basis for N2. 
+By default, the units for the Peng-Robinson parameters are in mass basis 
+(such as kg / m^3) as opposed to molar basis units (such as kg / mol). 
+
+The default parameters are for N2.
 """
 function PengRobinson(; RealT = Float64)
     Rgas = 8.31446261815324
-    molar_mass_N2 = 0.02801 * 1000 # kg/m3
-    R = Rgas * 1000 / molar_mass_N2
+    molar_mass = 0.02801 * 1000 # kg/m3
+    R = Rgas * 1000 / molar_mass
     pc = 3.40e6
     Tc = 126.2
     omega = 0.0372
@@ -64,7 +83,7 @@ function PengRobinson(; RealT = Float64)
     b = 0.077796 * R * Tc / pc
     a0 = 0.457236 * (R * Tc)^2 / pc
     kappa = 0.37464 + 1.54226 * omega - 0.26992 * omega^2
-    return PengRobinson(RealT.((R, a0, b, cv0, kappa, Tc))...)
+    return PengRobinson(RealT.((a0, b, cv0, kappa, Tc, R))...)
 end
 
 # the default tolerance of 10 * eps() does not converge for most Peng-Robinson examples,
@@ -80,7 +99,7 @@ see also [`NonIdealCompressibleEulerEquations1D`](@ref).
 """
 function pressure(V, T, eos::PengRobinson)
     (; R, b) = eos
-    p = R * T / (V - b) - a(T, eos) / (V^2 + 2 * b * V - b^2)
+    p = R * T / (V - b) - peng_robinson_a(T, eos) / (V^2 + 2 * b * V - b^2)
     return p
 end
 
@@ -93,14 +112,14 @@ Computes internal energy for a Peng-Robinson gas from specific volume `V` and te
 function energy_internal(V, T, eos::PengRobinson)
     (; cv0) = eos
     K1 = calc_K1(V, eos)
-    e = cv0 * T + K1 * (a(T, eos) - T * da(T, eos))
+    e = cv0 * T + K1 * (peng_robinson_a(T, eos) - T * peng_robinson_da(T, eos))
     return e
 end
 
 @inline function heat_capacity_constant_volume(V, T, eos::PengRobinson)
     (; cv0) = eos
     K1 = calc_K1(V, eos)
-    cv = cv0 - K1 * T * d2a(T, eos)
+    cv = cv0 - K1 * T * peng_robinson_d2a(T, eos)
     return cv
 end
 
@@ -110,7 +129,7 @@ function entropy_specific(V, T, eos::PengRobinson)
     # The specific entropy is defined up to some reference value s0, which is
     # arbitrarily set to zero here.
     K1 = calc_K1(V, eos)
-    return cv0 * log(T) + R * log(V - b) - da(T, eos) * K1
+    return cv0 * log(T) + R * log(V - b) - peng_robinson_da(T, eos) * K1
 end
 
 function speed_of_sound(V, T, eos::PengRobinson)
@@ -120,7 +139,7 @@ function speed_of_sound(V, T, eos::PengRobinson)
 
     # calculate ratio of specific heats
     K1 = calc_K1(V, eos)
-    d2aT = d2a(T, eos)
+    d2aT = peng_robinson_d2a(T, eos)
     cp0 = cv0 + R
     cv = cv0 - K1 * T * d2aT
     cp = cp0 - R - K1 * T * d2aT - T * dpdT_V^2 / dpdV_T
@@ -136,20 +155,24 @@ end
 function calc_pressure_derivatives(V, T, eos::PengRobinson)
     (; R, b) = eos
     denom = (V^2 + 2 * b * V - b^2)
-    RdivVb = R / (V - b)
-    dpdT_V = RdivVb - da(T, eos) / denom
-    dpdV_T = -RdivVb * T / (V - b) *
-             (1 - 2 * a(T, eos) / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
+    a_T = peng_robinson_a(T, eos)
+    inv_V_minus_b = inv(V - b)
+    RdivVb = R * inv_V_minus_b
+    dpdT_V = RdivVb - peng_robinson_da(T, eos) / denom
+    dpdV_T = -RdivVb * T * inv_V_minus_b *
+             (1 - 2 * a_T / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
     return dpdT_V, dpdV_T
 end
 
 # The following are auxiliary functions used in calculating the PR EOS
-@inline function a(T, eos::PengRobinson)
-    (; a0, kappa, T0) = eos
-    return a0 * (1 + kappa * (1 - sqrt(T / T0)))^2
+@inline function peng_robinson_a(T, eos::PengRobinson)
+    (; a0, kappa, Tc) = eos
+    return a0 * (1 + kappa * (1 - sqrt(T / Tc)))^2
 end
-@inline da(T, eos) = ForwardDiff.derivative(T -> a(T, eos), T)
-@inline d2a(T, eos) = ForwardDiff.derivative(T -> da(T, eos), T)
+@inline peng_robinson_da(T, eos) = ForwardDiff.derivative(T -> peng_robinson_a(T, eos),
+                                                          T)
+@inline peng_robinson_d2a(T, eos) = ForwardDiff.derivative(T -> peng_robinson_da(T, eos),
+                                                           T)
 
 @inline function calc_K1(V, eos::PengRobinson)
     (; inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b) = eos

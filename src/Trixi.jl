@@ -184,8 +184,6 @@ export AcousticPerturbationEquations2D,
 
 export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
 export IdealGas, VanDerWaals, PengRobinson
-export initial_condition_Riemann_problem, initial_condition_transcritical_wave,
-       initial_condition_transcritical_shock
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
