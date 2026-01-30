@@ -317,10 +317,10 @@ where `s` is the specific entropy determined by the equation of state.
 end
 
 """
-    entropy(cons, equations::AbstractNonIdealEulerEquations)
+    entropy(cons, equations::AbstractNonIdealCompressibleEulerEquations)
 
 Default entropy is the mathematical entropy
-[`entropy_math(u, equations::AbstractNonIdealEulerEquations)`](@ref).
+[`entropy_math(u, equations::AbstractNonIdealCompressibleEulerEquations)`](@ref).
 """
 @inline function entropy(cons, equations::AbstractNonIdealCompressibleEulerEquations)
     return entropy_math(cons, equations)
