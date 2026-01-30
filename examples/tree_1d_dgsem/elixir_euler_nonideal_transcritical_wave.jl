@@ -25,7 +25,7 @@ function initial_condition_transcritical_wave(x, t,
     V = inv(rho)
 
     # invert for temperature given p, V
-    T = eos.T0
+    T = eos.Tc
     tol = 100 * eps(RealT)
     dp = pressure(V, T, eos) - p
     iter = 1

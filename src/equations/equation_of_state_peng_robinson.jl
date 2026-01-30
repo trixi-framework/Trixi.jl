@@ -20,13 +20,16 @@ K = \frac{1}{b 2\sqrt{2}} \log\left( \frac{V + (1 - b \sqrt{2})}{V + (1 + b\sqrt
 ```
 Moreover, ``c_v = c_{v,0} - K T a''(T)``. 
 
-All expressions used here are taken from "An entropy-stable hybrid scheme for simulations 
-of transcritical real-fluid flows" by Ma, Lv, Ihme (2017).
-<https://doi.org/10.1016/j.jcp.2017.03.022>
+All expressions used here are taken from the following references:
 
-See also "Towards a fully well-balanced and entropy-stable scheme for the Euler equations with 
-gravity: preserving isentropic steady solutions" by Berthon, Michel-Dansac, and Thomann (2024). 
-<https://doi.org/10.1016/j.compfluid.2025.106853>
+- P. Ma, Y. Lv, M. Ihme (2017)
+  An entropy-stable hybrid scheme for simulations of transcritical real-fluid flows
+  [DOI: 10.1016/j.jcp.2017.03.022](https://doi.org/10.1016/j.jcp.2017.03.022)
+
+- V. Michel-Dansac, A. Thomann (2024)
+  Towards a fully well-balanced and entropy-stable scheme for the Euler equations with 
+  gravity: preserving isentropic steady solutions
+  [DOI: 10.1016/j.compfluid.2025.106853](https://doi.org/10.1016/j.compfluid.2025.106853)
 
 """
 struct PengRobinson{RealT <: Real} <: AbstractEquationOfState
@@ -35,28 +38,29 @@ struct PengRobinson{RealT <: Real} <: AbstractEquationOfState
     b::RealT
     cv0::RealT
     kappa::RealT
-    T0::RealT
+    Tc::RealT
     inv2sqrt2b::RealT
     one_minus_sqrt2_b::RealT
     one_plus_sqrt2_b::RealT
 end
 
 """
-    PengRobinson(a0, b, cv0, kappa, T0, R = 8.31446261815324)
+    PengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)
 
 Initializes a Peng-Robinson equation of state given values for physical constants. 
-Here, ``R`` is the universal gas constant, and the constants ``a0, b, cv0, kappa, T0`` 
-follow the naming conventions in Section 2.2 of "Towards a fully well-balanced and 
-entropy-stable scheme for the Euler equations with gravity: General equations of 
-state" by Michel-Dansac and Thomann (2025). 
+Here, `R` is the universal gas constant, and the constants `a0, b, cv0, kappa, Tc` 
+follow the naming conventions in Section 2.2 of the following reference:
 
-<https://doi.org/10.1016/j.compfluid.2025.106853>
+- V. Michel-Dansac, A. Thomann (2025)
+  Towards a fully well-balanced and entropy-stable scheme for the Euler equations 
+  with gravity: General equations of state
+  [DOI: 10.1016/j.compfluid.2025.106853](https://doi.org/10.1016/j.compfluid.2025.106853)
 """
-function PengRobinson(a0, b, cv0, kappa, T0, R = 8.31446261815324)
+function PengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)
     inv2sqrt2b = inv(2 * sqrt(2) * b)
     one_minus_sqrt2_b = (1 - sqrt(2)) * b
     one_plus_sqrt2_b = (1 + sqrt(2)) * b
-    return PengRobinson{typeof(a0)}(R, a0, b, cv0, kappa, T0,
+    return PengRobinson{typeof(a0)}(R, a0, b, cv0, kappa, Tc,
                                     inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b)
 end
 
@@ -162,8 +166,8 @@ end
 
 # The following are auxiliary functions used in calculating the PR EOS
 @inline function peng_robinson_a(T, eos::PengRobinson)
-    (; a0, kappa, T0) = eos
-    return a0 * (1 + kappa * (1 - sqrt(T / T0)))^2
+    (; a0, kappa, Tc) = eos
+    return a0 * (1 + kappa * (1 - sqrt(T / Tc)))^2
 end
 @inline peng_robinson_da(T, eos) = ForwardDiff.derivative(T -> peng_robinson_a(T, eos),
                                                           T)
