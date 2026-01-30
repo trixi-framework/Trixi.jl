@@ -626,14 +626,14 @@ end
     # for simulations of transcritical real-fluid flows" by Ma, Ihme (2017).
     # <https://doi.org/10.1016/j.jcp.2017.03.022>
     function initial_condition_transcritical_wave(x, t,
-                                                equations::NonIdealCompressibleEulerEquations1D{<:PengRobinson})
+                                                  equations::NonIdealCompressibleEulerEquations1D{<:PengRobinson})
         RealT = eltype(x)
         eos = equations.equation_of_state
 
         rho_min, rho_max = 56.9, 793.1
         v1 = 100
-        rho = 0.5 * (rho_min + rho_max) +
-            0.5 * (rho_max - rho_min) * sin(2 * pi * (x[1] - v1 * t))
+        rho = 0.5f0 * (rho_min + rho_max) +
+              0.5f0 * (rho_max - rho_min) * sin(2 * pi * (x[1] - v1 * t))
         p = 5e6
 
         V = inv(rho)
