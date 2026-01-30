@@ -293,7 +293,7 @@ end
 end
 
 @doc raw"""
-    entropy_math(cons, equations::NonIdealCompressibleEulerEquations1D)
+    entropy_math(cons, equations::AbstractNonIdealCompressibleEulerEquations)
 
 Calculate mathematical entropy for a conservative state `cons` as
 ```math
