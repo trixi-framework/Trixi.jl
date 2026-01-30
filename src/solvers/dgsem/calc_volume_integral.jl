@@ -219,7 +219,7 @@ function calc_volume_integral!(du, u, mesh,
             alpha[element] = theta
 
             # blend the high order method back in 
-            @views du[.., element] .= du[.., element] .+ (1 - theta) * du_element
+            @views du[.., element] .= du[.., element] .+ (1 - theta) .* du_element
         end
     end
 
