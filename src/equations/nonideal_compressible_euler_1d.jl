@@ -317,9 +317,9 @@ where `s` is the specific entropy determined by the equation of state.
 """
 @inline function entropy_math(u, equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
-    q = cons2thermo(u, equations)
-    V = first(q)
-    T = last(q)
+    u_thermo = cons2thermo(u, equations)
+    V = first(u_thermo)
+    T = last(u_thermo)
     rho = u[1]
     S = -rho * entropy_specific(V, T, eos)
     return S
@@ -353,9 +353,9 @@ end
 
 @inline function pressure(u, equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
-    q = cons2thermo(u, equations)
-    V = first(q)
-    T = last(q)
+    u_thermo = cons2thermo(u, equations)
+    V = first(u_thermo)
+    T = last(u_thermo)
     p = pressure(V, T, eos)
     return p
 end
@@ -364,9 +364,9 @@ end
                                   equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
     rho = u[1]
-    q = cons2thermo(u, equations)
-    V = first(q)
-    T = last(q)
+    u_thermo = cons2thermo(u, equations)
+    V = first(u_thermo)
+    T = last(u_thermo)
     p = pressure(V, T, eos)
     return rho * p
 end
@@ -374,9 +374,9 @@ end
 @inline function energy_internal(u,
                                  equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
-    q = cons2thermo(u, equations)
-    V = first(q)
-    T = last(q)
+    u_thermo = cons2thermo(u, equations)
+    V = first(u_thermo)
+    T = last(u_thermo)
     e = energy_internal(V, T, eos)
     return e
 end
