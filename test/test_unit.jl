@@ -804,11 +804,11 @@ end
 
     # check that the fallback temperature and specialized temperature 
     # return the same value 
-    V, v1, T = cons2prim(u, equations)
+    V, v1, T = cons2thermo(u, equations)
     e = energy_internal(V, T, eos)
     @test temperature(V, e, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
-    @test density_velocity_pressure(u, equations) ≈
+    @test cons2prim(u, equations) ≈
           SVector(u[1], v1, pressure(u, equations))
 
     # check that fallback calc_pressure_derivatives matches specialized routines
