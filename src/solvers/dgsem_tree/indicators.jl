@@ -309,14 +309,14 @@ function create_cache(::Type{IndicatorEntropyCorrection},
     AT = Array{uEltype, NDIMS + 1}
 
     # container for elementwise volume integrals
-    indicator_threaded = AT[AT(undef, NVARS,
-                               ntuple(_ -> nnodes(basis), NDIMS)...)
-                            for _ in 1:Threads.maxthreadid()]
+    volume_integral_values_threaded = AT[AT(undef, NVARS,
+                                            ntuple(_ -> nnodes(basis), NDIMS)...)
+                                         for _ in 1:Threads.maxthreadid()]
 
     # stores the blending coefficients 
     alpha = Vector{uEltype}()
 
-    return (; alpha, indicator_threaded)
+    return (; alpha, volume_integral_values_threaded)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyCorrection)

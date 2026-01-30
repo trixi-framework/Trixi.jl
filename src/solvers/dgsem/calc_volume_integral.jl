@@ -163,7 +163,7 @@ function calc_volume_integral!(du, u, mesh,
                                volume_integral::VolumeIntegralEntropyCorrection,
                                dg::DGSEM, cache)
     (; volume_flux_dg, volume_flux_fv, indicator) = volume_integral
-    du_element_threaded = indicator.cache.indicator_threaded
+    du_element_threaded = indicator.cache.volume_integral_values_threaded
     (; scaling) = indicator
     (; alpha) = indicator.cache
     resize!(alpha, nelements(dg, cache))
