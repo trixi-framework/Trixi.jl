@@ -783,6 +783,7 @@ end
 @timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations1D(eos)
+    @test Trixi.get_name(equations) == "NonIdealCompressibleEulerEquations1D{VanDerWaals}"
     q = SVector(2.0, 0.1, 10.0)
     V, v1, T = q
     u = prim2cons(q, equations)

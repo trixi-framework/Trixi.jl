@@ -46,6 +46,11 @@ struct NonIdealCompressibleEulerEquations1D{EoS <: AbstractEquationOfState} <:
     equation_of_state::EoS
 end
 
+function get_name(equations::AbstractNonIdealCompressibleEulerEquations)
+    return (equations |> typeof |> nameof |> string) * "{" *
+           (equations.equation_of_state |> typeof |> nameof |> string) * "}"
+end
+
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations1D)
     return ("rho", "rho_v1", "rho_e_total")
 end
