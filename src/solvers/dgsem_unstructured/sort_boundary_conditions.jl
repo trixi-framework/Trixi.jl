@@ -10,7 +10,7 @@
 
 General struct to sort the boundary conditions by type and name for some unstructured meshes/solvers.
 It stores a set of global indices for each boundary condition type and name to expedite computation
-during the call to `calc_boundary_flux!`. The original NamedTuple form of the boundary conditions
+during the call to `calc_boundary_flux!`. The original `NamedTuple` of the boundary conditions
 set by the user in the elixir file is also stored for printing.
 """
 mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any},

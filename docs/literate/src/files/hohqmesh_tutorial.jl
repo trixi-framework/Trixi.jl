@@ -495,7 +495,7 @@ output = generate_mesh(control_file);
 
 # We can reuse much of the elixir file to setup the uniform flow over an ice cream cone from the
 # previous part of this tutorial. The only component of the elixir file that must be changed is the boundary condition
-# NamedTuple because we now have a boundary named `OuterCircle` instead of four edges of a bounding box.
+# `NamedTuple` because we now have a boundary named `OuterCircle` instead of four edges of a bounding box.
 
 ## boundary conditions (NamedTuple)
 boundary_conditions = (; OuterCircle = boundary_condition_uniform_flow,
