@@ -179,24 +179,6 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
     return (; x_neg, x_pos)
 end
 
-# Handle partially specified NamedTuples for TreeMesh and StructuredMesh
-# (e.g., when some boundaries are periodic and not explicitly specified)
-function digest_boundary_conditions(boundary_conditions::NamedTuple,
-                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
-                                    cache)
-    # Fill in missing periodic boundaries
-    x_neg = get(boundary_conditions, :x_neg,
-                isperiodic(mesh, 1) ? boundary_condition_periodic : nothing)
-    x_pos = get(boundary_conditions, :x_pos,
-                isperiodic(mesh, 1) ? boundary_condition_periodic : nothing)
-
-    if isnothing(x_neg) || isnothing(x_pos)
-        error("For TreeMesh and StructuredMesh in 1D, boundary conditions must specify :x_neg and :x_pos for non-periodic boundaries")
-    end
-
-    return (; x_neg, x_pos)
-end
-
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
                                     mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
                                     cache) where {Keys, ValueTypes <: NTuple{4, Any}}
@@ -204,55 +186,10 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
     return (; x_neg, x_pos, y_neg, y_pos)
 end
 
-function digest_boundary_conditions(boundary_conditions::NamedTuple,
-                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
-                                    cache)
-    # Fill in missing periodic boundaries
-    x_neg = get(boundary_conditions, :x_neg,
-                isperiodic(mesh, 1) ? boundary_condition_periodic : nothing)
-    x_pos = get(boundary_conditions, :x_pos,
-                isperiodic(mesh, 1) ? boundary_condition_periodic : nothing)
-    y_neg = get(boundary_conditions, :y_neg,
-                isperiodic(mesh, 2) ? boundary_condition_periodic : nothing)
-    y_pos = get(boundary_conditions, :y_pos,
-                isperiodic(mesh, 2) ? boundary_condition_periodic : nothing)
-
-    if isnothing(x_neg) || isnothing(x_pos) || isnothing(y_neg) || isnothing(y_pos)
-        error("For TreeMesh and StructuredMesh in 2D, boundary conditions must specify :x_neg, :x_pos, :y_neg, :y_pos for non-periodic boundaries")
-    end
-
-    return (; x_neg, x_pos, y_neg, y_pos)
-end
-
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
                                     mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
                                     cache) where {Keys, ValueTypes <: NTuple{6, Any}}
     @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
-    return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
-end
-
-function digest_boundary_conditions(boundary_conditions::NamedTuple,
-                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
-                                    cache)
-    # Fill in missing periodic boundaries
-    x_neg = get(boundary_conditions, :x_neg,
-                isperiodic(mesh, 1) ? boundary_condition_periodic : nothing)
-    x_pos = get(boundary_conditions, :x_pos,
-                isperiodic(mesh, 1) ? boundary_condition_periodic : nothing)
-    y_neg = get(boundary_conditions, :y_neg,
-                isperiodic(mesh, 2) ? boundary_condition_periodic : nothing)
-    y_pos = get(boundary_conditions, :y_pos,
-                isperiodic(mesh, 2) ? boundary_condition_periodic : nothing)
-    z_neg = get(boundary_conditions, :z_neg,
-                isperiodic(mesh, 3) ? boundary_condition_periodic : nothing)
-    z_pos = get(boundary_conditions, :z_pos,
-                isperiodic(mesh, 3) ? boundary_condition_periodic : nothing)
-
-    if isnothing(x_neg) || isnothing(x_pos) || isnothing(y_neg) ||
-       isnothing(y_pos) || isnothing(z_neg) || isnothing(z_pos)
-        error("For TreeMesh and StructuredMesh in 3D, boundary conditions must specify :x_neg, :x_pos, :y_neg, :y_pos, :z_neg, :z_pos for non-periodic boundaries")
-    end
-
     return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
