@@ -185,28 +185,7 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-# integrate `du_local` against the entropy variables evaluated at `u`
-function integrate_against_entropy_variables(du_local, u, element,
-                                             mesh::AbstractMesh{2},
-                                             equations, dg::DGSEM, cache, args...)
-    (; weights) = dg.basis
-
-    jacobian_1d = inv(cache.elements.inverse_jacobian[element]) # O(h) 
-
-    integral = zero(eltype(u))
-
-    for j in eachnode(dg), i in eachnode(dg)
-        du_node = get_node_vars(du_local, equations, dg, i, j)
-        u_node = get_node_vars(u, equations, dg, i, j, element)
-        integral = integral +
-                   weights[i] * weights[j] *
-                   dot(cons2entropy(u_node, equations), du_node)
-    end
-
-    return integral * jacobian_1d
-end
-
-# calculate surface integral of func(u, equations) * normal
+# calculate surface integral of func(u, equations) * normal on the reference element.
 function surface_integral(func::Func, u, element, mesh::TreeMesh{2}, equations,
                           dg::DGSEM, cache) where {Func}
     surface_integral = zero(real(dg))
@@ -226,8 +205,42 @@ function surface_integral(func::Func, u, element, mesh::TreeMesh{2}, equations,
                            (func(u_right, 2, equations) - func(u_left, 2, equations))
     end
 
-    jacobian_1d = inv(cache.elements.inverse_jacobian[element]) # O(h) 
-    return surface_integral * jacobian_1d
+    return surface_integral
+end
+
+# used in `entropy_change_reference_element` and `integrate_against_entropy_variables`
+function integrate_reference_element(func::Func, u, element,
+                                     mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
+                                     args...) where {Func}
+    @unpack weights = dg.basis
+
+    # Initialize integral with zeros of the right shape
+    element_integral = zero(func(u, 1, 1, 1, equations, dg, args...))
+
+    # Use quadrature to numerically integrate element.
+    # We do not multiply with the Jacobian to stay in reference space.
+    # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
+    # the time derivative of entropy, see `entropy_change_reference_element`.
+    for j in eachnode(dg), i in eachnode(dg)
+        element_integral += weights[i] * weights[j] *
+                            func(u, i, j, element, equations, dg, args...)
+    end
+
+    return element_integral
+end
+
+# integrate `du_local` against the entropy variables evaluated at `u`
+function integrate_against_entropy_variables(du_local, u, element,
+                                             mesh::AbstractMesh{2},
+                                             equations, dg::DGSEM, cache, args...)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du_local) do u, i, j, element, equations, dg,
+                                                    du_local
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        du_node = get_node_vars(du_local, equations, dg, i, j)
+
+        dot(cons2entropy(u_node, equations), du_node)
+    end
 end
 
 function integrate_via_indices(func::Func, u,

@@ -119,26 +119,39 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# used in `entropy_change_reference_element` and `integrate_against_entropy_variables`
+function integrate_reference_element(func::Func, u, element,
+                                     mesh::AbstractMesh{1}, equations, dg::DGSEM, cache,
+                                     args...) where {Func}
+    @unpack weights = dg.basis
+
+    # Initialize integral with zeros of the right shape
+    element_integral = zero(func(u, 1, 1, equations, dg, args...))
+
+    # Use quadrature to numerically integrate element.
+    # We do not multiply with the Jacobian to stay in reference space.
+    # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
+    # the time derivative of entropy, see `entropy_change_reference_element`.
+    for i in eachnode(dg)
+        element_integral += weights[i] *
+                            func(u, i, element, equations, dg, args...)
+    end
+
+    return element_integral
+end
+
 # integrate `du_local` against the entropy variables evaluated at `u`
 function integrate_against_entropy_variables(du_local, u, element,
                                              mesh::AbstractMesh{1},
                                              equations, dg::DGSEM, cache, args...)
-    (; weights) = dg.basis
-
-    # we integrate over the reference element since `du` is calculated by 
-    # a weak form-like volume integral, and should already be scaled by the 
-    # Jacobian factor. 
-
-    integral = zero(eltype(u))
-
-    for i in eachnode(dg)
-        du_node = get_node_vars(du_local, equations, dg, i)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du_local) do u, i, element, equations, dg,
+                                                    du_local
         u_node = get_node_vars(u, equations, dg, i, element)
-        integral = integral +
-                   weights[i] * dot(cons2entropy(u_node, equations), du_node)
-    end
+        du_node = get_node_vars(du_local, equations, dg, i)
 
-    return integral
+        dot(cons2entropy(u_node, equations), du_node)
+    end
 end
 
 # calculate surface integral of func(u, orientation, equations) * normal

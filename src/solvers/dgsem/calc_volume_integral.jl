@@ -171,7 +171,12 @@ function calc_volume_integral!(du, u, mesh,
                                   have_nonconservative_terms, equations,
                                   volume_flux_dg, dg, cache)
 
-        # check entropy production of "high order" volume integral         
+        # Check entropy production of "high order" volume integral. 
+        # 
+        # Note that, for `TreeMesh`, both volume and surface integrals are calculated
+        # on the reference element. For other mesh types, because the volume integral 
+        # incorporates the scaled contravariant vectors, the surface integral should 
+        # be calculated on the physical element instead. 
         volume_integral_entropy_vars = integrate_against_entropy_variables(view(du, ..,
                                                                                 element),
                                                                            u, element,
@@ -182,8 +187,8 @@ function calc_volume_integral!(du, u, mesh,
                                                               element, mesh, equations,
                                                               dg, cache)
 
-        # this quantity should be ≤ 0 for an entropy stable volume integral, and 
-        # exactly zero for an entropy conservative volume integral
+        # This quantity should be ≤ 0 for an entropy stable volume integral, and 
+        # exactly zero for an entropy conservative volume integral. 
         entropy_residual = -(volume_integral_entropy_vars +
                              surface_integral_entropy_potential)
 
