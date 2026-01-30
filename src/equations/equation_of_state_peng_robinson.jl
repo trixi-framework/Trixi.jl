@@ -39,13 +39,25 @@ struct PengRobinson{RealT <: Real} <: AbstractEquationOfState
     inv2sqrt2b::RealT
     one_minus_sqrt2_b::RealT
     one_plus_sqrt2_b::RealT
-    function PengRobinson(R, a0, b, cv0, kappa, T0)
-        inv2sqrt2b = inv(2 * sqrt(2) * b)
-        one_minus_sqrt2_b = (1 - sqrt(2)) * b
-        one_plus_sqrt2_b = (1 + sqrt(2)) * b
-        return new{typeof(R)}(R, a0, b, cv0, kappa, T0,
-                              inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b)
-    end
+end
+
+"""
+    PengRobinson(a0, b, cv0, kappa, T0, R = 8.31446261815324)
+
+Initializes a Peng-Robinson equation of state given values for physical constants. 
+Here, ``R`` is the universal gas constant, and the constants ``a0, b, cv0, kappa, T0`` 
+follow the naming conventions in Section 2.2 of "Towards a fully well-balanced and 
+entropy-stable scheme for the Euler equations with gravity: General equations of 
+state" by Michel-Dansac and Thomann (2025). 
+
+<https://doi.org/10.1016/j.compfluid.2025.106853>
+"""
+function PengRobinson(a0, b, cv0, kappa, T0, R = 8.31446261815324)
+    inv2sqrt2b = inv(2 * sqrt(2) * b)
+    one_minus_sqrt2_b = (1 - sqrt(2)) * b
+    one_plus_sqrt2_b = (1 + sqrt(2)) * b
+    return PengRobinson{typeof(a0)}(R, a0, b, cv0, kappa, T0,
+                                    inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b)
 end
 
 """
@@ -55,8 +67,8 @@ By default, the Peng-Robinson parameters are in mass basis for N2.
 """
 function PengRobinson(; RealT = Float64)
     Rgas = 8.31446261815324
-    molar_mass_N2 = 0.02801 * 1000 # kg/m3
-    R = Rgas * 1000 / molar_mass_N2
+    molar_mass = 0.02801 * 1000 # kg/m3
+    R = Rgas * 1000 / molar_mass
     pc = 3.40e6
     Tc = 126.2
     omega = 0.0372
@@ -64,7 +76,7 @@ function PengRobinson(; RealT = Float64)
     b = 0.077796 * R * Tc / pc
     a0 = 0.457236 * (R * Tc)^2 / pc
     kappa = 0.37464 + 1.54226 * omega - 0.26992 * omega^2
-    return PengRobinson(RealT.((R, a0, b, cv0, kappa, Tc))...)
+    return PengRobinson(RealT.((a0, b, cv0, kappa, Tc, R))...)
 end
 
 # the default tolerance of 10 * eps() does not converge for most Peng-Robinson examples,
