@@ -620,53 +620,13 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl (transcritical wave) with Peng Robinson" begin
-
-    # the smooth Peng-Robinson N2 transcritical wave taken from "An entropy-stable hybrid scheme 
-    # for simulations of transcritical real-fluid flows" by Ma, Ihme (2017).
-    # <https://doi.org/10.1016/j.jcp.2017.03.022>
-    function initial_condition_transcritical_wave(x, t,
-                                                  equations::NonIdealCompressibleEulerEquations1D{<:PengRobinson})
-        RealT = eltype(x)
-        eos = equations.equation_of_state
-
-        rho_min, rho_max = 56.9, 793.1
-        v1 = 100
-        rho = 0.5f0 * (rho_min + rho_max) +
-              0.5f0 * (rho_max - rho_min) * sin(2 * pi * (x[1] - v1 * t))
-        p = 5e6
-
-        V = inv(rho)
-
-        # invert for temperature given p, V
-        T = eos.T0
-        tol = 100 * eps(RealT)
-        dp = pressure(V, T, eos) - p
-        iter = 1
-        while abs(dp) / abs(p) > tol && iter < 100
-            dp = pressure(V, T, eos) - p
-            dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
-            T = max(tol, T - dp / dpdT_V)
-            iter += 1
-        end
-        if iter == 100
-            println("Warning: solver for temperature(V, p) did not converge")
-        end
-
-        return prim2cons(SVector(V, v1, T), equations)
-    end
-
+@trixi_testset "elixir_euler_nonideal_transcritical_wave.jl (Peng Robinson)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_nonideal_density_wave.jl"),
-                        eos=PengRobinson(),
-                        solver=DGSEM(polydeg = 3,
-                                     volume_integral = VolumeIntegralFluxDifferencing(flux_terashima_etal),
-                                     surface_flux = flux_lax_friedrichs),
-                        initial_condition=initial_condition_transcritical_wave,
+                                 "elixir_euler_nonideal_transcritical_wave.jl"),
                         tspan=(0.0, 0.001),
                         # note that errors are large because the solution magnitude is large
-                        l2=[3.562431427840198, 307.0804734149763, 671891.3209204111],
-                        linf=[11.245466632528988, 1012.4992037314914, 2.1937079580614567e6])
+                        l2=[3.5624314278401767, 307.08047341497075, 671891.3209204172],
+                        linf=[11.245466632528647, 1012.4992037314532, 2.193707958061479e6])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
