@@ -63,7 +63,10 @@ end
 """
     PengRobinson(; RealT = Float64)
 
-By default, the Peng-Robinson parameters are in mass basis for N2. 
+By default, the units for the Peng-Robinson parameters are in mass basis 
+(such as kg / m^3) as opposed to molar basis units (such as kg / mol). 
+
+The default parameters are for N2.
 """
 function PengRobinson(; RealT = Float64)
     Rgas = 8.31446261815324
