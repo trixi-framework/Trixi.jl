@@ -300,6 +300,25 @@ function IndicatorEntropyCorrection(equations::AbstractEquations,
     return IndicatorEntropyCorrection{typeof(cache), typeof(scaling)}(cache, scaling)
 end
 
+# this method is used when the indicator is constructed as for 
+# shock-capturing volume integrals.
+function create_cache(::Type{IndicatorEntropyCorrection},
+                      equations::AbstractEquations{NDIMS, NVARS},
+                      basis::LobattoLegendreBasis) where {NDIMS, NVARS}
+    uEltype = real(basis)
+    AT = Array{uEltype, NDIMS + 1}
+
+    # container for elementwise volume integrals
+    indicator_threaded = AT[AT(undef, NVARS,
+                               ntuple(_ -> nnodes(basis), NDIMS)...)
+                            for _ in 1:Threads.maxthreadid()]
+
+    # stores the blending coefficients 
+    alpha = Vector{uEltype}()
+
+    return (; alpha, indicator_threaded)
+end
+
 function Base.show(io::IO, indicator::IndicatorEntropyCorrection)
     @nospecialize indicator # reduce precompilation time
     print(io, "IndicatorEntropyCorrection")

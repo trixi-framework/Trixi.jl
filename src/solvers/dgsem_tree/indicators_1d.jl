@@ -186,20 +186,4 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
 
     return alpha
 end
-
-# this method is used when the indicator is constructed as for 
-# shock-capturing volume integrals.
-function create_cache(::Type{IndicatorEntropyCorrection},
-                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
-    uEltype = real(basis)
-    MMat = MMatrix{nvariables(equations), nnodes(basis), uEltype}
-
-    # stores the blending coefficients 
-    alpha = Vector{uEltype}()
-
-    # container for elementwise volume integrals
-    indicator_threaded = MMat[MMat(undef) for _ in 1:Threads.maxthreadid()]
-
-    return (; alpha, indicator_threaded)
-end
 end # @muladd

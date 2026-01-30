@@ -22,22 +22,6 @@ function create_cache(::Type{IndicatorHennemannGassner},
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
 
-# this method is used when the indicator is constructed as for 
-# shock-capturing volume integrals.
-function create_cache(::Type{IndicatorEntropyCorrection},
-                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
-    uEltype = real(basis)
-
-    # stores the blending coefficients 
-    alpha = Vector{uEltype}()
-
-    # container for elementwise volume integrals
-    indicator_threaded = [zeros(uEltype, nvariables(equations), nnodes(basis),
-                                nnodes(basis)) for _ in 1:Threads.maxthreadid()]
-
-    return (; alpha, indicator_threaded)
-end
-
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
 # with @batch (@threaded).
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
