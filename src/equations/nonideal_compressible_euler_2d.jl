@@ -54,21 +54,18 @@ end
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations2D)
     return ("rho", "rho_v1", "rho_v2", "rho_e_total")
 end
-varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations2D) = ("V", "v1",
-                                                                         "v2", "T")
 
 # for plotting with PlotData1D(sol, solution_variables=density_velocity_pressure)
-@inline function density_velocity_pressure(u,
-                                           equations::NonIdealCompressibleEulerEquations2D)
+@inline function cons2prim(u, equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
     rho = u[1]
-    V, v1, v2, T = cons2prim(u, equations)
+    V, v1, v2, T = cons2thermo(u, equations)
     return SVector(rho, v1, v2, pressure(V, T, eos))
 end
-varnames(::typeof(density_velocity_pressure), ::NonIdealCompressibleEulerEquations2D) = ("rho",
-                                                                                         "v1",
-                                                                                         "v2",
-                                                                                         "p")
+varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations2D) = ("rho",
+                                                                         "v1",
+                                                                         "v2",
+                                                                         "p")
 
 # Calculate flux for a single point
 @inline function flux(u, orientation::Integer,
@@ -76,7 +73,7 @@ varnames(::typeof(density_velocity_pressure), ::NonIdealCompressibleEulerEquatio
     eos = equations.equation_of_state
 
     _, rho_v1, rho_v2, rho_e_total = u
-    V, v1, v2, T = cons2prim(u, equations)
+    V, v1, v2, T = cons2thermo(u, equations)
     p = pressure(V, T, eos)
 
     if orientation == 1
@@ -100,7 +97,7 @@ end
 
     rho = first(u)
     rho_e_total = last(u)
-    V, v1, v2, T = cons2prim(u, equations)
+    V, v1, v2, T = cons2thermo(u, equations)
     p = pressure(V, T, eos)
 
     v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
@@ -230,8 +227,8 @@ by Terashima, Ly, Ihme (2025). https://doi.org/10.1016/j.jcp.2024.11370 1
 function flux_terashima_etal(u_ll, u_rr, orientation::Int,
                              equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
@@ -274,8 +271,8 @@ end
 function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
                              equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
@@ -324,8 +321,8 @@ by Terashima, Ly, Ihme (2025). https://doi.org/10.1016/j.jcp.2024.11370
 function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
                                      equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
@@ -373,8 +370,8 @@ end
 function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
@@ -422,8 +419,8 @@ end
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     eos = equations.equation_of_state
     c_ll = speed_of_sound(V_ll, T_ll, eos)
@@ -442,8 +439,8 @@ end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
     v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
@@ -463,8 +460,8 @@ end
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     # Get the velocity value in the appropriate direction
     if orientation == 1
@@ -487,8 +484,8 @@ end
 
 @inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
                                equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     # Calculate normal velocities and sound speeds
     # left
@@ -513,8 +510,8 @@ end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     # Get the velocity value in the appropriate direction
     if orientation == 1
@@ -538,8 +535,8 @@ end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     # Get the velocity value in the appropriate direction
     v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
@@ -559,8 +556,8 @@ end
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     # Calculate primitive variables and speed of sound
     eos = equations.equation_of_state
@@ -581,8 +578,8 @@ end
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2prim(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2prim(u_rr, equations)
+    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
+    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
 
     norm_ = norm(normal_direction)
 
@@ -602,7 +599,7 @@ end
 end
 
 @inline function max_abs_speeds(u, equations::NonIdealCompressibleEulerEquations2D)
-    V, v1, v2, T = cons2prim(u, equations)
+    V, v1, v2, T = cons2thermo(u, equations)
 
     # Calculate primitive variables and speed of sound
     eos = equations.equation_of_state
@@ -611,8 +608,14 @@ end
     return (abs(v1) + c, abs(v2) + c)
 end
 
-# Convert conservative variables to primitive
-@inline function cons2prim(u, equations::NonIdealCompressibleEulerEquations2D)
+"""
+    function cons2thermo(u, equations::NonIdealCompressibleEulerEquations2D)
+        
+Convert conservative variables to specific volume, velocity, and temperature 
+variables `V, v1, v2, T`. These are referred to as "thermodynamic" variables since
+equation of state routines are assumed to be evaluated in terms of `V` and `T`. 
+"""
+@inline function cons2thermo(u, equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
     rho, rho_v1, rho_v2, rho_e_total = u
 
@@ -627,7 +630,7 @@ end
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::NonIdealCompressibleEulerEquations2D)
-    V, v1, v2, T = cons2prim(u, equations)
+    V, v1, v2, T = cons2thermo(u, equations)
     eos = equations.equation_of_state
     gibbs = gibbs_free_energy(V, T, eos)
     return inv(T) * SVector(gibbs - 0.5f0 * (v1^2 + v2^2), v1, v2, -1)
