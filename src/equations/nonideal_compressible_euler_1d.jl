@@ -87,9 +87,6 @@ equation of state routines are assumed to be evaluated in terms of `V` and `T`.
     return SVector(V, v1, T)
 end
 
-varnames(::typeof(cons2thermo), ::NonIdealCompressibleEulerEquations1D) = ("V", "v1",
-                                                                           "T")
-
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::NonIdealCompressibleEulerEquations1D)
