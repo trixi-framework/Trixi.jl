@@ -315,7 +315,7 @@ end
     entropy(cons, equations::AbstractNonIdealEulerEquations)
 
 Default entropy is the mathematical entropy
-[`entropy_math(cons, equations::AbstractNonIdealEulerEquations)`](@ref).
+[`entropy_math(u, equations::AbstractNonIdealEulerEquations)`](@ref).
 """
 @inline function entropy(cons, equations::AbstractNonIdealCompressibleEulerEquations)
     return entropy_math(cons, equations)
