@@ -804,7 +804,7 @@ end
 
     # check that the fallback temperature and specialized temperature 
     # return the same value 
-    V, v1, T = cons2thermo(u, equations)
+    V, v1, T = Trixi.cons2thermo(u, equations)
     e = energy_internal(V, T, eos)
     @test temperature(V, e, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
