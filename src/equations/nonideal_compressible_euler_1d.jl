@@ -373,5 +373,4 @@ end
     rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
     return rho_e
 end
-
 end # @muladd

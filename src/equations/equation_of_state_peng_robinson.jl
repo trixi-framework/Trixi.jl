@@ -139,7 +139,8 @@ function calc_pressure_derivatives(V, T, eos::PengRobinson)
     RdivVb = R / (V - b)
     dpdT_V = RdivVb - peng_robinson_da(T, eos) / denom
     dpdV_T = -RdivVb * T / (V - b) *
-             (1 - 2 * peng_robinson_a(T, eos) / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
+             (1 -
+              2 * peng_robinson_a(T, eos) / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
     return dpdT_V, dpdV_T
 end
 
@@ -148,8 +149,10 @@ end
     (; a0, kappa, T0) = eos
     return a0 * (1 + kappa * (1 - sqrt(T / T0)))^2
 end
-@inline peng_robinson_da(T, eos) = ForwardDiff.derivative(T -> peng_robinson_a(T, eos), T)
-@inline peng_robinson_d2a(T, eos) = ForwardDiff.derivative(T -> peng_robinson_da(T, eos), T)
+@inline peng_robinson_da(T, eos) = ForwardDiff.derivative(T -> peng_robinson_a(T, eos),
+                                                          T)
+@inline peng_robinson_d2a(T, eos) = ForwardDiff.derivative(T -> peng_robinson_da(T, eos),
+                                                           T)
 
 @inline function calc_K1(V, eos::PengRobinson)
     (; inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b) = eos
