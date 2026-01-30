@@ -7,6 +7,39 @@ using Trixi
 eos = PengRobinson()
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
+# the Peng-Robinson N2 transcritical shock taken from "An entropy-stable hybrid scheme 
+# for simulations of transcritical real-fluid flows" by Ma, Ihme (2017).
+# <https://doi.org/10.1016/j.jcp.2017.03.022>
+function initial_condition_transcritical_shock(x, t,
+                                               equations::NonIdealCompressibleEulerEquations1D{<:PengRobinson})
+    RealT = eltype(x)
+    eos = equations.equation_of_state
+
+    if x[1] < 0
+        rho, v1, p = SVector(800, 0, 60e6)
+    else
+        rho, v1, p = SVector(80, 0, 6e6)
+    end
+
+    V = inv(rho)
+
+    # invert for temperature given p, V
+    T = eos.T0
+    tol = 100 * eps(RealT)
+    dp = pressure(V, T, eos) - p
+    iter = 1
+    while abs(dp) / abs(p) > tol && iter < 100
+        dp = pressure(V, T, eos) - p
+        dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
+        T = max(tol, T - dp / dpdT_V)
+        iter += 1
+    end
+    if iter == 100
+        println("Warning: solver for temperature(V, p) did not converge")
+    end
+
+    return prim2cons(SVector(V, v1, T), equations)
+end
 initial_condition = initial_condition_transcritical_shock
 
 volume_flux = flux_central_terashima_etal
