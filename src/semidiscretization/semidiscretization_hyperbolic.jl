@@ -44,7 +44,7 @@ end
 
 Construct a semidiscretization of a hyperbolic PDE.
 
-Boundary conditions must be provided explicitly by the user as a NamedTuple.
+Boundary conditions must be provided explicitly as a `NamedTuple`.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,

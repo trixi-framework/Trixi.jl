@@ -29,7 +29,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000,
                 periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_terms_convergence_test,
                                     boundary_conditions = boundary_condition_periodic)
 

@@ -60,7 +60,7 @@ end
 
 Construct a semidiscretization of a hyperbolic-parabolic PDE.
 
-Boundary conditions must be provided explicitly by the user as a tuple of two `NamedTuple`s, where the first entry corresponds to the
+Boundary conditions must be provided explicitly as a tuple of two `NamedTuple`s, where the first entry corresponds to the
 hyperbolic part and the second to the parabolic part.
 """
 function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,

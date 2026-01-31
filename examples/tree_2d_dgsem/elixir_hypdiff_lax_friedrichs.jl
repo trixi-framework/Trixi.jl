@@ -48,7 +48,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 n_cells_max = 30_000)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_terms_poisson_periodic,
                                     boundary_conditions = boundary_condition_periodic)
 

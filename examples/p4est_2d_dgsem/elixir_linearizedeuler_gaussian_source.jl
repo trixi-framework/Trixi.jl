@@ -50,7 +50,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  periodicity = true, initial_refinement_level = 2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_terms_gauss,
                                     boundary_conditions = boundary_condition_periodic)
 

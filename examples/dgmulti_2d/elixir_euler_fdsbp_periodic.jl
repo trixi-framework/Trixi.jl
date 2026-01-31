@@ -16,7 +16,7 @@ source_terms = source_terms_convergence_test
 mesh = DGMultiMesh(dg, coordinates_min = (-1.0, -1.0),
                    coordinates_max = (1.0, 1.0))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     source_terms = source_terms,
                                     boundary_conditions = boundary_condition_periodic)
 
