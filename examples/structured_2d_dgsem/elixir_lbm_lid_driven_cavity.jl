@@ -89,7 +89,8 @@ mesh = StructuredMesh(cells_per_dimension,
                       coordinates_min, coordinates_max,
                       periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -17,7 +17,8 @@ mesh = DGMultiMesh(dg, coordinates_min = (-1.0, -1.0),
                    coordinates_max = (1.0, 1.0))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms, boundary_conditions = boundary_condition_periodic)
+                                    source_terms = source_terms,
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)

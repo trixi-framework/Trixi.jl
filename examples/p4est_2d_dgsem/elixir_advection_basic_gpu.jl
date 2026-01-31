@@ -25,7 +25,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 3,
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver; boundary_conditions = boundary_condition_periodic)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

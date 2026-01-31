@@ -22,7 +22,8 @@ mesh = P4estMesh(trees_per_dimension,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max)
 
 initial_condition = initial_condition_convergence_test
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

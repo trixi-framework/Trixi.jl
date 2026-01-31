@@ -114,7 +114,8 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000
 
 mesh = P4estMesh{2}(mesh_file)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

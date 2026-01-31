@@ -53,7 +53,9 @@ end
 Trixi.adapt!(mesh, adapt_callback)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver; boundary_conditions = boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

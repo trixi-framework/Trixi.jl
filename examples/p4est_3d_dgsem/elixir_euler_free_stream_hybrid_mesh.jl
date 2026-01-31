@@ -21,7 +21,8 @@ mesh_file = target_mesh_file
 mesh = P4estMesh{3}(mesh_file, initial_refinement_level = 2)
 
 boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -28,7 +28,8 @@ solver = DGMulti(element_type = Hex(),
 mesh = DGMultiMesh(solver, coordinates_min = (-1.0, -1.0, -1.0),
                    coordinates_max = (1.0, 1.0, 1.0))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic;
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic;
                                     source_terms = source_terms)
 
 ###############################################################################

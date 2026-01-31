@@ -59,7 +59,8 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex,
-                                    solver; boundary_conditions = boundary_condition_periodic)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 u0_ode = compute_coefficients(0.0, semi)
 

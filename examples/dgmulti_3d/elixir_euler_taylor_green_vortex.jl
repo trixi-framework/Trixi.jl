@@ -48,7 +48,8 @@ mesh = DGMultiMesh(solver, cells_per_dimension,
                    coordinates_min = (-pi, -pi, -pi), coordinates_max = (pi, pi, pi),
                    periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

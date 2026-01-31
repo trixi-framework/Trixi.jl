@@ -73,7 +73,9 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  periodicity = (true, true, true), initial_refinement_level = 1)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver; boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic))
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -24,7 +24,9 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
                    coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
                    periodicity = true)
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, dg; boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic))
+                                             initial_condition, dg;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 tspan = (0.0, 1.1)
 ode = semidiscretize(semi, tspan)

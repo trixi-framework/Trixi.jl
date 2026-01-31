@@ -71,7 +71,8 @@ mesh = T8codeMesh(trees_per_dimension, polydeg = 4,
                   mapping = mapping_twist,
                   periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

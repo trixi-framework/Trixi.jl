@@ -81,7 +81,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 refinement_patches = refinement_patches,
                 periodicity = (false, true),
                 n_cells_max = 100_000)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

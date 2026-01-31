@@ -39,7 +39,8 @@ mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_sy
 boundary_conditions = (; PhysicalSurface1 = BoundaryConditionDirichlet(initial_condition),
                        PhysicalSurface2 = BoundaryConditionDirichlet(initial_condition))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

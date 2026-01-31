@@ -35,7 +35,8 @@ boundary_conditions = (;
                        y_neg = BoundaryConditionDirichlet(initial_condition_convergence_test),
                        y_pos = BoundaryConditionDirichlet(initial_condition_convergence_test))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

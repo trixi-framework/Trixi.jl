@@ -28,7 +28,8 @@ dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = SBP(),
 mesh = DGMultiMesh(dg, cells_per_dimension,
                    coordinates_min = (-2.0, -2.0), coordinates_max = (2.0, 2.0),
                    periodicity = true)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg; boundary_conditions = boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

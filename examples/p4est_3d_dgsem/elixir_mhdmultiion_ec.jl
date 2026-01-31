@@ -61,7 +61,8 @@ mesh = P4estMesh(trees_per_dimension,
 # The multi-ion GLM-MHD equations require the inclusion of source_terms_lorentz 
 # whenever multiple ion species are present
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_lorentz, boundary_conditions = boundary_condition_periodic)
+                                    source_terms = source_terms_lorentz,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

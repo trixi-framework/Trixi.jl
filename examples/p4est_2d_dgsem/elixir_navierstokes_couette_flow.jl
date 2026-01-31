@@ -104,7 +104,8 @@ bcs_parabolic = (; x_neg = bc_parabolic_top_left,
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver; boundary_conditions = (bs_hyperbolic,
+                                             initial_condition, solver;
+                                             boundary_conditions = (bs_hyperbolic,
                                                                     bcs_parabolic))
 
 ###############################################################################

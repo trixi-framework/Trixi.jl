@@ -50,7 +50,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_gauss, boundary_conditions = boundary_condition_periodic)
+                                    source_terms = source_terms_gauss,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

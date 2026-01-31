@@ -56,7 +56,8 @@ mesh = P4estMesh(trees_per_dimension,
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver; boundary_conditions = (boundary_conditions,
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
 ###############################################################################

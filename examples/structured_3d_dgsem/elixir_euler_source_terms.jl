@@ -35,7 +35,8 @@ cells_per_dimension = (4, 4, 4)
 mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4, f5, f6))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convergence_test, boundary_conditions = boundary_condition_periodic)
+                                    source_terms = source_terms_convergence_test,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

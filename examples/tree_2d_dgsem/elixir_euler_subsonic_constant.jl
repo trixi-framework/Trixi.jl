@@ -69,7 +69,8 @@ volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 ## ODE solvers, callbacks etc.

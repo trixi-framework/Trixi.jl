@@ -84,7 +84,8 @@ boundary_conditions = (; PhysicalLine1 = boundary_condition_supersonic_inflow, #
                        PhysicalLine3 = boundary_condition_supersonic_outflow, # Top and bottom boundary
                        PhysicalLine4 = boundary_condition_slip_wall) # Airfoil
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions)
 
 tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan)

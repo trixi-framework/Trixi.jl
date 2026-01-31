@@ -56,7 +56,9 @@ mesh = DGMultiMesh(dg, cells_per_dimension;
                    periodicity = (true, true, true))
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, dg; boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic))
+                                             initial_condition, dg;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -100,7 +100,8 @@ cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_source_terms, solver,
-                                    source_terms = initial_condition_source_terms, boundary_conditions = boundary_condition_periodic)
+                                    source_terms = initial_condition_source_terms,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

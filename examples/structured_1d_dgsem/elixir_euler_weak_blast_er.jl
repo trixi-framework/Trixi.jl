@@ -16,7 +16,8 @@ cells_per_dimension = 32
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 initial_condition = initial_condition_weak_blast_wave
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

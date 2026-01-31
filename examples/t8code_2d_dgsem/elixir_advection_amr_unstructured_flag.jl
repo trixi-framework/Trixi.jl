@@ -37,7 +37,8 @@ mesh = T8codeMesh(mesh_file, 2;
                   mapping = mapping_flag, polydeg = 3,
                   initial_refinement_level = 1)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

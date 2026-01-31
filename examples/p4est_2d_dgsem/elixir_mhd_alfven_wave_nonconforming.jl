@@ -46,7 +46,8 @@ refine_fn_c = @cfunction(refine_fn, Cint,
                           Ptr{Trixi.p4est_quadrant_t}))
 Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

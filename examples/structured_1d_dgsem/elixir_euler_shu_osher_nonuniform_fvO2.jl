@@ -63,7 +63,8 @@ mesh = StructuredMesh(cells_per_dimension, refined_mapping, periodicity = false)
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = boundary_condition_default(mesh, boundary_condition)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
