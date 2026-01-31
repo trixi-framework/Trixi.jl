@@ -54,7 +54,7 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = VolumeIntegra
                                          indicator = nothing) # Indicator taken from `volume_integral_stabilized`
 
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
-               volume_integral = volume_integral)
+               volume_integral = volume_integral_stabilized)
 
 ###############################################################################
 mesh_file = "/storage/home/daniel/RAE2822/HiCFD_Meshes/rae2822_level3.inp"
@@ -134,7 +134,7 @@ save_restart = SaveRestartCallback(interval = save_sol_interval,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, 
                         alive_callback,
-                        save_solution,
+                        #save_solution,
                         save_restart
                         )
 
