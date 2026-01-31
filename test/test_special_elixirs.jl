@@ -241,7 +241,7 @@ end
                                periodicity = (true, true))
 
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver)
+                                                solver; boundary_conditions = boundary_condition_periodic)
 
             J = jacobian_ad_forward(semi)
             λ = eigvals(J)
@@ -263,7 +263,7 @@ end
                                periodicity = (true, true))
 
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver)
+                                                solver; boundary_conditions = boundary_condition_periodic)
 
             J = jacobian_ad_forward(semi)
             λ = eigvals(J)
@@ -429,7 +429,8 @@ end
                 return prim2cons(SVector(rho, v1, p), equations)
             end
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver,
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic,
                                                 uEltype = typeof(k))
             ode = semidiscretize(semi, (0.0, 1.0))
             summary_callback = SummaryCallback()
@@ -456,7 +457,8 @@ end
                 return SVector(sinpi(k * sum(x_trans)))
             end
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver,
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic,
                                                 uEltype = typeof(k))
             ode = semidiscretize(semi, (0.0, 1.0))
             summary_callback = SummaryCallback()

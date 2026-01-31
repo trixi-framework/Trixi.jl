@@ -365,7 +365,8 @@ end
     # Test `resize!` for non `VolumeIntegralSubcellLimiting`
     let
         solver = DGSEM(basis, surface_flux)
-        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic)
 
         ode = semidiscretize(semi, tspan)
         ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = (;))

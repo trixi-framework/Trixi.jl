@@ -20,8 +20,9 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  initial_refinement_level = 2)
 
 semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition,
-                                          solver_euler,
-                                          source_terms = source_terms_eoc_test_coupled_euler_gravity)
+                                          solver_euler;
+                                          source_terms = source_terms_eoc_test_coupled_euler_gravity,
+                                          boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # semidiscretization of the hyperbolic diffusion equations
@@ -32,13 +33,14 @@ equations_gravity = HyperbolicDiffusionEquations2D()
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver_gravity = DGSEM(polydeg, FluxLaxFriedrichs(max_abs_speed_naive))
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition,
-                                            solver_gravity,
-                                            source_terms = source_terms_harmonic)
+                                            solver_gravity;
+                                            source_terms = source_terms_harmonic,
+                                            boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # combining both semidiscretizations for Euler + self-gravity

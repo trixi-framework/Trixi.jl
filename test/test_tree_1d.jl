@@ -288,7 +288,8 @@ end
                    volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
     # Setup the spatial semidiscretization containing all ingredients
-    semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+    semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                        boundary_conditions = boundary_condition_periodic)
 
     # Create an ODE problem with given time span
     tspan = (0.0, 1.0)

@@ -852,7 +852,8 @@ end
                     n_cells_max = 30_000)
     semi = SemidiscretizationHyperbolic(mesh, equations,
                                         initial_condition_convergence_test,
-                                        solver)
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
     u0 = zeros(4)
     tspan = (0.0, 1.0)
     ode = semidiscretize(semi, tspan)
@@ -2872,7 +2873,8 @@ end
     # Semidiscretization for sparsity pattern detection
     semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
                                                  initial_condition_convergence_test,
-                                                 solver,
+                                                 solver;
+                                                 boundary_conditions = boundary_condition_periodic,
                                                  uEltype = jac_eltype) # Need to supply Jacobian element type
 
     tspan = (0.0, 1.0) # Re-used for wrapping `rhs` below
@@ -2903,7 +2905,8 @@ end
 
     semi_float_type = SemidiscretizationHyperbolic(mesh, equations,
                                                    initial_condition_convergence_test,
-                                                   solver)
+                                                   solver;
+                                                   boundary_conditions = boundary_condition_periodic)
 
     ode_float_type = semidiscretize(semi_float_type, tspan)
     u0_ode = ode_float_type.u0
@@ -2973,7 +2976,8 @@ end
                                                           (equations_hyperbolic,
                                                            equations_parabolic),
                                                           initial_condition_convergence_test,
-                                                          solver,
+                                                          solver;
+                                                          boundary_conditions = boundary_condition_periodic,
                                                           uEltype = jac_eltype) # Need to supply Jacobian element type
 
     tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
