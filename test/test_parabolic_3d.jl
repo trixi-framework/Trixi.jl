@@ -292,7 +292,7 @@ end
     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, solver;
                                                  boundary_conditions = (boundary_condition_periodic,
-                                                                        boundary_conditions_parabolic))
+                                                                        boundary_condition_periodic),)
     ode = semidiscretize(semi, tspan)
     analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                          save_analysis = true,
