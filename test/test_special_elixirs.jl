@@ -241,7 +241,8 @@ end
                                periodicity = (true, true))
 
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver; boundary_conditions = boundary_condition_periodic)
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic)
 
             J = jacobian_ad_forward(semi)
             λ = eigvals(J)
@@ -263,7 +264,8 @@ end
                                periodicity = (true, true))
 
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver; boundary_conditions = boundary_condition_periodic)
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic)
 
             J = jacobian_ad_forward(semi)
             λ = eigvals(J)
