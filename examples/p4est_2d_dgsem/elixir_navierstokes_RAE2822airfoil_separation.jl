@@ -57,13 +57,12 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral_stabilized)
 
 ###############################################################################
-mesh_file = "/storage/home/daniel/RAE2822/HiCFD_Meshes/rae2822_level3.inp"
+mesh_file = "/home/daniel/git/Paper_AdaptiveVolTerm/Data/RAE2822_Transonic/HiCFD_Meshes/rae2822_level3.inp"
 
 boundary_symbols = [:WallBoundary, :FarfieldBoundary]
 mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols)
 
-restart_filename = "out/restart_k3_tc25.h5"
-#mesh = load_mesh(restart_filename)
+restart_filename = "/home/daniel/git/Paper_AdaptiveVolTerm/Data/RAE2822_Transonic/restart_tc26_VTA.h5"
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
 
@@ -99,32 +98,22 @@ save_sol_interval = 500_000
 save_solution = SaveSolutionCallback(interval = save_sol_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true)
-#=
+
 l_inf = 1.0 # Length of airfoil
-force_boundary_names = (:Airfoil,)
+force_boundary_names = (:WallBoundary,)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            DragCoefficientPressure2D(aoa(), rho_inf(),
-                                                                   U_inf(), l_inf))
-
+                                                                     U_inf(), l_inf))
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            LiftCoefficientPressure2D(aoa(), rho_inf(),
-                                                                   U_inf(), l_inf))
-pressure_coefficient = AnalysisSurfacePointwise(force_boundary_names,
-                                                SurfacePressureCoefficient(p_inf(), rho_inf(),
-                                                                           U_inf(), l_inf))
-=#
+                                                                     U_inf(), l_inf))
+
 analysis_interval = 100_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
                                      analysis_errors = Symbol[],
-                                     analysis_integrals = (),
-                                     #=
-                                     save_analysis = true,
                                      analysis_integrals = (drag_coefficient,
-                                                           lift_coefficient),
-                                     analysis_pointwise = (pressure_coefficient,)
-                                     =#
-                                    )
+                                                           lift_coefficient))
 
 alive_callback = AliveCallback(alive_interval = 500)
 
@@ -135,7 +124,7 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback, 
                         alive_callback,
                         #save_solution,
-                        save_restart
+                        #save_restart
                         )
 
 ###############################################################################
