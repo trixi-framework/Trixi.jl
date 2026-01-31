@@ -115,7 +115,8 @@ end
 # Now we collect all the information that is necessary to define a spatial discretization,
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                    source_terms = source_term_exp_sinpi)
+                                    source_terms = source_term_exp_sinpi,
+                                    boundary_conditions = boundary_condition_periodic)
 
 # which leaves us with an ODE problem in time with a span from `0.0` to `1.0`.
 # This approach is commonly referred to as the method of lines.

@@ -58,7 +58,8 @@ solver = DGSEM(polydeg = 3)
 # comes into play.
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 # The constructor for the `SemidiscretizationHyperbolic` object calls numerous sub-functions to
 # perform the necessary initialization steps. A brief description of the key sub-functions is

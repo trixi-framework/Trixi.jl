@@ -380,7 +380,8 @@ function initial_condition_sine_wave(x, t, equations)
     return SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 end
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 # Again, combining all definitions and the function that calculates the right-hand side, we define the ODE and
 # solve it until `t=2` with OrdinaryDiffEq's `solve` function and the Runge-Kutta method `RDPK3SpFSAL49()`.
@@ -509,7 +510,8 @@ function initial_condition_sine_wave(x, t, equations)
     return SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 end
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## solve
 tspan = (0.0, 2.0)

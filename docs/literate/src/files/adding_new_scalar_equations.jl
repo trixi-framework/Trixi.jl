@@ -46,7 +46,8 @@ mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
 
 solver = DGSEM(3, flux_central) # set polynomial degree to 3
 
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 # We wrap the return value of the `initial_condition_sine` inside an `SVector` since that's the approach
 # used in Trixi.jl also for systems of equations. We need to index the spatial coordinate `x[1]`,
@@ -188,7 +189,8 @@ mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
 
 solver = DGSEM(3, flux_central) # set polynomial degree to 3
 
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## Create ODE problem with given time span
 tspan = (0.0, 0.1)

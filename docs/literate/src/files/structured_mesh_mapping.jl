@@ -153,7 +153,8 @@ end
 cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, mapping)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
