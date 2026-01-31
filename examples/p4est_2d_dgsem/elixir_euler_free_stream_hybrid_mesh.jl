@@ -27,8 +27,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/84
 # Refine the given mesh twice
 mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 2)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions =
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions =
                                     (; all = BoundaryConditionDirichlet(initial_condition)))
 
 ###############################################################################

@@ -82,7 +82,7 @@ coloring_vec = column_colors(coloring_result)
 semi = SemidiscretizationHyperbolic(mesh, equations,
                                     initial_condition_convergence_test,
                                     solver,
-                                    source_terms = source_terms_convergence_test)
+                                    source_terms = source_terms_convergence_test, boundary_conditions = boundary_condition_periodic)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_jac_sparse = semidiscretize(semi, tspan,

@@ -25,7 +25,7 @@ cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

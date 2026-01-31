@@ -16,8 +16,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 30_000) # set maximum capacity of tree data structure
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver; boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -12,7 +12,7 @@ source_terms = source_terms_convergence_test
 cells_per_dimension = (4, 4)
 mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = true)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms)
+                                    source_terms = source_terms, boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)

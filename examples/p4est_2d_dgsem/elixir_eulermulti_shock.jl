@@ -81,8 +81,7 @@ end
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
                        x_pos = boundary_condition_outflow)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

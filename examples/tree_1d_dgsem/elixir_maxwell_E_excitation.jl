@@ -28,7 +28,7 @@ function initial_condition_E_excitation(x, t, equations::MaxwellEquations1D)
 end
 
 initial_condition = initial_condition_E_excitation
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

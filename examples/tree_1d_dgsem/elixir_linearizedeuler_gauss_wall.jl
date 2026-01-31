@@ -28,8 +28,7 @@ end
 initial_condition = initial_condition_gauss_wall
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_condition_wall)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_wall)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

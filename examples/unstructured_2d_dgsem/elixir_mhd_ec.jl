@@ -39,7 +39,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000
 mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
 
 # create the semi discretization object
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -29,7 +29,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_gauss, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_gauss, solver; boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

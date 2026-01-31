@@ -22,7 +22,8 @@ initial_condition = initial_condition_modified_sod
 cells_per_dimension = (50,)
 mesh = DGMultiMesh(dg, cells_per_dimension,
                    coordinates_min = (0.0,), coordinates_max = (1.0,), periodicity = false)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 0.2)
 ode = semidiscretize(semi, tspan)

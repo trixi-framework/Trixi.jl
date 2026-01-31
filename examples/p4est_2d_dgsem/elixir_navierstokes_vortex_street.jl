@@ -85,8 +85,7 @@ boundary_conditions_para = (; Circle = boundary_condition_cylinder, # top half o
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
-                                             boundary_conditions = (boundary_conditions,
+                                             initial_condition, solver; boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_para))
 
 ###############################################################################

@@ -263,9 +263,7 @@ boundary_condition_euler = VortexPairSetup.BoundaryCondition(rho,
                                                              (rho * c0^2 / gamma) /
                                                              (gamma - 1))
 
-semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition_euler,
-                                          solver,
-                                          boundary_conditions = boundary_condition_euler,
+semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition_euler, solver; boundary_conditions = boundary_condition_euler,
                                           source_terms = sponge_layer_euler)
 
 ###############################################################################
@@ -309,8 +307,7 @@ end
 
 semi_acoustics = SemidiscretizationHyperbolic(mesh, equations_acoustics,
                                               initial_condition_constant,
-                                              solver,
-                                              boundary_conditions = boundary_condition_zero,
+solver; boundary_conditions = boundary_condition_zero,
                                               source_terms = sponge_layer_acoustics)
 
 ###############################################################################

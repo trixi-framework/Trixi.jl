@@ -36,7 +36,7 @@ initial_condition = initial_condition_pure_diffusion_1d_convergence_test
 solver_parabolic = ViscousFormulationLocalDG()
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
-                                             solver; solver_parabolic)
+                                             solver; solver_parabolic, boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

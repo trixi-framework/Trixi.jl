@@ -92,7 +92,7 @@ coloring_vec_parabolic = column_colors(coloring_result)
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations_hyperbolic,
                                               equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver; boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic))
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode = semidiscretize(semi, tspan,

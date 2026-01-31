@@ -57,8 +57,7 @@ boundary_conditions = (; x_neg = boundary_condition_inflow,
 
 initial_condition = initial_condition_shock
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

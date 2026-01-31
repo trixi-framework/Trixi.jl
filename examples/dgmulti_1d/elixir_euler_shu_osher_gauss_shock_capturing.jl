@@ -66,7 +66,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
 #  setup the semidiscretization and ODE problem
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                    dg, boundary_conditions = boundary_conditions)
+                                    dg; boundary_conditions = boundary_conditions)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)

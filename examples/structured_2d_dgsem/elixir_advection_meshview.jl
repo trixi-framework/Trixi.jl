@@ -71,12 +71,8 @@ boundary_conditions2 = (
                         y_pos = boundary_condition_periodic)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = boundary_conditions1)
-semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = boundary_conditions2)
+semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test, solver; boundary_conditions = boundary_conditions1)
+semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test, solver; boundary_conditions = boundary_conditions2)
 semi = SemidiscretizationCoupled(semi1, semi2)
 
 ###############################################################################

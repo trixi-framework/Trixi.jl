@@ -85,8 +85,7 @@ mesh = P4estMesh{2}(mesh_file,
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; all = boundary_condition)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

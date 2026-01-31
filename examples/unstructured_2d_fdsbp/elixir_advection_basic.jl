@@ -27,8 +27,7 @@ mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
 ###############################################################################
 # create the semidiscretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver; boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

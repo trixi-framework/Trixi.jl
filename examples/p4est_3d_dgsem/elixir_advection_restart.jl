@@ -17,8 +17,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_basic.jl"),
 restart_filename = joinpath("out", "restart_000000010.h5")
 mesh = load_mesh(restart_filename)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver; boundary_conditions = boundary_condition_periodic)
 
 tspan = (load_time(restart_filename), 2.0)
 dt = load_dt(restart_filename)

@@ -12,7 +12,7 @@ mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0),
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
@@ -59,7 +59,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex,
-                                    solver)
+                                    solver; boundary_conditions = boundary_condition_periodic)
 
 u0_ode = compute_coefficients(0.0, semi)
 

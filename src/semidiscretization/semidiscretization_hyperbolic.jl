@@ -38,15 +38,17 @@ end
 """
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms=nothing,
-                                 boundary_conditions=boundary_condition_periodic,
+                                 boundary_conditions,
                                  RealT=real(solver),
                                  uEltype=RealT)
 
 Construct a semidiscretization of a hyperbolic PDE.
+
+Boundary conditions must be provided explicitly by the user as a NamedTuple.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
-                                      boundary_conditions = boundary_condition_periodic,
+                                      boundary_conditions,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT = real(solver), uEltype = RealT)

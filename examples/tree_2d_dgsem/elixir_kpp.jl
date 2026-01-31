@@ -103,7 +103,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 ###############################################################################
 # Create the semi discretization object
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_kpp, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_kpp, solver; boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # Set up adaptive mesh refinement

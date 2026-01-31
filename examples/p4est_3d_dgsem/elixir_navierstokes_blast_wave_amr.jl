@@ -45,7 +45,7 @@ initial_condition = initial_condition_3d_blast_wave
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
@@ -73,7 +73,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  periodicity = (true, true, true), initial_refinement_level = 1)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver; boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

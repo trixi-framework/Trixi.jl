@@ -53,20 +53,22 @@ end
     SemidiscretizationHyperbolicParabolic(mesh, both_equations, initial_condition, solver;
                                           solver_parabolic=default_parabolic_solver(),
                                           source_terms=nothing,
-                                          source_terms_parabolic=nothing,                                          
-                                          both_boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
+                                          source_terms_parabolic=nothing,
+                                          boundary_conditions,
                                           RealT=real(solver),
                                           uEltype=RealT)
 
 Construct a semidiscretization of a hyperbolic-parabolic PDE.
+
+Boundary conditions must be provided explicitly by the user as a tuple of two `NamedTuple`s, where the first entry corresponds to the
+hyperbolic part and the second to the parabolic part.
 """
 function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                initial_condition, solver;
                                                solver_parabolic = default_parabolic_solver(),
                                                source_terms = nothing,
                                                source_terms_parabolic = nothing,
-                                               boundary_conditions = (boundary_condition_periodic,
-                                                                      boundary_condition_periodic),
+                                               boundary_conditions,
                                                # `RealT` is used as real type for node locations etc.
                                                # while `uEltype` is used as element type of solutions etc.
                                                RealT = real(solver), uEltype = RealT)
