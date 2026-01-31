@@ -36,8 +36,9 @@ equations_gravity = HyperbolicDiffusionEquations3D()
 solver_gravity = DGSEM(polydeg, FluxLaxFriedrichs(max_abs_speed_naive))
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition,
-                                            solver_gravity,
-                                            source_terms = source_terms_harmonic)
+                                            solver_gravity;
+                                            source_terms = source_terms_harmonic,
+                                            boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # combining both semidiscretizations for Euler + self-gravity

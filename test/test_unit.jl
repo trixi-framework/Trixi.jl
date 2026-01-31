@@ -2977,7 +2977,8 @@ end
                                                            equations_parabolic),
                                                           initial_condition_convergence_test,
                                                           solver;
-                                                          boundary_conditions = boundary_condition_periodic,
+                                                          boundary_conditions = (boundary_condition_periodic,
+                                                                                 boundary_condition_periodic),
                                                           uEltype = jac_eltype) # Need to supply Jacobian element type
 
     tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below

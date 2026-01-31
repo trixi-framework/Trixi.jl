@@ -770,7 +770,7 @@ end
     semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
                                                  initial_condition,
                                                  solver;
-                                                 boundary_conditions = boundary_conditions_periodic,
+                                                 boundary_conditions = boundary_condition_periodic,
                                                  source_terms = source_terms_convergence_test,
                                                  uEltype = jac_eltype) # Need to supply Jacobian element type
 

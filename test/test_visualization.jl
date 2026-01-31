@@ -237,7 +237,8 @@ end
 
             semi = SemidiscretizationHyperbolic(mesh, equations,
                                                 initial_condition_constant,
-                                                solver)
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
             # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
             # and Ketcheson (2021)
@@ -300,22 +301,26 @@ end
         ic = initial_condition_taylor_green_vortex
 
         ode_tree = let mesh = mesh_tree
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_p4est = let mesh = mesh_p4est
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_t8code = let mesh = mesh_t8code
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_structured = let mesh = mesh_structured
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
@@ -525,7 +530,8 @@ end
 
                 semi = SemidiscretizationHyperbolic(mesh, equations,
                                                     initial_condition_constant,
-                                                    solver)
+                                                    solver;
+                                                    boundary_conditions = boundary_condition_periodic)
                 ode = semidiscretize(semi, (0.0, 0.1))
                 # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
                 # and Ketcheson (2021)
@@ -591,22 +597,26 @@ end
         ic = initial_condition_taylor_green_vortex
 
         ode_tree = let mesh = mesh_tree
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_p4est = let mesh = mesh_p4est
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_t8code = let mesh = mesh_t8code
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_structured = let mesh = mesh_structured
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 

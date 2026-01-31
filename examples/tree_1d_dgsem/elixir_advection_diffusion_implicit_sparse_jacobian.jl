@@ -48,7 +48,9 @@ jac_eltype = jacobian_eltype(real(solver), jac_detector)
 semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
                                                       (equations_hyperbolic,
                                                        equations_parabolic),
-                                                      initial_condition, solver,
+                                                      initial_condition, solver;
+                                                      boundary_conditions = (boundary_condition_periodic,
+                                                                             boundary_condition_periodic),
                                                       uEltype = jac_eltype)
 
 tspan = (0.0, 1.5) # Re-used for wrapping `rhs_parabolic!` below
