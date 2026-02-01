@@ -79,18 +79,21 @@ end
 
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
-        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0) isa
+        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0,
+                                                                 periodicity = true) isa
               TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
         # 2D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0), (1.0, 2.0),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000)
+                                            n_cells_max = 10_000,
+                                            periodicity = true)
         # 3D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0, -0.2), (1.0, 2.0, 1.5),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000)
+                                            n_cells_max = 10_000,
+                                            periodicity = true)
     end
 end
 
@@ -103,7 +106,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(30,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            periodicity = true)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -163,7 +167,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(1000,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            periodicity = true)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -188,7 +193,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            periodicity = true)
                 # Refine whole tree
                 Trixi.refine!(mesh.tree)
                 # Refine left leaf
@@ -217,7 +223,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            periodicity = true)
 
                 # Only one leaf
                 @test_throws AssertionError("Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
@@ -849,7 +856,8 @@ end
     solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
     mesh = TreeMesh((0.0,), (1.0,),
                     initial_refinement_level = 2,
-                    n_cells_max = 30_000)
+                    n_cells_max = 30_000,
+                    periodicity = true)
     semi = SemidiscretizationHyperbolic(mesh, equations,
                                         initial_condition_convergence_test,
                                         solver;
@@ -2860,8 +2868,8 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000)
-
+                    n_cells_max = 30_000,
+                    periodicity = true)
     ###############################################################################
     ### semidiscretization for sparsity detection ###
 
@@ -2961,7 +2969,8 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000)
+                    n_cells_max = 30_000,
+                    periodicity = true)
 
     ###############################################################################
     ### semidiscretization for sparsity detection ###

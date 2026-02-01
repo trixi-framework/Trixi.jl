@@ -391,7 +391,7 @@ end
 
 """
     T8codeMesh(trees_per_dimension; polydeg, mapping=identity,
-               RealT=Float64, initial_refinement_level=0, periodicity=true)
+               RealT=Float64, initial_refinement_level=0, periodicity=false)
 
 Create a structured potentially curved 'T8codeMesh' of the specified size.
 
@@ -422,7 +422,7 @@ Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', '
                      Use only one of `mapping`, `faces` and `coordinates_min`/`coordinates_max`.
 - 'RealT::Type': the type that should be used for coordinates.
 - 'initial_refinement_level::Integer': refine the mesh uniformly to this level before the simulation starts.
-- 'periodicity': either a 'Bool' deciding if all of the boundaries are periodic or an 'NTuple{NDIMS, Bool}'
+- 'periodicity': either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
 """
 function T8codeMesh(trees_per_dimension; polydeg = 1,

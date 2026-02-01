@@ -421,7 +421,7 @@ end
         function entropy_at_final_time(k) # k is the wave number of the initial condition
             equations = CompressibleEulerEquations1D(1.4)
             mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 3,
-                            n_cells_max = 10^4)
+                            n_cells_max = 10^4, periodicity = true)
             solver = DGSEM(3, FluxHLL(min_max_speed_naive),
                            VolumeIntegralFluxDifferencing(flux_ranocha))
             initial_condition = (x, t, equations) -> begin
@@ -452,7 +452,7 @@ end
         function energy_at_final_time(k) # k is the wave number of the initial condition
             equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
             mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
-                            n_cells_max = 10^4)
+                            n_cells_max = 10^4, periodicity = true)
             solver = DGSEM(3, flux_lax_friedrichs)
             initial_condition = (x, t, equation) -> begin
                 x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)

@@ -42,7 +42,8 @@ initial_condition_sine(x, t, equation::CubicEquation) = SVector(sinpi(x[1]))
 
 mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
                 initial_refinement_level = 4,
-                n_cells_max = 10^4)
+                n_cells_max = 10^4,
+                periodicity = true)
 
 solver = DGSEM(3, flux_central) # set polynomial degree to 3
 
@@ -104,7 +105,8 @@ plot!(sol)
 
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi,
-              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5))
+              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5,
+                              periodicity = true))
 ode = semidiscretize(semi, (0.0, 0.5)) # set tspan to (0.0, 0.5)
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
@@ -185,7 +187,8 @@ end
 
 mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
                 initial_refinement_level = 4,
-                n_cells_max = 10^4)
+                n_cells_max = 10^4,
+                periodicity = true)
 
 solver = DGSEM(3, flux_central) # set polynomial degree to 3
 
@@ -208,7 +211,8 @@ plot!(sol)
 
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi,
-              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5))
+              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5,
+                              periodicity = true))
 ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)

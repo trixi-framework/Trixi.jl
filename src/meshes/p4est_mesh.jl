@@ -142,7 +142,7 @@ end
 """
     P4estMesh(trees_per_dimension; polydeg,
               mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-              RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
+              RealT=Float64, initial_refinement_level=0, periodicity=false, unsaved_changes=true,
               p4est_partition_allow_for_coarsening=true)
 
 Create a structured curved/higher-order `P4estMesh` of the specified size.

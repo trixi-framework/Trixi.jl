@@ -33,7 +33,8 @@ coarsening_patches = ((type = "box", coordinates_min = [0.0, -2.0],
 
 mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 2,
                 n_cells_max = 30_000,
-                coarsening_patches = coarsening_patches)
+                coarsening_patches = coarsening_patches,
+                periodicity = true)
 
 # The created `TreeMesh` looks like the following:
 

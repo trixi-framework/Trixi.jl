@@ -101,7 +101,8 @@ cells_per_dimension = 100
 coordinates_min = 0.0
 coordinates_max = 1.0
 mesh = StructuredMesh(cells_per_dimension,
-                      coordinates_min, coordinates_max)
+                      coordinates_min, coordinates_max,
+                      periodicity = true)
 
 # Define the equation and initial condition
 advection_velocity = 1.0

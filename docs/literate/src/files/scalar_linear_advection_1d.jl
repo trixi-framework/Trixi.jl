@@ -372,7 +372,8 @@ coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0  # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4, # number of elements = 2^4
-                n_cells_max = 30_000) # set maximum capacity of tree data structure (only needed for AMR)
+                n_cells_max = 30_000, # set maximum capacity of tree data structure (only needed for AMR)
+                periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
 # In Trixi.jl, an initial condition has the following parameter structure and is of the type `SVector`.
@@ -503,7 +504,8 @@ coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0 # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4, # number of elements = 2^4
-                n_cells_max = 30_000)
+                n_cells_max = 30_000,
+                periodicity = true)
 
 ## create initial condition and semidiscretization
 function initial_condition_sine_wave(x, t, equations)

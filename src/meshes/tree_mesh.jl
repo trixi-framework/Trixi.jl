@@ -52,7 +52,7 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
     function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
                                               domain_center::AbstractArray{RealT},
                                               domain_length::RealT,
-                                              periodicity = true) where {NDIMS,
+                                              periodicity = false) where {NDIMS,
                                                                          TreeType <:
                                                                          AbstractTree{NDIMS},
                                                                          RealT <: Real}
