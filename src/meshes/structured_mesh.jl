@@ -49,7 +49,7 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
 """
 function StructuredMesh(cells_per_dimension, mapping;
                         RealT = Float64,
-                        periodicity = true,
+                        periodicity = false,
                         unsaved_changes = true,
                         mapping_as_string = mapping2string(mapping,
                                                            length(cells_per_dimension),

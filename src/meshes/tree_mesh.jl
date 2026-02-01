@@ -87,7 +87,7 @@ end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
 function TreeMesh{1, TreeType, RealT}(n::Int, center::RealT, len::RealT,
-                                      periodicity = true) where {
+                                      periodicity = false) where {
                                                                  TreeType <:
                                                                  AbstractTree{1},
                                                                  RealT <: Real}
@@ -97,7 +97,7 @@ end
 function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
                                           domain_center::NTuple{NDIMS, RealT},
                                           domain_length::RealT,
-                                          periodicity = true) where {NDIMS,
+                                          periodicity = false) where {NDIMS,
                                                                      TreeType <:
                                                                      AbstractTree{NDIMS},
                                                                      RealT <: Real}
@@ -109,7 +109,7 @@ end
 function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                   coordinates_max::NTuple{NDIMS, Real};
                   n_cells_max,
-                  periodicity = true,
+                  periodicity = false,
                   initial_refinement_level,
                   refinement_patches = (),
                   coarsening_patches = (),

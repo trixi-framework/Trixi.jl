@@ -429,7 +429,7 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                     mapping = nothing, faces = nothing, coordinates_min = nothing,
                     coordinates_max = nothing,
                     RealT = Float64, initial_refinement_level = 0,
-                    periodicity = true)
+                    periodicity = false)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
     coordinates_min_max_check(coordinates_min, coordinates_max)
