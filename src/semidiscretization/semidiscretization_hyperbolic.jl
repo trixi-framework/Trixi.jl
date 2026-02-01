@@ -172,6 +172,25 @@ function digest_boundary_conditions(boundary_conditions::NTuple{6, Any},
             z_neg = boundary_conditions[5], z_pos = boundary_conditions[6])
 end
 
+# error for wrong length of tuple
+function digest_boundary_conditions(boundary_conditions::Tuple,
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
+                                    cache)
+    throw(ArgumentError("Tuple of boundary conditions must have length 2 for a 1-dimensional mesh, got length $(length(boundary_conditions))."))
+end
+
+function digest_boundary_conditions(boundary_conditions::Tuple,
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
+                                    cache)
+    throw(ArgumentError("Tuple of boundary conditions must have length 4 for a 2-dimensional mesh, got length $(length(boundary_conditions))."))
+end
+
+function digest_boundary_conditions(boundary_conditions::Tuple,
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
+                                    cache)
+    throw(ArgumentError("Tuple of boundary conditions must have length 6 for a 3-dimensional mesh, got length $(length(boundary_conditions))."))
+end
+
 # allow passing named tuples of BCs constructed in an arbitrary order
 # on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
@@ -193,6 +212,40 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
                                     cache) where {Keys, ValueTypes <: NTuple{6, Any}}
     @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
     return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
+end
+
+# error for wrong length of named tuple
+function digest_boundary_conditions(boundary_conditions::NamedTuple,
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
+                                    cache)
+    required = (:x_neg, :x_pos)
+    if sort(collect(keys(boundary_conditions))) != sort(collect(required))
+        throw(ArgumentError("NamedTuple of boundary conditions for 1-dimensional mesh must have keys $(required), got $(keys(boundary_conditions))"))
+    end
+    # fallback, should never reach here if specific method exists
+    throw(ArgumentError("Unexpected error in boundary condition NamedTuple dispatch."))
+end
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple,
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
+                                    cache)
+    required = (:x_neg, :x_pos, :y_neg, :y_pos)
+    if sort(collect(keys(boundary_conditions))) != sort(collect(required))
+        throw(ArgumentError("NamedTuple of boundary conditions for 2-dimensional mesh must have keys $(required), got $(keys(boundary_conditions))"))
+    end
+    # fallback, should never reach here if specific method exists
+    throw(ArgumentError("Unexpected error in boundary condition NamedTuple dispatch."))
+end
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple,
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
+                                    cache)
+    required = (:x_neg, :x_pos, :y_neg, :y_pos, :z_neg, :z_pos)
+    if sort(collect(keys(boundary_conditions))) != sort(collect(required))
+        throw(ArgumentError("NamedTuple of boundary conditions for 3-dimensional mesh must have keys $(required), got $(keys(boundary_conditions))"))
+    end
+    # fallback, should never reach here if specific method exists
+    throw(ArgumentError("Unexpected error in boundary condition NamedTuple dispatch."))
 end
 
 # Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh
@@ -217,18 +270,25 @@ function check_periodicity_mesh_boundary_conditions(mesh::Union{P4estMesh,
                                                     boundary_conditions)
 end
 
-# No actions needed for periodic boundary conditions
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
                                                                 StructuredMesh,
                                                                 StructuredMeshView},
                                                     boundary_conditions::BoundaryConditionPeriodic)
+    if !isperiodic(mesh)
+        throw(ArgumentError("Periodic boundary condition supplied for non-periodic mesh."))
+    end
 end
 
 function check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
     if isperiodic(mesh, 1) &&
        (x_neg != BoundaryConditionPeriodic() ||
         x_pos != BoundaryConditionPeriodic())
-        @error "For periodic mesh non-periodic boundary conditions in x-direction are supplied."
+        throw(ArgumentError("For periodic mesh non-periodic boundary conditions in x-direction are supplied."))
+    end
+    if !isperiodic(mesh, 1) &&
+       (x_neg == BoundaryConditionPeriodic() ||
+        x_pos == BoundaryConditionPeriodic())
+        throw(ArgumentError("For non-periodic mesh periodic boundary conditions in x-direction are supplied."))
     end
 end
 
@@ -236,7 +296,12 @@ function check_periodicity_mesh_boundary_conditions_y(mesh, y_neg, y_pos)
     if isperiodic(mesh, 2) &&
        (y_neg != BoundaryConditionPeriodic() ||
         y_pos != BoundaryConditionPeriodic())
-        @error "For periodic mesh non-periodic boundary conditions in y-direction are supplied."
+        throw(ArgumentError("For periodic mesh non-periodic boundary conditions in y-direction are supplied."))
+    end
+    if !isperiodic(mesh, 2) &&
+       (y_neg == BoundaryConditionPeriodic() ||
+        y_pos == BoundaryConditionPeriodic())
+        throw(ArgumentError("For non-periodic mesh periodic boundary conditions in y-direction are supplied."))
     end
 end
 
@@ -244,7 +309,12 @@ function check_periodicity_mesh_boundary_conditions_z(mesh, z_neg, z_pos)
     if isperiodic(mesh, 3) &&
        (z_neg != BoundaryConditionPeriodic() ||
         z_pos != BoundaryConditionPeriodic())
-        @error "For periodic mesh non-periodic boundary conditions in z-direction are supplied."
+        throw(ArgumentError("For periodic mesh non-periodic boundary conditions in z-direction are supplied."))
+    end
+    if !isperiodic(mesh, 3) &&
+       (z_neg == BoundaryConditionPeriodic() ||
+        z_pos == BoundaryConditionPeriodic())
+        throw(ArgumentError("For non-periodic mesh periodic boundary conditions in z-direction are supplied."))
     end
 end
 

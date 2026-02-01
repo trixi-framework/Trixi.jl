@@ -3027,6 +3027,138 @@ end
     # the sparsity pattern of the parabolic part of a hyperbolic-parabolic problem always includes the hyperbolic one
     @test jac_prototype_parabolic == jac_prototype_hyperbolic_parabolic
 end
+
+@testset "TreeMesh boundary condition argument checks" begin
+    # 1D
+    mesh1d_periodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
+                               n_cells_max = 10,
+                               periodicity = true)
+    eq1d = LinearScalarAdvectionEquation1D(1.0)
+    solver1d = DGSEM(polydeg = 1)
+    bc = boundary_condition_periodic
+    # Wrong size
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                            initial_condition_convergence_test,
+                                                            solver1d;
+                                                            boundary_conditions = (bc,))
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                            initial_condition_convergence_test,
+                                                            solver1d;
+                                                            boundary_conditions = (;
+                                                                                   x_neg = bc,))
+    # Wrong keys NamedTuple
+    @test_throws FieldError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                         initial_condition_convergence_test,
+                                                         solver1d;
+                                                         boundary_conditions = (;
+                                                                                x_neg = bc,
+                                                                                y_pos = bc))
+
+    # periodic boundary conditions for non-periodic mesh
+    mesh1d_nonperiodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
+                                  n_cells_max = 10,
+                                  periodicity = false)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic, eq1d,
+                                                            initial_condition_convergence_test,
+                                                            solver1d;
+                                                            boundary_conditions = bc)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic, eq1d,
+                                                            initial_condition_convergence_test,
+                                                            solver1d;
+                                                            boundary_conditions = (bc,
+                                                                                   bc))
+
+    # 2D
+    mesh2d_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 1,
+                               n_cells_max = 10, periodicity = true)
+    eq2d = LinearScalarAdvectionEquation2D((1.0, 0.0))
+    solver2d = DGSEM(polydeg = 1)
+    # Wrong size
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                            initial_condition_convergence_test,
+                                                            solver2d;
+                                                            boundary_conditions = (bc,
+                                                                                   bc,
+                                                                                   bc))
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                            initial_condition_convergence_test,
+                                                            solver2d;
+                                                            boundary_conditions = (;
+                                                                                   x_neg = bc,))
+    # Wrong keys NamedTuple
+    @test_throws FieldError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                         initial_condition_convergence_test,
+                                                         solver2d;
+                                                         boundary_conditions = (;
+                                                                                x_neg = bc,
+                                                                                x_pos = bc,
+                                                                                z_neg = bc,
+                                                                                z_pos = bc))
+
+    # periodic boundary conditions for non-periodic mesh
+    mesh_2d_nonperiodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                   initial_refinement_level = 1,
+                                   n_cells_max = 10, periodicity = false)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_2d_nonperiodic, eq2d,
+                                                            initial_condition_convergence_test,
+                                                            solver2d;
+                                                            boundary_conditions = bc)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_2d_nonperiodic, eq2d,
+                                                            initial_condition_convergence_test,
+                                                            solver2d;
+                                                            boundary_conditions = (bc,
+                                                                                   bc,
+                                                                                   bc,
+                                                                                   bc))
+
+    # 3D
+    mesh3d_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                               initial_refinement_level = 1,
+                               n_cells_max = 10, periodicity = true)
+    eq3d = LinearScalarAdvectionEquation3D((1.0, 0.0, 0.0))
+    solver3d = DGSEM(polydeg = 1)
+    # Wrong size
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                            initial_condition_convergence_test,
+                                                            solver3d;
+                                                            boundary_conditions = (bc,
+                                                                                   bc,
+                                                                                   bc,
+                                                                                   bc,
+                                                                                   bc))
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                            initial_condition_convergence_test,
+                                                            solver3d;
+                                                            boundary_conditions = (;
+                                                                                   x_neg = bc,))
+    # Wrong keys NamedTuple
+    @test_throws FieldError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                         initial_condition_convergence_test,
+                                                         solver3d;
+                                                         boundary_conditions = (;
+                                                                                x_neg = bc,
+                                                                                x_pos = bc,
+                                                                                neg = bc,
+                                                                                y_pos = bc))
+
+    # periodic boundary conditions for non-periodic mesh
+    mesh_3d_nonperiodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                                   initial_refinement_level = 1,
+                                   n_cells_max = 10, periodicity = false)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_3d_nonperiodic, eq3d,
+                                                            initial_condition_convergence_test,
+                                                            solver3d;
+                                                            boundary_conditions = bc)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_3d_nonperiodic, eq3d,
+                                                            initial_condition_convergence_test,
+                                                            solver3d;
+                                                            boundary_conditions = (bc,
+                                                                                   bc,
+                                                                                   bc,
+                                                                                   bc,
+                                                                                   bc,
+                                                                                   bc))
+end
 end
 
 end #module
