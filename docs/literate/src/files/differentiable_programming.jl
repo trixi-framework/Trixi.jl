@@ -310,7 +310,8 @@ round(ForwardDiff.derivative(energy_at_final_time, k), sigdigits = 2)
 
 # The first step in this example creates some basic ingredients of our simulation.
 equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3, n_cells_max = 10^4, periodicity = true)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3, n_cells_max = 10^4,
+                periodicity = true)
 solver = DGSEM(3, flux_lax_friedrichs);
 
 # These do not have internal caches storing intermediate values of the numerical
@@ -529,7 +530,8 @@ equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
 
 solver = DGSEM(3, flux_lax_friedrichs)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5, periodicity = true)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
                                     solver;

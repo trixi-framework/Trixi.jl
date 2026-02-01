@@ -53,9 +53,9 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
                                               domain_center::AbstractArray{RealT},
                                               domain_length::RealT,
                                               periodicity = false) where {NDIMS,
-                                                                         TreeType <:
-                                                                         AbstractTree{NDIMS},
-                                                                         RealT <: Real}
+                                                                          TreeType <:
+                                                                          AbstractTree{NDIMS},
+                                                                          RealT <: Real}
         tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
         current_filename = ""
         unsaved_changes = true
