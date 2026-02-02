@@ -292,9 +292,11 @@ the **first-order** finite volume method with numerical flux `volume_flux_fv` an
 The amount of blending is determined by the violation of a cell entropy equality by
 the volume integral. 
 
-`scaling ≥ 1` arbitrarily scales the blending parameter by a constant, increasing 
-the amount of the subcell FV added in. This can be used to add shock capturing-like 
-behavior. 
+`scaling ≥ 1` scales the DG-FV blending parameter ``\\alpha``(see the
+[tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
+by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
+This can be used to add shock capturing-like behavior.
+Note though that ``\\alpha`` is computed here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
 
 The use of `VolumeIntegralEntropyCorrection` requires either
     `entropy_potential(u, orientation, equations)` for TreeMesh, or

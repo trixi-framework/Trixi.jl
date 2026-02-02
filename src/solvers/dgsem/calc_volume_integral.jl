@@ -206,8 +206,8 @@ function calc_volume_integral!(du, u, mesh,
                        have_nonconservative_terms, equations,
                        volume_flux_fv, dg, cache, element)
 
-            # calculate difference between high and low order FV integral;
-            # this should be entropy dissipative if entropy_residual > 0.
+            # Calculate difference between high and low order FV integral;
+            # this should be made entropy dissipative if entropy_residual > 0.
             @views du_element .= (du_element .- du[.., element])
 
             entropy_dissipation = entropy_change_reference_element(du_element, u,
@@ -215,15 +215,16 @@ function calc_volume_integral!(du, u, mesh,
                                                                    mesh, equations,
                                                                    dg, cache)
 
-            # calculate blending factor 
+            # Calculate DG-FV blending factor 
             ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
-            theta = min(1, scaling * ratio) # TODO: replacing this with a differentiable version of `min`
+            alpha_element = min(1, scaling * ratio) # TODO: replacing this with a differentiable version of `min`
 
-            # save blending coefficient for visualization
-            alpha[element] = theta
+            # Save blending coefficient for visualization
+            alpha[element] = alpha_element
 
-            # blend the high order method back in 
-            @views du[.., element] .= du[.., element] .+ (1 - theta) .* du_element
+            # Blend the high order method back in 
+            @views du[.., element] .= du[.., element] .+
+                                      (1 - alpha_element) .* du_element
         end
     end
 

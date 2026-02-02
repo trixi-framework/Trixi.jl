@@ -281,15 +281,16 @@ Indicator used for entropy correction using subcell FV schemes, where the
 blending is determined so that the volume integral entropy production is the 
 same or more than that of an EC scheme. 
 
-`scaling ≥ 1` arbitrarily scales the blending parameter by a constant, increasing 
-the amount of the subcell FV added in. This can be used to add shock capturing-like 
-behavior. 
+`scaling ≥ 1` scales the DG-FV blending parameter ``\\alpha``(see the
+[tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
+by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
+This can be used to add shock capturing-like behavior.
 
 See also [`VolumeIntegralEntropyCorrection`](@ref).
 """
 struct IndicatorEntropyCorrection{Cache, ScalingT} <: AbstractIndicator
     cache::Cache
-    scaling::ScalingT
+    scaling::ScalingT # either Bool or Real
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
