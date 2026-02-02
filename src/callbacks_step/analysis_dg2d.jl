@@ -214,7 +214,7 @@ function entropy_change_reference_element(du_local, u, element,
                                        du_local) do u, i, j, element, equations, dg,
                                                     du_local
         u_node = get_node_vars(u, equations, dg, i, j, element)
-        du_node = get_node_vars(du_local, equations, dg, i, j)
+        du_node = get_node_vars(du_local, equations, dg, i, j, element)
 
         dot(cons2entropy(u_node, equations), du_node)
     end
