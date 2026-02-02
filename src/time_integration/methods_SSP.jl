@@ -264,7 +264,8 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     # new_size = n_variables * n_nodes^n_dims * n_elements
     n_elements = nelements(dg, cache)
 
-    if !(mesh isa TreeMesh)
+    if dg.volume_integral isa VolumeIntegralSubcellLimiting &&
+       !(mesh isa TreeMesh)
         resize!(cache.normal_vectors, n_elements)
         init_normal_vectors!(cache.normal_vectors, mesh, dg, cache)
     end
