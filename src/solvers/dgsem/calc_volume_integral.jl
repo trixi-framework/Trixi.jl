@@ -209,12 +209,18 @@ function calc_volume_integral!(du, u, mesh,
                           have_nonconservative_terms, equations,
                           dg, cache)
 
-        # Compute entropy production of the WF volume integral.
-        # Minus sign because of the flipped sign of the volume term in the DG RHS.
-        # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
-        # in `integrate_reference_element`.
-        entropy_delta_WF = -entropy_change_reference_element(du, u, element,
-                                                             mesh, equations, dg, cache)
+        # Check entropy production of WF volume integral. 
+        # 
+        # Note that, for `TreeMesh`, both volume and surface integrals are calculated
+        # on the reference element. For other mesh types, because the volume integral 
+        # incorporates the scaled contravariant vectors, the surface integral should 
+        # be calculated on the physical element instead. 
+        entropy_delta_WF = -(entropy_change_reference_element(du, u, element,
+                                                              mesh, equations,
+                                                              dg, cache) +
+                             surface_integral(entropy_potential, u, element,
+                                              mesh, equations,
+                                              dg, cache))
 
         if entropy_delta_WF > target_decay
             # Reset bad weak form volume integral

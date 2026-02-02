@@ -2230,6 +2230,26 @@ end
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
 
+@doc raw"""
+    entropy_potential(u, orientation::Int, equations::CompressibleEulerEquations1D)
+Calculate the entropy potential, which for the compressible Euler equations is simply 
+the momentum for the choice of entropy ``S(u) = \frac{\rho s}{\gamma - 1}``. 
+    
+## References
+- Chen, Shu (2017)
+  Entropy stable high order discontinuous Galerkin methods with suitable quadrature rules 
+  for hyperbolic conservation laws
+  [DOI: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)  
+"""
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerEquations2D)
+    if orientation == 1
+        return u[2]
+    else # if orientation == 2
+        return u[3]
+    end
+end
+
 # State validation for Newton-bisection method of subcell IDP limiting
 @inline function Base.isvalid(u, equations::CompressibleEulerEquations2D)
     if u[1] <= 0 || pressure(u, equations) <= 0
