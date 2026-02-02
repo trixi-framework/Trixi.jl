@@ -724,8 +724,8 @@ function init_mortars(cell_ids, mesh::TreeMesh2D,
                       mortar::LobattoLegendreMortarIDPAlternative)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
-    mortars = L2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
-                                                    nnodes(elements))
+    mortars = TreeL2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
+                                                        nnodes(elements))
 
     # Connect elements with mortars
     init_mortars!(mortars, elements, mesh)
