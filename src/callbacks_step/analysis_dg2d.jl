@@ -185,7 +185,7 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-# used in `entropy_change_reference_element`
+# used currently only in `entropy_change_reference_element`
 function integrate_reference_element(func::Func, u, element,
                                      mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
                                      args...) where {Func}
@@ -204,6 +204,21 @@ function integrate_reference_element(func::Func, u, element,
     end
 
     return element_integral
+end
+
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
+# Note that ∂S/∂u = w(u) with entropy variables w
+function entropy_change_reference_element(du_local, u, element,
+                                          mesh::AbstractMesh{2},
+                                          equations, dg::DGSEM, cache, args...)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du_local) do u, i, j, element, equations, dg,
+                                                    du_local
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        du_node = get_node_vars(du_local, equations, dg, i, j)
+
+        dot(cons2entropy(u_node, equations), du_node)
+    end
 end
 
 function integrate_via_indices(func::Func, u,
