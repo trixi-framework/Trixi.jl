@@ -258,10 +258,16 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
 
-    # Resize container
+    mesh, _, dg, cache = mesh_equations_solver_cache(integrator.p)
+
+    # Resize containers
     # new_size = n_variables * n_nodes^n_dims * n_elements
-    n_elements = nelements(integrator.p.solver, integrator.p.cache)
-    resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
+    n_elements = nelements(dg, cache)
+
+    resize!(integrator.p.cache.normal_vectors, n_elements)
+    init_normal_vectors!(integrator.p.cache.normal_vectors, mesh, dg, cache)
+
+    resize!(integrator.p, dg.volume_integral, n_elements)
 
     return nothing
 end
