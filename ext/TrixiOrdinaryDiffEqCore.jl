@@ -1,9 +1,9 @@
 module TrixiOrdinaryDiffEqCore
 
 import Trixi: load_controller!
-import OrdinaryDiffEqCore: PIController, PIDController
+import OrdinaryDiffEqCore: OrdinaryDiffEqCore, PIController, PIDController
 
-@static if Base.pkgversion(OrdinaryDiffEqCore) >= v"3.3"
+@static if Base.pkgversion(OrdinaryDiffEqCore) >= v"3.4"
 
     import OrdinaryDiffEqCore: PIControllerCache, PIDControllerCache
 
@@ -25,7 +25,7 @@ function load_controller!(integrator, controller::PIDController, file)
     controller.err[:] = read(attributes(file)["time_integrator_controller_err"])
 end
 
-@static if Base.pkgversion(OrdinaryDiffEqCore) >= v"3.3"
+@static if Base.pkgversion(OrdinaryDiffEqCore) >= v"3.4"
 
 function load_controller!(integrator, controller::PIControllerCache, file)
     if !("time_integrator_qold" in keys(attributes(file)))
