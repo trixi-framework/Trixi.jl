@@ -264,8 +264,10 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     # new_size = n_variables * n_nodes^n_dims * n_elements
     n_elements = nelements(dg, cache)
 
-    resize!(integrator.p.cache.normal_vectors, n_elements)
-    init_normal_vectors!(integrator.p.cache.normal_vectors, mesh, dg, cache)
+    if !(mesh isa TreeMesh)
+        resize!(cache.normal_vectors, n_elements)
+        init_normal_vectors!(cache.normal_vectors, mesh, dg, cache)
+    end
 
     resize!(integrator.p, dg.volume_integral, n_elements)
 
