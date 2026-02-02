@@ -106,6 +106,27 @@ function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
                                             domain_length, periodicity)
 end
 
+"""
+    TreeMesh(coordinates_min::NTuple{NDIMS, Real},
+             coordinates_max::NTuple{NDIMS, Real};
+             n_cells_max,
+             periodicity = false,
+             initial_refinement_level,
+             refinement_patches = (),
+             coarsening_patches = (),
+             RealT = Float64) where {NDIMS}
+
+Create a `TreeMesh` in `NDIMS` dimensions with real type `RealT` covering the domain defined by
+`coordinates_min` and `coordinates_max`. The mesh is initialized with a uniform
+refinement to the specified `initial_refinement_level`. Further refinement and
+coarsening patches can be specified using `refinement_patches` and
+`coarsening_patches`, respectively. The maximum number of cells allowed in the mesh is
+given by `n_cells_max`. The periodicity in each dimension can be specified using the
+`periodicity` argument (default: non-periodic in all dimensions). If it is a single
+`Bool`, the same periodicity is applied in all dimensions; otherwise, a tuple of
+`Bool`s of length `NDIMS` must be provided. Note that the domain must be a hypercube, i.e.,
+all dimensions must have the same length.
+"""
 function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                   coordinates_max::NTuple{NDIMS, Real};
                   n_cells_max,
