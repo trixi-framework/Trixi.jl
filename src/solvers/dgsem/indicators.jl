@@ -312,7 +312,7 @@ struct IndicatorEntropyDiffusion{dUElementThreaded <: AbstractArray} <:
     du_element_threaded::dUElementThreaded
 
     function IndicatorEntropyDiffusion(::AbstractEquations{NDIMS, NVARS},
-                                        basis) where {NDIMS, NVARS}
+                                       basis) where {NDIMS, NVARS}
         uEltype = real(basis)
         # Required dimensions: Variables and Nodes...
         AT = Array{uEltype, NDIMS + 1}

@@ -185,25 +185,39 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-# used in `calc_entropy_change_element`
-function integrate_element_ref(func::Func, u, element,
-                               mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
-                               args...) where {Func}
+# Use quadrature to numerically integrate a single element.
+# We do not multiply with the Jacobian to stay in reference space.
+# This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
+# the time derivative of entropy, see `entropy_change_reference_element`.
+function integrate_reference_element(func::Func, u, element,
+                                     mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
+                                     args...) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
-    integral = zero(func(u, 1, 1, 1, equations, dg, args...))
+    element_integral = zero(func(u, 1, 1, 1, equations, dg, args...))
 
-    # Use quadrature to numerically integrate element.
-    # We do not multiply with the Jacobian to stay in reference space.
-    # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
-    # the time derivative of entropy, see `calc_entropy_change_element`.
     for j in eachnode(dg), i in eachnode(dg)
-        integral += weights[i] * weights[j] *
-                    func(u, i, j, element, equations, dg, args...)
+        element_integral += weights[i] * weights[j] *
+                            func(u, i, j, element, equations, dg, args...)
     end
 
-    return integral
+    return element_integral
+end
+
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
+# Note that ∂S/∂u = w(u) with entropy variables w
+function entropy_change_reference_element(du::AbstractArray{<:Any, 4}, u,
+                                          element,
+                                          mesh::AbstractMesh{2},
+                                          equations, dg::DGSEM, cache, args...)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du) do u, i, j, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        du_node = get_node_vars(du, equations, dg, i, j, element)
+
+        dot(cons2entropy(u_node, equations), du_node)
+    end
 end
 
 function integrate_via_indices(func::Func, u,
