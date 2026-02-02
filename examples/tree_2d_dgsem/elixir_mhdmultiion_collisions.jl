@@ -120,7 +120,7 @@ coordinates_max = (1.0, 1.0)
 # We use a very coarse mesh because this is a 0-dimensional case
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 1,
-                n_cells_max = 1_000_000)
+                n_cells_max = 1_000_000, periodicity = true)
 
 # Ion-ion and ion-electron collision source terms
 # In this particular case, we can omit source_terms_lorentz because the magnetic field is zero!

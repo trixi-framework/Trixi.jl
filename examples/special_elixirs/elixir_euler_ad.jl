@@ -4,7 +4,7 @@ using Trixi, LinearAlgebra, ForwardDiff
 
 equations = CompressibleEulerEquations2D(1.4)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+mesh = TreeMesh((-1.0, -1.0, periodicity = true), (1.0, 1.0),
                 initial_refinement_level = 2, n_cells_max = 10^5)
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of

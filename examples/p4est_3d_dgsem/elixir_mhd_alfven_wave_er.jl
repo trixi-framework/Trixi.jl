@@ -5,7 +5,7 @@ using Trixi
 
 equations = IdealGlmMhdEquations3D(5 / 3)
 
-# Volume flux stabilizes the simulation - in contrast to standard DGSEM with 
+# Volume flux stabilizes the simulation - in contrast to standard DGSEM with
 # `surface_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)` only which crashes.
 # To turn this into a convergence test, use a flux with some dissipation, e.g.
 # `flux_lax_friedrichs` or `flux_hll`.
@@ -19,7 +19,8 @@ coordinates_max = (1.0, 1.0, 1.0)
 trees_per_dimension = (2, 2, 2)
 mesh = P4estMesh(trees_per_dimension,
                  polydeg = 1, initial_refinement_level = 1,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max)
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 periodicity = true)
 
 initial_condition = initial_condition_convergence_test
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

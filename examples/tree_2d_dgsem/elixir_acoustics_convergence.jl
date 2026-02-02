@@ -26,7 +26,7 @@ coordinates_max = (2.0, 2.0) # maximum coordinates (max(x), max(y))
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+                n_cells_max = 30_000, periodicity = true) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

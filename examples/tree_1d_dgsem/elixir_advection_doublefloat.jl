@@ -24,7 +24,7 @@ coordinates_max = one(RealT) # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 n_cells_max = 30_000,
-                RealT = RealT)
+                RealT = RealT, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
                                     solver;

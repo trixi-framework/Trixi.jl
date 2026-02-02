@@ -19,7 +19,8 @@ trees_per_dimension = (1, 1, 1)
 # See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                  initial_refinement_level = 2)
+                  initial_refinement_level = 2,
+                  periodicity = true)
 
 # Note: This is actually a `p8est_quadrant_t` which is much bigger than the
 # following struct. But we only need the first four fields for our purpose.

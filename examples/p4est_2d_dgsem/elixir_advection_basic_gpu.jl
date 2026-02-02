@@ -21,7 +21,8 @@ trees_per_dimension = (8, 8)
 # Create P4estMesh with 8 x 8 trees and 16 x 16 elements
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 1)
+                 initial_refinement_level = 1,
+                 periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,

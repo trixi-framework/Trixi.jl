@@ -16,7 +16,7 @@ coordinate_max = 1.0
 
 mesh = TreeMesh(coordinate_min, coordinate_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000, periodicity = true)
 
 initial_condition = initial_condition_convergence_test
 

@@ -854,7 +854,8 @@ end
                         tspan=(0.0, 0.5),
                         mesh=P4estMesh((64, 64), polydeg = 3,
                                        coordinates_min = (-2.0, -2.0),
-                                       coordinates_max = (2.0, 2.0)))
+                                       coordinates_max = (2.0, 2.0),
+                                       periodicity = true))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

@@ -265,7 +265,8 @@ mkdir(outdir)
                             ],
                             mesh=T8codeMesh((4, 4, 4), polydeg = 3,
                                             coordinates_min = (0.0, 0.0, 0.0),
-                                            coordinates_max = (2.0, 2.0, 2.0)),
+                                            coordinates_max = (2.0, 2.0, 2.0),
+                                            periodicity = true),
                             # Remove SaveSolution callback
                             callbacks=CallbackSet(summary_callback,
                                                   analysis_callback, alive_callback,

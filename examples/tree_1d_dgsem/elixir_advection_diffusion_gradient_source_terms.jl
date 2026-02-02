@@ -28,7 +28,7 @@ source_terms_parabolic = function (u, gradients, x, t, equations::LaplaceDiffusi
 end
 
 # Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(-Float64(pi), Float64(pi);
+mesh = TreeMesh(-Float64(pi, periodicity = true), Float64(pi);
                 initial_refinement_level = 4,
                 n_cells_max = 30_000,
                 periodicity = true)

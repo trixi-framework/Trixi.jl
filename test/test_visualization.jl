@@ -270,14 +270,17 @@ end
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
                              n_cells_max = 10^5,
-                             initial_refinement_level)
+                             initial_refinement_level,
+                             periodicity = true)
         trees_per_dimension = (1, 1)
         mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 1,
                                coordinates_min, coordinates_max,
-                               initial_refinement_level)
+                               initial_refinement_level,
+                               periodicity = true)
         mesh_t8code = T8codeMesh(trees_per_dimension; polydeg = 1,
                                  coordinates_min, coordinates_max,
-                                 initial_refinement_level)
+                                 initial_refinement_level,
+                                 periodicity = true)
         cells_per_dimension = (2, 2) .^ initial_refinement_level
         mesh_structured = StructuredMesh(cells_per_dimension,
                                          coordinates_min, coordinates_max)
@@ -564,14 +567,17 @@ end
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
                              n_cells_max = 10^6,
-                             initial_refinement_level)
+                             initial_refinement_level,
+                             periodicity = true)
         trees_per_dimension = (1, 1, 1)
         mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 1,
                                coordinates_min, coordinates_max,
-                               initial_refinement_level)
+                               initial_refinement_level,
+                               periodicity = true)
         mesh_t8code = T8codeMesh(trees_per_dimension; polydeg = 1,
                                  coordinates_min, coordinates_max,
-                                 initial_refinement_level)
+                                 initial_refinement_level,
+                                 periodicity = true)
         cells_per_dimension = (2, 2, 2) .^ initial_refinement_level
         mesh_structured = StructuredMesh(cells_per_dimension,
                                          coordinates_min, coordinates_max)

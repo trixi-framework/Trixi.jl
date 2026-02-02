@@ -19,7 +19,8 @@ trees_per_dimension = (1, 1, 1)
 # See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 2)
+                 initial_refinement_level = 2,
+                 periodicity = true)
 
 # Refine bottom left quadrant of each tree to level 3
 function refine_fn(p8est, which_tree, quadrant)

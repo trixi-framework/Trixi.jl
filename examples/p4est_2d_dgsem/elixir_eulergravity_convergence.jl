@@ -17,7 +17,8 @@ coordinates_max = (2.0, 2.0)
 trees_per_dimension = (1, 1)
 mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 2)
+                 initial_refinement_level = 2,
+                 periodicity = true)
 
 semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition,
                                           solver_euler;

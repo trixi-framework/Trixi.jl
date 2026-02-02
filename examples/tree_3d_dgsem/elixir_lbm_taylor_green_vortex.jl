@@ -33,7 +33,7 @@ coordinates_min = (-pi * L, -pi * L, -pi * L)
 coordinates_max = (pi * L, pi * L, pi * L)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 300_000)
+                n_cells_max = 300_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)

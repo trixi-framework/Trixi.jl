@@ -22,6 +22,7 @@ f4(s) = SVector(s, 1.0 + sin(0.5 * pi * s))
 trees_per_dimension = (3, 2)
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  faces = (f1, f2, f3, f4),
+                 periodicity = true,
                  initial_refinement_level = 1)
 
 # Refine bottom left quadrant of each tree to level 4

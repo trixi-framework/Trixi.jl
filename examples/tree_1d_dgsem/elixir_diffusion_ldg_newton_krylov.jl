@@ -20,7 +20,7 @@ coordinates_max = convert(Float64, pi)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                n_cells_max = 30_000, periodicity = true)
 
 function initial_condition_pure_diffusion_1d_convergence_test(x, t,
                                                               equation)
