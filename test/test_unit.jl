@@ -3043,22 +3043,22 @@ end
                                n_cells_max = 10,
                                periodicity = true)
     eq1d = LinearScalarAdvectionEquation1D(1.0)
-    solver1d = DGSEM(polydeg = 1)
+    solver = DGSEM(polydeg = 1)
     bc = boundary_condition_periodic
     # Wrong size
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
                                                             initial_condition_convergence_test,
-                                                            solver1d;
+                                                            solver;
                                                             boundary_conditions = (bc,))
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
                                                             initial_condition_convergence_test,
-                                                            solver1d;
+                                                            solver;
                                                             boundary_conditions = (;
                                                                                    x_neg = bc,))
     # Wrong keys NamedTuple
     @test_throws ErrorException SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
                                                              initial_condition_convergence_test,
-                                                             solver1d;
+                                                             solver;
                                                              boundary_conditions = (;
                                                                                     x_neg = bc,
                                                                                     y_pos = bc))
@@ -3069,11 +3069,11 @@ end
                                   periodicity = false)
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic, eq1d,
                                                             initial_condition_convergence_test,
-                                                            solver1d;
+                                                            solver;
                                                             boundary_conditions = bc)
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic, eq1d,
                                                             initial_condition_convergence_test,
-                                                            solver1d;
+                                                            solver;
                                                             boundary_conditions = (bc,
                                                                                    bc))
 
@@ -3081,23 +3081,22 @@ end
     mesh2d_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 1,
                                n_cells_max = 10, periodicity = true)
     eq2d = LinearScalarAdvectionEquation2D((1.0, 0.0))
-    solver2d = DGSEM(polydeg = 1)
     # Wrong size
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
                                                             initial_condition_convergence_test,
-                                                            solver2d;
+                                                            solver;
                                                             boundary_conditions = (bc,
                                                                                    bc,
                                                                                    bc))
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
                                                             initial_condition_convergence_test,
-                                                            solver2d;
+                                                            solver;
                                                             boundary_conditions = (;
                                                                                    x_neg = bc,))
     # Wrong keys NamedTuple
     @test_throws ErrorException SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
                                                              initial_condition_convergence_test,
-                                                             solver2d;
+                                                             solver;
                                                              boundary_conditions = (;
                                                                                     x_neg = bc,
                                                                                     x_pos = bc,
@@ -3110,26 +3109,76 @@ end
                                    n_cells_max = 10, periodicity = false)
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_2d_nonperiodic, eq2d,
                                                             initial_condition_convergence_test,
-                                                            solver2d;
+                                                            solver;
                                                             boundary_conditions = bc)
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_2d_nonperiodic, eq2d,
                                                             initial_condition_convergence_test,
-                                                            solver2d;
+                                                            solver;
                                                             boundary_conditions = (bc,
                                                                                    bc,
                                                                                    bc,
                                                                                    bc))
+
+    # partially periodic
+    mesh_2d_partial_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                        initial_refinement_level = 1,
+                                        n_cells_max = 10,
+                                        periodicity = (true, false))
+    # For partially periodic mesh, need to specify boundary conditions as NamedTuple
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_2d_partial_periodic,
+                                                            eq2d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = boundary_condition_do_nothing)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_2d_partial_periodic,
+                                                            eq2d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = bc)
+    # Need to specify boundary conditions for periodic directions
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_2d_partial_periodic,
+                                                            eq2d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = (boundary_condition_do_nothing,
+                                                                                   boundary_condition_do_nothing))
+    # Need to specify boundary conditions for periodic directions
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_2d_partial_periodic,
+                                                            eq2d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = (;
+                                                                                   y_neg = boundary_condition_do_nothing,
+                                                                                   y_pos = boundary_condition_do_nothing))
+    # Non-periodic boundary condition on periodic direction
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_2d_partial_periodic,
+                                                            eq2d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = (;
+                                                                                   x_neg = boundary_condition_do_nothing,
+                                                                                   x_pos = bc,
+                                                                                   y_neg = boundary_condition_do_nothing,
+                                                                                   y_pos = boundary_condition_do_nothing))
+    @test_nowarn SemidiscretizationHyperbolic(mesh_2d_partial_periodic,
+                                              eq2d,
+                                              initial_condition_convergence_test,
+                                              solver;
+                                              boundary_conditions = (;
+                                                                     x_neg = bc,
+                                                                     x_pos = bc,
+                                                                     y_neg = boundary_condition_do_nothing,
+                                                                     y_pos = boundary_condition_do_nothing))
 
     # 3D
     mesh3d_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                initial_refinement_level = 1,
                                n_cells_max = 10, periodicity = true)
     eq3d = LinearScalarAdvectionEquation3D((1.0, 0.0, 0.0))
-    solver3d = DGSEM(polydeg = 1)
     # Wrong size
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
                                                             initial_condition_convergence_test,
-                                                            solver3d;
+                                                            solver;
                                                             boundary_conditions = (bc,
                                                                                    bc,
                                                                                    bc,
@@ -3137,13 +3186,13 @@ end
                                                                                    bc))
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
                                                             initial_condition_convergence_test,
-                                                            solver3d;
+                                                            solver;
                                                             boundary_conditions = (;
                                                                                    x_neg = bc,))
     # Wrong keys NamedTuple
     @test_throws ErrorException SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
                                                              initial_condition_convergence_test,
-                                                             solver3d;
+                                                             solver;
                                                              boundary_conditions = (;
                                                                                     x_neg = bc,
                                                                                     x_pos = bc,
@@ -3158,17 +3207,72 @@ end
                                    n_cells_max = 10, periodicity = false)
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_3d_nonperiodic, eq3d,
                                                             initial_condition_convergence_test,
-                                                            solver3d;
+                                                            solver;
                                                             boundary_conditions = bc)
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_3d_nonperiodic, eq3d,
                                                             initial_condition_convergence_test,
-                                                            solver3d;
+                                                            solver;
                                                             boundary_conditions = (bc,
                                                                                    bc,
                                                                                    bc,
                                                                                    bc,
                                                                                    bc,
                                                                                    bc))
+    # partially periodic
+    mesh_3d_partial_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                                        initial_refinement_level = 1,
+                                        n_cells_max = 10,
+                                        periodicity = (true, false, true))
+    # For partially periodic mesh, need to specify boundary conditions as NamedTuple
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_3d_partial_periodic,
+                                                            eq3d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = boundary_condition_do_nothing)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_3d_partial_periodic,
+                                                            eq3d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = bc)
+    # Need to specify boundary conditions for periodic directions
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_3d_partial_periodic,
+                                                            eq3d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = (boundary_condition_do_nothing,
+                                                                                   boundary_condition_do_nothing,
+                                                                                   boundary_condition_do_nothing))
+    # Need to specify boundary conditions for periodic directions
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_3d_partial_periodic,
+                                                            eq3d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = (;
+                                                                                   y_neg = boundary_condition_do_nothing,
+                                                                                   y_pos = boundary_condition_do_nothing))
+    # Non-periodic boundary condition on periodic direction
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_3d_partial_periodic,
+                                                            eq3d,
+                                                            initial_condition_convergence_test,
+                                                            solver;
+                                                            boundary_conditions = (;
+                                                                                   x_neg = boundary_condition_do_nothing,
+                                                                                   x_pos = bc,
+                                                                                   y_neg = boundary_condition_do_nothing,
+                                                                                   y_pos = boundary_condition_do_nothing,
+                                                                                   z_neg = boundary_condition_do_nothing,
+                                                                                   z_pos = bc))
+    @test_nowarn SemidiscretizationHyperbolic(mesh_3d_partial_periodic,
+                                              eq3d,
+                                              initial_condition_convergence_test,
+                                              solver;
+                                              boundary_conditions = (;
+                                                                     x_neg = bc,
+                                                                     x_pos = bc,
+                                                                     y_neg = boundary_condition_do_nothing,
+                                                                     y_pos = boundary_condition_do_nothing,
+                                                                     z_neg = bc,
+                                                                     z_pos = bc))
 end
 end
 
