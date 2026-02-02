@@ -201,8 +201,12 @@ function perform_idp_mortar_correction(u, dt, mesh::P4estMesh{2}, equations, dg,
 
     (; surface_flux_values) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
-    (; boundary_interpolation) = dg.basis
+    (; inverse_weights) = dg.basis
     index_range = eachnode(dg)
+
+    # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+    # This sign switch is directly applied to the boundary interpolation factors here.
+    factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     for mortar in eachmortar(dg, cache)
         if isapprox(limiting_factor[mortar], one(eltype(limiting_factor)))
@@ -229,16 +233,6 @@ function perform_idp_mortar_correction(u, dt, mesh::P4estMesh{2}, equations, dg,
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
                                                              index_range)
 
-        if small_direction in (1, 3)
-            factor_small = -boundary_interpolation[1, 1]
-            factor_large = -boundary_interpolation[nnodes(dg), 2]
-        else
-            factor_large = -boundary_interpolation[1, 1]
-            factor_small = -boundary_interpolation[nnodes(dg), 2]
-        end
-        # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
-        # This sign switch is directly applied to the boundary interpolation factors here.
-
         i_small = i_small_start
         j_small = j_small_start
         i_large = i_large_start
@@ -260,7 +254,7 @@ function perform_idp_mortar_correction(u, dt, mesh::P4estMesh{2}, equations, dg,
                                                   i, small_direction, lower_element)
             flux_lower_low_order = get_node_vars(surface_flux_values, equations, dg,
                                                  i, small_direction, lower_element)
-            flux_difference_lower = factor_small *
+            flux_difference_lower = factor *
                                     (flux_lower_high_order .- flux_lower_low_order)
 
             multiply_add_to_node_vars!(u,
@@ -274,7 +268,7 @@ function perform_idp_mortar_correction(u, dt, mesh::P4estMesh{2}, equations, dg,
                                                   i, small_direction, upper_element)
             flux_upper_low_order = get_node_vars(surface_flux_values, equations, dg,
                                                  i, small_direction, upper_element)
-            flux_difference_upper = factor_small *
+            flux_difference_upper = factor *
                                     (flux_upper_high_order .- flux_upper_low_order)
 
             multiply_add_to_node_vars!(u,
@@ -288,7 +282,7 @@ function perform_idp_mortar_correction(u, dt, mesh::P4estMesh{2}, equations, dg,
                                                   i, large_direction, large_element)
             flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
                                                  i, large_direction, large_element)
-            flux_difference_large = factor_large *
+            flux_difference_large = factor *
                                     (flux_large_high_order .- flux_large_low_order)
 
             multiply_add_to_node_vars!(u,
