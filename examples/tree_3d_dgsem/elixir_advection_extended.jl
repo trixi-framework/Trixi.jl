@@ -24,8 +24,6 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # you can either use a single function to impose the BCs weakly in all
 # 2*ndims == 6 directions or you can pass a tuple containing BCs for
 # each direction
-# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
-#       fully periodic domains. Here, however, it is included to allow easy override during testing
 # Assign a single boundary condition to all boundaries
 boundary_condition = boundary_condition_periodic
 boundary_conditions = boundary_condition_default(mesh, boundary_condition)

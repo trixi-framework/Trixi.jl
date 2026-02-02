@@ -452,6 +452,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
             end
             """))
         end
+
         mesh = StructuredMesh(size, mapping; RealT = RealT, unsaved_changes = false,
                               periodicity = periodicity,
                               mapping_as_string = mapping_as_string)
