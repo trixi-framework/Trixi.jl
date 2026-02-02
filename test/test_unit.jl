@@ -35,12 +35,12 @@ isdir(outdir) && rm(outdir, recursive = true)
 
 @timed_testset "SerialTree" begin
     @testset "constructors" begin
-        @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0; periodicity = true)
-        @test_nowarn Trixi.SerialTree{1}(10, 0.0, 1.0; periodicity = true)
+        @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0, true)
+        @test_nowarn Trixi.SerialTree{1}(10, 0.0, 1.0, true)
     end
 
     @testset "helper functions" begin
-        t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0; periodicity = true)
+        t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0, true)
         @test_nowarn display(t)
         @test Trixi.ndims(t) == 1
         @test Trixi.has_any_neighbor(t, 1, 1) == true
@@ -50,7 +50,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @testset "refine!/coarsen!" begin
-        t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0; periodicity = true)
+        t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0, true)
         @test Trixi.refine!(t) == [1]
         @test Trixi.coarsen!(t) == [1]
         @test Trixi.refine!(t) == [1]
@@ -66,12 +66,12 @@ end
 
 @timed_testset "ParallelTree" begin
     @testset "constructors" begin
-        @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0; periodicity = true)
-        @test_nowarn Trixi.ParallelTree{1}(10, 0.0, 1.0; periodicity = true)
+        @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0, true)
+        @test_nowarn Trixi.ParallelTree{1}(10, 0.0, 1.0, true)
     end
 
     @testset "helper functions" begin
-        t = Trixi.ParallelTree(Val(1), 10, 0.0, 1.0; periodicity = true)
+        t = Trixi.ParallelTree(Val(1), 10, 0.0, 1.0, true)
         @test isnothing(display(t))
         @test isnothing(Trixi.reset_data_structures!(t))
     end
