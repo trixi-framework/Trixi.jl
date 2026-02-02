@@ -150,22 +150,23 @@ function calc_volume_integral!(du, u, mesh,
     @unpack du_element_threaded = volume_integral.indicator
 
     @threaded for element in eachelement(dg, cache)
-        # Compute weak form volume integral
+        # Compute weak form (WF) volume integral
         weak_form_kernel!(du, u, element, mesh,
                           have_nonconservative_terms, equations,
                           dg, cache)
 
-        # Compute entropy production of WF volume integral.
+        # Compute entropy production of the WF volume integral.
         # Minus sign because of the flipped sign of the volume term in the DG RHS.
         # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
         # in `integrate_reference_element`.
         entropy_delta_WF = -entropy_change_reference_element(du, u, element,
                                                              mesh, equations, dg, cache)
+
         # Store weak form result
         du_element_WF = du_element_threaded[Threads.threadid()]
         @views du_element_WF .= du[.., element]
 
-        # Reset weak form volume integral 
+        # Reset weak form volume integral contribution
         du[.., element] .= zero(eltype(du))
 
         # Recompute using entropy-conservative volume integral
@@ -174,7 +175,7 @@ function calc_volume_integral!(du, u, mesh,
                                   volume_integral_stabilized.volume_flux,
                                   dg, cache)
 
-        # Compute entropy production of FD volume integral
+        # Compute entropy production of the FD volume integral
         entropy_delta_FD = -entropy_change_reference_element(du, u, element,
                                                              mesh, equations, dg, cache)
 
