@@ -178,9 +178,7 @@ function calc_volume_integral!(du, u, mesh,
         # on the reference element. For other mesh types, because the volume integral 
         # incorporates the scaled contravariant vectors, the surface integral should 
         # be calculated on the physical element instead. 
-        volume_integral_entropy_vars = entropy_change_reference_element(view(du, ..,
-                                                                             element),
-                                                                        u, element,
+        volume_integral_entropy_vars = entropy_change_reference_element(du, u, element,
                                                                         mesh,
                                                                         equations,
                                                                         dg, cache)
@@ -195,8 +193,8 @@ function calc_volume_integral!(du, u, mesh,
 
         if entropy_residual > 0
             # Store "high order" result
-            du_element = du_element_threaded[Threads.threadid()]
-            @views du_element .= du[.., element]
+            du_FD_element = du_element_threaded[Threads.threadid()]
+            @views du_FD_element .= du[.., element]
 
             # Reset pure flux-differencing volume integral 
             du[.., element] .= zero(eltype(du))
@@ -208,9 +206,9 @@ function calc_volume_integral!(du, u, mesh,
 
             # Calculate difference between high and low order FV integral;
             # this should be made entropy dissipative if entropy_residual > 0.
-            @views du_element .= (du_element .- du[.., element])
+            @views du_FD_element .= (du_FD_element .- du[.., element])
 
-            entropy_dissipation = entropy_change_reference_element(du_element, u,
+            entropy_dissipation = entropy_change_reference_element(du_FD_element, u,
                                                                    element,
                                                                    mesh, equations,
                                                                    dg, cache)
@@ -224,7 +222,7 @@ function calc_volume_integral!(du, u, mesh,
 
             # Blend the high order method back in 
             @views du[.., element] .= du[.., element] .+
-                                      (1 - alpha_element) .* du_element
+                                      (1 - alpha_element) .* du_FD_element
         end
     end
 

@@ -141,14 +141,28 @@ end
 
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
-function entropy_change_reference_element(du_local, u, element,
+function entropy_change_reference_element(du::AbstractArray{<:Any, 3},
+                                          u, element,
                                           mesh::AbstractMesh{1},
                                           equations, dg::DGSEM, cache, args...)
     return integrate_reference_element(u, element, mesh, equations, dg, cache,
-                                       du_local) do u, i, element, equations, dg,
-                                                    du_local
+                                       du) do u, i, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, element)
-        du_node = get_node_vars(du_local, equations, dg, i)
+        du_node = get_node_vars(du, equations, dg, i, element)
+
+        dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
+function entropy_change_reference_element(du_element::AbstractArray{<:Any, 2},
+                                          u, element,
+                                          mesh::AbstractMesh{1},
+                                          equations, dg::DGSEM, cache, args...)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du_element) do u, i, element, equations, dg,
+                                                      du_element
+        u_node = get_node_vars(u, equations, dg, i, element)
+        du_node = get_node_vars(du_element, equations, dg, i, element)
 
         dot(cons2entropy(u_node, equations), du_node)
     end
