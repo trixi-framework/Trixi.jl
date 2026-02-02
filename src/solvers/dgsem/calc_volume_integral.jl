@@ -152,7 +152,7 @@ function calc_volume_integral!(du, u, mesh,
     @unpack du_element_threaded = volume_integral.indicator
 
     @threaded for element in eachelement(dg, cache)
-        # Compute weak form volume integral
+        # Compute weak form (WF) volume integral
         weak_form_kernel!(du, u, element, mesh,
                           have_nonconservative_terms, equations,
                           dg, cache)
@@ -163,11 +163,12 @@ function calc_volume_integral!(du, u, mesh,
         # in `integrate_reference_element`.
         entropy_delta_WF = -entropy_change_reference_element(du, u, element,
                                                              mesh, equations, dg, cache)
+
         # Store weak form result
         du_element_WF = du_element_threaded[Threads.threadid()]
         @views du_element_WF .= du[.., element]
 
-        # Reset weak form volume integral 
+        # Reset weak form volume integral contribution
         du[.., element] .= zero(eltype(du))
 
         # Recompute using entropy-conservative volume integral
@@ -203,7 +204,7 @@ function calc_volume_integral!(du, u, mesh,
     @unpack target_decay = volume_integral.indicator
 
     @threaded for element in eachelement(dg, cache)
-        # Try plain weak form first
+        # Try plain weak form (WF) first
         weak_form_kernel!(du, u, element, mesh,
                           have_nonconservative_terms, equations,
                           dg, cache)
@@ -216,7 +217,7 @@ function calc_volume_integral!(du, u, mesh,
                                                              mesh, equations, dg, cache)
 
         if entropy_delta_WF > target_decay
-            # Reset bad volume integral 
+            # Reset bad weak form volume integral
             du[.., element] .= zero(eltype(du))
 
             # Recompute using stabilized version
