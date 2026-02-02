@@ -228,7 +228,7 @@ function entropy_change_reference_element(du_element::AbstractArray{<:Any, 3}, u
                                        du_element) do u, i, j, element, equations, dg,
                                                       du_element
         u_node = get_node_vars(u, equations, dg, i, j, element)
-        du_node = get_node_vars(du_element, equations, dg, i, j, element)
+        du_node = get_node_vars(du_element, equations, dg, i, j)
 
         dot(cons2entropy(u_node, equations), du_node)
     end
