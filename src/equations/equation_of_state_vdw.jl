@@ -23,8 +23,8 @@ der Waals supercritical fluid flows" by Pantano, Saurel, and Schmitt (2017).
 """
 struct VanDerWaals{RealT <: Real} <: AbstractEquationOfState
     # van der Waals specific parameters
-    a::RealT # molecule attraction
-    b::RealT # excluded volume
+    a::RealT # molecular attraction
+    b::RealT # excluded volume or co-volume
 
     # Standard thermodynamic gas parameters
     gamma::RealT
