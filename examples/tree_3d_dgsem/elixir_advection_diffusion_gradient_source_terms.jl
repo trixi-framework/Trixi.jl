@@ -13,7 +13,7 @@ equations_parabolic = LaplaceDiffusion3D(nu, equations)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-mesh = TreeMesh((-Float64(pi, periodicity = true), -Float64(pi), -Float64(pi)),
+mesh = TreeMesh((-Float64(pi), -Float64(pi), -Float64(pi)),
                 (Float64(pi), Float64(pi), Float64(pi));
                 initial_refinement_level = 3,
                 n_cells_max = 30_000,
