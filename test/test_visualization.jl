@@ -233,7 +233,8 @@ end
             trees_per_dimension = (2, 2)
             mesh = MeshType(trees_per_dimension; polydeg = 1,
                             coordinates_min, coordinates_max,
-                            initial_refinement_level = 0)
+                            initial_refinement_level = 0,
+                            periodicity = true)
 
             semi = SemidiscretizationHyperbolic(mesh, equations,
                                                 initial_condition_constant,
@@ -530,7 +531,8 @@ end
                 trees_per_dimension = (2, 2, 2)
                 mesh = MeshType(trees_per_dimension; polydeg = 1,
                                 coordinates_min, coordinates_max,
-                                initial_refinement_level = 0)
+                                initial_refinement_level = 0,
+                                periodicity = true)
 
                 semi = SemidiscretizationHyperbolic(mesh, equations,
                                                     initial_condition_constant,
