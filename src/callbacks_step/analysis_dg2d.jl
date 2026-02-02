@@ -185,7 +185,10 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-# used in `entropy_change_reference_element` and `integrate_against_entropy_variables`
+# Use quadrature to numerically integrate a single element.
+# We do not multiply with the Jacobian to stay in reference space.
+# This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
+# the time derivative of entropy, see `entropy_change_reference_element`.
 function integrate_reference_element(func::Func, u, element,
                                      mesh::AbstractMesh{2}, equations, dg::DGSEM, cache,
                                      args...) where {Func}
@@ -194,10 +197,6 @@ function integrate_reference_element(func::Func, u, element,
     # Initialize integral with zeros of the right shape
     element_integral = zero(func(u, 1, 1, 1, equations, dg, args...))
 
-    # Use quadrature to numerically integrate element.
-    # We do not multiply with the Jacobian to stay in reference space.
-    # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
-    # the time derivative of entropy, see `entropy_change_reference_element`.
     for j in eachnode(dg), i in eachnode(dg)
         element_integral += weights[i] * weights[j] *
                             func(u, i, j, element, equations, dg, args...)
@@ -206,10 +205,11 @@ function integrate_reference_element(func::Func, u, element,
     return element_integral
 end
 
-# integrate `du_local` against the entropy variables evaluated at `u`
-function integrate_against_entropy_variables(du_local, u, element,
-                                             mesh::AbstractMesh{2},
-                                             equations, dg::DGSEM, cache, args...)
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
+# Note that ∂S/∂u = w(u) with entropy variables w
+function entropy_change_reference_element(du_local, u, element,
+                                          mesh::AbstractMesh{2},
+                                          equations, dg::DGSEM, cache, args...)
     return integrate_reference_element(u, element, mesh, equations, dg, cache,
                                        du_local) do u, i, j, element, equations, dg,
                                                     du_local
