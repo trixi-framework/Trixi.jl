@@ -1153,10 +1153,13 @@ end
 
 Calculate the entropy potential, which for the compressible Euler equations is simply 
 momentum for the choice of entropy ``S(u) = \frac{\rho s}{\gamma - 1}``. 
-    
-"Entropy stable high order discontinuous Galerkin methods with suitable quadrature rules 
-for hyperbolic conservation laws" by Chen and Shu (2017). 
-<http://dx.doi.org/10.1016/j.jcp.2017.05.025>    
+
+## References
+
+- Chen, Shu (2017)
+  Entropy stable high order discontinuous Galerkin methods with suitable quadrature rules 
+  for hyperbolic conservation laws
+  [DOI: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
 """
 @inline function entropy_potential(u, orientation::Int,
                                    equations::CompressibleEulerEquations1D)

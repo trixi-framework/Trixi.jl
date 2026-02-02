@@ -161,9 +161,10 @@ function calc_volume_integral!(du, u, mesh,
                                volume_integral::VolumeIntegralEntropyCorrection,
                                dg::DGSEM, cache)
     (; volume_flux_dg, volume_flux_fv, indicator) = volume_integral
-    du_element_threaded = indicator.cache.volume_integral_values_threaded
     (; scaling) = indicator
     (; alpha) = indicator.cache
+    du_element_threaded = indicator.cache.volume_integral_values_threaded
+
     resize!(alpha, nelements(dg, cache))
 
     @threaded for element in eachelement(dg, cache)
@@ -177,12 +178,12 @@ function calc_volume_integral!(du, u, mesh,
         # on the reference element. For other mesh types, because the volume integral 
         # incorporates the scaled contravariant vectors, the surface integral should 
         # be calculated on the physical element instead. 
-        volume_integral_entropy_vars = integrate_against_entropy_variables(view(du, ..,
-                                                                                element),
-                                                                           u, element,
-                                                                           mesh,
-                                                                           equations,
-                                                                           dg, cache)
+        volume_integral_entropy_vars = entropy_change_reference_element(view(du, ..,
+                                                                             element),
+                                                                        u, element,
+                                                                        mesh,
+                                                                        equations,
+                                                                        dg, cache)
         surface_integral_entropy_potential = surface_integral(entropy_potential, u,
                                                               element, mesh, equations,
                                                               dg, cache)
@@ -209,10 +210,10 @@ function calc_volume_integral!(du, u, mesh,
             # this should be entropy dissipative if entropy_residual > 0.
             @views du_element .= (du_element .- du[.., element])
 
-            entropy_dissipation = integrate_against_entropy_variables(du_element, u,
-                                                                      element,
-                                                                      mesh, equations,
-                                                                      dg, cache)
+            entropy_dissipation = entropy_change_reference_element(du_element, u,
+                                                                   element,
+                                                                   mesh, equations,
+                                                                   dg, cache)
 
             # calculate blending factor 
             ratio = regularized_ratio(-entropy_residual, entropy_dissipation)

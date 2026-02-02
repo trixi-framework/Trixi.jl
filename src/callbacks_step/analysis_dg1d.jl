@@ -154,12 +154,14 @@ function entropy_change_reference_element(du_local, u, element,
     end
 end
 
-# calculate surface integral of func(u, orientation, equations) * normal
-function surface_integral(func::Func, u, element, mesh::TreeMesh{1}, equations,
-                          dg::DGSEM, cache) where {Func}
+# calculate surface integral of func(u, equations) * normal on the reference element.
+function surface_integral(func::Func, u, element,
+                          mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
+                          args...) where {Func}
     u_left = get_node_vars(u, equations, dg, 1, element)
     u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
-    surface_integral = (func(u_right, 1, equations) - func(u_left, 1, equations))
+
+    surface_integral = func(u_right, 1, equations) - func(u_left, 1, equations)
     return surface_integral
 end
 
