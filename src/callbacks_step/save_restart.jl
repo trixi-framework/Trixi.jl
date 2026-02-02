@@ -182,6 +182,15 @@ function load_adaptive_time_integrator!(integrator, restart_file::AbstractString
         end
         # Load data that is required both for PIController and PIDController
         integrator.qold = read(attributes(file)["time_integrator_qold"])
+        if hasproperty(controller, :qold)
+            controller.qold = read(attributes(file)["time_integrator_qold"])
+        end
+        if hasproperty(controller, :errold)
+            controller.errold = read(attributes(file)["time_integrator_qold"])
+        end
+        if hasproperty(controller, :dt_factor) # PID controller cache
+            controller.dt_factor = read(attributes(file)["time_integrator_qold"])
+        end
         integrator.dtpropose = read(attributes(file)["time_integrator_dtpropose"])
         # Accept step to use dtpropose already in the first step
         integrator.accept_step = true
