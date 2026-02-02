@@ -41,7 +41,8 @@ coordinates_max = (1.0, 1.0)
 cells_per_dimension = (16, 16)
 
 # Create parent mesh with 16 x 16 elements
-parent_mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+parent_mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                             periodicity = true)
 
 # Create the two mesh views, each of which takes half of the parent mesh.
 mesh1 = StructuredMeshView(parent_mesh; indices_min = (1, 1), indices_max = (8, 16))

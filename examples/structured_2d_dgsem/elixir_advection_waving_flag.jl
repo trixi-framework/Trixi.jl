@@ -22,7 +22,7 @@ f4(s) = SVector(s, 1.0 + sin(0.5 * pi * s))
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4))
+mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4), periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

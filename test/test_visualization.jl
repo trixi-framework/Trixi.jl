@@ -283,7 +283,8 @@ end
                                  periodicity = true)
         cells_per_dimension = (2, 2) .^ initial_refinement_level
         mesh_structured = StructuredMesh(cells_per_dimension,
-                                         coordinates_min, coordinates_max)
+                                         coordinates_min, coordinates_max,
+                                         periodicity = true)
 
         function initial_condition_taylor_green_vortex(x, t,
                                                        equations::CompressibleEulerEquations2D)
@@ -580,7 +581,8 @@ end
                                  periodicity = true)
         cells_per_dimension = (2, 2, 2) .^ initial_refinement_level
         mesh_structured = StructuredMesh(cells_per_dimension,
-                                         coordinates_min, coordinates_max)
+                                         coordinates_min, coordinates_max,
+                                         periodicity = true)
 
         function initial_condition_taylor_green_vortex(x, t,
                                                        equations::CompressibleEulerEquations3D)

@@ -5,7 +5,7 @@ using Trixi
 
 equations = CompressibleEulerEquations1D(1.4)
 
-# Volume flux stabilizes the simulation - in contrast to standard DGSEM with 
+# Volume flux stabilizes the simulation - in contrast to standard DGSEM with
 # `surface_flux = flux_ranocha` only which crashes.
 solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
                volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
@@ -13,7 +13,8 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
 coordinates_min = -2.0
 coordinates_max = 2.0
 cells_per_dimension = 32
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = true)
 
 initial_condition = initial_condition_weak_blast_wave
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

@@ -21,7 +21,8 @@ cells_per_dimension = (4, 4)
 
 mesh = StructuredMesh(cells_per_dimension,
                       coordinates_min,
-                      coordinates_max)
+                      coordinates_max,
+                      periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_terms_convergence_test,

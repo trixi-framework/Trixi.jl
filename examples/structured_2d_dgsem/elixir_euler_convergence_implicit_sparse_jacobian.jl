@@ -33,7 +33,7 @@ function mapping(xi_, eta_)
     return SVector(x, y)
 end
 cells_per_dimension = (16, 16)
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 ###############################################################################
 ### semidiscretization for sparsity detection ###

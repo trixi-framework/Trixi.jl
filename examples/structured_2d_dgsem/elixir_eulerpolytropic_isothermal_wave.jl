@@ -38,7 +38,8 @@ boundary_conditions = (; x_neg = boundary_condition_periodic,
 
 mesh = StructuredMesh(cells_per_dimension,
                       coordinates_min,
-                      coordinates_max)
+                      coordinates_max,
+                      periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)

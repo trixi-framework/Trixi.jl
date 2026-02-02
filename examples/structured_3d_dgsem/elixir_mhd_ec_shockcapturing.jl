@@ -52,7 +52,7 @@ function mapping(xi_, eta_, zeta_)
 end
 
 cells_per_dimension = (8, 8, 8)
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 # create the semi discretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

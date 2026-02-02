@@ -97,7 +97,7 @@ mapping(xi, eta) = T * SVector(xi, eta)
 
 cells_per_dimension = (16, 16)
 
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_source_terms, solver;
                                     source_terms = initial_condition_source_terms,

@@ -32,7 +32,7 @@ f6(s, t) = SVector(s + 1.0, t + 1.0, 2.0)
 
 cells_per_dimension = (4, 4, 4)
 
-mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4, f5, f6))
+mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4, f5, f6), periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_terms_convergence_test,
