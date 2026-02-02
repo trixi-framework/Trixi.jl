@@ -448,7 +448,11 @@ end
     (; neighbor_ids, node_indices) = cache.mortars
     (; surface_flux_values) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
-    (; boundary_interpolation) = dg.basis
+    (; inverse_weights) = dg.basis
+
+    # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+    # This sign switch is directly applied to the boundary interpolation factors here.
+    factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     (; positivity_correction_factor) = dg.volume_integral.limiter
     index_range = eachnode(dg)
@@ -474,16 +478,6 @@ end
                                                              index_range)
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
                                                              index_range)
-
-        if small_direction in (1, 3)
-            factor_small = -boundary_interpolation[1, 1]
-            factor_large = -boundary_interpolation[nnodes(dg), 2]
-        else
-            factor_large = -boundary_interpolation[1, 1]
-            factor_small = -boundary_interpolation[nnodes(dg), 2]
-        end
-        # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
-        # This sign switch is directly applied to the boundary interpolation factors here.
 
         i_small = i_small_start
         j_small = j_small_start
@@ -540,7 +534,7 @@ end
                                                                    lower_element]
             flux_lower_low_order = surface_flux_values[var_index, i, small_direction,
                                                        lower_element]
-            flux_difference_lower = factor_small *
+            flux_difference_lower = factor *
                                     (flux_lower_high_order - flux_lower_low_order)
 
             flux_upper_high_order = surface_flux_values_high_order[var_index, i,
@@ -548,7 +542,7 @@ end
                                                                    upper_element]
             flux_upper_low_order = surface_flux_values[var_index, i, small_direction,
                                                        upper_element]
-            flux_difference_upper = factor_small *
+            flux_difference_upper = factor *
                                     (flux_upper_high_order - flux_upper_low_order)
 
             flux_large_high_order = surface_flux_values_high_order[var_index, i,
@@ -557,7 +551,7 @@ end
             flux_large_low_order = surface_flux_values_high_order[var_index, i,
                                                                   large_direction,
                                                                   large_element]
-            flux_difference_large = factor_large *
+            flux_difference_large = factor *
                                     (flux_large_high_order - flux_large_low_order)
 
             # Check if high-order fluxes are finite. Otherwise, use pure low-order fluxes.
@@ -608,7 +602,11 @@ end
     (; neighbor_ids, node_indices) = cache.mortars
     (; surface_flux_values) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
-    (; boundary_interpolation) = dg.basis
+
+    (; inverse_weights) = dg.basis
+    # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+    # This sign switch is directly applied to the boundary interpolation factors here.
+    factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     (; limiter) = dg.volume_integral
     (; positivity_correction_factor) = limiter
@@ -636,16 +634,6 @@ end
                                                              index_range)
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
                                                              index_range)
-
-        if small_direction in (1, 3)
-            factor_small = -boundary_interpolation[1, 1]
-            factor_large = -boundary_interpolation[nnodes(dg), 2]
-        else
-            factor_large = -boundary_interpolation[1, 1]
-            factor_small = -boundary_interpolation[nnodes(dg), 2]
-        end
-        # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
-        # This sign switch is directly applied to the boundary interpolation factors here.
 
         i_small = i_small_start
         j_small = j_small_start
@@ -682,7 +670,7 @@ end
                                                   i, small_direction, lower_element)
             flux_lower_low_order = get_node_vars(surface_flux_values, equations, dg,
                                                  i, small_direction, lower_element)
-            flux_difference_lower = factor_small *
+            flux_difference_lower = factor *
                                     (flux_lower_high_order .- flux_lower_low_order)
             antidiffusive_flux_lower = inverse_jacobian_lower * flux_difference_lower
 
@@ -697,7 +685,7 @@ end
                                                   i, small_direction, upper_element)
             flux_upper_low_order = get_node_vars(surface_flux_values, equations, dg,
                                                  i, small_direction, upper_element)
-            flux_difference_upper = factor_small *
+            flux_difference_upper = factor *
                                     (flux_upper_high_order .- flux_upper_low_order)
             antidiffusive_flux_upper = inverse_jacobian_upper * flux_difference_upper
 
@@ -712,7 +700,7 @@ end
                                                   i, large_direction, large_element)
             flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
                                                  i, large_direction, large_element)
-            flux_difference_large = factor_large *
+            flux_difference_large = factor *
                                     (flux_large_high_order .- flux_large_low_order)
             antidiffusive_flux_large = inverse_jacobian_large * flux_difference_large
 

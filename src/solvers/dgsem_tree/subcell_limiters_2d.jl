@@ -855,7 +855,9 @@ end
     (; orientations) = cache.mortars
     (; surface_flux_values) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
-    (; boundary_interpolation) = dg.basis
+    (; inverse_weights) = dg.basis
+
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     (; limiter) = dg.volume_integral
     (; positivity_correction_factor) = limiter
@@ -877,8 +879,8 @@ end
             end
             # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
             # This sign switch is directly applied to the boundary interpolation factors here.
-            factor_small = boundary_interpolation[1, 1]
-            factor_large = -boundary_interpolation[nnodes(dg), 2]
+            factor_small = factor
+            factor_large = -factor
         else # large_sides[mortar] == 2 -> small elements on left side
             if orientations[mortar] == 1
                 # L2 mortars in x-direction
@@ -891,8 +893,8 @@ end
             end
             # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
             # This sign switch is directly applied to the boundary interpolation factors here.
-            factor_large = boundary_interpolation[1, 1]
-            factor_small = -boundary_interpolation[nnodes(dg), 2]
+            factor_large = factor
+            factor_small = -factor
         end
 
         for i in eachnode(dg)
