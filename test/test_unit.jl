@@ -79,8 +79,7 @@ end
 
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
-        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0,
-                                                                 periodicity = true) isa
+        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0, true) isa
               TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
@@ -107,7 +106,7 @@ end
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(30,
                                                                             (0.0, 0.0),
                                                                             1.0,
-                                                                            periodicity = true)
+                                                                            true)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -137,7 +136,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            true)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -168,7 +168,7 @@ end
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(1000,
                                                                             (0.0, 0.0),
                                                                             1.0,
-                                                                            periodicity = true)
+                                                                            true)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -194,7 +194,7 @@ end
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
                                                                             (0.0, 0.0),
                                                                             1.0,
-                                                                            periodicity = true)
+                                                                            true)
                 # Refine whole tree
                 Trixi.refine!(mesh.tree)
                 # Refine left leaf
@@ -224,7 +224,7 @@ end
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
                                                                             (0.0, 0.0),
                                                                             1.0,
-                                                                            periodicity = true)
+                                                                            true)
 
                 # Only one leaf
                 @test_throws AssertionError("Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
