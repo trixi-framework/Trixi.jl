@@ -177,8 +177,12 @@ function calc_volume_integral!(du, u, mesh,
         # Note that, for `TreeMesh`, both volume and surface integrals are calculated
         # on the reference element. For other mesh types, because the volume integral 
         # incorporates the scaled contravariant vectors, the surface integral should 
-        # be calculated on the physical element instead. 
-        volume_integral_entropy_vars = entropy_change_reference_element(du, u, element,
+        # be calculated on the physical element instead.
+        #
+        # Minus sign because of the flipped sign of the volume term in the DG RHS.
+        # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
+        # in `integrate_reference_element`.
+        volume_integral_entropy_vars = -entropy_change_reference_element(du, u, element,
                                                                         mesh,
                                                                         equations,
                                                                         dg, cache)
