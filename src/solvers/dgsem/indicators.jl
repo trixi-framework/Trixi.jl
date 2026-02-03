@@ -296,9 +296,17 @@ Here, ``\dot{\boldsymbol u}_\mathrm{VI}`` is the change in the DG right-hand-sid
 ``\dot{S}_\text{true}`` is the true entropy evolution, which can be computed from the
 entropy potential ``\boldsymbol{\psi}`` (see also [`entropy_potential`](@ref)).
 
+This is discussed in more detail in
+- Chan (2018)
+  "On discretely entropy conservative and entropy stable discontinuous Galerkin methods"
+  [DOI: 10.1016/j.jcp.2018.02.033](https://doi.org/10.1016/j.jcp.2018.02.033)
+- Li, Chan (2024)
+  "High order entropy stable discontinuous Galerkin spectral element methods through subcell limiting"
+  [DOI: 10.1016/j.jcp.2023.112677](https://doi.org/10.1016/j.jcp.2023.112677)
+
 For ``\Delta S < \sigma \leq 0`` with ``\sigma`` being set to `maximum_entropy_increase`,
-the e.g. weak form volume integral is more entropy-diffusive than the true entropy change
-(which could be recovered with the [`VolumeIntegralFluxDifferencing`](@ref) volume integral).
+the e.g. [`VolumeIntegralWeakForm`](@ref) is more entropy-diffusive than the true entropy change
+(which could be recovered with the [`VolumeIntegralFluxDifferencing`](@ref)).
 
 If ``\sigma > 0`` is set, i.e., `maximum_entropy_increase > 0`, the indicator allows for
 limited entropy increase, thereby allowing to use e.g. the cheaper weak-form volume integral
