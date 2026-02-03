@@ -226,14 +226,14 @@ function surface_integral(func::Func, u, element,
                           args...) where {Func}
     surface_integral = zero(real(dg))
     for ii in eachnode(dg)
-        # integrate along x direction
+        # integrate along x direction, normal in y (2) direction
         u_bottom = get_node_vars(u, equations, dg, ii, 1, element)
         u_top = get_node_vars(u, equations, dg, ii, nnodes(dg), element)
 
         surface_integral += dg.basis.weights[ii] *
                             (func(u_top, 2, equations) - func(u_bottom, 2, equations))
 
-        # integrate along y direction
+        # integrate along y direction, normal in x (1) direction
         u_left = get_node_vars(u, equations, dg, 1, ii, element)
         u_right = get_node_vars(u, equations, dg, nnodes(dg), ii, element)
 
