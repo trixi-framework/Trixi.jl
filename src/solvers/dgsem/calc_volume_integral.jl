@@ -160,16 +160,14 @@ function calc_volume_integral!(du, u, mesh,
         # Minus sign because of the flipped sign of the volume term in the DG RHS.
         # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
         # in `integrate_reference_element`.
-        entropy_change_WF = -entropy_change_reference_element(du, u, element,
-                                                              mesh, equations, dg,
-                                                              cache)
+        dS_WF = -entropy_change_reference_element(du, u, element,
+                                                  mesh, equations, dg, cache)
 
         # Compute true entropy change given by surface integral of the entropy potential
-        entropy_change_true = surface_integral(entropy_potential, u,
-                                               element, mesh, equations,
-                                               dg, cache)
+        dS_true = surface_integral(entropy_potential, u, element,
+                                   mesh, equations, dg, cache)
 
-        entropy_change = entropy_change_WF - entropy_change_true
+        entropy_change = dS_WF - dS_true
         if entropy_change > 0 # Recompute using EC FD volume integral
             # Reset weak form volume integral contribution
             du[.., element] .= zero(eltype(du))
@@ -191,9 +189,9 @@ function calc_volume_integral!(du, u, mesh,
                                                                        VolumeIntegralSC,
                                                                        Indicator},
                                dg::DGSEM,
-                               cache) where {Indicator <: Nothing, # Indicator taken from `VolumeIntegralSC`
-                                             VolumeIntegralSC <:
-                                             VolumeIntegralShockCapturingHG}
+                               cache) where {VolumeIntegralSC <:
+                                             VolumeIntegralShockCapturingHG,
+                                             Indicator <: Nothing}# Indicator taken from `VolumeIntegralSC`
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral.volume_integral_stabilized
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
@@ -235,9 +233,9 @@ function calc_volume_integral!(du, u, mesh,
                                                                        VolumeIntegralSC,
                                                                        Indicator},
                                dg::DGSEM,
-                               cache) where {Indicator <: Nothing, # Indicator taken from `VolumeIntegralSC`
-                                             VolumeIntegralSC <:
-                                             VolumeIntegralShockCapturingRRG}
+                               cache) where {VolumeIntegralSC <:
+                                             VolumeIntegralShockCapturingRRG,
+                                             Indicator <: Nothing} # Indicator taken from `VolumeIntegralSC`
     @unpack volume_flux_dg, volume_flux_fv, indicator,
     sc_interface_coords, slope_limiter = volume_integral.volume_integral_stabilized
 
