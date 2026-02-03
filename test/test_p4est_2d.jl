@@ -897,20 +897,21 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
-                        local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal,
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
                         cfl=0.3,
+                        max_iterations_newton=50,
                         l2=[
-                            0.12153378582660491,
-                            0.1215091567409984,
-                            0.1215090354183208,
-                            0.7684174582749469
+                            0.12153378660074157,
+                            0.12150914917045784,
+                            0.1215090261102119,
+                            0.7684174382546429
                         ],
                         linf=[
-                            0.5365328391224498,
-                            0.7050461256270535,
-                            0.7050580847524439,
-                            4.044520049640171
+                            0.5365328085963743,
+                            0.705046070630949,
+                            0.7050576974539239,
+                            4.044520616175825
                         ],
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
