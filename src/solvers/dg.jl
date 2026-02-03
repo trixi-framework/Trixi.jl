@@ -296,10 +296,11 @@ function VolumeIntegralAdaptive(;
     if !(volume_integral_default isa VolumeIntegralWeakForm)
         throw(ArgumentError("`volume_integral_default` must be of type `VolumeIntegralWeakForm`."))
     end
+    #=
     if !(volume_integral_stabilized isa VolumeIntegralFluxDifferencing)
         throw(ArgumentError("`volume_integral_stabilized` must be of type `VolumeIntegralFluxDifferencing`."))
     end
-
+    =#
     return VolumeIntegralAdaptive{typeof(volume_integral_default),
                                   typeof(volume_integral_stabilized),
                                   typeof(indicator)}(volume_integral_default,
