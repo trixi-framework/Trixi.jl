@@ -276,36 +276,36 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 @doc raw"""
-    IndicatorEntropyDiffusion()
+    IndicatorEntropyChange(; maximum_entropy_increase::Real=0.0)
 
 This indicator checks the difference in mathematical [`entropy`](@ref) (``S``) due to the application
-of the weak-form and flux-differencing volume integral. In particular, the indicator computes
+of a volume integral (VI) compared to the true/analytical entropy evolution.
+In particular, the indicator computes
 ```math
-\Delta S = \dot{S}_\mathrm{WF} - \dot{S}_\mathrm{VI} =
-\int_{\Omega_m} 
-\frac{\partial S}{\partial \boldsymbol{u}}
-\cdot 
-\left[\dot{\boldsymbol u}_\mathrm{WF} - \dot{\boldsymbol u}_\mathrm{VI}\right]
+\Delta S = \dot{S}_\mathrm{VI} - \dot{S}_\text{true} =
+\int_{\Omega_m}
+\frac{\partial S}{\partial \boldsymbol{u}} \cdot \dot{\boldsymbol u}_\mathrm{VI}
 \mathrm{d} \Omega_m
+- 
+\int_{\partial \Omega_m}
+\boldsymbol{\psi} \cdot \hat{\boldsymbol{n}}
+\mathrm{d} \partial \Omega_m
 ```
 for the currently processed element/cell ``m``.
-Here, ``\dot{\boldsymbol u}_\mathrm{WF}`` is the change in the DG right-hand-side
-due to the weak-form volume integral only,
-and ``\dot{\boldsymbol u}_\mathrm{VI}`` is the change in the DG right-hand-side
-due to the flux-differencing volume integral only.
+Here, ``\dot{\boldsymbol u}_\mathrm{VI}`` is the change in the DG right-hand-side due to the volume integral only.
+``\dot{S}_\text{true}`` is the true entropy evolution, which can be computed from the
+entropy potential ``\boldsymbol{\psi}`` (see also [`entropy_potential`](@ref)).
 
-For ``\Delta S < 0`` the weak form volume integral is more entropy-diffusive than the
-flux-differencing volume integral, and thus the weak form update is used.
-Otherwise, the flux-differencing volume integral with proven stability properties
-is used to compute the volume integral in the ``m``-th element/cell.
+For ``\Delta S < \sigma \leq 0`` with ``\sigma`` being set to `maximum_entropy_increase`,
+the e.g. weak form volume integral is more entropy-diffusive than the true entropy change
+(which could be recovered with the [`VolumeIntegralFluxDifferencing`](@ref) volume integral).
 
-Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects a
-the most entropy-diffusive volume integral for every cell/element ``m``.
+If ``\sigma > 0`` is set, i.e., `maximum_entropy_increase > 0`, the indicator allows for
+limited entropy increase, thereby allowing to use e.g. the cheaper weak-form volume integral
+even in slightly entropy-producing situations to reduce computational cost.
 
-!!! note
-    This indicator is **not implemented as an AMR indicator**, i.e., it is **not
-    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
-    for instance.
+Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects
+a volume integral for every cell/element ``m``.
 
 The logic behind this indicator is similar to the "companion" scheme
 approach proposed in Chapter 5 of
@@ -314,40 +314,43 @@ approach proposed in Chapter 5 of
   "Entropy Stable Spectral Collocation Schemes for the Navier-Stokes Equations: Discontinuous Interfaces"
   [DOI: 10.1137/130932193](https://doi.org/10.1137/130932193)
 
-Here, we thus equip the flux-differencing volume integral with a "companion" weak-form
+Here, we thus equip e.g. the flux-differencing volume integral with a "companion" weak-form
 volume integral.
+However, usage of the entropy potential allows for comparison with the true entropy change.
+
+!!! note
+    This indicator is **not implemented as an AMR indicator**, i.e., it is **not
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
+    for instance.
 """
-struct IndicatorEntropyDiffusion{dUElementThreaded <: AbstractArray} <:
+struct IndicatorEntropyChange{RealT <: Real} <:
        AbstractIndicator
-    du_element_threaded::dUElementThreaded
+    maximum_entropy_increase::RealT
 
-    function IndicatorEntropyDiffusion(::AbstractEquations{NDIMS, NVARS},
-                                       basis) where {NDIMS, NVARS}
-        uEltype = real(basis)
-        # Required dimensions: Variables + NDIMS (for nodes)
-        AT = Array{uEltype, NDIMS + 1}
-        du_element_threaded = AT[AT(undef, NVARS,
-                                    ntuple(_ -> nnodes(basis), NDIMS)...)
-                                 for _ in 1:Threads.maxthreadid()]
-
-        return new{typeof(du_element_threaded)}(du_element_threaded)
+    function IndicatorEntropyChange(; maximum_entropy_increase = 0.0)
+        return new{typeof(maximum_entropy_increase)}(maximum_entropy_increase)
     end
 end
 
-function Base.show(io::IO, indicator::IndicatorEntropyDiffusion)
+function Base.show(io::IO, indicator::IndicatorEntropyChange)
     @nospecialize indicator # reduce precompilation time
 
-    print(io, "IndicatorEntropyDiffusion()")
+    print(io, "IndicatorEntropyChange(")
+    print(io, "maximum_entropy_increase=", indicator.maximum_entropy_increase, ")")
+
+    return nothing
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyDiffusion)
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyChange)
     @nospecialize indicator # reduce precompilation time
 
     if get(io, :compact, false)
         show(io, indicator)
     else
-        setup = []
-        summary_box(io, "IndicatorEntropyDiffusion", setup)
+        setup = [
+            "maximum_entropy_increase" => indicator.maximum_entropy_increase
+        ]
+        summary_box(io, "IndicatorEntropyChange", setup)
     end
 end
 end # @muladd

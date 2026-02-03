@@ -284,13 +284,13 @@ end
     VolumeIntegralAdaptive(;
                            volume_integral_default = VolumeIntegralWeakForm(),
                            volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
-                           indicator = IndicatorEntropyDiffusion())
+                           indicator = IndicatorEntropyChange())
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
 
 Possible combinations:
-- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyDiffusion()`](@ref)
+- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyChange()`](@ref)
 """
 struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
                               Indicator} <: AbstractVolumeIntegral
@@ -302,7 +302,7 @@ end
 function VolumeIntegralAdaptive(;
                                 volume_integral_default = VolumeIntegralWeakForm(),
                                 volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
-                                indicator = IndicatorEntropyDiffusion())
+                                indicator = IndicatorEntropyChange())
     if !(volume_integral_default isa VolumeIntegralWeakForm)
         throw(ArgumentError("`volume_integral_default` must be of type `VolumeIntegralWeakForm`."))
     end
