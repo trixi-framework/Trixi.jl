@@ -147,9 +147,8 @@ function calc_volume_integral!(du, u, mesh,
                                cache) where {
                                              VolumeIntegralFD <:
                                              VolumeIntegralFluxDifferencing,
-                                             Indicator <: IndicatorEntropyDiffusion}
+                                             Indicator <: IndicatorEntropyChange}
     @unpack volume_integral_default, volume_integral_stabilized = volume_integral
-    @unpack du_element_threaded = volume_integral.indicator
 
     @threaded for element in eachelement(dg, cache)
         # Compute weak form (WF) volume integral
@@ -161,72 +160,21 @@ function calc_volume_integral!(du, u, mesh,
         # Minus sign because of the flipped sign of the volume term in the DG RHS.
         # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
         # in `integrate_reference_element`.
-        entropy_delta_WF = -entropy_change_reference_element(du, u, element,
-                                                             mesh, equations, dg, cache)
+        entropy_change_WF = -entropy_change_reference_element(du, u, element,
+                                                              mesh, equations, dg,
+                                                              cache)
 
-        # Store weak form result
-        du_element_WF = du_element_threaded[Threads.threadid()]
-        @views du_element_WF .= du[.., element]
+        # Compute true entropy change given by surface integral of the entropy potential
+        entropy_change_true = surface_integral(entropy_potential, u,
+                                               element, mesh, equations,
+                                               dg, cache)
 
-        # Reset weak form volume integral contribution
-        du[.., element] .= zero(eltype(du))
-
-        # Recompute using entropy-conservative volume integral
-        flux_differencing_kernel!(du, u, element, mesh,
-                                  have_nonconservative_terms, equations,
-                                  volume_integral_stabilized.volume_flux,
-                                  dg, cache)
-
-        # Compute entropy production of the FD volume integral
-        entropy_delta_FD = -entropy_change_reference_element(du, u, element,
-                                                             mesh, equations, dg, cache)
-
-        entropy_delta = entropy_delta_WF - entropy_delta_FD
-        if entropy_delta < 0 # Use weak form if it is more stable
-            @views du[.., element] .= du_element_WF
-        end
-    end
-
-    return nothing
-end
-
-function calc_volume_integral!(du, u, mesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
-                                                                       VolumeIntegralFD,
-                                                                       Indicator},
-                               dg::DGSEM,
-                               cache) where {
-                                             VolumeIntegralFD <:
-                                             VolumeIntegralFluxDifferencing,
-                                             Indicator <: IndicatorEntropyDecay}
-    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
-    @unpack target_decay = volume_integral.indicator
-
-    @threaded for element in eachelement(dg, cache)
-        # Try plain weak form (WF) first
-        weak_form_kernel!(du, u, element, mesh,
-                          have_nonconservative_terms, equations,
-                          dg, cache)
-
-        # Check entropy production of WF volume integral. 
-        # 
-        # Note that, for `TreeMesh`, both volume and surface integrals are calculated
-        # on the reference element. For other mesh types, because the volume integral 
-        # incorporates the scaled contravariant vectors, the surface integral should 
-        # be calculated on the physical element instead. 
-        entropy_delta_WF = -(entropy_change_reference_element(du, u, element,
-                                                              mesh, equations,
-                                                              dg, cache) +
-                             surface_integral(entropy_potential, u, element,
-                                              mesh, equations,
-                                              dg, cache))
-
-        if entropy_delta_WF > target_decay
-            # Reset bad weak form volume integral
+        entropy_change = entropy_change_WF - entropy_change_true
+        if entropy_change > 0 # Recompute using EC FD volume integral
+            # Reset weak form volume integral contribution
             du[.., element] .= zero(eltype(du))
 
-            # Recompute using stabilized version
+            # Recompute using entropy-conservative volume integral
             flux_differencing_kernel!(du, u, element, mesh,
                                       have_nonconservative_terms, equations,
                                       volume_integral_stabilized.volume_flux,
