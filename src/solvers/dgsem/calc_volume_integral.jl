@@ -186,14 +186,15 @@ function calc_volume_integral!(du, u, mesh,
                                                                         mesh,
                                                                         equations,
                                                                         dg, cache)
-        surface_integral_entropy_potential = surface_integral(entropy_potential, u,
-                                                              element, mesh, equations,
-                                                              dg, cache)
+
+        # Compute true entropy change given by surface integral of the entropy potential
+        entropy_change_true = surface_integral(entropy_potential, u,
+                                               element, mesh, equations,
+                                               dg, cache)
 
         # This quantity should be ≤ 0 for an entropy stable volume integral, and 
         # exactly zero for an entropy conservative volume integral. 
-        entropy_residual = -(volume_integral_entropy_vars +
-                             surface_integral_entropy_potential)
+        entropy_residual = volume_integral_entropy_vars - entropy_change_true
 
         if entropy_residual > 0
             # Store "high order" result
