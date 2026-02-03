@@ -182,19 +182,17 @@ function calc_volume_integral!(du, u, mesh,
         # Minus sign because of the flipped sign of the volume term in the DG RHS.
         # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
         # in `integrate_reference_element`.
-        volume_integral_entropy_vars = -entropy_change_reference_element(du, u, element,
-                                                                        mesh,
-                                                                        equations,
-                                                                        dg, cache)
+        dS_volume_integral = -entropy_change_reference_element(du, u, element,
+                                                               mesh, equations,
+                                                               dg, cache)
 
         # Compute true entropy change given by surface integral of the entropy potential
-        entropy_change_true = surface_integral(entropy_potential, u,
-                                               element, mesh, equations,
-                                               dg, cache)
+        dS_true = surface_integral(entropy_potential, u, element,
+                                   mesh, equations, dg, cache)
 
         # This quantity should be ≤ 0 for an entropy stable volume integral, and 
         # exactly zero for an entropy conservative volume integral. 
-        entropy_residual = volume_integral_entropy_vars - entropy_change_true
+        entropy_residual = dS_volume_integral - dS_true
 
         if entropy_residual > 0
             # Store "high order" result
