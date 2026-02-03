@@ -587,16 +587,16 @@ end
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
                         local_factor=false,
                         l2=[
-                            0.564384926966683,
-                            0.2337324401920805,
-                            0.23267034284116345,
+                            0.5643848812333524,
+                            0.23373244976853597,
+                            0.23267026249346812,
                             0.7035211726981762
                         ],
                         linf=[
-                            2.3431002413658306,
-                            1.2234456601824257,
-                            1.2315003313240431,
-                            2.968901964238855
+                            2.3431001351967127,
+                            1.223445870016609,
+                            1.2315008172204027,
+                            2.968901801676406
                         ],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
@@ -906,23 +906,23 @@ end
                         local_twosided_variables_cons=["rho"],
                         cfl=0.5,
                         l2=[
-                            0.19185209602478717,
-                            0.09515534096951954,
-                            0.13633655773802925,
-                            0.0732414323778663
+                            0.055791335032589116,
+                            0.03304083061001368,
+                            0.0506468870708778,
+                            0.07922256124577652
                         ],
                         linf=[
-                            0.8812860825078623,
-                            0.47063513971549836,
-                            0.29315653000200037,
-                            0.3380020196107205
+                            0.25127253942203875,
+                            0.17559953842763176,
+                            0.16780084300673564,
+                            0.26733888041030696
                         ],
                         tspan=(0.0, 0.2),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] == "# iter, simu_time, rho_min, rho_max, pressure_min"
-    # Run takes 495 time steps
-    @test startswith(lines[end], "495")
+    # Run takes 99 time steps
+    @test startswith(lines[end], "99")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
