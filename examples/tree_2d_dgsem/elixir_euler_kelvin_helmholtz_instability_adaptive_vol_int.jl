@@ -44,7 +44,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 # If the weak form dissipates more entropy than the true evolution
 # the indicator renders this admissible. Otherwise, the more stable
 # volume integral is to be used.
-indicator = IndicatorEntropyChange(equations, basis)
+indicator = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
 
 # Adaptive volume integral using the entropy change indicator to perform the 
 # stabilized/EC volume integral when needed and keeping the weak form if it is more diffusive.
