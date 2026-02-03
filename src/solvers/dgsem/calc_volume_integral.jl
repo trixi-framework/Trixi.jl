@@ -147,7 +147,6 @@ function calc_volume_integral!(du, u, mesh,
                                              VolumeIntegralFluxDifferencing,
                                              Indicator <: IndicatorEntropyChange}
     @unpack volume_integral_default, volume_integral_stabilized = volume_integral
-    @unpack du_element_threaded = volume_integral.indicator
 
     @threaded for element in eachelement(dg, cache)
         # Compute weak form (WF) volume integral
