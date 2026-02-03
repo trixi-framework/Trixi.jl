@@ -252,7 +252,8 @@ export density, pressure, density_pressure, velocity, temperature,
        equilibrium_distribution,
        waterheight, waterheight_pressure
 export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
-       energy_total, energy_kinetic, energy_internal, entropy_potential,
+       entropy_potential,
+       energy_total, energy_kinetic, energy_internal,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
 export lake_at_rest_error
@@ -271,7 +272,7 @@ export DG,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
        IndicatorHennemannGassner,
        VolumeIntegralUpwind,
-       VolumeIntegralEntropyCorrection,
+       VolumeIntegralEntropyCorrection, IndicatorEntropyCorrection,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
@@ -318,8 +319,7 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax,
-       IndicatorEntropyCorrection
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax
 
 export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
 
