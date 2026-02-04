@@ -21,22 +21,22 @@ function cons2entropy!(entropy_var_values::StructArray,
     # LoopVectorization.jl.
     @unpack gamma, inv_gamma_minus_one = equations
 
-    rho_values, rho_v1_values, rho_v2_values, rho_e_values = StructArrays.components(u_values)
+    rho_values, rho_v1_values, rho_v2_values, rho_e_total_values = StructArrays.components(u_values)
     w1_values, w2_values, w3_values, w4_values = StructArrays.components(entropy_var_values)
 
     @turbo thread=true for i in eachindex(rho_values, rho_v1_values, rho_v2_values,
-                                          rho_e_values,
+                                          rho_e_total_values,
                                           w1_values, w2_values, w3_values, w4_values)
         rho = rho_values[i]
         rho_v1 = rho_v1_values[i]
         rho_v2 = rho_v2_values[i]
-        rho_e = rho_e_values[i]
+        rho_e_total = rho_e_total_values[i]
 
         # The following is basically the same code as in `cons2entropy`
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
         v_square = v1^2 + v2^2
-        p = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
+        p = (gamma - 1) * (rho_e_total - 0.5 * rho * v_square)
         s = log(p) - gamma * log(rho)
         rho_p = rho / p
 
@@ -59,11 +59,11 @@ function entropy2cons!(entropy_projected_u_values::StructArray,
     @unpack gamma, inv_gamma_minus_one = equations
     gamma_minus_one = gamma - 1
 
-    rho_values, rho_v1_values, rho_v2_values, rho_e_values = StructArrays.components(entropy_projected_u_values)
+    rho_values, rho_v1_values, rho_v2_values, rho_e_total_values = StructArrays.components(entropy_projected_u_values)
     w1_values, w2_values, w3_values, w4_values = StructArrays.components(projected_entropy_var_values)
 
     @turbo thread=true for i in eachindex(rho_values, rho_v1_values, rho_v2_values,
-                                          rho_e_values,
+                                          rho_e_total_values,
                                           w1_values, w2_values, w3_values, w4_values)
 
         # The following is basically the same code as in `entropy2cons`
@@ -87,7 +87,7 @@ function entropy2cons!(entropy_projected_u_values::StructArray,
         rho_values[i] = -rho_iota * w4
         rho_v1_values[i] = rho_iota * w2
         rho_v2_values[i] = rho_iota * w3
-        rho_e_values[i] = rho_iota * (1 - (w2^2 + w3^2) / (2 * w4))
+        rho_e_total_values[i] = rho_iota * (1 - (w2^2 + w3^2) / (2 * w4))
     end
 end
 
@@ -102,25 +102,25 @@ function cons2entropy!(entropy_var_values::StructArray,
     # LoopVectorization.jl.
     @unpack gamma, inv_gamma_minus_one = equations
 
-    rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values = StructArrays.components(u_values)
+    rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_total_values = StructArrays.components(u_values)
     w1_values, w2_values, w3_values, w4_values, w5_values = StructArrays.components(entropy_var_values)
 
     @turbo thread=true for i in eachindex(rho_values, rho_v1_values, rho_v2_values,
-                                          rho_v3_values, rho_e_values,
+                                          rho_v3_values, rho_e_total_values,
                                           w1_values, w2_values, w3_values, w4_values,
                                           w5_values)
         rho = rho_values[i]
         rho_v1 = rho_v1_values[i]
         rho_v2 = rho_v2_values[i]
         rho_v3 = rho_v3_values[i]
-        rho_e = rho_e_values[i]
+        rho_e_total = rho_e_total_values[i]
 
         # The following is basically the same code as in `cons2entropy`
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         v_square = v1^2 + v2^2 + v3^2
-        p = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
+        p = (gamma - 1) * (rho_e_total - 0.5 * rho * v_square)
         s = log(p) - gamma * log(rho)
         rho_p = rho / p
 
@@ -144,11 +144,11 @@ function entropy2cons!(entropy_projected_u_values::StructArray,
     @unpack gamma, inv_gamma_minus_one = equations
     gamma_minus_one = gamma - 1
 
-    rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_values = StructArrays.components(entropy_projected_u_values)
+    rho_values, rho_v1_values, rho_v2_values, rho_v3_values, rho_e_total_values = StructArrays.components(entropy_projected_u_values)
     w1_values, w2_values, w3_values, w4_values, w5_values = StructArrays.components(projected_entropy_var_values)
 
     @turbo thread=true for i in eachindex(rho_values, rho_v1_values, rho_v2_values,
-                                          rho_v3_values, rho_e_values,
+                                          rho_v3_values, rho_e_total_values,
                                           w1_values, w2_values, w3_values, w4_values,
                                           w5_values)
 
@@ -175,7 +175,7 @@ function entropy2cons!(entropy_projected_u_values::StructArray,
         rho_v1_values[i] = rho_iota * w2
         rho_v2_values[i] = rho_iota * w3
         rho_v3_values[i] = rho_iota * w4
-        rho_e_values[i] = rho_iota * (1 - (w2^2 + w3^2 + w4^2) / (2 * w5))
+        rho_e_total_values[i] = rho_iota * (1 - (w2^2 + w3^2 + w4^2) / (2 * w5))
     end
 end
 end # @muladd

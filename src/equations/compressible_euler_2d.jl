@@ -12,17 +12,17 @@ The compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \\ \rho v_1 \\ \rho v_2 \\ \rho e
+\rho \\ \rho v_1 \\ \rho v_2 \\ \rho e_{total}
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
- \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e +p) v_1
+ \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e_{total} +p) v_1
 \end{pmatrix}
 +
 \frac{\partial}{\partial y}
 \begin{pmatrix}
-\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e +p) v_2
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e_{total} +p) v_2
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -31,9 +31,9 @@ The compressible Euler equations
 ```
 for an ideal gas with ratio of specific heats `gamma`
 in two space dimensions.
-Here, ``\rho`` is the density, ``v_1``, ``v_2`` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
+Here, ``\rho`` is the density, ``v_1``, ``v_2`` the velocities, ``e_{total}`` the specific total energy, and
 ```math
-p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
+p = (\gamma - 1) \left( \rho e_{total} - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 ```
 the pressure.
 """
@@ -49,7 +49,7 @@ struct CompressibleEulerEquations2D{RealT <: Real} <:
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations2D)
-    return ("rho", "rho_v1", "rho_v2", "rho_e")
+    return ("rho", "rho_v1", "rho_v2", "rho_e_total")
 end
 varnames(::typeof(cons2prim), ::CompressibleEulerEquations2D) = ("rho", "v1", "v2", "p")
 
@@ -64,8 +64,8 @@ function initial_condition_constant(x, t, equations::CompressibleEulerEquations2
     rho = 1
     rho_v1 = convert(RealT, 0.1)
     rho_v2 = convert(RealT, -0.2)
-    rho_e = 10
-    return SVector(rho, rho_v1, rho_v2, rho_e)
+    rho_e_total = 10
+    return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 
 """
@@ -88,9 +88,9 @@ function initial_condition_convergence_test(x, t,
     rho = ini
     rho_v1 = ini
     rho_v2 = ini
-    rho_e = ini^2
+    rho_e_total = ini^2
 
-    return SVector(rho, rho_v1, rho_v2, rho_e)
+    return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 
 """
@@ -157,8 +157,8 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
     rho_v1 = rho * v1
     rho_v2 = rho * v2
     p = 20
-    rho_e = p / (equations.gamma - 1) + 0.5f0 * rho * (v1^2 + v2^2)
-    return SVector(rho, rho_v1, rho_v2, rho_e)
+    rho_e_total = p / (equations.gamma - 1) + 0.5f0 * rho * (v1^2 + v2^2)
+    return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 
 """
@@ -394,20 +394,20 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
     if orientation == 1
         f1 = rho_v1
         f2 = rho_v1 * v1 + p
         f3 = rho_v1 * v2
-        f4 = (rho_e + p) * v1
+        f4 = (rho_e_total + p) * v1
     else
         f1 = rho_v2
         f2 = rho_v2 * v1
         f3 = rho_v2 * v2 + p
-        f4 = (rho_e + p) * v2
+        f4 = (rho_e_total + p) * v2
     end
     return SVector(f1, f2, f3, f4)
 end
@@ -416,7 +416,7 @@ end
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::CompressibleEulerEquations2D)
-    rho_e = last(u)
+    rho_e_total = last(u)
     rho, v1, v2, p = cons2prim(u, equations)
 
     v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
@@ -424,7 +424,7 @@ end
     f1 = rho_v_normal
     f2 = rho_v_normal * v1 + p * normal_direction[1]
     f3 = rho_v_normal * v2 + p * normal_direction[2]
-    f4 = (rho_e + p) * v_normal
+    f4 = (rho_e_total + p) * v_normal
     return SVector(f1, f2, f3, f4)
 end
 
@@ -515,8 +515,8 @@ Kinetic energy preserving two-point flux by
 @inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations2D)
     # Unpack left and right state
-    rho_e_ll = last(u_ll)
-    rho_e_rr = last(u_rr)
+    rho_e_total_ll = last(u_ll)
+    rho_e_total_rr = last(u_rr)
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
@@ -525,7 +525,7 @@ Kinetic energy preserving two-point flux by
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_avg = 0.5f0 * (v2_ll + v2_rr)
     p_avg = 0.5f0 * (p_ll + p_rr)
-    e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
+    e_avg = 0.5f0 * (rho_e_total_ll / rho_ll + rho_e_total_rr / rho_rr)
 
     # Calculate fluxes depending on orientation
     if orientation == 1
@@ -546,8 +546,8 @@ end
 @inline function flux_kennedy_gruber(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::CompressibleEulerEquations2D)
     # Unpack left and right state
-    rho_e_ll = last(u_ll)
-    rho_e_rr = last(u_rr)
+    rho_e_total_ll = last(u_ll)
+    rho_e_total_rr = last(u_rr)
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
@@ -557,7 +557,7 @@ end
     v2_avg = 0.5f0 * (v2_ll + v2_rr)
     v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2]
     p_avg = 0.5f0 * (p_ll + p_rr)
-    e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
+    e_avg = 0.5f0 * (rho_e_total_ll / rho_ll + rho_e_total_rr / rho_rr)
 
     # Calculate fluxes depending on normal_direction
     f1 = rho_avg * v_dot_n_avg
@@ -768,10 +768,10 @@ end
 
 @inline function splitting_steger_warming(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
     a = sqrt(equations.gamma * p / rho)
 
     if orientation == 1
@@ -816,10 +816,10 @@ end
 
 @inline function splitting_steger_warming(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
     a = sqrt(equations.gamma * p / rho)
 
     if orientation == 1
@@ -904,12 +904,12 @@ end
 
 @inline function splitting_drikakis_tsangaris(u, ::Val{:plus}, orientation::Integer,
                                               equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     if orientation == 1
         lambda1 = v1 + a
@@ -941,12 +941,12 @@ end
 
 @inline function splitting_drikakis_tsangaris(u, ::Val{:minus}, orientation::Integer,
                                               equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     if orientation == 1
         lambda1 = v1 + a
@@ -979,12 +979,12 @@ end
 @inline function splitting_drikakis_tsangaris(u, ::Val{:plus},
                                               normal_direction::AbstractVector,
                                               equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     v_n = normal_direction[1] * v1 + normal_direction[2] * v2
 
@@ -1006,12 +1006,12 @@ end
 @inline function splitting_drikakis_tsangaris(u, ::Val{:minus},
                                               normal_direction::AbstractVector,
                                               equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     v_n = normal_direction[1] * v1 + normal_direction[2] * v2
 
@@ -1171,13 +1171,13 @@ end
 
 @inline function splitting_vanleer_haenel(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
 
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     if orientation == 1
         M = v1 / a
@@ -1201,13 +1201,13 @@ end
 
 @inline function splitting_vanleer_haenel(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
 
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     if orientation == 1
         M = v1 / a
@@ -1232,13 +1232,13 @@ end
 @inline function splitting_vanleer_haenel(u, ::Val{:plus},
                                           normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
 
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     v_n = normal_direction[1] * v1 + normal_direction[2] * v2
     M = v_n / a
@@ -1255,13 +1255,13 @@ end
 @inline function splitting_vanleer_haenel(u, ::Val{:minus},
                                           normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
 
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     v_n = normal_direction[1] * v1 + normal_direction[2] * v2
     M = v_n / a
@@ -1305,13 +1305,13 @@ end
 
 @inline function splitting_lax_friedrichs(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
 
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
     lambda = 0.5f0 * (sqrt(v1^2 + v2^2) + a)
 
     if orientation == 1
@@ -1332,13 +1332,13 @@ end
 
 @inline function splitting_lax_friedrichs(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
 
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
     lambda = 0.5f0 * (sqrt(v1^2 + v2^2) + a)
 
     if orientation == 1
@@ -1360,11 +1360,11 @@ end
 @inline function splitting_lax_friedrichs(u, ::Val{:plus},
                                           normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquations2D)
-    rho_e = last(u)
+    rho_e_total = last(u)
     rho, v1, v2, p = cons2prim(u, equations)
 
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
     lambda = 0.5f0 * (sqrt(v1^2 + v2^2) + a)
 
     v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
@@ -1381,11 +1381,11 @@ end
 @inline function splitting_lax_friedrichs(u, ::Val{:minus},
                                           normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquations2D)
-    rho_e = last(u)
+    rho_e_total = last(u)
     rho, v1, v2, p = cons2prim(u, equations)
 
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
     lambda = 0.5f0 * (sqrt(v1^2 + v2^2) + a)
 
     v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
@@ -1598,7 +1598,7 @@ end
 
     entropy_vars_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
     entropy_var_rho_jump, entropy_var_rho_v1_jump,
-    entropy_var_rho_v2_jump, entropy_var_rho_e_jump = entropy_vars_jump
+    entropy_var_rho_v2_jump, entropy_var_rho_e_total_jump = entropy_vars_jump
 
     velocity_minus_c_dot_entropy_vars_jump = v1_minus_c * entropy_var_rho_v1_jump +
                                              v2_minus_c * entropy_var_rho_v2_jump
@@ -1607,11 +1607,11 @@ end
     velocity_avg_dot_vjump = v1_avg * entropy_var_rho_v1_jump +
                              v2_avg * entropy_var_rho_v2_jump
     w1 = lambda_1 * (entropy_var_rho_jump + velocity_minus_c_dot_entropy_vars_jump +
-          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_total_jump)
     w2 = lambda_2 * (entropy_var_rho_jump + velocity_avg_dot_vjump +
-          v_squared_bar / 2 * entropy_var_rho_e_jump)
+          v_squared_bar / 2 * entropy_var_rho_e_total_jump)
     w3 = lambda_3 * (entropy_var_rho_jump + velocity_plus_c_dot_entropy_vars_jump +
-          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_total_jump)
 
     entropy_var_v_normal_jump = dot(SVector(entropy_var_rho_v1_jump,
                                             entropy_var_rho_v2_jump),
@@ -1624,14 +1624,14 @@ end
                           w3 * v1_plus_c +
                           lambda_4 * (entropy_var_rho_v1_jump -
                            unit_normal_direction[1] * entropy_var_v_normal_jump +
-                           entropy_var_rho_e_jump * v1_tangential))
+                           entropy_var_rho_e_total_jump * v1_tangential))
 
     dissipation_rho_v2 = (w1 * v2_minus_c +
                           w2 * v2_avg +
                           w3 * v2_plus_c +
                           lambda_4 * (entropy_var_rho_v2_jump -
                            unit_normal_direction[2] * entropy_var_v_normal_jump +
-                           entropy_var_rho_e_jump * v2_tangential))
+                           entropy_var_rho_e_total_jump * v2_tangential))
 
     v_tangential_dot_entropy_vars_jump = v1_tangential * entropy_var_rho_v1_jump +
                                          v2_tangential * entropy_var_rho_v2_jump
@@ -1640,7 +1640,7 @@ end
                         w2 * 0.5f0 * v_squared_bar +
                         w3 * (h_bar + c_bar * v_avg_normal) +
                         lambda_4 * (v_tangential_dot_entropy_vars_jump +
-                         entropy_var_rho_e_jump *
+                         entropy_var_rho_e_total_jump *
                          (v1_avg^2 + v2_avg^2 - v_avg_normal^2)))
 
     return -0.5f0 *
@@ -1701,19 +1701,19 @@ Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827
 function flux_hllc(u_ll, u_rr, orientation::Integer,
                    equations::CompressibleEulerEquations2D)
     # Calculate primitive variables and speed of sound
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
 
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
-    e_ll = rho_e_ll / rho_ll
-    p_ll = (equations.gamma - 1) * (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2))
+    e_ll = rho_e_total_ll / rho_ll
+    p_ll = (equations.gamma - 1) * (rho_e_total_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2))
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
     v1_rr = rho_v1_rr / rho_rr
     v2_rr = rho_v2_rr / rho_rr
-    e_rr = rho_e_rr / rho_rr
-    p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2))
+    e_rr = rho_e_total_rr / rho_rr
+    p_rr = (equations.gamma - 1) * (rho_e_total_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2))
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     # Obtain left and right fluxes
@@ -1735,8 +1735,8 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     v1_roe = sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr
     v2_roe = sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr
     vel_roe_mag = (v1_roe^2 + v2_roe^2) / sum_sqrt_rho^2
-    H_ll = (rho_e_ll + p_ll) / rho_ll
-    H_rr = (rho_e_rr + p_rr) / rho_rr
+    H_ll = (rho_e_total_ll + p_ll) / rho_ll
+    H_rr = (rho_e_total_rr + p_rr) / rho_rr
     H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
     c_roe = sqrt((equations.gamma - 1) * (H_roe - 0.5f0 * vel_roe_mag))
     Ssl = min(vel_L - c_ll, vel_roe - c_roe)
@@ -1772,7 +1772,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
             f1 = f_ll[1] + Ssl * (UStar1 - rho_ll)
             f2 = f_ll[2] + Ssl * (UStar2 - rho_v1_ll)
             f3 = f_ll[3] + Ssl * (UStar3 - rho_v2_ll)
-            f4 = f_ll[4] + Ssl * (UStar4 - rho_e_ll)
+            f4 = f_ll[4] + Ssl * (UStar4 - rho_e_total_ll)
         else
             densStar = rho_rr * sMu_R / (Ssr - SStar)
             enerStar = e_rr + (SStar - vel_R) * (SStar + p_rr / (rho_rr * sMu_R))
@@ -1788,7 +1788,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
             f1 = f_rr[1] + Ssr * (UStar1 - rho_rr)
             f2 = f_rr[2] + Ssr * (UStar2 - rho_v1_rr)
             f3 = f_rr[3] + Ssr * (UStar3 - rho_v2_rr)
-            f4 = f_rr[4] + Ssr * (UStar4 - rho_e_rr)
+            f4 = f_rr[4] + Ssr * (UStar4 - rho_e_total_rr)
         end
     end
     return SVector(f1, f2, f3, f4)
@@ -1907,11 +1907,11 @@ of the numerical flux.
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
-    # `u_ll[4]` is total energy `rho_e_ll` on the left
+    # `u_ll[4]` is total energy `rho_e_total_ll` on the left
     H_ll = (u_ll[4] + p_ll) / rho_ll
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
-    # `u_rr[4]` is total energy `rho_e_rr` on the right
+    # `u_rr[4]` is total energy `rho_e_total_rr` on the right
     H_rr = (u_rr[4] + p_rr) / rho_rr
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
@@ -1969,11 +1969,11 @@ of the numerical flux.
 
     norm_ = norm(normal_direction)
 
-    # `u_ll[4]` is total energy `rho_e_ll` on the left
+    # `u_ll[4]` is total energy `rho_e_total_ll` on the left
     H_ll = (u_ll[4] + p_ll) / rho_ll
     c_ll = sqrt(equations.gamma * p_ll / rho_ll) * norm_
 
-    # `u_rr[4]` is total energy `rho_e_rr` on the right
+    # `u_rr[4]` is total energy `rho_e_total_rr` on the right
     H_rr = (u_rr[4] + p_rr) / rho_rr
     c_rr = sqrt(equations.gamma * p_rr / rho_rr) * norm_
 
@@ -2010,23 +2010,23 @@ end
 
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
 
     return SVector(rho, v1, v2, p)
 end
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v_square = v1^2 + v2^2
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho * v_square)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho * v_square)
     s = log(p) - equations.gamma * log(rho)
     rho_p = rho / p
 
@@ -2043,7 +2043,7 @@ end
 # using the modified specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
 # Note: This is *not* the "conventional" specific entropy s = ln(p / rho^(gamma)).
 @inline function cons2entropy_guermond_etal(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -2052,7 +2052,7 @@ end
 
     # The derivative vector for the modified specific entropy of Guermond et al.
     w1 = inv_rho_gammap1 *
-         (0.5f0 * rho * (equations.gamma + 1) * v_square - equations.gamma * rho_e)
+         (0.5f0 * rho * (equations.gamma + 1) * v_square - equations.gamma * rho_e_total)
     w2 = -rho_v1 * inv_rho_gammap1
     w3 = -rho_v2 * inv_rho_gammap1
     w4 = (1 / rho)^equations.gamma
@@ -2080,8 +2080,8 @@ end
     rho = -rho_iota * V5
     rho_v1 = rho_iota * V2
     rho_v2 = rho_iota * V3
-    rho_e = rho_iota * (1 - (V2^2 + V3^2) / (2 * V5))
-    return SVector(rho, rho_v1, rho_v2, rho_e)
+    rho_e_total = rho_iota * (1 - (V2^2 + V3^2) / (2 * V5))
+    return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 
 # Convert primitive to conservative variables
@@ -2089,8 +2089,8 @@ end
     rho, v1, v2, p = prim
     rho_v1 = rho * v1
     rho_v2 = rho * v2
-    rho_e = p * equations.inv_gamma_minus_one + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
-    return SVector(rho, rho_v1, rho_v2, rho_e)
+    rho_e_total = p * equations.inv_gamma_minus_one + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
+    return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 
 @inline function density(u, equations::CompressibleEulerEquations2D)
@@ -2112,15 +2112,15 @@ end
 end
 
 @inline function pressure(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
+    rho, rho_v1, rho_v2, rho_e_total = u
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
     return p
 end
 
 # Transformation from conservative variables u to d(p)/d(u)
 @inline function gradient_conservative(::typeof(pressure),
                                        u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -2130,8 +2130,8 @@ end
 end
 
 @inline function density_pressure(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
-    rho_times_p = (equations.gamma - 1) * (rho * rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2))
+    rho, rho_v1, rho_v2, rho_e_total = u
+    rho_times_p = (equations.gamma - 1) * (rho * rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2))
     return rho_times_p
 end
 
@@ -2197,10 +2197,10 @@ Note: This is *not* the "conventional" specific entropy ``s = ln(p / \rho^\gamma
   [DOI: 10.1016/j.cma.2018.11.036](https://doi.org/10.1016/j.cma.2018.11.036)
 """
 @inline function entropy_guermond_etal(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
     # Modified specific entropy from Guermond et al. (2019)
-    s = (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho) * (1 / rho)^equations.gamma
+    s = (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho) * (1 / rho)^equations.gamma
 
     return s
 end
@@ -2221,7 +2221,7 @@ end
 
 # Calculate kinetic energy for a conservative state `cons`
 @inline function energy_kinetic(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     return (rho_v1^2 + rho_v2^2) / (2 * rho)
 end
 

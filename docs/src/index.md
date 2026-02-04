@@ -255,7 +255,7 @@ julia> convergence_test(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_
 ```
 [...]
 l2
-rho                 rho_v1              rho_v2              rho_e
+rho                 rho_v1              rho_v2              rho_e_total
 error     EOC       error     EOC       error     EOC       error     EOC
 9.32e-07  -         1.42e-06  -         1.42e-06  -         4.82e-06  -
 7.03e-08  3.73      9.53e-08  3.90      9.53e-08  3.90      3.30e-07  3.87
@@ -264,7 +264,7 @@ error     EOC       error     EOC       error     EOC       error     EOC
 mean      3.82      mean      3.93      mean      3.93      mean      3.91
 --------------------------------------------------------------------------------
 linf
-rho                 rho_v1              rho_v2              rho_e
+rho                 rho_v1              rho_v2              rho_e_total
 error     EOC       error     EOC       error     EOC       error     EOC
 9.58e-06  -         1.17e-05  -         1.17e-05  -         4.89e-05  -
 6.23e-07  3.94      7.48e-07  3.97      7.48e-07  3.97      3.22e-06  3.92
