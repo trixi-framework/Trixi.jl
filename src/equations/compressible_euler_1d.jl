@@ -12,12 +12,12 @@ The compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \\ \rho v_1 \\ \rho e_{total}
+\rho \\ \rho v_1 \\ \rho e_{\text{total}}
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-\rho v_1 \\ \rho v_1^2 + p \\ (\rho e_{total} +p) v_1
+\rho v_1 \\ \rho v_1^2 + p \\ (\rho e_{\text{total}} +p) v_1
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -25,9 +25,9 @@ The compressible Euler equations
 \end{pmatrix}
 ```
 for an ideal gas with ratio of specific heats `gamma` in one space dimension.
-Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_{total}`` the specific total energy, and
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_{\text{total}}`` the specific total energy, and
 ```math
-p = (\gamma - 1) \left( \rho e_{total} - \frac{1}{2} \rho v_1^2 \right)
+p = (\gamma - 1) \left( \rho e_{\text{total}} - \frac{1}{2} \rho v_1^2 \right)
 ```
 the pressure.
 """
