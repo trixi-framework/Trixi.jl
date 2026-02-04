@@ -34,7 +34,7 @@ by some user-specified equation of state (EOS)
 p = p(V, T)
 ```
 
-Similarly, the internal energy is specified by `e = energy_internal(V, T, eos)`, see
+Similarly, the internal energy is specified by `e_internal = energy_internal(V, T, eos)`, see
 [`energy_internal(V, T, eos::IdealGas)`](@ref), [`energy_internal(V, T, eos::VanDerWaals)`](@ref).
 
 Because of this, the primitive variables are also defined to be `V, v1, T` (instead of 
@@ -298,8 +298,8 @@ end
     V, v1, T = prim
     rho = inv(V)
     rho_v1 = rho * v1
-    e = energy_internal(V, T, eos)
-    rho_e_total = rho * e + 0.5f0 * rho_v1 * v1
+    e_internal = energy_internal(V, T, eos)
+    rho_e_total = rho * e_internal + 0.5f0 * rho_v1 * v1
     return SVector(rho, rho_v1, rho_e_total)
 end
 
@@ -374,7 +374,7 @@ end
     u_thermo = cons2thermo(u, equations)
     V = first(u_thermo)
     T = last(u_thermo)
-    e = energy_internal(V, T, eos)
+    e_internal = energy_internal(V, T, eos)
     return e
 end
 
