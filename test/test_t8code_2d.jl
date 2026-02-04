@@ -172,7 +172,7 @@ end
                                      volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
                                                                                            volume_flux_fv = flux_hll,
                                                                                            reconstruction_mode = reconstruction_O2_inner,
-                                                                                           slope_limiter = vanLeer)),
+                                                                                           slope_limiter = vanleer)),
                         l2=[
                             0.01872951597687948,
                             0.01146844899089883,

@@ -67,7 +67,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # need to interpolate solutions *and* gradients to the surfaces.
 
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral.
     # This calls the specialized version for the viscous fluxes from
@@ -870,7 +870,7 @@ function calc_gradient_surface_integral!(gradients,
                                          mesh::TreeMesh{2}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     gradients_x, gradients_y = gradients
@@ -878,8 +878,7 @@ function calc_gradient_surface_integral!(gradients,
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
@@ -891,7 +890,7 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, 1,
                                                                      element] *
-                                                 factor_1)
+                                                 factor)
 
                 # surface at +x
                 gradients_x[v, nnodes(dg), l, element] = (gradients_x[v,
@@ -900,7 +899,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, 2,
                                                                               element] *
-                                                          factor_2)
+                                                          factor)
 
                 # surface at -y
                 gradients_y[v, l, 1, element] = (gradients_y[v,
@@ -909,7 +908,7 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, 3,
                                                                      element] *
-                                                 factor_1)
+                                                 factor)
 
                 # surface at +y
                 gradients_y[v, l, nnodes(dg), element] = (gradients_y[v,
@@ -918,7 +917,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, 4,
                                                                               element] *
-                                                          factor_2)
+                                                          factor)
             end
         end
     end
@@ -929,8 +928,8 @@ end
 function reset_gradients!(gradients::NTuple{2}, dg::DG, cache)
     gradients_x, gradients_y = gradients
 
-    reset_du!(gradients_x, dg, cache)
-    reset_du!(gradients_y, dg, cache)
+    set_zero!(gradients_x, dg, cache)
+    set_zero!(gradients_y, dg, cache)
 
     return nothing
 end
