@@ -681,9 +681,11 @@ end
     end
 
     # Compute the sound speeds on the left and right
-    p_ll = (gamma_ll - 1) * (rho_e_total_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+    p_ll = (gamma_ll - 1) *
+           (rho_e_total_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
-    p_rr = (gamma_rr - 1) * (rho_e_total_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    p_rr = (gamma_rr - 1) *
+           (rho_e_total_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
@@ -716,8 +718,10 @@ end
     v_rr = dot(v_rr_vec, normal_direction)
 
     # Compute pressures
-    p_ll = (gamma_ll - one(T)) * (rho_e_total_ll - T(0.5) * dot(v_ll_vec, v_ll_vec) * rho_ll)
-    p_rr = (gamma_rr - one(T)) * (rho_e_total_rr - T(0.5) * dot(v_rr_vec, v_rr_vec) * rho_rr)
+    p_ll = (gamma_ll - one(T)) *
+           (rho_e_total_ll - T(0.5) * dot(v_ll_vec, v_ll_vec) * rho_ll)
+    p_rr = (gamma_rr - one(T)) *
+           (rho_e_total_rr - T(0.5) * dot(v_rr_vec, v_rr_vec) * rho_rr)
 
     # Sound speeds
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
@@ -748,9 +752,11 @@ end
     end
 
     # Compute the sound speeds on the left and right
-    p_ll = (gamma_ll - 1) * (rho_e_total_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+    p_ll = (gamma_ll - 1) *
+           (rho_e_total_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
-    p_rr = (gamma_rr - 1) * (rho_e_total_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    p_rr = (gamma_rr - 1) *
+           (rho_e_total_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
