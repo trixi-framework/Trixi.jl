@@ -244,6 +244,37 @@ function entropy_change_reference_element(du::AbstractArray{<:Any, 5}, u,
     end
 end
 
+# calculate surface integral of func(u, equations) * normal on the reference element.
+function surface_integral(func::Func, u, element,
+                          mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
+                          args...) where {Func}
+    surface_integral = zero(real(dg))
+    for jj in eachnode(dg), ii in eachnode(dg)
+        # integrate along x-y plane, normal in z (3) direction
+        u_back = get_node_vars(u, equations, dg, ii, jj, 1, element)
+        u_front = get_node_vars(u, equations, dg, ii, jj, nnodes(dg), element)
+
+        surface_integral += dg.basis.weights[ii] * dg.basis.weights[jj] *
+                            (func(u_front, 3, equations) - func(u_back, 3, equations))
+
+        # integrate along x-z plane, normal in y (2) direction
+        u_bottom = get_node_vars(u, equations, dg, ii, 1, jj, element)
+        u_top = get_node_vars(u, equations, dg, ii, nnodes(dg), jj, element)
+
+        surface_integral += dg.basis.weights[ii] * dg.basis.weights[jj] *
+                            (func(u_top, 2, equations) - func(u_bottom, 2, equations))
+
+        # integrate along y-z plane, normal in x (1) direction
+        u_left = get_node_vars(u, equations, dg, 1, ii, jj, element)
+        u_right = get_node_vars(u, equations, dg, nnodes(dg), ii, jj, element)
+
+        surface_integral += dg.basis.weights[ii] * dg.basis.weights[jj] *
+                            (func(u_right, 1, equations) - func(u_left, 1, equations))
+    end
+
+    return surface_integral
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
