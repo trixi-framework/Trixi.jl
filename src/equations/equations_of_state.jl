@@ -58,7 +58,7 @@ end
 # for the Newton solver for temperature. 
 eos_newton_tol(eos::AbstractEquationOfState) = 10 * eps()
 eos_initial_temperature(V, e, eos::AbstractEquationOfState) = 1
-eos_newton_maxiter(eos) = 100
+eos_newton_maxiter(eos) = 20
 
 """
     temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0, tol = eos_newton_tol(eos),
