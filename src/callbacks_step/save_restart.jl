@@ -182,12 +182,14 @@ function load_adaptive_time_integrator!(integrator, restart_file::AbstractString
         integrator.accept_step = true
         # Reevaluate integrator.fsal_first on the first step
         integrator.reeval_fsal = true
-        
+
         load_controller!(integrator, controller, file)
     end
 end
 
-load_controller!(integrator, controller, file) = error("Loading of controller $(typeof(controller)) not implemented.")
+function load_controller!(integrator, controller, file)
+    return error("Loading of controller $(typeof(controller)) not implemented.")
+end
 
 include("save_restart_dg.jl")
 end # @muladd
