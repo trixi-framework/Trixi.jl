@@ -12,12 +12,12 @@ Multicomponent version of the compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho v_1 \\ \rho e_{total} \\ \rho_1 \\ \rho_2 \\ \vdots \\ \rho_{n}
+\rho v_1 \\ \rho e_{\text{total}} \\ \rho_1 \\ \rho_2 \\ \vdots \\ \rho_{n}
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-\rho v_1^2 + p \\ (\rho e_{total} +p) v_1 \\ \rho_1 v_1 \\ \rho_2 v_1 \\ \vdots \\ \rho_{n} v_1
+\rho v_1^2 + p \\ (\rho e_{\text{total}} +p) v_1 \\ \rho_1 v_1 \\ \rho_2 v_1 \\ \vdots \\ \rho_{n} v_1
 \end{pmatrix}
 
 =
@@ -27,7 +27,7 @@ Multicomponent version of the compressible Euler equations
 ```
 for calorically perfect gas in one space dimension.
 Here, ``\rho_i`` is the density of component ``i``, ``\rho=\sum_{i=1}^n\rho_i`` the sum of the individual ``\rho_i``,
-``v_1`` the velocity, ``e_{total}`` the specific total energy, and
+``v_1`` the velocity, ``e_{\text{total}}`` the specific total energy, and
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho v_1^2 \right)
 ```
