@@ -2,6 +2,7 @@ module TrixiOrdinaryDiffEqCore
 
 import Trixi: load_controller!
 import OrdinaryDiffEqCore: OrdinaryDiffEqCore, PIController, PIDController
+import HDF5: attributes
 
 @static if Base.pkgversion(OrdinaryDiffEqCore) >= v"3.4"
     import OrdinaryDiffEqCore: PIControllerCache, PIDControllerCache
