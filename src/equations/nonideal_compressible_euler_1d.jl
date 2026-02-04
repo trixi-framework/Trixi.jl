@@ -375,7 +375,7 @@ end
     V = first(u_thermo)
     T = last(u_thermo)
     e_internal = energy_internal(V, T, eos)
-    return e
+    return e_internal
 end
 
 @inline function internal_energy_density(u,
