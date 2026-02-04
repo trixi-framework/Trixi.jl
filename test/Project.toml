@@ -1,6 +1,6 @@
 [deps]
-ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
+ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -39,12 +39,11 @@ SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 SparseMatrixColorings = "0a514795-09f3-496d-8182-132a7b665d35"
 StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 TrixiTest = "0a316866-cbd0-4425-8bcb-08103b2c1f26"
 
 [compat]
-ADTypes = "1.14"
 Accessors = "0.1.36"
+ADTypes = "1.14"
 Adapt = "4.1"
 Aqua = "0.8"
 CUDA = "5.8.2"
