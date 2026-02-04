@@ -103,7 +103,7 @@ function pressure(V, T, eos::PengRobinson)
     return p
 end
 
-"""
+@doc raw"""
     energy_internal(V, T, eos::PengRobinson)
 
 Computes internal energy for a Peng-Robinson gas from specific volume `V` and temperature `T` as
