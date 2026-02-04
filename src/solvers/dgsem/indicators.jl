@@ -300,7 +300,7 @@ This is discussed in more detail in
 - Chan (2018)
   "On discretely entropy conservative and entropy stable discontinuous Galerkin methods"
   [DOI: 10.1016/j.jcp.2018.02.033](https://doi.org/10.1016/j.jcp.2018.02.033)
-- Li, Chan (2024)
+- Lin, Chan (2024)
   "High order entropy stable discontinuous Galerkin spectral element methods through subcell limiting"
   [DOI: 10.1016/j.jcp.2023.112677](https://doi.org/10.1016/j.jcp.2023.112677)
 
