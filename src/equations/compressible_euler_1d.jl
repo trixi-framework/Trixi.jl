@@ -584,7 +584,7 @@ end
 
     # sound speed and enthalpy
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     # signed Mach number
     M = v1 / a
@@ -749,14 +749,14 @@ end
     lambda_3 = abs(v_avg_normal + c_bar) * rho_log / (2 * gamma)
     lambda_4 = abs(v_avg_normal) * p_avg
 
-    entropy_var_rho_jump, entropy_var_rho_v1_jump, entropy_var_rho_e_jump = entropy_vars_jump
+    entropy_var_rho_jump, entropy_var_rho_v1_jump, entropy_var_rho_e_total_jump = entropy_vars_jump
 
     w1 = lambda_1 * (entropy_var_rho_jump + v1_minus_c * entropy_var_rho_v1_jump +
-          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_total_jump)
     w2 = lambda_2 * (entropy_var_rho_jump + v1_avg * entropy_var_rho_v1_jump +
-          v1_squared_bar / 2 * entropy_var_rho_e_jump)
+          v1_squared_bar / 2 * entropy_var_rho_e_total_jump)
     w3 = lambda_3 * (entropy_var_rho_jump + v1_plus_c * entropy_var_rho_v1_jump +
-          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_total_jump)
 
     dissipation_rho = w1 + w2 + w3
 
@@ -768,7 +768,8 @@ end
                         w2 * 0.5f0 * v1_squared_bar +
                         w3 * (h_bar + c_bar * v_avg_normal) +
                         lambda_4 *
-                        (entropy_var_rho_e_jump * (v1_avg * v1_avg - v_avg_normal^2)))
+                        (entropy_var_rho_e_total_jump *
+                         (v1_avg * v1_avg - v_avg_normal^2)))
 
     return -0.5f0 * SVector(dissipation_rho, dissipation_rho_v1, dissipation_rhoe) *
            norm_
