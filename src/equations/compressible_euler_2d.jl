@@ -1707,13 +1707,15 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
     e_ll = rho_e_total_ll / rho_ll
-    p_ll = (equations.gamma - 1) * (rho_e_total_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2))
+    p_ll = (equations.gamma - 1) *
+           (rho_e_total_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2))
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
     v1_rr = rho_v1_rr / rho_rr
     v2_rr = rho_v2_rr / rho_rr
     e_rr = rho_e_total_rr / rho_rr
-    p_rr = (equations.gamma - 1) * (rho_e_total_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2))
+    p_rr = (equations.gamma - 1) *
+           (rho_e_total_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2))
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     # Obtain left and right fluxes
@@ -2052,7 +2054,8 @@ end
 
     # The derivative vector for the modified specific entropy of Guermond et al.
     w1 = inv_rho_gammap1 *
-         (0.5f0 * rho * (equations.gamma + 1) * v_square - equations.gamma * rho_e_total)
+         (0.5f0 * rho * (equations.gamma + 1) * v_square -
+          equations.gamma * rho_e_total)
     w2 = -rho_v1 * inv_rho_gammap1
     w3 = -rho_v2 * inv_rho_gammap1
     w4 = (1 / rho)^equations.gamma
@@ -2089,7 +2092,8 @@ end
     rho, v1, v2, p = prim
     rho_v1 = rho * v1
     rho_v2 = rho * v2
-    rho_e_total = p * equations.inv_gamma_minus_one + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
+    rho_e_total = p * equations.inv_gamma_minus_one +
+                  0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
     return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 
@@ -2131,7 +2135,8 @@ end
 
 @inline function density_pressure(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e_total = u
-    rho_times_p = (equations.gamma - 1) * (rho * rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2))
+    rho_times_p = (equations.gamma - 1) *
+                  (rho * rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2))
     return rho_times_p
 end
 
