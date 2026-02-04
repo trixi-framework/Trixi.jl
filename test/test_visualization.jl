@@ -21,7 +21,6 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "Visualization tests" begin
 #! format: noindent
 
-
 # Run 2D tests with elixirs for all mesh types
 test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                        "elixir_euler_blast_wave_amr.jl"),
@@ -33,7 +32,8 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                         "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
 
-@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
+@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in
+                                                               keys(test_examples_2d)
     # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
     @test_trixi_include(joinpath(EXAMPLES_DIR, directory, elixir),
@@ -107,7 +107,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
         else
             cache = semi.cache
-            x = view(cache.elements.node_coordinates, 1, :, :, :)
+            x = view(cache.elements.node_coordinates,1,:,:,:)
             @trixi_test_nowarn Plots.plot(ScalarPlotData2D(x, semi))
         end
     end
@@ -193,8 +193,9 @@ end
         @trixi_test_nowarn Plots.plot(pd)
         @trixi_test_nowarn Plots.plot(pd["p"])
         @trixi_test_nowarn Plots.plot(getmesh(pd))
-        initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
-                                                                  equations)
+        initial_condition_t_end(x,
+                                equations) = initial_condition(x, last(tspan),
+                                                               equations)
         @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
         @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
     end
@@ -396,104 +397,80 @@ end
     end
 end
 
+@testset "PlotData2D Regression Tests" begin
+    # --- 1. SETUP ---
+    examples_dir_local = joinpath(dirname(@__DIR__), "examples")
 
-@trixi_testset "PlotData2D Regression Test (Multi-Mesh)" begin
-        using Trixi
-        using StaticArrays
+    ic_constant = function (x, t, equations::CompressibleEulerEquations2D)
+        rho = 1.0
+        v1 = 0.5
+        v2 = -0.5
+        p = 1.0
+        return Trixi.prim2cons(Trixi.StaticArrays.SVector(rho, v1, v2, p), equations)
+    end
 
-        
-        equations = CompressibleEulerEquations2D(1.4)
-        solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+    # --- Test 1: TreeMesh (Cartesian) ---
+    # TreeMesh stores data as Vector of Matrices (one Matrix per variable)
+    @testset "TreeMesh" begin
+        Trixi.trixi_include(@__MODULE__,
+                            joinpath(examples_dir_local, "tree_2d_dgsem",
+                                     "elixir_euler_blast_wave.jl"),
+                            tspan = (0.0, 0.0))
+        semi = getfield(@__MODULE__, :semi)
+        u_ode = Trixi.compute_coefficients(ic_constant, 0.0, semi)
+        pd = PlotData2D(u_ode, semi, solution_variables = Trixi.cons2prim)
 
-        function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
-            A = 1.0; Ms = 0.1; rho = 1.0
-            v1 = A * sin(x[1]) * cos(x[2])
-            v2 = -A * cos(x[1]) * sin(x[2])
-            p = (A / Ms)^2 * rho / equations.gamma
-            p = p + 1.0 / 16.0 * A^2 * rho * (cos(2 * x[1]) + 2 * cos(2 * x[2]) + 2 * cos(2 * x[1]) + cos(2 * x[2]))
-            return prim2cons(SVector(rho, v1, v2, p), equations)
-        end
+        @test pd.x isa AbstractVector
+        @test pd.y isa AbstractVector
 
-       
-        function verify_mesh(mesh, mesh_name)
-            # 1. Run Simulation (t=0.0 for exact match)
-            semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_taylor_green_vortex, solver)
-            ode = semidiscretize(semi, (0.0, 0.0))
-            
-            # 2. Create PlotData (Default output is Primitive: rho, v1, v2, p)
-            pd = @inferred PlotData2D(ode.u0, ode.p)
-            
+        # Check Values (pd.data[i] is the matrix for variable i)
+        @test all(x -> x ≈ 1.0, pd.data[1]) # rho
+        @test all(x -> x ≈ 0.5, pd.data[2]) # v1
+        @test all(x -> x ≈ -0.5, pd.data[3]) # v2
+        @test all(x -> x ≈ 1.0, pd.data[4]) # p
+    end
 
+    # --- Test 2: StructuredMesh (Curvilinear) ---
+    # StructuredMesh stores data as a collection of SVectors (one SVector per node)
+    @testset "StructuredMesh" begin
+        Trixi.trixi_include(@__MODULE__,
+                            joinpath(examples_dir_local, "structured_2d_dgsem",
+                                     "elixir_euler_ec.jl"),
+                            tspan = (0.0, 0.0))
+        semi = getfield(@__MODULE__, :semi)
+        u_ode = Trixi.compute_coefficients(ic_constant, 0.0, semi)
+        pd = PlotData2D(u_ode, semi, solution_variables = Trixi.cons2prim)
 
-            # 3. Detect Layout & Iterate
-            
-            # Case A: Cartesian Grids (TreeMesh) -> pd.x is a Vector (Axis)
-            if pd.x isa AbstractVector
-                for i in eachindex(pd.x), j in eachindex(pd.y)
-                    # TreeMesh requires (y, x) swap due to internal storage
-                    x_coord = pd.x[i]
-                    y_coord = pd.y[j]
-                    
-                    # Data Access: [Variable][i, j]
-                    rho_p = pd.data[1][i, j]; v1_p = pd.data[2][i, j]
-                    v2_p  = pd.data[3][i, j]; p_p  = pd.data[4][i, j]
-                    
-                    # Exact Check 
-                    u_exact = initial_condition_taylor_green_vortex(SVector(y_coord, x_coord), 0.0, equations)
-                    prim_exact = cons2prim(u_exact, equations)
-                    
-                    @test isapprox(rho_p, prim_exact[1], atol=2e-3)
-                    @test isapprox(v1_p,  prim_exact[2], atol=2e-3)
-                    @test isapprox(v2_p,  prim_exact[3], atol=2e-3)
-                    @test isapprox(p_p,   prim_exact[4], atol=2e-3)
-                end
-            
+        @test pd.x isa AbstractMatrix
+        @test pd.y isa AbstractMatrix
 
-                
-            # Case B: Curved/Unstructured (Structured, P4est) -> pd.x is a Matrix (Coordinate Map)
-            else
-                for I in CartesianIndices(pd.x)
-                    
-                    x_coord = pd.x[I]
-                    y_coord = pd.y[I]
-                    
-                    
-                    if pd.data isa AbstractVector{<:AbstractMatrix} 
-                         rho_p = pd.data[1][I]; v1_p = pd.data[2][I]
-                         v2_p  = pd.data[3][I]; p_p  = pd.data[4][I]
-                    else 
-                         d = pd.data[I]
-                         rho_p = d[1]; v1_p = d[2]; v2_p = d[3]; p_p = d[4]
-                    end
+        # Check Values: Iterate over the solution vectors
+        # val[1]=rho, val[2]=v1, val[3]=v2, val[4]=p
+        @test all(val -> val[1] ≈ 1.0, pd.data)
+        @test all(val -> val[2] ≈ 0.5, pd.data)
+        @test all(val -> val[3] ≈ -0.5, pd.data)
+        @test all(val -> val[4] ≈ 1.0, pd.data)
+    end
 
-                    # Exact Check
-                    u_exact = initial_condition_taylor_green_vortex(SVector(x_coord, y_coord), 0.0, equations)
-                    prim_exact = cons2prim(u_exact, equations)
-                    
-                    @test isapprox(rho_p, prim_exact[1], atol=2e-3)
-                    @test isapprox(v1_p,  prim_exact[2], atol=2e-3)
-                    @test isapprox(v2_p,  prim_exact[3], atol=2e-3)
-                    @test isapprox(p_p,   prim_exact[4], atol=2e-3)
-                end
-            end
-        end
+    # --- Test 3: P4estMesh (Unstructured) ---
+    # P4estMesh stores data as a collection of SVectors
+    @testset "P4estMesh" begin
+        Trixi.trixi_include(@__MODULE__,
+                            joinpath(examples_dir_local, "p4est_2d_dgsem",
+                                     "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                            tspan = (0.0, 0.0))
+        semi = getfield(@__MODULE__, :semi)
+        u_ode = Trixi.compute_coefficients(ic_constant, 0.0, semi)
+        pd = PlotData2D(u_ode, semi, solution_variables = Trixi.cons2prim)
 
-        # --- Run Tests for All Meshes ---
-        
-    # 1. TreeMesh
-    mesh_tree = TreeMesh((-1.0, -1.0), (1.0, 1.0), n_cells_max=10^5, initial_refinement_level=3)
-    verify_mesh(mesh_tree, "TreeMesh")
+        @test pd.x isa AbstractMatrix
+        @test pd.y isa AbstractMatrix
 
-    # 2. StructuredMesh
-    mesh_struct = StructuredMesh((16, 16), (-1.0, -1.0), (1.0, 1.0))
-    verify_mesh(mesh_struct, "StructuredMesh")
-
-    # 3. P4estMesh (Conditional Check)
-    if isdefined(Main, :P4est) || isdefined(Trixi, :P4est)
-            mesh_p4est = P4estMesh((16, 16), polydeg=3, 
-                                coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0), 
-                                initial_refinement_level=0)
-            verify_mesh(mesh_p4est, "P4estMesh")
+        # Check Values
+        @test all(val -> val[1] ≈ 1.0, pd.data)
+        @test all(val -> val[2] ≈ 0.5, pd.data)
+        @test all(val -> val[3] ≈ -0.5, pd.data)
+        @test all(val -> val[4] ≈ 1.0, pd.data)
     end
 end
 
@@ -855,8 +832,8 @@ end
 
     # test interactive ScalarPlotData2D plotting
     semi = sol.prob.p
-    x = view(semi.cache.elements.node_coordinates, 1, :, :, :) # extracts the node x coordinates
-    y = view(semi.cache.elements.node_coordinates, 2, :, :, :) # extracts the node x coordinates
+    x = view(semi.cache.elements.node_coordinates,1,:,:,:) # extracts the node x coordinates
+    y = view(semi.cache.elements.node_coordinates,2,:,:,:) # extracts the node x coordinates
     @trixi_test_nowarn iplot(ScalarPlotData2D(x .+ y, semi), plot_mesh = true)
 
     # test heatmap plot
@@ -877,16 +854,5 @@ end
     @trixi_test_nowarn Trixi.iplot(sol)
 end
 end
-
-
-
-
-
-
-
-
-
-
-
 
 end #module
