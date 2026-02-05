@@ -9,7 +9,7 @@ for human readability.
 
 #### Changed
 
-- The variable name (printed to the screen and files) of the specific total energy in the compressible Euler equations has been changed from `e` to `e_total` to avoid confusion with the internal energy `e_internal` ([#2778]).
+- The variable name (printed to the screen and files) of the total energy in the compressible Euler equations has been changed from `rho_e` to `rho_e_total` to avoid confusion with the internal energy `rho_e_internal` ([#2778]).
 
 ## Changes in the v0.14 lifecycle
 
