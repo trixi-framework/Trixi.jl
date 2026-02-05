@@ -16,6 +16,7 @@ for human readability.
 - Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733]).
   In the new version, local (minimum or maximum) limiting for nonlinear variables (using
   the keyword `local_onesided_variables_nonlinear` in `SubcellLimiterIDP()`) is supported.
+- Added `PengRobinson` equation of state ([#2769]).
 
 #### Changed
 
