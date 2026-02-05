@@ -132,7 +132,8 @@ References for the method of manufactured solutions (MMS):
     rho(x1, t) = ini(x1, t)
     v1(x1, t) = 1
     e_total(x1, t) = ini(x1, t)^2 / rho(x1, t)
-    p1(x1, t) = (equations.gamma - 1) * (e_total(x1, t) - 0.5f0 * rho(x1, t) * v1(x1, t)^2)
+    p1(x1, t) = (equations.gamma - 1) *
+                (e_total(x1, t) - 0.5f0 * rho(x1, t) * v1(x1, t)^2)
     a(x1, t) = 1.5f0 - 0.5f0 * cospi(x1)
 
     arho(x1, t) = a(x1, t) * rho(x1, t)
