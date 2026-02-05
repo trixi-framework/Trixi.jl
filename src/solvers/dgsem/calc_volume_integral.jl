@@ -192,7 +192,7 @@ function calc_volume_integral!(du, u, mesh,
                                dg::DGSEM,
                                cache) where {VolumeIntegralSC <:
                                              VolumeIntegralShockCapturingHG,
-                                             Indicator <: Nothing}# Indicator taken from `VolumeIntegralSC`
+                                             Indicator <: Nothing} # Indicator taken from `VolumeIntegralSC`
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral.volume_integral_stabilized
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
