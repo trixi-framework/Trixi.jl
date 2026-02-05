@@ -148,7 +148,8 @@ function calc_volume_integral!(du, u, mesh,
                                              VolumeIntegralFD <:
                                              VolumeIntegralFluxDifferencing,
                                              Indicator <: IndicatorEntropyChange}
-    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+    @unpack maximum_entropy_increase = indicator
 
     @threaded for element in eachelement(dg, cache)
         # Compute weak form (WF) volume integral
@@ -168,7 +169,7 @@ function calc_volume_integral!(du, u, mesh,
                                    mesh, equations, dg, cache)
 
         entropy_change = dS_WF - dS_true
-        if entropy_change > 0 # Recompute using EC FD volume integral
+        if entropy_change > maximum_entropy_increase # Recompute using EC FD volume integral
             # Reset weak form volume integral contribution
             du[.., element] .= zero(eltype(du))
 
