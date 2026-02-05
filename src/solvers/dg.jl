@@ -330,6 +330,20 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
+                                                                        VolumeIntegralSC,
+                                                                        Indicator},
+                                dg, cache) where {VolumeIntegralSC <:
+                                             AbstractVolumeIntegralShockCapturing,
+                                             Indicator <: Nothing} # Indicator taken from `VolumeIntegralSC`
+    @unpack volume_integral_stabilized = volume_integral
+    @unpack indicator = volume_integral_stabilized
+
+    indicator(u, mesh, equations, dg, cache)
+    return get_element_variables!(element_variables, indicator, volume_integral_stabilized)
+end
+
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.
