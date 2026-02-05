@@ -57,7 +57,7 @@ end
 # relative tolerance, initial guess, and maximum number of iterations 
 # for the Newton solver for temperature. 
 eos_newton_tol(eos::AbstractEquationOfState) = 10 * eps()
-eos_initial_temperature(V, e, eos::AbstractEquationOfState) = 1
+eos_initial_temperature(V, e_internal, eos::AbstractEquationOfState) = 1
 eos_newton_maxiter(eos) = 20
 
 """
@@ -68,14 +68,14 @@ Calculates the temperature as a function of specific volume `V` and internal ene
 by using Newton's method to determine `T` such that `energy_internal(V, T, eos) = e`.
 Note that the tolerance may need to be adjusted based on the specific equation of state. 
 """
-function temperature(V, e, eos::AbstractEquationOfState;
-                     initial_T = eos_initial_temperature(V, e, eos),
+function temperature(V, e_internal, eos::AbstractEquationOfState;
+                     initial_T = eos_initial_temperature(V, e_internal, eos),
                      tol = eos_newton_tol(eos), maxiter = eos_newton_maxiter(eos))
     T = initial_T
-    de = energy_internal(V, T, eos) - e
+    de = energy_internal(V, T, eos) - e_internal
     iter = 1
     while abs(de) > tol * abs(e) && iter < maxiter
-        de = energy_internal(V, T, eos) - e
+        de = energy_internal(V, T, eos) - e_internal
 
         # for thermodynamically admissible states, c_v = de_dT_V > 0, which should 
         # guarantee convergence of this iteration.

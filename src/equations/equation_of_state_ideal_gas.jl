@@ -54,8 +54,8 @@ Computes internal energy for an ideal gas from specific volume `V` and temperatu
 """
 function energy_internal(V, T, eos::IdealGas)
     (; cv) = eos
-    e = cv * T
-    return e
+    e_internal = cv * T
+    return e_internal
 end
 
 function entropy_specific(V, T, eos::IdealGas)
@@ -74,9 +74,9 @@ end
 # This is not a required interface function, but specializing it 
 # if an explicit function is available can improve performance.
 # For general EOS, this is calculated via a Newton solve. 
-function temperature(V, e, eos::IdealGas)
+function temperature(V, e_internal, eos::IdealGas)
     (; cv) = eos
-    T = e / cv
+    T = e_internal / cv
     return T
 end
 end # @muladd

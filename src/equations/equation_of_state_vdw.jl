@@ -66,8 +66,8 @@ Computes internal energy for a van der Waals gas from specific volume `V` and te
 function energy_internal(V, T, eos::VanDerWaals)
     (; cv, a) = eos
     rho = inv(V)
-    e = cv * T - a * rho
-    return e
+    e_internal = cv * T - a * rho
+    return e_internal
 end
 
 function entropy_specific(V, T, eos::VanDerWaals)
@@ -86,18 +86,18 @@ end
 function speed_of_sound(V, T, eos::VanDerWaals)
     (; a, b, gamma) = eos
     rho = inv(V)
-    e = energy_internal(V, T, eos)
-    c2 = gamma * (gamma - 1) * (e + rho * a) / (1 - rho * b)^2 - 2 * a * rho
+    e_internal = energy_internal(V, T, eos)
+    c2 = gamma * (gamma - 1) * (e_internal + rho * a) / (1 - rho * b)^2 - 2 * a * rho
     return sqrt(c2)
 end
 
 # This is not a required interface function, but specializing it 
 # if an explicit function is available can improve performance.
 # For general EOS, this is calculated via a Newton solve. 
-function temperature(V, e, eos::VanDerWaals)
+function temperature(V, e_internal, eos::VanDerWaals)
     (; cv, a) = eos
     rho = inv(V)
-    T = (e + a * rho) / cv
+    T = (e_internal + a * rho) / cv
     return T
 end
 

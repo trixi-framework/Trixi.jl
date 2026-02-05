@@ -81,8 +81,8 @@ equation of state routines are assumed to be evaluated in terms of `V` and `T`.
 
     V = inv(rho)
     v1 = rho_v1 * V
-    e = (rho_e_total - 0.5f0 * rho_v1 * v1) * V
-    T = temperature(V, e, eos)
+    e_internal = (rho_e_total - 0.5f0 * rho_v1 * v1) * V
+    T = temperature(V, e_internal, eos)
 
     return SVector(V, v1, T)
 end
@@ -381,7 +381,7 @@ end
 @inline function internal_energy_density(u,
                                          equations::NonIdealCompressibleEulerEquations1D)
     rho, rho_v1, rho_e_total = u
-    rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
-    return rho_e
+    rho_e_internal = rho_e_total - 0.5f0 * rho_v1^2 / rho
+    return rho_e_internal
 end
 end # @muladd
