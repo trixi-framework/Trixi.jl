@@ -36,7 +36,7 @@ function initial_condition_transcritical_shock(x, t,
         iter += 1
     end
     if iter == 100
-        println("Warning: solver for temperature(V, p) did not converge")
+        @warn "Solver for temperature(V, p) did not converge"
     end
 
     return prim2cons(SVector(V, v1, T), equations)
