@@ -49,7 +49,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
 # `target_decay` governs the tolerated entropy increase due to the weak-form
 # volume integral before switching to the stabilized version
-indicator = IndicatorEntropyChange(maximum_entropy_increase = 2.5e-4)
+indicator = IndicatorEntropyChange(maximum_entropy_increase = 4e-4)
 # Adaptive volume integral using the entropy increase indicator to perform the 
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,
