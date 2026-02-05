@@ -206,4 +206,14 @@ S(u) = \frac{1}{2} u^2
 @inline function energy_total(u, equation::InviscidBurgersEquation1D)
     return energy_total(u[1], equation)
 end
+
+@doc raw"""
+    entropy_potential(u, orientation::Int, equations::InviscidBurgersEquation1D)
+
+Calculate the entropy potential ``\psi = \frac{u^3}{6}`` for the inviscid Burgers' equation.
+"""
+@inline function entropy_potential(u, orientation::Integer, equation::InviscidBurgersEquation1D)
+    return u[1]^3 / 6
+end
+
 end # @muladd
