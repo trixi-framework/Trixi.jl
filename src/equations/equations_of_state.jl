@@ -86,8 +86,8 @@ function temperature(V, e, eos::AbstractEquationOfState;
         iter += 1
     end
     if iter == maxiter
-        println("Warning: nonlinear solve in `temperature(V, T, eos)` did not converge within $maxiter iterations. " *
-                "Final states: iter = $iter, V, e = $V, $e with de = $de")
+        @warn "Solver in `temperature(V, T, eos)` did not converge within $maxiter iterations. " *
+              "Final states: iter = $iter, V, e = $V, $e with de = $de"
     end
     return T
 end
