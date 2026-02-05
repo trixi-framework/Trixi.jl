@@ -46,7 +46,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000,
                 periodicity = false)
 
-# Dirichlet boundary condition only valid for considered time interval.
+# Dirichlet boundary condition is only valid for considered time interval.
 # If the rarefaction wave reaches boundary, this condition is no longer valid!
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
                        x_pos = boundary_condition_do_nothing)
