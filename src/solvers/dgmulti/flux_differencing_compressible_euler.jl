@@ -36,7 +36,7 @@ function cons2entropy!(entropy_var_values::StructArray,
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
         v_square = v1^2 + v2^2
-        p = (gamma - 1) * (rho_e_total - 0.5 * rho * v_square)
+        p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * v_square)
         s = log(p) - gamma * log(rho)
         rho_p = rho / p
 
@@ -120,7 +120,7 @@ function cons2entropy!(entropy_var_values::StructArray,
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         v_square = v1^2 + v2^2 + v3^2
-        p = (gamma - 1) * (rho_e_total - 0.5 * rho * v_square)
+        p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * v_square)
         s = log(p) - gamma * log(rho)
         rho_p = rho / p
 
