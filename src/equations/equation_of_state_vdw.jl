@@ -11,7 +11,7 @@
 This defines the van der Waals equation of state
 given by the pressure and internal energy relations
 ```math
-p = \frac{\rho R T}{1 - \rho b} - a \rho^2, \quad e = c_v T - a \rho
+p = \frac{\rho R T}{1 - \rho b} - a \rho^2, \quad e_{\text{internal}} = c_v T - a \rho
 ```
 with ``c_v = \frac{R}{\gamma - 1}``. This corresponds to the "simple 
 van der Waals" fluid with constant `c_v`, which can be found on p28 of 
@@ -61,7 +61,7 @@ end
     energy_internal(V, T, eos::VanDerWaals)
 
 Computes internal energy for a van der Waals gas from specific volume `V` and temperature `T` as
-``e = c_v T - a \rho``.
+``e_{\text{internal}} = c_v T - a \rho``.
 """
 function energy_internal(V, T, eos::VanDerWaals)
     (; cv, a) = eos

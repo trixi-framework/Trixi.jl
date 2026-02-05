@@ -11,7 +11,7 @@
 This defines the polytropic ideal gas equation of state
 given by the pressure and internal energy relations
 ```math
-p = \rho R T, \quad e = c_v T
+p = \rho R T, \quad e_{\text{internal}} = c_v T
 ```
 with ``c_v = \frac{R}{\gamma - 1}``.
 """
@@ -50,7 +50,7 @@ end
     energy_internal(V, T, eos::IdealGas)
 
 Computes internal energy for an ideal gas from specific volume `V` and temperature `T` as
-``e = c_v T``.
+``e_{\text{internal}} = c_v T``.
 """
 function energy_internal(V, T, eos::IdealGas)
     (; cv) = eos

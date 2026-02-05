@@ -61,8 +61,8 @@ eos_initial_temperature(V, e, eos::AbstractEquationOfState) = 1
 eos_newton_maxiter(eos) = 20
 
 """
-    temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0, tol = eos_newton_tol(eos),
-                maxiter = 100)
+    temperature(V, e_internal, eos::AbstractEquationOfState; initial_T = 1.0, 
+                tol = eos_newton_tol(eos), maxiter = 100)
 
 Calculates the temperature as a function of specific volume `V` and internal energy `e`
 by using Newton's method to determine `T` such that `energy_internal(V, T, eos) = e`.

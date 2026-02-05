@@ -11,7 +11,7 @@
 This defines the Peng-Robinson equation of state
 given by the pressure and internal energy relations
 ```math
-p = \frac{R T}{V - b} - \frac{a(T)}{V^2 + 2bV - b^2}, \quad e = c_{v,0} T + K(a(T) - Ta'(T))
+p = \frac{R T}{V - b} - \frac{a(T)}{V^2 + 2bV - b^2}, \quad e_{\text{internal}} = c_{v,0} T + K(a(T) - Ta'(T))
 ```
 where ``V = inv(rho)`` and auxiliary expressions for ``a(T)`` and ``K`` are given by 
 ```math
@@ -107,7 +107,7 @@ end
     energy_internal(V, T, eos::PengRobinson)
 
 Computes internal energy for a Peng-Robinson gas from specific volume `V` and temperature `T` as
-``e = c_{v,0} T + K_1 (a(T) - T a'(T))``. 
+``e_{\text{internal}} = c_{v,0} T + K_1 (a(T) - T a'(T))``. 
 """
 function energy_internal(V, T, eos::PengRobinson)
     (; cv0) = eos
