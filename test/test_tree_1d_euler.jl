@@ -222,6 +222,25 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_modified_sod.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_modified_sod.jl"),
+                        l2=[
+                            0.0399550433311278,
+                            0.06998004474709885,
+                            0.15163602987667993
+                        ],
+                        linf=[
+                            0.49713721183629334,
+                            0.9497734601426432,
+                            1.8835950556097325
+                        ],
+                        tspan=(0.0, 0.005),
+                        abstol=1e-11, reltol=1e-11)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         l2=[
