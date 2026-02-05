@@ -15,11 +15,12 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          variable = first)
 
 volume_flux = flux_ec
-surface_flux = flux_lax_friedrichs
+#surface_flux = flux_lax_friedrichs
+surface_flux = flux_godunov
 
 volume_integral_hg = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+                                                    volume_flux_dg = volume_flux,
+                                                    volume_flux_fv = surface_flux)
 
 volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(flux_ec)
 volume_integral_weakform = VolumeIntegralWeakForm() # unstable
@@ -32,7 +33,7 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integr
                                          volume_integral_stabilized = volume_integral_fluxdiff,
                                          indicator = indicator)
 
-solver = DGSEM(basis, surface_flux, volume_integral_fluxdiff)
+solver = DGSEM(basis, surface_flux, volume_integral_weakform)
 
 coordinate_min = 0.0
 coordinate_max = 1.0
@@ -57,10 +58,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 # ODE solvers, callbacks etc.
 
 t_discontinuous = 1/(2 * pi) # time when shock forms
-tspan = (0.0, t_discontinuous)
 
-t_end = 0.35 # 0.35 (there WF has already crasehed)
-# t_end = 10.0 # test long time stability
+t_end = 0.25 # 0.35 (there WF has already crasehed)
+#t_end = 10.0 # test long time stability
 tspan = (0.0, t_end)
 
 ode = semidiscretize(semi, tspan)
@@ -83,3 +83,66 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, SSPRK54(); dt = 1.0,
             ode_default_options()..., callback = callbacks);
+
+using Plots
+
+# FD
+plot(sol,
+     guidefont = font("Computer Modern", 16), tickfont = font("Computer Modern", 14),
+     titlefont = font("Computer Modern", 18), legendfont = font("Computer Modern", 16),
+     labelfont = font("Computer Modern", 14),
+     linewidth = 2, color = RGB(161/256, 16/256, 53/256),
+     label = "Flux-Diff.",
+     #title = "Shock Formation Burgers'",
+     title = "",
+     legend = :bottomleft,
+     #yticks = [-20, -10, 0, 10, 20], ylim = (-21, 21),
+     xlim = (0, 1.02),
+     ylabel = "\$u\$",
+     dpi = 600)
+
+# FD + Adaptive
+plot!(sol,
+     guidefont = font("Computer Modern", 16), tickfont = font("Computer Modern", 14),
+     titlefont = font("Computer Modern", 18), legendfont = font("Computer Modern", 16),
+     labelfont = font("Computer Modern", 14),
+     linewidth = 2, color = RGB(0, 84/256, 159/256),
+     label = "Adaptive",
+     #title = "Shock Formation Burgers'",
+     title = "",
+     legend = :bottomleft,
+     #yticks = [-20, -10, 0, 10, 20], ylim = (-21, 21),
+     xlim = (0, 1.02),
+     ylabel = "\$u\$",
+     dpi = 600)
+
+# FD + Adaptive + HG
+plot!(sol,
+     guidefont = font("Computer Modern", 16), tickfont = font("Computer Modern", 14),
+     titlefont = font("Computer Modern", 18), legendfont = font("Computer Modern", 16),
+     labelfont = font("Computer Modern", 14),
+     linewidth = 2, color = RGB(97/256, 33/256, 88/256),
+     label = "Shock-Capturing",
+     #title = "Shock Formation Burgers'",
+     title = "",
+     legend = :bottomleft,
+     #yticks = [-20, -10, 0, 10, 20], ylim = (-21, 21),
+     xlim = (0, 1.02),
+     ylabel = "\$u\$",
+     dpi = 600)
+
+
+# Plot for weak form
+plot(sol,
+     guidefont = font("Computer Modern", 16), tickfont = font("Computer Modern", 14),
+     titlefont = font("Computer Modern", 18), legendfont = font("Computer Modern", 16),
+     labelfont = font("Computer Modern", 14),
+     linewidth = 2, color = RGB(246/256, 169/256, 0),
+     label = "Weak Form",
+     #title = "Shock Formation Burgers'",
+     title = "",
+     legend = :bottomleft,
+     yticks = [-20, -10, 0, 10, 20], ylim = (-21, 21),
+     xlim = (0, 1.02),
+     ylabel = "\$u\$",
+     dpi = 600)
