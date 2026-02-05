@@ -1142,7 +1142,7 @@ end
 """
     energy_internal(cons, equations::AbstractCompressibleEulerEquations)
 
-Calculate internal energy ``e_{internal}`` for a conservative state `cons` as the difference
+Calculate internal energy ``e_{\text{internal}}`` for a conservative state `cons` as the difference
 of total energy and kinetic energy.
 """
 @inline function energy_internal(cons, equations::CompressibleEulerEquations1D)
