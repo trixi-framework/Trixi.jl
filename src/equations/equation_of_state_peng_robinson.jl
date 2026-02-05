@@ -147,8 +147,8 @@ function speed_of_sound(V, T, eos::PengRobinson)
 
     # calculate bulk modulus, which should be positive 
     # for admissible thermodynamic states.
-    kappa_T = -inv(V * dpdV_T)
-    c2 = gamma * V / kappa_T
+    inv_kappa_T = -(V * dpdV_T)
+    c2 = gamma * V * inv_kappa_T
     return sqrt(c2)
 end
 
