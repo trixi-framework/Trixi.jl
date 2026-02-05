@@ -1688,7 +1688,7 @@ Computes the pressure for an ideal equation of state with
 isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
 ```math
 \begin{aligned}
-p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} - \frac{1}{2}\psi^2 \right) \\
+p &= (\gamma - 1) \left( \rho e_{\text{total}} - \rho e_{\text{kinetic}} - \rho e_{\text{magnetic}} - \frac{1}{2}\psi^2 \right) \\
   &= (\gamma - 1) \left( \rho e - \frac{1}{2}
   \left[\rho \Vert v \Vert_2^2  + \Vert B \Vert_2^2 + \psi^2 \right] \right)
 \end{aligned}
