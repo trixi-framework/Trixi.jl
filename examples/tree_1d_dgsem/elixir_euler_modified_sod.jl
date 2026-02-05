@@ -41,14 +41,13 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
 coordinates_min = 0.0
 coordinates_max = 1.0
 
-# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
                 n_cells_max = 30_000,
                 periodicity = false)
 
-# Dirichlet boundary condition valid for considered time interval.
-# If rarefaction wave reaches boundary, this condition is no longer valid!
+# Dirichlet boundary condition only valid for considered time interval.
+# If the rarefaction wave reaches boundary, this condition is no longer valid!
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
                        x_pos = boundary_condition_do_nothing)
 
@@ -76,11 +75,11 @@ callbacks = CallbackSet(summary_callback,
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
                                                      variables = (Trixi.density, pressure))
 
-ode_alg = SSPRK43(stage_limiter! = stage_limiter!);
+ode_alg = SSPRK43(stage_limiter! = stage_limiter!)
 =#
 # Flux-differencing volume integral does not require positivity preservation for this test case.
 ode_alg = SSPRK43()
 
 sol = solve(ode, ode_alg;
-            dt = 4e-4, abstol = 1e-4, reltol = 1e-4,
+            dt = 4e-4, adaptive = true,
             ode_default_options()..., callback = callbacks);
