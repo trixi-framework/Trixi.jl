@@ -47,8 +47,10 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000,
                 periodicity = false)
 
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+# Dirichlet boundary condition valid for considered time interval.
+# If rarefaction wave reaches boundary, this condition is no longer valid!
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
+                       x_pos = boundary_condition_do_nothing)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
