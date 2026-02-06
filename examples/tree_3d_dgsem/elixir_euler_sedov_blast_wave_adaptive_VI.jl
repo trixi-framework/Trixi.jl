@@ -1,4 +1,3 @@
-using OrdinaryDiffEqLowStorageRK
 using OrdinaryDiffEqSSPRK
 using Trixi
 
@@ -56,12 +55,12 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = VolumeIntegra
                                          volume_integral_stabilized = volume_integral_stabilized,
                                          indicator = nothing) # Indicator taken from `volume_integral_stabilized`
 
-solver = DGSEM(basis, surface_flux, volume_integral)
+solver = DGSEM(basis, surface_flux, volume_integral_stabilized)
 
 coordinates_min = (-2.0, -2.0, -2.0)
 coordinates_max = (2.0, 2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 5,
                 n_cells_max = 1_000_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -79,7 +78,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(alive_interval = 20)
 
-save_solution = SaveSolutionCallback(interval = 100,
+save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
@@ -98,13 +97,13 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 2,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = false)
 
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        #save_solution,
+                        save_solution,
                         amr_callback, stepsize_callback)
 
 ###############################################################################
