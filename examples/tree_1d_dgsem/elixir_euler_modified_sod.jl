@@ -30,10 +30,18 @@ end
 initial_condition = initial_condition_modified_sod
 
 # Using the weak form volume integral gives a wrong solution at the rarefaction wave!
-#volume_integral = VolumeIntegralWeakForm()
+volume_integral_wf = VolumeIntegralWeakForm()
 
 # The entropy-conservative flux-differencing volume integral recovers the rarefaction wave correctly!
-volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
+volume_integral_fd = VolumeIntegralFluxDifferencing(flux_ranocha)
+
+indicator = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
+
+# Adaptive volume integral using the entropy change indicator to perform the 
+# stabilized/EC volume integral when needed and keeping the weak form if it is more diffusive.
+volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_wf,
+                                         volume_integral_stabilized = volume_integral_fd,
+                                         indicator = indicator)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
                volume_integral = volume_integral)
@@ -83,3 +91,52 @@ ode_alg = SSPRK43()
 sol = solve(ode, ode_alg;
             dt = 4e-4, adaptive = true,
             ode_default_options()..., callback = callbacks);
+
+using Plots
+
+pd = PlotData1D(sol)
+
+# FD
+plot(pd["rho"],
+     guidefont = font("Computer Modern", 16), tickfont = font("Computer Modern", 14),
+     titlefont = font("Computer Modern", 18), legendfont = font("Computer Modern", 16),
+     labelfont = font("Computer Modern", 14),
+     linewidth = 2, color = RGB(161/256, 16/256, 53/256),
+     label = "Flux-Diff.",
+     #title = "Shock Formation Burgers'",
+     title = "",
+     legend = :bottomleft,
+     #yticks = [-20, -10, 0, 10, 20], ylim = (-21, 21),
+     xlim = (0, 1.02),
+     ylabel = "\$\\rho\$",
+     dpi = 600)
+
+# FD + Adaptive
+plot!(pd["rho"],
+     guidefont = font("Computer Modern", 16), tickfont = font("Computer Modern", 14),
+     titlefont = font("Computer Modern", 18), legendfont = font("Computer Modern", 16),
+     labelfont = font("Computer Modern", 14),
+     linewidth = 2, color = RGB(0, 84/256, 159/256),
+     label = "Adaptive",
+     #title = "Shock Formation Burgers'",
+     title = "",
+     legend = :bottomleft,
+     #yticks = [-20, -10, 0, 10, 20], ylim = (-21, 21),
+     xlim = (0, 1.02),
+     ylabel = "\$\\rho\$",
+     dpi = 600)
+
+# Plot for weak form
+plot(pd["rho"],
+     guidefont = font("Computer Modern", 16), tickfont = font("Computer Modern", 14),
+     titlefont = font("Computer Modern", 18), legendfont = font("Computer Modern", 16),
+     labelfont = font("Computer Modern", 14),
+     linewidth = 2, color = RGB(246/256, 169/256, 0),
+     label = "Weak Form",
+     #title = "Shock Formation Burgers'",
+     title = "",
+     legend = :bottomleft,
+     #yticks = [-20, -10, 0, 10, 20], ylim = (-21, 21),
+     xlim = (0, 1.02),
+     ylabel = "\$\\rho\$",
+     dpi = 600)

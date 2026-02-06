@@ -212,23 +212,13 @@ slope limiter `slope_limiter` and the
 The amount of blending is determined by the `indicator`, e.g.,
 [`IndicatorHennemannGassner`](@ref).
 
-**Symmetric** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
-    1) [`minmod`](@ref)
-    2) [`monotonized_central`](@ref)
-    3) [`superbee`](@ref)
-    4) [`vanleer`](@ref)
-    5) [`koren_symmetric`](@ref)
-**Asymmetric** TVD limiters are also available, e.g.,
-    1) [`koren`](@ref) for positive (right-going) velocities
-    2) [`koren_flipped`](@ref) for negative (left-going) velocities
-
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
 
 ## References
 
-See especially Section 3.2, Section 4, and Appendix D of the paper
+See especially Sections 3.2, Section 4, and Appendix D of the paper
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
@@ -278,6 +268,80 @@ function Base.show(io::IO, mime::MIME"text/plain",
         summary_line(io, "slope limiter", integral.slope_limiter)
         summary_footer(io)
     end
+end
+
+"""
+    VolumeIntegralAdaptive(;
+                           volume_integral_default = VolumeIntegralWeakForm(),
+                           volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
+                           indicator = IndicatorEntropyChange())
+
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
+
+Possible combinations:
+- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyChange()`](@ref)
+"""
+struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
+                              Indicator} <: AbstractVolumeIntegral
+    volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
+    volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
+    indicator::Indicator
+end
+
+function VolumeIntegralAdaptive(;
+                                volume_integral_default = VolumeIntegralWeakForm(),
+                                volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
+                                indicator = IndicatorEntropyChange())
+    if !(volume_integral_default isa VolumeIntegralWeakForm)
+        throw(ArgumentError("`volume_integral_default` must be of type `VolumeIntegralWeakForm`."))
+    end
+    #=
+    if !(volume_integral_stabilized isa VolumeIntegralFluxDifferencing)
+        throw(ArgumentError("`volume_integral_stabilized` must be of type `VolumeIntegralFluxDifferencing`."))
+    end
+    =#
+    return VolumeIntegralAdaptive{typeof(volume_integral_default),
+                                  typeof(volume_integral_stabilized),
+                                  typeof(indicator)}(volume_integral_default,
+                                                     volume_integral_stabilized,
+                                                     indicator)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralAdaptive)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralAdaptive")
+        summary_line(io, "volume integral default",
+                     integral.volume_integral_default)
+        summary_line(io, "volume integral stabilized",
+                     integral.volume_integral_stabilized)
+        if integral.indicator === nothing
+            summary_line(io, "indicator", integral.indicator)
+        else
+            summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
+            show(increment_indent(io), mime, integral.indicator)
+        end
+        summary_footer(io)
+    end
+end
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
+                                                                        VolumeIntegralSC,
+                                                                        Indicator},
+                                dg, cache) where {VolumeIntegralSC <:
+                                             AbstractVolumeIntegralShockCapturing,
+                                             Indicator <: Nothing} # Indicator taken from `VolumeIntegralSC`
+    @unpack volume_integral_stabilized = volume_integral
+    @unpack indicator = volume_integral_stabilized
+
+    indicator(u, mesh, equations, dg, cache)
+    return get_element_variables!(element_variables, indicator, volume_integral_stabilized)
 end
 
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
@@ -348,23 +412,13 @@ For the DG-subcells at the boundaries, two options are available:
    The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
    In the reference below, this is the recommended reconstruction mode and is thus used by default.
 
-**Symmetric** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
-    1) [`minmod`](@ref)
-    2) [`monotonized_central`](@ref)
-    3) [`superbee`](@ref)
-    4) [`vanleer`](@ref)
-    5) [`koren_symmetric`](@ref)
-**Asymmetric** TVD limiters are also available, e.g.,
-    1) [`koren`](@ref) for positive (right-going) velocities
-    2) [`koren_flipped`](@ref) for negative (left-going) velocities
-
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
 
 ## References
 
-See especially Section 3.2, Section 4, and Appendix D of the paper
+See especially Sections 3.2, Section 4, and Appendix D of the paper
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.

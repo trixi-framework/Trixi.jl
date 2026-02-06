@@ -453,6 +453,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_sedov_blast_wave_adaptive_VI.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_adaptive_VI.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[
+                            0.33184749520828005,
+                            0.16479404407072062,
+                            0.16479404405108986,
+                            0.6293190360926442
+                        ],
+                        linf=[
+                            2.412237638042647,
+                            1.690659078856718,
+                            1.6906590853651846,
+                            6.247146900575416
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_positivity.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
                         l2=[
@@ -605,6 +626,39 @@ end
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_VI.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_VI.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.0260785941217061,
+                            0.020356982863706474,
+                            0.02851024015440993,
+                            0.029515745648963063
+                        ],
+                        linf=[
+                            0.12054058304915904,
+                            0.10676568572044035,
+                            0.06256826415810614,
+                            0.11999639075726654
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `show`
+    @test_nowarn show(stdout, indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      indicator)
+
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      volume_integral)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      volume_integral)
 end
 
 @trixi_testset "elixir_euler_colliding_flow.jl" begin

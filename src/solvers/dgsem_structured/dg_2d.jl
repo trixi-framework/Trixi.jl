@@ -69,7 +69,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element,
+@inline function flux_differencing_kernel!(du, u,
+                                           element,
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
@@ -132,7 +133,8 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element,
+@inline function flux_differencing_kernel!(du, u,
+                                           element,
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
@@ -148,7 +150,8 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element,
+@inline function flux_differencing_kernel!(du, u,
+                                           element,
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
@@ -221,7 +224,8 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element,
+@inline function flux_differencing_kernel!(du, u,
+                                           element,
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},

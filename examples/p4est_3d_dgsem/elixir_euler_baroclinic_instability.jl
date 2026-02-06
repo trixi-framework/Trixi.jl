@@ -223,9 +223,16 @@ boundary_conditions = Dict(:inside => boundary_condition_slip_wall,
 # This is a good estimate for the speed of sound in this example.
 # Other values between 300 and 400 should work as well.
 surface_flux = FluxLMARS(340)
+
 volume_flux = flux_kennedy_gruber
+volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+
+# TODO: surface integral for p4est
+
+#volume_integral = VolumeIntegralWeakForm()
+
 solver = DGSEM(polydeg = 5, surface_flux = surface_flux,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+               volume_integral = volume_integral)
 
 # For optimal results, use (16, 8) here
 trees_per_cube_face = (8, 4)
@@ -287,7 +294,8 @@ save_solution = SaveSolutionCallback(interval = 5000,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
-                        save_solution)
+                        #save_solution
+                        )
 
 ###############################################################################
 # run the simulation
@@ -295,5 +303,5 @@ callbacks = CallbackSet(summary_callback,
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
 sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
-            abstol = 1.0e-6, reltol = 1.0e-6,
+            abstol = 1.0e-5, reltol = 1.0e-5,
             ode_default_options()..., callback = callbacks);

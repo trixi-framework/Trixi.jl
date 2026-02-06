@@ -7,8 +7,6 @@ using LinearAlgebra: norm, dot
 using SparseArrays
 using DelimitedFiles: readdlm
 
-using ForwardDiff
-
 # Use Convex and ECOS to load the extension that extends functions for testing
 # PERK Single p2 Constructors
 using Convex: Convex
@@ -283,20 +281,6 @@ end
 
         @test Trixi.gauss_nodes_weights(3)[1] ≈ [-sqrt(3 / 5), 0.0, sqrt(3 / 5)]
         @test Trixi.gauss_nodes_weights(3)[2] ≈ [5 / 9, 8 / 9, 5 / 9]
-    end
-
-    @testset "boundary interpolation" begin
-        for p in 1:7
-            basis = LobattoLegendreBasis(p)
-            nodes = basis.nodes
-            weights = basis.weights
-
-            Lhat_minus1 = Trixi.calc_Lhat(-1.0, nodes, weights)
-            @test basis.inverse_weights[1] == Lhat_minus1[1]
-
-            Lhat_plus1 = Trixi.calc_Lhat(1.0, nodes, weights)
-            @test basis.inverse_weights[p + 1] == Lhat_plus1[p + 1]
-        end
     end
 
     @testset "multiply_dimensionwise" begin

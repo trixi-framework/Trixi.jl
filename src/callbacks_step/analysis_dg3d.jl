@@ -209,6 +209,72 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# Use quadrature to numerically integrate over element.
+# We do not multiply with the Jacobian to stay in reference space.
+# This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
+# the time derivative of entropy, see `calc_entropy_change_element`.
+function integrate_reference_element(func::Func, u, element,
+                                     mesh::AbstractMesh{3}, equations, dg::DGSEM, cache,
+                                     args...; normalize = true) where {Func}
+    @unpack weights = dg.basis
+
+    # Initialize integral with zeros of the right shape
+    integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
+
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        integral += weights[i] * weights[j] * weights[k] *
+                    func(u, i, j, k, element, equations, dg, args...)
+    end
+
+    return integral
+end
+
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
+# Note that ∂S/∂u = w(u) with entropy variables w
+function entropy_change_reference_element(du::AbstractArray{<:Any, 5}, u,
+                                          element,
+                                          mesh::AbstractMesh{3},
+                                          equations, dg::DGSEM, cache, args...)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du) do u, i, j, k, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        du_node = get_node_vars(du, equations, dg, i, j, k, element)
+
+        dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
+# calculate surface integral of func(u, equations) * normal on the reference element.
+function surface_integral(func::Func, u, element,
+                          mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
+                          args...) where {Func}
+    surface_integral = zero(real(dg))
+    for jj in eachnode(dg), ii in eachnode(dg)
+        # integrate along x-y plane, normal in z (3) direction
+        u_back = get_node_vars(u, equations, dg, ii, jj, 1, element)
+        u_front = get_node_vars(u, equations, dg, ii, jj, nnodes(dg), element)
+
+        surface_integral += dg.basis.weights[ii] * dg.basis.weights[jj] *
+                            (func(u_front, 3, equations) - func(u_back, 3, equations))
+
+        # integrate along x-z plane, normal in y (2) direction
+        u_bottom = get_node_vars(u, equations, dg, ii, 1, jj, element)
+        u_top = get_node_vars(u, equations, dg, ii, nnodes(dg), jj, element)
+
+        surface_integral += dg.basis.weights[ii] * dg.basis.weights[jj] *
+                            (func(u_top, 2, equations) - func(u_bottom, 2, equations))
+
+        # integrate along y-z plane, normal in x (1) direction
+        u_left = get_node_vars(u, equations, dg, 1, ii, jj, element)
+        u_right = get_node_vars(u, equations, dg, nnodes(dg), ii, jj, element)
+
+        surface_integral += dg.basis.weights[ii] * dg.basis.weights[jj] *
+                            (func(u_right, 1, equations) - func(u_left, 1, equations))
+    end
+
+    return surface_integral
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
@@ -267,8 +333,7 @@ end
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                T8codeMesh{3}},
-                   equations, dg::Union{DGSEM, FDSBP}, cache;
-                   normalize = true) where {Func}
+                   equations, dg::DG, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, k, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, k, element)
@@ -278,7 +343,8 @@ end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                   equations, equations_parabolic, dg::DGSEM,
+                   equations, equations_parabolic,
+                   dg::DGSEM,
                    cache, cache_parabolic; normalize = true) where {Func}
     gradients_x, gradients_y, gradients_z = cache_parabolic.viscous_container.gradients
     integrate_via_indices(u, mesh, equations, dg, cache;
@@ -298,7 +364,7 @@ end
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},
-                 equations, dg::Union{DGSEM, FDSBP}, cache)
+                 equations, dg::DG, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, k, element, equations, dg, du
