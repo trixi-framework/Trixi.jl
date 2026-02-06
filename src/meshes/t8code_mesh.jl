@@ -79,10 +79,10 @@ function update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
     return nothing
 end
 
-const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
-const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
-@inline mpi_parallel(mesh::SerialT8codeMesh) = False()
-@inline mpi_parallel(mesh::ParallelT8codeMesh) = True()
+const T8codeMeshSerial{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
+const T8codeMeshParallel{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
+@inline mpi_parallel(mesh::T8codeMeshSerial) = False()
+@inline mpi_parallel(mesh::T8codeMeshParallel) = True()
 
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
