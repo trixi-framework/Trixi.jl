@@ -44,7 +44,8 @@ end
 
 Construct a semidiscretization of a hyperbolic PDE.
 
-Boundary conditions must be provided explicitly as a `NamedTuple`.
+Boundary conditions must be provided explicitly either as a `NamedTuple` or as a
+single boundary condition that gets applied to all boundaries.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
@@ -149,50 +150,6 @@ function digest_boundary_conditions(boundary_conditions,
             z_neg = boundary_conditions, z_pos = boundary_conditions)
 end
 
-# allow passing a tuple of BCs that get converted into a named tuple to make it
-# self-documenting on (mapped) hypercube domains
-function digest_boundary_conditions(boundary_conditions::NTuple{2, Any},
-                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
-                                    cache)
-    return (; x_neg = boundary_conditions[1], x_pos = boundary_conditions[2])
-end
-
-function digest_boundary_conditions(boundary_conditions::NTuple{4, Any},
-                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
-                                    cache)
-    return (; x_neg = boundary_conditions[1], x_pos = boundary_conditions[2],
-            y_neg = boundary_conditions[3], y_pos = boundary_conditions[4])
-end
-
-function digest_boundary_conditions(boundary_conditions::NTuple{6, Any},
-                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
-                                    cache)
-    return (; x_neg = boundary_conditions[1], x_pos = boundary_conditions[2],
-            y_neg = boundary_conditions[3], y_pos = boundary_conditions[4],
-            z_neg = boundary_conditions[5], z_pos = boundary_conditions[6])
-end
-
-# error for wrong length of Tuple
-# Not passing periodic boundary conditions in Tuple for (partially) periodic mesh is not allowed
-# because we do not know, which element of the tuple corresponds to which direction
-function digest_boundary_conditions(boundary_conditions::Tuple,
-                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
-                                    cache)
-    throw(ArgumentError("Tuple of boundary conditions must have length 2 for a 1-dimensional mesh, got length $(length(boundary_conditions))."))
-end
-
-function digest_boundary_conditions(boundary_conditions::Tuple,
-                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
-                                    cache)
-    throw(ArgumentError("Tuple of boundary conditions must have length 4 for a 2-dimensional mesh, got length $(length(boundary_conditions))."))
-end
-
-function digest_boundary_conditions(boundary_conditions::Tuple,
-                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
-                                    cache)
-    throw(ArgumentError("Tuple of boundary conditions must have length 6 for a 3-dimensional mesh, got length $(length(boundary_conditions))."))
-end
-
 # allow passing named tuples of BCs constructed in an arbitrary order
 # on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
@@ -252,7 +209,7 @@ end
 
 function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, solver,
                                     cache)
-    throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+    throw(ArgumentError("Please use a named tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
 end
 
 function get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
@@ -371,8 +328,7 @@ end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
                                                                 StructuredMesh{1}},
-                                                    boundary_conditions::Union{NamedTuple,
-                                                                               Tuple})
+                                                    boundary_conditions::NamedTuple)
     return check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
                                                         boundary_conditions[2])
 end
@@ -380,8 +336,7 @@ end
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
                                                                 StructuredMesh{2},
                                                                 StructuredMeshView{2}},
-                                                    boundary_conditions::Union{NamedTuple,
-                                                                               Tuple})
+                                                    boundary_conditions::NamedTuple)
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
                                                  boundary_conditions[2])
     return check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
@@ -390,8 +345,7 @@ end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{3},
                                                                 StructuredMesh{3}},
-                                                    boundary_conditions::Union{NamedTuple,
-                                                                               Tuple})
+                                                    boundary_conditions::NamedTuple)
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
                                                  boundary_conditions[2])
     check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
@@ -481,7 +435,7 @@ end
 function print_boundary_conditions(io,
                                    semi::SemiHypMeshBCSolver{<:Union{TreeMesh,
                                                                      StructuredMesh},
-                                                             <:Union{Tuple, NamedTuple,
+                                                             <:Union{NamedTuple,
                                                                      AbstractArray}})
     summary_line(io, "boundary conditions", 2 * ndims(semi))
     bcs = semi.boundary_conditions

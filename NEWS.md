@@ -10,7 +10,7 @@ for human readability.
 #### Changed
 
 - Boundary conditions are now passed as a `NamedTuple` consistently across all mesh types, i.e., boundary conditions, which
-  were previously passed as a `Dict` for the `P4estMesh`, `T8codeMesh`, and `UnstructuredMesh2D` mesh types have to be converted to `NamedTuple`s ([#2761]).
+  were previously passed as a `Dict` for the `P4estMesh`, `T8codeMesh`, and `UnstructuredMesh2D` mesh types have to be converted to `NamedTuple`s. Also passing boundary conditions as a `Tuple` is no longer supported ([#2761]).
 - The `TreeMesh`, `StructuredMesh` as well as the hypercube constructors of `P4estMesh` and `T8codeMesh` are now non-periodic by default, i.e., you need to
   explicitly set the `periodicity` keyword argument to `true` to obtain periodic meshes. This change was made to be consistent with other mesh types and to avoid confusion ([#2770]).
 - There are no default boundary conditions anymore in `SemidiscretizationHyperbolic` and `SemidiscretizationHyperbolicParabolic`.

@@ -3054,20 +3054,11 @@ end
                                                   initial_condition_convergence_test,
                                                   solver;
                                                   boundary_conditions = bc)
-        # Not passing periodic boundary conditions in Tuple for periodic mesh is not allowed
-        # because we do not know, which element of the tuple corresponds to which direction
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
-                                                                ic, solver;
-                                                                boundary_conditions = (bc,))
         # Not passing periodic boundary conditions in NamedTuple for periodic mesh is allowed
         @test_nowarn SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
                                                   ic, solver;
                                                   boundary_conditions = (;
                                                                          x_neg = bc,))
-        # Passing non-periodic boundary conditions for periodic mesh is not allowed
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
-                                                                ic, solver;
-                                                                boundary_conditions = (bc_dn,))
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
                                                                 ic, solver;
                                                                 boundary_conditions = (x_neg = bc_dn,))
@@ -3085,10 +3076,6 @@ end
                                                    periodicity = false)
     for mesh1d_nonperiodic in (tree_mesh1d_nonperiodic,
                                structured_mesh1d_nonperiodic)
-        # Pass all non-periodic boundary conditions for non-periodic mesh is allowed
-        @test_nowarn SemidiscretizationHyperbolic(mesh1d_nonperiodic,
-                                                  eq1d, ic, solver;
-                                                  boundary_conditions = (bc_dn, bc_dn))
         @test_nowarn SemidiscretizationHyperbolic(mesh1d_nonperiodic,
                                                   eq1d, ic, solver;
                                                   boundary_conditions = (x_neg = bc_dn,
@@ -3099,16 +3086,9 @@ end
                                                                 boundary_conditions = bc)
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic,
                                                                 eq1d, ic, solver;
-                                                                boundary_conditions = (bc_dn,
-                                                                                       bc))
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic,
-                                                                eq1d, ic, solver;
                                                                 boundary_conditions = (x_neg = bc_dn,
                                                                                        x_pos = bc))
         # not passing non-periodic boundary conditions for non-periodic mesh is not allowed
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic,
-                                                                eq1d, ic, solver;
-                                                                boundary_conditions = (bc_dn,))
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic,
                                                                 eq1d, ic, solver;
                                                                 boundary_conditions = (x_neg = bc_dn,))
@@ -3127,33 +3107,15 @@ end
                                                   boundary_conditions = bc)
         @test_nowarn SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
                                                   ic, solver;
-                                                  boundary_conditions = (bc, bc, bc,
-                                                                         bc))
-        @test_nowarn SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
-                                                  ic, solver;
                                                   boundary_conditions = (x_neg = bc,
                                                                          x_pos = bc,
                                                                          y_neg = bc,
                                                                          y_pos = bc))
-        # Not passing periodic boundary conditions in Tuple for periodic mesh is not allowed
-        # because we do not know, which element of the tuple corresponds to which direction
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
-                                                                ic, solver;
-                                                                boundary_conditions = (bc,
-                                                                                       bc,
-                                                                                       bc))
         # Not passing periodic boundary conditions in NamedTuple for periodic mesh is allowed
         @test_nowarn SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
                                                   ic, solver;
                                                   boundary_conditions = (;
                                                                          x_neg = bc,))
-        # Passing non-periodic boundary conditions for periodic mesh is not allowed
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
-                                                                ic, solver;
-                                                                boundary_conditions = (bc_dn,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc))
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
                                                                 ic, solver;
                                                                 boundary_conditions = (x_neg = bc_dn,))
@@ -3174,11 +3136,6 @@ end
                                                    periodicity = false)
     for mesh2d_nonperiodic in (tree_mesh2d_nonperiodic,
                                structured_mesh2d_nonperiodic)
-        # Pass all non-periodic boundary conditions for non-periodic mesh is allowed
-        @test_nowarn SemidiscretizationHyperbolic(mesh2d_nonperiodic,
-                                                  eq2d, ic, solver;
-                                                  boundary_conditions = (bc_dn, bc_dn,
-                                                                         bc_dn, bc_dn))
         @test_nowarn SemidiscretizationHyperbolic(mesh2d_nonperiodic,
                                                   eq2d, ic, solver;
                                                   boundary_conditions = (x_neg = bc_dn,
@@ -3191,22 +3148,11 @@ end
                                                                 boundary_conditions = bc)
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_nonperiodic,
                                                                 eq2d, ic, solver;
-                                                                boundary_conditions = (bc_dn,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc))
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_nonperiodic,
-                                                                eq2d, ic, solver;
                                                                 boundary_conditions = (x_neg = bc_dn,
                                                                                        x_pos = bc,
                                                                                        y_neg = bc,
                                                                                        y_pos = bc))
         # not passing non-periodic boundary conditions for non-periodic mesh is not allowed
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_nonperiodic,
-                                                                eq2d, ic, solver;
-                                                                boundary_conditions = (bc_dn,
-                                                                                       bc_dn,
-                                                                                       bc_dn))
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_nonperiodic,
                                                                 eq2d, ic, solver;
                                                                 boundary_conditions = (x_neg = bc_dn,
@@ -3224,10 +3170,6 @@ end
     for mesh2d_partial_periodic in (tree_mesh2d_partial_periodic,
                                     structured_mesh2d_partial_periodic)
         # Specifying all boundary conditions is allowed
-        @test_nowarn SemidiscretizationHyperbolic(mesh2d_partial_periodic,
-                                                  eq2d, ic, solver;
-                                                  boundary_conditions = (bc, bc,
-                                                                         bc_dn, bc_dn))
         @test_nowarn SemidiscretizationHyperbolic(mesh2d_partial_periodic,
                                                   eq2d, ic, solver;
                                                   boundary_conditions = (;
@@ -3248,12 +3190,6 @@ end
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_partial_periodic,
                                                                 eq2d, ic, solver;
                                                                 boundary_conditions = bc)
-        # Not passing periodic boundary conditions in Tuple for periodic mesh is not allowed
-        # because we do not know, which element of the tuple corresponds to which direction
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_partial_periodic,
-                                                                eq2d, ic, solver;
-                                                                boundary_conditions = (bc_dn,
-                                                                                       bc_dn))
         # Non-periodic boundary condition on periodic direction
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_partial_periodic,
                                                                 eq2d, ic, solver;
@@ -3278,39 +3214,18 @@ end
                                                   boundary_conditions = bc)
         @test_nowarn SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
                                                   ic, solver;
-                                                  boundary_conditions = (bc, bc, bc,
-                                                                         bc, bc, bc))
-        @test_nowarn SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
-                                                  ic, solver;
                                                   boundary_conditions = (x_neg = bc,
                                                                          x_pos = bc,
                                                                          y_neg = bc,
                                                                          y_pos = bc,
                                                                          z_neg = bc,
                                                                          z_pos = bc))
-        # Not passing periodic boundary conditions in Tuple for periodic mesh is not allowed
-        # because we do not know, which element of the tuple corresponds to which direction
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
-                                                                ic, solver;
-                                                                boundary_conditions = (bc,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc))
         # Not passing periodic boundary conditions in NamedTuple for periodic mesh is allowed
         @test_nowarn SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
                                                   ic, solver;
                                                   boundary_conditions = (;
                                                                          x_neg = bc,))
         # Passing non-periodic boundary conditions for periodic mesh is not allowed
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
-                                                                ic, solver;
-                                                                boundary_conditions = (bc_dn,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc))
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
                                                                 ic, solver;
                                                                 boundary_conditions = (x_neg = bc_dn,))
@@ -3337,11 +3252,6 @@ end
         # Passing all non-periodic boundary conditions for non-periodic mesh is allowed
         @test_nowarn SemidiscretizationHyperbolic(mesh3d_nonperiodic,
                                                   eq3d, ic, solver;
-                                                  boundary_conditions = (bc_dn, bc_dn,
-                                                                         bc_dn, bc_dn,
-                                                                         bc_dn, bc_dn))
-        @test_nowarn SemidiscretizationHyperbolic(mesh3d_nonperiodic,
-                                                  eq3d, ic, solver;
                                                   boundary_conditions = (x_neg = bc_dn,
                                                                          x_pos = bc_dn,
                                                                          y_neg = bc_dn,
@@ -3354,14 +3264,6 @@ end
                                                                 boundary_conditions = bc)
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_nonperiodic,
                                                                 eq3d, ic, solver;
-                                                                boundary_conditions = (bc_dn,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc,
-                                                                                       bc))
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_nonperiodic,
-                                                                eq3d, ic, solver;
                                                                 boundary_conditions = (x_neg = bc_dn,
                                                                                        x_pos = bc,
                                                                                        y_neg = bc,
@@ -3369,13 +3271,6 @@ end
                                                                                        z_neg = bc,
                                                                                        z_pos = bc))
         # not passing non-periodic boundary conditions for non-periodic mesh is not allowed
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_nonperiodic,
-                                                                eq3d, ic, solver;
-                                                                boundary_conditions = (bc_dn,
-                                                                                       bc_dn,
-                                                                                       bc_dn,
-                                                                                       bc_dn,
-                                                                                       bc_dn))
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_nonperiodic,
                                                                 eq3d, ic, solver;
                                                                 boundary_conditions = (x_neg = bc_dn,
@@ -3398,11 +3293,6 @@ end
         # Specifying all boundary conditions is allowed
         @test_nowarn SemidiscretizationHyperbolic(mesh3d_partial_periodic,
                                                   eq3d, ic, solver;
-                                                  boundary_conditions = (bc_dn, bc_dn,
-                                                                         bc, bc, bc,
-                                                                         bc))
-        @test_nowarn SemidiscretizationHyperbolic(mesh3d_partial_periodic,
-                                                  eq3d, ic, solver;
                                                   boundary_conditions = (;
                                                                          x_neg = bc_dn,
                                                                          x_pos = bc_dn,
@@ -3423,12 +3313,6 @@ end
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_partial_periodic,
                                                                 eq3d, ic, solver;
                                                                 boundary_conditions = bc)
-        # Not passing periodic boundary conditions in Tuple for periodic mesh is not allowed
-        # because we do not know, which element of the tuple corresponds to which direction
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_partial_periodic,
-                                                                eq3d, ic, solver;
-                                                                boundary_conditions = (bc_dn,
-                                                                                       bc_dn))
         # Non-periodic boundary condition on periodic direction
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_partial_periodic,
                                                                 eq3d, ic, solver;
