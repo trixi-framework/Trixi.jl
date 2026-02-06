@@ -52,7 +52,7 @@ end
 @inline function source_terms_rayleigh_taylor_instability(u, x, t,
                                                           equations::CompressibleEulerEquations2D)
     g = 1.0
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
     return SVector(0.0, 0.0, g * rho, g * rho_v2)
 end
