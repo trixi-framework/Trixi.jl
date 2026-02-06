@@ -103,9 +103,11 @@ end
                         equations::NonIdealCompressibleEulerEquations1D)
 
 Approximately pressure equilibrium preserving with conservation (APEC) flux from 
-"Approximately pressure-equilibrium-preserving scheme for fully conservative 
-simulations of compressible multi-species and real-fluid interfacial flows" 
-by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370 1>
+
+- H. Terashima, N. Ly, M. Ihme (2025) 
+  Approximately pressure-equilibrium-preserving scheme for fully conservative simulations of 
+  compressible multi-species and real-fluid interfacial flows 
+  [DOI: 10.1016/j.jcp.2024.113701](https://doi.org/10.1016/j.jcp.2024.113701)
 
 """
 @inline function flux_terashima_etal(u_ll, u_rr, orientation::Int,
