@@ -807,7 +807,8 @@ end
     V, v1, T = Trixi.cons2thermo(u, equations)
     e_internal = energy_internal_specific(V, T, eos)
     @test temperature(V, e_internal, eos) ≈
-          invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e_internal, eos)
+          invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V,
+                 e_internal, eos)
     @test cons2prim(u, equations) ≈
           SVector(u[1], v1, pressure(u, equations))
 
