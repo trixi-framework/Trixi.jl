@@ -6,9 +6,7 @@ using Trixi
 
 # 1) Dry Air  2) Helium + 28% Air
 equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
-                                                       #gas_constants = (0.287 * 10^3, 1.578 * 10^3)
-                                                       gas_constants = (0.287, 1.578)
-                                                       )
+                                                       gas_constants = (0.287 * 10^3, 1.578 * 10^3))
 
 """
     initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{5, 2})
@@ -84,7 +82,7 @@ initial_condition = initial_condition_shock_bubble
 surface_flux = flux_lax_friedrichs
 
 volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(5)
+basis = LobattoLegendreBasis(3) # 5
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 0.5,
                                          alpha_min = 0.001,
@@ -106,10 +104,10 @@ coordinates_max = (0.445, 0.089)
 trees_per_dimension = (8, 2)
 mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 3, periodicity = false)
+                 initial_refinement_level = 5, periodicity = false)
     
-restart_file = "out/restart_t4.h5"
-mesh = load_mesh(restart_file)
+restart_file = "out/restart_000101714.h5"
+#mesh = load_mesh(restart_file)
 
 bc_LR = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(:x_neg => bc_LR, :x_pos => bc_LR,
@@ -123,9 +121,13 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 # Plot times in paper above
+# TODO: Somehow our simulation is wrong, i.e., lagging behind
 t1 = 23.32e-6
-tspan = (0.0, t1)
-#ode = semidiscretize(semi, tspan)
+t1_exp = 32e-6
+
+tspan = (0.0, t1_exp)
+
+ode = semidiscretize(semi, tspan)
 
 t2 = 42.98e-6
 t3 = 52.81e-6
@@ -134,7 +136,7 @@ t5 = 77.38e-6
 t6 = 101.95e-6
 t7 = 259.21e-6
 
-tspan = (load_time(restart_file), t5)
+tspan = (load_time(restart_file), load_time(restart_file))
 ode = semidiscretize(semi, tspan, restart_file)
 
 summary_callback = SummaryCallback()
@@ -148,25 +150,101 @@ alive_callback = AliveCallback(alive_interval = 100)
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density_pressure)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 0,
-                                      med_level = 3, med_threshold = 0.0005,
-                                      max_level = 5, max_threshold = 0.001)
-
-# For first (non-restarted) run
-#=
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 50,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
-=#
-
-# For restarted runs
+                                      med_level = 3, med_threshold = 0.001,
+                                      max_level = 5, max_threshold = 0.002)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 50,
+                           interval = 100,
                            adapt_initial_condition = false)
 
+extra_node_variables = (:density, :schlieren,)
 
-save_solution = SaveSolutionCallback(interval = 2000)
+function Trixi.get_node_variable(::Val{:density}, u, mesh, equations, dg, cache)
+
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, the variable must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    density_array = zeros(eltype(cache.elements),
+                            n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                            n_elements)
+
+    max_abs_gradient = zero(eltype(u))
+    for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = Trixi.get_node_vars(u, equations, dg, i, j, element)
+            density_array[i, j, element] = u_node[4] + u_node[5]
+        end
+    end
+
+    return density_array
+end
+
+function Trixi.get_node_variable(::Val{:schlieren}, u, mesh, equations, dg, cache)
+
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, the variable must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    schlieren_array = zeros(eltype(cache.elements),
+                            n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                            n_elements)
+
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack derivative_matrix = dg.basis
+
+    max_abs_gradient = zero(eltype(u))
+    for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            # Get the contravariant vectors Ja^1 and Ja^2
+            Ja11, Ja12 = Trixi.get_contravariant_vector(1, contravariant_vectors, i, j, element)
+            Ja21, Ja22 = Trixi.get_contravariant_vector(2, contravariant_vectors, i, j, element)
+
+            rho_d_xi = zero(eltype(u))  # ∂ρ/∂ξ
+            rho_d_eta = zero(eltype(u)) # ∂ρ/∂η
+
+            for k in eachnode(dg)
+                u_kj = Trixi.get_node_vars(u, equations, dg, k, j, element)
+                u_ik = Trixi.get_node_vars(u, equations, dg, i, k, element)
+
+                density_kj = u_kj[4] + u_kj[5]
+                density_ik = u_ik[4] + u_ik[5]
+
+                rho_d_xi += derivative_matrix[i, k] * density_kj
+                rho_d_eta += derivative_matrix[j, k] * density_ik
+            end
+            # Transform to physical coordinates using contravariant vectors
+            # ∇ρ_x = Ja11 * ∂ρ/∂ξ + Ja21 * ∂ρ/∂η
+            # ∇ρ_y = Ja12 * ∂ρ/∂ξ + Ja22 * ∂ρ/∂η
+            density_gradient_x = Ja11 * rho_d_xi + Ja21 * rho_d_eta
+            density_gradient_y = Ja12 * rho_d_xi + Ja22 * rho_d_eta
+            # Multiply by Jacobian inverse to get physical gradient
+            inv_jac = cache.elements.inverse_jacobian[i, j, element]
+            abs_density_gradient = sqrt(density_gradient_x^2 + density_gradient_y^2) * inv_jac
+
+            if abs_density_gradient > max_abs_gradient
+                max_abs_gradient = abs_density_gradient
+            end
+
+            schlieren_array[i, j, element] = abs_density_gradient
+        end
+    end
+
+    k = 1 # scaling factor for schlieren visualization, can be adjusted
+    for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            schlieren_array[i, j, element] = exp(- k * schlieren_array[i, j, element] / max_abs_gradient)
+        end
+    end
+
+    return schlieren_array
+end
+
+save_solution = SaveSolutionCallback(interval = 100,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = extra_node_variables)
 
 save_restart = SaveRestartCallback(interval = 100_000,
                                    save_final_restart = true)
@@ -174,14 +252,15 @@ save_restart = SaveRestartCallback(interval = 100_000,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
-                        save_restart,
-                        amr_callback,
-                        #save_solution,
+                        #save_restart,
+                        #amr_callback,
+                        save_solution,
                         )
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(thread = Trixi.True());
+sol = solve(ode, SSPRK432(thread = Trixi.True());
             dt = 2e-10, ode_default_options()...,
+            abstol = 1e-5, reltol = 1e-5,
             maxiters = Inf, callback = callbacks);
