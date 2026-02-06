@@ -216,7 +216,7 @@ instance, in the example above the first execution of `trixi_include` takes abou
 To automatically determine the experimental order of convergence (EOC) for a
 given setup, execute
 ```julia
-julia> convergence_test(default_example(), 4)
+julia> convergence_test(default_example(), 4);
 ```
 This will run a convergence test with the elixir `default_example()`,
 using four iterations with different initial refinement levels. The initial
@@ -250,7 +250,7 @@ mean      3.99
 
 An example with multiple variables looks like this:
 ```julia
-julia> convergence_test(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_source_terms.jl"), 3)
+julia> eocs, errorsmatrix = convergence_test(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_source_terms.jl"), 3);
 ```
 ```
 [...]
@@ -273,6 +273,8 @@ error     EOC       error     EOC       error     EOC       error     EOC
 mean      3.94      mean      3.94      mean      3.94      mean      3.93
 --------------------------------------------------------------------------------
 ```
+The function `convergence_test` returns the experimental orders of convergence and the full errors
+matrix. To obtain the mean convergence rates, use `Trixi.calc_mean_convergence` on the convergence orders.
 
 ### Showcase of advanced features
 The presentation [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://youtu.be/_N4ozHr-t9E),

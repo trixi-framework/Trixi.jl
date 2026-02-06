@@ -9,6 +9,7 @@ for human readability.
 
 #### Changed
 
+- `convergence_test` now returns the complete convergence orders and the full errors matrix. To obtain the mean convergence rates, use `Trixi.calc_mean_convergence` on the convergence orders ([#2753]).
 - The serial and parallel mesh types have been renamed from `SerialTreeMesh`, `ParallelTreeMesh`, `SerialP4estMesh`, `ParallelP4estMesh`, `SerialT8codeMesh`, and `ParallelT8codeMesh` to `TreeMeshSerial`, `TreeMeshParallel`, `P4estMeshSerial`, `P4estMeshParallel`, `T8codeMeshSerial`, and `T8codeMeshParallel`, respectively ([#2787]).
 
 ## Changes in the v0.14 lifecycle
@@ -29,8 +30,8 @@ for human readability.
 
 #### Changed
 
-- van Leer's limiters changed to snake case: `vanLeer` => `vanleer`
-- A couple `struct`s have been made completely immutable, or only a couple fields thereof. Most notably, `save_solution.condition.save_initial_solution` where `save_solution isa SavesolutionCallback` can no longer be directly changed. Instead, the `@reset` macro from [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) is used in the elixirs.
+- van Leer's limiters changed to snake case: `vanLeer` => `vanleer` ([#2744])
+- A couple `struct`s have been made completely immutable, or only a couple fields thereof ([#2640]). Most notably, `save_solution.condition.save_initial_solution` where `save_solution isa SavesolutionCallback` can no longer be directly changed. Instead, the `@reset` macro from [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) is used in the elixirs.
 
 ## Changes in the v0.13 lifecycle
 
