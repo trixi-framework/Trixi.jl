@@ -58,7 +58,7 @@ end
     calc_mean_convergence(eocs)
 
 Calculate the mean convergence rates from the given experimental orders of convergence `eocs`.
-The `eocs` are expected to be in the format returned by `convergence_test`, i.e., a `Dict` where
+The `eocs` are expected to be in the format returned by [`convergence_test`](@ref), i.e., a `Dict` where
 the keys are the error types (e.g., `:l2`, `:linf`) and the values are matrices with the EOCs for each
 variable in the columns and the iterations in the rows.
 Returns a `Dict` with the same keys as `eocs` and the mean convergence rates for all variables as values.
