@@ -47,7 +47,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = false)
 
 # Dirichlet boundary condition is only valid for considered time interval.
-# If the rarefaction wave reaches boundary, this condition is no longer valid!
+# If the rarefaction wave reaches the boundary, this condition is no longer valid!
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
                        x_pos = boundary_condition_do_nothing)
 
@@ -70,7 +70,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# For weak form run: Need to enforce positivity explicit! Not required for flux differencing volume integral.
+# For weak form run: Need to enforce positivity explicitly! Not required for flux differencing volume integral.
 #=
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
                                                      variables = (Trixi.density, pressure))
