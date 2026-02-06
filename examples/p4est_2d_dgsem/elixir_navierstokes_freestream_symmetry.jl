@@ -42,7 +42,7 @@ heat_bc = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
 boundary_condition_y = BoundaryConditionNavierStokesWall(velocity_bc,
                                                          heat_bc)
 
-boundary_conditions_parabolic = (x_neg = boundary_condition_y,
+boundary_conditions_parabolic = (; x_neg = boundary_condition_y,
                                  x_pos = boundary_condition_y)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
