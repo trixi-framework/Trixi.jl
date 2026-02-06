@@ -172,7 +172,9 @@ function digest_boundary_conditions(boundary_conditions::NTuple{6, Any},
             z_neg = boundary_conditions[5], z_pos = boundary_conditions[6])
 end
 
-# error for wrong length of tuple
+# error for wrong length of Tuple
+# Not passing periodic boundary conditions in Tuple for (partially) periodic mesh is not allowed
+# because we do not know, which element of the tuple corresponds to which direction
 function digest_boundary_conditions(boundary_conditions::Tuple,
                                     mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
                                     cache)
@@ -214,38 +216,30 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
     return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
-# error for wrong length of named tuple
+# If a NamedTuple is passed with not the same number of BCs, ensure that the keys are correct.
+# For periodic boundary parts, the keys can be missing and get filled with `BoundaryConditionPeriodic()`.
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
                                     mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
                                     cache)
-    required = (:x_neg, :x_pos)
-    if sort(collect(keys(boundary_conditions))) != sort(collect(required))
-        throw(ArgumentError("NamedTuple of boundary conditions for 1-dimensional mesh must have keys $(required), got $(keys(boundary_conditions))"))
-    end
-    # fallback, should never reach here if specific method exists
-    throw(ArgumentError("Unexpected error in boundary condition NamedTuple dispatch."))
+    x_neg, x_pos = get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
+    return (; x_neg, x_pos)
 end
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
                                     mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
                                     cache)
-    required = (:x_neg, :x_pos, :y_neg, :y_pos)
-    if sort(collect(keys(boundary_conditions))) != sort(collect(required))
-        throw(ArgumentError("NamedTuple of boundary conditions for 2-dimensional mesh must have keys $(required), got $(keys(boundary_conditions))"))
-    end
-    # fallback, should never reach here if specific method exists
-    throw(ArgumentError("Unexpected error in boundary condition NamedTuple dispatch."))
+    x_neg, x_pos = get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
+    y_neg, y_pos = get_periodicity_boundary_conditions_y(boundary_conditions, mesh)
+    return (; x_neg, x_pos, y_neg, y_pos)
 end
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
                                     mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
                                     cache)
-    required = (:x_neg, :x_pos, :y_neg, :y_pos, :z_neg, :z_pos)
-    if sort(collect(keys(boundary_conditions))) != sort(collect(required))
-        throw(ArgumentError("NamedTuple of boundary conditions for 3-dimensional mesh must have keys $(required), got $(keys(boundary_conditions))"))
-    end
-    # fallback, should never reach here if specific method exists
-    throw(ArgumentError("Unexpected error in boundary condition NamedTuple dispatch."))
+    x_neg, x_pos = get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
+    y_neg, y_pos = get_periodicity_boundary_conditions_y(boundary_conditions, mesh)
+    z_neg, z_pos = get_periodicity_boundary_conditions_z(boundary_conditions, mesh)
+    return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
 # Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh
@@ -259,6 +253,63 @@ end
 function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, solver,
                                     cache)
     throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+end
+
+function get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
+    if isperiodic(mesh, 1)
+        if :x_neg in keys(boundary_conditions) &&
+           boundary_conditions.x_neg != BoundaryConditionPeriodic() ||
+           :x_pos in keys(boundary_conditions) &&
+           boundary_conditions.x_pos != BoundaryConditionPeriodic()
+            throw(ArgumentError("For periodic mesh non-periodic boundary conditions in x-direction are supplied."))
+        end
+        x_neg = x_pos = BoundaryConditionPeriodic()
+    else
+        required = (:x_neg, :x_pos)
+        if !all(in(keys(boundary_conditions)), required)
+            throw(ArgumentError("NamedTuple of boundary conditions for 1-dimensional (non-periodic) mesh must have keys $(required), got $(keys(boundary_conditions))"))
+        end
+        @unpack x_neg, x_pos = boundary_conditions
+    end
+    return x_neg, x_pos
+end
+
+function get_periodicity_boundary_conditions_y(boundary_conditions, mesh)
+    if isperiodic(mesh, 2)
+        if :y_neg in keys(boundary_conditions) &&
+           boundary_conditions.y_neg != BoundaryConditionPeriodic() ||
+           :y_pos in keys(boundary_conditions) &&
+           boundary_conditions.y_pos != BoundaryConditionPeriodic()
+            throw(ArgumentError("For periodic mesh non-periodic boundary conditions in y-direction are supplied."))
+        end
+        y_neg = y_pos = BoundaryConditionPeriodic()
+    else
+        required = (:y_neg, :y_pos)
+        if !all(in(keys(boundary_conditions)), required)
+            throw(ArgumentError("NamedTuple of boundary conditions for 2-dimensional (non-periodic) mesh must have keys $(required), got $(keys(boundary_conditions))"))
+        end
+        @unpack y_neg, y_pos = boundary_conditions
+    end
+    return y_neg, y_pos
+end
+
+function get_periodicity_boundary_conditions_z(boundary_conditions, mesh)
+    if isperiodic(mesh, 3)
+        if :z_neg in keys(boundary_conditions) &&
+           boundary_conditions.z_neg != BoundaryConditionPeriodic() ||
+           :z_pos in keys(boundary_conditions) &&
+           boundary_conditions.z_pos != BoundaryConditionPeriodic()
+            throw(ArgumentError("For periodic mesh non-periodic boundary conditions in z-direction are supplied."))
+        end
+        z_neg = z_pos = BoundaryConditionPeriodic()
+    else
+        required = (:z_neg, :z_pos)
+        if !all(in(keys(boundary_conditions)), required)
+            throw(ArgumentError("NamedTuple of boundary conditions for 3-dimensional (non-periodic) mesh must have keys $(required), got $(keys(boundary_conditions))"))
+        end
+        @unpack z_neg, z_pos = boundary_conditions
+    end
+    return z_neg, z_pos
 end
 
 # No checks for these meshes yet available
