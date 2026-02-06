@@ -661,14 +661,14 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
     # Note: This assumes that we are in 3D and that the element is a hexahedron.
     user_data = Ptr{Ptr{Float64}}(t8_forest_get_user_data(forest))
     vertex = PtrArray(unsafe_load(user_data, 2), (3,))
-    eclass_scheme = t8_forest_get_eclass_scheme(forest, T8_ECLASS_HEX)
-    t8_element_vertex_reference_coords(eclass_scheme, element, 0, vertex)
+    scheme = t8_forest_get_scheme(forest)
+    t8_element_get_vertex_reference_coords(scheme, tree_class, element, 0, vertex)
     r000 = SVector(vertex[1], vertex[2], vertex[3])
-    t8_element_vertex_reference_coords(eclass_scheme, element, 1, vertex)
+    t8_element_get_vertex_reference_coords(scheme, tree_class, element, 1, vertex)
     r100 = SVector(vertex[1], vertex[2], vertex[3])
-    t8_element_vertex_reference_coords(eclass_scheme, element, 2, vertex)
+    t8_element_get_vertex_reference_coords(scheme, tree_class, element, 2, vertex)
     r010 = SVector(vertex[1], vertex[2], vertex[3])
-    t8_element_vertex_reference_coords(eclass_scheme, element, 4, vertex)
+    t8_element_get_vertex_reference_coords(scheme, tree_class, element, 4, vertex)
     r001 = SVector(vertex[1], vertex[2], vertex[3])
 
     # Get the bounding physical coordinates of the tree.
