@@ -82,7 +82,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    @unpack contravariant_vectors = cache.elements
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda1 = max_lambda2 = max_lambda3 = zero(max_scaled_speed)
@@ -100,7 +100,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
                                                         i, j, k, element)
             lambda3_transformed = abs(Ja31 * lambda1 + Ja32 * lambda2 + Ja33 * lambda3)
 
-            inv_jacobian = abs(cache.elements.inverse_jacobian[i, j, k, element])
+            inv_jacobian = abs(inverse_jacobian[i, j, k, element])
 
             max_lambda1 = Base.max(max_lambda1, inv_jacobian * lambda1_transformed)
             max_lambda2 = Base.max(max_lambda2, inv_jacobian * lambda2_transformed)
@@ -174,7 +174,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    @unpack contravariant_vectors = cache.elements
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     max_lambda1, max_lambda2, max_lambda3 = max_abs_speeds(equations)
 
@@ -193,7 +193,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
             lambda3_transformed = abs(Ja31 * max_lambda1 + Ja32 * max_lambda2 +
                                       Ja33 * max_lambda3)
 
-            inv_jacobian = abs(cache.elements.inverse_jacobian[i, j, k, element])
+            inv_jacobian = abs(inverse_jacobian[i, j, k, element])
 
             # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
             # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
