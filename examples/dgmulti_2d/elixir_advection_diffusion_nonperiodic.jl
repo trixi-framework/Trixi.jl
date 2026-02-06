@@ -35,8 +35,8 @@ right(x, tol = 50 * eps()) = abs(x[1]) < tol
 bottom(x, tol = 50 * eps()) = abs(x[2] + 0.5) < tol
 top(x, tol = 50 * eps()) = abs(x[2] - 0.5) < tol
 entire_boundary(x, tol = 50 * eps()) = true
-is_on_boundary = Dict(:left => left, :right => right, :top => top, :bottom => bottom,
-                      :entire_boundary => entire_boundary)
+is_on_boundary = (; left = left, right = right, top = top, bottom = bottom,
+                  entire_boundary = entire_boundary)
 
 cells_per_dimension = (16, 16)
 mesh = DGMultiMesh(dg, cells_per_dimension;

@@ -12,7 +12,7 @@ source_terms = source_terms_convergence_test
 # example where we tag two separate boundary segments of the mesh
 top_boundary(x, tol = 50 * eps()) = abs(x[2] - 1) < tol
 rest_of_boundary(x, tol = 50 * eps()) = !top_boundary(x, tol)
-is_on_boundary = Dict(:top => top_boundary, :rest => rest_of_boundary)
+is_on_boundary = (; top = top_boundary, rest = rest_of_boundary)
 
 cells_per_dimension = (8, 8)
 mesh = DGMultiMesh(dg, cells_per_dimension, is_on_boundary = is_on_boundary)

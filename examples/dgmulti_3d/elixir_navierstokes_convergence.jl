@@ -26,7 +26,7 @@ dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynomial(
              volume_integral = VolumeIntegralWeakForm())
 
 top_bottom(x, tol = 50 * eps()) = abs(abs(x[2]) - 1) < tol
-is_on_boundary = Dict(:top_bottom => top_bottom)
+is_on_boundary = (; top_bottom = top_bottom)
 
 cells_per_dimension = (8, 8, 8)
 mesh = DGMultiMesh(dg, cells_per_dimension; periodicity = (true, false, true),

@@ -28,7 +28,7 @@ dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(
              volume_integral = VolumeIntegralWeakForm())
 
 top_bottom(x, tol = 50 * eps()) = abs(abs(x[2]) - 1) < tol
-is_on_boundary = Dict(:top_bottom => top_bottom)
+is_on_boundary = (; top_bottom = top_bottom)
 
 function mapping(xi, eta)
     x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
