@@ -369,7 +369,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                              T8codeMesh{2}},
                  equations, dg::DGSEM, cache)
-    @unpack contravariant_vectors = cache.elements
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, element, equations,
                                                          dg, cache, derivative_matrix
@@ -390,7 +390,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
                      derivative_matrix[j, k] *
                      (Ja21 * B1_ik + Ja22 * B2_ik))
         end
-        divb *= cache.elements.inverse_jacobian[i, j, element]
+        divb *= inverse_jacobian[i, j, element]
         return divb^2
     end |> sqrt
 end
@@ -428,7 +428,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
                              T8codeMesh{2}},
                  equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
-    @unpack contravariant_vectors = cache.elements
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     # integrate over all elements to get the divergence-free condition errors
     linf_divb = zero(eltype(u))
@@ -453,7 +453,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
                          derivative_matrix[j, k] *
                          (Ja21 * B1_ik + Ja22 * B2_ik))
             end
-            divb *= cache.elements.inverse_jacobian[i, j, element]
+            divb *= inverse_jacobian[i, j, element]
             linf_divb = max(linf_divb, abs(divb))
         end
     end
