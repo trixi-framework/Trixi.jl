@@ -59,12 +59,12 @@ end
     return rho * p
 end
 
-@inline function energy_internal(u,
-                                 equations::AbstractNonIdealCompressibleEulerEquations)
+@inline function energy_internal_specific(u,
+                                          equations::AbstractNonIdealCompressibleEulerEquations)
     eos = equations.equation_of_state
     u_thermo = cons2thermo(u, equations)
     V = first(u_thermo)
     T = last(u_thermo)
-    e_internal = energy_internal(V, T, eos)
+    e_internal = energy_internal_specific(V, T, eos)
     return e_internal
 end
