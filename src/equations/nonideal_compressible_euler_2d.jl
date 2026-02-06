@@ -39,7 +39,7 @@ and temperature ``T`` by some user-specified equation of state (EOS) (see [`pres
 p = p(V, T)
 ```
 
-Similarly, the internal energy is specified by `e = energy_internal(V, T, eos)`, see
+Similarly, the internal energy is specified by `e_{\text{internal}} = energy_internal(V, T, eos)`, see
 [`energy_internal(V, T, eos::IdealGas)`](@ref), [`energy_internal(V, T, eos::VanDerWaals)`](@ref).
 
 Because of this, the primitive variables are also defined to be `V, v1, v2, T` (instead of 
@@ -232,8 +232,8 @@ function flux_terashima_etal(u_ll, u_rr, orientation::Int,
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -276,8 +276,8 @@ function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -326,8 +326,8 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
 
     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -375,8 +375,8 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
 
     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -622,8 +622,8 @@ equation of state routines are assumed to be evaluated in terms of `V` and `T`.
     V = inv(rho)
     v1 = rho_v1 * V
     v2 = rho_v2 * V
-    e = internal_energy_density(u, equations) * V
-    T = temperature(V, e, eos)
+    e_internal = energy_internal(u, equations) * V
+    T = temperature(V, e_internal, eos)
 
     return SVector(V, v1, v2, T)
 end
@@ -643,8 +643,8 @@ end
     rho = inv(V)
     rho_v1 = rho * v1
     rho_v2 = rho * v2
-    e = energy_internal(V, T, eos)
-    rho_e_total = rho * e + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
+    e_internal = energy_internal_specific(V, T, eos)
+    rho_e_total = rho * e_internal + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
     return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 
@@ -666,8 +666,8 @@ end
     return SVector(v1, v2)
 end
 
-@inline function internal_energy_density(u,
-                                         equations::NonIdealCompressibleEulerEquations2D)
+@inline function energy_internal(u,
+                                 equations::NonIdealCompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e_total = u
     rho_e = rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho
     return rho_e
