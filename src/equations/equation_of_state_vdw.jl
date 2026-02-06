@@ -86,7 +86,7 @@ end
 function speed_of_sound(V, T, eos::VanDerWaals)
     (; a, b, gamma) = eos
     rho = inv(V)
-    e_internal = energy_internal(V, T, eos)
+    e_internal = energy_internal_specific(V, T, eos)
     c2 = gamma * (gamma - 1) * (e_internal + rho * a) / (1 - rho * b)^2 - 2 * a * rho
     return sqrt(c2)
 end
