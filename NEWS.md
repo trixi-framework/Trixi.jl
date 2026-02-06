@@ -13,6 +13,9 @@ for human readability.
 - `convergence_test` now returns the complete convergence orders and the full errors matrix. To obtain the mean convergence rates, use `Trixi.calc_mean_convergence` on the convergence orders ([#2753]).
 - The serial and parallel mesh types have been renamed from `SerialTreeMesh`, `ParallelTreeMesh`, `SerialP4estMesh`, `ParallelP4estMesh`, `SerialT8codeMesh`, and `ParallelT8codeMesh` to `TreeMeshSerial`, `TreeMeshParallel`, `P4estMeshSerial`, `P4estMeshParallel`, `T8codeMeshSerial`, and `T8codeMeshParallel`, respectively ([#2787]).
 
+#### Added
+- Added `PengRobinson` equation of state ([#2769]).
+
 ## Changes in the v0.14 lifecycle
 
 #### Added
@@ -24,7 +27,6 @@ for human readability.
 - Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733]).
   In the new version, local (minimum or maximum) limiting for nonlinear variables (using
   the keyword `local_onesided_variables_nonlinear` in `SubcellLimiterIDP()`) is supported.
-- Added `PengRobinson` equation of state ([#2769]).
 
 #### Changed
 
