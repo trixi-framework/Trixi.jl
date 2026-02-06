@@ -104,12 +104,12 @@ function pressure(V, T, eos::PengRobinson)
 end
 
 @doc raw"""
-    energy_internal(V, T, eos::PengRobinson)
+    energy_internal_specific(V, T, eos::PengRobinson)
 
-Computes internal energy for a Peng-Robinson gas from specific volume `V` and temperature `T` as
+Computes specific internal energy for a Peng-Robinson gas from specific volume `V` and temperature `T` as
 ``e_{\text{internal}} = c_{v,0} T + K_1 (a(T) - T a'(T))``. 
 """
-function energy_internal(V, T, eos::PengRobinson)
+function energy_internal_specific(V, T, eos::PengRobinson)
     (; cv0) = eos
     K1 = calc_K1(V, eos)
     e_internal = cv0 * T + K1 * (peng_robinson_a(T, eos) - T * peng_robinson_da(T, eos))
