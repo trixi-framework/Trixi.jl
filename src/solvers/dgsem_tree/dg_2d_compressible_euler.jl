@@ -89,11 +89,11 @@ end # muladd
         rho = u_cons[1, i, j, element]
         rho_v1 = u_cons[2, i, j, element]
         rho_v2 = u_cons[3, i, j, element]
-        rho_e = u_cons[4, i, j, element]
+        rho_e_total = u_cons[4, i, j, element]
 
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
-        p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+        p = (equations.gamma - 1) * (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
         u_prim[i, j, 1] = rho
         u_prim[i, j, 2] = v1
@@ -254,11 +254,11 @@ end
         rho = u_cons[1, i, j, element]
         rho_v1 = u_cons[2, i, j, element]
         rho_v2 = u_cons[3, i, j, element]
-        rho_e = u_cons[4, i, j, element]
+        rho_e_total = u_cons[4, i, j, element]
 
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
-        p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+        p = (equations.gamma - 1) * (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
         u_prim[i, j, 1] = rho
         u_prim[i, j, 2] = v1
