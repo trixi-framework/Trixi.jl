@@ -8,7 +8,7 @@ for human readability.
 ## Changes when updating to v0.15 from v0.14.x
 
 #### Changed
-
+- Renamed `energy_internal` for `NonIdealCompressibleEulerEquations1D` to `energy_internal_specific` ([#2762]). This makes `energy_internal` for `NonIdealCompressibleEulerEquations1D` consistent with the rest of Trixi.jl, where `energy_internal` refers to the specific internal energy scaled by density.
 - The variable name (printed to the screen and files) of the total energy in the compressible Euler equations has been changed from `rho_e` to `rho_e_total` to avoid confusion with the internal energy `rho_e_internal` ([#2778]).
 - `convergence_test` now returns the complete convergence orders and the full errors matrix. To obtain the mean convergence rates, use `Trixi.calc_mean_convergence` on the convergence orders ([#2753]).
 - The serial and parallel mesh types have been renamed from `SerialTreeMesh`, `ParallelTreeMesh`, `SerialP4estMesh`, `ParallelP4estMesh`, `SerialT8codeMesh`, and `ParallelT8codeMesh` to `TreeMeshSerial`, `TreeMeshParallel`, `P4estMeshSerial`, `P4estMeshParallel`, `T8codeMeshSerial`, and `T8codeMeshParallel`, respectively ([#2787]).
