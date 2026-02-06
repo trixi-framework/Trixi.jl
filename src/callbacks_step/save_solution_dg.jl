@@ -6,11 +6,11 @@
 #! format: noindent
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{SerialTreeMesh, StructuredMesh,
+                            mesh::Union{TreeMeshSerial, StructuredMesh,
                                         StructuredMeshView,
                                         UnstructuredMesh2D,
-                                        SerialP4estMesh, P4estMeshView,
-                                        SerialT8codeMesh},
+                                        P4estMeshSerial, P4estMeshView,
+                                        T8codeMeshSerial},
                             equations, dg::DG, cache,
                             solution_callback,
                             element_variables = Dict{Symbol, Any}(),
@@ -184,8 +184,8 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                        ParallelT8codeMesh}, equations,
+                            mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                        T8codeMeshParallel}, equations,
                             dg::DG, cache,
                             solution_callback,
                             element_variables = Dict{Symbol, Any}(),
@@ -230,8 +230,8 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 function save_solution_file_parallel(data, time, dt, timestep, n_vars,
-                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                                 ParallelT8codeMesh},
+                                     mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                                 T8codeMeshParallel},
                                      equations, dg::DG, cache,
                                      solution_variables, filename,
                                      element_variables = Dict{Symbol, Any}(),
@@ -310,8 +310,8 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
 end
 
 function save_solution_file_on_root(data, time, dt, timestep, n_vars,
-                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                                ParallelT8codeMesh},
+                                    mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                                T8codeMeshParallel},
                                     equations, dg::DG, cache,
                                     solution_variables, filename,
                                     element_variables = Dict{Symbol, Any}(),

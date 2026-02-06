@@ -94,7 +94,7 @@ end
     end
 end
 
-@timed_testset "ParallelTreeMesh" begin
+@timed_testset "TreeMeshParallel" begin
     @testset "partition!" begin
         @testset "mpi_nranks() = 2" begin
             Trixi.mpi_nranks() = 2
@@ -622,7 +622,7 @@ end
 end
 
 # It is for many equations possible to compute ρ ⋅ p more efficiently
-# than computing the pressure (and density if needed) separately and then multiplying. 
+# than computing the pressure (and density if needed) separately and then multiplying.
 # This is due to the computation of the kinetic energy term, which usually involves
 # dividing the squared momenta by the density, an operation that can be avoided
 # when computing the product ρ ⋅ p directly.
@@ -790,7 +790,7 @@ end
     @test density(u, equations) ≈ 0.5
     @test velocity(u, equations) ≈ 0.1
     @test density_pressure(u, equations) ≈ u[1] * pressure(V, T, eos)
-    @test energy_internal(u, equations) ≈ energy_internal(V, T, eos)
+    @test energy_internal_specific(u, equations) ≈ energy_internal_specific(V, T, eos)
 
     @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
           cons2entropy(u, equations)
@@ -800,10 +800,10 @@ end
     @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
 
-    # check that the fallback temperature and specialized temperature 
-    # return the same value 
+    # check that the fallback temperature and specialized temperature
+    # return the same value
     V, v1, T = cons2prim(u, equations)
-    e = energy_internal(V, T, eos)
+    e = energy_internal_specific(V, T, eos)
     @test temperature(V, e, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
 
