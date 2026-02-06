@@ -253,7 +253,7 @@ export density, pressure, density_pressure, velocity, temperature,
        equilibrium_distribution,
        waterheight, waterheight_pressure
 export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
-       energy_total, energy_kinetic, energy_internal,
+       energy_total, energy_kinetic, energy_internal, energy_internal_specific,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
 export lake_at_rest_error

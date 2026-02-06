@@ -58,12 +58,12 @@ function pressure(V, T, eos::VanDerWaals)
 end
 
 """
-    energy_internal(V, T, eos::VanDerWaals)
+    energy_internal_specific(V, T, eos::VanDerWaals)
 
 Computes internal energy for a van der Waals gas from specific volume `V` and temperature `T` as
 ``e_{\text{internal}} = c_v T - a \rho``.
 """
-function energy_internal(V, T, eos::VanDerWaals)
+function energy_internal_specific(V, T, eos::VanDerWaals)
     (; cv, a) = eos
     rho = inv(V)
     e_internal = cv * T - a * rho
