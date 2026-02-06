@@ -12,7 +12,7 @@ The ideal compressible multicomponent GLM-MHD equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \mathbf{v} \\ \rho e \\ \mathbf{B} \\ \psi \\ \rho_1 \\ \vdots \\ \rho_{n}
+\rho \mathbf{v} \\ \rho e_{\text{total}} \\ \mathbf{B} \\ \psi \\ \rho_1 \\ \vdots \\ \rho_{n}
 \end{pmatrix}
 +
 \nabla \cdot
@@ -41,9 +41,9 @@ for calorically perfect gases in two space dimensions.
 Here, ``\rho_i`` is the density of component ``i``, ``\rho=\sum_{i=1}^n\rho_i`` the sum of the individual ``\rho_i``,
 ``\mathbf{v}`` the velocity, ``\mathbf{B}`` the magnetic field, ``c_h`` the hyperbolic divergence cleaning speed,
 ``\psi`` the generalized Lagrangian Multiplier (GLM),
-``e`` the specific total energy **rather than** specific internal energy, and
+``e_{\text{total}}`` the specific total energy, and
 ```math
-p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - \frac{1}{2} \psi^2 \right)
+p = (\gamma - 1) \left( \rho e_{\text{total}} - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - \frac{1}{2} \psi^2 \right)
 ```
 the pressure,
 ```math
@@ -135,7 +135,7 @@ end
 have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations2D) = True()
 
 function varnames(::typeof(cons2cons), equations::IdealGlmMhdMulticomponentEquations2D)
-    cons = ("rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
+    cons = ("rho_v1", "rho_v2", "rho_v3", "rho_e_total", "B1", "B2", "B3", "psi")
     rhos = ntuple(n -> "rho" * string(n), Val(ncomponents(equations)))
     return (cons..., rhos...)
 end
@@ -232,7 +232,7 @@ end
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::IdealGlmMhdMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
     @unpack c_h = equations
 
     rho = density(u, equations)
@@ -243,7 +243,7 @@ end
     kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
     mag_en = 0.5f0 * (B1^2 + B2^2 + B3^2)
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - kin_en - mag_en - 0.5f0 * psi^2)
+    p = (gamma - 1) * (rho_e_total - kin_en - mag_en - 0.5f0 * psi^2)
 
     if orientation == 1
         f_rho = densities(u, v1, equations)
@@ -291,8 +291,8 @@ of the [`IdealGlmMhdMulticomponentEquations2D`](@ref).
 """
 @inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
                                              equations::IdealGlmMhdMulticomponentEquations2D)
-    rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     rho_ll = density(u_ll, equations)
 
@@ -344,8 +344,8 @@ Entropy conserving two-point flux adapted by
 function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
                           equations::IdealGlmMhdMulticomponentEquations2D)
     # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
-    rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
     @unpack gammas, gas_constants, cv, c_h = equations
 
     rho_ll = density(u_ll, equations)
@@ -407,9 +407,9 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
         help1_rr += u_rr[i + 8] * cv[i]
     end
 
-    T_ll = (rho_e_ll - 0.5f0 * rho_ll * (vel_norm_ll) - 0.5f0 * mag_norm_ll -
+    T_ll = (rho_e_total_ll - 0.5f0 * rho_ll * (vel_norm_ll) - 0.5f0 * mag_norm_ll -
             0.5f0 * psi_ll^2) / help1_ll
-    T_rr = (rho_e_rr - 0.5f0 * rho_rr * (vel_norm_rr) - 0.5f0 * mag_norm_rr -
+    T_rr = (rho_e_total_rr - 0.5f0 * rho_rr * (vel_norm_rr) - 0.5f0 * mag_norm_rr -
             0.5f0 * psi_rr^2) / help1_rr
     T = 0.5f0 * (1 / T_ll + 1 / T_rr)
     T_log = ln_mean(1 / T_ll, 1 / T_rr)
@@ -660,17 +660,17 @@ Computes the pressure for an ideal equation of state with
 isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
 ```math
 \begin{aligned}
-p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} - \frac{1}{2}\psi^2 \right) \\
-  &= (\gamma - 1) \left( \rho e - \frac{1}{2} 
+p &= (\gamma - 1) \left( \rho e_{\text{total}} - \rho e_{\text{kinetic}} - \rho e_{\text{magnetic}} - \frac{1}{2}\psi^2 \right) \\
+  &= (\gamma - 1) \left( \rho e_{\text{total}} - \frac{1}{2}
   \left[\rho \Vert v \Vert_2^2  + \Vert B \Vert_2^2 + \psi^2 \right] \right)
 \end{aligned}
 ```
 """
 @inline function pressure(u, equations::IdealGlmMhdMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
     rho = density(u, equations)
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e -
+    p = (gamma - 1) * (rho_e_total -
          0.5f0 *
          ((rho_v1^2 + rho_v2^2 + rho_v3^2) / rho +
           B1^2 + B2^2 + B3^2 + psi^2))
@@ -678,10 +678,10 @@ p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} - \fra
 end
 
 @inline function density_pressure(u, equations::IdealGlmMhdMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
     rho = density(u, equations)
     gamma = totalgamma(u, equations)
-    rho_times_p = (gamma - 1) * (rho * rho_e -
+    rho_times_p = (gamma - 1) * (rho * rho_e_total -
                    0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2 +
                     rho * (B1^2 + B2^2 + B3^2 + psi^2)))
     return rho_times_p
@@ -689,7 +689,7 @@ end
 
 # Convert conservative variables to primitive
 function cons2prim(u, equations::IdealGlmMhdMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
 
     prim_rho = SVector{ncomponents(equations), real(equations)}(u[i + 8]
                                                                 for i in eachcomponent(equations))
@@ -702,7 +702,8 @@ function cons2prim(u, equations::IdealGlmMhdMulticomponentEquations2D)
     gamma = totalgamma(u, equations)
 
     p = (gamma - 1) *
-        (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+        (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) -
+         0.5f0 * (B1^2 + B2^2 + B3^2) -
          0.5f0 * psi^2)
     prim_other = SVector(v1, v2, v3, p, B1, B2, B3, psi)
 
@@ -711,7 +712,7 @@ end
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::IdealGlmMhdMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
     @unpack cv, gammas, gas_constants = equations
 
     rho = density(u, equations)
@@ -722,7 +723,8 @@ end
     v_square = v1^2 + v2^2 + v3^2
     gamma = totalgamma(u, equations)
     p = (gamma - 1) *
-        (rho_e - 0.5f0 * rho * v_square - 0.5f0 * (B1^2 + B2^2 + B3^2) - 0.5f0 * psi^2)
+        (rho_e_total - 0.5f0 * rho * v_square - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+         0.5f0 * psi^2)
     s = log(p) - gamma * log(rho)
     rho_p = rho / p
 
@@ -733,7 +735,8 @@ end
         help1 += u[i + 8] * cv[i]
     end
 
-    T = (rho_e - 0.5f0 * rho * v_square - 0.5f0 * (B1^2 + B2^2 + B3^2) - 0.5f0 * psi^2) /
+    T = (rho_e_total - 0.5f0 * rho * v_square - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+         0.5f0 * psi^2) /
         (help1)
 
     entrop_rho = SVector{ncomponents(equations), real(equations)}(-1 *
@@ -772,10 +775,10 @@ end
     rho_v3 = rho * v3
 
     gamma = totalgamma(prim, equations)
-    rho_e = p / (gamma - 1) + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
-            0.5f0 * (B1^2 + B2^2 + B3^2) + 0.5f0 * psi^2
+    rho_e_total = p / (gamma - 1) + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
+                  0.5f0 * (B1^2 + B2^2 + B3^2) + 0.5f0 * psi^2
 
-    cons_other = SVector(rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3,
+    cons_other = SVector(rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3,
                          psi)
 
     return vcat(cons_other, cons_rho)
@@ -784,7 +787,7 @@ end
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
 @inline function calc_fast_wavespeed(cons, direction,
                                      equations::IdealGlmMhdMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
+    rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = cons
     rho = density(cons, equations)
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -792,7 +795,8 @@ end
     v_mag = sqrt(v1^2 + v2^2 + v3^2)
     gamma = totalgamma(cons, equations)
     p = (gamma - 1) *
-        (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2) - 0.5f0 * psi^2)
+        (rho_e_total - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+         0.5f0 * psi^2)
     a_square = gamma * p / rho
     sqrt_rho = sqrt(rho)
     b1 = B1 / sqrt_rho

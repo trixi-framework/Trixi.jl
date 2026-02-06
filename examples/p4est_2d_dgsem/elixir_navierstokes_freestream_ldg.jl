@@ -11,8 +11,8 @@ function initial_condition_const(x, t, equations)
     rho = 1
     rho_v1 = convert(RealT, 0.1)
     rho_v2 = convert(RealT, -0.2)
-    rho_e = 10
-    return SVector(rho, rho_v1, rho_v2, rho_e)
+    rho_e_total = 10
+    return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 initial_condition = initial_condition_const
 

@@ -887,7 +887,7 @@ end
 
 Then, a different balance function could look like this:
 ```julia
-function balance_p4est_multirate!(mesh::ParallelP4estMesh, dg, cache,
+function balance_p4est_multirate!(mesh::P4estMeshParallel, dg, cache,
                                   # Vector{Vector{Int}} = Multirate levels with associated element indices
                                   level_info_elements,
                                   # Vector{Int} = RHS Runge-Kutta stage evaluations per multirate level
