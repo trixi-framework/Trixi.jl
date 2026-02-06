@@ -60,7 +60,7 @@ end
 """
     energy_internal_specific(V, T, eos::VanDerWaals)
 
-Computes internal energy for a van der Waals gas from specific volume `V` and temperature `T` as
+Computes specific internal energy for a van der Waals gas from specific volume `V` and temperature `T` as
 ``e = c_v T - a \rho``.
 """
 function energy_internal_specific(V, T, eos::VanDerWaals)
