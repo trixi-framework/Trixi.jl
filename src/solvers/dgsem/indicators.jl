@@ -297,10 +297,10 @@ Here, ``\dot{\boldsymbol u}_\mathrm{VI}`` is the change in the DG right-hand-sid
 entropy potential ``\boldsymbol{\psi}`` (see also [`entropy_potential`](@ref)).
 
 This is discussed in more detail in
-- Chan (2018)
-  "On discretely entropy conservative and entropy stable discontinuous Galerkin methods"
-  [DOI: 10.1016/j.jcp.2018.02.033](https://doi.org/10.1016/j.jcp.2018.02.033)
-- Li, Chan (2024)
+- Chen, Shu (2017)
+  "Entropy stable high order discontinuous Galerkin methods with suitable quadrature rules for hyperbolic conservation laws"
+  [DOI: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
+- Lin, Chan (2024)
   "High order entropy stable discontinuous Galerkin spectral element methods through subcell limiting"
   [DOI: 10.1016/j.jcp.2023.112677](https://doi.org/10.1016/j.jcp.2023.112677)
 
