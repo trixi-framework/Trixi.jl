@@ -33,8 +33,9 @@ function (initial_condition::InitialConditionSourceTermsRotated)(x, t,
     x1 = cos_ * x[1] + sin_ * x[2] + 1
     x2 = -sin_ * x[1] + cos_ * x[2] + 1
 
-    rho, rho_v1, rho_v2, rho_e = initial_condition_convergence_test(SVector(x1, x2), t,
-                                                                    equations)
+    rho, rho_v1, rho_v2, rho_e_total = initial_condition_convergence_test(SVector(x1, x2),
+                                                                          t,
+                                                                          equations)
 
     # Rotate velocity vector counterclockwise
     # Multiply with [ cos(α)  -sin(α);
@@ -42,7 +43,7 @@ function (initial_condition::InitialConditionSourceTermsRotated)(x, t,
     rho_v1_rot = cos_ * rho_v1 - sin_ * rho_v2
     rho_v2_rot = sin_ * rho_v1 + cos_ * rho_v2
 
-    return SVector(rho, rho_v1_rot, rho_v2_rot, rho_e)
+    return SVector(rho, rho_v1_rot, rho_v2_rot, rho_e_total)
 end
 
 @inline function (source_terms::InitialConditionSourceTermsRotated)(u, x, t,

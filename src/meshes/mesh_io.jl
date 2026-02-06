@@ -598,7 +598,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     return mesh
 end
 
-function load_mesh!(mesh::SerialTreeMesh, mesh_file::AbstractString)
+function load_mesh!(mesh::TreeMeshSerial, mesh_file::AbstractString)
     mesh.current_filename = mesh_file
     mesh.unsaved_changes = false
 
@@ -727,7 +727,7 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
     return mesh
 end
 
-function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
+function load_mesh!(mesh::TreeMeshParallel, mesh_file::AbstractString)
     mesh.current_filename = mesh_file
     mesh.unsaved_changes = false
 

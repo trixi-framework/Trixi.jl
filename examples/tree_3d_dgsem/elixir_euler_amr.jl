@@ -21,8 +21,8 @@ function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquat
     rho_v2 = rho * v2
     rho_v3 = rho * v3
     p = 1
-    rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2 + v3^2)
-    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
+    rho_e_total = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2 + v3^2)
+    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
 end
 initial_condition = initial_condition_density_pulse
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -30,7 +30,7 @@ initial_condition = initial_condition_density_pulse
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 

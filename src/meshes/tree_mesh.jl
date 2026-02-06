@@ -71,13 +71,13 @@ const TreeMesh1D = TreeMesh{1, TreeType} where {TreeType <: AbstractTree{1}}
 const TreeMesh2D = TreeMesh{2, TreeType} where {TreeType <: AbstractTree{2}}
 const TreeMesh3D = TreeMesh{3, TreeType} where {TreeType <: AbstractTree{3}}
 
-const SerialTreeMesh{NDIMS} = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
-const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
+const TreeMeshSerial{NDIMS} = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
+const TreeMeshParallel{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
 
-@inline mpi_parallel(mesh::SerialTreeMesh) = False()
-@inline mpi_parallel(mesh::ParallelTreeMesh) = True()
+@inline mpi_parallel(mesh::TreeMeshSerial) = False()
+@inline mpi_parallel(mesh::TreeMeshParallel) = True()
 
-partition!(mesh::SerialTreeMesh) = nothing
+partition!(mesh::TreeMeshSerial) = nothing
 
 # Constructor for passing the dimension and mesh type as an argument
 function TreeMesh(::Type{TreeType}, args...;

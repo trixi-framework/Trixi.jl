@@ -96,7 +96,7 @@ end
     end
 end
 
-@timed_testset "ParallelTreeMesh" begin
+@timed_testset "TreeMeshParallel" begin
     @testset "partition!" begin
         @testset "mpi_nranks() = 2" begin
             Trixi.mpi_nranks() = 2
@@ -797,7 +797,7 @@ end
     @test density(u, equations) ≈ 0.5
     @test velocity(u, equations) ≈ 0.1
     @test density_pressure(u, equations) ≈ u[1] * pressure(V, T, eos)
-    @test energy_internal(u, equations) ≈ energy_internal(V, T, eos)
+    @test energy_internal_specific(u, equations) ≈ energy_internal_specific(V, T, eos)
 
     @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
           cons2entropy(u, equations)
@@ -810,7 +810,7 @@ end
     # check that the fallback temperature and specialized temperature
     # return the same value
     V, v1, T = cons2prim(u, equations)
-    e = energy_internal(V, T, eos)
+    e = energy_internal_specific(V, T, eos)
     @test temperature(V, e, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
 

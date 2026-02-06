@@ -16,7 +16,7 @@ left(x, tol = 50 * eps()) = abs(x[1] + 1) < tol
 right(x, tol = 50 * eps()) = abs(x[1] - 1) < tol
 bottom(x, tol = 50 * eps()) = abs(x[2] + 1) < tol
 top(x, tol = 50 * eps()) = abs(x[2] - 1) < tol
-is_on_boundary = Dict(:left => left, :right => right, :top => top, :bottom => bottom)
+is_on_boundary = (; left = left, right = right, top = top, bottom = bottom)
 
 cells_per_dimension = (16, 16)
 mesh = DGMultiMesh(dg, cells_per_dimension; is_on_boundary)

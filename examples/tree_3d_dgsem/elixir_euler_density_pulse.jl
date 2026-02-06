@@ -21,8 +21,8 @@ function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquat
     rho_v2 = rho * v2
     rho_v3 = rho * v3
     p = 1
-    rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2 + v3^2)
-    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
+    rho_e_total = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2 + v3^2)
+    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
 end
 initial_condition = initial_condition_density_pulse
 

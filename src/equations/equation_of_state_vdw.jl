@@ -22,8 +22,11 @@ der Waals supercritical fluid flows" by Pantano, Saurel, and Schmitt (2017).
 <https://doi.org/10.1016/j.jcp.2017.01.057>
 """
 struct VanDerWaals{RealT <: Real} <: AbstractEquationOfState
-    a::RealT
-    b::RealT
+    # van der Waals specific parameters
+    a::RealT # molecular attraction
+    b::RealT # excluded volume or co-volume
+
+    # Standard thermodynamic gas parameters
     gamma::RealT
     R::RealT
     cv::RealT
@@ -55,12 +58,12 @@ function pressure(V, T, eos::VanDerWaals)
 end
 
 """
-    energy_internal(V, T, eos::VanDerWaals)
+    energy_internal_specific(V, T, eos::VanDerWaals)
 
-Computes internal energy for a van der Waals gas from specific volume `V` and temperature `T` as
+Computes specific internal energy for a van der Waals gas from specific volume `V` and temperature `T` as
 ``e = c_v T - a \rho``.
 """
-function energy_internal(V, T, eos::VanDerWaals)
+function energy_internal_specific(V, T, eos::VanDerWaals)
     (; cv, a) = eos
     rho = inv(V)
     e = cv * T - a * rho
@@ -83,7 +86,7 @@ end
 function speed_of_sound(V, T, eos::VanDerWaals)
     (; a, b, gamma) = eos
     rho = inv(V)
-    e = energy_internal(V, T, eos)
+    e = energy_internal_specific(V, T, eos)
     c2 = gamma * (gamma - 1) * (e + rho * a) / (1 - rho * b)^2 - 2 * a * rho
     return sqrt(c2)
 end

@@ -53,7 +53,7 @@ boundary_conditions = (; x_neg = boundary_condition_slip_wall,
                        y_pos = boundary_condition_slip_wall,
                        x_pos = boundary_condition_slip_wall)
 
-boundary_conditions_parabolic = (x_neg = boundary_condition_cavity,
+boundary_conditions_parabolic = (; x_neg = boundary_condition_cavity,
                                  y_neg = boundary_condition_cavity,
                                  y_pos = boundary_condition_lid,
                                  x_pos = boundary_condition_cavity)
@@ -75,7 +75,7 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 100)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
-callbacks = CallbackSet(summary_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation

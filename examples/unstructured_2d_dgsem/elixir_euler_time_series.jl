@@ -26,9 +26,9 @@ function initial_condition_convergence_shifted(x, t,
     rho = ini
     rho_v1 = ini
     rho_v2 = ini
-    rho_e = ini^2
+    rho_e_total = ini^2
 
-    return SVector(rho, rho_v1, rho_v2, rho_e)
+    return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 
 @inline function source_terms_convergence_shifted(u, x, t,
