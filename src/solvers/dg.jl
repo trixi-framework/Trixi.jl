@@ -281,16 +281,16 @@ function Base.show(io::IO, mime::MIME"text/plain",
 end
 
 """
-    VolumeIntegralEntropyCorrection(equations, basis;
+    VolumeIntegralEntropyCorrection(indicator;
                                     volume_flux_dg=flux_central,
-                                    volume_flux_fv=flux_lax_friedrichs, 
-                                    scaling = true)
+                                    volume_flux_fv=flux_lax_friedrichs)
 
 Entropy correction volume integral type for DG methods using a convex blending of
 the **first-order** finite volume method with numerical flux `volume_flux_fv` and the
-[`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
-The amount of blending is determined by the violation of a cell entropy equality by
-the volume integral. 
+[`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`. This is 
+intended to be used with [`IndicatorEntropyCorrection`](@ref), which determines the 
+amount of blending based on the violation of a cell entropy equality by the volume 
+integral. 
 
 `scaling ≥ 1` scales the DG-FV blending parameter ``\\alpha``(see the
 [tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
@@ -310,11 +310,9 @@ struct VolumeIntegralEntropyCorrection{VolumeFluxDG, VolumeFluxFV, Indicator} <:
     indicator::Indicator
 end
 
-function VolumeIntegralEntropyCorrection(equations, basis;
+function VolumeIntegralEntropyCorrection(indicator;
                                          volume_flux_dg = flux_central,
-                                         volume_flux_fv = flux_lax_friedrichs,
-                                         scaling = true)
-    indicator = IndicatorEntropyCorrection(equations, basis; scaling)
+                                         volume_flux_fv = flux_lax_friedrichs)
     return VolumeIntegralEntropyCorrection{typeof(volume_flux_dg),
                                            typeof(volume_flux_fv),
                                            typeof(indicator)}(volume_flux_dg,

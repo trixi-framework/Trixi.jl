@@ -114,8 +114,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         solver=DGSEM(LobattoLegendreBasis(3),
                                      flux_lax_friedrichs,
-                                     VolumeIntegralEntropyCorrection(CompressibleEulerEquations2D(1.4),
-                                                                     LobattoLegendreBasis(3);
+                                     VolumeIntegralEntropyCorrection(IndicatorEntropyCorrection(CompressibleEulerEquations2D(1.4),
+                                                                                                LobattoLegendreBasis(3)),
                                                                      volume_flux_dg = flux_central,
                                                                      volume_flux_fv = flux_lax_friedrichs)),
                         tspan=(0.0, 0.1),
@@ -587,22 +587,24 @@ end
                         # adding `scaling = 2` increases the amount of subcell FV blended in by 
                         # a factor of 2. If this is not added, the KHI simulation crashes with a 
                         # positivity violation at some time t < 3.
-                        volume_integral=VolumeIntegralEntropyCorrection(equations,
-                                                                        basis;
-                                                                        volume_flux_dg = volume_flux,
-                                                                        volume_flux_fv = surface_flux,
-                                                                        scaling = 2.0),
+                        solver=DGSEM(LobattoLegendreBasis(3),
+                                     flux_lax_friedrichs,
+                                     VolumeIntegralEntropyCorrection(IndicatorEntropyCorrection(CompressibleEulerEquations2D(1.4),
+                                                                                                LobattoLegendreBasis(3);
+                                                                                                scaling = 2),
+                                                                     volume_flux_dg = flux_central,
+                                                                     volume_flux_fv = flux_lax_friedrichs)),
                         l2=[
-                            0.5598004443337804,
-                            0.19783160019699073,
-                            0.22886409540262306,
-                            0.17616905595853216
+                            0.5478424814984363,
+                            0.2040045541508178,
+                            0.22224623172603333,
+                            0.1688290550316014
                         ],
                         linf=[
-                            2.2756723403007273,
-                            0.7899848710261611,
-                            0.7613239119300793,
-                            0.6332611254490705
+                            2.0077477196844606,
+                            0.7856525305298842,
+                            0.6907389422800942,
+                            0.6256780117443306
                         ])
 end
 
