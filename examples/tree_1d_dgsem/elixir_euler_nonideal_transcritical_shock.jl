@@ -17,9 +17,9 @@ function initial_condition_transcritical_shock(x, t,
     eos = equations.equation_of_state
 
     if x[1] < 0
-        rho, v1, p = SVector(800, 0, 60e6)
+        rho, v1, p = SVector(800, 0, convert(RealT, 60.0e6))
     else
-        rho, v1, p = SVector(80, 0, 6e6)
+        rho, v1, p = SVector(80, 0, convert(RealT, 6.0e6))
     end
 
     V = inv(rho)
@@ -36,7 +36,7 @@ function initial_condition_transcritical_shock(x, t,
         iter += 1
     end
     if iter == 100
-        println("Warning: solver for temperature(V, p) did not converge")
+        @warn "Solver for temperature(V, p) did not converge"
     end
 
     return prim2cons(SVector(V, v1, T), equations)

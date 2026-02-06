@@ -12,12 +12,12 @@ The compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-    \rho \\ \rho v_1 \\ \rho e_{total}
+    \rho \\ \rho v_1 \\ \rho e_{\text{total}}
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-    \rho v_1 \\ \rho v_1^2 + p \\ (\rho e_{total} + p) v_1
+    \rho v_1 \\ \rho v_1^2 + p \\ (\rho e_{\text{total}} + p) v_1
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -26,7 +26,7 @@ The compressible Euler equations
 ```
 for a gas with pressure ``p`` specified by some equation of state in one space dimension.
 
-Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_{total}`` the specific total energy, 
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_{\text{total}}`` the specific total energy, 
 and the pressure ``p`` is given in terms of specific volume ``V = 1/\rho`` and temperature ``T``
 by some user-specified equation of state (EOS)
 (see [`pressure(V, T, eos::IdealGas)`](@ref), [`pressure(V, T, eos::VanDerWaals)`](@ref)) as
@@ -34,8 +34,8 @@ by some user-specified equation of state (EOS)
 p = p(V, T)
 ```
 
-Similarly, the internal energy is specified by `e = energy_internal(V, T, eos)`, see
-[`energy_internal(V, T, eos::IdealGas)`](@ref), [`energy_internal(V, T, eos::VanDerWaals)`](@ref).
+Similarly, the internal energy is specified by `e_internal = energy_internal_specific(V, T, eos)`, see
+[`energy_internal_specific(V, T, eos::IdealGas)`](@ref), [`energy_internal_specific(V, T, eos::VanDerWaals)`](@ref).
 
 Because of this, the primitive variables are also defined to be `V, v1, T` (instead of 
 `rho, v1, p` for `CompressibleEulerEquations1D`). The implementation also assumes 
@@ -44,11 +44,6 @@ mass basis unless otherwise specified.
 struct NonIdealCompressibleEulerEquations1D{EoS <: AbstractEquationOfState} <:
        AbstractNonIdealCompressibleEulerEquations{1, 3}
     equation_of_state::EoS
-end
-
-function get_name(equations::AbstractNonIdealCompressibleEulerEquations)
-    return (equations |> typeof |> nameof |> string) * "{" *
-           (equations.equation_of_state |> typeof |> nameof |> string) * "}"
 end
 
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations1D)
@@ -69,7 +64,7 @@ varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("rho",
                                                                          "p")
 
 """
-    function cons2thermo(u, equations::NonIdealCompressibleEulerEquations1D)
+    cons2thermo(u, equations::NonIdealCompressibleEulerEquations1D)
         
 Convert conservative variables to specific volume, velocity, and temperature 
 variables `V, v1, T`. These are referred to as "thermodynamic" variables since
@@ -81,8 +76,8 @@ equation of state routines are assumed to be evaluated in terms of `V` and `T`.
 
     V = inv(rho)
     v1 = rho_v1 * V
-    e = (rho_e_total - 0.5f0 * rho_v1 * v1) * V
-    T = temperature(V, e, eos)
+    e_internal = (rho_e_total - 0.5f0 * rho_v1 * v1) * V
+    T = temperature(V, e_internal, eos)
 
     return SVector(V, v1, T)
 end
@@ -121,8 +116,8 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370 1>
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -172,8 +167,8 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
 
     rho_ll, rho_v1_ll, _ = u_ll
     rho_rr, rho_v1_rr, _ = u_rr
-    rho_e_ll = internal_energy_density(u_ll, equations)
-    rho_e_rr = internal_energy_density(u_rr, equations)
+    rho_e_ll = energy_internal(u_ll, equations)
+    rho_e_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -298,43 +293,9 @@ end
     V, v1, T = prim
     rho = inv(V)
     rho_v1 = rho * v1
-    e = energy_internal(V, T, eos)
-    rho_e_total = rho * e + 0.5f0 * rho_v1 * v1
+    e_internal = energy_internal_specific(V, T, eos)
+    rho_e_total = rho * e_internal + 0.5f0 * rho_v1 * v1
     return SVector(rho, rho_v1, rho_e_total)
-end
-
-@doc raw"""
-    entropy_math(u, equations::AbstractNonIdealCompressibleEulerEquations)
-
-Calculate mathematical entropy for a conservative state `cons` as
-```math
-S = -\rho s
-```
-where `s` is the specific entropy determined by the equation of state.
-"""
-@inline function entropy_math(u, equations::AbstractNonIdealCompressibleEulerEquations)
-    eos = equations.equation_of_state
-    u_thermo = cons2thermo(u, equations)
-    V = first(u_thermo)
-    T = last(u_thermo)
-    rho = u[1]
-    S = -rho * entropy_specific(V, T, eos)
-    return S
-end
-
-"""
-    entropy(cons, equations::AbstractNonIdealCompressibleEulerEquations)
-
-Default entropy is the mathematical entropy
-[`entropy_math(u, equations::AbstractNonIdealCompressibleEulerEquations)`](@ref).
-"""
-@inline function entropy(cons, equations::AbstractNonIdealCompressibleEulerEquations)
-    return entropy_math(cons, equations)
-end
-
-@inline function density(u, equations::AbstractNonIdealCompressibleEulerEquations)
-    rho = u[1]
-    return rho
 end
 
 @inline function velocity(u, orientation_or_normal,
@@ -348,40 +309,33 @@ end
     return v1
 end
 
-@inline function pressure(u, equations::AbstractNonIdealCompressibleEulerEquations)
+@inline function pressure(u, equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    u_thermo = cons2thermo(u, equations)
-    V = first(u_thermo)
-    T = last(u_thermo)
+    V, _, T = cons2prim(u, equations)
     p = pressure(V, T, eos)
     return p
 end
 
-@inline function density_pressure(u,
-                                  equations::AbstractNonIdealCompressibleEulerEquations)
+@inline function density_pressure(u, equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
     rho = u[1]
-    u_thermo = cons2thermo(u, equations)
-    V = first(u_thermo)
-    T = last(u_thermo)
+    V, _, T = cons2prim(u, equations)
     p = pressure(V, T, eos)
     return rho * p
 end
 
-@inline function energy_internal(u,
-                                 equations::AbstractNonIdealCompressibleEulerEquations)
+@inline function energy_internal_specific(u,
+                                          equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    u_thermo = cons2thermo(u, equations)
-    V = first(u_thermo)
-    T = last(u_thermo)
-    e = energy_internal(V, T, eos)
-    return e
+    V, _, T = cons2prim(u, equations)
+    e_internal = energy_internal_specific(V, T, eos)
+    return e_internal
 end
 
-@inline function internal_energy_density(u,
-                                         equations::NonIdealCompressibleEulerEquations1D)
+@inline function energy_internal(u,
+                                 equations::NonIdealCompressibleEulerEquations1D)
     rho, rho_v1, rho_e_total = u
-    rho_e = rho_e_total - 0.5f0 * rho_v1^2 / rho
-    return rho_e
+    rho_e_internal = rho_e_total - 0.5f0 * rho_v1^2 / rho
+    return rho_e_internal
 end
 end # @muladd

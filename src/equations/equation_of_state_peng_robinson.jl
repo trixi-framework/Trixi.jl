@@ -11,7 +11,7 @@
 This defines the Peng-Robinson equation of state
 given by the pressure and internal energy relations
 ```math
-p = \frac{R T}{V - b} - \frac{a(T)}{V^2 + 2bV - b^2}, \quad e = c_{v,0} T + K(a(T) - Ta'(T))
+p = \frac{R T}{V - b} - \frac{a(T)}{V^2 + 2bV - b^2}, \quad e_{\text{internal}} = c_{v,0} T + K(a(T) - Ta'(T))
 ```
 where ``V = inv(rho)`` and auxiliary expressions for ``a(T)`` and ``K`` are given by 
 ```math
@@ -103,17 +103,17 @@ function pressure(V, T, eos::PengRobinson)
     return p
 end
 
-"""
-    energy_internal(V, T, eos::PengRobinson)
+@doc raw"""
+    energy_internal_specific(V, T, eos::PengRobinson)
 
-Computes internal energy for a Peng-Robinson gas from specific volume `V` and temperature `T` as
-``e = c_{v,0} T + K_1 (a(T) - T a'(T))``. 
+Computes specific internal energy for a Peng-Robinson gas from specific volume `V` and temperature `T` as
+``e_{\text{internal}} = c_{v,0} T + K_1 (a(T) - T a'(T))``. 
 """
-function energy_internal(V, T, eos::PengRobinson)
+function energy_internal_specific(V, T, eos::PengRobinson)
     (; cv0) = eos
     K1 = calc_K1(V, eos)
-    e = cv0 * T + K1 * (peng_robinson_a(T, eos) - T * peng_robinson_da(T, eos))
-    return e
+    e_internal = cv0 * T + K1 * (peng_robinson_a(T, eos) - T * peng_robinson_da(T, eos))
+    return e_internal
 end
 
 @inline function heat_capacity_constant_volume(V, T, eos::PengRobinson)
@@ -147,8 +147,8 @@ function speed_of_sound(V, T, eos::PengRobinson)
 
     # calculate bulk modulus, which should be positive 
     # for admissible thermodynamic states.
-    kappa_T = -inv(V * dpdV_T)
-    c2 = gamma * V / kappa_T
+    inv_kappa_T = -(V * dpdV_T)
+    c2 = gamma * V * inv_kappa_T
     return sqrt(c2)
 end
 
