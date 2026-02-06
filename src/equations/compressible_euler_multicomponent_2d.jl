@@ -719,9 +719,9 @@ end
 
     # Compute pressures
     p_ll = (gamma_ll - one(T)) *
-           (rho_e_total_ll - T(0.5) * dot(v_ll_vec, v_ll_vec) * rho_ll)
+           (rho_e_total_ll - 0.5f0 * dot(v_ll_vec, v_ll_vec) * rho_ll)
     p_rr = (gamma_rr - one(T)) *
-           (rho_e_total_rr - T(0.5) * dot(v_rr_vec, v_rr_vec) * rho_rr)
+           (rho_e_total_rr - 0.5f0 * dot(v_rr_vec, v_rr_vec) * rho_rr)
 
     # Sound speeds
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
