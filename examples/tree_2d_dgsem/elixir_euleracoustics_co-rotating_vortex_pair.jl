@@ -180,13 +180,13 @@ end
 # used as a Dirichlet boundary
 struct BoundaryCondition{uEltype}
     rho::uEltype
-    rho_e::uEltype
+    rho_e_total::uEltype
 end
 
 function (bc::BoundaryCondition)(u_inner, orientation, direction, x, t,
                                  surface_flux_function,
                                  equations::CompressibleEulerEquations2D)
-    u_boundary = SVector(bc.rho, zero(bc.rho), zero(bc.rho), bc.rho_e)
+    u_boundary = SVector(bc.rho, zero(bc.rho), zero(bc.rho), bc.rho_e_total)
 
     # Calculate boundary flux
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -240,7 +240,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 

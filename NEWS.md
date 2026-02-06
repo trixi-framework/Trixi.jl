@@ -5,13 +5,21 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.15 from v0.14.x
+
+#### Changed
+
+- The variable name (printed to the screen and files) of the total energy in the compressible Euler equations has been changed from `rho_e` to `rho_e_total` to avoid confusion with the internal energy `rho_e_internal` ([#2778]).
+- `convergence_test` now returns the complete convergence orders and the full errors matrix. To obtain the mean convergence rates, use `Trixi.calc_mean_convergence` on the convergence orders ([#2753]).
+- The serial and parallel mesh types have been renamed from `SerialTreeMesh`, `ParallelTreeMesh`, `SerialP4estMesh`, `ParallelP4estMesh`, `SerialT8codeMesh`, and `ParallelT8codeMesh` to `TreeMeshSerial`, `TreeMeshParallel`, `P4estMeshSerial`, `P4estMeshParallel`, `T8codeMeshSerial`, and `T8codeMeshParallel`, respectively ([#2787]).
+
 ## Changes in the v0.14 lifecycle
 
-#### Added 
-- Added `NonIdealCompressibleEulerEquations1D`, which allows users to specify a non-ideal equation of state. Currently `IdealGas` and `VanDerWaals` are supported ([#2739]). 
-- Added the APEC (approximate pressure equilibrium preserving with conservation) fluxes of `flux_terashima_etal` and `flux_central_terashima_etal` from [Terashima, Ly, Ihme (2025)](https://doi.org/10.1016/j.jcp.2024.113701) ([#2756]). 
+#### Added
+- Added `NonIdealCompressibleEulerEquations1D`, which allows users to specify a non-ideal equation of state. Currently `IdealGas` and `VanDerWaals` are supported ([#2739]).
+- Added the APEC (approximate pressure equilibrium preserving with conservation) fluxes of `flux_terashima_etal` and `flux_central_terashima_etal` from [Terashima, Ly, Ihme (2025)](https://doi.org/10.1016/j.jcp.2024.113701) ([#2756]).
 - Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
-  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on 
+  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on
   3D meshes for conservative systems ([#2734], [#2755]).
 - Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733]).
   In the new version, local (minimum or maximum) limiting for nonlinear variables (using
@@ -24,8 +32,8 @@ for human readability.
 
 #### Changed
 
-- van Leer's limiters changed to snake case: `vanLeer` => `vanleer`
-- A couple `struct`s have been made completely immutable, or only a couple fields thereof. Most notably, `save_solution.condition.save_initial_solution` where `save_solution isa SavesolutionCallback` can no longer be directly changed. Instead, the `@reset` macro from [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) is used in the elixirs.
+- van Leer's limiters changed to snake case: `vanLeer` => `vanleer` ([#2744])
+- A couple `struct`s have been made completely immutable, or only a couple fields thereof ([#2640]). Most notably, `save_solution.condition.save_initial_solution` where `save_solution isa SavesolutionCallback` can no longer be directly changed. Instead, the `@reset` macro from [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) is used in the elixirs.
 
 ## Changes in the v0.13 lifecycle
 
@@ -41,7 +49,7 @@ for human readability.
   `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_rr, u_ll)`.
 - Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]).
 - Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
-  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on 
+  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on
   1D & 2D meshes for conservative systems ([#2022], [#2695], [#2718]).
 
 ## Changes when updating to v0.13 from v0.12.x
