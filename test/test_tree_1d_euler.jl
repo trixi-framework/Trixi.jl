@@ -659,4 +659,41 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_modified_sod_entropy_correction.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_modified_sod_entropy_correction.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[0.17918606870048043, 0.3021079622668064, 0.591922971435801],
+                        linf=[0.6787210684791858, 0.8094457932998395, 1.9399759521796582])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl with entropy correction" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        solver=DGSEM(LobattoLegendreBasis(3), flux_lax_friedrichs,
+                                     VolumeIntegralEntropyCorrection(IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
+                                                                                                LobattoLegendreBasis(3)),
+                                                                     volume_flux_dg = flux_central,
+                                                                     volume_flux_fv = flux_lax_friedrichs)),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.0017122131198515455,
+                            0.00036348851462562144,
+                            0.07342375187001934
+                        ],
+                        linf=[
+                            0.003190471783387716,
+                            0.0018240656867738736,
+                            0.21543232235440257
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 end # module

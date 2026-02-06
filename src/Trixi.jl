@@ -252,6 +252,7 @@ export density, pressure, density_pressure, velocity, temperature,
        equilibrium_distribution,
        waterheight, waterheight_pressure
 export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
+       entropy_potential,
        energy_total, energy_kinetic, energy_internal, energy_internal_specific,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
@@ -271,6 +272,7 @@ export DG,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
        IndicatorHennemannGassner,
        VolumeIntegralUpwind,
+       VolumeIntegralEntropyCorrection, IndicatorEntropyCorrection,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2

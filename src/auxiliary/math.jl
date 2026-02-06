@@ -445,4 +445,8 @@ end
 @inline function maxmod(sl, sr)
     return 0.5f0 * (sign(sl) + sign(sr)) * max(abs(sl), abs(sr))
 end
+
+# regularized approximation to the ratio a / b which is numerically stable 
+# for b close to zero.
+@inline regularized_ratio(a, b) = a * b / (eps(b) + b^2)
 end # @muladd

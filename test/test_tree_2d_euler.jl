@@ -110,6 +110,32 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_density_wave.jl with entropy correction" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
+                        solver=DGSEM(LobattoLegendreBasis(3),
+                                     flux_lax_friedrichs,
+                                     VolumeIntegralEntropyCorrection(IndicatorEntropyCorrection(CompressibleEulerEquations2D(1.4),
+                                                                                                LobattoLegendreBasis(3)),
+                                                                     volume_flux_dg = flux_central,
+                                                                     volume_flux_fv = flux_lax_friedrichs)),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.02871253948076796,
+                            0.0028712539480767046,
+                            0.00574250789615359,
+                            0.0007178134870180938
+                        ],
+                        linf=[
+                            0.07201294589822727,
+                            0.007201294589823548,
+                            0.014402589179645153,
+                            0.0018003236474513074
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
@@ -553,6 +579,33 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (VolumeIntegralEntropyCorrection)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability.jl"),
+                        # adding `scaling = 2` increases the amount of subcell FV blended in by 
+                        # a factor of 2. If this is not added, the KHI simulation crashes with a 
+                        # positivity violation at some time t < 3.
+                        solver=DGSEM(LobattoLegendreBasis(3),
+                                     flux_lax_friedrichs,
+                                     VolumeIntegralEntropyCorrection(IndicatorEntropyCorrection(CompressibleEulerEquations2D(1.4),
+                                                                                                LobattoLegendreBasis(3);
+                                                                                                scaling = 2),
+                                                                     volume_flux_dg = flux_central,
+                                                                     volume_flux_fv = flux_lax_friedrichs)),
+                        l2=[
+                            0.5478424814984363,
+                            0.2040045541508178,
+                            0.22224623172603333,
+                            0.1688290550316014
+                        ],
+                        linf=[
+                            2.0077477196844606,
+                            0.7856525305298842,
+                            0.6907389422800942,
+                            0.6256780117443306
+                        ])
 end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr.jl" begin
