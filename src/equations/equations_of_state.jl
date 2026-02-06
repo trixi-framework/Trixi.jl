@@ -74,7 +74,7 @@ function temperature(V, e_internal, eos::AbstractEquationOfState;
     T = initial_T
     de = energy_internal_specific(V, T, eos) - e_internal
     iter = 1
-    while abs(de) > tol * abs(e) && iter < maxiter
+    while abs(de) > tol * abs(e_internal) && iter < maxiter
         de = energy_internal_specific(V, T, eos) - e_internal
 
         # for thermodynamically admissible states, c_v = de_dT_V > 0, which should 

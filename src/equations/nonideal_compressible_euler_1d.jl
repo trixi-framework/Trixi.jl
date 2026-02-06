@@ -313,7 +313,7 @@ end
 
 @inline function pressure(u, equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    V, _, T = cons2prim(u, equations)
+    V, _, T = cons2thermo(u, equations)
     p = pressure(V, T, eos)
     return p
 end
@@ -321,7 +321,7 @@ end
 @inline function density_pressure(u, equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
     rho = u[1]
-    V, _, T = cons2prim(u, equations)
+    V, _, T = cons2thermo(u, equations)
     p = pressure(V, T, eos)
     return rho * p
 end
@@ -329,7 +329,7 @@ end
 @inline function energy_internal_specific(u,
                                           equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    V, _, T = cons2prim(u, equations)
+    V, _, T = cons2thermo(u, equations)
     e_internal = energy_internal_specific(V, T, eos)
     return e_internal
 end
