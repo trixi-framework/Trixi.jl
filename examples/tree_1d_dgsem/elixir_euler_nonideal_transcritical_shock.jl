@@ -5,26 +5,27 @@ using Trixi: ForwardDiff
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
+eos = PengRobinson()
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# The default amplitude and frequency k are consistent with initial_condition_density_wave 
-# for CompressibleEulerEquations1D. Note that this initial condition may not define admissible 
-# solution states for all non-ideal equations of state!
-function Trixi.initial_condition_density_wave(x, t,
-                                              equations::NonIdealCompressibleEulerEquations1D;
-                                              amplitude = 0.98, k = 2)
+# the Peng-Robinson N2 transcritical shock taken from "An entropy-stable hybrid scheme 
+# for simulations of transcritical real-fluid flows" by Ma, Ihme (2017).
+# <https://doi.org/10.1016/j.jcp.2017.03.022>
+function initial_condition_transcritical_shock(x, t,
+                                               equations::NonIdealCompressibleEulerEquations1D{<:PengRobinson})
     RealT = eltype(x)
     eos = equations.equation_of_state
 
-    v1 = convert(RealT, 0.1)
-    rho = 1 + convert(RealT, amplitude) * sinpi(k * (x[1] - v1 * t))
-    p = 20
+    if x[1] < 0
+        rho, v1, p = SVector(800, 0, convert(RealT, 60.0e6))
+    else
+        rho, v1, p = SVector(80, 0, convert(RealT, 6.0e6))
+    end
 
     V = inv(rho)
 
     # invert for temperature given p, V
-    T = 1
+    T = eos.Tc
     tol = 100 * eps(RealT)
     dp = pressure(V, T, eos) - p
     iter = 1
@@ -40,23 +41,29 @@ function Trixi.initial_condition_density_wave(x, t,
 
     return prim2cons(SVector(V, v1, T), equations)
 end
-initial_condition = initial_condition_density_wave
+initial_condition = initial_condition_transcritical_shock
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+volume_flux = flux_central_terashima_etal
+solver = DGSEM(polydeg = 3, volume_integral = VolumeIntegralFluxDifferencing(volume_flux),
+               surface_flux = flux_lax_friedrichs)
 
-coordinates_min = -1.0
-coordinates_max = 1.0
+coordinates_min = -0.5
+coordinates_max = 0.5
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
-                n_cells_max = 30_000, periodicity = true)
+                initial_refinement_level = 6,
+                n_cells_max = 30_000,
+                periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                    boundary_conditions = boundary_condition_periodic)
+boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition),
+                       x_pos = BoundaryConditionDirichlet(initial_condition))
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 5.0e-4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -71,7 +78,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.25)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

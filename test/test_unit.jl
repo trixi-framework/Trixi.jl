@@ -790,6 +790,8 @@ end
 @timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations1D(eos)
+    @test Trixi.get_name(equations) ==
+          "NonIdealCompressibleEulerEquations1D{VanDerWaals}"
     q = SVector(2.0, 0.1, 10.0)
     V, v1, T = q
     u = prim2cons(q, equations)
@@ -807,12 +809,15 @@ end
     @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
 
-    # check that the fallback temperature and specialized temperature
-    # return the same value
-    V, v1, T = cons2prim(u, equations)
-    e = energy_internal_specific(V, T, eos)
-    @test temperature(V, e, eos) ≈
-          invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
+    # check that the fallback temperature and specialized temperature 
+    # return the same value 
+    V, v1, T = Trixi.cons2thermo(u, equations)
+    e_internal = energy_internal_specific(V, T, eos)
+    @test temperature(V, e_internal, eos) ≈
+          invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V,
+                 e_internal, eos)
+    @test cons2prim(u, equations) ≈
+          SVector(u[1], v1, pressure(u, equations))
 
     # check that fallback calc_pressure_derivatives matches specialized routines
     @test Trixi.calc_pressure_derivatives(V, T, eos)[1] ≈
