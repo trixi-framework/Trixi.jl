@@ -809,8 +809,8 @@ end
     @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
 
-    # check that the fallback temperature and specialized temperature 
-    # return the same value 
+    # check that the fallback temperature and specialized temperature
+    # return the same value
     V, v1, T = Trixi.cons2thermo(u, equations)
     e_internal = energy_internal_specific(V, T, eos)
     @test temperature(V, e_internal, eos) ≈
@@ -3055,6 +3055,15 @@ end
                                                 periodicity = true)
     for mesh1d_periodic in (tree_mesh1d_periodic,
                             structured_mesh1d_periodic)
+        # Passing Tuples and arrays is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                                ic, solver;
+                                                                boundary_conditions = (bc,
+                                                                                       bc))
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                                ic, solver;
+                                                                boundary_conditions = [bc,
+                                                                    bc])
         @test_nowarn SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
                                                   initial_condition_convergence_test,
                                                   solver;
@@ -3111,6 +3120,17 @@ end
                                                 periodicity = true)
     for mesh2d_periodic in (tree_mesh2d_periodic,
                             structured_mesh2d_periodic)
+        # Passing Tuples and arrays is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                                ic, solver;
+                                                                boundary_conditions = (bc,
+                                                                                       bc,
+                                                                                       bc,
+                                                                                       bc))
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                                ic, solver;
+                                                                boundary_conditions = [bc,
+                                                                    bc, bc, bc])
         @test_nowarn SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
                                                   ic, solver;
                                                   boundary_conditions = bc)
@@ -3222,6 +3242,19 @@ end
                                                 periodicity = true)
     for mesh3d_periodic in (tree_mesh3d_periodic,
                             structured_mesh3d_periodic)
+        # Passing Tuples and arrays is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                                ic, solver;
+                                                                boundary_conditions = (bc,
+                                                                                       bc,
+                                                                                       bc,
+                                                                                       bc,
+                                                                                       bc,
+                                                                                       bc))
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                                ic, solver;
+                                                                boundary_conditions = [bc,
+                                                                    bc, bc, bc, bc, bc])
         @test_nowarn SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
                                                   ic, solver;
                                                   boundary_conditions = bc)
