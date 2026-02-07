@@ -116,14 +116,27 @@ function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriod
 end
 
 function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
-                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
-                                    cache)
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                                    solver, cache)
     return boundary_conditions
 end
 
 function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
-                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
-                                    cache)
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}},
+                                    solver, cache)
+    return boundary_conditions
+end
+
+function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                                T8codeMesh{2}},
+                                    solver, cache)
+    return boundary_conditions
+end
+
+function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                    solver, cache)
     return boundary_conditions
 end
 
@@ -211,15 +224,15 @@ end
 # on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions,
                                     mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
-                                                T8codeMesh{2}}, solver,
-                                    cache)
+                                                T8codeMesh{2}},
+                                    solver, cache)
     return (; x_neg = boundary_conditions, x_pos = boundary_conditions,
             y_neg = boundary_conditions, y_pos = boundary_conditions)
 end
 
 function digest_boundary_conditions(boundary_conditions,
-                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}}, solver,
-                                    cache)
+                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                    solver, cache)
     return (; x_neg = boundary_conditions, x_pos = boundary_conditions,
             y_neg = boundary_conditions, y_pos = boundary_conditions,
             z_neg = boundary_conditions, z_pos = boundary_conditions)
