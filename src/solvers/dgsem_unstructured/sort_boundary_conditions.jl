@@ -14,10 +14,11 @@ during the call to `calc_boundary_flux!`. The original `NamedTuple` of the bound
 set by the user in the elixir file is also stored for printing.
 """
 mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any},
+                                               BoundaryConditions <: NamedTuple,
                                                Vec <: AbstractVector{<:Integer}}
     const boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
     boundary_indices::NTuple{N, Vec} # integer vectors containing global boundary indices
-    const boundary_conditions::NamedTuple # boundary conditions as set by the user in the elixir file
+    const boundary_conditions::BoundaryConditions # boundary conditions as set by the user in the elixir file
     boundary_symbol_indices::Dict{Symbol, Vector{Int}} # integer vectors containing global boundary indices per boundary identifier
 end
 
@@ -26,6 +27,7 @@ end
 # and stores the associated global boundary indexing in NTuple
 function UnstructuredSortedBoundaryTypes(boundary_conditions::NamedTuple, cache)
     # extract the unique boundary function routines from the NamedTuple
+    BoundaryConditions = typeof(boundary_conditions)
     boundary_condition_types = Tuple(unique(values(boundary_conditions)))
     n_boundary_types = length(boundary_condition_types)
     boundary_indices = ntuple(_ -> [], n_boundary_types)
@@ -35,10 +37,11 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::NamedTuple, cache)
 
     container = UnstructuredSortedBoundaryTypes{n_boundary_types,
                                                 typeof(boundary_condition_types),
-                                                Vector{Int}}(boundary_condition_types,
-                                                             boundary_indices,
-                                                             boundary_conditions,
-                                                             boundary_symbol_indices)
+                                                Vector{Int},
+                                                BoundaryConditions}(boundary_condition_types,
+                                                                    boundary_indices,
+                                                                    boundary_conditions,
+                                                                    boundary_symbol_indices)
 
     return initialize!(container, cache)
 end
