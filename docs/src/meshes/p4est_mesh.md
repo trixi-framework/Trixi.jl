@@ -942,4 +942,3 @@ This code could then be placed in the [`resize!`](https://github.com/trixi-frame
 
 ### Boundary conditions
 For [`P4estMesh`](@ref)es, boundary conditions must be defined using [named tuples](https://docs.julialang.org/en/v1/manual/functions/#Named-Tuples) (see, for example, `examples/p4est_2d_dgsem/elixir_advection_diffusion_nonperiodic_amr.jl`).
-If you want to apply the same boundary condition to all faces of the mesh, you can use the `boundary_condition_default(mesh, boundary_condition)` function, as demonstrated in `examples/p4est_2d_dgsem/elixir_advection_diffusion_nonperiodic_amr.jl` and `examples/p4est_3d_dgsem/elixir_euler_source_terms_nonperiodic.jl`.

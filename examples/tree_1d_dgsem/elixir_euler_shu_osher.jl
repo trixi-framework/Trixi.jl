@@ -53,8 +53,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 10_000,
                 periodicity = false)
 
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)

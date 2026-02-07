@@ -22,13 +22,9 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = true)
 
 # you can either use a single function to impose the BCs weakly in all
-# 2*ndims == 6 directions or you can pass a tuple containing BCs for
+# 2*ndims == 6 directions or you can pass a named tuple containing BCs for
 # each direction
-# Assign a single boundary condition to all boundaries
-boundary_condition = boundary_condition_periodic
-boundary_conditions = boundary_condition_default(mesh, boundary_condition)
-# Alternatively, you can use
-# boundary_conditions = boundary_condition_periodic
+boundary_conditions = boundary_condition_periodic
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

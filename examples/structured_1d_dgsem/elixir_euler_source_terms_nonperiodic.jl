@@ -27,10 +27,9 @@ mesh = StructuredMesh((16,), (f1, f2), periodicity = false)
 # 2*ndims == 2 directions or you can pass a tuple containing BCs for
 # each direction
 # Assign a single boundary condition to all boundaries
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 # Alternatively, you can use
-# boundary_conditions = (x_neg = boundary_condition,
+# boundary_conditions = (; x_neg = boundary_condition,
 #                        x_pos = boundary_condition)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
