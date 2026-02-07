@@ -142,8 +142,7 @@ mesh = P4estMesh(trees_per_dimension,
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_mach3_flow,
-                                    solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_mach3_flow, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

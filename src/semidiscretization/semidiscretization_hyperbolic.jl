@@ -38,15 +38,18 @@ end
 """
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms=nothing,
-                                 boundary_conditions=boundary_condition_periodic,
+                                 boundary_conditions,
                                  RealT=real(solver),
                                  uEltype=RealT)
 
 Construct a semidiscretization of a hyperbolic PDE.
+
+Boundary conditions must be provided explicitly either as a `NamedTuple` or as a
+single boundary condition that gets applied to all boundaries.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
-                                      boundary_conditions = boundary_condition_periodic,
+                                      boundary_conditions,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT = real(solver), uEltype = RealT)
@@ -113,14 +116,27 @@ function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriod
 end
 
 function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
-                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
-                                    cache)
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                                    solver, cache)
     return boundary_conditions
 end
 
 function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
-                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
-                                    cache)
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}},
+                                    solver, cache)
+    return boundary_conditions
+end
+
+function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                                T8codeMesh{2}},
+                                    solver, cache)
+    return boundary_conditions
+end
+
+function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                    solver, cache)
     return boundary_conditions
 end
 
@@ -147,29 +163,6 @@ function digest_boundary_conditions(boundary_conditions,
             z_neg = boundary_conditions, z_pos = boundary_conditions)
 end
 
-# allow passing a tuple of BCs that get converted into a named tuple to make it
-# self-documenting on (mapped) hypercube domains
-function digest_boundary_conditions(boundary_conditions::NTuple{2, Any},
-                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
-                                    cache)
-    return (; x_neg = boundary_conditions[1], x_pos = boundary_conditions[2])
-end
-
-function digest_boundary_conditions(boundary_conditions::NTuple{4, Any},
-                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
-                                    cache)
-    return (; x_neg = boundary_conditions[1], x_pos = boundary_conditions[2],
-            y_neg = boundary_conditions[3], y_pos = boundary_conditions[4])
-end
-
-function digest_boundary_conditions(boundary_conditions::NTuple{6, Any},
-                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
-                                    cache)
-    return (; x_neg = boundary_conditions[1], x_pos = boundary_conditions[2],
-            y_neg = boundary_conditions[3], y_pos = boundary_conditions[4],
-            z_neg = boundary_conditions[5], z_pos = boundary_conditions[6])
-end
-
 # allow passing named tuples of BCs constructed in an arbitrary order
 # on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
@@ -193,17 +186,172 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
     return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
 
-# Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh
+# If a NamedTuple is passed with not the same number of BCs, ensure that the keys are correct.
+# For periodic boundary parts, the keys can be missing and get filled with `boundary_condition_periodic`.
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
-                                    mesh::Union{P4estMesh, UnstructuredMesh2D,
-                                                T8codeMesh},
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
+                                    cache)
+    x_neg, x_pos = get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
+    return (; x_neg, x_pos)
+end
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple,
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}}, solver,
+                                    cache)
+    x_neg, x_pos = get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
+    y_neg, y_pos = get_periodicity_boundary_conditions_y(boundary_conditions, mesh)
+    return (; x_neg, x_pos, y_neg, y_pos)
+end
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple,
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}}, solver,
+                                    cache)
+    x_neg, x_pos = get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
+    y_neg, y_pos = get_periodicity_boundary_conditions_y(boundary_conditions, mesh)
+    z_neg, z_pos = get_periodicity_boundary_conditions_z(boundary_conditions, mesh)
+    return (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
+end
+
+# Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh
+# define in two functions to resolve ambiguities
+function digest_boundary_conditions(boundary_conditions::NamedTuple,
+                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                                T8codeMesh{2}},
                                     solver, cache)
     return UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
 end
 
-function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, solver,
-                                    cache)
-    throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+function digest_boundary_conditions(boundary_conditions::NamedTuple,
+                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                    solver, cache)
+    return UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
+end
+
+function digest_boundary_conditions(boundary_conditions::UnstructuredSortedBoundaryTypes,
+                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                                T8codeMesh{2}},
+                                    solver, cache)
+    return boundary_conditions
+end
+
+function digest_boundary_conditions(boundary_conditions::UnstructuredSortedBoundaryTypes,
+                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                    solver, cache)
+    return boundary_conditions
+end
+
+# allow passing a single BC that get converted into a named tuple of BCs
+# on (mapped) hypercube domains
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                                T8codeMesh{2}},
+                                    solver, cache)
+    bcs = (; x_neg = boundary_conditions, x_pos = boundary_conditions,
+           y_neg = boundary_conditions, y_pos = boundary_conditions)
+    return UnstructuredSortedBoundaryTypes(bcs, cache)
+end
+
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                    solver, cache)
+    bcs = (; x_neg = boundary_conditions, x_pos = boundary_conditions,
+           y_neg = boundary_conditions, y_pos = boundary_conditions,
+           z_neg = boundary_conditions, z_pos = boundary_conditions)
+    return UnstructuredSortedBoundaryTypes(bcs, cache)
+end
+
+# add methods for every dimension to resolve ambiguities
+function digest_boundary_conditions(boundary_conditions::AbstractArray,
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                    solver, cache)
+    throw(ArgumentError("Please use a named tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+end
+
+function digest_boundary_conditions(boundary_conditions::AbstractArray,
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                                    solver, cache)
+    throw(ArgumentError("Please use a named tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+end
+
+function digest_boundary_conditions(boundary_conditions::AbstractArray,
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}},
+                                    solver, cache)
+    throw(ArgumentError("Please use a named tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+end
+
+function digest_boundary_conditions(boundary_conditions::Tuple,
+                                    mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                    solver, cache)
+    throw(ArgumentError("Please use a named tuple instead of a tuple to supply multiple boundary conditions."))
+end
+
+function digest_boundary_conditions(boundary_conditions::Tuple,
+                                    mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                                    solver, cache)
+    throw(ArgumentError("Please use a named tuple instead of a tuple to supply multiple boundary conditions."))
+end
+
+function digest_boundary_conditions(boundary_conditions::Tuple,
+                                    mesh::Union{TreeMesh{3}, StructuredMesh{3}},
+                                    solver, cache)
+    throw(ArgumentError("Please use a named tuple instead of a tuple to supply multiple boundary conditions."))
+end
+
+function get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
+    if isperiodic(mesh, 1)
+        if :x_neg in keys(boundary_conditions) &&
+           boundary_conditions.x_neg != boundary_condition_periodic ||
+           :x_pos in keys(boundary_conditions) &&
+           boundary_conditions.x_pos != boundary_condition_periodic
+            throw(ArgumentError("For periodic mesh non-periodic boundary conditions in x-direction are supplied."))
+        end
+        x_neg = x_pos = boundary_condition_periodic
+    else
+        required = (:x_neg, :x_pos)
+        if !all(in(keys(boundary_conditions)), required)
+            throw(ArgumentError("NamedTuple of boundary conditions for 1-dimensional (non-periodic) mesh must have keys $(required), got $(keys(boundary_conditions))"))
+        end
+        @unpack x_neg, x_pos = boundary_conditions
+    end
+    return x_neg, x_pos
+end
+
+function get_periodicity_boundary_conditions_y(boundary_conditions, mesh)
+    if isperiodic(mesh, 2)
+        if :y_neg in keys(boundary_conditions) &&
+           boundary_conditions.y_neg != boundary_condition_periodic ||
+           :y_pos in keys(boundary_conditions) &&
+           boundary_conditions.y_pos != boundary_condition_periodic
+            throw(ArgumentError("For periodic mesh non-periodic boundary conditions in y-direction are supplied."))
+        end
+        y_neg = y_pos = boundary_condition_periodic
+    else
+        required = (:y_neg, :y_pos)
+        if !all(in(keys(boundary_conditions)), required)
+            throw(ArgumentError("NamedTuple of boundary conditions for 2-dimensional (non-periodic) mesh must have keys $(required), got $(keys(boundary_conditions))"))
+        end
+        @unpack y_neg, y_pos = boundary_conditions
+    end
+    return y_neg, y_pos
+end
+
+function get_periodicity_boundary_conditions_z(boundary_conditions, mesh)
+    if isperiodic(mesh, 3)
+        if :z_neg in keys(boundary_conditions) &&
+           boundary_conditions.z_neg != boundary_condition_periodic ||
+           :z_pos in keys(boundary_conditions) &&
+           boundary_conditions.z_pos != boundary_condition_periodic
+            throw(ArgumentError("For periodic mesh non-periodic boundary conditions in z-direction are supplied."))
+        end
+        z_neg = z_pos = boundary_condition_periodic
+    else
+        required = (:z_neg, :z_pos)
+        if !all(in(keys(boundary_conditions)), required)
+            throw(ArgumentError("NamedTuple of boundary conditions for 3-dimensional (non-periodic) mesh must have keys $(required), got $(keys(boundary_conditions))"))
+        end
+        @unpack z_neg, z_pos = boundary_conditions
+    end
+    return z_neg, z_pos
 end
 
 # No checks for these meshes yet available
@@ -213,68 +361,87 @@ function check_periodicity_mesh_boundary_conditions(mesh::Union{P4estMesh,
                                                                 T8codeMesh,
                                                                 DGMultiMesh},
                                                     boundary_conditions)
+    return nothing
 end
 
-# No actions needed for periodic boundary conditions
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
                                                                 StructuredMesh,
                                                                 StructuredMeshView},
                                                     boundary_conditions::BoundaryConditionPeriodic)
+    if !isperiodic(mesh)
+        throw(ArgumentError("Periodic boundary condition supplied for non-periodic mesh."))
+    end
+    return nothing
 end
 
 function check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
     if isperiodic(mesh, 1) &&
-       (x_neg != BoundaryConditionPeriodic() ||
-        x_pos != BoundaryConditionPeriodic())
-        @error "For periodic mesh non-periodic boundary conditions in x-direction are supplied."
+       (x_neg != boundary_condition_periodic ||
+        x_pos != boundary_condition_periodic)
+        throw(ArgumentError("For periodic mesh non-periodic boundary conditions in x-direction are supplied."))
     end
+    if !isperiodic(mesh, 1) &&
+       (x_neg == boundary_condition_periodic ||
+        x_pos == boundary_condition_periodic)
+        throw(ArgumentError("For non-periodic mesh periodic boundary conditions in x-direction are supplied."))
+    end
+    return nothing
 end
 
 function check_periodicity_mesh_boundary_conditions_y(mesh, y_neg, y_pos)
     if isperiodic(mesh, 2) &&
-       (y_neg != BoundaryConditionPeriodic() ||
-        y_pos != BoundaryConditionPeriodic())
-        @error "For periodic mesh non-periodic boundary conditions in y-direction are supplied."
+       (y_neg != boundary_condition_periodic ||
+        y_pos != boundary_condition_periodic)
+        throw(ArgumentError("For periodic mesh non-periodic boundary conditions in y-direction are supplied."))
     end
+    if !isperiodic(mesh, 2) &&
+       (y_neg == boundary_condition_periodic ||
+        y_pos == boundary_condition_periodic)
+        throw(ArgumentError("For non-periodic mesh periodic boundary conditions in y-direction are supplied."))
+    end
+    return nothing
 end
 
 function check_periodicity_mesh_boundary_conditions_z(mesh, z_neg, z_pos)
     if isperiodic(mesh, 3) &&
-       (z_neg != BoundaryConditionPeriodic() ||
-        z_pos != BoundaryConditionPeriodic())
-        @error "For periodic mesh non-periodic boundary conditions in z-direction are supplied."
+       (z_neg != boundary_condition_periodic ||
+        z_pos != boundary_condition_periodic)
+        throw(ArgumentError("For periodic mesh non-periodic boundary conditions in z-direction are supplied."))
     end
+    if !isperiodic(mesh, 3) &&
+       (z_neg == boundary_condition_periodic ||
+        z_pos == boundary_condition_periodic)
+        throw(ArgumentError("For non-periodic mesh periodic boundary conditions in z-direction are supplied."))
+    end
+    return nothing
 end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
                                                                 StructuredMesh{1}},
-                                                    boundary_conditions::Union{NamedTuple,
-                                                                               Tuple})
-    return check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
-                                                        boundary_conditions[2])
+                                                    boundary_conditions::NamedTuple)
+    return check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions.x_neg,
+                                                        boundary_conditions.x_pos)
 end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
                                                                 StructuredMesh{2},
                                                                 StructuredMeshView{2}},
-                                                    boundary_conditions::Union{NamedTuple,
-                                                                               Tuple})
-    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
-                                                 boundary_conditions[2])
-    return check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
-                                                        boundary_conditions[4])
+                                                    boundary_conditions::NamedTuple)
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions.x_neg,
+                                                 boundary_conditions.x_pos)
+    return check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions.y_neg,
+                                                        boundary_conditions.y_pos)
 end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{3},
                                                                 StructuredMesh{3}},
-                                                    boundary_conditions::Union{NamedTuple,
-                                                                               Tuple})
-    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
-                                                 boundary_conditions[2])
-    check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
-                                                 boundary_conditions[4])
-    return check_periodicity_mesh_boundary_conditions_z(mesh, boundary_conditions[5],
-                                                        boundary_conditions[6])
+                                                    boundary_conditions::NamedTuple)
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions.x_neg,
+                                                 boundary_conditions.x_pos)
+    check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions.y_neg,
+                                                 boundary_conditions.y_pos)
+    return check_periodicity_mesh_boundary_conditions_z(mesh, boundary_conditions.z_neg,
+                                                        boundary_conditions.z_pos)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
@@ -358,20 +525,20 @@ end
 function print_boundary_conditions(io,
                                    semi::SemiHypMeshBCSolver{<:Union{TreeMesh,
                                                                      StructuredMesh},
-                                                             <:Union{Tuple, NamedTuple,
+                                                             <:Union{NamedTuple,
                                                                      AbstractArray}})
     summary_line(io, "boundary conditions", 2 * ndims(semi))
     bcs = semi.boundary_conditions
 
-    summary_line(increment_indent(io), "negative x", bcs[1])
-    summary_line(increment_indent(io), "positive x", bcs[2])
+    summary_line(increment_indent(io), "negative x", bcs.x_neg)
+    summary_line(increment_indent(io), "positive x", bcs.x_pos)
     if ndims(semi) > 1
-        summary_line(increment_indent(io), "negative y", bcs[3])
-        summary_line(increment_indent(io), "positive y", bcs[4])
+        summary_line(increment_indent(io), "negative y", bcs.y_neg)
+        summary_line(increment_indent(io), "positive y", bcs.y_pos)
     end
     if ndims(semi) > 2
-        summary_line(increment_indent(io), "negative z", bcs[5])
-        summary_line(increment_indent(io), "positive z", bcs[6])
+        summary_line(increment_indent(io), "negative z", bcs.z_neg)
+        summary_line(increment_indent(io), "positive z", bcs.z_pos)
     end
 end
 

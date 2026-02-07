@@ -33,7 +33,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 6,
                             n_cells_max = 30_000,
-                            RealT = RealT)
+                            RealT = RealT, periodicity = true)
 
             @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
 
@@ -43,7 +43,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 5,
                             n_cells_max = 30_000,
-                            RealT = RealT)
+                            RealT = RealT, periodicity = true)
 
             @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
 
@@ -55,7 +55,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 4,
                             n_cells_max = 30_000,
-                            RealT = RealT)
+                            RealT = RealT, periodicity = true)
 
             @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
         end

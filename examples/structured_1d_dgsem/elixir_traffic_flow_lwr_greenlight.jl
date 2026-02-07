@@ -47,7 +47,7 @@ boundary_conditions = (; x_neg = boundary_condition_inflow,
 
 initial_condition = initial_condition_greenlight
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

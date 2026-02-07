@@ -60,7 +60,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/a075f8
 
 mesh = P4estMesh{2}(mesh_file, polydeg = 3, initial_refinement_level = 1)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = (;
                                                            all = BoundaryConditionDirichlet(initial_condition)))
 

@@ -25,7 +25,7 @@ mesh = P4estMeshCubedSphere(trees_per_face_dim, sphere_layers,
                             polydeg = 3)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

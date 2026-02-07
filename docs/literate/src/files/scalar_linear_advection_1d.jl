@@ -372,7 +372,8 @@ coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0  # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4, # number of elements = 2^4
-                n_cells_max = 30_000) # set maximum capacity of tree data structure (only needed for AMR)
+                n_cells_max = 30_000, # set maximum capacity of tree data structure (only needed for AMR)
+                periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
 # In Trixi.jl, an initial condition has the following parameter structure and is of the type `SVector`.
@@ -380,7 +381,8 @@ function initial_condition_sine_wave(x, t, equations)
     return SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 end
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 # Again, combining all definitions and the function that calculates the right-hand side, we define the ODE and
 # solve it until `t=2` with OrdinaryDiffEq's `solve` function and the Runge-Kutta method `RDPK3SpFSAL49()`.
@@ -502,14 +504,16 @@ coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0 # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4, # number of elements = 2^4
-                n_cells_max = 30_000)
+                n_cells_max = 30_000,
+                periodicity = true)
 
 ## create initial condition and semidiscretization
 function initial_condition_sine_wave(x, t, equations)
     return SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
 end
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## solve
 tspan = (0.0, 2.0)

@@ -28,8 +28,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  periodicity = false, initial_refinement_level = 1)
 
 # Assign a single boundary condition to all boundaries
-boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = boundary_condition_default(mesh, boundary_condition)
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 # Alternatively, you can use
 # boundary_conditions = (; x_neg = boundary_condition,
 #                          x_pos = boundary_condition,

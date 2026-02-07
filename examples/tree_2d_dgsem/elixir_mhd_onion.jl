@@ -49,7 +49,7 @@ boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
                        y_neg = BoundaryConditionDirichlet(initial_condition),
                        y_pos = BoundaryConditionDirichlet(initial_condition))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
