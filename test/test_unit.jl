@@ -35,12 +35,12 @@ isdir(outdir) && rm(outdir, recursive = true)
 
 @timed_testset "SerialTree" begin
     @testset "constructors" begin
-        @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
-        @test_nowarn Trixi.SerialTree{1}(10, 0.0, 1.0)
+        @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0, true)
+        @test_nowarn Trixi.SerialTree{1}(10, 0.0, 1.0, true)
     end
 
     @testset "helper functions" begin
-        t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
+        t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0, true)
         @test_nowarn display(t)
         @test Trixi.ndims(t) == 1
         @test Trixi.has_any_neighbor(t, 1, 1) == true
@@ -50,7 +50,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @testset "refine!/coarsen!" begin
-        t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
+        t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0, true)
         @test Trixi.refine!(t) == [1]
         @test Trixi.coarsen!(t) == [1]
         @test Trixi.refine!(t) == [1]
@@ -66,12 +66,12 @@ end
 
 @timed_testset "ParallelTree" begin
     @testset "constructors" begin
-        @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
-        @test_nowarn Trixi.ParallelTree{1}(10, 0.0, 1.0)
+        @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0, true)
+        @test_nowarn Trixi.ParallelTree{1}(10, 0.0, 1.0, true)
     end
 
     @testset "helper functions" begin
-        t = Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
+        t = Trixi.ParallelTree(Val(1), 10, 0.0, 1.0, true)
         @test isnothing(display(t))
         @test isnothing(Trixi.reset_data_structures!(t))
     end
@@ -79,18 +79,20 @@ end
 
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
-        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0) isa
+        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0, true) isa
               TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
         # 2D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0), (1.0, 2.0),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000)
+                                            n_cells_max = 10_000,
+                                            periodicity = true)
         # 3D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0, -0.2), (1.0, 2.0, 1.5),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000)
+                                            n_cells_max = 10_000,
+                                            periodicity = true)
     end
 end
 
@@ -103,7 +105,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(30,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            true)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -133,7 +136,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            true)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -163,7 +167,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(1000,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            true)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -188,7 +193,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            true)
                 # Refine whole tree
                 Trixi.refine!(mesh.tree)
                 # Refine left leaf
@@ -217,7 +223,8 @@ end
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
                                                                             (0.0, 0.0),
-                                                                            1.0)
+                                                                            1.0,
+                                                                            true)
 
                 # Only one leaf
                 @test_throws AssertionError("Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
@@ -802,8 +809,8 @@ end
     @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
 
-    # check that the fallback temperature and specialized temperature 
-    # return the same value 
+    # check that the fallback temperature and specialized temperature
+    # return the same value
     V, v1, T = Trixi.cons2thermo(u, equations)
     e_internal = energy_internal_specific(V, T, eos)
     @test temperature(V, e_internal, eos) ≈
@@ -854,10 +861,12 @@ end
     solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
     mesh = TreeMesh((0.0,), (1.0,),
                     initial_refinement_level = 2,
-                    n_cells_max = 30_000)
+                    n_cells_max = 30_000,
+                    periodicity = true)
     semi = SemidiscretizationHyperbolic(mesh, equations,
                                         initial_condition_convergence_test,
-                                        solver)
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
     u0 = zeros(4)
     tspan = (0.0, 1.0)
     ode = semidiscretize(semi, tspan)
@@ -2864,8 +2873,8 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000)
-
+                    n_cells_max = 30_000,
+                    periodicity = true)
     ###############################################################################
     ### semidiscretization for sparsity detection ###
 
@@ -2877,7 +2886,8 @@ end
     # Semidiscretization for sparsity pattern detection
     semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
                                                  initial_condition_convergence_test,
-                                                 solver,
+                                                 solver;
+                                                 boundary_conditions = boundary_condition_periodic,
                                                  uEltype = jac_eltype) # Need to supply Jacobian element type
 
     tspan = (0.0, 1.0) # Re-used for wrapping `rhs` below
@@ -2908,7 +2918,8 @@ end
 
     semi_float_type = SemidiscretizationHyperbolic(mesh, equations,
                                                    initial_condition_convergence_test,
-                                                   solver)
+                                                   solver;
+                                                   boundary_conditions = boundary_condition_periodic)
 
     ode_float_type = semidiscretize(semi_float_type, tspan)
     u0_ode = ode_float_type.u0
@@ -2963,7 +2974,8 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000)
+                    n_cells_max = 30_000,
+                    periodicity = true)
 
     ###############################################################################
     ### semidiscretization for sparsity detection ###
@@ -2978,7 +2990,9 @@ end
                                                           (equations_hyperbolic,
                                                            equations_parabolic),
                                                           initial_condition_convergence_test,
-                                                          solver,
+                                                          solver;
+                                                          boundary_conditions = (boundary_condition_periodic,
+                                                                                 boundary_condition_periodic),
                                                           uEltype = jac_eltype) # Need to supply Jacobian element type
 
     tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
@@ -3026,6 +3040,340 @@ end
     # Given that the stencil for the BR1 parabolic solver is for the DGSEM always larger than that of a hyperbolic solver,
     # the sparsity pattern of the parabolic part of a hyperbolic-parabolic problem always includes the hyperbolic one
     @test jac_prototype_parabolic == jac_prototype_hyperbolic_parabolic
+end
+
+@testset "TreeMesh and StructuredMesh boundary condition argument checks" begin
+    solver = DGSEM(polydeg = 1)
+    ic = initial_condition_convergence_test
+    bc = boundary_condition_periodic
+    bc_dn = boundary_condition_do_nothing
+    # 1D
+    eq1d = LinearScalarAdvectionEquation1D(1.0)
+    tree_mesh1d_periodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
+                                    n_cells_max = 10, periodicity = true)
+    structured_mesh1d_periodic = StructuredMesh((4,), (-1.0,), (1.0,),
+                                                periodicity = true)
+    for mesh1d_periodic in (tree_mesh1d_periodic,
+                            structured_mesh1d_periodic)
+        # Passing Tuples and arrays is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                                ic, solver;
+                                                                boundary_conditions = (bc,
+                                                                                       bc))
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                                ic, solver;
+                                                                boundary_conditions = [bc,
+                                                                    bc])
+        @test_nowarn SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                  initial_condition_convergence_test,
+                                                  solver;
+                                                  boundary_conditions = bc)
+        # Not passing periodic boundary conditions in NamedTuple for periodic mesh is allowed
+        @test_nowarn SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                  ic, solver;
+                                                  boundary_conditions = (;
+                                                                         x_neg = bc,))
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                                ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,))
+        # Wrong keys NamedTuple
+        @test_throws ErrorException SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
+                                                                 ic, solver;
+                                                                 boundary_conditions = (;
+                                                                                        x_neg = bc,
+                                                                                        y_pos = bc))
+    end
+    # non-periodic mesh
+    tree_mesh1d_nonperiodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
+                                       n_cells_max = 10, periodicity = false)
+    structured_mesh1d_nonperiodic = StructuredMesh((4,), (-1.0,), (1.0,),
+                                                   periodicity = false)
+    for mesh1d_nonperiodic in (tree_mesh1d_nonperiodic,
+                               structured_mesh1d_nonperiodic)
+        @test_nowarn SemidiscretizationHyperbolic(mesh1d_nonperiodic,
+                                                  eq1d, ic, solver;
+                                                  boundary_conditions = (;
+                                                                         x_neg = bc_dn,
+                                                                         x_pos = bc_dn))
+        # periodic boundary conditions for non-periodic mesh is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic,
+                                                                eq1d, ic, solver;
+                                                                boundary_conditions = bc)
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic,
+                                                                eq1d, ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,
+                                                                                       x_pos = bc))
+        # not passing non-periodic boundary conditions for non-periodic mesh is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_nonperiodic,
+                                                                eq1d, ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,))
+    end
+    # 2D
+    eq2d = LinearScalarAdvectionEquation2D((1.0, -1.0))
+    tree_mesh2d_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                    initial_refinement_level = 1,
+                                    n_cells_max = 10, periodicity = true)
+    structured_mesh2d_periodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
+                                                periodicity = true)
+    for mesh2d_periodic in (tree_mesh2d_periodic,
+                            structured_mesh2d_periodic)
+        # Passing Tuples and arrays is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                                ic, solver;
+                                                                boundary_conditions = (bc,
+                                                                                       bc,
+                                                                                       bc,
+                                                                                       bc))
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                                ic, solver;
+                                                                boundary_conditions = [bc,
+                                                                    bc, bc, bc])
+        @test_nowarn SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                  ic, solver;
+                                                  boundary_conditions = bc)
+        @test_nowarn SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                  ic, solver;
+                                                  boundary_conditions = (; x_neg = bc,
+                                                                         x_pos = bc,
+                                                                         y_neg = bc,
+                                                                         y_pos = bc))
+        # Not passing periodic boundary conditions in NamedTuple for periodic mesh is allowed
+        @test_nowarn SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                  ic, solver;
+                                                  boundary_conditions = (;
+                                                                         x_neg = bc,))
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                                ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,))
+        # Wrong keys NamedTuple
+        @test_throws ErrorException SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
+                                                                 ic, solver;
+                                                                 boundary_conditions = (;
+                                                                                        x_neg = bc,
+                                                                                        x_pos = bc,
+                                                                                        z_neg = bc,
+                                                                                        z_pos = bc))
+    end
+    # non-periodic mesh
+    tree_mesh2d_nonperiodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                       initial_refinement_level = 1,
+                                       n_cells_max = 10, periodicity = false)
+    structured_mesh2d_nonperiodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
+                                                   periodicity = false)
+    for mesh2d_nonperiodic in (tree_mesh2d_nonperiodic,
+                               structured_mesh2d_nonperiodic)
+        @test_nowarn SemidiscretizationHyperbolic(mesh2d_nonperiodic,
+                                                  eq2d, ic, solver;
+                                                  boundary_conditions = (;
+                                                                         x_neg = bc_dn,
+                                                                         x_pos = bc_dn,
+                                                                         y_neg = bc_dn,
+                                                                         y_pos = bc_dn))
+        # periodic boundary conditions for non-periodic mesh is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_nonperiodic,
+                                                                eq2d, ic, solver;
+                                                                boundary_conditions = bc)
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_nonperiodic,
+                                                                eq2d, ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,
+                                                                                       x_pos = bc,
+                                                                                       y_neg = bc,
+                                                                                       y_pos = bc))
+        # not passing non-periodic boundary conditions for non-periodic mesh is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_nonperiodic,
+                                                                eq2d, ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,
+                                                                                       x_pos = bc_dn,
+                                                                                       y_neg = bc_dn))
+    end
+    # partially periodic
+    tree_mesh2d_partial_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                            initial_refinement_level = 1,
+                                            n_cells_max = 10,
+                                            periodicity = (true, false))
+    structured_mesh2d_partial_periodic = StructuredMesh((4, 4), (-1.0, -1.0),
+                                                        (1.0, 1.0),
+                                                        periodicity = (true, false))
+    for mesh2d_partial_periodic in (tree_mesh2d_partial_periodic,
+                                    structured_mesh2d_partial_periodic)
+        # Specifying all boundary conditions is allowed
+        @test_nowarn SemidiscretizationHyperbolic(mesh2d_partial_periodic,
+                                                  eq2d, ic, solver;
+                                                  boundary_conditions = (;
+                                                                         x_neg = bc,
+                                                                         x_pos = bc,
+                                                                         y_neg = bc_dn,
+                                                                         y_pos = bc_dn))
+        # Only specifying non-periodic boundary conditions is allowed when using NamedTuple
+        @test_nowarn SemidiscretizationHyperbolic(mesh2d_partial_periodic,
+                                                  eq2d, ic, solver;
+                                                  boundary_conditions = (;
+                                                                         y_neg = bc_dn,
+                                                                         y_pos = bc_dn))
+        # For partially periodic mesh, need to specify separate boundary conditions
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_partial_periodic,
+                                                                eq2d, ic, solver;
+                                                                boundary_conditions = bc_dn)
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_partial_periodic,
+                                                                eq2d, ic, solver;
+                                                                boundary_conditions = bc)
+        # Non-periodic boundary condition on periodic direction
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_partial_periodic,
+                                                                eq2d, ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,
+                                                                                       x_pos = bc_dn,
+                                                                                       y_neg = bc_dn,
+                                                                                       y_pos = bc_dn))
+    end
+    # 3D
+    eq3d = LinearScalarAdvectionEquation3D((1.0, 1.0, -1.0))
+    tree_mesh3d_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                                    initial_refinement_level = 1,
+                                    n_cells_max = 10, periodicity = true)
+    structured_mesh3d_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
+                                                (1.0, 1.0, 1.0),
+                                                periodicity = true)
+    for mesh3d_periodic in (tree_mesh3d_periodic,
+                            structured_mesh3d_periodic)
+        # Passing Tuples and arrays is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                                ic, solver;
+                                                                boundary_conditions = (bc,
+                                                                                       bc,
+                                                                                       bc,
+                                                                                       bc,
+                                                                                       bc,
+                                                                                       bc))
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                                ic, solver;
+                                                                boundary_conditions = [bc,
+                                                                    bc, bc, bc, bc, bc])
+        @test_nowarn SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                  ic, solver;
+                                                  boundary_conditions = bc)
+        @test_nowarn SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                  ic, solver;
+                                                  boundary_conditions = (; x_neg = bc,
+                                                                         x_pos = bc,
+                                                                         y_neg = bc,
+                                                                         y_pos = bc,
+                                                                         z_neg = bc,
+                                                                         z_pos = bc))
+        # Not passing periodic boundary conditions in NamedTuple for periodic mesh is allowed
+        @test_nowarn SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                  ic, solver;
+                                                  boundary_conditions = (;
+                                                                         x_neg = bc,))
+        # Passing non-periodic boundary conditions for periodic mesh is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                                ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,))
+        # Wrong keys NamedTuple
+        @test_throws ErrorException SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
+                                                                 ic, solver;
+                                                                 boundary_conditions = (;
+                                                                                        x_neg = bc,
+                                                                                        x_pos = bc,
+                                                                                        y_neg = bc,
+                                                                                        y_pos = bc,
+                                                                                        z_neg = bc,
+                                                                                        pos = bc))
+    end
+    # non-periodic mesh
+    tree_mesh3d_nonperiodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                                       initial_refinement_level = 1,
+                                       n_cells_max = 10, periodicity = false)
+    structured_mesh3d_nonperiodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
+                                                   (1.0, 1.0, 1.0),
+                                                   periodicity = false)
+    for mesh3d_nonperiodic in (tree_mesh3d_nonperiodic,
+                               structured_mesh3d_nonperiodic)
+        # Passing all non-periodic boundary conditions for non-periodic mesh is allowed
+        @test_nowarn SemidiscretizationHyperbolic(mesh3d_nonperiodic,
+                                                  eq3d, ic, solver;
+                                                  boundary_conditions = (;
+                                                                         x_neg = bc_dn,
+                                                                         x_pos = bc_dn,
+                                                                         y_neg = bc_dn,
+                                                                         y_pos = bc_dn,
+                                                                         z_neg = bc_dn,
+                                                                         z_pos = bc_dn))
+        # periodic boundary conditions for non-periodic mesh is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_nonperiodic,
+                                                                eq3d, ic, solver;
+                                                                boundary_conditions = bc)
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_nonperiodic,
+                                                                eq3d, ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,
+                                                                                       x_pos = bc,
+                                                                                       y_neg = bc,
+                                                                                       y_pos = bc,
+                                                                                       z_neg = bc,
+                                                                                       z_pos = bc))
+        # not passing non-periodic boundary conditions for non-periodic mesh is not allowed
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_nonperiodic,
+                                                                eq3d, ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,
+                                                                                       x_pos = bc_dn,
+                                                                                       y_neg = bc_dn,
+                                                                                       y_pos = bc_dn,
+                                                                                       z_neg = bc_dn))
+    end
+    # partially periodic
+    tree_mesh3d_partial_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                                            initial_refinement_level = 1,
+                                            n_cells_max = 10,
+                                            periodicity = (false, true, true))
+    structured_mesh3d_partial_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
+                                                        (1.0, 1.0, 1.0),
+                                                        periodicity = (false, true,
+                                                                       true))
+    for mesh3d_partial_periodic in (tree_mesh3d_partial_periodic,
+                                    structured_mesh3d_partial_periodic)
+        # Specifying all boundary conditions is allowed
+        @test_nowarn SemidiscretizationHyperbolic(mesh3d_partial_periodic,
+                                                  eq3d, ic, solver;
+                                                  boundary_conditions = (;
+                                                                         x_neg = bc_dn,
+                                                                         x_pos = bc_dn,
+                                                                         y_neg = bc,
+                                                                         y_pos = bc,
+                                                                         z_neg = bc,
+                                                                         z_pos = bc))
+        # Only specifying non-periodic boundary conditions is allowed when using NamedTuple
+        @test_nowarn SemidiscretizationHyperbolic(mesh3d_partial_periodic,
+                                                  eq3d, ic, solver;
+                                                  boundary_conditions = (;
+                                                                         x_neg = bc_dn,
+                                                                         x_pos = bc_dn))
+        # For partially periodic mesh, need to specify separate boundary conditions
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_partial_periodic,
+                                                                eq3d, ic, solver;
+                                                                boundary_conditions = bc_dn)
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_partial_periodic,
+                                                                eq3d, ic, solver;
+                                                                boundary_conditions = bc)
+        # Non-periodic boundary condition on periodic direction
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_partial_periodic,
+                                                                eq3d, ic, solver;
+                                                                boundary_conditions = (;
+                                                                                       x_neg = bc_dn,
+                                                                                       x_pos = bc_dn,
+                                                                                       y_neg = bc_dn,
+                                                                                       y_pos = bc_dn,
+                                                                                       z_neg = bc,
+                                                                                       z_pos = bc_dn))
+    end
 end
 end
 

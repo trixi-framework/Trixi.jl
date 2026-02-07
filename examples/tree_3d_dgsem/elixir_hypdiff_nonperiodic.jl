@@ -16,7 +16,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000,
                 periodicity = (false, true, true))
 
-boundary_conditions = (x_neg = boundary_condition_poisson_nonperiodic,
+boundary_conditions = (; x_neg = boundary_condition_poisson_nonperiodic,
                        x_pos = boundary_condition_poisson_nonperiodic,
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic,

@@ -10,7 +10,7 @@ initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (x_neg = boundary_condition,
+boundary_conditions = (; x_neg = boundary_condition,
                        x_pos = boundary_condition,
                        y_neg = boundary_condition,
                        y_pos = boundary_condition)

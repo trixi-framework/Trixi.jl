@@ -65,8 +65,8 @@ end
 initial_condition = initial_condition_convergence_test_sphere
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:inside => boundary_condition,
-                           :outside => boundary_condition)
+boundary_conditions = (; inside = boundary_condition,
+                       outside = boundary_condition)
 
 surface_flux = FluxHLL(min_max_speed_naive)
 # Note that a free stream is not preserved if N < 2 * N_geo, where N is the

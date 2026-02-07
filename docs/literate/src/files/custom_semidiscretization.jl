@@ -87,6 +87,7 @@ end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
                                     solver;
+                                    boundary_conditions = boundary_condition_periodic,
                                     source_terms = source_terms_standard)
 
 # Now, we can create the `ODEProblem`, solve the resulting ODE
