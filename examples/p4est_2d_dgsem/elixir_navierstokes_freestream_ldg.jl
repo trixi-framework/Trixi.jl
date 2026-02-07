@@ -51,7 +51,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/a075f8
 # Map the unstructured mesh with the mapping above
 mesh = P4estMesh{2}(mesh_file, mapping = mapping, polydeg = polydeg)
 
-boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,

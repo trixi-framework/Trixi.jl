@@ -8,18 +8,27 @@ for human readability.
 ## Changes when updating to v0.15 from v0.14.x
 
 #### Changed
+
+- Boundary conditions are now passed as a `NamedTuple` consistently across all mesh types, i.e., boundary conditions, which
+  were previously passed as a `Dict` for the `P4estMesh`, `T8codeMesh`, and `UnstructuredMesh2D` mesh types have to be converted to `NamedTuple`s. Also passing boundary conditions as a `Tuple` is no longer supported. This change also makes `boundary_condition_default` obsolete, which is why it was removed ([#2761]).
+- The `TreeMesh`, `StructuredMesh` as well as the hypercube constructors of `P4estMesh` and `T8codeMesh` are now non-periodic by default, i.e., you need to
+  explicitly set the `periodicity` keyword argument to `true` to obtain periodic meshes. This change was made to be consistent with other mesh types and to avoid confusion ([#2770]).
+- There are no default boundary conditions anymore in `SemidiscretizationHyperbolic` and `SemidiscretizationHyperbolicParabolic`.
+  Users now have to explicitly provide boundary conditions via the `boundary_conditions` keyword argument, which were periodic by default before ([#2770]).
 - Renamed `energy_internal` for `NonIdealCompressibleEulerEquations1D` to `energy_internal_specific` ([#2762]). This makes `energy_internal` for `NonIdealCompressibleEulerEquations1D` consistent with the rest of Trixi.jl, where `energy_internal` refers to the specific internal energy scaled by density.
-- Changed `cons2prim(u, ::NonIdealCompressibleEulerEquations1D)` so that it returns `rho, v1, p`. Previously, `cons2prim` returned `V, v1, T`; this functionalityis now provided by the non-exported function `cons2thermo` ([#2769]). 
+- Changed `cons2prim(u, ::NonIdealCompressibleEulerEquations1D)` so that it returns `rho, v1, p`. Previously, `cons2prim` returned `V, v1, T`; this functionality is now provided by the non-exported function `cons2thermo` ([#2769]).
 - The variable name (printed to the screen and files) of the total energy in the compressible Euler equations has been changed from `rho_e` to `rho_e_total` to avoid confusion with the internal energy `rho_e_internal` ([#2778]).
 - `convergence_test` now returns the complete convergence orders and the full errors matrix. To obtain the mean convergence rates, use `Trixi.calc_mean_convergence` on the convergence orders ([#2753]).
 - The serial and parallel mesh types have been renamed from `SerialTreeMesh`, `ParallelTreeMesh`, `SerialP4estMesh`, `ParallelP4estMesh`, `SerialT8codeMesh`, and `ParallelT8codeMesh` to `TreeMeshSerial`, `TreeMeshParallel`, `P4estMeshSerial`, `P4estMeshParallel`, `T8codeMeshSerial`, and `T8codeMeshParallel`, respectively ([#2787]).
 
 #### Added
+
 - Added `PengRobinson` equation of state ([#2769]).
 
 ## Changes in the v0.14 lifecycle
 
 #### Added
+
 - Added `NonIdealCompressibleEulerEquations1D`, which allows users to specify a non-ideal equation of state. Currently `IdealGas` and `VanDerWaals` are supported ([#2739]).
 - Added the APEC (approximate pressure equilibrium preserving with conservation) fluxes of `flux_terashima_etal` and `flux_central_terashima_etal` from [Terashima, Ly, Ihme (2025)](https://doi.org/10.1016/j.jcp.2024.113701) ([#2756]).
 - Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
@@ -41,6 +50,7 @@ for human readability.
 ## Changes in the v0.13 lifecycle
 
 #### Added
+
 - Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582], [#2647], [#2688], [#2722]).
   In the new version, IDP positivity limiting for conservative variables (using
   the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) and nonlinear

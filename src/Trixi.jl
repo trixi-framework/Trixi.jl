@@ -141,7 +141,6 @@ include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
-include("solvers/boundary_condition_default.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
@@ -225,7 +224,6 @@ export initial_condition_constant,
        initial_condition_weak_blast_wave
 
 export boundary_condition_do_nothing,
-       boundary_condition_default,
        boundary_condition_periodic,
        BoundaryConditionDirichlet,
        BoundaryConditionNeumann,

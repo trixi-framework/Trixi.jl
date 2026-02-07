@@ -290,7 +290,9 @@ end
     Trixi.refine!(mesh.tree, LLID[1:Int(num_leaves / 32)])
     tspan = (0.0, 0.1)
     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                                 initial_condition, solver)
+                                                 initial_condition, solver;
+                                                 boundary_conditions = (boundary_condition_periodic,
+                                                                        boundary_condition_periodic))
     ode = semidiscretize(semi, tspan)
     analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                          save_analysis = true,
