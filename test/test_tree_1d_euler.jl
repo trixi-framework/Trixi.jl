@@ -659,4 +659,31 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_nonideal_transcritical_wave.jl (Peng Robinson)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_transcritical_wave.jl"),
+                        tspan=(0.0, 0.001),
+                        # note that errors are large because the solution magnitude is large
+                        l2=[3.5624314278401767, 307.08047341497075, 671891.3209204172],
+                        linf=[11.245466632528647, 1012.4992037314532, 2.193707958061479e6])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_transcritical_shock.jl with Peng Robinson" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_transcritical_shock.jl"),
+                        initial_condition=initial_condition_transcritical_shock,
+                        tspan=(0.0, 5e-5),
+                        # note that rho_e_total errors are large because pressure is 5e6
+                        l2=[46.87606704575898, 12776.72009989676, 3.0691124394639865e6],
+                        linf=[728.557135738047, 82812.85038902842, 7.330706462442407e7])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 end # module

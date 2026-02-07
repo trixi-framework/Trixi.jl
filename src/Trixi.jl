@@ -182,7 +182,8 @@ export AcousticPerturbationEquations2D,
        LinearElasticityEquations1D,
        PassiveTracerEquations
 
-export NonIdealCompressibleEulerEquations1D, IdealGas, VanDerWaals
+export NonIdealCompressibleEulerEquations1D
+export IdealGas, VanDerWaals, PengRobinson
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,

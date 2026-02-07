@@ -9,9 +9,13 @@ for human readability.
 
 #### Changed
 - Renamed `energy_internal` for `NonIdealCompressibleEulerEquations1D` to `energy_internal_specific` ([#2762]). This makes `energy_internal` for `NonIdealCompressibleEulerEquations1D` consistent with the rest of Trixi.jl, where `energy_internal` refers to the specific internal energy scaled by density.
+- Changed `cons2prim(u, ::NonIdealCompressibleEulerEquations1D)` so that it returns `rho, v1, p`. Previously, `cons2prim` returned `V, v1, T`; this functionalityis now provided by the non-exported function `cons2thermo` ([#2769]). 
 - The variable name (printed to the screen and files) of the total energy in the compressible Euler equations has been changed from `rho_e` to `rho_e_total` to avoid confusion with the internal energy `rho_e_internal` ([#2778]).
 - `convergence_test` now returns the complete convergence orders and the full errors matrix. To obtain the mean convergence rates, use `Trixi.calc_mean_convergence` on the convergence orders ([#2753]).
 - The serial and parallel mesh types have been renamed from `SerialTreeMesh`, `ParallelTreeMesh`, `SerialP4estMesh`, `ParallelP4estMesh`, `SerialT8codeMesh`, and `ParallelT8codeMesh` to `TreeMeshSerial`, `TreeMeshParallel`, `P4estMeshSerial`, `P4estMeshParallel`, `T8codeMeshSerial`, and `T8codeMeshParallel`, respectively ([#2787]).
+
+#### Added
+- Added `PengRobinson` equation of state ([#2769]).
 
 ## Changes in the v0.14 lifecycle
 
