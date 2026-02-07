@@ -174,7 +174,7 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
 end
 
 # If a NamedTuple is passed with not the same number of BCs, ensure that the keys are correct.
-# For periodic boundary parts, the keys can be missing and get filled with `BoundaryConditionPeriodic()`.
+# For periodic boundary parts, the keys can be missing and get filled with `boundary_condition_periodic`.
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
                                     mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
                                     cache)
@@ -307,8 +307,8 @@ end
 
 function check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
     if isperiodic(mesh, 1) &&
-       (x_neg != BoundaryConditionPeriodic() ||
-        x_pos != BoundaryConditionPeriodic())
+       (x_neg != boundary_condition_periodic ||
+        x_pos != boundary_condition_periodic)
         throw(ArgumentError("For periodic mesh non-periodic boundary conditions in x-direction are supplied."))
     end
     if !isperiodic(mesh, 1) &&
