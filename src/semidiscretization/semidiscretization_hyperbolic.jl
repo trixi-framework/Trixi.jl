@@ -320,8 +320,8 @@ end
 
 function check_periodicity_mesh_boundary_conditions_y(mesh, y_neg, y_pos)
     if isperiodic(mesh, 2) &&
-(y_neg != boundary_condition_periodic ||
-y_pos != boundary_condition_periodic)
+       (y_neg != boundary_condition_periodic ||
+        y_pos != boundary_condition_periodic)
         throw(ArgumentError("For periodic mesh non-periodic boundary conditions in y-direction are supplied."))
     end
     if !isperiodic(mesh, 2) &&
@@ -333,8 +333,8 @@ end
 
 function check_periodicity_mesh_boundary_conditions_z(mesh, z_neg, z_pos)
     if isperiodic(mesh, 3) &&
-(z_neg != boundary_condition_periodic ||
-z_pos != boundary_condition_periodic)
+       (z_neg != boundary_condition_periodic ||
+        z_pos != boundary_condition_periodic)
         throw(ArgumentError("For periodic mesh non-periodic boundary conditions in z-direction are supplied."))
     end
     if !isperiodic(mesh, 3) &&
