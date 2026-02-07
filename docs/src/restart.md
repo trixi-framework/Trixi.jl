@@ -41,7 +41,8 @@ mesh = load_mesh(restart_filename)
 
 This is then needed for the semidiscretization:
 ```julia
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; boundary_conditions = boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 ```
 
 We then define a new time span for the simulation that takes as starting

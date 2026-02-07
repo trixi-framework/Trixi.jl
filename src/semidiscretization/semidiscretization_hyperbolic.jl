@@ -233,12 +233,12 @@ end
 function get_periodicity_boundary_conditions_x(boundary_conditions, mesh)
     if isperiodic(mesh, 1)
         if :x_neg in keys(boundary_conditions) &&
-           boundary_conditions.x_neg != BoundaryConditionPeriodic() ||
+           boundary_conditions.x_neg != boundary_condition_periodic ||
            :x_pos in keys(boundary_conditions) &&
-           boundary_conditions.x_pos != BoundaryConditionPeriodic()
+           boundary_conditions.x_pos != boundary_condition_periodic
             throw(ArgumentError("For periodic mesh non-periodic boundary conditions in x-direction are supplied."))
         end
-        x_neg = x_pos = BoundaryConditionPeriodic()
+        x_neg = x_pos = boundary_condition_periodic
     else
         required = (:x_neg, :x_pos)
         if !all(in(keys(boundary_conditions)), required)
@@ -252,12 +252,12 @@ end
 function get_periodicity_boundary_conditions_y(boundary_conditions, mesh)
     if isperiodic(mesh, 2)
         if :y_neg in keys(boundary_conditions) &&
-           boundary_conditions.y_neg != BoundaryConditionPeriodic() ||
+           boundary_conditions.y_neg != boundary_condition_periodic ||
            :y_pos in keys(boundary_conditions) &&
-           boundary_conditions.y_pos != BoundaryConditionPeriodic()
+           boundary_conditions.y_pos != boundary_condition_periodic
             throw(ArgumentError("For periodic mesh non-periodic boundary conditions in y-direction are supplied."))
         end
-        y_neg = y_pos = BoundaryConditionPeriodic()
+        y_neg = y_pos = boundary_condition_periodic
     else
         required = (:y_neg, :y_pos)
         if !all(in(keys(boundary_conditions)), required)
@@ -271,12 +271,12 @@ end
 function get_periodicity_boundary_conditions_z(boundary_conditions, mesh)
     if isperiodic(mesh, 3)
         if :z_neg in keys(boundary_conditions) &&
-           boundary_conditions.z_neg != BoundaryConditionPeriodic() ||
+           boundary_conditions.z_neg != boundary_condition_periodic ||
            :z_pos in keys(boundary_conditions) &&
-           boundary_conditions.z_pos != BoundaryConditionPeriodic()
+           boundary_conditions.z_pos != boundary_condition_periodic
             throw(ArgumentError("For periodic mesh non-periodic boundary conditions in z-direction are supplied."))
         end
-        z_neg = z_pos = BoundaryConditionPeriodic()
+        z_neg = z_pos = boundary_condition_periodic
     else
         required = (:z_neg, :z_pos)
         if !all(in(keys(boundary_conditions)), required)
@@ -312,34 +312,34 @@ function check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
         throw(ArgumentError("For periodic mesh non-periodic boundary conditions in x-direction are supplied."))
     end
     if !isperiodic(mesh, 1) &&
-       (x_neg == BoundaryConditionPeriodic() ||
-        x_pos == BoundaryConditionPeriodic())
+       (x_neg == boundary_condition_periodic ||
+        x_pos == boundary_condition_periodic)
         throw(ArgumentError("For non-periodic mesh periodic boundary conditions in x-direction are supplied."))
     end
 end
 
 function check_periodicity_mesh_boundary_conditions_y(mesh, y_neg, y_pos)
     if isperiodic(mesh, 2) &&
-       (y_neg != BoundaryConditionPeriodic() ||
-        y_pos != BoundaryConditionPeriodic())
+(y_neg != boundary_condition_periodic ||
+y_pos != boundary_condition_periodic)
         throw(ArgumentError("For periodic mesh non-periodic boundary conditions in y-direction are supplied."))
     end
     if !isperiodic(mesh, 2) &&
-       (y_neg == BoundaryConditionPeriodic() ||
-        y_pos == BoundaryConditionPeriodic())
+       (y_neg == boundary_condition_periodic ||
+        y_pos == boundary_condition_periodic)
         throw(ArgumentError("For non-periodic mesh periodic boundary conditions in y-direction are supplied."))
     end
 end
 
 function check_periodicity_mesh_boundary_conditions_z(mesh, z_neg, z_pos)
     if isperiodic(mesh, 3) &&
-       (z_neg != BoundaryConditionPeriodic() ||
-        z_pos != BoundaryConditionPeriodic())
+(z_neg != boundary_condition_periodic ||
+z_pos != boundary_condition_periodic)
         throw(ArgumentError("For periodic mesh non-periodic boundary conditions in z-direction are supplied."))
     end
     if !isperiodic(mesh, 3) &&
-       (z_neg == BoundaryConditionPeriodic() ||
-        z_pos == BoundaryConditionPeriodic())
+       (z_neg == boundary_condition_periodic ||
+        z_pos == boundary_condition_periodic)
         throw(ArgumentError("For non-periodic mesh periodic boundary conditions in z-direction are supplied."))
     end
 end
