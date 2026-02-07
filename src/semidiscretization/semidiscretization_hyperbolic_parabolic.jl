@@ -54,7 +54,7 @@ end
                                           solver_parabolic=default_parabolic_solver(),
                                           source_terms=nothing,
                                           source_terms_parabolic=nothing,
-                                          both_boundary_conditions,
+                                          bboundary_conditions,
                                           RealT=real(solver),
                                           uEltype=RealT)
 
@@ -69,7 +69,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                solver_parabolic = default_parabolic_solver(),
                                                source_terms = nothing,
                                                source_terms_parabolic = nothing,
-                                               both_boundary_conditions,
+                                               boundary_conditions,
                                                # `RealT` is used as real type for node locations etc.
                                                # while `uEltype` is used as element type of solutions etc.
                                                RealT = real(solver), uEltype = RealT)
@@ -82,7 +82,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
         throw(ArgumentError("Current implementation of viscous terms requires the same number of conservative and gradient variables."))
     end
 
-    boundary_conditions, boundary_conditions_parabolic = both_boundary_conditions
+    boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
