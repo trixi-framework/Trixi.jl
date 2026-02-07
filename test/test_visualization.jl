@@ -395,7 +395,6 @@ end
     end
 end
 
-
 # Helper function for regression tests
 ic_constant = function (x, t, equations::CompressibleEulerEquations2D)
     rho = 1.0
