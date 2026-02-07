@@ -14,8 +14,8 @@ during the call to `calc_boundary_flux!`. The original `NamedTuple` of the bound
 set by the user in the elixir file is also stored for printing.
 """
 mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any},
-                                               BoundaryConditions <: NamedTuple,
-                                               Vec <: AbstractVector{<:Integer}}
+                                               Vec <: AbstractVector{<:Integer},
+                                               BoundaryConditions <: NamedTuple,}
     const boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
     boundary_indices::NTuple{N, Vec} # integer vectors containing global boundary indices
     const boundary_conditions::BoundaryConditions # boundary conditions as set by the user in the elixir file
