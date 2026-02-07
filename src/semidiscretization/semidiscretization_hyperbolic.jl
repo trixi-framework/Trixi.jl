@@ -213,9 +213,16 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple,
 end
 
 # Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh
+# define in two functions to resolve ambiguities
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
-                                    mesh::Union{P4estMesh, UnstructuredMesh2D,
-                                                T8codeMesh},
+                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                                T8codeMesh{2}},
+                                    solver, cache)
+    return UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
+end
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple,
+                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                     solver, cache)
     return UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
 end
