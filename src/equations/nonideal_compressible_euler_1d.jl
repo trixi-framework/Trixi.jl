@@ -26,7 +26,7 @@ The compressible Euler equations
 ```
 for a gas with pressure ``p`` specified by some equation of state in one space dimension.
 
-Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_{\text{total}}`` the specific total energy, 
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_{\text{total}}`` the specific total energy,
 and the pressure ``p`` is given in terms of specific volume ``V = 1/\rho`` and temperature ``T``
 by some user-specified equation of state (EOS)
 (see [`pressure(V, T, eos::IdealGas)`](@ref), [`pressure(V, T, eos::VanDerWaals)`](@ref)) as
@@ -37,9 +37,9 @@ p = p(V, T)
 Similarly, the internal energy is specified by `e_internal = energy_internal_specific(V, T, eos)`, see
 [`energy_internal_specific(V, T, eos::IdealGas)`](@ref), [`energy_internal_specific(V, T, eos::VanDerWaals)`](@ref).
 
-Because of this, the primitive variables are also defined to be `V, v1, T` (instead of 
-`rho, v1, p` for `CompressibleEulerEquations1D`). The implementation also assumes 
-mass basis unless otherwise specified.     
+Because of this, the primitive variables are also defined to be `V, v1, T` (instead of
+`rho, v1, p` for `CompressibleEulerEquations1D`). The implementation also assumes
+mass basis unless otherwise specified.
 """
 struct NonIdealCompressibleEulerEquations1D{EoS <: AbstractEquationOfState} <:
        AbstractNonIdealCompressibleEulerEquations{1, 3}
@@ -65,10 +65,10 @@ varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("rho",
 
 """
     cons2thermo(u, equations::NonIdealCompressibleEulerEquations1D)
-        
-Convert conservative variables to specific volume, velocity, and temperature 
+
+Convert conservative variables to specific volume, velocity, and temperature
 variables `V, v1, T`. These are referred to as "thermodynamic" variables since
-equation of state routines are assumed to be evaluated in terms of `V` and `T`. 
+equation of state routines are assumed to be evaluated in terms of `V` and `T`.
 """
 @inline function cons2thermo(u, equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
@@ -102,11 +102,11 @@ end
     flux_terashima_etal(u_ll, u_rr, orientation::Int,
                         equations::NonIdealCompressibleEulerEquations1D)
 
-Approximately pressure equilibrium preserving with conservation (APEC) flux from 
+Approximately pressure equilibrium preserving with conservation (APEC) flux from
 
-- H. Terashima, N. Ly, M. Ihme (2025) 
-  Approximately pressure-equilibrium-preserving scheme for fully conservative simulations of 
-  compressible multi-species and real-fluid interfacial flows 
+- H. Terashima, N. Ly, M. Ihme (2025)
+  Approximately pressure-equilibrium-preserving scheme for fully conservative simulations of
+  compressible multi-species and real-fluid interfacial flows
   [DOI: 10.1016/j.jcp.2024.113701](https://doi.org/10.1016/j.jcp.2024.113701)
 
 """
@@ -156,9 +156,9 @@ end
                                 equations::NonIdealCompressibleEulerEquations1D)
 
 A version of the central flux which uses the pressure equilibrium preserving with conservation
-(APEC) internal energy correction of 
-"Approximately pressure-equilibrium-preserving scheme for fully conservative 
-simulations of compressible multi-species and real-fluid interfacial flows" 
+(APEC) internal energy correction of
+"Approximately pressure-equilibrium-preserving scheme for fully conservative
+simulations of compressible multi-species and real-fluid interfacial flows"
 by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
 """
 @inline function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
@@ -195,7 +195,7 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
     f_rho = 0.5f0 * (rho_v1_ll + rho_v1_rr)
     f_rho_v1 = 0.5f0 * (rho_v1_ll * v1_ll + rho_v1_rr * v1_rr) + p_avg
 
-    # calculate internal energy (with APEC correction) and kinetic energy 
+    # calculate internal energy (with APEC correction) and kinetic energy
     # contributions separately in the energy equation
     ke_ll = 0.5f0 * v1_ll^2
     ke_rr = 0.5f0 * v1_rr^2
@@ -309,29 +309,6 @@ end
     rho = u[1]
     v1 = u[2] / rho
     return v1
-end
-
-@inline function pressure(u, equations::NonIdealCompressibleEulerEquations1D)
-    eos = equations.equation_of_state
-    V, _, T = cons2prim(u, equations)
-    p = pressure(V, T, eos)
-    return p
-end
-
-@inline function density_pressure(u, equations::NonIdealCompressibleEulerEquations1D)
-    eos = equations.equation_of_state
-    rho = u[1]
-    V, _, T = cons2prim(u, equations)
-    p = pressure(V, T, eos)
-    return rho * p
-end
-
-@inline function energy_internal_specific(u,
-                                          equations::NonIdealCompressibleEulerEquations1D)
-    eos = equations.equation_of_state
-    V, _, T = cons2prim(u, equations)
-    e_internal = energy_internal_specific(V, T, eos)
-    return e_internal
 end
 
 @inline function energy_internal(u,

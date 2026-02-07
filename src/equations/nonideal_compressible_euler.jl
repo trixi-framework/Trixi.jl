@@ -50,12 +50,8 @@ end
 
 @inline function density_pressure(u,
                                   equations::AbstractNonIdealCompressibleEulerEquations)
-    eos = equations.equation_of_state
-    rho = u[1]
-    u_thermo = cons2thermo(u, equations)
-    V = first(u_thermo)
-    T = last(u_thermo)
-    p = pressure(V, T, eos)
+    rho = density(u, equations)
+    p = pressure(u, equations)
     return rho * p
 end
 
