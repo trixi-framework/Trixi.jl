@@ -405,6 +405,85 @@ end
     end
 end
 
+# Helper function for regression tests
+ic_constant = function (x, t, equations::CompressibleEulerEquations2D)
+    rho = 1.0
+    v1 = 0.5
+    v2 = -0.5
+    p = 1.0
+    return prim2cons(SVector(rho, v1, v2, p), equations)
+end
+
+@testset "PlotData2D Regression Tests" begin
+    # Define local path to examples
+    examples_dir_local = joinpath(dirname(@__DIR__), "examples")
+
+    # --- Test 1: TreeMesh (Cartesian) ---
+    # TreeMesh stores data as Vector of Matrices (one Matrix per variable)
+    @testset "TreeMesh" begin
+        trixi_include(@__MODULE__,
+                      joinpath(examples_dir_local, "tree_2d_dgsem",
+                               "elixir_euler_blast_wave.jl"),
+                      tspan = (0.0, 0.0))
+        semi = getfield(@__MODULE__, :semi)
+        u_ode = compute_coefficients(ic_constant, 0.0, semi)
+        pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
+
+        @test pd.x isa AbstractVector
+        @test pd.y isa AbstractVector
+
+        # Check Values (pd.data[i] is the matrix for variable i)
+        # Using isapprox instead of ≈ for ASCII compliance
+        @test all(x -> isapprox(x, 1.0), pd.data[1]) # rho
+        @test all(x -> isapprox(x, 0.5), pd.data[2]) # v1
+        @test all(x -> isapprox(x, -0.5), pd.data[3]) # v2
+        @test all(x -> isapprox(x, 1.0), pd.data[4]) # p
+    end
+
+    # --- Test 2: StructuredMesh (Curvilinear) ---
+    # StructuredMesh stores data as a collection of SVectors (one SVector per node)
+    @testset "StructuredMesh" begin
+        trixi_include(@__MODULE__,
+                      joinpath(examples_dir_local, "structured_2d_dgsem",
+                               "elixir_euler_ec.jl"),
+                      tspan = (0.0, 0.0))
+        semi = getfield(@__MODULE__, :semi)
+        u_ode = compute_coefficients(ic_constant, 0.0, semi)
+        pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
+
+        @test pd.x isa AbstractMatrix
+        @test pd.y isa AbstractMatrix
+
+        # Check Values: Iterate over the solution vectors
+        # val[1]=rho, val[2]=v1, val[3]=v2, val[4]=p
+        @test all(val -> isapprox(val[1], 1.0), pd.data)
+        @test all(val -> isapprox(val[2], 0.5), pd.data)
+        @test all(val -> isapprox(val[3], -0.5), pd.data)
+        @test all(val -> isapprox(val[4], 1.0), pd.data)
+    end
+
+    # --- Test 3: P4estMesh (Unstructured) ---
+    # P4estMesh stores data as a collection of SVectors
+    @testset "P4estMesh" begin
+        trixi_include(@__MODULE__,
+                      joinpath(examples_dir_local, "p4est_2d_dgsem",
+                               "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                      tspan = (0.0, 0.0))
+        semi = getfield(@__MODULE__, :semi)
+        u_ode = compute_coefficients(ic_constant, 0.0, semi)
+        pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
+
+        @test pd.x isa AbstractMatrix
+        @test pd.y isa AbstractMatrix
+
+        # Check Values
+        @test all(val -> isapprox(val[1], 1.0), pd.data)
+        @test all(val -> isapprox(val[2], 0.5), pd.data)
+        @test all(val -> isapprox(val[3], -0.5), pd.data)
+        @test all(val -> isapprox(val[4], 1.0), pd.data)
+    end
+end
+
 @timed_testset "PlotData1D (DGMulti)" begin
     # Test two different approximation types since these use different memory layouts:
     # - structure of arrays for `Polynomial()`
