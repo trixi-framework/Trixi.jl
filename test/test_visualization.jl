@@ -233,11 +233,13 @@ end
             trees_per_dimension = (2, 2)
             mesh = MeshType(trees_per_dimension; polydeg = 1,
                             coordinates_min, coordinates_max,
-                            initial_refinement_level = 0)
+                            initial_refinement_level = 0,
+                            periodicity = true)
 
             semi = SemidiscretizationHyperbolic(mesh, equations,
                                                 initial_condition_constant,
-                                                solver)
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
             # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
             # and Ketcheson (2021)
@@ -269,17 +271,21 @@ end
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
                              n_cells_max = 10^5,
-                             initial_refinement_level)
+                             initial_refinement_level,
+                             periodicity = true)
         trees_per_dimension = (1, 1)
         mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 1,
                                coordinates_min, coordinates_max,
-                               initial_refinement_level)
+                               initial_refinement_level,
+                               periodicity = true)
         mesh_t8code = T8codeMesh(trees_per_dimension; polydeg = 1,
                                  coordinates_min, coordinates_max,
-                                 initial_refinement_level)
+                                 initial_refinement_level,
+                                 periodicity = true)
         cells_per_dimension = (2, 2) .^ initial_refinement_level
         mesh_structured = StructuredMesh(cells_per_dimension,
-                                         coordinates_min, coordinates_max)
+                                         coordinates_min, coordinates_max,
+                                         periodicity = true)
 
         function initial_condition_taylor_green_vortex(x, t,
                                                        equations::CompressibleEulerEquations2D)
@@ -300,22 +306,26 @@ end
         ic = initial_condition_taylor_green_vortex
 
         ode_tree = let mesh = mesh_tree
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_p4est = let mesh = mesh_p4est
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_t8code = let mesh = mesh_t8code
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_structured = let mesh = mesh_structured
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
@@ -600,11 +610,13 @@ end
                 trees_per_dimension = (2, 2, 2)
                 mesh = MeshType(trees_per_dimension; polydeg = 1,
                                 coordinates_min, coordinates_max,
-                                initial_refinement_level = 0)
+                                initial_refinement_level = 0,
+                                periodicity = true)
 
                 semi = SemidiscretizationHyperbolic(mesh, equations,
                                                     initial_condition_constant,
-                                                    solver)
+                                                    solver;
+                                                    boundary_conditions = boundary_condition_periodic)
                 ode = semidiscretize(semi, (0.0, 0.1))
                 # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
                 # and Ketcheson (2021)
@@ -637,17 +649,21 @@ end
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
                              n_cells_max = 10^6,
-                             initial_refinement_level)
+                             initial_refinement_level,
+                             periodicity = true)
         trees_per_dimension = (1, 1, 1)
         mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 1,
                                coordinates_min, coordinates_max,
-                               initial_refinement_level)
+                               initial_refinement_level,
+                               periodicity = true)
         mesh_t8code = T8codeMesh(trees_per_dimension; polydeg = 1,
                                  coordinates_min, coordinates_max,
-                                 initial_refinement_level)
+                                 initial_refinement_level,
+                                 periodicity = true)
         cells_per_dimension = (2, 2, 2) .^ initial_refinement_level
         mesh_structured = StructuredMesh(cells_per_dimension,
-                                         coordinates_min, coordinates_max)
+                                         coordinates_min, coordinates_max,
+                                         periodicity = true)
 
         function initial_condition_taylor_green_vortex(x, t,
                                                        equations::CompressibleEulerEquations3D)
@@ -670,22 +686,26 @@ end
         ic = initial_condition_taylor_green_vortex
 
         ode_tree = let mesh = mesh_tree
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_p4est = let mesh = mesh_p4est
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_t8code = let mesh = mesh_t8code
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_structured = let mesh = mesh_structured
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 

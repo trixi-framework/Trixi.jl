@@ -40,7 +40,7 @@ end
 cells_per_dimension = (8, 8, 8)
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

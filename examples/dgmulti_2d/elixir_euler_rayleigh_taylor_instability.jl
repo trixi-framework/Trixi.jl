@@ -52,7 +52,7 @@ end
 @inline function source_terms_rayleigh_taylor_instability(u, x, t,
                                                           equations::CompressibleEulerEquations2D)
     g = 1.0
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
     return SVector(0.0, 0.0, g * rho, g * rho_v2)
 end
@@ -69,7 +69,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
                    periodicity = (true, false))
 
 initial_condition = initial_condition_rayleigh_taylor_instability
-boundary_conditions = (; :entire_boundary => boundary_condition_slip_wall)
+boundary_conditions = (; entire_boundary = boundary_condition_slip_wall)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     source_terms = source_terms_rayleigh_taylor_instability,
