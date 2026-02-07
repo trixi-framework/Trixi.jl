@@ -233,16 +233,18 @@ function digest_boundary_conditions(boundary_conditions,
                                     mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
                                                 T8codeMesh{2}},
                                     solver, cache)
-    return (; x_neg = boundary_conditions, x_pos = boundary_conditions,
-            y_neg = boundary_conditions, y_pos = boundary_conditions)
+    bcs = (; x_neg = boundary_conditions, x_pos = boundary_conditions,
+           y_neg = boundary_conditions, y_pos = boundary_conditions)
+    return UnstructuredSortedBoundaryTypes(bcs, cache)
 end
 
 function digest_boundary_conditions(boundary_conditions,
                                     mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                     solver, cache)
-    return (; x_neg = boundary_conditions, x_pos = boundary_conditions,
-            y_neg = boundary_conditions, y_pos = boundary_conditions,
-            z_neg = boundary_conditions, z_pos = boundary_conditions)
+    bcs = (; x_neg = boundary_conditions, x_pos = boundary_conditions,
+           y_neg = boundary_conditions, y_pos = boundary_conditions,
+           z_neg = boundary_conditions, z_pos = boundary_conditions)
+    return UnstructuredSortedBoundaryTypes(bcs, cache)
 end
 
 # add methods for every dimension to resolve ambiguities
