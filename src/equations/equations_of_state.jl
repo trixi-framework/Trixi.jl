@@ -26,6 +26,7 @@ abstract type AbstractEquationOfState end
 
 include("equation_of_state_ideal_gas.jl")
 include("equation_of_state_vdw.jl")
+include("equation_of_state_peng_robinson.jl")
 
 #######################################################
 #
@@ -36,8 +37,8 @@ include("equation_of_state_vdw.jl")
 function gibbs_free_energy(V, T, eos)
     s = entropy_specific(V, T, eos)
     p = pressure(V, T, eos)
-    e = energy_internal_specific(V, T, eos)
-    h = e + p * V
+    e_internal = energy_internal_specific(V, T, eos)
+    h = e_internal + p * V
     return h - T * s
 end
 
@@ -46,41 +47,47 @@ end
     return ForwardDiff.derivative(T -> energy_internal_specific(V, T, eos), T)
 end
 
+# this is used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
 function calc_pressure_derivatives(V, T, eos)
     dpdV_T = ForwardDiff.derivative(V -> pressure(V, T, eos), V)
     dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
     return dpdT_V, dpdV_T
 end
 
-# relative tolerance for the Newton solver for temperature
+# relative tolerance, initial guess, and maximum number of iterations 
+# for the Newton solver for temperature. 
 eos_newton_tol(eos::AbstractEquationOfState) = 10 * eps()
+eos_initial_temperature(V, e_internal, eos::AbstractEquationOfState) = 1
+eos_newton_maxiter(eos) = 20
 
 """
-    temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0, tol = eos_newton_tol(eos),
-                maxiter = 100)
+    temperature(V, e_internal, eos::AbstractEquationOfState; initial_T = 1.0, 
+                tol = eos_newton_tol(eos), maxiter = 100)
 
 Calculates the temperature as a function of specific volume `V` and internal energy `e`
 by using Newton's method to determine `T` such that `energy_internal_specific(V, T, eos) = e`.
 Note that the tolerance may need to be adjusted based on the specific equation of state. 
 """
-function temperature(V, e, eos::AbstractEquationOfState; initial_T = 1.0,
-                     tol = eos_newton_tol(eos), maxiter = 100)
+function temperature(V, e_internal, eos::AbstractEquationOfState;
+                     initial_T = eos_initial_temperature(V, e_internal, eos),
+                     tol = eos_newton_tol(eos), maxiter = eos_newton_maxiter(eos))
     T = initial_T
-    de = energy_internal_specific(V, T, eos) - e
+    de = energy_internal_specific(V, T, eos) - e_internal
     iter = 1
-    while abs(de) > tol * abs(e) && iter < maxiter
-        de = energy_internal_specific(V, T, eos) - e
+    while abs(de) > tol * abs(e_internal) && iter < maxiter
+        de = energy_internal_specific(V, T, eos) - e_internal
 
         # for thermodynamically admissible states, c_v = de_dT_V > 0, which should 
         # guarantee convergence of this iteration.
         de_dT_V = heat_capacity_constant_volume(V, T, eos)
 
-        T = T - de / de_dT_V
+        # guard against negative temperatures
+        T = max(tol, T - de / de_dT_V)
         iter += 1
     end
     if iter == maxiter
-        println("Warning: nonlinear solve in `temperature(V, T, eos)` did not converge within $maxiter iterations. " *
-                "Final states: iter = $iter, V, e = $V, $e with de = $de")
+        @warn "Solver in `temperature(V, T, eos)` did not converge within $maxiter iterations. " *
+              "Final states: iter = $iter, V, e_internal = $V, $e with de = $de"
     end
     return T
 end
@@ -88,12 +95,12 @@ end
 # helper function used in [`flux_terashima_etal`](@ref) and [`flux_terashima_etal_central`](@ref)
 @inline function drho_e_drho_at_const_p(V, T, eos::AbstractEquationOfState)
     rho = inv(V)
-    e = energy_internal_specific(V, T, eos)
+    e_internal = energy_internal_specific(V, T, eos)
 
     dpdT_V, dpdV_T = calc_pressure_derivatives(V, T, eos)
     dpdrho_T = dpdV_T * (-V / rho) # V = inv(rho), so dVdrho = -1/rho^2 = -V^2. 
     de_dV_T = T * dpdT_V - pressure(V, T, eos)
-    drho_e_drho_T = e + rho * de_dV_T * (-V / rho) # d(rho_e)/drho_|T = e + rho * de_dV|T * dVdrho
+    drho_e_drho_T = e_internal + rho * de_dV_T * (-V / rho) # d(rho_e)/drho_|T = e + rho * de_dV|T * dVdrho
 
     c_v = heat_capacity_constant_volume(V, T, eos)
     return ((-rho * c_v) / (dpdT_V) * dpdrho_T + drho_e_drho_T)
