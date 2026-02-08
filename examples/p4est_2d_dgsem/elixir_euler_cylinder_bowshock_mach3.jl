@@ -32,10 +32,10 @@ using OrdinaryDiffEqSSPRK
 #        _           *          s
 #       n           *           |
 #      e           *            |
-#     g         Shock          . 
-#     |          *           . 
+#     g         Shock          .
+#     |          *           .
 #    |          *          .  <- x_pos
-#   |          *          .    
+#   |          *          .
 #  |          *         .  (Cylinder)
 #  |_______y_neg_______.
 function mapping_cylinder_shock_fitted(xi_, eta_,
@@ -95,10 +95,10 @@ end
 end
 
 # For physical significance of boundary conditions, see sketch at `mapping_cylinder_shock_fitted`
-boundary_conditions = Dict(:x_neg => boundary_condition_supersonic_inflow, # Supersonic inflow
-                           :y_neg => boundary_condition_slip_wall, # Induce symmetry by slip wall
-                           :y_pos => boundary_condition_do_nothing, # Free outflow 
-                           :x_pos => boundary_condition_slip_wall) # Cylinder
+boundary_conditions = (; x_neg = boundary_condition_supersonic_inflow, # Supersonic inflow
+                       y_neg = boundary_condition_slip_wall, # Induce symmetry by slip wall
+                       y_pos = boundary_condition_do_nothing, # Free outflow
+                       x_pos = boundary_condition_slip_wall) # Cylinder
 
 ###############################################################################
 # Equations, mesh and solver
@@ -142,8 +142,7 @@ mesh = P4estMesh(trees_per_dimension,
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_mach3_flow,
-                                    solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_mach3_flow, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

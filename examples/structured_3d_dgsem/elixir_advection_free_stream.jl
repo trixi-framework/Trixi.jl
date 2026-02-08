@@ -38,10 +38,11 @@ end
 cells_per_dimension = (8, 8, 8)
 
 # Create curved mesh with 8 x 8 x 8 elements
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

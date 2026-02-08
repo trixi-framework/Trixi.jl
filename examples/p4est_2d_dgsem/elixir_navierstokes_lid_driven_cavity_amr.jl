@@ -18,7 +18,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
@@ -48,15 +48,15 @@ heat_bc = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_lid = BoundaryConditionNavierStokesWall(velocity_bc_lid, heat_bc)
 boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity, heat_bc)
 
-boundary_conditions = Dict(:x_neg => boundary_condition_slip_wall,
-                           :y_neg => boundary_condition_slip_wall,
-                           :y_pos => boundary_condition_slip_wall,
-                           :x_pos => boundary_condition_slip_wall)
+boundary_conditions = (; x_neg = boundary_condition_slip_wall,
+                       y_neg = boundary_condition_slip_wall,
+                       y_pos = boundary_condition_slip_wall,
+                       x_pos = boundary_condition_slip_wall)
 
-boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_cavity,
-                                     :y_neg => boundary_condition_cavity,
-                                     :y_pos => boundary_condition_lid,
-                                     :x_pos => boundary_condition_cavity)
+boundary_conditions_parabolic = (; x_neg = boundary_condition_cavity,
+                                 y_neg = boundary_condition_cavity,
+                                 y_pos = boundary_condition_lid,
+                                 x_pos = boundary_condition_cavity)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),

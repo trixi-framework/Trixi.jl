@@ -28,15 +28,15 @@ function initial_condition_eriksson_johnson(x, t, equations)
 end
 initial_condition = initial_condition_eriksson_johnson
 
-boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                           :y_neg => BoundaryConditionDirichlet(initial_condition),
-                           :y_pos => BoundaryConditionDirichlet(initial_condition),
-                           :x_pos => boundary_condition_do_nothing)
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
+                       y_neg = BoundaryConditionDirichlet(initial_condition),
+                       y_pos = BoundaryConditionDirichlet(initial_condition),
+                       x_pos = boundary_condition_do_nothing)
 
-boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :x_pos => BoundaryConditionDirichlet(initial_condition),
-                                     :y_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :y_pos => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions_parabolic = (; x_neg = BoundaryConditionDirichlet(initial_condition),
+                                 x_pos = BoundaryConditionDirichlet(initial_condition),
+                                 y_neg = BoundaryConditionDirichlet(initial_condition),
+                                 y_pos = BoundaryConditionDirichlet(initial_condition))
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -56,7 +56,7 @@ mesh = P4estMesh(trees_per_dimension,
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
+                                             initial_condition, solver;
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
