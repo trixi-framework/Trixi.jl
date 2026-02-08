@@ -432,7 +432,6 @@ end
         @test pd.y isa AbstractVector
 
         # Check Values (pd.data[i] is the matrix for variable i)
-        # Using isapprox instead of ≈ for ASCII compliance
         @test all(x -> isapprox(x, 1.0), pd.data[1]) # rho
         @test all(x -> isapprox(x, 0.5), pd.data[2]) # v1
         @test all(x -> isapprox(x, -0.5), pd.data[3]) # v2
@@ -446,7 +445,6 @@ end
                       joinpath(examples_dir_local, "structured_2d_dgsem",
                                "elixir_euler_ec.jl"),
                       tspan = (0.0, 0.0))
-        semi = getfield(@__MODULE__, :semi)
         u_ode = compute_coefficients(ic_constant, 0.0, semi)
         pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
 
@@ -467,7 +465,6 @@ end
                       joinpath(examples_dir_local, "p4est_2d_dgsem",
                                "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                       tspan = (0.0, 0.0))
-        semi = getfield(@__MODULE__, :semi)
         u_ode = compute_coefficients(ic_constant, 0.0, semi)
         pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
 
