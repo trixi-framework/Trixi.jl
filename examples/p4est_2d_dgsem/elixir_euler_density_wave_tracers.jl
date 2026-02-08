@@ -17,9 +17,11 @@ coordinates_max = (1.0, 1.0)
 trees_per_dimension = (4, 4)
 
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max)
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

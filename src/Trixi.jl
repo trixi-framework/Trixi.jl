@@ -141,7 +141,6 @@ include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
-include("solvers/boundary_condition_default.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
@@ -182,7 +181,8 @@ export AcousticPerturbationEquations2D,
        LinearElasticityEquations1D,
        PassiveTracerEquations
 
-export NonIdealCompressibleEulerEquations1D, IdealGas, VanDerWaals
+export NonIdealCompressibleEulerEquations1D
+export IdealGas, VanDerWaals, PengRobinson
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
@@ -224,7 +224,6 @@ export initial_condition_constant,
        initial_condition_weak_blast_wave
 
 export boundary_condition_do_nothing,
-       boundary_condition_default,
        boundary_condition_periodic,
        BoundaryConditionDirichlet,
        BoundaryConditionNeumann,

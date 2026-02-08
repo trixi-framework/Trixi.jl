@@ -106,7 +106,7 @@ end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 4, n_cells_max = 10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4, periodicity = true)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
@@ -117,7 +117,8 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ## Setup the spatial semidiscretization containing all ingredients
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## Create an ODE problem with given time span
 tspan = (0.0, 1.0)
@@ -150,9 +151,10 @@ error_1 = analysis_callback(sol).l2 |> first
 # simulation again.
 
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 5, n_cells_max = 10^4)
+                initial_refinement_level = 5, n_cells_max = 10^4, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
@@ -254,7 +256,7 @@ end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 4, n_cells_max = 10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4, periodicity = true)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
@@ -265,7 +267,8 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ## Setup the spatial semidiscretization containing all ingredients
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## Create an ODE problem with given time span
 tspan = (0.0, 1.0)

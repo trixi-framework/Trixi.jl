@@ -14,10 +14,11 @@ cells_per_dimension = (24,)
 # This mapping converts [-1, 1] to [1, 9] with a non-uniform distribution of cells
 mapping(xi) = (xi + 2)^2
 
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -63,7 +63,8 @@ coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                n_cells_max = 30_000,
+                periodicity = true)
 
 # To approximate the solution of the defined model, we create a [`DGSEM`](@ref) solver.
 # The solution in each of the recently defined mesh elements will be approximated by a polynomial
@@ -115,7 +116,8 @@ end
 # Now we collect all the information that is necessary to define a spatial discretization,
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                    source_terms = source_term_exp_sinpi)
+                                    source_terms = source_term_exp_sinpi,
+                                    boundary_conditions = boundary_condition_periodic)
 
 # which leaves us with an ODE problem in time with a span from `0.0` to `1.0`.
 # This approach is commonly referred to as the method of lines.

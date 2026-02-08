@@ -1,7 +1,7 @@
 using Trixi
 
 ###############################################################################
-# This example shows that one can restart a hyperbolic-parabolic simulation from 
+# This example shows that one can restart a hyperbolic-parabolic simulation from
 # a purely hyperbolic simulation/restart file.
 
 base_elixir = "elixir_euler_NACA0012airfoil_mach085.jl"
@@ -29,19 +29,19 @@ boundary_condition_airfoil = BoundaryConditionNavierStokesWall(velocity_bc_airfo
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
 
-boundary_conditions_hyp = Dict(:Left => boundary_condition_free_stream,
-                               :Right => boundary_condition_free_stream,
-                               :Top => boundary_condition_free_stream,
-                               :Bottom => boundary_condition_free_stream,
-                               :AirfoilBottom => boundary_condition_slip_wall,
-                               :AirfoilTop => boundary_condition_slip_wall)
+boundary_conditions_hyp = (; Left = boundary_condition_free_stream,
+                           Right = boundary_condition_free_stream,
+                           Top = boundary_condition_free_stream,
+                           Bottom = boundary_condition_free_stream,
+                           AirfoilBottom = boundary_condition_slip_wall,
+                           AirfoilTop = boundary_condition_slip_wall)
 
-boundary_conditions_para = Dict(:Left => boundary_condition_free_stream,
-                                :Right => boundary_condition_free_stream,
-                                :Top => boundary_condition_free_stream,
-                                :Bottom => boundary_condition_free_stream,
-                                :AirfoilBottom => boundary_condition_airfoil,
-                                :AirfoilTop => boundary_condition_airfoil)
+boundary_conditions_para = (; Left = boundary_condition_free_stream,
+                            Right = boundary_condition_free_stream,
+                            Top = boundary_condition_free_stream,
+                            Bottom = boundary_condition_free_stream,
+                            AirfoilBottom = boundary_condition_airfoil,
+                            AirfoilTop = boundary_condition_airfoil)
 
 restart_file = "restart_000000584.h5"
 restart_filename = joinpath("out", restart_file)
