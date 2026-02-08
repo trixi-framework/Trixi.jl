@@ -425,7 +425,6 @@ end
                       joinpath(examples_dir_local, "tree_2d_dgsem",
                                "elixir_euler_blast_wave.jl"),
                       tspan = (0.0, 0.0))
-        semi = getfield(@__MODULE__, :semi)
         u_ode = compute_coefficients(ic_constant, 0.0, semi)
         pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
 
