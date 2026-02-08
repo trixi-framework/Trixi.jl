@@ -455,11 +455,10 @@ end
         @test pd.y isa AbstractMatrix
 
         # Check Values: Iterate over the solution vectors
-        # val[1]=rho, val[2]=v1, val[3]=v2, val[4]=p
-        @test all(val -> isapprox(val[1], 1.0), pd.data)
-        @test all(val -> isapprox(val[2], 0.5), pd.data)
-        @test all(val -> isapprox(val[3], -0.5), pd.data)
-        @test all(val -> isapprox(val[4], 1.0), pd.data)
+        @test all(val -> isapprox(val[1], 1.0), pd.data) # rho
+        @test all(val -> isapprox(val[2], 0.5), pd.data) # v1
+        @test all(val -> isapprox(val[3], -0.5), pd.data) # v2
+        @test all(val -> isapprox(val[4], 1.0), pd.data) # p
     end
 
     # --- Test 3: P4estMesh (Unstructured) ---
@@ -477,10 +476,10 @@ end
         @test pd.y isa AbstractMatrix
 
         # Check Values
-        @test all(val -> isapprox(val[1], 1.0), pd.data)
-        @test all(val -> isapprox(val[2], 0.5), pd.data)
-        @test all(val -> isapprox(val[3], -0.5), pd.data)
-        @test all(val -> isapprox(val[4], 1.0), pd.data)
+        @test all(val -> isapprox(val[1], 1.0), pd.data) # rho
+        @test all(val -> isapprox(val[2], 0.5), pd.data) # v1
+        @test all(val -> isapprox(val[3], -0.5), pd.data) # v2
+        @test all(val -> isapprox(val[4], 1.0), pd.data) # p
     end
 end
 
