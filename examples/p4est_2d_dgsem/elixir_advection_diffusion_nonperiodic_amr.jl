@@ -82,8 +82,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            interval = 50)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback
-)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback)
 
 ###############################################################################
 # run the simulation
