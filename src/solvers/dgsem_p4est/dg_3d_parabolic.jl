@@ -137,10 +137,15 @@ function calc_gradient_interface_flux!(surface_flux_values,
 
         for j in eachnode(dg)
             for i in eachnode(dg)
+                normal_direction = get_normal_direction(primary_direction,
+                                                        contravariant_vectors,
+                                                        i_primary, j_primary, k_primary,
+                                                        primary_element)
+
                 calc_gradient_interface_flux!(surface_flux_values, mesh,
                                               equations_parabolic,
                                               dg, parabolic_scheme, cache,
-                                              interface,
+                                              interface, normal_direction,
                                               i, j,
                                               primary_direction, primary_element,
                                               i_secondary, j_secondary,
@@ -171,7 +176,7 @@ end
 @inline function calc_gradient_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
                                                equations_parabolic,
                                                dg::DG, parabolic_scheme, cache,
-                                               interface_index,
+                                               interface_index, normal_direction,
                                                primary_i_node_index,
                                                primary_j_node_index,
                                                primary_direction_index,
@@ -186,7 +191,7 @@ end
                                        primary_i_node_index, primary_j_node_index,
                                        interface_index)
 
-    flux_ = flux_parabolic(u_ll, u_rr, Gradient(),
+    flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
                            equations_parabolic, parabolic_scheme)
 
     # Note that we don't flip the sign on the secondondary flux. This is because for parabolic terms,
@@ -360,7 +365,7 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
                                            flux_viscous_z[v, i_secondary, j_secondary,
                                                           k_secondary,
                                                           secondary_element])
-                    # store the normal flux with respect to the primary normal direction
+                    # store the normal flux with respect to the primary normal direction, negated
                     interfaces.u[2, v, i, j, interface] = -dot(flux_viscous,
                                                                normal_direction)
                 end
@@ -422,6 +427,10 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
 
         for j in eachnode(dg)
             for i in eachnode(dg)
+                normal_direction = get_normal_direction(primary_direction_index,
+                                                        contravariant_vectors,
+                                                        i_primary, j_primary, k_primary,
+                                                        primary_element)
                 # We prolong the viscous flux dotted with respect the outward normal on the
                 # primary element.
                 viscous_flux_normal_ll, viscous_flux_normal_rr = get_surface_node_vars(cache.interfaces.u,
@@ -432,11 +441,12 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
                                                                                        interface)
 
                 flux = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
-                                      Divergence(),
+                                      normal_direction, Divergence(),
                                       equations_parabolic, parabolic_scheme)
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i, j, primary_direction_index, primary_element] = flux[v]
+                    # Negate secondary flux to get the correct normal direction on the secondary element
                     surface_flux_values[v, i_secondary, j_secondary, secondary_direction_index, secondary_element] = -flux[v]
                 end
 
@@ -646,7 +656,8 @@ function calc_divergence_mortar_flux!(surface_flux_values,
                                               equations_parabolic, parabolic_scheme)
 
                         fstar_primary[position][v, i, j] = flux
-                        fstar_secondary[position][v, i, j] = -flux # Negate for large element
+                        # Negate secondary flux to get the correct normal direction on the secondary element
+                        fstar_secondary[position][v, i, j] = -flux
                     end
 
                     i_small += i_small_step_i
@@ -705,10 +716,16 @@ function calc_gradient_mortar_flux!(surface_flux_values,
             k_small = k_small_start
             for j in eachnode(dg)
                 for i in eachnode(dg)
+                    normal_direction = get_normal_direction(small_direction,
+                                                            contravariant_vectors,
+                                                            i_small, j_small, k_small,
+                                                            element)
+
                     calc_gradient_mortar_flux!(fstar_primary, fstar_secondary,
                                                mesh, equations_parabolic,
                                                dg, parabolic_scheme, cache,
-                                               mortar, position, i, j)
+                                               mortar, position, normal_direction,
+                                               i, j)
 
                     i_small += i_small_step_i
                     j_small += j_small_step_i
@@ -748,13 +765,14 @@ end
                                             equations_parabolic,
                                             dg::DG, parabolic_scheme, cache,
                                             mortar_index, position_index,
+                                            normal_direction,
                                             i_node_index, j_node_index)
     @unpack u = cache.mortars
 
     u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, position_index,
                                        i_node_index, j_node_index, mortar_index)
 
-    flux_ = flux_parabolic(u_ll, u_rr, Gradient(),
+    flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
                            equations_parabolic, parabolic_scheme)
 
     # Copy flux to buffer
