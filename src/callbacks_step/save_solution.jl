@@ -42,7 +42,7 @@ function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
 end
 ```
 """
-mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
+struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
     interval_or_dt::IntervalType
     save_initial_solution::Bool
     save_final_solution::Bool

@@ -212,13 +212,23 @@ slope limiter `slope_limiter` and the
 The amount of blending is determined by the `indicator`, e.g.,
 [`IndicatorHennemannGassner`](@ref).
 
+**Symmetric ** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
+    1) [`minmod`](@ref)
+    2) [`monotonized_central`](@ref)
+    3) [`superbee`](@ref)
+    4) [`vanleer`](@ref)
+    5) [`koren_symmetric`](@ref)
+**Asymmetric** TVD limiters are also available, e.g.,
+    1) [`koren`](@ref) for positive (right-going) velocities
+    2) [`koren_flipped`](@ref) for negative (left-going) velocities
+
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
 
 ## References
 
-See especially Sections 3.2, Section 4, and Appendix D of the paper
+See especially Section 3.2, Section 4, and Appendix D of the paper
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
@@ -338,13 +348,23 @@ For the DG-subcells at the boundaries, two options are available:
    The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
    In the reference below, this is the recommended reconstruction mode and is thus used by default.
 
+**Symmetric ** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
+    1) [`minmod`](@ref)
+    2) [`monotonized_central`](@ref)
+    3) [`superbee`](@ref)
+    4) [`vanleer`](@ref)
+    5) [`koren_symmetric`](@ref)
+**Asymmetric** TVD limiters are also available, e.g.,
+    1) [`koren`](@ref) for positive (right-going) velocities
+    2) [`koren_flipped`](@ref) for negative (left-going) velocities
+
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
 
 ## References
 
-See especially Sections 3.2, Section 4, and Appendix D of the paper
+See especially Section 3.2, Section 4, and Appendix D of the paper
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
@@ -866,9 +886,7 @@ end
         #     In fact, everything can be fast and fine for many cases but some parts
         #     of the RHS evaluation can take *exactly* (!) five seconds randomly...
         #     Hence, this version should only be used when `@threaded` is based on
-        #     `@batch` from Polyester.jl or something similar. Using Polyester.jl
-        #     is probably the best option since everything will be handed over to
-        #     Chris Elrod, one of the best performance software engineers for Julia.
+        #     `@batch` from Polyester.jl or something similar.
         PtrArray(pointer(u_ode),
                  (StaticInt(nvariables(equations)),
                   ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,

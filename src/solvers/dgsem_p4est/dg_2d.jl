@@ -26,27 +26,6 @@ function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}
     return cache
 end
 
-#     index_to_start_step_2d(index::Symbol, index_range)
-#
-# Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
-# return `index_start, index_step`, i.e., a tuple containing
-# - `index_start`, an index value to begin a loop
-# - `index_step`,  an index step to update during a loop
-# The resulting indices translate surface indices to volume indices.
-#
-# !!! warning
-#     This assumes that loops using the return values are written as
-#
-#     i_volume_start, i_volume_step = index_to_start_step_2d(symbolic_index_i, index_range)
-#     j_volume_start, j_volume_step = index_to_start_step_2d(symbolic_index_j, index_range)
-#
-#     i_volume, j_volume = i_volume_start, j_volume_start
-#     for i_surface in index_range
-#       # do stuff with `i_surface` and `(i_volume, j_volume)`
-#
-#       i_volume += i_volume_step
-#       j_volume += j_volume_step
-#     end
 @inline function index_to_start_step_2d(index::Symbol, index_range)
     index_begin = first(index_range)
     index_end = last(index_range)
@@ -904,39 +883,113 @@ function calc_surface_integral!(du, u,
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop to increase performance.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, element] = (du[v, 1, l, element] +
                                         surface_flux_values[v, l, 1, element] *
-                                        factor_1)
+                                        factor)
 
                 # surface at +x
                 du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
                                                  surface_flux_values[v, l, 2, element] *
-                                                 factor_2)
+                                                 factor)
 
                 # surface at -y
                 du[v, l, 1, element] = (du[v, l, 1, element] +
                                         surface_flux_values[v, l, 3, element] *
-                                        factor_1)
+                                        factor)
 
                 # surface at +y
                 du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
                                                  surface_flux_values[v, l, 4, element] *
-                                                 factor_2)
+                                                 factor)
             end
         end
+    end
+
+    return nothing
+end
+
+# Call this for coupled P4estMeshView simulations.
+# The coupling calculations (especially boundary conditions) require global information, which is why
+# the additional variable u_global is needed, compared to non-coupled systems.
+function rhs!(du, u, t, u_global, semis,
+              mesh::P4estMeshView{2},
+              equations,
+              boundary_conditions, source_terms::Source,
+              dg::DG, cache) where {Source}
+    # Reset du
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
+
+    # Calculate volume integral
+    @trixi_timeit timer() "volume integral" begin
+        calc_volume_integral!(du, u, mesh,
+                              have_nonconservative_terms(equations), equations,
+                              dg.volume_integral, dg, cache)
+    end
+
+    # Prolong solution to interfaces
+    @trixi_timeit timer() "prolong2interfaces" begin
+        prolong2interfaces!(cache, u, mesh, equations, dg)
+    end
+
+    # Calculate interface fluxes
+    @trixi_timeit timer() "interface flux" begin
+        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg, cache)
+    end
+
+    # Prolong solution to boundaries
+    @trixi_timeit timer() "prolong2boundaries" begin
+        prolong2boundaries!(cache, u, u_global, semis, mesh, equations,
+                            dg.surface_integral, dg)
+    end
+
+    # Calculate boundary fluxes
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+                            dg.surface_integral, dg, u_global)
+    end
+
+    # Prolong solution to mortars
+    @trixi_timeit timer() "prolong2mortars" begin
+        prolong2mortars!(cache, u, mesh, equations,
+                         dg.mortar, dg)
+    end
+
+    # Calculate mortar fluxes
+    @trixi_timeit timer() "mortar flux" begin
+        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+                          have_nonconservative_terms(equations), equations,
+                          dg.mortar, dg.surface_integral, dg, cache)
+    end
+
+    # Calculate surface integrals
+    @trixi_timeit timer() "surface integral" begin
+        calc_surface_integral!(du, u, mesh, equations,
+                               dg.surface_integral, dg, cache)
+    end
+
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+
+    # Calculate source terms
+    @trixi_timeit timer() "source terms" begin
+        calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
 
     return nothing
