@@ -39,8 +39,8 @@ and temperature ``T`` by some user-specified equation of state (EOS) (see [`pres
 p = p(V, T)
 ```
 
-Similarly, the internal energy is specified by `e_{\text{internal}} = energy_internal(V, T, eos)`, see
-[`energy_internal(V, T, eos::IdealGas)`](@ref), [`energy_internal(V, T, eos::VanDerWaals)`](@ref).
+Similarly, the specific internal energy is specified by `e_{\text{internal}} = energy_internal_specific(V, T, eos)`, see
+[`energy_internal_specific(V, T, eos::IdealGas)`](@ref), [`energy_internal_specific(V, T, eos::VanDerWaals)`](@ref).
 
 Because of this, the primitive variables are also defined to be `V, v1, v2, T` (instead of 
 `rho, v1, v2, p` for `CompressibleEulerEquations2D`). The implementation also assumes 
