@@ -123,7 +123,7 @@ function boundary_condition_outflow(u_inner, orientation, direction, x, t,
     return flux(u_inner, orientation, equations)
 end
 
-boundary_conditions = (x_neg = boundary_condition_inflow,
+boundary_conditions = (; x_neg = boundary_condition_inflow,
                        x_pos = boundary_condition_outflow,
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic,
@@ -174,7 +174,7 @@ alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-# For this setup, both advective and diffusive time step restrictions are relevant, i.e., 
+# For this setup, both advective and diffusive time step restrictions are relevant, i.e.,
 # may not be increased beyond the given values.
 stepsize_callback = StepsizeCallback(cfl = 0.4,
                                      cfl_diffusive = 0.2)

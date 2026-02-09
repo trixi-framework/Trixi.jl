@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_constant
 
-boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
 
 polydeg = 3 # governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)
@@ -49,7 +49,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df00
 mesh = P4estMesh{3}(mesh_file, polydeg = polydeg,
                     mapping = mapping)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
