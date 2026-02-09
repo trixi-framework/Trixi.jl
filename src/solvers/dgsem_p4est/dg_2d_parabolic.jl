@@ -437,7 +437,6 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
         i_primary = i_primary_start
         j_primary = j_primary_start
         for i in eachnode(dg)
-
             # this is the outward normal direction on the primary element
             normal_direction = get_normal_direction(primary_direction,
                                                     contravariant_vectors,
@@ -485,7 +484,7 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
                                                       secondary_element],
                                        flux_viscous_y[v, i_secondary, j_secondary,
                                                       secondary_element])
-                # store the normal flux with respect to the primary normal direction
+                # store the normal flux with respect to the primary normal direction, negated
                 interfaces.u[2, v, i, interface] = -dot(flux_viscous, normal_direction)
             end
             i_secondary += i_secondary_step
@@ -556,6 +555,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
 
             for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, node, primary_direction_index, primary_element] = flux[v]
+                # Negate secondary flux to get the correct normal direction on the secondary element
                 surface_flux_values[v, node_secondary, secondary_direction_index, secondary_element] = -flux[v]
             end
 
@@ -707,7 +707,8 @@ function calc_divergence_mortar_flux!(surface_flux_values, mesh::P4estMesh{2},
                                           equations_parabolic, parabolic_scheme)
 
                     fstar_primary[position][v, node] = flux
-                    fstar_secondary[position][v, node] = -flux # Negate for large element
+                    # Negate secondary flux to get the correct normal direction on the secondary element
+                    fstar_secondary[position][v, node] = -flux
                 end
                 i_small += i_small_step
                 j_small += j_small_step
@@ -1029,9 +1030,8 @@ function calc_boundary_flux!(cache, t,
             flux_inner = u_inner
 
             # Coordinates at boundary node
-            x = get_node_coords(node_coordinates, equations_parabolic, dg, i_node,
-                                j_node,
-                                element)
+            x = get_node_coords(node_coordinates, equations_parabolic, dg,
+                                i_node, j_node, element)
 
             flux_ = boundary_condition_parabolic(flux_inner, u_inner, normal_direction,
                                                  x, t, operator_type,
