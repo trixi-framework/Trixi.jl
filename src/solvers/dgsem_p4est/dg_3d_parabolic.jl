@@ -574,23 +574,19 @@ function prolong_divergence2mortars!(cache, flux_viscous,
         multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, :, mortar),
                                 mortar_l2.forward_lower,
                                 mortar_l2.forward_lower,
-                                u_buffer,
-                                fstar_tmp)
+                                u_buffer, fstar_tmp)
         multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, :, mortar),
                                 mortar_l2.forward_upper,
                                 mortar_l2.forward_lower,
-                                u_buffer,
-                                fstar_tmp)
+                                u_buffer, fstar_tmp)
         multiply_dimensionwise!(view(cache.mortars.u, 2, :, 3, :, :, mortar),
                                 mortar_l2.forward_lower,
                                 mortar_l2.forward_upper,
-                                u_buffer,
-                                fstar_tmp)
+                                u_buffer, fstar_tmp)
         multiply_dimensionwise!(view(cache.mortars.u, 2, :, 4, :, :, mortar),
                                 mortar_l2.forward_upper,
                                 mortar_l2.forward_upper,
-                                u_buffer,
-                                fstar_tmp)
+                                u_buffer, fstar_tmp)
     end
 
     return nothing
@@ -604,12 +600,16 @@ function calc_divergence_mortar_flux!(surface_flux_values,
                                       mortar_l2::LobattoLegendreMortarL2,
                                       dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
-    @unpack fstar_primary_threaded, fstar_tmp_threaded = cache
+    @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar = fstar_primary_threaded[Threads.threadid()]
+        fstar_primary = (fstar_primary_lower_threaded[Threads.threadid()],
+                         fstar_primary_upper_threaded[Threads.threadid()])
+        fstar_secondary = (fstar_secondary_lower_threaded[Threads.threadid()],
+                           fstar_secondary_upper_threaded[Threads.threadid()])
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
         # Get index information on the small elements
@@ -629,17 +629,24 @@ function calc_divergence_mortar_flux!(surface_flux_values,
             element = neighbor_ids[position, mortar]
             for j in eachnode(dg)
                 for i in eachnode(dg)
+                    normal_direction = get_normal_direction(small_direction,
+                                                            contravariant_vectors,
+                                                            i_small, j_small, k_small,
+                                                            element)
+
                     for v in eachvariable(equations_parabolic)
                         viscous_flux_normal_ll = cache.mortars.u[1, v, position, i, j,
                                                                  mortar]
                         viscous_flux_normal_rr = cache.mortars.u[2, v, position, i, j,
                                                                  mortar]
 
-                        fstar[v, i, j, position] = flux_parabolic(viscous_flux_normal_ll,
-                                                                  viscous_flux_normal_rr,
-                                                                  Divergence(),
-                                                                  equations_parabolic,
-                                                                  parabolic_scheme)
+                        flux = flux_parabolic(viscous_flux_normal_ll,
+                                              viscous_flux_normal_rr,
+                                              normal_direction, Divergence(),
+                                              equations_parabolic, parabolic_scheme)
+
+                        fstar_primary[position][v, i, j] = flux
+                        fstar_secondary[position][v, i, j] = -flux # Negate for large element
                     end
 
                     i_small += i_small_step_i
@@ -659,7 +666,8 @@ function calc_divergence_mortar_flux!(surface_flux_values,
         # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
         mortar_fluxes_to_elements!(surface_flux_values, mesh,
                                    equations_parabolic, mortar_l2, dg, cache,
-                                   mortar, fstar, fstar, u_buffer, fstar_tmp)
+                                   mortar, fstar_primary, fstar_secondary, u_buffer,
+                                   fstar_tmp)
     end
 
     return nothing

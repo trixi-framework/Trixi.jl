@@ -17,7 +17,7 @@ coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 2,
+                 polydeg = 3, initial_refinement_level = 4, # 2
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = false)
 
@@ -51,7 +51,7 @@ boundary_conditions_parabolic = BoundaryConditionDirichlet(initial_condition)
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             solver_parabolic = ViscousFormulationLocalDG(),
+                                             solver_parabolic = ViscousFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -88,7 +88,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-ode_alg = RDPK3SpFSAL49()
 time_int_tol = 1.0e-11
-sol = solve(ode, dt = 1e-7, ode_alg; abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(); adaptive = true, dt = 1e-7,
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

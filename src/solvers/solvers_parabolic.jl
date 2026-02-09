@@ -20,14 +20,30 @@ In the latter case, the [`ViscousFormulationLocalDG`](@ref) scheme is recommende
 struct ViscousFormulationBassiRebay1 end
 
 """
-    flux_parabolic(u_ll, u_rr, gradient_or_divergence, equations_parabolic,
+    flux_parabolic(u_ll, u_rr,
+                   gradient_or_divergence, equations_parabolic,
+                   parabolic_scheme::ViscousFormulationBassiRebay1)
+
+    flux_parabolic(u_ll, u_rr, normal_direction::AbstractVector,
+                   gradient_or_divergence, equations_parabolic,
                    parabolic_scheme::ViscousFormulationBassiRebay1)
 
 This computes the classical BR1 flux. Since the interface flux for both the 
 DG gradient and DG divergence under BR1 are identical, this function does 
 not need to be specialized for `Gradient` and `Divergence`.
+
+`normal_direction` is not used in the BR1 flux,
+but is included as an argument for consistency with the `ViscousFormulationLocalDG` flux,
+which does use the `normal_direction` to compute the LDG "switch" on the generally non-cartesian `P4estMesh`.
 """
-function flux_parabolic(u_ll, u_rr, gradient_or_divergence, equations_parabolic,
+function flux_parabolic(u_ll, u_rr,
+                        gradient_or_divergence, equations_parabolic,
+                        parabolic_scheme::ViscousFormulationBassiRebay1)
+    return 0.5f0 * (u_ll + u_rr)
+end
+# For `P4estMesh`
+function flux_parabolic(u_ll, u_rr, normal_direction::AbstractVector,
+                        gradient_or_divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationBassiRebay1)
     return 0.5f0 * (u_ll + u_rr)
 end
@@ -90,7 +106,8 @@ end
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
-    ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
+    normal_direction_ = normal_direction / norm(normal_direction)
+    ldg_switch = sign(sum(normal_direction_)) # equivalent to sign(dot(normal_direction, ones))
     return 0.5f0 * (u_ll + u_rr) - 0.5f0 * ldg_switch * (u_rr - u_ll)
 end
 
@@ -102,7 +119,8 @@ end
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
-    ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
+    normal_direction_ = normal_direction / norm(normal_direction)
+    ldg_switch = sign(sum(normal_direction_)) # equivalent to sign(dot(normal_direction, ones))
     return 0.5f0 * (u_ll + u_rr) + 0.5f0 * ldg_switch * (u_rr - u_ll)
 end
 
