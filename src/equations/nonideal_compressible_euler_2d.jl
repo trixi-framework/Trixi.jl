@@ -654,6 +654,7 @@ end
 
 @inline function velocity(u, orientation::Int,
                           equations::NonIdealCompressibleEulerEquations2D)
+    rho = u[1]
     if orientation == 1
         v1 = u[2] / rho
         return v1
