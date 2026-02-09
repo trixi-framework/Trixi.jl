@@ -43,8 +43,8 @@ for human readability.
   stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on
   3D meshes for conservative systems ([#2734], [#2755]).
 - Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733]).
-  In the new version, local (minimum and/or maximum) limiting for nonlinear variables
-  (using the keyword `local_onesided_variables_nonlinear` in `SubcellLimiterIDP()`) is supported.
+  In the new version, local (minimum or maximum) limiting for nonlinear variables (using
+  the keyword `local_onesided_variables_nonlinear` in `SubcellLimiterIDP()`) is supported.
 
 #### Changed
 
