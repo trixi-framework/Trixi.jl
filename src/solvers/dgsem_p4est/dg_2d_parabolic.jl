@@ -552,8 +552,8 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
                                                                                    node,
                                                                                    interface)
 
-            flux = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr, normal_direction_,
-                                  Divergence(),
+            flux = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
+                                  normal_direction_, Divergence(),
                                   equations_parabolic, parabolic_scheme)
 
             for v in eachvariable(equations_parabolic)
@@ -667,7 +667,6 @@ function calc_divergence_mortar_flux!(surface_flux_values, mesh::P4estMesh{2},
                                       mortar_l2::LobattoLegendreMortarL2,
                                       dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
-    @unpack contravariant_vectors = cache.elements
     @unpack contravariant_vectors = cache.elements
     @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
     index_range = eachnode(dg)
