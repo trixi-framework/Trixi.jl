@@ -837,6 +837,7 @@ end
 
     @test density(u, equations) ≈ 0.5
     @test velocity(u, equations) ≈ SVector(0.1, 0.2)
+    @test velocity(u, 1, equations) ≈ 0.1
     @test density_pressure(u, equations) ≈ u[1] * pressure(V, T, eos)
     @test energy_internal_specific(u, equations) ≈ energy_internal_specific(V, T, eos)
 
@@ -868,7 +869,7 @@ end
           flux_central_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
 
     for _flux_function in (flux_lax_friedrichs, min_max_speed_naive,
-                           min_max_speed_davis)
+                           min_max_speed_davis, max_abs_speed_naive)
         @test all(_flux_function(u_ll, u_rr, 1, equations) .≈
                   _flux_function(u_ll, u_rr, SVector(1, 0), equations))
         @test all(_flux_function(u_ll, u_rr, 2, equations) .≈
