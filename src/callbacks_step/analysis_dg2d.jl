@@ -225,19 +225,19 @@ function surface_integral(func::Func, u, element,
                           mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                           args...) where {Func}
     surface_integral = zero(real(dg))
-    for ii in eachnode(dg)
+    for i in eachnode(dg)
         # integrate along x direction, normal in y (2) direction
-        u_bottom = get_node_vars(u, equations, dg, ii, 1, element)
-        u_top = get_node_vars(u, equations, dg, ii, nnodes(dg), element)
+        u_bottom = get_node_vars(u, equations, dg, i, 1, element)
+        u_top = get_node_vars(u, equations, dg, i, nnodes(dg), element)
 
-        surface_integral += dg.basis.weights[ii] *
+        surface_integral += dg.basis.weights[i] *
                             (func(u_top, 2, equations) - func(u_bottom, 2, equations))
 
         # integrate along y direction, normal in x (1) direction
-        u_left = get_node_vars(u, equations, dg, 1, ii, element)
-        u_right = get_node_vars(u, equations, dg, nnodes(dg), ii, element)
+        u_left = get_node_vars(u, equations, dg, 1, i, element)
+        u_right = get_node_vars(u, equations, dg, nnodes(dg), i, element)
 
-        surface_integral += dg.basis.weights[ii] *
+        surface_integral += dg.basis.weights[i] *
                             (func(u_right, 1, equations) - func(u_left, 1, equations))
     end
 
