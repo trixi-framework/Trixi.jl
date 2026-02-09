@@ -48,7 +48,7 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
 end
 
 # Create MPI interface container and initialize interface data
-function init_mpi_interfaces(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
+function init_mpi_interfaces(mesh::Union{P4estMeshParallel, T8codeMeshParallel},
                              equations, basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
@@ -82,7 +82,7 @@ function init_mpi_interfaces(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
     return mpi_interfaces
 end
 
-function init_mpi_interfaces!(mpi_interfaces, mesh::ParallelP4estMesh)
+function init_mpi_interfaces!(mpi_interfaces, mesh::P4estMeshParallel)
     init_surfaces!(nothing, nothing, nothing, mpi_interfaces, nothing, mesh)
 
     return mpi_interfaces
@@ -170,7 +170,7 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
 end
 
 # Create MPI mortar container and initialize MPI mortar data
-function init_mpi_mortars(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh}, equations,
+function init_mpi_mortars(mesh::Union{P4estMeshParallel, T8codeMeshParallel}, equations,
                           basis, elements)
     NDIMS = ndims(mesh)
     RealT = real(mesh)
@@ -214,7 +214,7 @@ function init_mpi_mortars(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh}, eq
     return mpi_mortars
 end
 
-function init_mpi_mortars!(mpi_mortars, mesh::ParallelP4estMesh, basis, elements)
+function init_mpi_mortars!(mpi_mortars, mesh::P4estMeshParallel, basis, elements)
     init_surfaces!(nothing, nothing, nothing, nothing, mpi_mortars, mesh)
     init_normal_directions!(mpi_mortars, basis, elements)
 
@@ -252,25 +252,25 @@ end
 
 # Overload init! function for regular interfaces, regular mortars and boundaries since they must
 # call the appropriate init_surfaces! function for parallel p4est meshes
-function init_interfaces!(interfaces, mesh::ParallelP4estMesh)
+function init_interfaces!(interfaces, mesh::P4estMeshParallel)
     init_surfaces!(interfaces, nothing, nothing, nothing, nothing, mesh)
 
     return interfaces
 end
 
-function init_mortars!(mortars, mesh::ParallelP4estMesh)
+function init_mortars!(mortars, mesh::P4estMeshParallel)
     init_surfaces!(nothing, mortars, nothing, nothing, nothing, mesh)
 
     return mortars
 end
 
-function init_boundaries!(boundaries, mesh::ParallelP4estMesh)
+function init_boundaries!(boundaries, mesh::P4estMeshParallel)
     init_surfaces!(nothing, nothing, boundaries, nothing, nothing, mesh)
 
     return boundaries
 end
 
-function reinitialize_containers!(mesh::ParallelP4estMesh, equations, dg::DGSEM, cache)
+function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM, cache)
     # Make sure to re-create ghost layer before reinitializing MPI-related containers
     update_ghost_layer!(mesh)
 
@@ -444,7 +444,7 @@ function init_surfaces_iter_face_inner(info,
 end
 
 function init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars,
-                        mesh::ParallelP4estMesh)
+                        mesh::P4estMeshParallel)
     # Let p4est iterate over all interfaces and call init_surfaces_iter_face
     iter_face_c = cfunction(init_surfaces_iter_face_parallel, Val(ndims(mesh)))
     user_data = ParallelInitSurfacesIterFaceUserData(interfaces, mortars, boundaries,
@@ -639,7 +639,7 @@ function cfunction(::typeof(count_surfaces_iter_face_parallel), ::Val{3})
                (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 end
 
-function count_required_surfaces(mesh::ParallelP4estMesh)
+function count_required_surfaces(mesh::P4estMeshParallel)
     # Let p4est iterate over all interfaces and call count_surfaces_iter_face_parallel
     iter_face_c = cfunction(count_surfaces_iter_face_parallel, Val(ndims(mesh)))
 

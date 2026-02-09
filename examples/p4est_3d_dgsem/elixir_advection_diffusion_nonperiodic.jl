@@ -53,8 +53,7 @@ function initial_condition_eriksson_johnson(x, t, equations)
 end
 initial_condition = initial_condition_eriksson_johnson
 
-boundary_conditions = boundary_condition_default(mesh,
-                                                 BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),

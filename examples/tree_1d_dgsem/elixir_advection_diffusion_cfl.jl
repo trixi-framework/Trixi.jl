@@ -18,7 +18,7 @@ coordinates_max = convert(Float64, pi)
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure)
+                n_cells_max = 30_000, periodicity = true) # set maximum capacity of tree data structure)
 
 function x_trans_periodic(x, domain_length = SVector(2 * pi), center = SVector(0.0))
     x_normalized = x .- center
@@ -45,7 +45,9 @@ end
 initial_condition = initial_condition_diffusive_convergence_test
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

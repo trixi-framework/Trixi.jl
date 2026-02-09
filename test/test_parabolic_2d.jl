@@ -30,7 +30,9 @@ isdir(outdir) && rm(outdir, recursive = true)
     equations_parabolic = LaplaceDiffusion2D(1.0, equations)
 
     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                                 initial_condition, dg)
+                                                 initial_condition, dg;
+                                                 boundary_conditions = (boundary_condition_periodic,
+                                                                        boundary_condition_periodic))
     @trixi_test_nowarn show(stdout, semi)
     @trixi_test_nowarn show(stdout, MIME"text/plain"(), semi)
     @trixi_test_nowarn show(stdout, boundary_condition_do_nothing)

@@ -9,12 +9,12 @@ equations = CompressibleEulerEquations3D(1.4)
 
 ### Inviscid transonic flow over the ONERA M6 wing ###
 # See for reference
-# 
+#
 # https://www.grc.nasa.gov/www/wind/valid/m6wing/m6wing.html
 # https://www.grc.nasa.gov/www/wind/valid/m6wing/m6wing01/m6wing01.html
 #
 # which are test cases for the viscous flow.
-# 
+#
 # A tutorial for the invscid case can be found for the SU2 Code (https://github.com/su2code/SU2):
 # https://su2code.github.io/tutorials/Inviscid_ONERAM6/
 
@@ -37,7 +37,7 @@ end
 
 bc_farfield = BoundaryConditionDirichlet(initial_condition)
 
-# Ensure that rho and p are the same across symmetry line and allow only 
+# Ensure that rho and p are the same across symmetry line and allow only
 # tangential velocity.
 # Somewhat naive implementation of `boundary_condition_slip_wall`.
 # Used here to avoid confusion between wing (body) and symmetry plane.
@@ -70,7 +70,7 @@ basis = LobattoLegendreBasis(polydeg)
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
@@ -84,7 +84,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 # This is a sanitized mesh obtained from the original mesh available at
 # https://www.grc.nasa.gov/www/wind/valid/m6wing/m6wing01/m6wing01.html
 #
-# which has been merged into a single gmsh mesh file by the HiSA team, 
+# which has been merged into a single gmsh mesh file by the HiSA team,
 # see the case description (for the viscous case, but the mesh is the same)
 # https://hisa.gitlab.io/archive/nparc/oneraM6/notes/oneraM6.html
 #
@@ -100,10 +100,10 @@ mesh_file = Trixi.download("https://github.com/DanielDoehring/AerodynamicMeshes/
 boundary_symbols = [:Symmetry, :FarField, :BottomWing, :TopWing]
 mesh = P4estMesh{3}(mesh_file; polydeg = polydeg, boundary_symbols = boundary_symbols)
 
-boundary_conditions = Dict(:Symmetry => bc_symmetry, # Could use `boundary_condition_slip_wall` here as well
-                           :FarField => bc_farfield,
-                           :BottomWing => boundary_condition_slip_wall,
-                           :TopWing => boundary_condition_slip_wall)
+boundary_conditions = (; Symmetry = bc_symmetry, # Could use `boundary_condition_slip_wall` here as well
+                       FarField = bc_farfield,
+                       BottomWing = boundary_condition_slip_wall,
+                       TopWing = boundary_condition_slip_wall)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)

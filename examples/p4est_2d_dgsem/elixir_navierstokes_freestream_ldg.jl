@@ -11,8 +11,8 @@ function initial_condition_const(x, t, equations)
     rho = 1
     rho_v1 = convert(RealT, 0.1)
     rho_v2 = convert(RealT, -0.2)
-    rho_e = 10
-    return SVector(rho, rho_v1, rho_v2, rho_e)
+    rho_e_total = 10
+    return SVector(rho, rho_v1, rho_v2, rho_e_total)
 end
 initial_condition = initial_condition_const
 
@@ -51,7 +51,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/a075f8
 # Map the unstructured mesh with the mapping above
 mesh = P4estMesh{2}(mesh_file, mapping = mapping, polydeg = polydeg)
 
-boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
