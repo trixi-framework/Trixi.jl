@@ -38,12 +38,12 @@ struct CompressibleEulerEquations1D{RealT <: Real} <:
 
     function CompressibleEulerEquations1D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations1D)
-    ("rho", "rho_v1", "rho_e")
+    return ("rho", "rho_v1", "rho_e")
 end
 varnames(::typeof(cons2prim), ::CompressibleEulerEquations1D) = ("rho", "v1", "p")
 
@@ -1059,6 +1059,18 @@ end
     return v1
 end
 
+@doc raw"""
+    pressure(u, equations::AbstractCompressibleEulerEquations)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2}\rho \Vert v \Vert_2^2 \right)
+\end{aligned}
+```
+"""
 @inline function pressure(u, equations::CompressibleEulerEquations1D)
     rho, rho_v1, rho_e = u
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2) / rho)
@@ -1071,7 +1083,15 @@ end
     return rho_times_p
 end
 
-# Calculate thermodynamic entropy for a conservative state `cons`
+@doc raw"""
+    entropy_thermodynamic(cons, equations::AbstractCompressibleEulerEquations)
+
+Calculate thermodynamic entropy for a conservative state `cons` as
+
+```math
+s = \log(p) - \gamma \log(\rho)
+```
+"""
 @inline function entropy_thermodynamic(cons, equations::CompressibleEulerEquations1D)
     # Pressure
     p = (equations.gamma - 1) * (cons[3] - 0.5f0 * (cons[2]^2) / cons[1])
@@ -1082,7 +1102,16 @@ end
     return s
 end
 
-# Calculate mathematical entropy for a conservative state `cons`
+@doc raw"""
+    entropy_math(cons, equations::AbstractCompressibleEulerEquations)
+
+Calculate mathematical entropy for a conservative state `cons` as
+```math
+S = -\frac{\rho s}{\gamma - 1}
+```
+where `s` is the thermodynamic entropy calculated by
+[`entropy_thermodynamic(cons, equations::AbstractCompressibleEulerEquations)`](@ref).
+"""
 @inline function entropy_math(cons, equations::CompressibleEulerEquations1D)
     # Mathematical entropy
     S = -entropy_thermodynamic(cons, equations) * cons[1] *
@@ -1091,9 +1120,14 @@ end
     return S
 end
 
-# Default entropy is the mathematical entropy
+"""
+    entropy(cons, equations::AbstractCompressibleEulerEquations)
+
+Default entropy is the mathematical entropy
+[`entropy_math(cons, equations::AbstractCompressibleEulerEquations)`](@ref).
+"""
 @inline function entropy(cons, equations::CompressibleEulerEquations1D)
-    entropy_math(cons, equations)
+    return entropy_math(cons, equations)
 end
 
 # Calculate total energy for a conservative state `cons`
@@ -1104,7 +1138,12 @@ end
     return 0.5f0 * (cons[2]^2) / cons[1]
 end
 
-# Calculate internal energy for a conservative state `cons`
+"""
+    energy_internal(cons, equations::AbstractCompressibleEulerEquations)
+
+Calculate internal energy ``e`` for a conservative state `cons` as the difference
+of total energy and kinetic energy.
+"""
 @inline function energy_internal(cons, equations::CompressibleEulerEquations1D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end

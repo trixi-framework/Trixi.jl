@@ -30,7 +30,7 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 
 # StructArray fallback
 @inline function apply_to_each_field(f::F, args::Vararg{Any, N}) where {F, N}
-    StructArrays.foreachfield(f, args...)
+    return StructArrays.foreachfield(f, args...)
 end
 
 # specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}
@@ -55,7 +55,7 @@ In particular, not the dimensions themselves are returned.
 
 # iteration over all elements in a mesh
 @inline function ndofs(mesh::DGMultiMesh, dg::DGMulti, other_args...)
-    dg.basis.Np * mesh.md.num_elements
+    return dg.basis.Np * mesh.md.num_elements
 end
 """
     eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...)
@@ -65,7 +65,7 @@ for the elements in `mesh`.
 In particular, not the elements themselves are returned.
 """
 @inline function eachelement(mesh::DGMultiMesh, dg::DGMulti, other_args...)
-    Base.OneTo(mesh.md.num_elements)
+    return Base.OneTo(mesh.md.num_elements)
 end
 
 # iteration over quantities in a single element
@@ -79,7 +79,7 @@ for the face nodes in `dg`.
 In particular, not the face_nodes themselves are returned.
 """
 @inline function each_face_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
-    Base.OneTo(dg.basis.Nfq)
+    return Base.OneTo(dg.basis.Nfq)
 end
 
 """
@@ -90,7 +90,7 @@ for the quadrature nodes in `dg`.
 In particular, not the quadrature nodes themselves are returned.
 """
 @inline function each_quad_node(mesh::DGMultiMesh, dg::DGMulti, other_args...)
-    Base.OneTo(dg.basis.Nq)
+    return Base.OneTo(dg.basis.Nq)
 end
 
 # iteration over quantities over the entire mesh (dofs, quad nodes, face nodes).
@@ -102,7 +102,7 @@ for the degrees of freedom (DOF) in `dg`.
 In particular, not the DOFs themselves are returned.
 """
 @inline function each_dof_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
-    Base.OneTo(ndofs(mesh, dg, other_args...))
+    return Base.OneTo(ndofs(mesh, dg, other_args...))
 end
 
 """
@@ -113,7 +113,7 @@ for the global quadrature nodes in `mesh`.
 In particular, not the quadrature nodes themselves are returned.
 """
 @inline function each_quad_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
-    Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
+    return Base.OneTo(dg.basis.Nq * mesh.md.num_elements)
 end
 
 """
@@ -124,7 +124,7 @@ for the face nodes in `mesh`.
 In particular, not the face nodes themselves are returned.
 """
 @inline function each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
-    Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
+    return Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 end
 
 # interface with semidiscretization_hyperbolic
@@ -154,7 +154,7 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
                                                        nvars))
 end
 
-function reset_du!(du, dg::DGMulti, other_args...)
+function set_zero!(du, dg::DGMulti, other_args...)
     @threaded for i in eachindex(du)
         du[i] = zero(eltype(du))
     end
@@ -236,7 +236,65 @@ end
 
 dt_polydeg_scaling(dg::DGMulti) = inv(dg.basis.N + 1)
 function dt_polydeg_scaling(dg::DGMulti{3, <:Wedge, <:TensorProductWedge})
-    inv(maximum(dg.basis.N) + 1)
+    return inv(maximum(dg.basis.N) + 1)
+end
+
+# for the stepsize callback
+function max_dt(u, t, mesh::DGMultiMesh,
+                constant_diffusivity::False, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DGMulti{NDIMS},
+                cache) where {NDIMS}
+    @unpack md = mesh
+    rd = dg.basis
+
+    dt_min = floatmax(typeof(t))
+    for e in eachelement(mesh, dg, cache)
+        h_e = StartUpDG.estimate_h(e, rd, md)
+        max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
+        for i in Base.OneTo(rd.Np) # loop over nodes
+            lambda_i = max_abs_speeds(u[i, e], equations)
+
+            # estimate diffusive "wavespeed" as diffusivity / h
+            # this corresponds to a CFL of h^2 * diffusivity
+            diffusivity = max_diffusivity(u[i, e], equations_parabolic)
+            max_speeds = max.(max_speeds, lambda_i, diffusivity / h_e)
+        end
+        dt_min = min(dt_min, h_e / sum(max_speeds))
+    end
+    # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
+    # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
+    # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
+    # the number of 1D nodes for `DGSEM` solvers.
+    return 2 * dt_min * dt_polydeg_scaling(dg)
+end
+
+function max_dt(u, t, mesh::DGMultiMesh,
+                constant_diffusivity::True, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DGMulti{NDIMS},
+                cache) where {NDIMS}
+    @unpack md = mesh
+    rd = dg.basis
+
+    # Compute max_speeds only once, since it's constant for all nodes/elements
+    max_speeds = max_abs_speeds(equations)
+
+    # estimate diffusive "wavespeed" as diffusivity / h
+    # this corresponds to a CFL of h^2 * diffusivity
+    diffusivity = max_diffusivity(equations_parabolic)
+
+    dt_min = floatmax(typeof(t))
+    for e in eachelement(mesh, dg, cache)
+        h_e = StartUpDG.estimate_h(e, rd, md)
+        max_speeds = max.(max_speeds, diffusivity / h_e)
+        dt_min = min(dt_min, h_e / sum(max_speeds))
+    end
+    # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
+    # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
+    # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
+    # the number of 1D nodes for `DGSEM` solvers.
+    return 2 * dt_min * dt_polydeg_scaling(dg)
 end
 
 # for the stepsize callback
@@ -246,7 +304,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     @unpack md = mesh
     rd = dg.basis
 
-    dt_min = Inf
+    dt_min = floatmax(typeof(t))
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
         max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
@@ -272,7 +330,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     # Compute max_speeds only once, since it's constant for all nodes/elements
     max_speeds = max_abs_speeds(equations)
 
-    dt_min = Inf
+    dt_min = floatmax(typeof(t))
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
         dt_min = min(dt_min, h_e / sum(max_speeds))
@@ -479,7 +537,7 @@ end
 # do nothing for periodic (default) boundary conditions
 function calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPeriodic,
                              mesh, have_nonconservative_terms, equations, dg::DGMulti)
-    nothing
+    return nothing
 end
 
 function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
@@ -633,11 +691,11 @@ end
 # Multiple calc_sources! to resolve method ambiguities
 function calc_sources!(du, u, t, source_terms::Nothing,
                        mesh, equations, dg::DGMulti, cache)
-    nothing
+    return nothing
 end
 function calc_sources!(du, u, t, source_terms::Nothing,
                        mesh, equations, dg::DGMultiFluxDiffSBP, cache)
-    nothing
+    return nothing
 end
 
 # uses quadrature + projection to compute source terms.
@@ -665,7 +723,7 @@ end
 function rhs!(du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, u, mesh,

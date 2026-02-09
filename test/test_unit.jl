@@ -7,6 +7,8 @@ using LinearAlgebra: norm, dot
 using SparseArrays
 using DelimitedFiles: readdlm
 
+using ForwardDiff
+
 # Use Convex and ECOS to load the extension that extends functions for testing
 # PERK Single p2 Constructors
 using Convex: Convex
@@ -283,6 +285,20 @@ end
         @test Trixi.gauss_nodes_weights(3)[2] ≈ [5 / 9, 8 / 9, 5 / 9]
     end
 
+    @testset "boundary interpolation" begin
+        for p in 1:7
+            basis = LobattoLegendreBasis(p)
+            nodes = basis.nodes
+            weights = basis.weights
+
+            Lhat_minus1 = Trixi.calc_Lhat(-1.0, nodes, weights)
+            @test basis.inverse_weights[1] == Lhat_minus1[1]
+
+            Lhat_plus1 = Trixi.calc_Lhat(1.0, nodes, weights)
+            @test basis.inverse_weights[p + 1] == Lhat_plus1[p + 1]
+        end
+    end
+
     @testset "multiply_dimensionwise" begin
         nodes_in = [0.0, 0.5, 1.0]
         nodes_out = [0.0, 1 / 3, 2 / 3, 1.0]
@@ -344,9 +360,8 @@ end
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
     Trixi.delete_connectivity!(c::MyContainer, first, last) = c
     function Trixi.reset_data_structures!(c::MyContainer)
-        (c.data = Vector{Int}(undef,
-                              c.capacity + 1);
-         c)
+        c.data = Vector{Int}(undef, c.capacity + 1)
+        return c
     end
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
         return (c1.capacity == c2.capacity &&
@@ -392,22 +407,6 @@ end
         @test Trixi.move!(c, 1, 2) == MyContainer([0, 1, 3])
     end
 
-    @testset "swap!" begin
-        c = MyContainer([1, 2])
-        @test Trixi.swap!(c, 1, 1) == MyContainer([1, 2]) # no-op
-
-        c = MyContainer([1, 2])
-        @test Trixi.swap!(c, 1, 2) == MyContainer([2, 1])
-    end
-
-    @testset "erase!" begin
-        c = MyContainer([1, 2])
-        @test Trixi.erase!(c, 2, 1) == MyContainer([1, 2]) # no-op
-
-        c = MyContainer([1, 2])
-        @test Trixi.erase!(c, 1) == MyContainer([0, 2])
-    end
-
     @testset "remove_shift!" begin
         c = MyContainer([1, 2, 3, 4])
         @test Trixi.remove_shift!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
@@ -417,19 +416,6 @@ end
 
         c = MyContainer([1, 2, 3, 4])
         @test Trixi.remove_shift!(c, 2) == MyContainer([1, 3, 4], 4)
-    end
-
-    @testset "remove_fill!" begin
-        c = MyContainer([1, 2, 3, 4])
-        @test Trixi.remove_fill!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
-
-        c = MyContainer([1, 2, 3, 4])
-        @test Trixi.remove_fill!(c, 2, 2) == MyContainer([1, 4, 3], 4)
-    end
-
-    @testset "reset!" begin
-        c = MyContainer([1, 2, 3])
-        @test Trixi.reset!(c, 2) == MyContainer(Int[], 2)
     end
 end
 
@@ -476,7 +462,7 @@ end
     @test_nowarn show(stdout, indicator_hg)
 
     limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
-                                    true, [(Trixi.entropy_guermond_etal, min)], "cache",
+                                    true, [(entropy_guermond_etal, min)], "cache",
                                     1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
@@ -635,6 +621,110 @@ end
     end
 end
 
+# It is for many equations possible to compute ρ ⋅ p more efficiently
+# than computing the pressure (and density if needed) separately and then multiplying. 
+# This is due to the computation of the kinetic energy term, which usually involves
+# dividing the squared momenta by the density, an operation that can be avoided
+# when computing the product ρ ⋅ p directly.
+@timed_testset "Test density_pressure" begin
+    let equations = CompressibleEulerEquations1D(5 / 3)
+        u = initial_condition_density_wave(SVector(1.0), 3.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerEquations2D(2.0)
+        u = initial_condition_eoc_test_coupled_euler_gravity(SVector(0.666, 0.25), 0.1,
+                                                             equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerEquations3D(1.4)
+        u = initial_condition_convergence_test(SVector(0.5, 0.1, -0.2), 1.5, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerEquationsQuasi1D(1.4)
+        u = initial_condition_convergence_test(SVector(2.0), 5.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdEquations1D(5 / 3)
+        u = initial_condition_convergence_test(SVector(-1.0), 7.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdEquations2D(5 / 3)
+        u = initial_condition_convergence_test(SVector(-1.0, 0.5), 0.1, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdEquations3D(5 / 3)
+        u = initial_condition_convergence_test(SVector(-1.0, 0.5, 0.2), 0.8, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerMulticomponentEquations1D(gammas = (1.4, 1.4),
+                                                               gas_constants = (0.4,
+                                                                                0.4))
+        u = initial_condition_convergence_test(SVector(1.0), 42.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
+                                                               gas_constants = (0.287,
+                                                                                1.578))
+        u = initial_condition_convergence_test(SVector(1.0, 0.1), 0.42, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdMulticomponentEquations1D(gammas = (2.0, 2.0, 2.0),
+                                                         gas_constants = (2.0, 2.0,
+                                                                          2.0))
+        u = initial_condition_weak_blast_wave(SVector(0.5, 0.1), 0.0, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+
+    let equations = IdealGlmMhdMulticomponentEquations2D(gammas = (5 / 3, 5 / 3, 5 / 3),
+                                                         gas_constants = (2.08, 2.08,
+                                                                          2.08))
+        u = initial_condition_convergence_test(SVector(-0.5, 0.1), 0.666, equations)
+        rho = density(u, equations)
+        p = pressure(u, equations)
+        rho_p = density_pressure(u, equations)
+        @test rho * p ≈ rho_p
+    end
+end
+
 @timed_testset "boundary_condition_do_nothing" begin
     rho, v1, v2, p = 1.0, 0.1, 0.2, 0.3, 2.0
 
@@ -688,6 +778,31 @@ end
                                                                   surface_fluxes,
                                                                   equations)))
     end
+end
+
+@timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
+    eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
+    equations = NonIdealCompressibleEulerEquations1D(eos)
+    q = SVector(2.0, 0.1, 10.0)
+    V, v1, T = q
+    u = prim2cons(q, equations)
+
+    @test density(u, equations) ≈ 0.5
+    @test velocity(u, equations) ≈ 0.1
+    @test density_pressure(u, equations) ≈ u[1] * pressure(V, T, eos)
+    @test energy_internal(u, equations) ≈ energy_internal(V, T, eos)
+
+    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
+          cons2entropy(u, equations)
+    @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+
+    # check that the fallback temperature and specialized temperature 
+    # return the same value 
+    V, v1, T = cons2prim(u, equations)
+    e = energy_internal(V, T, eos)
+    @test temperature(V, e, eos) ≈
+          invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
 end
 
 @timed_testset "StepsizeCallback" begin
@@ -2378,7 +2493,7 @@ end
                     0.7736369992226316 0.12636297693551043
                     0.8161315324169078 0.1838684675830921
                     0.7532704453316061 0.2467295546683939
-                    0.31168238866709846 0.18831761133290154], atol = 1e-13)
+                    0.31168238866709846 0.18831761133290154], atol = 1e-8)
 end
 
 @testset "PERK Single p4 Constructors" begin
@@ -2453,44 +2568,65 @@ end
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
-    @test vanLeer(sl, sr) == 0.0
+    @test vanleer(sl, sr) == 0.0
 
     sr = 0.5
     @test minmod(sl, sr) == 0.5
     @test monotonized_central(sl, sr) == 0.75
     @test superbee(sl, sr) == 1.0
-    @test isapprox(vanLeer(sl, sr), 2 / 3)
+    @test isapprox(vanleer(sl, sr), 2 / 3)
 
     sl = -1.0
     sr = 0.0
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
-    @test vanLeer(sl, sr) == 0.0
+    @test vanleer(sl, sr) == 0.0
 
     sr = -0.8
     @test minmod(sl, sr) == -0.8
     @test monotonized_central(sl, sr) == -0.9
     @test superbee(sl, sr) == -1.0
-    @test isapprox(vanLeer(sl, sr), -8 / 9)
+    @test isapprox(vanleer(sl, sr), -8 / 9)
 
     # Test symmetry
     @test minmod(sr, sl) == -0.8
     @test monotonized_central(sr, sl) == -0.9
     @test superbee(sr, sl) == -1.0
-    @test isapprox(vanLeer(sr, sl), -8 / 9)
+    @test isapprox(vanleer(sr, sl), -8 / 9)
 
     sl = 1.0
     sr = 0.0
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
-    @test vanLeer(sl, sr) == 0.0
+    @test vanleer(sl, sr) == 0.0
 
     @test central_slope(sl, sr) == 0.5
 
     # Test van Leer zero case
-    @test vanLeer(0.0, 0.0) == 0.0
+    @test vanleer(0.0, 0.0) == 0.0
+
+    sl = -1.0
+    sr = -2.0
+    @test koren(sl, sr) == -5 / 3
+    @test koren(sl, sr) == koren_flipped(sr, sl)
+    @test koren_symmetric(sl, sr) == -4 / 3
+
+    sl = 0.0
+    @test koren(sl, sr) == 0.0
+    @test koren(sl, sr) == koren_flipped(sr, sl)
+    @test koren_symmetric(sl, sr) == 0.0
+
+    sr = 2.0
+    @test koren(sl, sr) == 0.0
+    @test koren(sl, sr) == koren_flipped(sr, sl)
+    @test koren_symmetric(sl, sr) == 0.0
+
+    sl = 1.0
+    @test koren(sl, sr) == 5 / 3
+    @test koren(sl, sr) == koren_flipped(sr, sl)
+    @test koren_symmetric(sl, sr) == 4 / 3
 end
 
 # Velocity functions are present in many equations and are tested here

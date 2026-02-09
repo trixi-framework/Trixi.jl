@@ -26,47 +26,42 @@
 # way. Also, depth-first ordering *might* not be guaranteed during
 # refinement/coarsening operations.
 mutable struct ParallelTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
+    const capacity::Int
+    length::Int
+
     parent_ids::Vector{Int}
     child_ids::Matrix{Int}
     neighbor_ids::Matrix{Int}
     levels::Vector{Int}
     coordinates::Matrix{RealT}
     original_cell_ids::Vector{Int}
-    mpi_ranks::Vector{Int}
-
-    capacity::Int
-    length::Int
-    dummy::Int
 
     center_level_0::SVector{NDIMS, RealT}
     length_level_0::RealT
     periodicity::NTuple{NDIMS, Bool}
 
+    mpi_ranks::Vector{Int} # Addition compared to `SerialTree`
+
     function ParallelTree{NDIMS, RealT}(capacity::Integer) where {NDIMS, RealT <: Real}
-        # Verify that NDIMS is an integer
         @assert NDIMS isa Integer
 
-        # Create instance
-        t = new()
+        parent_ids = fill(typemin(Int), capacity + 1)
+        child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
+        neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
+        levels = fill(typemin(Int), capacity + 1)
+        coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1)
+        original_cell_ids = fill(typemin(Int), capacity + 1)
+        mpi_ranks = fill(typemin(Int), capacity + 1)
 
-        # Initialize fields with defaults
-        # Note: length as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
-        t.parent_ids = fill(typemin(Int), capacity + 1)
-        t.child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
-        t.neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
-        t.levels = fill(typemin(Int), capacity + 1)
-        t.coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1) # `NaN` is of type Float64
-        t.original_cell_ids = fill(typemin(Int), capacity + 1)
-        t.mpi_ranks = fill(typemin(Int), capacity + 1)
+        center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
+        length_level_0 = convert(RealT, NaN)
+        periodicity = ntuple(_ -> false, NDIMS)
 
-        t.capacity = capacity
-        t.length = 0
-        t.dummy = capacity + 1
-
-        t.center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
-        t.length_level_0 = convert(RealT, NaN)
-
-        return t
+        return new(capacity, 0, # length
+                   parent_ids, child_ids, neighbor_ids,
+                   levels, coordinates, original_cell_ids,
+                   center_level_0, length_level_0,
+                   periodicity, mpi_ranks)
     end
 end
 
@@ -89,11 +84,11 @@ end
 # Constructors accepting a single number as center (as opposed to an array) for 1D
 function ParallelTree{1, RealT}(cap::Int, center::RealT, len::RealT,
                                 periodicity = true) where {RealT <: Real}
-    ParallelTree{1, RealT}(cap, [center], len, periodicity)
+    return ParallelTree{1, RealT}(cap, [center], len, periodicity)
 end
 function ParallelTree{1}(cap::Int, center::RealT, len::RealT,
                          periodicity = true) where {RealT <: Real}
-    ParallelTree{1, RealT}(cap, [center], len, periodicity)
+    return ParallelTree{1, RealT}(cap, [center], len, periodicity)
 end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
@@ -156,10 +151,10 @@ function Base.show(io::IO, ::MIME"text/plain", t::ParallelTree)
     println(io, "t.mpi_ranks[1:l] = $(t.mpi_ranks[1:l])")
     println(io, "t.capacity = $(t.capacity)")
     println(io, "t.length = $(t.length)")
-    println(io, "t.dummy = $(t.dummy)")
     println(io, "t.center_level_0 = $(t.center_level_0)")
     println(io, "t.length_level_0 = $(t.length_level_0)")
     println(io, '*'^20)
+    return nothing
 end
 
 # Check if cell is own cell, i.e., belongs to this MPI rank
@@ -168,7 +163,7 @@ is_own_cell(t::ParallelTree, cell_id) = t.mpi_ranks[cell_id] == mpi_rank()
 # Return an array with the ids of all leaf cells for a given rank
 leaf_cells_by_rank(t::ParallelTree, rank) =
     filter_leaf_cells(t) do cell_id
-        t.mpi_ranks[cell_id] == rank
+        return t.mpi_ranks[cell_id] == rank
     end
 
 # Return an array with the ids of all local leaf cells
@@ -225,7 +220,7 @@ function raw_copy!(target::ParallelTree, source::ParallelTree, first::Int, last:
                ndims(target))
     copy_data!(target.original_cell_ids, source.original_cell_ids, first, last,
                destination)
-    copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
+    return copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
 end
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
@@ -239,6 +234,6 @@ function reset_data_structures!(t::ParallelTree{NDIMS, RealT}) where {NDIMS,
     t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
     t.mpi_ranks = Vector{Int}(undef, t.capacity + 1)
 
-    invalidate!(t, 1, capacity(t) + 1)
+    return invalidate!(t, 1, capacity(t) + 1)
 end
 end # @muladd

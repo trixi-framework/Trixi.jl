@@ -9,7 +9,7 @@ abstract type AbstractSubcellLimiter end
 
 function create_cache(typ::Type{LimiterType},
                       semi) where {LimiterType <: AbstractSubcellLimiter}
-    create_cache(typ, mesh_equations_solver_cache(semi)...)
+    return create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
 """
@@ -28,7 +28,7 @@ including:
 - Local two-sided Zalesak-type limiting for conservative variables (`local_twosided_variables_cons`)
 - Positivity limiting for conservative variables (`positivity_variables_cons`) and nonlinear variables
 (`positivity_variables_nonlinear`)
-- Local one-sided limiting for nonlinear variables, e.g. `entropy_guermond_etal` and `entropy_math`
+- Local one-sided limiting for nonlinear variables, e.g. [`entropy_guermond_etal`](@ref) and [`entropy_math`](@ref)
 with `local_onesided_variables_nonlinear`
 
 To use these three limiting options use the following structure:
@@ -39,7 +39,7 @@ For ***nonlinear variables***, the wanted variable functions are passed within a
 positivity use a plain vector including the desired variables, e.g. `positivity_variables_nonlinear = [pressure]`.
 For local one-sided limiting pass the variable function combined with the requested bound
 (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified specific
-entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]`.
+entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(entropy_guermond_etal, min)]`.
 
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
@@ -146,18 +146,19 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
 
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 
-    SubcellLimiterIDP{typeof(positivity_correction_factor),
-                      typeof(positivity_variables_nonlinear),
-                      typeof(local_onesided_variables_nonlinear_),
-                      typeof(cache)}(local_twosided, local_twosided_variables_cons_,
-                                     positivity, positivity_variables_cons_,
-                                     positivity_variables_nonlinear,
-                                     positivity_correction_factor,
-                                     local_onesided,
-                                     local_onesided_variables_nonlinear_,
-                                     cache,
-                                     max_iterations_newton, newton_tolerances,
-                                     gamma_constant_newton)
+    return SubcellLimiterIDP{typeof(positivity_correction_factor),
+                             typeof(positivity_variables_nonlinear),
+                             typeof(local_onesided_variables_nonlinear_),
+                             typeof(cache)}(local_twosided,
+                                            local_twosided_variables_cons_,
+                                            positivity, positivity_variables_cons_,
+                                            positivity_variables_nonlinear,
+                                            positivity_correction_factor,
+                                            local_onesided,
+                                            local_onesided_variables_nonlinear_,
+                                            cache,
+                                            max_iterations_newton, newton_tolerances,
+                                            gamma_constant_newton)
 end
 
 function Base.show(io::IO, limiter::SubcellLimiterIDP)
@@ -183,6 +184,7 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
     end
     print(io, "Local bounds with FV solution")
     print(io, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
@@ -256,15 +258,14 @@ function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg,
 end
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
-    get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
+    return get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
 end
 
 function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
                                       t, dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
-    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
+    @trixi_timeit timer() "reset alpha" set_zero!(alpha, dg, semi.cache)
 
     if limiter.local_twosided
         @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,

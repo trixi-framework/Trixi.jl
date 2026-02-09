@@ -108,11 +108,11 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
     rho, v1, v2, p = macroscopic
 
     # Use `typeof(macroscopic)` to avoid having to explicitly add `using StaticArrays`
-    convert(typeof(macroscopic), (rho, v1 / equations.u0, v2 / equations.u0, p))
+    return convert(typeof(macroscopic), (rho, v1 / equations.u0, v2 / equations.u0, p))
 end
 function Trixi.varnames(::typeof(macroscopic_normalized),
                         equations::LatticeBoltzmannEquations2D)
-    ("rho", "v1_normalized", "v2_normalized", "p")
+    return ("rho", "v1_normalized", "v2_normalized", "p")
 end
 
 save_solution = SaveSolutionCallback(interval = 1000,

@@ -60,7 +60,7 @@ end
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = zero(eltype(modal))
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         total_energy += modal[i, j, k]^2
     end
     total_energy_clip1 = zero(eltype(modal))
@@ -99,6 +99,7 @@ end
 
     # Clip the maximum amount of FV allowed
     alpha[element] = min(alpha_max, alpha_element)
+    return nothing
 end
 
 function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, alpha,

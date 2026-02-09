@@ -86,7 +86,8 @@ semi = SemidiscretizationCoupledP4est(semi1, semi2)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-ode = semidiscretize(semi, (0.0, 1.0));
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan);
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

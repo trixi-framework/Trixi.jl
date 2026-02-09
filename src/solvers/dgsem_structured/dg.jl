@@ -13,19 +13,20 @@ function create_cache(mesh::Union{StructuredMesh, StructuredMeshView},
                       ::Type{uEltype}) where {uEltype <: Real}
     elements = init_elements(mesh, equations, dg.basis, uEltype)
 
+    # Container cache
     cache = (; elements)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 
     return cache
 end
 
 # Extract contravariant vector Ja^i (i = index) as SVector
 @inline function get_contravariant_vector(index, contravariant_vectors, indices...)
-    SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
-                   Val(ndims(contravariant_vectors) - 3)))
+    return SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
+                          Val(ndims(contravariant_vectors) - 3)))
 end
 
 # Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `StructuredMesh`es.
@@ -33,6 +34,8 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
                              mesh::StructuredMesh, equations, surface_integral,
                              dg::DG)
     @assert isperiodic(mesh)
+
+    return nothing
 end
 
 function rhs!(du, u, t,
@@ -40,7 +43,7 @@ function rhs!(du, u, t,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin

@@ -62,6 +62,7 @@ const boundary_condition_periodic = BoundaryConditionPeriodic()
 
 function Base.show(io::IO, ::BoundaryConditionPeriodic)
     print(io, "boundary_condition_periodic")
+    return nothing
 end
 
 struct BoundaryConditionDoNothing end
@@ -120,5 +121,6 @@ const boundary_condition_do_nothing = BoundaryConditionDoNothing()
 
 function Base.show(io::IO, ::BoundaryConditionDoNothing)
     print(io, "boundary_condition_do_nothing")
+    return nothing
 end
 end # @muladd

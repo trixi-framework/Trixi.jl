@@ -30,6 +30,26 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_periodic.jl (O2 inner reconstruction)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
+                        solver=DGSEM(polydeg = 6, surface_flux = flux_hll,
+                                     volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(6),
+                                                                                           volume_flux_fv = flux_hll,
+                                                                                           reconstruction_mode = reconstruction_O2_inner,
+                                                                                           slope_limiter = vanleer)),
+                        l2=[
+                            0.005880232650480498, 0.0040529619297677115,
+                            0.004052961929767421, 0.010484942040225525
+                        ],
+                        linf=[
+                            0.01573598342343474, 0.011413826186375431,
+                            0.011413826186384313, 0.028639280744286122
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_free_stream.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         l2=[
@@ -171,7 +191,7 @@ end
                             0.0005656680962440319,
                             0.0013910024779804075
                         ],
-                        tspan=(0.0, 0.2),)
+                        tspan=(0.0, 0.2))
     # Extra test that the `TimeSeries` callback creates reasonable data
     point_data_1 = time_series.affect!.point_data[1]
     @test all(isapprox.(point_data_1[1:4],

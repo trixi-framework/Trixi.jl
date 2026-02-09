@@ -153,7 +153,7 @@ end
                                                      A::TensorProductGaussFaceOperator{1,
                                                                                        Interpolation},
                                                      x::AbstractVector)
-    mul!(out, A.interp_matrix_gauss_to_face_1d, x)
+    return mul!(out, A.interp_matrix_gauss_to_face_1d, x)
 end
 
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
@@ -521,7 +521,7 @@ end
         rhs_local[i] = fluxdiff_local[i]
     end
 
-    project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 end
 
 function project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh::DGMultiMesh,
@@ -585,7 +585,7 @@ end
 function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP},
               cache) where {Source, BC}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # this function evaluates the solution at volume and face quadrature points (which was previously
     # done in `prolong2interfaces` and `calc_volume_integral`)

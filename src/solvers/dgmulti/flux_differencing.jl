@@ -262,7 +262,7 @@ end
 
 # use hybridized SBP operators for general flux differencing schemes.
 function compute_flux_differencing_SBP_matrices(dg::DGMulti)
-    compute_flux_differencing_SBP_matrices(dg, has_sparse_operators(dg))
+    return compute_flux_differencing_SBP_matrices(dg, has_sparse_operators(dg))
 end
 
 function compute_flux_differencing_SBP_matrices(dg::DGMulti, sparse_operators)
@@ -433,21 +433,21 @@ end
 # sum factorization here, which is slower for fully dense matrices.
 @inline function has_sparse_operators(::Union{Line, Tri, Tet},
                                       approx_type::AT) where {AT <: SBP}
-    False()
+    return False()
 end
 
 # SBP/GaussSBP operators on quads/hexes use tensor-product operators. Thus, sum factorization is
 # more efficient and we use the sparsity structure.
 @inline function has_sparse_operators(::Union{Quad, Hex},
                                       approx_type::AT) where {AT <: SBP}
-    True()
+    return True()
 end
 @inline has_sparse_operators(::Union{Quad, Hex}, approx_type::GaussSBP) = True()
 
 # FD SBP methods have sparse operators
 @inline function has_sparse_operators(::Union{Line, Quad, Hex},
                                       approx_type::AbstractDerivativeOperator)
-    True()
+    return True()
 end
 
 # Computes flux differencing contribution from each Cartesian direction over a single element.
@@ -618,7 +618,7 @@ end
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
 function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # this function evaluates the solution at volume and face quadrature points (which was previously
     # done in `prolong2interfaces` and `calc_volume_integral`)
@@ -664,7 +664,7 @@ end
 function rhs!(du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
                                                                   have_nonconservative_terms(equations),

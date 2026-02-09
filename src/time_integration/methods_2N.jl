@@ -43,7 +43,7 @@ struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
                     2006345519317.0 / 3224310063776.0,
                     2802321613138.0 / 2924317926251.0)
 
-        new(a, b, c)
+        return new(a, b, c)
     end
 end
 
@@ -70,22 +70,22 @@ struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
         b = SVector(8 / 141, 6627 / 2000, 609375 / 1085297, 198961 / 526383)
         c = SVector(0, 8 / 141, 86 / 125, 1)
 
-        new(a, b, c)
+        return new(a, b, c)
     end
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct SimpleIntegratorOptions{Callback}
     callback::Callback # callbacks; used in Trixi.jl
-    adaptive::Bool # whether the algorithm is adaptive; ignored
+    const adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
-    maxiters::Int # maximal number of time steps
+    const maxiters::Int # maximal number of time steps
     tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
 function SimpleIntegratorOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    SimpleIntegratorOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                              [last(tspan)])
+    return SimpleIntegratorOptions{typeof(callback)}(callback, false, Inf, maxiters,
+                                                     [last(tspan)])
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
@@ -104,8 +104,8 @@ mutable struct SimpleIntegrator2N{RealT <: Real, uType <: AbstractVector,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    f::F # `rhs!` of the semidiscretization
-    alg::Alg # SimpleAlgorithm2N
+    const f::F # `rhs!` of the semidiscretization
+    const alg::Alg # SimpleAlgorithm2N
     opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
 end

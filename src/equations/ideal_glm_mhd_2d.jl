@@ -8,8 +8,43 @@
 @doc raw"""
     IdealGlmMhdEquations2D(gamma)
 
-The ideal compressible GLM-MHD equations for an ideal gas with ratio of
-specific heats `gamma` in two space dimensions.
+The ideal compressible GLM-MHD equations
+```math
+\frac{\partial}{\partial t}
+\begin{pmatrix}
+\rho \\ \rho \mathbf{v} \\ \rho e \\ \mathbf{B} \\ \psi
+\end{pmatrix}
++
+\nabla \cdot
+\begin{pmatrix}
+\rho \mathbf{v} \\ \rho (\mathbf{v} \otimes \mathbf{v}) + (p + \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2) \underline{I} - \mathbf{B} \otimes \mathbf{B} \\
+\mathbf{v} (\frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 + \frac{\gamma p}{\gamma - 1} + \Vert \mathbf{B} \Vert_2 ^2) - \mathbf{B} (\mathbf{v} \cdot \mathbf{B}) + c_h \psi \mathbf{B} \\
+\mathbf{v} \otimes \mathbf{B} - \mathbf{B} \otimes \mathbf{v} + c_h \psi \underline{I} \\
+c_h \mathbf{B}
+\end{pmatrix}
++
+(\nabla \cdot \mathbf{B})
+\begin{pmatrix}
+0 \\ \mathbf{B} \\ \mathbf{v} \cdot \mathbf{B} \\ \mathbf{v} \\ 0
+\end{pmatrix}
++
+(\nabla \psi) \cdot
+\begin{pmatrix}
+\mathbf{0} \\ 0 \\ \mathbf{v} \cdot \psi \\ 0 \\ \mathbf{v}
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ \mathbf{0} \\ 0 \\ \mathbf{0} \\ 0
+\end{pmatrix}
+```
+for an ideal gas in two space dimensions.
+Here, ``\mathbf{v}`` is the velocity, ``\mathbf{B}`` the magnetic field, ``c_h`` the hyperbolic divergence cleaning speed,
+``\psi`` the generalized Lagrangian Multiplier (GLM),
+``e`` the specific total energy **rather than** specific internal energy, and
+```math
+p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - \frac{1}{2} \psi^2 \right)
+```
+the pressure, ``\gamma`` the total heat capacity ratio and ``\underline{I}`` the ``3\times 3`` identity matrix.
 """
 struct IdealGlmMhdEquations2D{RealT <: Real} <:
        AbstractIdealGlmMhdEquations{2, 9}
@@ -19,30 +54,30 @@ struct IdealGlmMhdEquations2D{RealT <: Real} <:
 
     function IdealGlmMhdEquations2D(gamma, c_h)
         γ, inv_gamma_minus_one, c_h = promote(gamma, inv(gamma - 1), c_h)
-        new{typeof(γ)}(γ, inv_gamma_minus_one, c_h)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one, c_h)
     end
 end
 
 function IdealGlmMhdEquations2D(gamma; initial_c_h = convert(typeof(gamma), NaN))
     # Use `promote` to ensure that `gamma` and `initial_c_h` have the same type
-    IdealGlmMhdEquations2D(promote(gamma, initial_c_h)...)
+    return IdealGlmMhdEquations2D(promote(gamma, initial_c_h)...)
 end
 
 # Outer constructor for `@reset` works correctly
 function IdealGlmMhdEquations2D(gamma, inv_gamma_minus_one, c_h)
-    IdealGlmMhdEquations2D(gamma, c_h)
+    return IdealGlmMhdEquations2D(gamma, c_h)
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
 
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)
-    ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
+    return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
 end
 function varnames(::typeof(cons2prim), ::IdealGlmMhdEquations2D)
-    ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
+    return ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
 end
 function default_analysis_integrals(::IdealGlmMhdEquations2D)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+    return (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
 # Helper function to extract the magnetic field vector from the conservative variables
@@ -1627,7 +1662,7 @@ end
 end
 
 @inline function density(u, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho = u[1]
     return rho
 end
 
@@ -1645,13 +1680,25 @@ end
     return v
 end
 
+@doc raw"""
+    pressure(u, equations::IdealGlmMhdEquations2D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} - \frac{1}{2}\psi^2 \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2} 
+  \left[\rho \Vert v \Vert_2^2  + \Vert B \Vert_2^2 + \psi^2 \right] \right)
+\end{aligned}
+```
+"""
 @inline function pressure(u, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2)
-         -
-         0.5f0 * psi^2)
+    p = (equations.gamma - 1) * (rho_e -
+         0.5f0 *
+         ((rho_v1^2 + rho_v2^2 + rho_v3^2) / rho +
+          B1^2 + B2^2 + B3^2 + psi^2))
     return p
 end
 
@@ -1671,12 +1718,10 @@ end
 
 @inline function density_pressure(u, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-         -
-         0.5f0 * (B1^2 + B2^2 + B3^2)
-         -
-         0.5f0 * psi^2)
-    return rho * p
+    rho_times_p = (equations.gamma - 1) * (rho * rho_e -
+                   0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2 +
+                    rho * (B1^2 + B2^2 + B3^2 + psi^2)))
+    return rho_times_p
 end
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
@@ -1918,7 +1963,7 @@ end
     return 0.5f0 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
 end
 
-# Calculate the magnetic energy for a conservative state `cons'.
+# Calculate the magnetic energy for a conservative state `cons`.
 #  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
 @inline function energy_magnetic(cons, ::IdealGlmMhdEquations2D)
     return 0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
@@ -1937,14 +1982,13 @@ end
 
 # State validation for Newton-bisection method of subcell IDP limiting
 @inline function Base.isvalid(u, equations::IdealGlmMhdEquations2D)
-    p = pressure(u, equations)
-    if u[1] <= 0 || p <= 0
+    if u[1] <= 0 || pressure(u, equations) <= 0
         return false
     end
     return true
 end
 
-# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
+# Calculate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons`
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations2D)
     return (cons[2] * cons[6] + cons[3] * cons[7] + cons[4] * cons[8]) / cons[1]
 end

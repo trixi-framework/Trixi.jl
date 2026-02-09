@@ -64,7 +64,7 @@ function SemidiscretizationCoupledP4est(semis...)
     local_element_ids = zeros(Int, size(global_element_ids))
     element_offset = ones(Int, length(semis))
     mesh_ids = zeros(Int, size(global_element_ids))
-    for i in 1:length(semis)
+    for i in eachindex(semis)
         local_element_ids[semis[i].mesh.cell_ids] = global_element_id_to_local(global_element_ids[semis[i].mesh.cell_ids],
                                                                                semis[i].mesh)
         mesh_ids[semis[i].mesh.cell_ids] .= i
@@ -79,12 +79,6 @@ function SemidiscretizationCoupledP4est(semis...)
                                                                 local_element_ids,
                                                                 element_offset,
                                                                 mesh_ids)
-end
-
-function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
-    @nospecialize semi # reduce precompilation time
-
-    print(io, "SemidiscretizationCoupledP4est($(semi.semis))")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4est)
@@ -135,20 +129,14 @@ function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCouple
     end
 end
 
-@inline Base.ndims(semi::SemidiscretizationCoupledP4est) = ndims(semi.semis[1])
-
 @inline nsystems(semi::SemidiscretizationCoupledP4est) = length(semi.semis)
 
 @inline eachsystem(semi::SemidiscretizationCoupledP4est) = Base.OneTo(nsystems(semi))
 
 @inline Base.real(semi::SemidiscretizationCoupledP4est) = promote_type(real.(semi.semis)...)
 
-@inline function Base.eltype(semi::SemidiscretizationCoupledP4est)
-    promote_type(eltype.(semi.semis)...)
-end
-
 @inline function ndofs(semi::SemidiscretizationCoupledP4est)
-    sum(ndofs, semi.semis)
+    return sum(ndofs, semi.semis)
 end
 
 """
@@ -160,7 +148,7 @@ parallelized via threads. It will in general be different for simulations
 running in parallel with MPI.
 """
 @inline function ndofsglobal(semi::SemidiscretizationCoupledP4est)
-    sum(ndofsglobal, semi.semis)
+    return sum(ndofsglobal, semi.semis)
 end
 
 function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
@@ -168,7 +156,8 @@ function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
 
     u_ode = Vector{real(semi)}(undef, u_indices[end][end])
 
-    for i in eachsystem(semi)
+    # Distribute the partial solution vectors onto the global one.
+    @threaded for i in eachsystem(semi)
         # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
         u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
     end
@@ -377,12 +366,9 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
     @unpack callbacks = cb.affect!
 
     uEltype = real(semi_coupled)
-    error_indices = Array([
-                              1,
-                              1 .+
-                              cumsum(nvariables(semi_coupled.semis[i].equations)
-                                     for i in eachindex(semi_coupled.semis))[begin:end]...
-                          ])
+    n_vars_upto_semi = cumsum(nvariables(semi_coupled.semis[i].equations)
+                              for i in eachindex(semi_coupled.semis))[begin:end]
+    error_indices = Array([1, 1 .+ n_vars_upto_semi...])
     length_error_array = sum(nvariables(semi_coupled.semis[i].equations)
                              for i in eachindex(semi_coupled.semis))
     l2_error_collection = uEltype[]
@@ -406,7 +392,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
         append!(linf_error_collection, linf_error)
     end
 
-    (; l2 = l2_error_collection, linf = linf_error_collection)
+    return (; l2 = l2_error_collection, linf = linf_error_collection)
 end
 
 ################################################################################
@@ -425,6 +411,7 @@ function save_mesh(semi::SemidiscretizationCoupledP4est, output_directory, times
             mesh.unsaved_changes = false
         end
     end
+    return nothing
 end
 
 @inline function save_solution_file(semi::SemidiscretizationCoupledP4est, u_ode,
@@ -437,6 +424,7 @@ end
         save_solution_file(semis[i], u_ode_slice, solution_callback, integrator,
                            system = i)
     end
+    return nothing
 end
 
 ################################################################################
@@ -543,10 +531,6 @@ mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
     end
 end
 
-function Base.eltype(boundary_condition::BoundaryConditionCoupledP4est)
-    eltype(boundary_condition.u_boundary)
-end
-
 """
 Extract the boundary values from the neighboring element.
 This requires values from other mesh views.
@@ -563,7 +547,8 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     n_nodes = length(mesh.parent.nodes)
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
-        if sum(normal_direction .* (1.0, 0.0)) > sum(normal_direction .* (-1.0, 0.0))
+        if sum(normal_direction .* (1.0, 0.0)) >
+           sum(normal_direction .* (-1.0, 0.0))
             element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
                                                                         :x_pos) .*
                                                                        (cache.boundaries.neighbor_ids .==
@@ -575,6 +560,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                                         element_index))]
         end
         i_index_g = i_index
+        # Make sure we do not leave the domain.
         if i_index == n_nodes
             i_index_g = 1
         elseif i_index == 1
@@ -594,6 +580,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                                         element_index))]
         end
         j_index_g = j_index
+        # Make sure we do not leave the domain.
         if j_index == n_nodes
             j_index_g = 1
         elseif j_index == 1
@@ -628,7 +615,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     orientation = normal_direction
 
     # Calculate boundary flux
-    if surface_flux_function isa Tuple
+    if have_nonconservative_terms(equations) == true
         # In case of conservative (index 1) and non-conservative (index 2) fluxes,
         # add the non-conservative one with a factor of 1/2.
         flux = (surface_flux_function[1](u_inner, u_boundary, orientation,

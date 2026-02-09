@@ -147,8 +147,7 @@ function calc_error_norms(func, u, t, analyzer,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
-    @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local,
-    jacobian_tmp1 = cache_analysis
+    @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
 
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
@@ -213,8 +212,8 @@ end
 
 function integrate_via_indices(func::Func, u,
                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           P4estMeshView{2},
+                                           UnstructuredMesh2D,
+                                           P4estMesh{2}, P4estMeshView{2},
                                            T8codeMesh{2}},
                                equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
@@ -282,7 +281,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
                           du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
-        dot(cons2entropy(u_node, equations), du_node)
+        return dot(cons2entropy(u_node, equations), du_node)
     end
 end
 
@@ -304,7 +303,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
                      derivative_matrix[j, k] * B2_ik)
         end
         divb *= cache.elements.inverse_jacobian[element]
-        divb^2
+        return divb^2
     end |> sqrt
 end
 
@@ -318,10 +317,8 @@ function analyze(::Val{:l2_divb}, du, u, t,
                                                          dg, cache, derivative_matrix
         divb = zero(eltype(u))
         # Get the contravariant vectors Ja^1 and Ja^2
-        Ja11,
-        Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
-        Ja21,
-        Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+        Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+        Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         # Compute the transformed divergence
         for k in eachnode(dg)
             u_kj = get_node_vars(u, equations, dg, k, j, element)
@@ -336,7 +333,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
                      (Ja21 * B1_ik + Ja22 * B2_ik))
         end
         divb *= cache.elements.inverse_jacobian[i, j, element]
-        divb^2
+        return divb^2
     end |> sqrt
 end
 
@@ -381,12 +378,10 @@ function analyze(::Val{:linf_divb}, du, u, t,
         for j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             # Get the contravariant vectors Ja^1 and Ja^2
-            Ja11,
-            Ja12 = get_contravariant_vector(1, contravariant_vectors,
-                                            i, j, element)
-            Ja21,
-            Ja22 = get_contravariant_vector(2, contravariant_vectors,
-                                            i, j, element)
+            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                  i, j, element)
+            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                  i, j, element)
             # Compute the transformed divergence
             for k in eachnode(dg)
                 u_kj = get_node_vars(u, equations, dg, k, j, element)
