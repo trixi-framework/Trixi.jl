@@ -670,6 +670,7 @@ function calc_divergence_mortar_flux!(surface_flux_values, mesh::P4estMesh{2},
     @unpack contravariant_vectors = cache.elements
     @unpack contravariant_vectors = cache.elements
     @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
+    index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
