@@ -484,7 +484,8 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
                                                       secondary_element],
                                        flux_viscous_y[v, i_secondary, j_secondary,
                                                       secondary_element])
-                # store the normal flux with respect to the primary normal direction, negated
+                # store the normal flux with respect to the primary normal direction, 
+                # which is the negative of the secondary normal direction
                 interfaces.u[2, v, i, interface] = -dot(flux_viscous, normal_direction)
             end
             i_secondary += i_secondary_step
