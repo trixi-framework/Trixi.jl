@@ -31,16 +31,20 @@ println("STEP 1: Create non-uniform refinement")
 println("="^80)
 println("Initial mesh: $(Trixi.ncells(parent_mesh)) elements (trees)")
 
-# Define a custom refine callback that refines only trees in the left half (trees 1-8)
+# Define a custom refine callback that refines selected trees
 # Trees are numbered 1-16 in a 4x4 grid, row by row:
 # 13 14 15 16
 #  9 10 11 12
 #  5  6  7  8
 #  1  2  3  4
-# Left half (x < 0): trees 1, 2, 5, 6, 9, 10, 13, 14
+#
+# We refine trees that create hanging nodes crossing the x=0 boundary:
+# - Trees 1, 5, 6, 9, 10, 13, 14 on the left (x < 0)
+# - Tree 3 on the right (x > 0)
+# This creates coupled mortars where BOTH views have hanging nodes at the interface.
 
 # Global variable to track which trees to refine
-const TREES_TO_REFINE = Set([1, 2, 5, 6, 9, 10, 13, 14])
+const TREES_TO_REFINE = Set([1, 3, 5, 6, 9, 10, 13, 14])
 
 # Custom refine function - refines quadrants in specified trees
 function refine_left_half(p4est_ptr, which_tree, quadrant_ptr)
@@ -62,7 +66,7 @@ init_fn_c = @cfunction(Trixi.init_fn, Cvoid,
                         Ptr{Trixi.p4est_quadrant_t}))
 
 # Refine the mesh (non-recursive, just one level)
-println("Refining left half of domain (trees 1,2,5,6,9,10,13,14)...")
+println("Refining selected trees (1,3,5,6,9,10,13,14)...")
 Trixi.refine_p4est!(parent_mesh.p4est, false, refine_fn_c, init_fn_c)
 
 # Balance to ensure 2:1 constraint (this creates additional mortars)
@@ -121,61 +125,48 @@ println("Right view: $(length(right_elements)) elements")
 mesh1 = P4estMeshView(parent_mesh, left_elements)
 mesh2 = P4estMeshView(parent_mesh, right_elements)
 
-# Define coupling functions
+# Define coupling functions (identity for same equation)
 coupling_functions = Array{Function}(undef, 2, 2)
 coupling_functions[1, 1] = (x, u, equations_other, equations_own) -> u
 coupling_functions[1, 2] = (x, u, equations_other, equations_own) -> u
 coupling_functions[2, 1] = (x, u, equations_other, equations_own) -> u
 coupling_functions[2, 2] = (x, u, equations_other, equations_own) -> u
 
-# Determine which boundaries each view has based on element positions
-function get_view_boundaries(element_ids, elements_parent, domain_min, domain_max, tol=1e-10)
-    boundaries = Symbol[]
+# Use coupled boundary condition for all boundaries
+coupled_bc = BoundaryConditionCoupledP4est(coupling_functions)
+
+# Determine which domain boundaries each view touches based on element coordinates
+function get_domain_boundaries(element_ids, elements_cache, domain_min, domain_max; tol=1e-10)
+    boundaries = Set{Symbol}()
     for elem in element_ids
-        coords = elements_parent.node_coordinates[:, :, :, elem]
+        coords = elements_cache.node_coordinates[:, :, :, elem]
         x_min, x_max = extrema(coords[1, :, :])
         y_min, y_max = extrema(coords[2, :, :])
 
-        if abs(x_min - domain_min[1]) < tol && !(:x_neg in boundaries)
-            push!(boundaries, :x_neg)
-        end
-        if abs(x_max - domain_max[1]) < tol && !(:x_pos in boundaries)
-            push!(boundaries, :x_pos)
-        end
-        if abs(y_min - domain_min[2]) < tol && !(:y_neg in boundaries)
-            push!(boundaries, :y_neg)
-        end
-        if abs(y_max - domain_max[2]) < tol && !(:y_pos in boundaries)
-            push!(boundaries, :y_pos)
-        end
+        abs(x_min - domain_min[1]) < tol && push!(boundaries, :x_neg)
+        abs(x_max - domain_max[1]) < tol && push!(boundaries, :x_pos)
+        abs(y_min - domain_min[2]) < tol && push!(boundaries, :y_neg)
+        abs(y_max - domain_max[2]) < tol && push!(boundaries, :y_pos)
     end
     return boundaries
 end
 
-boundaries1 = get_view_boundaries(left_elements, cache_parent.elements, coordinates_min, coordinates_max)
-boundaries2 = get_view_boundaries(right_elements, cache_parent.elements, coordinates_min, coordinates_max)
+# Get boundaries for each view
+boundaries1 = get_domain_boundaries(left_elements, cache_parent.elements, coordinates_min, coordinates_max)
+boundaries2 = get_domain_boundaries(right_elements, cache_parent.elements, coordinates_min, coordinates_max)
 
 println("Left view boundaries: $boundaries1")
 println("Right view boundaries: $boundaries2")
 
-# Create boundary conditions only for boundaries that exist in each view
-boundary_conditions1 = Dict{Symbol, Any}()
-for name in boundaries1
-    boundary_conditions1[name] = BoundaryConditionCoupledP4est(coupling_functions)
-end
-
-boundary_conditions2 = Dict{Symbol, Any}()
-for name in boundaries2
-    boundary_conditions2[name] = BoundaryConditionCoupledP4est(coupling_functions)
-end
+# Create boundary conditions for each view (coupled BC for all boundaries)
+bc1 = Dict(name => coupled_bc for name in boundaries1)
+bc2 = Dict(name => coupled_bc for name in boundaries2)
 
 # Create semidiscretizations
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = boundary_conditions1)
+                                     solver, boundary_conditions = bc1)
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = boundary_conditions2)
+                                     solver, boundary_conditions = bc2)
 
 # Create coupled system
 semi = SemidiscretizationCoupledP4est(semi1, semi2)
