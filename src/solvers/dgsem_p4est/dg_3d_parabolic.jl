@@ -100,6 +100,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
+    @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
 
     @threaded for interface in eachinterface(dg, cache)
@@ -388,6 +389,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
                               equations_parabolic, dg::DG, parabolic_scheme,
                               cache)
     (; neighbor_ids, node_indices) = cache.interfaces
+    (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
 
     @threaded for interface in eachinterface(dg, cache)
@@ -611,20 +613,19 @@ function calc_divergence_mortar_flux!(surface_flux_values,
                                       mortar_l2::LobattoLegendreMortarL2,
                                       dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
-    @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
+    @unpack contravariant_vectors = cache.elements
+    @unpack (fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded) = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_primary = (fstar_primary_lower_threaded[Threads.threadid()],
-                         fstar_primary_upper_threaded[Threads.threadid()])
-        fstar_secondary = (fstar_secondary_lower_threaded[Threads.threadid()],
-                           fstar_secondary_upper_threaded[Threads.threadid()])
+        fstar_primary = fstar_primary_threaded[Threads.threadid()]
+        fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
 
         i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
                                                                                index_range)
@@ -656,9 +657,9 @@ function calc_divergence_mortar_flux!(surface_flux_values,
                                               normal_direction, Divergence(),
                                               equations_parabolic, parabolic_scheme)
 
-                        fstar_primary[position][v, i, j] = flux
+                        fstar_primary[v, i, j, position] = flux
                         # Negate secondary flux to get the correct normal direction on the secondary element
-                        fstar_secondary[position][v, i, j] = -flux
+                        fstar_secondary[v, i, j, position] = -flux
                     end
 
                     i_small += i_small_step_i
@@ -703,6 +704,7 @@ function calc_gradient_mortar_flux!(surface_flux_values,
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
 
         i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
                                                                                index_range)
@@ -715,6 +717,7 @@ function calc_gradient_mortar_flux!(surface_flux_values,
             i_small = i_small_start
             j_small = j_small_start
             k_small = k_small_start
+            element = neighbor_ids[position, mortar]
             for j in eachnode(dg)
                 for i in eachnode(dg)
                     normal_direction = get_normal_direction(small_direction,
