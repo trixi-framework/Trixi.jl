@@ -13,8 +13,8 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:inside => boundary_condition,
-                           :outside => boundary_condition)
+boundary_conditions = (; inside = boundary_condition,
+                       outside = boundary_condition)
 
 trees_per_face_dimension = 5 # Number of trees per patch in longitudinal and latitudinal direction
 layers = 3 # Number of layers of the shell
@@ -25,7 +25,7 @@ mesh = Trixi.T8codeMeshCubedSphere(trees_per_face_dimension, layers,
                                    polydeg = 3)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

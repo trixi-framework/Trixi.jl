@@ -203,17 +203,18 @@ Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_stru
     return abs.(equation.advection_velocity)
 end
 
-# Convert conservative variables to primitive
+# Convert conservative variables to primitive and vice-versa
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation3D) = u
+@inline prim2cons(u, equation::LinearScalarAdvectionEquation3D) = u
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
 
-# Calculate entropy for a conservative state `cons`
+# Calculate entropy for a conservative state `u`
 @inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation3D) = entropy(u[1], equation)
 
-# Calculate total energy for a conservative state `cons`
+# Calculate total energy for a conservative state `u`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation3D)
     return energy_total(u[1], equation)

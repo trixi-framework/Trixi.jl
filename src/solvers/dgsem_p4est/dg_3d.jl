@@ -9,7 +9,6 @@
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
-    # TODO: Taal compare performance of different types
     A4d = Array{uEltype, 4}
     fstar_primary_threaded = A4d[A4d(undef, nvariables(equations),
                                      nnodes(mortar_l2), nnodes(mortar_l2), 4)
@@ -932,50 +931,55 @@ function calc_surface_integral!(du, u,
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop to increase performance.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for m in eachnode(dg), l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, m, element] = (du[v, 1, l, m, element] +
-                                           surface_flux_values[v, l, m, 1, element] *
-                                           factor_1)
+                                           surface_flux_values[v, l, m, 1,
+                                                               element] *
+                                           factor)
 
                 # surface at +x
                 du[v, nnodes(dg), l, m, element] = (du[v, nnodes(dg), l, m, element] +
                                                     surface_flux_values[v, l, m, 2,
                                                                         element] *
-                                                    factor_2)
+                                                    factor)
 
                 # surface at -y
                 du[v, l, 1, m, element] = (du[v, l, 1, m, element] +
-                                           surface_flux_values[v, l, m, 3, element] *
-                                           factor_1)
+                                           surface_flux_values[v, l, m, 3,
+                                                               element] *
+                                           factor)
 
                 # surface at +y
                 du[v, l, nnodes(dg), m, element] = (du[v, l, nnodes(dg), m, element] +
                                                     surface_flux_values[v, l, m, 4,
                                                                         element] *
-                                                    factor_2)
+                                                    factor)
 
                 # surface at -z
                 du[v, l, m, 1, element] = (du[v, l, m, 1, element] +
-                                           surface_flux_values[v, l, m, 5, element] *
-                                           factor_1)
+                                           surface_flux_values[v, l, m, 5,
+                                                               element] *
+                                           factor)
 
                 # surface at +z
                 du[v, l, m, nnodes(dg), element] = (du[v, l, m, nnodes(dg), element] +
                                                     surface_flux_values[v, l, m, 6,
                                                                         element] *
-                                                    factor_2)
+                                                    factor)
             end
         end
     end

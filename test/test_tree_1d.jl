@@ -209,10 +209,10 @@ end
     @testset "compressible Euler" begin
         eqn = CompressibleEulerEquations1D(1.4)
 
-        @test isapprox(Trixi.entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
+        @test isapprox(entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
                        1.9740810260220094)
-        @test isapprox(Trixi.entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
-        @test isapprox(Trixi.entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+        @test isapprox(entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+        @test isapprox(entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
 
         @test isapprox(energy_total([1.0, 2.0, 20.0], eqn), 20.0)
         @test isapprox(energy_kinetic([1.0, 2.0, 20.0], eqn), 2.0)
@@ -279,7 +279,8 @@ end
 
     # Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
     mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                    initial_refinement_level = 4, n_cells_max = 10^4)
+                    initial_refinement_level = 4, n_cells_max = 10^4,
+                    periodicity = true)
 
     # Create a DGSEM solver with polynomials of degree `polydeg`
     volume_flux = (flux_central, flux_nonconservative)
@@ -288,7 +289,8 @@ end
                    volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
     # Setup the spatial semidiscretization containing all ingredients
-    semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+    semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                        boundary_conditions = boundary_condition_periodic)
 
     # Create an ODE problem with given time span
     tspan = (0.0, 1.0)

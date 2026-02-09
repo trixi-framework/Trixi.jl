@@ -12,17 +12,17 @@ The quasi-1d compressible Euler equations (see Chan et al.  [DOI: 10.48550/arXiv
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-a \rho \\ a \rho v_1 \\ a e
+a \rho \\ a \rho v_1 \\ a e_{\text{total}}
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-a \rho v_1 \\ a \rho v_1^2 \\ a v_1 (e +p)
+a \rho v_1 \\ a \rho v_1^2 \\ a v_1 (e_{\text{total}} +p)
 \end{pmatrix}
-+ 
++
 a \frac{\partial}{\partial x}
 \begin{pmatrix}
-0 \\ p \\ 0    
+0 \\ p \\ 0
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -30,18 +30,18 @@ a \frac{\partial}{\partial x}
 \end{pmatrix}
 ```
 for an ideal gas with ratio of specific heats `gamma` in one space dimension.
-Here, ``\rho`` is the density, ``v_1`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, 
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_{\text{total}}`` the specific total energy,
 ``a`` the (possibly) variable nozzle width, and
 ```math
-p = (\gamma - 1) \left( e - \frac{1}{2} \rho v_1^2 \right)
+p = (\gamma - 1) \left( e_{\text{total}} - \frac{1}{2} \rho v_1^2 \right)
 ```
 the pressure.
 
 The nozzle width function ``a(x)`` is set inside the initial condition routine
-for a particular problem setup. To test the conservative form of the compressible Euler equations one can set the 
-nozzle width variable ``a`` to one. 
+for a particular problem setup. To test the conservative form of the compressible Euler equations one can set the
+nozzle width variable ``a`` to one.
 
-In addition to the unknowns, Trixi.jl currently stores the nozzle width values at the approximation points 
+In addition to the unknowns, Trixi.jl currently stores the nozzle width values at the approximation points
 despite being fixed in time.
 This affects the implementation and use of these equations in various ways:
 * The flux values corresponding to the nozzle width must be zero.
@@ -63,7 +63,7 @@ end
 
 have_nonconservative_terms(::CompressibleEulerEquationsQuasi1D) = True()
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquationsQuasi1D)
-    return ("a_rho", "a_rho_v1", "a_e", "a")
+    return ("a_rho", "a_rho_v1", "a_e_total", "a")
 end
 function varnames(::typeof(cons2prim), ::CompressibleEulerEquationsQuasi1D)
     return ("rho", "v1", "p", "a")
@@ -88,8 +88,8 @@ function initial_condition_convergence_test(x, t,
 
     rho = ini
     v1 = 1
-    e = ini^2 / rho
-    p = (equations.gamma - 1) * (e - 0.5f0 * rho * v1^2)
+    e_total = ini^2 / rho
+    p = (equations.gamma - 1) * (e_total - 0.5f0 * rho * v1^2)
     a = 1.5f0 - 0.5f0 * cospi(x[1])
 
     return prim2cons(SVector(rho, v1, p, a), equations)
@@ -103,7 +103,7 @@ Source terms used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
 This manufactured solution source term is specifically designed for the nozzle width
-```math 
+```math
   a(x) = 1.5 - 0.5 \\cos(x \\pi)
 ```
 as defined in [`initial_condition_convergence_test`](@ref).
@@ -118,7 +118,7 @@ References for the method of manufactured solutions (MMS):
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquationsQuasi1D)
-    # Same settings as in `initial_condition_convergence_test`. 
+    # Same settings as in `initial_condition_convergence_test`.
     # Derivatives calculated with ForwardDiff.jl
     RealT = eltype(u)
     c = 2
@@ -131,13 +131,14 @@ References for the method of manufactured solutions (MMS):
 
     rho(x1, t) = ini(x1, t)
     v1(x1, t) = 1
-    e(x1, t) = ini(x1, t)^2 / rho(x1, t)
-    p1(x1, t) = (equations.gamma - 1) * (e(x1, t) - 0.5f0 * rho(x1, t) * v1(x1, t)^2)
+    e_total(x1, t) = ini(x1, t)^2 / rho(x1, t)
+    p1(x1, t) = (equations.gamma - 1) *
+                (e_total(x1, t) - 0.5f0 * rho(x1, t) * v1(x1, t)^2)
     a(x1, t) = 1.5f0 - 0.5f0 * cospi(x1)
 
     arho(x1, t) = a(x1, t) * rho(x1, t)
     arhou(x1, t) = arho(x1, t) * v1(x1, t)
-    aE(x1, t) = a(x1, t) * e(x1, t)
+    aE(x1, t) = a(x1, t) * e_total(x1, t)
 
     darho_dt(x1, t) = ForwardDiff.derivative(t -> arho(x1, t), t)
     darhou_dx(x1, t) = ForwardDiff.derivative(x1 -> arhou(x1, t), x1)
@@ -147,7 +148,7 @@ References for the method of manufactured solutions (MMS):
     darhouu_dx(x1, t) = ForwardDiff.derivative(x1 -> arhouu(x1, t), x1)
     dp1_dx(x1, t) = ForwardDiff.derivative(x1 -> p1(x1, t), x1)
 
-    auEp(x1, t) = a(x1, t) * v1(x1, t) * (e(x1, t) + p1(x1, t))
+    auEp(x1, t) = a(x1, t) * v1(x1, t) * (e_total(x1, t) + p1(x1, t))
     daE_dt(x1, t) = ForwardDiff.derivative(t -> aE(x1, t), t)
     dauEp_dx(x1, t) = ForwardDiff.derivative(x1 -> auEp(x1, t), x1)
 
@@ -161,9 +162,9 @@ end
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::CompressibleEulerEquationsQuasi1D)
-    a_rho, a_rho_v1, a_e, a = u
+    a_rho, a_rho_v1, a_e_total, a = u
     rho, v1, p, a = cons2prim(u, equations)
-    e = a_e / a
+    e = a_e_total / a
 
     # Ignore orientation since it is always "1" in 1D
     f1 = a_rho_v1
@@ -176,20 +177,20 @@ end
 """
     flux_nonconservative_chan_etal(u_ll, u_rr, orientation::Integer,
                                    equations::CompressibleEulerEquationsQuasi1D)
-    flux_nonconservative_chan_etal(u_ll, u_rr, normal_direction, 
+    flux_nonconservative_chan_etal(u_ll, u_rr, normal_direction,
                                    equations::CompressibleEulerEquationsQuasi1D)
     flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll, normal_rr,
                                    equations::CompressibleEulerEquationsQuasi1D)
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
-that contains the gradient of the pressure  [`CompressibleEulerEquationsQuasi1D`](@ref) 
+that contains the gradient of the pressure  [`CompressibleEulerEquationsQuasi1D`](@ref)
 and the nozzle width.
 
 Further details are available in the paper:
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
   High order entropy stable schemes for the quasi-one-dimensional
   shallow water and compressible Euler equations
-  [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)    
+  [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
 @inline function flux_nonconservative_chan_etal(u_ll, u_rr, orientation::Integer,
                                                 equations::CompressibleEulerEquationsQuasi1D)
@@ -197,18 +198,18 @@ Further details are available in the paper:
     _, _, p_ll, a_ll = cons2prim(u_ll, equations)
     _, _, p_rr, _ = cons2prim(u_rr, equations)
 
-    # For flux differencing using non-conservative terms, we return the 
-    # non-conservative flux scaled by 2. This cancels with a factor of 0.5 
+    # For flux differencing using non-conservative terms, we return the
+    # non-conservative flux scaled by 2. This cancels with a factor of 0.5
     # in the arithmetic average of {p}.
     p_avg = p_ll + p_rr
 
     return SVector(0, a_ll * p_avg, 0, 0)
 end
 
-# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
-# the normal component is incorporated into the numerical flux. 
-# 
-# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that
+# the normal component is incorporated into the numerical flux.
+#
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a
 # similar implementation.
 @inline function flux_nonconservative_chan_etal(u_ll, u_rr,
                                                 normal_direction::AbstractVector,
@@ -232,10 +233,10 @@ end
 Conservative (symmetric) part of the entropy conservative flux for quasi 1D compressible Euler equations split form.
 This flux is a generalization of [`flux_ranocha`](@ref) for [`CompressibleEulerEquations1D`](@ref).
 Further details are available in the paper:
-- Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023) 
+- Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
   High order entropy stable schemes for the quasi-one-dimensional
   shallow water and compressible Euler equations
-  [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)     
+  [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
 @inline function flux_chan_etal(u_ll, u_rr, orientation::Integer,
                                 equations::CompressibleEulerEquationsQuasi1D)
@@ -265,10 +266,10 @@ Further details are available in the paper:
     return SVector(f1, f2, f3, 0)
 end
 
-# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
-# the normal component is incorporated into the numerical flux. 
-# 
-# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that
+# the normal component is incorporated into the numerical flux.
+#
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a
 # similar implementation.
 @inline function flux_chan_etal(u_ll, u_rr, normal_direction::AbstractVector,
                                 equations::CompressibleEulerEquationsQuasi1D)
@@ -279,18 +280,18 @@ end
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquationsQuasi1D)
-    a_rho_ll, a_rho_v1_ll, a_e_ll, a_ll = u_ll
-    a_rho_rr, a_rho_v1_rr, a_e_rr, a_rr = u_rr
+    a_rho_ll, a_rho_v1_ll, a_e_total_ll, a_ll = u_ll
+    a_rho_rr, a_rho_v1_rr, a_e_total_rr, a_rr = u_rr
 
     # Calculate primitive variables and speed of sound
     rho_ll = a_rho_ll / a_ll
-    e_ll = a_e_ll / a_ll
+    e_ll = a_e_total_ll / a_ll
     v1_ll = a_rho_v1_ll / a_rho_ll
     v_mag_ll = abs(v1_ll)
     p_ll = (equations.gamma - 1) * (e_ll - 0.5f0 * rho_ll * v_mag_ll^2)
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     rho_rr = a_rho_rr / a_rr
-    e_rr = a_e_rr / a_rr
+    e_rr = a_e_total_rr / a_rr
     v1_rr = a_rho_v1_rr / a_rho_rr
     v_mag_rr = abs(v1_rr)
     p_rr = (equations.gamma - 1) * (e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
@@ -302,18 +303,18 @@ end
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::CompressibleEulerEquationsQuasi1D)
-    a_rho_ll, a_rho_v1_ll, a_e_ll, a_ll = u_ll
-    a_rho_rr, a_rho_v1_rr, a_e_rr, a_rr = u_rr
+    a_rho_ll, a_rho_v1_ll, a_e_total_ll, a_ll = u_ll
+    a_rho_rr, a_rho_v1_rr, a_e_total_rr, a_rr = u_rr
 
     # Calculate primitive variables and speed of sound
     rho_ll = a_rho_ll / a_ll
-    e_ll = a_e_ll / a_ll
+    e_ll = a_e_total_ll / a_ll
     v1_ll = a_rho_v1_ll / a_rho_ll
     v_mag_ll = abs(v1_ll)
     p_ll = (equations.gamma - 1) * (e_ll - 0.5f0 * rho_ll * v_mag_ll^2)
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     rho_rr = a_rho_rr / a_rr
-    e_rr = a_e_rr / a_rr
+    e_rr = a_e_total_rr / a_rr
     v1_rr = a_rho_v1_rr / a_rho_rr
     v_mag_rr = abs(v1_rr)
     p_rr = (equations.gamma - 1) * (e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
@@ -323,10 +324,10 @@ end
 end
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquationsQuasi1D)
-    a_rho, a_rho_v1, a_e, a = u
+    a_rho, a_rho_v1, a_e_total, a = u
     rho = a_rho / a
     v1 = a_rho_v1 / a_rho
-    e = a_e / a
+    e = a_e_total / a
     p = (equations.gamma - 1) * (e - 0.5f0 * rho * v1^2)
     c = sqrt(equations.gamma * p / rho)
 
@@ -337,37 +338,42 @@ end
 # variables for the quasi-1D equations are `(rho, v1, p)` (i.e., the same as the primitive
 # variables for `CompressibleEulerEquations1D`)
 @inline function cons2prim(u, equations::CompressibleEulerEquationsQuasi1D)
-    a_rho, a_rho_v1, a_e, a = u
-    q = cons2prim(SVector(a_rho, a_rho_v1, a_e) / a,
+    a_rho, a_rho_v1, a_e_total, a = u
+    q = cons2prim(SVector(a_rho, a_rho_v1, a_e_total) / a,
                   CompressibleEulerEquations1D(equations.gamma))
 
     return SVector(q[1], q[2], q[3], a)
 end
 
-# The entropy for the quasi-1D compressible Euler equations is the entropy for the
-# 1D compressible Euler equations scaled by the channel width `a`.
+"""
+    entropy(u, equations::CompressibleEulerEquationsQuasi1D)
+
+The entropy for the quasi-1D compressible Euler equations is the
+[`entropy(cons, equations::AbstractCompressibleEulerEquations)`](@ref) for the
+(1D) compressible Euler equations scaled by the channel width `a`.
+"""
 @inline function entropy(u, equations::CompressibleEulerEquationsQuasi1D)
-    a_rho, a_rho_v1, a_e, a = u
-    return a * entropy(SVector(a_rho, a_rho_v1, a_e) / a,
+    a_rho, a_rho_v1, a_e_total, a = u
+    return a * entropy(SVector(a_rho, a_rho_v1, a_e_total) / a,
                    CompressibleEulerEquations1D(equations.gamma))
 end
 
-# Convert conservative variables to entropy. The entropy variables for the 
+# Convert conservative variables to entropy. The entropy variables for the
 # quasi-1D compressible Euler equations are identical to the entropy variables
 # for the standard Euler equations for an appropriate definition of `entropy`.
 @inline function cons2entropy(u, equations::CompressibleEulerEquationsQuasi1D)
-    a_rho, a_rho_v1, a_e, a = u
-    w = cons2entropy(SVector(a_rho, a_rho_v1, a_e) / a,
+    a_rho, a_rho_v1, a_e_total, a = u
+    w = cons2entropy(SVector(a_rho, a_rho_v1, a_e_total) / a,
                      CompressibleEulerEquations1D(equations.gamma))
 
-    # we follow the convention for other spatially-varying equations and return the spatially 
+    # we follow the convention for other spatially-varying equations and return the spatially
     # varying coefficient `a` as the final entropy variable.
     return SVector(w[1], w[2], w[3], a)
 end
 
 @inline function entropy2cons(w, equations::CompressibleEulerEquationsQuasi1D)
-    w_rho, w_rho_v1, w_rho_e, a = w
-    u = entropy2cons(SVector(w_rho, w_rho_v1, w_rho_e),
+    w_rho, w_rho_v1, w_rho_e_total, a = w
+    u = entropy2cons(SVector(w_rho, w_rho_v1, w_rho_e_total),
                      CompressibleEulerEquations1D(equations.gamma))
     return SVector(a * u[1], a * u[2], a * u[3], a)
 end
@@ -394,14 +400,14 @@ isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`,
 see [`pressure(u, equations::CompressibleEulerEquations1D)`](@ref).
 """
 @inline function pressure(u, equations::CompressibleEulerEquationsQuasi1D)
-    a_rho, a_rho_v1, a_e, a = u
-    return pressure(SVector(a_rho, a_rho_v1, a_e) / a,
+    a_rho, a_rho_v1, a_e_total, a = u
+    return pressure(SVector(a_rho, a_rho_v1, a_e_total) / a,
                     CompressibleEulerEquations1D(equations.gamma))
 end
 
 @inline function density_pressure(u, equations::CompressibleEulerEquationsQuasi1D)
-    a_rho, a_rho_v1, a_e, a = u
-    return density_pressure(SVector(a_rho, a_rho_v1, a_e) / a,
+    a_rho, a_rho_v1, a_e_total, a = u
+    return density_pressure(SVector(a_rho, a_rho_v1, a_e_total) / a,
                             CompressibleEulerEquations1D(equations.gamma))
 end
 end # @muladd

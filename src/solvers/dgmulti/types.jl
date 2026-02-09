@@ -219,7 +219,7 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
   basis evaluation, differentiation, etc).
 - `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
 - `EToV` is a 2D array containing element-to-vertex connectivities for each element
-- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `is_on_boundary` specifies boundary using a `NamedTuple`
 - `periodicity` is a tuple of booleans specifying if the domain is periodic `true`/`false` in the
   (x,y,z) direction.
 """
@@ -264,7 +264,7 @@ end
 
 Constructs a Cartesian [`DGMultiMesh`](@ref) with element type `dg.basis.element_type`. The domain is
 the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
-- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `is_on_boundary` specifies boundary using a `NamedTuple`
 - `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
 function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension;
@@ -299,7 +299,7 @@ end
 Constructs a `Curved()` [`DGMultiMesh`](@ref) with element type `dg.basis.element_type`.
 - `mapping` is a function which maps from a reference [-1, 1]^NDIMS domain to a mapped domain,
    e.g., `xy = mapping(x, y)` in 2D.
-- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `is_on_boundary` specifies boundary using a `NamedTuple`
 - `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
 function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;

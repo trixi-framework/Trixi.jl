@@ -49,7 +49,7 @@ volume_flux = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
-                                local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
+                                local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
                                 positivity_variables_nonlinear = [pressure],
                                 # Default parameters are not sufficient to fulfill bounds properly.
@@ -64,9 +64,10 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

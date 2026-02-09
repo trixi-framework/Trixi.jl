@@ -10,7 +10,7 @@ initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (x_neg = boundary_condition,
+boundary_conditions = (; x_neg = boundary_condition,
                        x_pos = boundary_condition,
                        y_neg = boundary_condition,
                        y_pos = boundary_condition)
@@ -22,7 +22,7 @@ surface_flux = flux_hll
 volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                       volume_flux_fv = surface_flux,
                                                       reconstruction_mode = reconstruction_O2_full,
-                                                      slope_limiter = vanLeer)
+                                                      slope_limiter = vanleer)
 
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)

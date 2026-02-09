@@ -76,8 +76,8 @@ end
 
 initial_condition = initial_condition_circular_wind
 
-boundary_conditions = Dict(:inside => boundary_condition_slip_wall,
-                           :outside => boundary_condition_slip_wall)
+boundary_conditions = (; inside = boundary_condition_slip_wall,
+                       outside = boundary_condition_slip_wall)
 
 # The speed of sound in this example is 374 m/s.
 surface_flux = FluxLMARS(374)

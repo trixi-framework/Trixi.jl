@@ -115,8 +115,8 @@ local_twosided_variables_cons = ["rho"]
 
 # To limit non-linear variables locally, pass the variable function combined with the requested
 # bound (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified
-# specific entropy [`Trixi.entropy_guermond_etal`](@ref), use
-local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]
+# specific entropy [`entropy_guermond_etal`](@ref), use
+local_onesided_variables_nonlinear = [(entropy_guermond_etal, min)]
 
 # ## Exemplary simulation
 # How to set up a simulation using the IDP limiting becomes clearer when looking at an exemplary
@@ -179,9 +179,11 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000,
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
