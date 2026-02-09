@@ -828,7 +828,7 @@ end
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
 end
 
-@timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
+@timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations2D" begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations2D(eos)
     q = SVector(2.0, 0.1, 0.2, 10.0)
