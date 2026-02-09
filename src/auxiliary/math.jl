@@ -448,5 +448,5 @@ end
 
 # regularized approximation to the ratio a / b which is numerically stable 
 # for b close to zero.
-@inline regularized_ratio(a, b) = a * b / (eps(b) + b^2)
+@inline regularized_ratio(a, b) = a * b / (eps(typeof(b)) + b^2)
 end # @muladd
