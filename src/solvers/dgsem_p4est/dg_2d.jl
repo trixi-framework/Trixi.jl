@@ -312,7 +312,7 @@ function prolong2boundaries!(cache, u, u_global, semis,
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
-                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
@@ -387,7 +387,8 @@ end
 
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                 T8codeMesh{2}},
                                      have_nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
@@ -485,7 +486,8 @@ end
 
 # inlined version of the boundary flux with nonconservative terms calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                 T8codeMesh{2}},
                                      have_nonconservative_terms::True, equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
@@ -662,7 +664,8 @@ end
 
 # Inlined version of the mortar flux computation on small elements for conservation laws
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                   mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                   mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                               T8codeMesh{2}},
                                    have_nonconservative_terms::False, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
@@ -683,7 +686,8 @@ end
 # Inlined version of the mortar flux computation on small elements for equations with conservative and
 # nonconservative terms
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                   mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                   mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                               T8codeMesh{2}},
                                    have_nonconservative_terms::True, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
@@ -717,7 +721,8 @@ end
 end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
-                                            mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                            mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                        T8codeMesh{2}},
                                             equations,
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache, mortar, fstar_primary,

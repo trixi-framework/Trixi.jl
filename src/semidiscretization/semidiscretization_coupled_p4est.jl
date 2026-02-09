@@ -230,16 +230,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         end
     end
 
-    # Zero out coupled mortar face slots in surface_flux_values BEFORE the regular rhs!
-    # This prevents stale flux values from being applied by the regular surface integral
-    foreach_enumerate(semi.semis) do (i, semi_)
-        mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
-        if isdefined(cache, :coupled_mortars) && ncoupledmortars(cache.coupled_mortars) > 0
-            zero_coupled_mortar_surface_flux!(cache.elements.surface_flux_values,
-                                              mesh, equations, solver, cache)
-        end
-    end
-
     # Call rhs! for each semidiscretization
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)

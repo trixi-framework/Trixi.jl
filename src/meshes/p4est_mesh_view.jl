@@ -433,15 +433,22 @@ function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent, elemen
         coupled_mortars.node_indices[1, idx] = small_indices
         coupled_mortars.node_indices[2, idx] = large_indices
 
-        # Compute normal directions from the small elements' contravariant vectors
+        # Compute normal directions from the contravariant vectors
         # These are needed for the flux computation
         small_direction = indices2direction(small_indices)
+        large_direction = indices2direction(large_indices)
+
         i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
         j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-        # Get small element IDs from parent mortar
-        small_element_ids = mortars_parent.neighbor_ids[1:2, mortar_id]
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1], index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2], index_range)
 
+        # Get element IDs from parent mortar
+        small_element_ids = mortars_parent.neighbor_ids[1:2, mortar_id]
+        large_element_id = mortars_parent.neighbor_ids[3, mortar_id]
+
+        # Compute normals for small elements (positions 1 and 2)
         for position in 1:2
             element = small_element_ids[position]
             i_small = i_small_start
@@ -462,6 +469,9 @@ function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent, elemen
                 j_small += j_small_step
             end
         end
+
+        # Note: Position 3 (large element) normals are not computed here
+        # The mortar flux is computed from the small elements' perspective only
     end
 
     return coupled_mortars
