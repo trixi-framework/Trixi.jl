@@ -1072,21 +1072,6 @@ function calc_gradient_surface_integral!(gradients,
     return nothing
 end
 
-function apply_jacobian_parabolic!(gradients::NTuple{3}, mesh::AbstractMesh{3},
-                                   equations_parabolic,
-                                   dg::DG, cache)
-    gradients_x, gradients_y, gradients_z = gradients
-
-    apply_jacobian_parabolic!(gradients_x, mesh, equations_parabolic, dg,
-                              cache)
-    apply_jacobian_parabolic!(gradients_y, mesh, equations_parabolic, dg,
-                              cache)
-    apply_jacobian_parabolic!(gradients_z, mesh, equations_parabolic, dg,
-                              cache)
-
-    return nothing
-end
-
 # Needed to *not* flip the sign of the inverse Jacobian.
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
