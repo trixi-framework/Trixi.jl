@@ -434,10 +434,10 @@ trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
 #                                                        equations::CompressibleEulerEquations2D)
 # flux = Trixi.flux(u_inner, normal_direction, equations)
 #
-# boundary_conditions = Dict(:PhysicalLine1 => boundary_condition_supersonic_inflow, # Left boundary
-#                            :PhysicalLine2 => boundary_condition_supersonic_outflow, # Right boundary
-#                            :PhysicalLine3 => boundary_condition_supersonic_outflow, # Top and bottom boundary
-#                            :PhysicalLine4 => boundary_condition_slip_wall) # Airfoil
+# boundary_conditions = (; PhysicalLine1 = boundary_condition_supersonic_inflow, # Left boundary
+#                          PhysicalLine2 = boundary_condition_supersonic_outflow, # Right boundary
+#                          PhysicalLine3 = boundary_condition_supersonic_outflow, # Top and bottom boundary
+#                          PhysicalLine4 = boundary_condition_slip_wall) # Airfoil
 #
 # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 #                                     boundary_conditions = boundary_conditions)
