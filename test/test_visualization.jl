@@ -405,7 +405,6 @@ end
     end
 end
 
-
 @testset "PlotData2D Regression Tests" begin
     # Define local path to examples
     examples_dir_local = joinpath(dirname(@__DIR__), "examples")
