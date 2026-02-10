@@ -25,7 +25,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                        "elixir_euler_blast_wave_amr.jl"),
                         "TreeMesh (FDSBP)" => ("tree_2d_fdsbp",
-                                               "elixir_advection_extended.jl"),
+                                               "elixir_euler_convergence.jl"),
                         "StructuredMesh" => ("structured_2d_dgsem",
                                              "elixir_euler_source_terms_waving_flag.jl"),
                         "UnstructuredMesh" => ("unstructured_2d_dgsem",
@@ -41,7 +41,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                         tspan=(0, 0.1))
 
     # Constructor tests
-    if mesh == "TreeMesh"
+    if mesh isa TreeMesh
         @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
         @test PlotData2D(sol; nvisnodes = 0, grid_lines = false,
                          solution_variables = cons2cons) isa Trixi.PlotData2DCartesian
