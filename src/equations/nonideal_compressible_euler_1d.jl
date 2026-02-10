@@ -327,7 +327,7 @@ EOS is ``p v_i / T`` for the choice of entropy ``S(u) = \rho s``.
 @inline function entropy_potential(u, orientation::Int,
                                    equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    V, v1, T = cons2prim(u, equations)
+    V, v1, T = cons2thermo(u, equations)
     p = pressure(V, T, eos)
     return p * v1 / T
 end
