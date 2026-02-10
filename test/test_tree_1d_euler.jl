@@ -663,8 +663,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_modified_sod_entropy_correction.jl"),
                         tspan=(0.0, 0.1),
-                        l2=[0.17918606870048043, 0.3021079622668064, 0.591922971435801],
-                        linf=[0.6787210684791858, 0.8094457932998395, 1.9399759521796582])
+                        l2=[0.17918607435161274, 0.3021079725486445, 0.5919229917120694],
+                        linf=[0.6787210671799078, 0.8094457929285299, 1.9399759495474393])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
