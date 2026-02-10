@@ -594,8 +594,6 @@ function prolong_divergence2mortars!(cache, flux_viscous,
     return nothing
 end
 
-# We have special `calc_divergence_mortar_flux!` for the divergence part of
-# the parabolic terms.
 function calc_divergence_mortar_flux!(surface_flux_values,
                                       mesh::P4estMesh{3},
                                       equations_parabolic,
