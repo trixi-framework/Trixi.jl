@@ -470,7 +470,8 @@ function evaluate_scalar_function_at_nodes(function_to_visualize, u, mesh, equat
 end
 
 function evaluate_scalar_function_at_nodes(function_to_visualize, u,
-                                           dg::DGSEM, cache)
+                                           mesh::AbstractMesh{2}, equations,
+                                           dg::Union{<:DGSEM, <:FDSBP}, cache)
 
     # `u` should be an array of size (nvariables, nnodes, nnodes, nelements)
     f = zeros(eltype(u), nnodes(dg), nnodes(dg), nelements(dg, cache))
@@ -514,7 +515,8 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
                                   x_face, y_face, face_data, variable_name)
 end
 
-function ScalarPlotData2D(u, mesh, equations, dg::DGSEM, cache; variable_name = nothing,
+function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache;
+                          variable_name = nothing,
                           nvisnodes = 2 * nnodes(dg))
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
