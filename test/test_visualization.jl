@@ -107,15 +107,28 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             scalar_data = StructArrays.component(u, 1)
         else
             cache = semi.cache
-            x = view(cache.elements.node_coordinates, 1, :, :, :)
-            scalar_data = x
+            scalar_data = u[1, ..]
         end
         @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
         @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
                                                        sol.u[end], semi))
-        @test typeof(ScalarPlotData2D(scalar_data, semi)) ==
-              typeof(ScalarPlotData2D((u, equations) -> u[1],
-                                      sol.u[end], semi))
+
+        # test for consistency between the two ScalarPlotData2D constructions
+        spd_no_function = ScalarPlotData2D(scalar_data, semi)
+        spd_function = ScalarPlotData2D((u, equations) -> u[1],
+                                        sol.u[end], semi)
+        @test typeof(spd_no_function) == typeof(spd_function)
+        for property in propertynames(spd_function)
+            if property == :data
+                @test spd_no_function.data.data ≈ spd_function.data.data
+            elseif property == :variable_names
+                @test getproperty(spd_no_function, property) ==
+                      getproperty(spd_function, property)
+            else
+                @test getproperty(spd_no_function, property) ≈
+                      getproperty(spd_function, property)
+            end
+        end
     end
 
     @testset "1D plot from 2D solution" begin
