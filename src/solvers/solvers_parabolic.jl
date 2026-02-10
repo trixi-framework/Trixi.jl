@@ -122,7 +122,7 @@ function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
-    return 0.5f0 * ((u_ll + u_rr) - ldg_switch * (u_rr - u_ll))
+    return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
 end
 
 @doc raw"""
@@ -160,7 +160,7 @@ function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
-    return 0.5f0 * ((u_ll + u_rr) + ldg_switch * (u_rr - u_ll))
+    return 0.5f0 * (u_ll + u_rr + ldg_switch * (u_rr - u_ll))
 end
 
 default_parabolic_solver() = ViscousFormulationBassiRebay1()
