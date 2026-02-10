@@ -430,6 +430,9 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     return flux
 end
 
+# RHS call for the coupled system.
+# Here we require the data from u_global for each semidiscretization in order
+# to exchange the correct boundary values.
 function rhs!(du_ode, u_ode, u_global, semis,
               semi::SemidiscretizationHyperbolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
