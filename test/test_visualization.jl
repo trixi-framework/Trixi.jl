@@ -24,6 +24,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 # Run 2D tests with elixirs for all mesh types
 test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                        "elixir_euler_blast_wave_amr.jl"),
+                        "TreeMesh (FDSBP)" => ("tree_2d_fdsbp",
+                                               "elixir_advection_extended.jl"),
                         "StructuredMesh" => ("structured_2d_dgsem",
                                              "elixir_euler_source_terms_waving_flag.jl"),
                         "UnstructuredMesh" => ("unstructured_2d_dgsem",
@@ -103,16 +105,29 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                 u = sol.u[end]
             end
             scalar_data = StructArrays.component(u, 1)
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(u, (u, equations) -> u[1],
-                                                           semi))
         else
             cache = semi.cache
-            x = view(cache.elements.node_coordinates, 1, :, :, :)
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(x, semi))
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(sol.u[end],
-                                                           (u, equations) -> u[1],
-                                                           semi))
+            scalar_data = u[1, ..]
+        end
+        @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+        @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
+                                                       sol.u[end], semi))
+
+        # test for consistency between the two ScalarPlotData2D constructions
+        spd_no_function = ScalarPlotData2D(scalar_data, semi)
+        spd_function = ScalarPlotData2D((u, equations) -> u[1],
+                                        sol.u[end], semi)
+        @test typeof(spd_no_function) == typeof(spd_function)
+        for property in propertynames(spd_function)
+            if property == :data
+                @test spd_no_function.data.data ≈ spd_function.data.data
+            elseif property == :variable_names
+                @test getproperty(spd_no_function, property) ==
+                      getproperty(spd_function, property)
+            else
+                @test getproperty(spd_no_function, property) ≈
+                      getproperty(spd_function, property)
+            end
         end
     end
 
