@@ -18,12 +18,14 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 cells_per_dimension = (100, 100)
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min,
+                      coordinates_max, periodicity = true)
 
 # The multi-ion GLM-MHD equations require the inclusion of source_terms_lorentz 
 # whenever multiple ion species are present
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_lorentz)
+                                    source_terms = source_terms_lorentz,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
