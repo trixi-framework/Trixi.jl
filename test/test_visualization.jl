@@ -24,6 +24,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 # Run 2D tests with elixirs for all mesh types
 test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                        "elixir_euler_blast_wave_amr.jl"),
+                        "TreeMesh (FDSBP)" => ("tree_2d_fdsbp",
+                                               "elixir_advection_extended.jl"),
                         "StructuredMesh" => ("structured_2d_dgsem",
                                              "elixir_euler_source_terms_waving_flag.jl"),
                         "UnstructuredMesh" => ("unstructured_2d_dgsem",
