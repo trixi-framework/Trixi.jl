@@ -110,7 +110,8 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             cache = semi.cache
             x = view(cache.elements.node_coordinates, 1, :, :, :)
             @trixi_test_nowarn Plots.plot(ScalarPlotData2D(x, semi))
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(u, (u, equations) -> u[1],
+            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(sol.u[end],
+                                                           (u, equations) -> u[1],
                                                            semi))
         end
     end
