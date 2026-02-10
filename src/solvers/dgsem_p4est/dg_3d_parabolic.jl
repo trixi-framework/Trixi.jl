@@ -13,7 +13,7 @@
 # into `surface_flux_values`.
 @inline function mortar_gradient_fluxes_to_elements!(surface_flux_values,
                                                      mesh::P4estMesh{3},
-                                                     equations::AbstractEquationsParabolic,
+                                                     equations_parabolic::AbstractEquationsParabolic,
                                                      mortar_l2::LobattoLegendreMortarL2,
                                                      dg::DGSEM, cache, mortar,
                                                      fstar_primary,
@@ -28,7 +28,7 @@
     for position in 1:4 # Loop over small elements
         element = neighbor_ids[position, mortar]
         for j in eachnode(dg), i in eachnode(dg)
-            for v in eachvariable(equations)
+            for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, i, j, small_direction, element] = fstar_primary[v,
                                                                                        i,
                                                                                        j,
@@ -71,7 +71,7 @@
     j_large = j_large_start
     for j in eachnode(dg)
         for i in eachnode(dg)
-            for v in eachvariable(equations)
+            for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, i_large, j_large, large_direction, large_element] = u_buffer[v,
                                                                                                     i,
                                                                                                     j]
@@ -464,7 +464,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
 end
 
 function prolong_divergence2mortars!(cache, flux_viscous,
-                                     mesh::P4estMesh{3}, equations,
+                                     mesh::P4estMesh{3}, equations_parabolic,
                                      mortar_l2::LobattoLegendreMortarL2,
                                      dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -499,7 +499,7 @@ function prolong_divergence2mortars!(cache, flux_viscous,
                                                             i_small, j_small, k_small,
                                                             element)
 
-                    for v in eachvariable(equations)
+                    for v in eachvariable(equations_parabolic)
                         flux_viscous = SVector(flux_viscous_x[v, i_small, j_small,
                                                               k_small, element],
                                                flux_viscous_y[v, i_small, j_small,
@@ -549,7 +549,7 @@ function prolong_divergence2mortars!(cache, flux_viscous,
                                                         i_large, j_large, k_large,
                                                         element)
 
-                for v in eachvariable(equations)
+                for v in eachvariable(equations_parabolic)
                     flux_viscous = SVector(flux_viscous_x[v, i_large, j_large, k_large,
                                                           element],
                                            flux_viscous_y[v, i_large, j_large, k_large,
@@ -1092,7 +1092,7 @@ end
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
 function apply_jacobian_parabolic!(du::AbstractArray, mesh::P4estMesh{3},
-                                   equations::AbstractEquationsParabolic,
+                                   equations_parabolic::AbstractEquationsParabolic,
                                    dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
@@ -1100,7 +1100,7 @@ function apply_jacobian_parabolic!(du::AbstractArray, mesh::P4estMesh{3},
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             factor = inverse_jacobian[i, j, k, element]
 
-            for v in eachvariable(equations)
+            for v in eachvariable(equations_parabolic)
                 du[v, i, j, k, element] *= factor
             end
         end

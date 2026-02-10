@@ -214,7 +214,7 @@ end
 # into `surface_flux_values`.
 @inline function mortar_gradient_fluxes_to_elements!(surface_flux_values,
                                                      mesh::P4estMesh{2},
-                                                     equations::AbstractEquationsParabolic,
+                                                     equations_parabolic::AbstractEquationsParabolic,
                                                      mortar_l2::LobattoLegendreMortarL2,
                                                      dg::DGSEM, cache, mortar,
                                                      fstar_primary, fstar_secondary,
@@ -227,7 +227,7 @@ end
     for position in 1:2
         element = neighbor_ids[position, mortar]
         for i in eachnode(dg)
-            for v in eachvariable(equations)
+            for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, i, small_direction, element] = fstar_primary[position][v,
                                                                                               i]
             end
@@ -249,14 +249,14 @@ end
 
     if :i_backward in large_indices
         for i in eachnode(dg)
-            for v in eachvariable(equations)
+            for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v,
                                                                                                i]
             end
         end
     else
         for i in eachnode(dg)
-            for v in eachvariable(equations)
+            for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, i, large_direction, large_element] = u_buffer[v,
                                                                                      i]
             end
@@ -571,7 +571,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
 end
 
 function prolong_divergence2mortars!(cache, flux_viscous,
-                                     mesh::P4estMesh{2}, equations,
+                                     mesh::P4estMesh{2}, equations_parabolic,
                                      mortar_l2::LobattoLegendreMortarL2,
                                      dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -600,7 +600,7 @@ function prolong_divergence2mortars!(cache, flux_viscous,
                                                         contravariant_vectors,
                                                         i_small, j_small, element)
 
-                for v in eachvariable(equations)
+                for v in eachvariable(equations_parabolic)
                     flux_viscous = SVector(flux_viscous_x[v, i_small, j_small, element],
                                            flux_viscous_y[v, i_small, j_small, element])
 
@@ -634,7 +634,7 @@ function prolong_divergence2mortars!(cache, flux_viscous,
                                                     contravariant_vectors,
                                                     i_large, j_large, element)
 
-            for v in eachvariable(equations)
+            for v in eachvariable(equations_parabolic)
                 flux_viscous = SVector(flux_viscous_x[v, i_large, j_large, element],
                                        flux_viscous_y[v, i_large, j_large, element])
 
@@ -954,7 +954,8 @@ function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
                                      operator_type,
                                      mesh::P4estMesh,
-                                     equations, surface_integral, dg::DG) where {N}
+                                     equations_parabolic, surface_integral,
+                                     dg::DG) where {N}
     # Extract the boundary condition type and index vector
     boundary_condition = first(BCs)
     boundary_condition_indices = first(BC_indices)
@@ -964,20 +965,21 @@ function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
 
     # process the first boundary condition type
     calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices,
-                        operator_type, mesh, equations, surface_integral, dg)
+                        operator_type, mesh, equations_parabolic, surface_integral, dg)
 
     # recursively call this method with the unprocessed boundary types
     calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
                                 remaining_boundary_condition_indices,
                                 operator_type,
-                                mesh, equations, surface_integral, dg)
+                                mesh, equations_parabolic, surface_integral, dg)
 
     return nothing
 end
 
 # terminate the type-stable iteration over tuples
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
-                                     operator_type, mesh::P4estMesh, equations,
+                                     operator_type, mesh::P4estMesh,
+                                     equations_parabolic,
                                      surface_integral, dg::DG)
     return nothing
 end
@@ -1188,7 +1190,7 @@ end
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
 function apply_jacobian_parabolic!(du::AbstractArray, mesh::P4estMesh{2},
-                                   equations::AbstractEquationsParabolic,
+                                   equations_parabolic::AbstractEquationsParabolic,
                                    dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
@@ -1196,7 +1198,7 @@ function apply_jacobian_parabolic!(du::AbstractArray, mesh::P4estMesh{2},
         for j in eachnode(dg), i in eachnode(dg)
             factor = inverse_jacobian[i, j, element]
 
-            for v in eachvariable(equations)
+            for v in eachvariable(equations_parabolic)
                 du[v, i, j, element] *= factor
             end
         end
