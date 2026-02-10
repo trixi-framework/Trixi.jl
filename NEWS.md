@@ -23,6 +23,7 @@ for human readability.
 
 #### Added
 
+- Added functionality to `ScalarPlotData2D` allowing visualization a field provided by a user-defined scalar function ([#2796]).
 - Added `PengRobinson` equation of state ([#2769]).
 
 ## Changes in the v0.14 lifecycle
