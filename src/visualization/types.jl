@@ -444,9 +444,9 @@ end
 
 """
     ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...)
-    ScalarPlotData2D(u, function_to_visualize, semi::AbstractSemidiscretization; kwargs...)
+    ScalarPlotData2D(function_to_visualize, u, semi::AbstractSemidiscretization; kwargs...)
 
-Returns an `PlotData2DTriangulated` object which is used to visualize a single scalar field.
+Returns a `PlotData2DTriangulated` object which is used to visualize a single scalar field.
 `u` should be an array whose entries correspond to values of the scalar field at nodal points.
 
 The optional argument `function_to_visualize(u, equations)` should be a function which takes 
@@ -475,7 +475,7 @@ function evaluate_scalar_function_at_nodes(function_to_visualize, u,
 
     # `u` should be an array of size (nvariables, nnodes, nnodes, nelements)
     f = zeros(eltype(u), nnodes(dg), nnodes(dg), nelements(dg, cache))
-    for element in eachelement(dg, cache)
+    @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
             f[i, j, element] = function_to_visualize(u_node, equations)
