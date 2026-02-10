@@ -5,9 +5,12 @@
 @muladd begin
 #! format: noindent
 
-# This version is called during `calc_gradients!` and must be specialized because the flux
-# in the gradient is {u} which doesn't depend on normals. Thus, you don't need to scale by
-# 2 and flip the sign when storing the mortar fluxes back into surface_flux_values
+# This version is called during `calc_gradients!` and must be specialized because the
+# magnitude of the flux does NOT depend on the outward normal.
+# Thus, you don't need to scale by 2 (e.g., the scaling factor in the normals (and in the
+# contravariant vectors) along large/small elements across a non-conforming
+# interface in 2D) and flip the sign when storing the mortar fluxes back
+# into `surface_flux_values`.
 @inline function mortar_gradient_fluxes_to_elements!(surface_flux_values,
                                                      mesh::P4estMesh{3},
                                                      equations::AbstractEquationsParabolic,
@@ -37,29 +40,16 @@
     # Project small fluxes to large element.
     multiply_dimensionwise!(u_buffer,
                             mortar_l2.reverse_lower, mortar_l2.reverse_lower,
-                            view(fstar_secondary, .., 1),
-                            fstar_tmp)
+                            view(fstar_secondary, .., 1), fstar_tmp)
     add_multiply_dimensionwise!(u_buffer,
                                 mortar_l2.reverse_upper, mortar_l2.reverse_lower,
-                                view(fstar_secondary, .., 2),
-                                fstar_tmp)
+                                view(fstar_secondary, .., 2), fstar_tmp)
     add_multiply_dimensionwise!(u_buffer,
                                 mortar_l2.reverse_lower, mortar_l2.reverse_upper,
-                                view(fstar_secondary, .., 3),
-                                fstar_tmp)
+                                view(fstar_secondary, .., 3), fstar_tmp)
     add_multiply_dimensionwise!(u_buffer,
                                 mortar_l2.reverse_upper, mortar_l2.reverse_upper,
-                                view(fstar_secondary, .., 4),
-                                fstar_tmp)
-
-    # The flux is calculated in the outward direction of the small elements,
-    # so the sign must be switched to get the flux in outward direction
-    # of the large element.
-    # The contravariant vectors of the large element (and therefore the normal
-    # vectors of the large element as well) are twice as large as the
-    # contravariant vectors of the small elements. Therefore, the flux needs
-    # to be scaled by a factor of 2 to obtain the flux of the large element.
-    # u_buffer .*= 0.5
+                                view(fstar_secondary, .., 4), fstar_tmp)
 
     # Copy interpolated flux values from buffer to large element face in the
     # correct orientation.

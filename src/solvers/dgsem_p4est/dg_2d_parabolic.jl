@@ -206,7 +206,8 @@ function calc_gradient!(gradients, u_transformed, t,
     return nothing
 end
 
-# This version is called during `calc_gradients!`.
+# This version is called during `calc_gradients!` and must be specialized because the
+# magnitude of the flux does NOT depend on the outward normal.
 # Thus, you don't need to scale by 2 (e.g., the scaling factor in the normals (and in the
 # contravariant vectors) along large/small elements across a non-conforming
 # interface in 2D) and flip the sign when storing the mortar fluxes back
