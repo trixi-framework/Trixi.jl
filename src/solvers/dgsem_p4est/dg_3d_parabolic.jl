@@ -449,7 +449,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i, j, primary_direction_index, primary_element] = flux[v]
-                    # Negate secondary flux to get the correct normal direction on the secondary element
+                    # Flip sign of secondary flux since normal_direction on secondary element is negative of primary element
                     surface_flux_values[v, i_secondary, j_secondary, secondary_direction_index, secondary_element] = -flux[v]
                 end
 
@@ -658,7 +658,7 @@ function calc_divergence_mortar_flux!(surface_flux_values,
                                               equations_parabolic, parabolic_scheme)
 
                         fstar_primary[v, i, j, position] = flux
-                        # Negate secondary flux to get the correct normal direction on the secondary element
+                        # Flip sign of secondary flux since normal_direction on secondary element is negative of primary element
                         fstar_secondary[v, i, j, position] = -flux
                     end
 
