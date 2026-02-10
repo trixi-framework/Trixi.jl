@@ -453,23 +453,23 @@ The optional argument `function_to_visualize(u, equations)` should be a function
 in the conservative variables and equations as input and outputs a scalar variable to be visualized,
 e.g., [`pressure`](@ref) or [`density`](@ref) for the compressible Euler equations.
 """
-function ScalarPlotData2D(u, function_to_visualize::Func,
+function ScalarPlotData2D(function_to_visualize::Func, u,
                           semi::AbstractSemidiscretization;
                           kwargs...) where {Func}
-    return ScalarPlotData2D(evaluate_scalar_function_at_nodes(Trixi.wrap_array(u, semi),
-                                                              function_to_visualize,
+    return ScalarPlotData2D(evaluate_scalar_function_at_nodes(function_to_visualize,
+                                                              Trixi.wrap_array(u, semi),
                                                               mesh_equations_solver_cache(semi)...),
                             mesh_equations_solver_cache(semi)...; kwargs...)
 end
 
-function evaluate_scalar_function_at_nodes(u, function_to_visualize, mesh, equations,
+function evaluate_scalar_function_at_nodes(function_to_visualize, u, mesh, equations,
                                            dg::DGMulti, cache)
     # for DGMulti solvers, eltype(u) should be SVector{nvariables(equations)}, so 
     # broadcasting `func_to_visualize` over the solution array will work. 
     return function_to_visualize.(u, equations)
 end
 
-function evaluate_scalar_function_at_nodes(u, function_to_visualize, mesh, equations,
+function evaluate_scalar_function_at_nodes(function_to_visualize, u,
                                            dg::DGSEM, cache)
 
     # `u` should be an array of size (nvariables, nnodes, nnodes, nelements)

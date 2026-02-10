@@ -103,17 +103,17 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                 u = sol.u[end]
             end
             scalar_data = StructArrays.component(u, 1)
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(u, (u, equations) -> u[1],
-                                                           semi))
         else
             cache = semi.cache
             x = view(cache.elements.node_coordinates, 1, :, :, :)
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(x, semi))
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(sol.u[end],
-                                                           (u, equations) -> u[1],
-                                                           semi))
+            scalar_data = x
         end
+        @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+        @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
+                                                       sol.u[end], semi))
+        @test typeof(ScalarPlotData2D(scalar_data, semi)) ==
+              typeof(ScalarPlotData2D((u, equations) -> u[1],
+                                      sol.u[end], semi))
     end
 
     @testset "1D plot from 2D solution" begin
