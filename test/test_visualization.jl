@@ -110,7 +110,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
         else
             cache = semi.cache
             u = Trixi.wrap_array(sol.u[end], semi)
-            scalar_data = u[1, ..]
+            scalar_data = u[1, :, :, :]
         end
         @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
         @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
