@@ -616,8 +616,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic_amr.jl"),
                         tspan=(0.0, 0.01),
-                        l2=[0.014715887539773128],
-                        linf=[0.2285802791900049])
+                        l2=[0.0033330804100706246],
+                        linf=[0.025058926259548198])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -628,8 +628,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         tspan=(0.0, 0.01),
-                        l2=[0.007934195641974433],
-                        linf=[0.11030265194954081])
+                        l2=[0.0015286892792639988],
+                        linf=[0.018527369646440195])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -658,8 +658,8 @@ end
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         solver_parabolic=ViscousFormulationLocalDG(),
                         tspan=(0.0, 0.01),
-                        l2=[0.0019454322561230238],
-                        linf=[0.03075056091401096])
+                        l2=[0.0019455489269807713],
+                        linf=[0.030752702643474072])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -750,12 +750,12 @@ end
                                  "elixir_navierstokes_lid_driven_cavity_amr.jl"),
                         tspan=(0.0, 1.0),
                         l2=[
-                            0.0005323841980601085, 0.07892044543547208,
-                            0.02909671646389337, 0.11717468256112017
+                            0.0005310726567801674, 0.07895991786618105,
+                            0.029214122381480894, 0.11716618596711467
                         ],
                         linf=[
-                            0.006045292737899444, 0.9233292581786228,
-                            0.7982129977236198, 1.6864546235292153
+                            0.005980577644609353, 0.924562207991634,
+                            0.7986981255639193, 1.691880485708424
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -812,16 +812,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl"),
                         l2=[
-                            6.191672324705442e-6,
-                            0.00011583392224949682,
-                            0.00011897020463459889,
-                            0.006467379086802275
+                            6.182357759707017e-6,
+                            0.00011579259680904478,
+                            0.00011894474396783937,
+                            0.006461877138814042
                         ],
                         linf=[
-                            0.0017446176443216936,
-                            0.06961708834164942,
-                            0.037063246278530367,
-                            1.4435072005258793
+                            0.0017404002266841346,
+                            0.07055368268970251,
+                            0.036037030525331186,
+                            1.4396984144759268
                         ], tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -1053,7 +1053,7 @@ end
                             1.5543122344752192e-15,
                             1.2378986724570495e-13,
                             1.7111312367035225e-13,
-                            1.0867751143450732e-11
+                            1.5727863456049818e-11
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
