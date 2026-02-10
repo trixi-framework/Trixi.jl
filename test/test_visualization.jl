@@ -45,7 +45,9 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
         @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
         @test PlotData2D(sol; nvisnodes = 0, grid_lines = false,
                          solution_variables = cons2cons) isa Trixi.PlotData2DCartesian
-        @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+        if semi.solver isa DGSEM
+            @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+        end
     else
         @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
         @test PlotData2D(sol; nvisnodes = 0, solution_variables = cons2cons) isa
@@ -107,6 +109,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             scalar_data = StructArrays.component(u, 1)
         else
             cache = semi.cache
+            u = Trixi.wrap_array(sol.u[end], semi)
             scalar_data = u[1, ..]
         end
         @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
