@@ -8,13 +8,14 @@
 # This version is called during `calc_gradients!` and must be specialized because the flux
 # in the gradient is {u} which doesn't depend on normals. Thus, you don't need to scale by
 # 2 and flip the sign when storing the mortar fluxes back into surface_flux_values
-@inline function mortar_fluxes_to_elements!(surface_flux_values,
-                                            mesh::P4estMesh{3},
-                                            equations::AbstractEquationsParabolic,
-                                            mortar_l2::LobattoLegendreMortarL2,
-                                            dg::DGSEM, cache, mortar, fstar_primary,
-                                            fstar_secondary, u_buffer,
-                                            fstar_tmp)
+@inline function mortar_gradient_fluxes_to_elements!(surface_flux_values,
+                                                     mesh::P4estMesh{3},
+                                                     equations::AbstractEquationsParabolic,
+                                                     mortar_l2::LobattoLegendreMortarL2,
+                                                     dg::DGSEM, cache, mortar,
+                                                     fstar_primary,
+                                                     fstar_secondary, u_buffer,
+                                                     fstar_tmp)
     @unpack neighbor_ids, node_indices = cache.mortars
     index_range = eachnode(dg)
     # Copy solution small to small
@@ -195,8 +196,6 @@ end
     flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
                            equations_parabolic, parabolic_scheme)
 
-    # Note that we don't flip the sign on the secondondary flux. This is because for parabolic terms,
-    # the normals are not embedded in `flux_` for the parabolic gradient computations.
     for v in eachvariable(equations_parabolic)
         surface_flux_values[v, primary_i_node_index, primary_j_node_index, primary_direction_index, primary_element_index] = flux_[v]
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
@@ -619,8 +618,7 @@ function calc_divergence_mortar_flux!(surface_flux_values,
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_primary = fstar_primary_threaded[Threads.threadid()]
-        fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
+        fstar = fstar_primary_threaded[Threads.threadid()]
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
         # Get index information on the small elements
@@ -657,9 +655,7 @@ function calc_divergence_mortar_flux!(surface_flux_values,
                                               normal_direction, Divergence(),
                                               equations_parabolic, parabolic_scheme)
 
-                        fstar_primary[v, i, j, position] = flux
-                        # Flip sign of secondary flux since normal_direction on secondary element is negative of primary element
-                        fstar_secondary[v, i, j, position] = -flux
+                        fstar[v, i, j, position] = flux
                     end
 
                     i_small += i_small_step_i
@@ -679,7 +675,7 @@ function calc_divergence_mortar_flux!(surface_flux_values,
         # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
         mortar_fluxes_to_elements!(surface_flux_values, mesh,
                                    equations_parabolic, mortar_l2, dg, cache,
-                                   mortar, fstar_primary, fstar_secondary, u_buffer,
+                                   mortar, fstar, fstar, u_buffer,
                                    fstar_tmp)
     end
 
@@ -749,11 +745,12 @@ function calc_gradient_mortar_flux!(surface_flux_values,
         # interface using the normal from the "primary" element. The result is then
         # passed back to the "secondary" element, flipping the sign to account for the
         # change in the normal direction. For mortars, this sign flip occurs in
-        # "mortar_fluxes_to_elements!" instead.
-        mortar_fluxes_to_elements!(surface_flux_values,
-                                   mesh, equations_parabolic, mortar_l2, dg, cache,
-                                   mortar, fstar_primary, fstar_secondary, u_buffer,
-                                   fstar_tmp)
+        # "mortar_gradient_fluxes_to_elements!" instead.
+        mortar_gradient_fluxes_to_elements!(surface_flux_values,
+                                            mesh, equations_parabolic, mortar_l2,
+                                            dg, cache,
+                                            mortar, fstar_primary, fstar_secondary,
+                                            u_buffer, fstar_tmp)
     end
 
     return nothing
