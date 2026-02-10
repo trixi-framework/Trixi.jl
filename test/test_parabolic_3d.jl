@@ -491,16 +491,9 @@ end
 @trixi_testset "P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
-                        semi=SemidiscretizationHyperbolicParabolic(mesh,
-                                                                   (equations,
-                                                                    equations_parabolic),
-                                                                   initial_condition,
-                                                                   solver;
-                                                                   solver_parabolic = ViscousFormulationLocalDG(),
-                                                                   boundary_conditions = (boundary_conditions,
-                                                                                          boundary_conditions)),
-                        cfl_diffusive=0.1,
-                        l2=[0.00418041688403112], linf=[0.051662524467102684])
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        cfl_diffusive=0.06,
+                        l2=[0.004185475784339019], linf=[0.051663567374880225])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
