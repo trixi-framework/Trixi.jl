@@ -450,7 +450,8 @@ Returns an `PlotData2DTriangulated` object which is used to visualize a single s
 `u` should be an array whose entries correspond to values of the scalar field at nodal points.
 
 The optional argument `function_to_visualize(u, equations)` should be a function which takes 
-in the conservative variables and equations as input and outputs a scalar variable to be visualized. 
+in the conservative variables and equations as input and outputs a scalar variable to be visualized,
+e.g., [`pressure`](@ref) or [`density`](@ref) for the compressible Euler equations.
 """
 function ScalarPlotData2D(u, function_to_visualize::Func,
                           semi::AbstractSemidiscretization;
