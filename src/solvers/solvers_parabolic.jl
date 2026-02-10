@@ -33,8 +33,8 @@ DG gradient and DG divergence under BR1 are identical, this function does
 not need to be specialized for `Gradient` and `Divergence`.
 
 `normal_direction` is not used in the BR1 flux,
-but is included as an argument for consistency with the `ViscousFormulationLocalDG` flux,
-which does use the `normal_direction` to compute the LDG "switch" on the generally non-cartesian `P4estMesh`.
+but is included as an argument for consistency with the [`ViscousFormulationLocalDG`](@ref) flux,
+which does use the `normal_direction` to compute the LDG "switch" on the generally non-Cartesian [`P4estMesh`](@ref).
 """
 function flux_parabolic(u_ll, u_rr,
                         gradient_or_divergence, equations_parabolic,
@@ -98,9 +98,9 @@ Here, we use the convention that the gradient flux is upwinded, thus we have
 ```math
 f_{\text{gradient}} = u_{L}
 ```
-on the Cartesian `TreeMesh`.
+on the Cartesian [`TreeMesh`](@ref).
 
-For `P4estMesh`, the `normal_direction` is used to compute the LDG "switch" for the upwinding/downwinding.
+For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" for the upwinding/downwinding.
 This is realized by taking the sign of the dot product of the normal and positive-coordinate direction vector:
 ```math
 s = \text{sign}(\vec{n} \cdot \vec{1}
@@ -142,9 +142,9 @@ Here, we use the convention that the divergence flux is upwinded, thus we have
 ```math
 f_{\text{divergence}} = u_{R}
 ```
-on the Cartesian `TreeMesh`.
+on the Cartesian [`TreeMesh`](@ref).
 
-For `P4estMesh`, the `normal_direction` is used to compute the LDG "switch" for the upwinding/downwinding.
+For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" for the upwinding/downwinding.
 This is realized by taking the sign of the dot product of the normal and positive-coordinate direction vector:
 ```math
 s = \text{sign}(\vec{n} \cdot \vec{1}
