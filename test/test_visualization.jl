@@ -405,14 +405,6 @@ end
     end
 end
 
-# Helper function for regression tests
-ic_constant = function (x, t, equations::CompressibleEulerEquations2D)
-    rho = 1.0
-    v1 = 0.5
-    v2 = -0.5
-    p = 1.0
-    return prim2cons(SVector(rho, v1, v2, p), equations)
-end
 
 @testset "PlotData2D Regression Tests" begin
     # Define local path to examples
@@ -425,7 +417,7 @@ end
                       joinpath(examples_dir_local, "tree_2d_dgsem",
                                "elixir_euler_blast_wave.jl"),
                       tspan = (0.0, 0.0))
-        u_ode = compute_coefficients(ic_constant, 0.0, semi)
+        u_ode = compute_coefficients(initial_condition_constant, 0.0, semi)
         pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
 
         @test pd.x isa AbstractVector
@@ -433,9 +425,9 @@ end
 
         # Check Values (pd.data[i] is the matrix for variable i)
         @test all(x -> isapprox(x, 1.0), pd.data[1]) # rho
-        @test all(x -> isapprox(x, 0.5), pd.data[2]) # v1
-        @test all(x -> isapprox(x, -0.5), pd.data[3]) # v2
-        @test all(x -> isapprox(x, 1.0), pd.data[4]) # p
+        @test all(x -> isapprox(x, 0.1), pd.data[2]) # v1
+        @test all(x -> isapprox(x, -0.2), pd.data[3]) # v2
+        @test all(x -> isapprox(x, 25.025), pd.data[4]) # p
     end
 
     # --- Test 2: StructuredMesh (Curvilinear) ---
@@ -445,7 +437,7 @@ end
                       joinpath(examples_dir_local, "structured_2d_dgsem",
                                "elixir_euler_ec.jl"),
                       tspan = (0.0, 0.0))
-        u_ode = compute_coefficients(ic_constant, 0.0, semi)
+        u_ode = compute_coefficients(initial_condition_constant, 0.0, semi)
         pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
 
         @test pd.x isa AbstractMatrix
@@ -453,9 +445,9 @@ end
 
         # Check Values: Iterate over the solution vectors
         @test all(val -> isapprox(val[1], 1.0), pd.data) # rho
-        @test all(val -> isapprox(val[2], 0.5), pd.data) # v1
-        @test all(val -> isapprox(val[3], -0.5), pd.data) # v2
-        @test all(val -> isapprox(val[4], 1.0), pd.data) # p
+        @test all(val -> isapprox(val[2], 0.1), pd.data) # v1
+        @test all(val -> isapprox(val[3], -0.2), pd.data) # v2
+        @test all(val -> isapprox(val[4], 25.025), pd.data) # p
     end
 
     # --- Test 3: P4estMesh (Unstructured) ---
@@ -465,7 +457,7 @@ end
                       joinpath(examples_dir_local, "p4est_2d_dgsem",
                                "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                       tspan = (0.0, 0.0))
-        u_ode = compute_coefficients(ic_constant, 0.0, semi)
+        u_ode = compute_coefficients(initial_condition_constant, 0.0, semi)
         pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
 
         @test pd.x isa AbstractMatrix
@@ -473,9 +465,9 @@ end
 
         # Check Values
         @test all(val -> isapprox(val[1], 1.0), pd.data) # rho
-        @test all(val -> isapprox(val[2], 0.5), pd.data) # v1
-        @test all(val -> isapprox(val[3], -0.5), pd.data) # v2
-        @test all(val -> isapprox(val[4], 1.0), pd.data) # p
+        @test all(val -> isapprox(val[2], 0.1), pd.data) # v1
+        @test all(val -> isapprox(val[3], -0.2), pd.data) # v2
+        @test all(val -> isapprox(val[4], 25.025), pd.data) # p
     end
 end
 
