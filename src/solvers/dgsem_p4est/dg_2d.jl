@@ -311,10 +311,12 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+# We require this function definition, as the function calls for the
+# coupled simulations pass the u_global variable.
 function prolong2boundaries!(cache, u, u_global, semis,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
-    @unpack interfaces, boundaries = cache
+    @unpack boundaries = cache
     index_range = eachnode(dg)
 
     @threaded for boundary in eachboundary(dg, cache)
