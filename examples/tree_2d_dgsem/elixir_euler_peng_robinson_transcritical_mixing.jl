@@ -26,8 +26,7 @@ function initial_condition_transcritical_mixing(x, t,
     # from Bernades et al
     epsilon, delta, A = 1.0, 1 / 20, 3 / 8
     u0 = 25 # m/s
-    Tc = eos.T0 # this value is 126.2 for N2
-    T = Tc * (3 * A - A * tanh(y / delta))
+    T = eos.Tc * (3 * A - A * tanh(y / delta)) # Tc is 126.2 for N2
 
     tol = Trixi.eos_newton_tol(eos)
 
