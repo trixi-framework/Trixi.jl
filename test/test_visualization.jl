@@ -49,6 +49,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
         end
     else
+        @show directory, elixir
         @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
         @test PlotData2D(sol; nvisnodes = 0, solution_variables = cons2cons) isa
               Trixi.PlotData2DTriangulated
