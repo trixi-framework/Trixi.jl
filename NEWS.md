@@ -24,6 +24,8 @@ for human readability.
 #### Added
 
 - Added `PengRobinson` equation of state ([#2769]).
+- It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
+This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2796]).
 
 ## Changes in the v0.14 lifecycle
 
