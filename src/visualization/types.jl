@@ -444,10 +444,44 @@ end
 
 """
     ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...)
+    ScalarPlotData2D(u, function_to_visualize, semi::AbstractSemidiscretization; kwargs...)
 
 Returns an `PlotData2DTriangulated` object which is used to visualize a single scalar field.
 `u` should be an array whose entries correspond to values of the scalar field at nodal points.
+
+The optional argument `function_to_visualize(u, equations)` should be a function which takes 
+in the conservative variables as input and outputs a scalar variable to be visualized. 
 """
+function ScalarPlotData2D(u, function_to_visualize::Func,
+                          semi::AbstractSemidiscretization;
+                          kwargs...) where {Func}
+    return ScalarPlotData2D(evaluate_scalar_function_at_nodes(Trixi.wrap_array(u, semi),
+                                                              function_to_visualize,
+                                                              mesh_equations_solver_cache(semi)...),
+                            mesh_equations_solver_cache(semi)...; kwargs...)
+end
+
+function evaluate_scalar_function_at_nodes(u, function_to_visualize, mesh, equations,
+                                           dg::DGMulti, cache)
+    # for DGMulti solvers, eltype(u) should be SVector{nvariables(equations)}, so 
+    # broadcasting `func_to_visualize` over the solution array will work. 
+    return function_to_visualize.(u, equations)
+end
+
+function evaluate_scalar_function_at_nodes(u, function_to_visualize, mesh, equations,
+                                           dg::DGSEM, cache)
+
+    # `u` should be an array of size (nvariables, nnodes, nnodes, nelements)
+    f = zeros(eltype(u), nnodes(dg), nnodes(dg), nelements(dg, cache))
+    for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            f[i, j, element] = function_to_visualize(u_node, equations)
+        end
+    end
+    return f
+end
+
 function ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...)
     return ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
 end
