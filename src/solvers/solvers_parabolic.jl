@@ -20,11 +20,11 @@ In the latter case, the [`ViscousFormulationLocalDG`](@ref) scheme is recommende
 struct ViscousFormulationBassiRebay1 end
 
 """
-    flux_parabolic(f_ll, f_rr,
+    flux_parabolic(u_ll, u_rr,
                    gradient_or_divergence, equations_parabolic,
                    parabolic_scheme::ViscousFormulationBassiRebay1)
 
-    flux_parabolic(f_ll, f_rr, normal_direction::AbstractVector,
+    flux_parabolic(u_ll, u_rr, normal_direction::AbstractVector,
                    gradient_or_divergence, equations_parabolic,
                    parabolic_scheme::ViscousFormulationBassiRebay1)
 
@@ -36,16 +36,16 @@ not need to be specialized for `Gradient` and `Divergence`.
 but is included as an argument for consistency with the [`ViscousFormulationLocalDG`](@ref) flux,
 which does use the `normal_direction` to compute the LDG "switch" on the generally non-Cartesian [`P4estMesh`](@ref).
 """
-function flux_parabolic(f_ll, f_rr,
+function flux_parabolic(u_ll, u_rr,
                         gradient_or_divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationBassiRebay1)
-    return 0.5f0 * (f_ll + f_rr)
+    return 0.5f0 * (u_ll + u_rr)
 end
 # For `P4estMesh`
-function flux_parabolic(f_ll, f_rr, normal_direction::AbstractVector,
+function flux_parabolic(u_ll, u_rr, normal_direction::AbstractVector,
                         gradient_or_divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationBassiRebay1)
-    return 0.5f0 * (f_ll + f_rr)
+    return 0.5f0 * (u_ll + u_rr)
 end
 
 """
@@ -82,11 +82,11 @@ Cockburn and Dong proved that this scheme is still stable despite the zero penal
 ViscousFormulationLocalDG() = ViscousFormulationLocalDG(nothing)
 
 @doc raw"""
-    flux_parabolic(f_ll, f_rr,
+    flux_parabolic(u_ll, u_rr,
                    ::Gradient, equations_parabolic,
                    parabolic_scheme::ViscousFormulationLocalDG)
 
-    flux_parabolic(f_ll, f_rr, normal_direction,
+    flux_parabolic(u_ll, u_rr, normal_direction,
                    ::Gradient, equations_parabolic,
                    parabolic_scheme::ViscousFormulationLocalDG)
 
@@ -96,7 +96,7 @@ gradient and divergence (i.e., if the gradient is upwinded, the divergence
 must be downwinded in order to preserve symmetry and positive definiteness).
 Here, we use the convention that the gradient flux is upwinded, thus we have
 ```math
-f_{\text{gradient}} = f_L
+f_{\text{gradient}} = u_{L}
 ```
 on the Cartesian [`TreeMesh`](@ref).
 
@@ -104,33 +104,33 @@ For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "
 This is realized by taking the sign of the dot product of the normal and positive-coordinate direction vector:
 ```math
 s = \text{sign}(\vec{n} \cdot \vec{1}
-f = \frac{1}{2}\big(f_L + f_R - s (f_R - f_L)\big)
+f = \frac{1}{2}\Big(f(u_{L}) + f(u_{R}) - s \big[f(u_{R}) - f(u_{L})\big]\Big)
 ```
 """
-function flux_parabolic(f_ll, f_rr,
+function flux_parabolic(u_ll, u_rr,
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     # The LDG flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
     # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
     # jump term should be opposite that of the sign used in the divergence flux. 
-    # This is equivalent to setting the flux equal to `f_ll` for the gradient,
-    # and `f_rr` for the divergence. 
-    return f_ll # Use the upwind value for the gradient interface flux
+    # This is equivalent to setting the flux equal to `u_ll` for the gradient,
+    # and `u_rr` for the divergence. 
+    return u_ll # Use the upwind value for the gradient interface flux
 end
 
-function flux_parabolic(f_ll, f_rr, normal_direction,
+function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
-    return 0.5f0 * (f_ll + f_rr - ldg_switch * (f_rr - f_ll))
+    return 0.5f0 * ((u_ll + u_rr) - ldg_switch * (u_rr - u_ll))
 end
 
 @doc raw"""
-    flux_parabolic(f_ll, f_rr,
+    flux_parabolic(u_ll, u_rr,
                    ::Divergence, equations_parabolic,
                    parabolic_scheme::ViscousFormulationLocalDG)
 
-    flux_parabolic(f_ll, f_rr, normal_direction,
+    flux_parabolic(u_ll, u_rr, normal_direction,
                    ::Divergence, equations_parabolic,  
                    parabolic_scheme::ViscousFormulationLocalDG)
 
@@ -140,7 +140,7 @@ gradient and divergence (i.e., if the gradient is upwinded, the divergence
 must be downwinded in order to preserve symmetry and positive definiteness).
 Here, we use the convention that the divergence flux is upwinded, thus we have
 ```math
-f_{\text{divergence}} = f_R
+f_{\text{divergence}} = u_{R}
 ```
 on the Cartesian [`TreeMesh`](@ref).
 
@@ -148,19 +148,19 @@ For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "
 This is realized by taking the sign of the dot product of the normal and positive-coordinate direction vector:
 ```math
 s = \text{sign}(\vec{n} \cdot \vec{1}
-f = \frac{1}{2}\big(f_L + f_R + s (f_R - f_L)\big)
+f = \frac{1}{2}\Big(f(u_{L}) + f(u_{R}) + s \big[f(u_{R}) - f(u_{L})\big]\Big)
 ```
 """
-function flux_parabolic(f_ll, f_rr, ::Divergence, equations_parabolic,
+function flux_parabolic(u_ll, u_rr, ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
-    return f_rr # Use the downwind value for the divergence interface flux
+    return u_rr # Use the downwind value for the divergence interface flux
 end
 
-function flux_parabolic(f_ll, f_rr, normal_direction,
+function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
-    return 0.5f0 * (f_ll + f_rr + ldg_switch * (f_rr - f_ll))
+    return 0.5f0 * ((u_ll + u_rr) + ldg_switch * (u_rr - u_ll))
 end
 
 default_parabolic_solver() = ViscousFormulationBassiRebay1()
