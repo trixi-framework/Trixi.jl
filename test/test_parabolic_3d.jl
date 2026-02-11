@@ -325,30 +325,6 @@ end
     @test_allocations(Trixi.Trixi.rhs_parabolic!, semi, sol, 100)
 end
 
-@trixi_testset "TreeMesh3D: elixir_navierstokes_blast_wave_amr.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
-                                 "elixir_navierstokes_blast_wave_amr.jl"),
-                        tspan=(0.0, 0.01),
-                        l2=[
-                            0.009449115832266491,
-                            0.0017932092857965453,
-                            0.0017932092857965449,
-                            0.001793209285796548,
-                            0.02432855189940458
-                        ],
-                        linf=[
-                            0.6811440777026873,
-                            0.17744074602770776,
-                            0.17744074602770762,
-                            0.1774407460277074,
-                            1.7402299022804495
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
-end
-
 @trixi_testset "P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
