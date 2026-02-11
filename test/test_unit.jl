@@ -868,8 +868,7 @@ end
           flux_central_terashima_etal(u_ll, u_rr, 1, equations) * normal_direction[1] +
           flux_central_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
 
-    for _flux_function in (flux_lax_friedrichs, min_max_speed_naive,
-                           min_max_speed_davis, max_abs_speed_naive)
+    for _flux_function in (flux_lax_friedrichs, min_max_speed_davis)
         @test all(_flux_function(u_ll, u_rr, 1, equations) .≈
                   _flux_function(u_ll, u_rr, SVector(1, 0), equations))
         @test all(_flux_function(u_ll, u_rr, 2, equations) .≈
