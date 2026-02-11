@@ -108,8 +108,11 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             end
             scalar_data = StructArrays.component(u, 1)
         else
-            u = Trixi.wrap_array(sol.u[end], semi)
-            scalar_data = Array(u[1, :, :, :])
+            # There are some issues with `PtrArray`s returned by default
+            # by `Trixi.wrap_array`, see
+            # https://github.com/trixi-framework/Trixi.jl/issues/2797
+            u = Trixi.wrap_array_native(sol.u[end], semi)
+            scalar_data = u[1, :, :, :]
         end
         @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
         @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
