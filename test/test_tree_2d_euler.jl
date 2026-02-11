@@ -154,7 +154,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_peng_robinson_transcritical_mixing.jl"),
                         tspan=(0.0, 0.0003),
-                        # note that errors are large because the solution values are O(1e5)-O(1e7)
+                        # note that errors are large because the solution values are of the order 1e5-1e7
                         l2=[
                             0.8908754595982343,
                             274.62878855174165,
