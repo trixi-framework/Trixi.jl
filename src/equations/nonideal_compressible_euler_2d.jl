@@ -310,7 +310,7 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_avg = 0.5f0 * (v2_ll + v2_rr)
     p_avg = 0.5f0 * (p_ll + p_rr)
-    rho_e_internal_avg = 0.5f0 * (rho_internal_e_ll + rho_e_internal_rr)
+    rho_e_internal_avg = 0.5f0 * (rho_e_internal_ll + rho_e_internal_rr)
 
     # chain rule from Terashima    
     drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
