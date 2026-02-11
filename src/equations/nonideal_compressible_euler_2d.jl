@@ -54,13 +54,13 @@ function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations2D)
     return ("rho", "rho_v1", "rho_v2", "rho_e_total")
 end
 
-# for plotting with PlotData2D(sol, solution_variables=cons2prim)
 @inline function cons2prim(u, equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
     rho = u[1]
     V, v1, v2, T = cons2thermo(u, equations)
     return SVector(rho, v1, v2, pressure(V, T, eos))
 end
+
 varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations2D) = ("rho",
                                                                          "v1",
                                                                          "v2",
