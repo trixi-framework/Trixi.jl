@@ -11,7 +11,7 @@
 # contravariant vectors) along large/small elements across a non-conforming
 # interface in 2D) and flip the sign when storing the mortar fluxes back
 # into `surface_flux_values`.
-@inline function mortar_gradient_fluxes_to_elements!(surface_flux_values,
+@inline function mortar_fluxes_to_elements_gradient!(surface_flux_values,
                                                      mesh::P4estMesh{3},
                                                      equations_parabolic::AbstractEquationsParabolic,
                                                      mortar_l2::LobattoLegendreMortarL2,
@@ -86,7 +86,7 @@
     return nothing
 end
 
-function calc_gradient_interface_flux!(surface_flux_values,
+function calc_interface_flux_gradient!(surface_flux_values,
                                        mesh::P4estMesh{3},
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
@@ -134,7 +134,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
                                                         i_primary, j_primary, k_primary,
                                                         primary_element)
 
-                calc_gradient_interface_flux!(surface_flux_values, mesh,
+                calc_interface_flux_gradient!(surface_flux_values, mesh,
                                               equations_parabolic,
                                               dg, parabolic_scheme, cache,
                                               interface, normal_direction,
@@ -165,7 +165,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
 end
 
 # This version is used for parabolic gradient computations
-@inline function calc_gradient_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
+@inline function calc_interface_flux_gradient!(surface_flux_values, mesh::P4estMesh{3},
                                                equations_parabolic,
                                                dg::DG, parabolic_scheme, cache,
                                                interface_index, normal_direction,
@@ -188,6 +188,7 @@ end
 
     for v in eachvariable(equations_parabolic)
         surface_flux_values[v, primary_i_node_index, primary_j_node_index, primary_direction_index, primary_element_index] = flux_[v]
+        # No sign flip required for gradient calculation
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
     end
 
@@ -438,7 +439,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i, j, primary_direction_index, primary_element] = flux[v]
-                    # Flip sign of secondary flux since normal_direction on secondary element is negative of primary element
+                    # Flip sign of secondary flux for divergence calculation
                     surface_flux_values[v, i_secondary, j_secondary, secondary_direction_index, secondary_element] = -flux[v]
                 end
 
@@ -463,7 +464,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
     return nothing
 end
 
-function prolong_divergence2mortars!(cache, flux_viscous,
+function prolong2mortars_divergence!(cache, flux_viscous,
                                      mesh::P4estMesh{3}, equations_parabolic,
                                      mortar_l2::LobattoLegendreMortarL2,
                                      dg::DGSEM)
@@ -594,7 +595,7 @@ function prolong_divergence2mortars!(cache, flux_viscous,
     return nothing
 end
 
-function calc_divergence_mortar_flux!(surface_flux_values,
+function calc_mortar_flux_divergence!(surface_flux_values,
                                       mesh::P4estMesh{3},
                                       equations_parabolic,
                                       mortar_l2::LobattoLegendreMortarL2,
@@ -670,9 +671,8 @@ function calc_divergence_mortar_flux!(surface_flux_values,
     return nothing
 end
 
-function calc_gradient_mortar_flux!(surface_flux_values,
-                                    mesh::P4estMesh{3},
-                                    equations_parabolic,
+function calc_mortar_flux_gradient!(surface_flux_values,
+                                    mesh::P4estMesh{3}, equations_parabolic,
                                     mortar_l2::LobattoLegendreMortarL2,
                                     dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -709,7 +709,7 @@ function calc_gradient_mortar_flux!(surface_flux_values,
                                                             i_small, j_small, k_small,
                                                             element)
 
-                    calc_gradient_mortar_flux!(fstar_primary, fstar_secondary,
+                    calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
                                                mesh, equations_parabolic,
                                                dg, parabolic_scheme, cache,
                                                mortar, position, normal_direction,
@@ -733,8 +733,8 @@ function calc_gradient_mortar_flux!(surface_flux_values,
         # interface using the normal from the "primary" element. The result is then
         # passed back to the "secondary" element, flipping the sign to account for the
         # change in the normal direction. For mortars, this sign flip occurs in
-        # "mortar_gradient_fluxes_to_elements!" instead.
-        mortar_gradient_fluxes_to_elements!(surface_flux_values,
+        # "mortar_fluxes_to_elements_gradient!" instead.
+        mortar_fluxes_to_elements_gradient!(surface_flux_values,
                                             mesh, equations_parabolic, mortar_l2,
                                             dg, cache,
                                             mortar, fstar_primary, fstar_secondary,
@@ -744,12 +744,12 @@ function calc_gradient_mortar_flux!(surface_flux_values,
     return nothing
 end
 
-# We structure `calc_gradient_mortar_flux!` similarly to "calc_mortar_flux!" for
+# We structure `calc_mortar_flux_gradient!` similarly to "calc_mortar_flux!" for
 # hyperbolic equations with no nonconservative terms.
 # The reasoning is that parabolic fluxes are treated like conservative
 # terms (e.g., we compute a viscous conservative "flux") and thus no
 # non-conservative terms are present.
-@inline function calc_gradient_mortar_flux!(fstar_primary, fstar_secondary,
+@inline function calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
                                             mesh::P4estMesh{3},
                                             equations_parabolic,
                                             dg::DG, parabolic_scheme, cache,
@@ -767,13 +767,14 @@ end
     # Copy flux to buffer
     set_node_vars!(fstar_primary, flux_, equations_parabolic, dg,
                    i_node_index, j_node_index, position_index)
+    # No sign flip required for gradient calculation
     set_node_vars!(fstar_secondary, flux_, equations_parabolic, dg,
                    i_node_index, j_node_index, position_index)
 
     return nothing
 end
 
-function calc_gradient_volume_integral!(gradients, u_transformed,
+function calc_volume_integral_gradient!(gradients, u_transformed,
                                         mesh::P4estMesh{3}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DG, cache)
@@ -986,7 +987,7 @@ function calc_boundary_flux!(cache, t,
     return nothing
 end
 
-function calc_gradient_surface_integral!(gradients,
+function calc_surface_integral_gradient!(gradients,
                                          mesh::P4estMesh{3}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)

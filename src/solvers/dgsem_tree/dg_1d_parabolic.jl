@@ -98,7 +98,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Calculate boundary fluxes.
     # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "boundary flux" begin
-        calc_divergence_boundary_flux!(cache, t,
+        calc_boundary_flux_divergence!(cache, t,
                                        boundary_conditions_parabolic, mesh,
                                        equations_parabolic,
                                        dg.surface_integral, dg)
@@ -227,7 +227,7 @@ function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::Tree
     return nothing
 end
 
-function calc_gradient_boundary_flux!(cache, t,
+function calc_boundary_flux_gradient!(cache, t,
                                       boundary_conditions_parabolic::BoundaryConditionPeriodic,
                                       mesh::TreeMesh{1},
                                       equations_parabolic::AbstractEquationsParabolic,
@@ -235,7 +235,7 @@ function calc_gradient_boundary_flux!(cache, t,
     return nothing
 end
 
-function calc_divergence_boundary_flux!(cache, t,
+function calc_boundary_flux_divergence!(cache, t,
                                         boundary_conditions_parabolic::BoundaryConditionPeriodic,
                                         mesh::TreeMesh{1},
                                         equations_parabolic::AbstractEquationsParabolic,
@@ -243,7 +243,7 @@ function calc_divergence_boundary_flux!(cache, t,
     return nothing
 end
 
-function calc_gradient_boundary_flux!(cache, t,
+function calc_boundary_flux_gradient!(cache, t,
                                       boundary_conditions_parabolic::NamedTuple,
                                       mesh::TreeMesh{1}, # for dispatch only
                                       equations_parabolic::AbstractEquationsParabolic,
@@ -256,12 +256,12 @@ function calc_gradient_boundary_flux!(cache, t,
     firsts = lasts - n_boundaries_per_direction .+ 1
 
     # Calc boundary fluxes in each direction
-    calc_gradient_boundary_flux_by_direction!(surface_flux_values, t,
+    calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[1],
                                               equations_parabolic, surface_integral, dg,
                                               cache,
                                               1, firsts[1], lasts[1])
-    calc_gradient_boundary_flux_by_direction!(surface_flux_values, t,
+    calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[2],
                                               equations_parabolic, surface_integral, dg,
                                               cache,
@@ -270,7 +270,7 @@ function calc_gradient_boundary_flux!(cache, t,
     return nothing
 end
 
-function calc_gradient_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,
+function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{<:Any,
                                                                                       3},
                                                    t, boundary_condition,
                                                    equations_parabolic::AbstractEquationsParabolic,
@@ -311,7 +311,7 @@ function calc_gradient_boundary_flux_by_direction!(surface_flux_values::Abstract
     return nothing
 end
 
-function calc_divergence_boundary_flux!(cache, t,
+function calc_boundary_flux_divergence!(cache, t,
                                         boundary_conditions_parabolic::NamedTuple,
                                         mesh::TreeMesh{1},
                                         equations_parabolic::AbstractEquationsParabolic,
@@ -384,7 +384,7 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     return nothing
 end
 
-function calc_gradient_volume_integral!(gradients, u_transformed,
+function calc_volume_integral_gradient!(gradients, u_transformed,
                                         mesh::TreeMesh{1}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DGSEM, cache)
@@ -408,7 +408,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
     return nothing
 end
 
-function calc_gradient_interface_flux!(surface_flux_values,
+function calc_interface_flux_gradient!(surface_flux_values,
                                        mesh::TreeMesh{1},
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
@@ -441,7 +441,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function calc_gradient_surface_integral!(gradients,
+function calc_surface_integral_gradient!(gradients,
                                          mesh::TreeMesh{1}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
@@ -481,7 +481,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_gradient_volume_integral!(gradients, u_transformed,
+        calc_volume_integral_gradient!(gradients, u_transformed,
                                        mesh, equations_parabolic, dg, cache)
     end
 
@@ -495,7 +495,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         @unpack surface_flux_values = cache.elements
-        calc_gradient_interface_flux!(surface_flux_values, mesh, equations_parabolic,
+        calc_interface_flux_gradient!(surface_flux_values, mesh, equations_parabolic,
                                       dg, parabolic_scheme, cache)
     end
 
@@ -507,7 +507,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_gradient_boundary_flux!(cache, t,
+        calc_boundary_flux_gradient!(cache, t,
                                      boundary_conditions_parabolic, mesh,
                                      equations_parabolic,
                                      dg.surface_integral, dg)
@@ -515,7 +515,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_gradient_surface_integral!(gradients, mesh, equations_parabolic,
+        calc_surface_integral_gradient!(gradients, mesh, equations_parabolic,
                                         dg, cache)
     end
 

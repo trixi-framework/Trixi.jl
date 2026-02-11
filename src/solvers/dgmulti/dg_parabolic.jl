@@ -71,7 +71,7 @@ function transform_variables!(u_transformed, u, mesh,
 end
 
 # TODO: reuse entropy projection computations for DGMultiFluxDiff{<:Polynomial} (including `GaussSBP` solvers)
-function calc_gradient_surface_integral!(gradients, u, scalar_flux_face_values,
+function calc_surface_integral_gradient!(gradients, u, scalar_flux_face_values,
                                          mesh, equations::AbstractEquationsParabolic,
                                          dg::DGMulti, cache, cache_parabolic)
     (; gradient_lift_matrix, local_flux_face_values_threaded) = cache_parabolic
@@ -91,7 +91,7 @@ function calc_gradient_surface_integral!(gradients, u, scalar_flux_face_values,
     return nothing
 end
 
-function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh,
+function calc_volume_integral_gradient!(gradients, u, mesh::DGMultiMesh,
                                         equations::AbstractEquationsParabolic,
                                         dg::DGMulti, cache, cache_parabolic)
     (; strong_differentiation_matrices) = cache_parabolic
@@ -112,7 +112,7 @@ function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh,
     return nothing
 end
 
-function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
+function calc_volume_integral_gradient!(gradients, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                         equations::AbstractEquationsParabolic,
                                         dg::DGMulti, cache, cache_parabolic) where {NDIMS}
     (; strong_differentiation_matrices, dxidxhatj, local_flux_viscous_threaded) = cache_parabolic
@@ -140,7 +140,7 @@ function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh{NDIMS, <
     return nothing
 end
 
-function calc_gradient_interface_flux!(scalar_flux_face_values,
+function calc_interface_flux_gradient!(scalar_flux_face_values,
                                        mesh::DGMultiMesh, equations,
                                        dg::DGMulti,
                                        parabolic_scheme::ViscousFormulationBassiRebay1,
@@ -168,7 +168,7 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
         set_zero!(gradients[dim], dg)
     end
 
-    calc_gradient_volume_integral!(gradients, u, mesh, equations, dg, cache,
+    calc_volume_integral_gradient!(gradients, u, mesh, equations, dg, cache,
                                    cache_parabolic)
 
     # prolong to interfaces
@@ -177,7 +177,7 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
 
     # compute fluxes at interfaces
     (; scalar_flux_face_values) = cache_parabolic
-    calc_gradient_interface_flux!(scalar_flux_face_values,
+    calc_interface_flux_gradient!(scalar_flux_face_values,
                                   mesh, equations, dg, parabolic_scheme, cache,
                                   cache_parabolic)
 
@@ -186,7 +186,7 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                         mesh, equations, dg, cache, cache_parabolic)
 
     # compute surface contributions
-    calc_gradient_surface_integral!(gradients, u, scalar_flux_face_values,
+    calc_surface_integral_gradient!(gradients, u, scalar_flux_face_values,
                                     mesh, equations, dg, cache, cache_parabolic)
 
     invert_jacobian_gradient!(gradients, mesh, equations, dg, cache, cache_parabolic)
