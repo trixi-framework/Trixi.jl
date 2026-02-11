@@ -17,7 +17,7 @@ coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
 # This setup is identical to the one for the `TreeMesh`, allowing for error comparison.
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 2,
+                 polydeg = 3, initial_refinement_level = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = false)
 
