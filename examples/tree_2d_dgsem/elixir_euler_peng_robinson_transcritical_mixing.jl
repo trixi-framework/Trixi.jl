@@ -24,7 +24,7 @@ function initial_condition_transcritical_mixing(x, t,
     p = 2 * pc
 
     # from Bernades et al
-    epsilon, delta, A = 1.0, 1 / 20, 3 / 8
+    epsilon, delta, A = 1, convert(RealT, 1 / 20), convert(RealT, 3 / 8)
     u0 = 25 # m/s
     T = eos.Tc * (3 * A - A * tanh(y / delta)) # Tc is 126.2 for N2
 
@@ -42,12 +42,12 @@ function initial_condition_transcritical_mixing(x, t,
         iter += 1
     end
     if iter == 100
-        println("Warning: solver for temperature(V, p) did not converge")
+        @warn "Solver for temperature(V, p) did not converge"
     end
 
     k = 6
-    dv = epsilon * sin(k * pi * x) * (tanh(100 * (y + 0.1)) - tanh(100 * (y - 0.1))) / 2
-    v1 = u0 * (1 + 0.2 * tanh(y / delta)) + dv
+    dv = epsilon * sinpi(k * x) * (tanh(100 * (y + 0.1)) - tanh(100 * (y - 0.1))) / 2
+    v1 = u0 * (1 + convert(RealT, 0.2) * tanh(y / delta)) + dv
     v2 = dv
 
     return prim2cons(SVector(V, v1, v2, T), equations)
