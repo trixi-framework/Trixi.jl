@@ -9,7 +9,7 @@ for human readability.
 
 #### Added
 - It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
-This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2796]).
+This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
 
 ## Changes when updating to v0.15 from v0.14.x
 
