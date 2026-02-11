@@ -42,7 +42,7 @@ function initial_condition_transcritical_mixing(x, t,
         iter += 1
     end
     if iter == 100
-        println("Warning: solver for temperature(V, p) did not converge")
+        @warn "Solver for temperature(V, p) did not converge"
     end
 
     k = 6
