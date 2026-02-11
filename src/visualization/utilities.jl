@@ -1684,6 +1684,13 @@ function reference_node_coordinates_2d(dg::FDSBP)
     return r, s
 end
 
+function reference_node_coordinates_2d(dg::DG{<:SummationByPartsOperators.UpwindOperators})
+    nodes = dg.basis.central.grid
+    r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
+    s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
+    return r, s
+end
+
 function plotting_interpolation_matrix(dg::FDSBP; kwargs...)
     # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
     # However, since FDSBP already has equally spaced nodes, we skip this step 

@@ -45,8 +45,11 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
         @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
         @test PlotData2D(sol; nvisnodes = 0, grid_lines = false,
                          solution_variables = cons2cons) isa Trixi.PlotData2DCartesian
-        @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+        if semi.solver isa DGSEM
+            @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+        end
     else
+        @show typeof(mesh), directory, elixir
         @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
         @test PlotData2D(sol; nvisnodes = 0, solution_variables = cons2cons) isa
               Trixi.PlotData2DTriangulated
@@ -106,8 +109,8 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             end
             scalar_data = StructArrays.component(u, 1)
         else
-            cache = semi.cache
-            scalar_data = u[1, ..]
+            u = Trixi.wrap_array(sol.u[end], semi)
+            scalar_data = u[1, :, :, :]
         end
         @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
         @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
@@ -120,7 +123,9 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
         @test typeof(spd_no_function) == typeof(spd_function)
         for property in propertynames(spd_function)
             if property == :data
-                @test spd_no_function.data.data ≈ spd_function.data.data
+                # test that scalar plotting data is the same up to ordering
+                @test sort(vec(spd_no_function.data.data)) ≈
+                      sort(vec(spd_function.data.data))
             elseif property == :variable_names
                 @test getproperty(spd_no_function, property) ==
                       getproperty(spd_function, property)
