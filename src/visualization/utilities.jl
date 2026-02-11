@@ -1670,22 +1670,8 @@ function plotting_interpolation_matrix(dg::DGSEM;
     return kron(Vp1D, Vp1D)
 end
 
-function reference_node_coordinates_2d(dg::DGSEM)
-    @unpack nodes = dg.basis
-    r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
-    s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
-    return r, s
-end
-
-function reference_node_coordinates_2d(dg::FDSBP)
-    nodes = dg.basis.grid
-    r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
-    s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
-    return r, s
-end
-
-function reference_node_coordinates_2d(dg::DG{<:SummationByPartsOperators.UpwindOperators})
-    nodes = dg.basis.central.grid
+function reference_node_coordinates_2d(dg::Union{DGSEM, FDSBP})
+    nodes = get_nodes(dg.basis)
     r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
     s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
     return r, s
