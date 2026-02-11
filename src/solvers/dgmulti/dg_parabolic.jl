@@ -354,7 +354,7 @@ function calc_viscous_penalty!(scalar_flux_face_values, u_face_values, t,
     return nothing
 end
 
-function calc_divergence_volume_integral!(du, u, flux_viscous, mesh::DGMultiMesh,
+function calc_volume_integral_divergence!(du, u, flux_viscous, mesh::DGMultiMesh,
                                           equations::AbstractEquationsParabolic,
                                           dg::DGMulti, cache, cache_parabolic)
     (; weak_differentiation_matrices) = cache_parabolic
@@ -371,7 +371,7 @@ function calc_divergence_volume_integral!(du, u, flux_viscous, mesh::DGMultiMesh
     return nothing
 end
 
-function calc_divergence_volume_integral!(du, u, flux_viscous,
+function calc_volume_integral_divergence!(du, u, flux_viscous,
                                           mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                           equations::AbstractEquationsParabolic,
                                           dg::DGMulti, cache, cache_parabolic) where {NDIMS}
@@ -400,7 +400,7 @@ function calc_divergence_volume_integral!(du, u, flux_viscous,
     return nothing
 end
 
-function calc_divergence_interface_flux!(scalar_flux_face_values,
+function calc_interface_flux_divergence!(scalar_flux_face_values,
                                          mesh, equations, dg,
                                          parabolic_scheme::ViscousFormulationBassiRebay1,
                                          cache, cache_parabolic)
@@ -431,7 +431,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
                           cache_parabolic)
     set_zero!(du, dg)
 
-    calc_divergence_volume_integral!(du, u, flux_viscous, mesh, equations, dg, cache,
+    calc_volume_integral_divergence!(du, u, flux_viscous, mesh, equations, dg, cache,
                                      cache_parabolic)
 
     # interpolates from solution coefficients to face quadrature points
@@ -444,7 +444,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
 
     # compute fluxes at interfaces
     (; scalar_flux_face_values) = cache_parabolic
-    calc_divergence_interface_flux!(scalar_flux_face_values,
+    calc_interface_flux_divergence!(scalar_flux_face_values,
                                     mesh, equations, dg, parabolic_scheme, cache,
                                     cache_parabolic)
 

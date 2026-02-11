@@ -439,7 +439,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i, j, primary_direction_index, primary_element] = flux[v]
-                    # Flip sign of secondary flux for divergence calculation
+                    # Sign flip required for divergence calculation
                     surface_flux_values[v, i_secondary, j_secondary, secondary_direction_index, secondary_element] = -flux[v]
                 end
 
@@ -644,6 +644,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                               normal_direction, Divergence(),
                                               equations_parabolic, parabolic_scheme)
 
+                        # Sign flip (and scaling) already handled above in `prolong2mortars_divergence!`
                         fstar[v, i, j, position] = flux
                     end
 
@@ -767,7 +768,7 @@ end
     # Copy flux to buffer
     set_node_vars!(fstar_primary, flux_, equations_parabolic, dg,
                    i_node_index, j_node_index, position_index)
-    # No sign flip required for gradient calculation
+    # As in `calc_interface_flux_gradient!`, no sign flip is necessary for the fluxes used in gradient calculations
     set_node_vars!(fstar_secondary, flux_, equations_parabolic, dg,
                    i_node_index, j_node_index, position_index)
 

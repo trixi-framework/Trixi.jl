@@ -24,10 +24,11 @@ instead of
     calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
                       mesh, equations_parabolic, dg.mortar, dg, cache)
     ```
+which works on `TreeMesh`es.
 =#
 function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
-                        boundary_conditions_parabolic, source_terms,
+                        boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack viscous_container = cache_parabolic
     @unpack u_transformed, gradients, flux_viscous = viscous_container
@@ -704,8 +705,7 @@ function calc_mortar_flux_divergence!(surface_flux_values, mesh::P4estMesh{2},
                                           normal_direction, Divergence(),
                                           equations_parabolic, parabolic_scheme)
 
-                    # No sign flip required for gradient calculation,
-                    # thus using the same `fstar` for both sides is ok
+                    # Sign flip (and scaling) already handled above in `prolong2mortars_divergence!`
                     fstar[position][v, node] = flux
                 end
                 i_small += i_small_step

@@ -372,33 +372,33 @@ function calc_boundary_flux_gradient!(cache, t,
     # Calc boundary fluxes in each direction
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[1],
-                                              equations_parabolic, surface_integral, dg,
-                                              cache,
+                                              equations_parabolic, surface_integral,
+                                              dg, cache,
                                               1, firsts[1], lasts[1])
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[2],
-                                              equations_parabolic, surface_integral, dg,
-                                              cache,
+                                              equations_parabolic, surface_integral,
+                                              dg, cache,
                                               2, firsts[2], lasts[2])
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[3],
-                                              equations_parabolic, surface_integral, dg,
-                                              cache,
+                                              equations_parabolic, surface_integral,
+                                              dg, cache,
                                               3, firsts[3], lasts[3])
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[4],
-                                              equations_parabolic, surface_integral, dg,
-                                              cache,
+                                              equations_parabolic, surface_integral,
+                                              dg, cache,
                                               4, firsts[4], lasts[4])
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[5],
-                                              equations_parabolic, surface_integral, dg,
-                                              cache,
+                                              equations_parabolic, surface_integral,
+                                              dg, cache,
                                               5, firsts[5], lasts[5])
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[6],
-                                              equations_parabolic, surface_integral, dg,
-                                              cache,
+                                              equations_parabolic, surface_integral,
+                                              dg, cache,
                                               6, firsts[6], lasts[6])
 
     return nothing
@@ -1145,13 +1145,13 @@ function apply_jacobian_parabolic!(du::AbstractArray, mesh::TreeMesh{3},
 end
 
 # Need dimension specific version to avoid error at dispatching
-function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
+function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic::Nothing,
                                  equations_parabolic::AbstractEquations{3}, dg::DG,
                                  cache)
     return nothing
 end
 
-function calc_sources_parabolic!(du, u, gradients, t, source_terms,
+function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
                                  equations_parabolic::AbstractEquations{3}, dg::DG,
                                  cache)
     @unpack node_coordinates = cache.elements
@@ -1168,8 +1168,8 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms,
             gradients_local = (gradients_x_local, gradients_y_local, gradients_z_local)
             x_local = get_node_coords(node_coordinates, equations_parabolic, dg,
                                       i, j, k, element)
-            du_local = source_terms(u_local, gradients_local, x_local, t,
-                                    equations_parabolic)
+            du_local = source_terms_parabolic(u_local, gradients_local, x_local, t,
+                                              equations_parabolic)
             add_to_node_vars!(du, du_local, equations_parabolic, dg, i, j, k, element)
         end
     end
