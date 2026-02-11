@@ -1138,12 +1138,7 @@ end
     return 0.5f0 * (cons[2]^2) / cons[1]
 end
 
-"""
-    energy_internal(cons, equations::AbstractCompressibleEulerEquations)
-
-Calculate internal energy ``e`` for a conservative state `cons` as the difference
-of total energy and kinetic energy.
-"""
+# Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons, equations::CompressibleEulerEquations1D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end

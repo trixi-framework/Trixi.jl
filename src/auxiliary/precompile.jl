@@ -181,6 +181,9 @@ function _precompile_manual_()
                                     StaticArrays.SVector{nnodes_, RealT},
                                     # InverseVandermondeLegendre
                                     Matrix{RealT},
+                                    # BoundaryMatrix
+                                    #StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},
+                                    Matrix{RealT},
                                     # DerivativeMatrix
                                     #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
                                     Matrix{RealT}}
@@ -306,16 +309,16 @@ function _precompile_manual_()
     Base.precompile(Tuple{Type{LobattoLegendreBasis}, Int})
     for RealT in (Float64,)
         Base.precompile(Tuple{Type{LobattoLegendreBasis}, RealT, Int})
-        @assert Base.precompile(Tuple{typeof(Trixi.calc_Dhat), Vector{RealT},
+        @assert Base.precompile(Tuple{typeof(Trixi.calc_dhat), Vector{RealT},
                                       Vector{RealT}})
-        @assert Base.precompile(Tuple{typeof(Trixi.calc_Dsplit), Vector{RealT},
+        @assert Base.precompile(Tuple{typeof(Trixi.calc_dsplit), Vector{RealT},
                                       Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.polynomial_derivative_matrix),
                                       Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.polynomial_interpolation_matrix),
                                       Vector{RealT}, Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.barycentric_weights), Vector{RealT}})
-        @assert Base.precompile(Tuple{typeof(Trixi.calc_Lhat), RealT, Vector{RealT},
+        @assert Base.precompile(Tuple{typeof(Trixi.calc_lhat), RealT, Vector{RealT},
                                       Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.lagrange_interpolating_polynomials),
                                       RealT, Vector{RealT}, Vector{RealT}})
