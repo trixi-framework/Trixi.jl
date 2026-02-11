@@ -216,6 +216,29 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_free_stream_extruded_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_extruded_fvO2.jl"),
+                        l2=[
+                            1.5286679406524262e-16,
+                            4.950311927136664e-16,
+                            4.69913693630953e-16,
+                            4.012046698403924e-16,
+                            2.0419659904946413e-15
+                        ],
+                        linf=[
+                            2.220446049250313e-15,
+                            3.3029134982598407e-15,
+                            7.716050021144838e-15,
+                            1.27675647831893e-14,
+                            3.019806626980426e-14
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_free_stream_boundaries.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_free_stream_boundaries.jl"),
