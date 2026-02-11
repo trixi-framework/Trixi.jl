@@ -456,10 +456,16 @@ e.g., [`pressure`](@ref) or [`density`](@ref) for the compressible Euler equatio
 function ScalarPlotData2D(function_to_visualize::Func, u,
                           semi::AbstractSemidiscretization;
                           kwargs...) where {Func}
-    return ScalarPlotData2D(evaluate_scalar_function_at_nodes(function_to_visualize,
-                                                              Trixi.wrap_array(u, semi),
-                                                              mesh_equations_solver_cache(semi)...),
+    scalar_data = evaluate_scalar_function_at_nodes(function_to_visualize,
+                                                    wrap_array(u, semi),
+                                                    mesh_equations_solver_cache(semi)...)
+    return ScalarPlotData2D(scalar_data,
                             mesh_equations_solver_cache(semi)...; kwargs...)
+end
+
+function ScalarPlotData2D(scalar_data, semi::AbstractSemidiscretization; kwargs...)
+    return ScalarPlotData2D(scalar_data, mesh_equations_solver_cache(semi)...;
+                            kwargs...)
 end
 
 function evaluate_scalar_function_at_nodes(function_to_visualize, u, mesh, equations,
@@ -482,10 +488,6 @@ function evaluate_scalar_function_at_nodes(function_to_visualize, u,
         end
     end
     return f
-end
-
-function ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...)
-    return ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
 end
 
 # Returns an `PlotData2DTriangulated` which is used to visualize a single scalar field
