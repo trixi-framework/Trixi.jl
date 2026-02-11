@@ -21,7 +21,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "Visualization tests" begin
 #! format: noindent
 
-# Run 2D tests with elixirs for all mesh types
+# Run 2D tests with elixirs for different mesh and solver types
 test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                        "elixir_euler_blast_wave_amr.jl"),
                         "TreeMesh (FDSBP)" => ("tree_2d_fdsbp",
@@ -132,6 +132,15 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                           getproperty(spd_function, property)
                 end
             end
+        end
+
+        # test that non-upwinded FDSBP functionality is consistent with upwinded FDSBP solver behavior
+        if mesh == "TreeMesh (FDSBP)"
+            (; volume_integral, surface_integral) = semi.solver
+            solver_fdsbp = FDSBP(semi.solver.basis.central; surface_integral,
+                                 volume_integral)
+            @test all(Trixi.reference_node_coordinates_2d(semi.solver) .≈
+                      Trixi.reference_node_coordinates_2d(solver_fdsbp))
         end
     end
 
