@@ -667,21 +667,7 @@ function calc_mortar_flux_gradient!(surface_flux_values,
         fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
-        # Get index information on the small elements
-        small_indices = node_indices[1, mortar]
-
-        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
-                                                                               index_range)
-        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
-                                                                               index_range)
-        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
-                                                                               index_range)
-
         for position in 1:4
-            i_small = i_small_start
-            j_small = j_small_start
-            k_small = k_small_start
-            element = neighbor_ids[position, mortar]
             for j in eachnode(dg)
                 for i in eachnode(dg)
                     calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
@@ -689,14 +675,7 @@ function calc_mortar_flux_gradient!(surface_flux_values,
                                                dg, parabolic_scheme, cache,
                                                mortar, position,
                                                i, j)
-
-                    i_small += i_small_step_i
-                    j_small += j_small_step_i
-                    k_small += k_small_step_i
                 end
-                i_small += i_small_step_j
-                j_small += j_small_step_j
-                k_small += k_small_step_j
             end
         end
 
