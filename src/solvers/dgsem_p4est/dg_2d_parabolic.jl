@@ -737,7 +737,8 @@ end
 # terms (e.g., we compute a viscous conservative "flux") and thus no
 # non-conservative terms are present.
 @inline function calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
-                                            mesh::P4estMesh{2}, equations_parabolic,
+                                            mesh::P4estMesh{2},
+                                            equations_parabolic::AbstractEquationsParabolic,
                                             dg::DG, parabolic_scheme, cache,
                                             mortar_index, position_index,
                                             node_index)

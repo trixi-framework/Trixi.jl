@@ -43,10 +43,13 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
-# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 100_000, periodicity = true)
+
+# This setup is identical to the one for the `TreeMesh`, allowing for error comparison.
+trees_per_dimension = (8, 8)
+mesh = P4estMesh(trees_per_dimension, polydeg = 3,
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 initial_refinement_level = 1,
+                 periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
@@ -71,12 +74,12 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
     rho, rho_v1, _, _ = u
     return rho_v1 / rho
 end
-# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
+# This setup is identical to the one for the `TreeMesh`, allowing for error comparison.
 amr_indicator = IndicatorLöhner(semi, variable = v1)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 3,
-                                      med_level = 5, med_threshold = 0.2,
-                                      max_level = 7, max_threshold = 0.5)
+                                      base_level = 0,
+                                      med_level = 2, med_threshold = 0.2,
+                                      max_level = 4, max_threshold = 0.5)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 50,
                            adapt_initial_condition = true,
