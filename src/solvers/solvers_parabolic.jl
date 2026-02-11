@@ -24,25 +24,11 @@ struct ViscousFormulationBassiRebay1 end
                    gradient_or_divergence, equations_parabolic,
                    parabolic_scheme::ViscousFormulationBassiRebay1)
 
-    flux_parabolic(u_ll, u_rr, normal_direction::AbstractVector,
-                   gradient_or_divergence, equations_parabolic,
-                   parabolic_scheme::ViscousFormulationBassiRebay1)
-
 This computes the classical BR1 flux. Since the interface flux for both the 
 DG gradient and DG divergence under BR1 are identical, this function does 
 not need to be specialized for `Gradient` and `Divergence`.
-
-`normal_direction` is not used in the BR1 flux,
-but is included as an argument for consistency with the [`ViscousFormulationLocalDG`](@ref) flux,
-which does use the `normal_direction` to compute the LDG "switch" on the generally non-Cartesian [`P4estMesh`](@ref).
 """
 function flux_parabolic(u_ll, u_rr,
-                        gradient_or_divergence, equations_parabolic,
-                        parabolic_scheme::ViscousFormulationBassiRebay1)
-    return 0.5f0 * (u_ll + u_rr)
-end
-# For `P4estMesh`
-function flux_parabolic(u_ll, u_rr, normal_direction::AbstractVector,
                         gradient_or_divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationBassiRebay1)
     return 0.5f0 * (u_ll + u_rr)
