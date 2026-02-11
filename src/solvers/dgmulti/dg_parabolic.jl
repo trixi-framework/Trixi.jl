@@ -165,7 +165,7 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                         boundary_conditions, dg::DGMulti, parabolic_scheme,
                         cache, cache_parabolic)
     for dim in eachindex(gradients)
-        set_zero!(gradients[dim], dg)
+        reset_du!(gradients[dim], dg)
     end
 
     calc_gradient_volume_integral!(gradients, u, mesh, equations, dg, cache,
@@ -302,7 +302,7 @@ function calc_viscous_fluxes!(flux_viscous, u, gradients, mesh::DGMultiMesh,
                               equations::AbstractEquationsParabolic,
                               dg::DGMulti, cache, cache_parabolic)
     for dim in eachdim(mesh)
-        set_zero!(flux_viscous[dim], dg)
+        reset_du!(flux_viscous[dim], dg)
     end
 
     (; local_u_values_threaded) = cache_parabolic
@@ -429,7 +429,7 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
                           equations::AbstractEquationsParabolic,
                           boundary_conditions, dg::DGMulti, parabolic_scheme, cache,
                           cache_parabolic)
-    set_zero!(du, dg)
+    reset_du!(du, dg)
 
     calc_divergence_volume_integral!(du, u, flux_viscous, mesh, equations, dg, cache,
                                      cache_parabolic)
@@ -471,9 +471,9 @@ end
 # boundary conditions will be applied to both grad(u) and div(u).
 function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
                         equations_parabolic::AbstractEquationsParabolic,
-                        boundary_conditions, source_terms_parabolic,
+                        boundary_conditions, source_terms,
                         dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
-    set_zero!(du, dg)
+    reset_du!(du, dg)
 
     @trixi_timeit timer() "transform variables" begin
         (; u_transformed, gradients, flux_viscous) = cache_parabolic
@@ -503,34 +503,5 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
         # where f(u) is the inviscid flux and g(u) is the viscous flux.
         invert_jacobian!(du, mesh, equations_parabolic, dg, cache; scaling = 1)
     end
-
-    @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic, mesh,
-                                equations_parabolic, dg, cache)
-    end
-
-    return nothing
-end
-
-# Multiple calc_sources! to resolve method ambiguities
-function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
-                                 mesh, equations_parabolic,
-                                 dg::Union{<:DGMulti, <:DGMultiFluxDiffSBP}, cache)
-    return nothing
-end
-
-# uses quadrature + projection to compute source terms.
-function calc_sources_parabolic!(du, u, gradients, t, source_terms,
-                                 mesh, equations_parabolic, dg::DGMulti, cache)
-    md = mesh.md
-    @threaded for e in eachelement(mesh, dg, cache)
-        for i in eachnode(dg)
-            du[i, e] = du[i, e] +
-                       source_terms(u[i, e], SVector(getindex.(gradients, i, e)),
-                                    SVector(getindex.(md.xyzq, i, e)),
-                                    t, equations_parabolic)
-        end
-    end
-
     return nothing
 end

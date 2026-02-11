@@ -30,7 +30,7 @@ end
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
 function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
                         equations_parabolic::AbstractEquationsParabolic,
-                        boundary_conditions_parabolic, source_terms_parabolic,
+                        boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack viscous_container = cache_parabolic
     @unpack u_transformed, gradients, flux_viscous = viscous_container
@@ -67,7 +67,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # need to interpolate solutions *and* gradients to the surfaces.
 
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
     # Calculate volume integral
     # This calls the specialized version for the viscous flux.
@@ -116,12 +116,6 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
         apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
     end
 
-    # Calculate source terms
-    @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
-                                equations_parabolic, dg, cache)
-    end
-
     return nothing
 end
 
@@ -153,7 +147,7 @@ function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{1},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
-    @unpack derivative_hat = dg.basis
+    @unpack derivative_dhat = dg.basis
 
     @threaded for element in eachelement(dg, cache)
         # Calculate volume terms in one element
@@ -162,7 +156,7 @@ function calc_volume_integral!(du, flux_viscous,
                                         element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_hat[ii, i], flux_1_node,
+                multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node,
                                            equations_parabolic, dg, ii, element)
             end
         end
@@ -388,7 +382,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                         mesh::TreeMesh{1}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DGSEM, cache)
-    @unpack derivative_hat = dg.basis
+    @unpack derivative_dhat = dg.basis
 
     @threaded for element in eachelement(dg, cache)
         # Calculate volume terms in one element,
@@ -398,7 +392,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                    i, element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(gradients, derivative_hat[ii, i],
+                multiply_add_to_node_vars!(gradients, derivative_dhat[ii, i],
                                            u_node, equations_parabolic, dg,
                                            ii, element)
             end
@@ -445,24 +439,26 @@ function calc_gradient_surface_integral!(gradients,
                                          mesh::TreeMesh{1}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack inverse_weights = dg.basis
+    @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations_parabolic)
             # surface at -x
             gradients[v, 1, element] = (gradients[v, 1, element] -
                                         surface_flux_values[v, 1, element] *
-                                        factor)
+                                        factor_1)
 
             # surface at +x
             gradients[v, nnodes(dg), element] = (gradients[v, nnodes(dg), element] +
                                                  surface_flux_values[v, 2, element] *
-                                                 factor)
+                                                 factor_2)
         end
     end
 
@@ -476,7 +472,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
-        set_zero!(gradients, dg, cache)
+        reset_du!(gradients, dg, cache)
     end
 
     # Calculate volume integral
@@ -543,34 +539,6 @@ function apply_jacobian_parabolic!(du::AbstractArray, mesh::TreeMesh{1},
             for v in eachvariable(equations)
                 du[v, i, element] *= factor
             end
-        end
-    end
-
-    return nothing
-end
-
-# Need dimension specific version to avoid error at dispatching
-function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
-                                 equations_parabolic::AbstractEquations{1}, dg::DG,
-                                 cache)
-    return nothing
-end
-
-function calc_sources_parabolic!(du, u, gradients, t, source_terms,
-                                 equations_parabolic::AbstractEquations{1}, dg::DG,
-                                 cache)
-    @unpack node_coordinates = cache.elements
-    equations = equations_parabolic.equations_hyperbolic
-
-    @threaded for element in eachelement(dg, cache)
-        for i in eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, element)
-            gradients_x_local = get_node_vars(gradients, equations, dg, i, element)
-            x_local = get_node_coords(node_coordinates, equations, dg,
-                                      i, element)
-            du_local = source_terms(u_local, (gradients_x_local,), x_local, t,
-                                    equations_parabolic)
-            add_to_node_vars!(du, du_local, equations, dg, i, element)
         end
     end
 

@@ -265,7 +265,8 @@ function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
                                       t, dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    @trixi_timeit timer() "reset alpha" set_zero!(alpha, dg, semi.cache)
+    # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
+    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
 
     if limiter.local_twosided
         @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,

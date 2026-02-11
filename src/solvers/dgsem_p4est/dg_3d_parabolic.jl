@@ -206,7 +206,7 @@ function calc_volume_integral!(du, flux_viscous,
                                mesh::P4estMesh{3},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
-    (; derivative_hat) = dg.basis
+    (; derivative_dhat) = dg.basis
     (; contravariant_vectors) = cache.elements
     flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
 
@@ -226,7 +226,7 @@ function calc_volume_integral!(du, flux_viscous,
                                                         i, j, k, element)
             contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_hat[ii, i],
+                multiply_add_to_node_vars!(du, derivative_dhat[ii, i],
                                            contravariant_flux1,
                                            equations_parabolic, dg, ii, j, k, element)
             end
@@ -237,7 +237,7 @@ function calc_volume_integral!(du, flux_viscous,
                                                         i, j, k, element)
             contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
             for jj in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_hat[jj, j],
+                multiply_add_to_node_vars!(du, derivative_dhat[jj, j],
                                            contravariant_flux2,
                                            equations_parabolic, dg, i, jj, k, element)
             end
@@ -248,7 +248,7 @@ function calc_volume_integral!(du, flux_viscous,
                                                         i, j, k, element)
             contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
             for kk in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_hat[kk, k],
+                multiply_add_to_node_vars!(du, derivative_dhat[kk, k],
                                            contravariant_flux3,
                                            equations_parabolic, dg, i, j, kk, element)
             end
@@ -695,7 +695,7 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                         mesh::P4estMesh{3}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DG, cache)
-    @unpack derivative_hat = dg.basis
+    @unpack derivative_dhat = dg.basis
     @unpack contravariant_vectors = cache.elements
     gradients_x, gradients_y, gradients_z = gradients
 
@@ -707,19 +707,19 @@ function calc_gradient_volume_integral!(gradients, u_transformed,
                                    i, j, k, element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_x, derivative_hat[ii, i],
+                multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
                                            u_node, equations_parabolic, dg,
                                            ii, j, k, element)
             end
 
             for jj in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_y, derivative_hat[jj, j],
+                multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
                                            u_node, equations_parabolic, dg,
                                            i, jj, k, element)
             end
 
             for kk in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_z, derivative_hat[kk, k],
+                multiply_add_to_node_vars!(gradients_z, derivative_dhat[kk, k],
                                            u_node, equations_parabolic, dg,
                                            i, j, kk, element)
             end
@@ -908,13 +908,15 @@ function calc_gradient_surface_integral!(gradients,
                                          mesh::P4estMesh{3}, # for dispatch only
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack inverse_weights = dg.basis
+    @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
     @unpack contravariant_vectors = cache.elements
 
+    # Access the factors only once before beginning the loop to increase performance.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+    factor_1 = boundary_interpolation[1, 1]
+    factor_2 = boundary_interpolation[nnodes(dg), 2]
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg), m in eachnode(dg)
             for v in eachvariable(equations_parabolic)
@@ -930,8 +932,7 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, m, 1,
                                                                      element] *
-                                                 factor *
-                                                 normal_direction[dim])
+                                                 factor_1 * normal_direction[dim])
 
                     # surface at +x
                     normal_direction = get_normal_direction(2, contravariant_vectors,
@@ -943,7 +944,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, m, 2,
                                                                               element] *
-                                                          factor *
+                                                          factor_2 *
                                                           normal_direction[dim])
 
                     # surface at -y
@@ -956,8 +957,7 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, m, 3,
                                                                      element] *
-                                                 factor *
-                                                 normal_direction[dim])
+                                                 factor_1 * normal_direction[dim])
 
                     # surface at +y
                     normal_direction = get_normal_direction(4, contravariant_vectors,
@@ -969,7 +969,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, m, 4,
                                                                               element] *
-                                                          factor *
+                                                          factor_2 *
                                                           normal_direction[dim])
 
                     # surface at -z
@@ -982,8 +982,7 @@ function calc_gradient_surface_integral!(gradients,
                                                  surface_flux_values[v,
                                                                      l, m, 5,
                                                                      element] *
-                                                 factor *
-                                                 normal_direction[dim])
+                                                 factor_1 * normal_direction[dim])
 
                     # surface at +z
                     normal_direction = get_normal_direction(6, contravariant_vectors,
@@ -995,7 +994,7 @@ function calc_gradient_surface_integral!(gradients,
                                                           surface_flux_values[v,
                                                                               l, m, 6,
                                                                               element] *
-                                                          factor *
+                                                          factor_2 *
                                                           normal_direction[dim])
                 end
             end
