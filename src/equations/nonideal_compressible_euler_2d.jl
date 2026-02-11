@@ -233,7 +233,7 @@ function flux_terashima_etal(u_ll, u_rr, orientation::Int,
                         v2_avg + p_v2_avg
     end
 
-    return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)
+    return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_e_total)
 end
 
 function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
@@ -272,8 +272,9 @@ function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
     f_rho = rho_avg * v_dot_n_avg
     f_rho_v1 = f_rho * v1_avg + p_avg * normal_direction[1]
     f_rho_v2 = f_rho * v2_avg + p_avg * normal_direction[2]
-    f_rho_E = (rho_e_avg_corrected + rho_avg * ke_avg) * v_dot_n_avg + p_v_dot_n_avg
-    return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)
+    f_rho_e_total = (rho_e_avg_corrected + rho_avg * ke_avg) * v_dot_n_avg +
+                    p_v_dot_n_avg
+    return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_e_total)
 end
 
 """

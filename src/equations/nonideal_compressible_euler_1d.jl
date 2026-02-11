@@ -145,9 +145,9 @@ Approximately pressure equilibrium preserving with conservation (APEC) flux from
     f_rho = rho_avg * v1_avg
     f_rho_v1 = rho_avg * v1_avg * v1_avg + p_avg
     # Note that the additional "average" is a product and not v1_avg
-    f_rho_E = rho_e_v1_avg + rho_avg * 0.5f0 * (v1_ll * v1_rr) * v1_avg + p_v1_avg
+    f_rho_e_total = rho_e_v1_avg + rho_avg * 0.5f0 * (v1_ll * v1_rr) * v1_avg + p_v1_avg
 
-    return SVector(f_rho, f_rho_v1, f_rho_E)
+    return SVector(f_rho, f_rho_v1, f_rho_e_total)
 end
 
 """
@@ -198,11 +198,11 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
     # contributions separately in the energy equation
     ke_ll = 0.5f0 * v1_ll^2
     ke_rr = 0.5f0 * v1_rr^2
-    f_rho_E = rho_e_v1_avg +
-              0.5f0 * (rho_v1_ll * ke_ll + rho_v1_rr * ke_rr) +
-              0.5f0 * (p_ll * v1_ll + p_rr * v1_rr)
+    f_rho_e_total = rho_e_v1_avg +
+                    0.5f0 * (rho_v1_ll * ke_ll + rho_v1_rr * ke_rr) +
+                    0.5f0 * (p_ll * v1_ll + p_rr * v1_rr)
 
-    return SVector(f_rho, f_rho_v1, f_rho_E)
+    return SVector(f_rho, f_rho_v1, f_rho_e_total)
 end
 
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
