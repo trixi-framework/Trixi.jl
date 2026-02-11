@@ -876,6 +876,17 @@ end
                   _flux_function(u_ll, u_rr, SVector(0, 1), equations))
     end
 
+    # check consistency of slip wall boundary conditions
+    for orientation in [1, 2]
+        x, t = 0, 0
+        direction = 1 # this variable is not used in `boundary_condition_slip_wall`
+        normal_direction = orientation == 1 ? SVector(1.0, 0.0) : SVector(0.0, 1.0)
+        @test boundary_condition_slip_wall(u, orientation, direction, x, t,
+                                           flux_lax_friedrichs, equations) ≈
+              boundary_condition_slip_wall(u, normal_direction, x, t,
+                                           flux_lax_friedrichs, equations)
+    end
+
     # check that the fallback temperature and specialized temperature 
     # return the same value 
     V, v1, v2, T = cons2prim(u, equations)
