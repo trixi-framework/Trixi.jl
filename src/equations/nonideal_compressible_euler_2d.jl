@@ -12,26 +12,26 @@ The compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-    \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e_{total}
+    \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e_{\text{total}}
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
- \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e_{total} + p) v_1
+ \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e_{\text{total}} + p) v_1
 \end{pmatrix}
 +
 \frac{\partial}{\partial y}
 \begin{pmatrix}
-\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e_{total} + p) v_2
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e_{\text{total}} + p) v_2
 \end{pmatrix}
 =
 \begin{pmatrix}
     0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-for a gas with pressure ``p`` specified by some equation of state in one space dimension.
+for a gas with pressure ``p`` specified by some equation of state in two space dimensions.
 
-Here, ``\rho`` is the density, ``v_1`` the x-velocity, ``v_2`` is the y-velocity, ``e_{total}`` 
+Here, ``\rho`` is the density, ``v_1`` the x-velocity, ``v_2`` is the y-velocity, ``e_{\text{total}}`` 
 the specific total energy, and the pressure ``p`` is given in terms of specific volume ``V = 1/\rho`` 
 and temperature ``T`` by some user-specified equation of state (EOS) (see [`pressure(V, T, eos::IdealGas)`](@ref), 
 [`pressure(V, T, eos::VanDerWaals)`](@ref)) as
@@ -55,7 +55,7 @@ function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations2D)
     return ("rho", "rho_v1", "rho_v2", "rho_e_total")
 end
 
-# for plotting with PlotData1D(sol, solution_variables=density_velocity_pressure)
+# for plotting with PlotData2D(sol, solution_variables=cons2prim)
 @inline function cons2prim(u, equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
     rho = u[1]
@@ -139,7 +139,7 @@ end
 
 Determine the boundary numerical surface flux for a slip wall condition.
 Imposes a zero normal velocity at the wall.
-Density is taken from the internal solution state, 
+Density is taken from the internal solution state.
 
 Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), or [`T8codeMesh`](@ref).
 """
@@ -181,7 +181,7 @@ Should be used together with [`StructuredMesh`](@ref).
 end
 
 """
-    flux_terashima_etal(u_ll, u_rr, orientation::Int,
+    flux_terashima_etal(u_ll, u_rr, orientation_or_normal_direction,
                         equations::NonIdealCompressibleEulerEquations1D)
 
 Approximately pressure equilibrium conserving (APEC) flux.
@@ -190,7 +190,6 @@ Approximately pressure equilibrium conserving (APEC) flux.
   Approximately pressure-equilibrium-preserving scheme for fully conservative simulations of 
   compressible multi-species and real-fluid interfacial flows 
   [DOI: 10.1016/j.jcp.2024.113701](https://doi.org/10.1016/j.jcp.2024.113701)
-
 """
 function flux_terashima_etal(u_ll, u_rr, orientation::Int,
                              equations::NonIdealCompressibleEulerEquations2D)
@@ -200,8 +199,8 @@ function flux_terashima_etal(u_ll, u_rr, orientation::Int,
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
-    rho_e_ll = energy_internal(u_ll, equations)
-    rho_e_rr = energy_internal(u_rr, equations)
+    rho_e_internal_ll = energy_internal(u_ll, equations)
+    rho_e_internal_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -209,28 +208,28 @@ function flux_terashima_etal(u_ll, u_rr, orientation::Int,
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_avg = 0.5f0 * (v2_ll + v2_rr)
     p_avg = 0.5f0 * (p_ll + p_rr)
-    rho_e_avg = 0.5f0 * (rho_e_ll + rho_e_rr)
+    rho_e_internal_avg = 0.5f0 * (rho_e_internal_ll + rho_e_internal_rr)
     p_v1_avg = 0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
     p_v2_avg = 0.5f0 * (p_ll * v2_rr + p_rr * v2_ll)
 
     # chain rule from Terashima    
     drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
-    rho_e_avg_corrected = (rho_e_avg -
+    rho_e_internal_avg_corrected = (rho_e_internal_avg -
                            0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
                            (rho_rr - rho_ll))
-    ke_avg = 0.5f0 * ((v1_ll * v1_rr) + (v2_ll * v2_rr))
+    e_kinetic_avg = 0.5f0 * ((v1_ll * v1_rr) + (v2_ll * v2_rr))
 
     if orientation == 1
         f_rho = rho_avg * v1_avg
         f_rho_v1 = f_rho * v1_avg + p_avg
         f_rho_v2 = f_rho * v2_avg
-        f_rho_E = (rho_e_avg_corrected + rho_avg * ke_avg) * v1_avg + p_v1_avg
+        f_rho_e_total = (rho_e_internal_avg_corrected + rho_avg * e_kinetic_avg) * v1_avg + p_v1_avg
     else # if orientation == 2
         f_rho = rho_avg * v2_avg
         f_rho_v1 = f_rho * v1_avg
         f_rho_v2 = f_rho * v2_avg + p_avg
-        f_rho_E = (rho_e_avg_corrected + rho_avg * ke_avg) * v2_avg + p_v2_avg
+        f_rho_e_total = (rho_e_internal_avg_corrected + rho_avg * e_kinetic_avg) * v2_avg + p_v2_avg
     end
 
     return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)
@@ -277,8 +276,8 @@ function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
 end
 
 """
-    flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
-                                equations::NonIdealCompressibleEulerEquations1D)
+    flux_central_terashima_etal(u_ll, u_rr, orientation_or_normal_direction,
+                                equations::NonIdealCompressibleEulerEquations2D)
 
 A version of the central flux which uses the approximately pressure equilibrium conserving 
 (APEC) internal energy correction. 
@@ -579,7 +578,7 @@ end
 end
 
 """
-    function cons2thermo(u, equations::NonIdealCompressibleEulerEquations2D)
+    cons2thermo(u, equations::NonIdealCompressibleEulerEquations2D)
         
 Convert conservative variables to specific volume, velocity, and temperature 
 variables `V, v1, v2, T`. These are referred to as "thermodynamic" variables since
@@ -640,7 +639,7 @@ end
 @inline function energy_internal(u,
                                  equations::NonIdealCompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e_total = u
-    rho_e = rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho
-    return rho_e
+    rho_e_internal = rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho
+    return rho_e_internal
 end
 end # @muladd

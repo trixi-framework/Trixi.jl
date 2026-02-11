@@ -840,7 +840,7 @@ end
     @test velocity(u, 1, equations) ≈ 0.1
     @test density_pressure(u, equations) ≈ u[1] * pressure(V, T, eos)
     @test energy_internal_specific(u, equations) ≈ energy_internal_specific(V, T, eos)
-
+    @test energy_internal_specific(u, equations) ≈ energy_internal(u, equations) * V
     @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
           cons2entropy(u, equations)
     for orientation in (1, 2)
@@ -877,7 +877,7 @@ end
     end
 
     # check consistency of slip wall boundary conditions
-    for orientation in [1, 2]
+    for orientation in (1, 2)
         x, t = 0, 0
         direction = 1 # this variable is not used in `boundary_condition_slip_wall`
         normal_direction = orientation == 1 ? SVector(1.0, 0.0) : SVector(0.0, 1.0)
