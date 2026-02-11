@@ -34,11 +34,6 @@ boundary_conditions = (; all = boundary_condition)
 # the geometry interpolant. The original mapping applied to this unstructured mesh
 # causes some Jacobians to be negative, which makes the mesh invalid.
 function mapping(xi, eta, zeta)
-    # Don't transform input variables between -1 and 1 onto [0,3] to obtain curved boundaries
-    # xi = 1.5 * xi_ + 1.5
-    # eta = 1.5 * eta_ + 1.5
-    # zeta = 1.5 * zeta_ + 1.5
-
     y = eta +
         1 / 4 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
          cos(0.5 * pi * (2 * eta - 3) / 3) *
@@ -88,8 +83,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     save_final_solution = true)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
                                       base_level = 1,
