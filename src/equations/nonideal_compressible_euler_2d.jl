@@ -42,9 +42,8 @@ p = p(V, T)
 Similarly, the specific internal energy is specified by `e_{\text{internal}} = energy_internal_specific(V, T, eos)`, see
 [`energy_internal_specific(V, T, eos::IdealGas)`](@ref), [`energy_internal_specific(V, T, eos::VanDerWaals)`](@ref).
 
-Because of this, the primitive variables are also defined to be `V, v1, v2, T` (instead of 
-`rho, v1, v2, p` for `CompressibleEulerEquations2D`). The implementation also assumes 
-mass basis unless otherwise specified.     
+Note that this implementation also assumes a mass basis, so molar weight is not taken into account when calculating 
+specific volume.
 """
 struct NonIdealCompressibleEulerEquations2D{EoS <: AbstractEquationOfState} <:
        AbstractNonIdealCompressibleEulerEquations{2, 4}
@@ -216,20 +215,22 @@ function flux_terashima_etal(u_ll, u_rr, orientation::Int,
     drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
     rho_e_internal_avg_corrected = (rho_e_internal_avg -
-                           0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
-                           (rho_rr - rho_ll))
+                                    0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
+                                    (rho_rr - rho_ll))
     e_kinetic_avg = 0.5f0 * ((v1_ll * v1_rr) + (v2_ll * v2_rr))
 
     if orientation == 1
         f_rho = rho_avg * v1_avg
         f_rho_v1 = f_rho * v1_avg + p_avg
         f_rho_v2 = f_rho * v2_avg
-        f_rho_e_total = (rho_e_internal_avg_corrected + rho_avg * e_kinetic_avg) * v1_avg + p_v1_avg
+        f_rho_e_total = (rho_e_internal_avg_corrected + rho_avg * e_kinetic_avg) *
+                        v1_avg + p_v1_avg
     else # if orientation == 2
         f_rho = rho_avg * v2_avg
         f_rho_v1 = f_rho * v1_avg
         f_rho_v2 = f_rho * v2_avg + p_avg
-        f_rho_e_total = (rho_e_internal_avg_corrected + rho_avg * e_kinetic_avg) * v2_avg + p_v2_avg
+        f_rho_e_total = (rho_e_internal_avg_corrected + rho_avg * e_kinetic_avg) *
+                        v2_avg + p_v2_avg
     end
 
     return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)

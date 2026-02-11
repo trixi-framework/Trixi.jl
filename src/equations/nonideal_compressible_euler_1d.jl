@@ -37,9 +37,8 @@ p = p(V, T)
 Similarly, the internal energy is specified by `e_internal = energy_internal_specific(V, T, eos)`, see
 [`energy_internal_specific(V, T, eos::IdealGas)`](@ref), [`energy_internal_specific(V, T, eos::VanDerWaals)`](@ref).
 
-Because of this, the primitive variables are also defined to be `V, v1, T` (instead of
-`rho, v1, p` for `CompressibleEulerEquations1D`). The implementation also assumes
-mass basis unless otherwise specified.
+Note that this implementation also assumes a mass basis, so molar weight is not taken into account when calculating 
+specific volume.
 """
 struct NonIdealCompressibleEulerEquations1D{EoS <: AbstractEquationOfState} <:
        AbstractNonIdealCompressibleEulerEquations{1, 3}
