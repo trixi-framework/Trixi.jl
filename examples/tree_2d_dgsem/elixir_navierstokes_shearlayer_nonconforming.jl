@@ -46,7 +46,7 @@ coordinates_max = (1.0, 1.0)
 # This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
 # refine bottom left cell
 refinement_patches = ((type = "box", coordinates_min = (0.0, 0.0),
-                       coordinates_max = (1/16, 1/16)),)
+                       coordinates_max = (1 / 16, 1 / 16)),)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
