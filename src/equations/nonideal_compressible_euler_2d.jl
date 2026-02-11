@@ -267,7 +267,7 @@ function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
                            0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
                            (rho_rr - rho_ll))
 
-    ke_avg = 0.5f0 * ((v1_ll * v1_rr) + (v2_ll * v2_rr))
+    e_kinetic_avg = 0.5f0 * ((v1_ll * v1_rr) + (v2_ll * v2_rr))
 
     f_rho = rho_avg * v_dot_n_avg
     f_rho_v1 = f_rho * v1_avg + p_avg * normal_direction[1]
@@ -316,8 +316,8 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
 
     # calculate internal energy (with APEC correction) and kinetic energy 
     # contributions separately in energy equation
-    ke_ll = 0.5f0 * (v1_ll^2 + v2_ll^2)
-    ke_rr = 0.5f0 * (v1_rr^2 + v2_rr^2)
+    e_kinetic_ll = 0.5f0 * (v1_ll^2 + v2_ll^2)
+    e_kinetic_rr = 0.5f0 * (v1_rr^2 + v2_rr^2)
 
     if orientation == 1
         f_rho = 0.5f0 * (rho_v1_ll + rho_v1_rr)
@@ -371,8 +371,8 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
 
     # calculate internal energy (with APEC correction) and kinetic energy 
     # contributions separately in energy equation
-    ke_ll = 0.5f0 * (v1_ll^2 + v2_ll^2)
-    ke_rr = 0.5f0 * (v1_rr^2 + v2_rr^2)
+    e_kinetic_ll = 0.5f0 * (v1_ll^2 + v2_ll^2)
+    e_kinetic_rr = 0.5f0 * (v1_rr^2 + v2_rr^2)
 
     rho_v_dot_n_ll = rho_ll * v_dot_n_ll
     rho_v_dot_n_rr = rho_rr * v_dot_n_rr

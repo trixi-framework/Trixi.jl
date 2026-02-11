@@ -196,10 +196,10 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
 
     # calculate internal energy (with APEC correction) and kinetic energy
     # contributions separately in the energy equation
-    ke_ll = 0.5f0 * v1_ll^2
-    ke_rr = 0.5f0 * v1_rr^2
-    f_rho_e_total = rho_e_v1_avg +
-                    0.5f0 * (rho_v1_ll * ke_ll + rho_v1_rr * ke_rr) +
+    e_kinetic_ll = 0.5f0 * v1_ll^2
+    e_kinetic_rr = 0.5f0 * v1_rr^2
+    f_rho_e_total = rho_e_internal_corrected_v1_avg +
+                    0.5f0 * (rho_v1_ll * e_kinetic_ll + rho_v1_rr * e_kinetic_rr) +
                     0.5f0 * (p_ll * v1_ll + p_rr * v1_rr)
 
     return SVector(f_rho, f_rho_v1, f_rho_e_total)
