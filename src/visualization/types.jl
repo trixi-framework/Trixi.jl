@@ -453,11 +453,12 @@ The optional argument `function_to_visualize(u, equations)` should be a function
 in the conservative variables and equations as input and outputs a scalar variable to be visualized,
 e.g., [`pressure`](@ref) or [`density`](@ref) for the compressible Euler equations.
 """
-function ScalarPlotData2D(function_to_visualize::Func, u,
+function ScalarPlotData2D(function_to_visualize::Func, u_ode,
                           semi::AbstractSemidiscretization;
                           kwargs...) where {Func}
+    u = wrap_array(u_ode, semi)
     scalar_data = evaluate_scalar_function_at_nodes(function_to_visualize,
-                                                    wrap_array(u, semi),
+                                                    u,
                                                     mesh_equations_solver_cache(semi)...)
     return ScalarPlotData2D(scalar_data,
                             mesh_equations_solver_cache(semi)...; kwargs...)
