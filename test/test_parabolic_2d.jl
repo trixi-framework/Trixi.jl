@@ -628,8 +628,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic_amr.jl"),
                         tspan=(0.0, 0.01),
-                        l2=[0.0033330804100706246],
-                        linf=[0.025058926259548198])
+                        l2=[4.49813737871379e-5],
+                        linf=[0.0001874702347290924])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -640,8 +640,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         tspan=(0.0, 0.01),
-                        l2=[0.0015286892792639988],
-                        linf=[0.018527369646440195])
+                        l2=[0.0007711488519390165],
+                        linf=[0.015254743335703765])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -749,12 +749,12 @@ end
                                  "elixir_navierstokes_lid_driven_cavity_amr.jl"),
                         tspan=(0.0, 1.0),
                         l2=[
-                            0.0005310726567801674, 0.07895991786618105,
-                            0.029214122381480894, 0.11716618596711467
+                            0.0005305062668392406, 0.07898766423138423,
+                            0.02928291476915143, 0.11715767702870489
                         ],
                         linf=[
-                            0.005980577644609353, 0.924562207991634,
-                            0.7986981255639193, 1.691880485708424
+                            0.005950675379011616, 0.9254051903170974,
+                            0.7991033306362262, 1.694659748457326
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -811,16 +811,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl"),
                         l2=[
-                            6.191672324705442e-6,
-                            0.00011583392224949682,
-                            0.00011897020463459889,
-                            0.006467379086802275
+                            6.18393805678897e-6,
+                            0.00011581268033979716,
+                            0.00011900457244798095,
+                            0.006464813560434434
                         ],
                         linf=[
-                            0.0017446176443216936,
-                            0.06961708834164942,
-                            0.037063246278530367,
-                            1.4435072005258793
+                            0.0017386607519724257,
+                            0.07164832711649055,
+                            0.03699801158450292,
+                            1.4385095221954427
                         ], tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -1052,7 +1052,7 @@ end
                             1.5543122344752192e-15,
                             1.2378986724570495e-13,
                             1.7111312367035225e-13,
-                            1.5727863456049818e-11
+                            1.0867751143450732e-11
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

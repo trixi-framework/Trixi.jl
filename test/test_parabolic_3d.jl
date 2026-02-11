@@ -330,18 +330,18 @@ end
                                  "elixir_navierstokes_blast_wave_amr.jl"),
                         tspan=(0.0, 0.01),
                         l2=[
-                            0.009472104410520866,
-                            0.001788378076420436,
-                            0.0017883780764204344,
-                            0.001788378076420434,
-                            0.024388539218400503
+                            0.009449115832266491,
+                            0.0017932092857965453,
+                            0.0017932092857965449,
+                            0.001793209285796548,
+                            0.02432855189940458
                         ],
                         linf=[
-                            0.6782397166514129,
-                            0.17663690224376827,
-                            0.17663690224376813,
-                            0.17663690224376793,
-                            1.7327848371150218
+                            0.6811440777026873,
+                            0.17744074602770776,
+                            0.17744074602770762,
+                            0.1774407460277074,
+                            1.7402299022804495
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -362,7 +362,7 @@ end
 @trixi_testset "P4estMesh3D: elixir_advection_diffusion_amr_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_amr_unstructured_curved.jl"),
-                        l2=[0.00023552239536337634], linf=[0.012186740279098496],
+                        l2=[0.00018736303627576596], linf=[0.008489455781114985],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -517,7 +517,7 @@ end
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         solver_parabolic=ViscousFormulationLocalDG(),
                         cfl_diffusive=0.1,
-                        l2=[0.004185475784339019], linf=[0.051663567374880225])
+                        l2=[0.004180416884031117], linf=[0.051662524467102636])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -555,18 +555,18 @@ end
                         max_level=2,
                         tspan=(0.0, 0.1),
                         l2=[
-                            0.001106911564430018,
+                            0.0011069115461970517,
                             0.013872454764036899,
                             0.013872454764036934,
                             0.012060120516483785,
-                            0.14491994688373158
+                            0.14491993697252206
                         ],
                         linf=[
-                            0.004408900465271981,
-                            0.05154019951528149,
-                            0.05154019951517075,
+                            0.004408900543641403,
+                            0.05154019471576565,
+                            0.051540194715650245,
                             0.035283556918085636,
-                            0.6804797525555557
+                            0.6804810816393854
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
