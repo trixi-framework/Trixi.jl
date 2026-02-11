@@ -24,7 +24,7 @@ function initial_condition_transcritical_mixing(x, t,
     p = 2 * pc
 
     # from Bernades et al
-    epsilon, delta, A = 1.0, 1 / 20, 3 / 8
+    epsilon, delta, A = 1, convert(RealT, 1 / 20), convert(RealT, 3 / 8)
     u0 = 25 # m/s
     T = eos.Tc * (3 * A - A * tanh(y / delta)) # Tc is 126.2 for N2
 
