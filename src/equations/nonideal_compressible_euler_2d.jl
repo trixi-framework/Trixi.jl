@@ -246,8 +246,8 @@ function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
 
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
-    rho_e_ll = energy_internal(u_ll, equations)
-    rho_e_rr = energy_internal(u_rr, equations)
+    rho_e_internal_ll = energy_internal(u_ll, equations)
+    rho_e_internal_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -265,7 +265,7 @@ function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
     # chain rule from Terashima    
     drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_internal_drho_p_rr = drho_e_internal_drho_at_const_p(V_rr, T_rr, eos)
-    rho_e_internal_avg_corrected = (rho_e_avg -
+    rho_e_internal_avg_corrected = (rho_e_internal_avg -
                                     0.25f0 *
                                     (drho_e_internal_drho_p_rr -
                                      drho_e_internal_drho_p_ll) *
@@ -302,20 +302,20 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
 
     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
-    rho_e_ll = energy_internal(u_ll, equations)
-    rho_e_rr = energy_internal(u_rr, equations)
+    rho_e_internal_ll = energy_internal(u_ll, equations)
+    rho_e_internal_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_avg = 0.5f0 * (v2_ll + v2_rr)
     p_avg = 0.5f0 * (p_ll + p_rr)
-    rho_e_avg = 0.5f0 * (rho_e_ll + rho_e_rr)
+    rho_e_internal_avg = 0.5f0 * (rho_internal_e_ll + rho_e_internal_rr)
 
     # chain rule from Terashima    
     drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_internal_drho_p_rr = drho_e_internal_drho_at_const_p(V_rr, T_rr, eos)
-    rho_e_internal_avg_corrected = (rho_e_avg -
+    rho_e_internal_avg_corrected = (rho_e_internal_avg -
                                     0.25f0 *
                                     (drho_e_internal_drho_p_rr -
                                      drho_e_internal_drho_p_ll) *
@@ -353,8 +353,8 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
 
     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
-    rho_e_ll = energy_internal(u_ll, equations)
-    rho_e_rr = energy_internal(u_rr, equations)
+    rho_e_internal_ll = energy_internal(u_ll, equations)
+    rho_e_internal_rr = energy_internal(u_rr, equations)
     p_ll = pressure(V_ll, T_ll, eos)
     p_rr = pressure(V_rr, T_rr, eos)
 
@@ -366,13 +366,13 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_avg = 0.5f0 * (v2_ll + v2_rr)
     p_avg = 0.5f0 * (p_ll + p_rr)
-    rho_e_avg = 0.5f0 * (rho_e_ll + rho_e_rr)
+    rho_e_internal_avg = 0.5f0 * (rho_e_internal_ll + rho_e_internal_rr)
     p_v_dot_n_avg = 0.5f0 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
 
     # chain rule from Terashima    
     drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_internal_drho_p_rr = drho_e_internal_drho_at_const_p(V_rr, T_rr, eos)
-    rho_e_internal_avg_corrected = (rho_e_avg -
+    rho_e_internal_avg_corrected = (rho_e_internal_avg -
                                     0.25f0 *
                                     (drho_e_internal_drho_p_rr -
                                      drho_e_internal_drho_p_ll) *
