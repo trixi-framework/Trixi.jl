@@ -129,16 +129,18 @@ Approximately pressure equilibrium preserving with conservation (APEC) flux from
     p_v1_avg = 0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
 
     # chain rule from Terashima
-    # Note that `drho_e_drho_p`, i.e., the derivative of the
+    # Note that `drho_e_internal_drho_p`, i.e., the derivative of the
     # internal energy density with respect to the density at
     # constant pressure is zero for an ideal gas EOS. Thus,
     # the following mean value reduces to
     #   rho_e_internal_corrected_v1_avg = rho_e_internal_corrected_avg * v1_avg
     # for an ideal gas EOS.
-    drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
-    drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
+    drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
+    drho_e_internal_drho_p_rr = drho_e_internal_drho_at_const_p(V_rr, T_rr, eos)
     rho_e_internal_corrected_v1_avg = (rho_e_avg -
-                                       0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
+                                       0.25f0 *
+                                       (drho_e_internal_drho_p_rr -
+                                        drho_e_internal_drho_p_ll) *
                                        (rho_rr - rho_ll)) * v1_avg
 
     # Ignore orientation since it is always "1" in 1D
@@ -179,16 +181,18 @@ by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
     rho_e_avg = 0.5f0 * (rho_e_ll + rho_e_rr)
 
     # chain rule from Terashima
-    # Note that `drho_e_drho_p`, i.e., the derivative of the
+    # Note that `drho_e_internal_drho_p`, i.e., the derivative of the
     # internal energy density with respect to the density at
     # constant pressure is zero for an ideal gas EOS. Thus,
     # the following mean value reduces to
     #   rho_e_internal_corrected_v1_avg = rho_e_avg * v1_avg
     # for an ideal gas EOS.
-    drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
-    drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
+    drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
+    drho_e_internal_drho_p_rr = drho_e_internal_drho_at_const_p(V_rr, T_rr, eos)
     rho_e_internal_corrected_v1_avg = (rho_e_avg -
-                                       0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
+                                       0.25f0 *
+                                       (drho_e_internal_drho_p_rr -
+                                        drho_e_internal_drho_p_ll) *
                                        (rho_rr - rho_ll)) *
                                       v1_avg
 
