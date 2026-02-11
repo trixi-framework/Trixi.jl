@@ -24,9 +24,9 @@
 # [HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
 # This package provides a Julia wrapper for the HOHQMesh generator that allows users to easily create mesh
 # files without the need to build HOHQMesh from source. To install the HOHQMesh package execute
-# ````julia
+# ```julia
 # import Pkg; Pkg.add("HOHQMesh")
-# ````
+# ```
 # Now we are ready to generate an unstructured quadrilateral mesh that can be used by Trixi.jl.
 
 # ## Running and visualizing an unstructured simulation
@@ -289,12 +289,12 @@ output = generate_mesh(control_file);
 # To construct the unstructured quadrilateral mesh from the HOHQMesh file we point to the appropriate location
 # with the variable `mesh_file` and then feed this into the constructor for the [`UnstructuredMesh2D`](@ref) type in Trixi.jl
 
-# ````julia
+# ```julia
 # # create the unstructured mesh from your mesh file
 # using Trixi
 # mesh_file = joinpath("out", "ice_cream_straight_sides.mesh")
 # mesh = UnstructuredMesh2D(mesh_file);
-# ````
+# ```
 
 # The complete elixir file for this simulation example is given below.
 
@@ -523,25 +523,25 @@ mesh = UnstructuredMesh2D(mesh_file);
 # As described above, the first block of the HOHQMesh control file contains the parameter
 # `mesh file format`. If you set `mesh file format = ABAQUS` instead of `ISM-V2`,
 # HOHQMesh.jl's function `generate_mesh` creates an Abaqus mesh file `.inp`.
-# ````julia
+# ```julia
 # using HOHQMesh
 # control_file = joinpath("out", "ice_cream_straight_sides.control")
 # output = generate_mesh(control_file);
-# ````
+# ```
 
 # Now, you can create a `P4estMesh` from your mesh file. It is described in detail in the
 # [P4est-based mesh](https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/p4est_mesh/#P4est-based-mesh)
 # part of the Trixi.jl docs.
-# ````julia
+# ```julia
 # using Trixi
 # mesh_file = joinpath("out", "ice_cream_straight_sides.inp")
 # mesh = P4estMesh{2}(mesh_file)
-# ````
+# ```
 
 # Since `P4estMesh` supports AMR, we just have to extend the setup from the first example by the
 # standard AMR procedure. For more information about AMR in Trixi.jl, see the [matching tutorial](@ref adaptive_mesh_refinement).
 
-# ````julia
+# ```julia
 # amr_indicator = IndicatorLöhner(semi, variable=density)
 
 # amr_controller = ControllerThreeLevel(semi, amr_indicator,
@@ -555,7 +555,7 @@ mesh = UnstructuredMesh2D(mesh_file);
 #                            adapt_initial_condition_only_refine=true)
 
 # callbacks = CallbackSet(..., amr_callback)
-# ````
+# ```
 
 # We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize
 # with ParaView, see the appropriate [visualization section](https://trixi-framework.github.io/TrixiDocumentation/stable/visualization/#Trixi2Vtk)
