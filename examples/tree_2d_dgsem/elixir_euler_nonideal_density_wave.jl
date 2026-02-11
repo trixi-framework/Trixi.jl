@@ -8,6 +8,39 @@ using Trixi: ForwardDiff
 eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
 equations = NonIdealCompressibleEulerEquations2D(eos)
 
+# the default amplitude and frequency k are chosen to be consistent with 
+# initial_condition_density_wave for CompressibleEulerEquations1D
+function Trixi.initial_condition_density_wave(x, t,
+                                              equations::NonIdealCompressibleEulerEquations2D;
+                                              amplitude = 0.98, k = 2)
+    RealT = eltype(x)
+
+    eos = equations.equation_of_state
+
+    v1 = convert(RealT, 0.1)
+    v2 = convert(RealT, 0.2)
+    rho = 1 + convert(RealT, amplitude) * sinpi(k * (x[1] + x[2] - t * (v1 + v2)))
+    p = 20
+
+    V = inv(rho)
+
+    # invert for temperature given p, V
+    T = 1
+    tol = 100 * eps(RealT)
+    dp = pressure(V, T, eos) - p
+    iter = 1
+    while abs(dp) / abs(p) > tol && iter < 100
+        dp = pressure(V, T, eos) - p
+        dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
+        T = max(tol, T - dp / dpdT_V)
+        iter += 1
+    end
+    if iter == 100
+        println("Warning: solver for temperature(V, p) did not converge")
+    end
+
+    return prim2cons(SVector(V, v1, v2, T), equations)
+end
 initial_condition = initial_condition_density_wave
 
 volume_flux = flux_terashima_etal
