@@ -1,6 +1,5 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using Accessors: @reset
 
 ###############################################################################
 # Define time integration algorithm
@@ -25,7 +24,7 @@ dt = load_dt(restart_filename)
 ode = semidiscretize(semi, tspan, restart_filename)
 
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
-@reset save_solution.condition.save_initial_solution = false
+save_solution.condition.save_initial_solution = false
 
 # Add AMR callback
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
