@@ -130,20 +130,20 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl (min_max_speed_naive)" begin
+@trixi_testset "elixir_euler_nonideal_density_wave.jl (FluxHLL))" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
-                        tspan=(0.0, 0.5), surface_flux=FluxHLL(min_max_speed_naive),
+                        tspan=(0.0, 0.5), surface_flux=flux_hll,
                         l2=[
-                            0.005120569410818968,
-                            0.0005107175634328961,
-                            0.0010214028052822862,
-                            0.26424662406680544
+                            0.005120682930479358,
+                            0.0005107154473420592,
+                            0.0010214220340067936,
+                            0.2642543660997129
                         ],
                         linf=[
-                            0.02253539764111734,
-                            0.0021502487629356526,
-                            0.004367440276381418,
-                            1.0203844424142972
+                            0.022535393384123026,
+                            0.0021501709863882,
+                            0.004367450646593718,
+                            1.020387671247505
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

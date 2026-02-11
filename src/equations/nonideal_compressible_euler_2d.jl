@@ -386,47 +386,6 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
     return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)
 end
 
-# Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
-@inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
-                                     equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
-
-    eos = equations.equation_of_state
-    c_ll = speed_of_sound(V_ll, T_ll, eos)
-    c_rr = speed_of_sound(V_rr, T_rr, eos)
-
-    if orientation == 1 # x-direction
-        λ_min = v1_ll - c_ll
-        λ_max = v1_rr + c_rr
-    else # y-direction
-        λ_min = v2_ll - c_ll
-        λ_max = v2_rr + c_rr
-    end
-
-    return λ_min, λ_max
-end
-
-@inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
-                                     equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
-
-    v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
-    v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
-
-    eos = equations.equation_of_state
-    c_ll = speed_of_sound(V_ll, T_ll, eos)
-    c_rr = speed_of_sound(V_rr, T_rr, eos)
-
-    norm_ = norm(normal_direction)
-    # The v_normals are already scaled by the norm
-    λ_min = v_normal_ll - c_ll * norm_
-    λ_max = v_normal_rr + c_rr * norm_
-
-    return λ_min, λ_max
-end
-
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::NonIdealCompressibleEulerEquations2D)
@@ -476,51 +435,6 @@ end
     norm_ = norm(normal_direction)
     return max(abs(v_ll) + c_ll * norm_,
                abs(v_rr) + c_rr * norm_)
-end
-
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
-                                     equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
-
-    # Get the velocity value in the appropriate direction
-    if orientation == 1
-        v_ll = v1_ll
-        v_rr = v1_rr
-    else # orientation == 2
-        v_ll = v2_ll
-        v_rr = v2_rr
-    end
-
-    v_mag_ll = abs(v_ll)
-    v_mag_rr = abs(v_rr)
-
-    # Calculate primitive variables and speed of sound
-    eos = equations.equation_of_state
-    c_ll = speed_of_sound(V_ll, T_ll, eos)
-    c_rr = speed_of_sound(V_rr, T_rr, eos)
-
-    return max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
-end
-
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
-                                     equations::NonIdealCompressibleEulerEquations2D)
-    V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
-    V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
-
-    # Get the velocity value in the appropriate direction
-    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
-    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
-
-    v_mag_ll = abs(v_dot_n_ll)
-    v_mag_rr = abs(v_dot_n_rr)
-
-    # Calculate primitive variables and speed of sound
-    eos = equations.equation_of_state
-    c_ll = speed_of_sound(V_ll, T_ll, eos)
-    c_rr = speed_of_sound(V_rr, T_rr, eos)
-
-    return max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
