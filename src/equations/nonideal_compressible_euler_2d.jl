@@ -263,16 +263,17 @@ function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
     # chain rule from Terashima    
     drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
-    rho_e_avg_corrected = (rho_e_avg -
-                           0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
-                           (rho_rr - rho_ll))
+    rho_e_internal_avg_corrected = (rho_e_avg -
+                                    0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
+                                    (rho_rr - rho_ll))
 
     e_kinetic_avg = 0.5f0 * ((v1_ll * v1_rr) + (v2_ll * v2_rr))
 
     f_rho = rho_avg * v_dot_n_avg
     f_rho_v1 = f_rho * v1_avg + p_avg * normal_direction[1]
     f_rho_v2 = f_rho * v2_avg + p_avg * normal_direction[2]
-    f_rho_e_total = (rho_e_avg_corrected + rho_avg * ke_avg) * v_dot_n_avg +
+    f_rho_e_total = (rho_e_internal_avg_corrected + rho_avg * e_kinetic_avg) *
+                    v_dot_n_avg +
                     p_v_dot_n_avg
     return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_e_total)
 end
@@ -310,9 +311,9 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
     # chain rule from Terashima    
     drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
-    rho_e_avg_corrected = (rho_e_avg -
-                           0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
-                           (rho_rr - rho_ll))
+    rho_e_internal_avg_corrected = (rho_e_avg -
+                                    0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
+                                    (rho_rr - rho_ll))
 
     # calculate internal energy (with APEC correction) and kinetic energy 
     # contributions separately in energy equation
@@ -323,19 +324,19 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
         f_rho = 0.5f0 * (rho_v1_ll + rho_v1_rr)
         f_rho_v1 = 0.5f0 * (rho_v1_ll * v1_ll + rho_v1_rr * v1_rr) + p_avg
         f_rho_v2 = 0.5f0 * (rho_v1_ll * v2_ll + rho_v1_rr * v2_rr)
-        f_rho_E = rho_e_avg_corrected * v1_avg +
-                  0.5f0 * (rho_v1_ll * ke_ll + rho_v1_rr * ke_rr) +
-                  0.5f0 * (p_ll * v1_ll + p_rr * v1_rr)
+        f_rho_e_total = rho_e_internal_avg_corrected * v1_avg +
+                        0.5f0 * (rho_v1_ll * e_kinetic_ll + rho_v1_rr * e_kinetic_rr) +
+                        0.5f0 * (p_ll * v1_ll + p_rr * v1_rr)
     else # if orientation == 2
         f_rho = 0.5f0 * (rho_v2_ll + rho_v2_rr)
         f_rho_v1 = 0.5f0 * (rho_v1_ll * v2_ll + rho_v1_rr * v2_rr)
         f_rho_v2 = 0.5f0 * (rho_v2_ll * v2_ll + rho_v2_rr * v2_rr) + p_avg
-        f_rho_E = rho_e_avg_corrected * v2_avg +
-                  0.5f0 * (rho_v2_ll * ke_ll + rho_v2_rr * ke_rr) +
-                  0.5f0 * (p_ll * v2_ll + p_rr * v2_rr)
+        f_rho_e_total = rho_e_internal_avg_corrected * v2_avg +
+                        0.5f0 * (rho_v2_ll * e_kinetic_ll + rho_v2_rr * e_kinetic_rr) +
+                        0.5f0 * (p_ll * v2_ll + p_rr * v2_rr)
     end
 
-    return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)
+    return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_e_total)
 end
 
 function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
@@ -365,9 +366,9 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
     # chain rule from Terashima    
     drho_e_drho_p_ll = drho_e_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_drho_p_rr = drho_e_drho_at_const_p(V_rr, T_rr, eos)
-    rho_e_avg_corrected = (rho_e_avg -
-                           0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
-                           (rho_rr - rho_ll))
+    rho_e_internal_avg_corrected = (rho_e_avg -
+                                    0.25f0 * (drho_e_drho_p_rr - drho_e_drho_p_ll) *
+                                    (rho_rr - rho_ll))
 
     # calculate internal energy (with APEC correction) and kinetic energy 
     # contributions separately in energy equation
@@ -381,10 +382,11 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
                p_avg * normal_direction[1]
     f_rho_v2 = 0.5f0 * (rho_v_dot_n_ll * v2_ll + rho_v_dot_n_rr * v2_rr) +
                p_avg * normal_direction[2]
-    f_rho_E = rho_e_avg_corrected * v_dot_n_avg +
-              0.5f0 * (rho_v_dot_n_ll * ke_ll + rho_v_dot_n_rr * ke_rr) +
-              0.5f0 * (p_ll * v_dot_n_ll + p_rr * v_dot_n_rr)
-    return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_E)
+    f_rho_e_total = rho_e_internal_avg_corrected * v_dot_n_avg +
+                    0.5f0 *
+                    (rho_v_dot_n_ll * e_kinetic_ll + rho_v_dot_n_rr * e_kinetic_rr) +
+                    0.5f0 * (p_ll * v_dot_n_ll + p_rr * v_dot_n_rr)
+    return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_e_total)
 end
 
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
