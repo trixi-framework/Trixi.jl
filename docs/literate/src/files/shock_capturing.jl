@@ -12,10 +12,9 @@
 # [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935). In
 # [Rueda-Ramírez et al. (2021)](https://doi.org/10.1016/j.jcp.2021.110580) you find the extension to
 # the systems with non-conservative terms, such as the compressible magnetohydrodynamics (MHD) equations.
-# Furthermore, the latter paper introduces also second-order subcell finite volume stabilization.
 
 # The strategy for a shock-capturing method presented by Hennemann et al. is based on a hybrid blending
-# of a high-order DG method with a low-order variant. The low-order subcell first order finite volume (FV) method is created
+# of a high-order DG method with a low-order variant. The low-order subcell finite volume (FV) method is created
 # directly with the Legendre-Gauss-Lobatto (LGL) nodes already used for the high-order DGSEM.
 # Then, the final method is a convex combination with regulating indicator $\alpha$ of these two methods.
 
@@ -30,25 +29,13 @@
 # two-point flux, such as [`flux_ranocha`](@ref), [`flux_shima_etal`](@ref), [`flux_chandrashekar`](@ref) or [`flux_kennedy_gruber`](@ref),
 # for the DG volume flux. We would recommend to use the entropy conserving flux `flux_ranocha` by
 # [Ranocha (2018)](https://cuvillier.de/en/shop/publications/7743) for the compressible Euler equations.
-# ```julia
+# ````julia
 # volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 #                                                  volume_flux_dg=volume_flux_dg,
 #                                                  volume_flux_fv=volume_flux_fv)
-# ```
+# ````
 
-# The volume integral employing second-order FV stabilization is constructed similarly:
-# ```julia
-# volume_integral = VolumeIntegralShockCapturingRRG(basis, indicator_sc;
-#                                                   volume_flux_dg=flux_central,
-#                                                   volume_flux_fv=flux_lax_friedrichs,
-#                                                   slope_limiter=minmod)
-# ```
-# In addition to the parameters of the HG method, the DG `basis` **must** be supplied here.
-# The `slope_limiter` keyword argument is optional and defaults to `minmod`.
-# A list of supported slope limiters can be found in the reference of [`VolumeIntegralShockCapturingRRG`](@ref).
-
-# We now focus on a choice of the shock capturing indicator `indicator_sc`, which can be used for both
-# the first-order and the second-order FV stabilization.
+# We now focus on a choice of the shock capturing indicator `indicator_sc`.
 # A possible indicator is $\alpha_{HG}$ presented by Hennemann et al. (p.10), which depends on the
 # current approximation with modal coefficients $\{m_j\}_{j=0}^N$ of a given `variable`.
 
@@ -87,13 +74,13 @@
 
 # This indicator is implemented in Trixi.jl and called [`IndicatorHennemannGassner`](@ref) with the parameters
 # `equations`, `basis`, `alpha_max`, `alpha_min`, `alpha_smooth` and `variable`.
-# ```julia
+# ````julia
 # indicator_sc = IndicatorHennemannGassner(equations, basis,
 #                                          alpha_max=0.5,
 #                                          alpha_min=0.001,
 #                                          alpha_smooth=true,
 #                                          variable=variable)
-# ```
+# ````
 
 # # Positivity preserving limiter
 
@@ -128,18 +115,18 @@
 
 # You can implement the limiter in Trixi.jl using [`PositivityPreservingLimiterZhangShu`](@ref) with parameters
 # `threshold` and `variables`.
-# ```julia
+# ````julia
 # stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=thresholds,
 #                                                      variables=variables)
-# ```
+# ````
 # Then, the limiter is added to the time integration method in the `solve` function. For instance, like
-# ```julia
+# ````julia
 # CarpenterKennedy2N54(stage_limiter!, williamson_condition=false)
-# ```
+# ````
 # or
-# ```julia
+# ````julia
 # SSPRK43(stage_limiter!).
-# ```
+# ````
 
 # # Simulation with shock capturing and positivity preserving
 
