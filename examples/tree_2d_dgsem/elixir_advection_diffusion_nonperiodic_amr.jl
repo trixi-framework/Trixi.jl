@@ -18,7 +18,7 @@ coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 periodicity = false,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+                n_cells_max = 30_000)
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
