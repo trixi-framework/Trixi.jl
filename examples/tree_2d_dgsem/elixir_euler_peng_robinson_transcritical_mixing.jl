@@ -47,7 +47,7 @@ function initial_condition_transcritical_mixing(x, t,
 
     k = 6
     dv = epsilon * sinpi(k * x) * (tanh(100 * (y + 0.1)) - tanh(100 * (y - 0.1))) / 2
-    v1 = u0 * (1 + 0.2 * tanh(y / delta)) + dv
+    v1 = u0 * (1 + convert(RealT, 0.2) * tanh(y / delta)) + dv
     v2 = dv
 
     return prim2cons(SVector(V, v1, v2, T), equations)
