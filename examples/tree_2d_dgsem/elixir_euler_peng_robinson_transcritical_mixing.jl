@@ -46,7 +46,7 @@ function initial_condition_transcritical_mixing(x, t,
     end
 
     k = 6
-    dv = epsilon * sin(k * pi * x) * (tanh(100 * (y + 0.1)) - tanh(100 * (y - 0.1))) / 2
+    dv = epsilon * sinpi(k * x) * (tanh(100 * (y + 0.1)) - tanh(100 * (y - 0.1))) / 2
     v1 = u0 * (1 + 0.2 * tanh(y / delta)) + dv
     v2 = dv
 
