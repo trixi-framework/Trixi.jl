@@ -289,8 +289,13 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
-    filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system))
-    p4est_filename = @sprintf("p4est_%s_data", system)
+    if timestep > 0
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+        p4est_filename = @sprintf("p4est_data_%09d", timestep)
+    else
+        filename = joinpath(output_directory, "mesh.h5")
+        p4est_filename = "p4est_data"
+    end
     p4est_file = joinpath(output_directory, p4est_filename)
 
     # Save the complete connectivity and `p4est` data to disk.
