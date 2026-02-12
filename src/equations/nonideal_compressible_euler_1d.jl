@@ -294,10 +294,10 @@ end
     return inv(T) * SVector(gibbs - 0.5f0 * v1^2, v1, -1)
 end
 
-# Convert primitive to conservative variables
-@inline function prim2cons(prim, equations::NonIdealCompressibleEulerEquations1D)
+# Convert thermodynamic variables `V, v1, T` to conservative variables
+@inline function thermo2cons(thermo, equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
-    V, v1, T = prim
+    V, v1, T = thermo
     rho = inv(V)
     rho_v1 = rho * v1
     e_internal = energy_internal_specific(V, T, eos)
