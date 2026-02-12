@@ -170,9 +170,9 @@ function extract_boundaries(mesh::P4estMeshView{2},
     n_nodes = size(boundaries.u, 2)
     n_variables = size(boundaries.u, 1)
     capacity = length(boundaries.neighbor_ids)
-    
+
     resize!(boundaries._u, n_variables * n_nodes^(n_dims - 1) * capacity)
-    boundaries.u = unsafe_wrap(ArrayType, pointer(boundaries._u),
+    boundaries.u = unsafe_wrap(Array, pointer(boundaries._u),
                            (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
                             capacity))
 
