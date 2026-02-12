@@ -117,7 +117,7 @@ function extract_boundaries(mesh::P4estMeshView,
     # Remove all boundaries that are not part of this p4est mesh view.
     boundaries = deepcopy(boundaries_parent)
     mask = BitArray(undef, nboundaries(boundaries_parent))
-    for boundary in 1:size(boundaries_parent.neighbor_ids)[1]
+    for boundary in 1:nboundaries(boundaries_parent)
         mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
     end
     boundaries.neighbor_ids = global_element_id_to_local(boundaries_parent.neighbor_ids[mask],
