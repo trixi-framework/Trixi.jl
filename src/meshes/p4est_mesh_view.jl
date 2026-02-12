@@ -111,7 +111,7 @@ end
 
 # Remove all boundaries that are not part of this p4est mesh view and add new boundaries
 # that were interfaces of the parent mesh.
-function extract_boundaries(mesh::P4estMeshView,
+function extract_boundaries(mesh::P4estMeshView{2},
                             boundaries_parent, interfaces_parent,
                             interfaces)
     # Remove all boundaries that are not part of this p4est mesh view.
