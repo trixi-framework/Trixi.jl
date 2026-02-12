@@ -246,10 +246,11 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                            equations)) ==
                       RealT
 
+                q = Trixi.cons2thermo(u, equations)
                 @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
                 @test eltype(@inferred cons2prim(u, equations)) == RealT
                 @test eltype(@inferred Trixi.cons2thermo(u, equations)) == RealT
-                @test eltype(@inferred prim2cons(u, equations)) == RealT
+                @test eltype(@inferred Trixi.thermo2cons(q, equations)) == RealT
                 @test eltype(@inferred cons2entropy(u, equations)) == RealT
                 # TODO: if entropy2cons is implemented, add a test
 
@@ -292,10 +293,11 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                            equations)) ==
                       RealT
 
+                q = Trixi.cons2thermo(u, equations)
                 @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
                 @test eltype(@inferred cons2prim(u, equations)) == RealT
                 @test eltype(@inferred Trixi.cons2thermo(u, equations)) == RealT
-                @test eltype(@inferred prim2cons(u, equations)) == RealT
+                @test eltype(@inferred Trixi.thermo2cons(q, equations)) == RealT
                 @test eltype(@inferred cons2entropy(u, equations)) == RealT
                 # TODO: if entropy2cons is implemented, add a test
 
