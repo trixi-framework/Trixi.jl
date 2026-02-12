@@ -50,7 +50,7 @@ function initial_condition_transcritical_mixing(x, t,
     v1 = u0 * (1 + convert(RealT, 0.2) * tanh(y / delta)) + dv
     v2 = dv
 
-    return Trixi.thermo2cons(SVector(V, v1, v2, T), equations)
+    return thermo2cons(SVector(V, v1, v2, T), equations)
 end
 
 initial_condition = initial_condition_transcritical_mixing

@@ -39,7 +39,7 @@ function initial_condition_transcritical_shock(x, t,
         @warn "Solver for temperature(V, p) did not converge"
     end
 
-    return Trixi.thermo2cons(SVector(V, v1, T), equations)
+    return thermo2cons(SVector(V, v1, T), equations)
 end
 initial_condition = initial_condition_transcritical_shock
 

@@ -39,7 +39,7 @@ function Trixi.initial_condition_density_wave(x, t,
         @warn "Solver for temperature(V, p) did not converge"
     end
 
-    return Trixi.thermo2cons(SVector(V, v1, v2, T), equations)
+    return thermo2cons(SVector(V, v1, v2, T), equations)
 end
 initial_condition = initial_condition_density_wave
 
