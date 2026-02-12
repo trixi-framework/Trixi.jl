@@ -143,7 +143,9 @@ function extract_boundaries(mesh::P4estMeshView,
             # Update the neighbor ids.
             push!(boundaries.neighbor_ids,
                   global_element_id_to_local(neighbor_id, mesh))
-            # Update the boundary names.
+            # Update the boundary names to reflect where the neighboring cell is
+            # relative to this one, i.e. left, right, up, down.
+            # In 3d one would need to add the third dimension.
             if interfaces_parent.node_indices[view_idx, interface] ==
                (:end, :i_forward)
                 push!(boundaries.name, :x_pos)
