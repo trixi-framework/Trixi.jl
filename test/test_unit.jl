@@ -798,7 +798,7 @@ end
           "NonIdealCompressibleEulerEquations1D{VanDerWaals}"
     q = SVector(2.0, 0.1, 10.0)
     V, v1, T = q
-    u = prim2cons(q, equations)
+    u = thermo2cons(q, equations)
 
     @test density(u, equations) ≈ 0.5
     @test velocity(u, equations) ≈ 0.1
@@ -815,7 +815,7 @@ end
 
     # check that the fallback temperature and specialized temperature
     # return the same value
-    V, v1, T = Trixi.cons2thermo(u, equations)
+    V, v1, T = cons2thermo(u, equations)
     e_internal = energy_internal_specific(V, T, eos)
     @test temperature(V, e_internal, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V,
@@ -837,7 +837,7 @@ end
     equations = NonIdealCompressibleEulerEquations2D(eos)
     q = SVector(2.0, 0.1, 0.2, 10.0)
     V, v1, v2, T = q
-    u = prim2cons(q, equations)
+    u = thermo2cons(q, equations)
 
     @test density(u, equations) ≈ 0.5
     @test velocity(u, equations) ≈ SVector(0.1, 0.2)
@@ -864,7 +864,7 @@ end
           flux(u, 2, equations) * normal_direction[2]
 
     u_ll = u
-    u_rr = prim2cons(SVector(2.5, 0.2, 0.1, 8.0), equations)
+    u_rr = thermo2cons(SVector(2.5, 0.2, 0.1, 8.0), equations)
     @test flux_terashima_etal(u_ll, u_rr, normal_direction, equations) ≈
           flux_terashima_etal(u_ll, u_rr, 1, equations) * normal_direction[1] +
           flux_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
@@ -892,7 +892,7 @@ end
 
     # check that the fallback temperature and specialized temperature 
     # return the same value 
-    V, v1, v2, T = cons2prim(u, equations)
+    V, v1, v2, T = cons2thermo(u, equations)
     e = energy_internal_specific(V, T, eos)
     @test temperature(V, e, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
