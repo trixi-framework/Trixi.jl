@@ -652,8 +652,7 @@ function calc_mortar_flux_divergence!(surface_flux_values, mesh::P4estMesh{2},
                                       mortar_l2::LobattoLegendreMortarL2,
                                       dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
-    @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container.
