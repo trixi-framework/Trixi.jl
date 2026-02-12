@@ -246,6 +246,7 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
 end
 
 # Translate the interface indices into boundary names.
+# This works only in 2d currently.
 function node_indices_to_name(node_index)
     if node_index == (:end, :i_forward)
         return :x_pos
