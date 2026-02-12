@@ -275,7 +275,9 @@ function global_element_id_to_local(ids::AbstractArray, mesh::P4estMeshView)
     local_id = zeros(Int, length(ids))
     for i in eachindex(ids)
         local_id[i] = global_element_id_to_local(ids[i], mesh)
-    end
+    local_id = zeros(Int, length(ids))
+    for i in eachindex(ids)
+        local_id[i] = global_element_id_to_local(ids[i], mesh)
 
     return local_id
 end
