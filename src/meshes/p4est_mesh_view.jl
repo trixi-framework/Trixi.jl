@@ -111,7 +111,7 @@ end
 
 # Remove all boundaries that are not part of this p4est mesh view and add new boundaries
 # that were interfaces of the parent mesh.
-function extract_boundaries(mesh::P4estMeshView,
+function extract_boundaries(mesh::P4estMeshView{2},
                             boundaries_parent, interfaces_parent,
                             interfaces)
     # Remove all boundaries that are not part of this p4est mesh view.
@@ -166,9 +166,15 @@ function extract_boundaries(mesh::P4estMeshView,
     end
 
     # Create the boundary vector for u, which will be populated later.
-    boundaries.u = zeros(typeof(boundaries_parent.u).parameters[1],
-                         (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2],
-                          size(boundaries.node_indices)[end]))
+    n_dims = ndims(boundaries)
+    n_nodes = size(boundaries.u, 2)
+    n_variables = size(boundaries.u, 1)
+    capacity = length(boundaries.neighbor_ids)
+    
+    resize!(boundaries._u, n_variables * n_nodes^(n_dims - 1) * capacity)
+    boundaries.u = unsafe_wrap(ArrayType, pointer(boundaries._u),
+                           (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
+                            capacity))
 
     return boundaries
 end
