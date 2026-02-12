@@ -512,23 +512,23 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
     return nothing
 end
 
-# Multiple calc_sources! to resolve method ambiguities
-function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
+# Multiple calc_sources_parabolic! to resolve method ambiguities
+function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic::Nothing,
                                  mesh, equations_parabolic,
                                  dg::Union{<:DGMulti, <:DGMultiFluxDiffSBP}, cache)
     return nothing
 end
 
 # uses quadrature + projection to compute source terms.
-function calc_sources_parabolic!(du, u, gradients, t, source_terms,
+function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
                                  mesh, equations_parabolic, dg::DGMulti, cache)
     md = mesh.md
     @threaded for e in eachelement(mesh, dg, cache)
         for i in eachnode(dg)
             du[i, e] = du[i, e] +
-                       source_terms(u[i, e], SVector(getindex.(gradients, i, e)),
-                                    SVector(getindex.(md.xyzq, i, e)),
-                                    t, equations_parabolic)
+                       source_terms_parabolic(u[i, e], SVector(getindex.(gradients, i, e)),
+                                              SVector(getindex.(md.xyzq, i, e)),
+                                              t, equations_parabolic)
         end
     end
 

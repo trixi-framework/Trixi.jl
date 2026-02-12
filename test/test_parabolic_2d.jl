@@ -230,6 +230,36 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_gradient_source_terms.jl (Fixed timestep)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_gradient_source_terms.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.4),
+                        solver_parabolic=ViscousFormulationBassiRebay1(), nu=1e-3,
+                        stepsize_callback=TrivialCallback(), dt=1e-1,
+                        l2=[0.0017395186758592685], linf=[0.007481527467476025])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@trixi_testset "P4estMesh2D: elixir_advection_diffusion_gradient_source_terms.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_gradient_source_terms.jl"),
+                        mesh=P4estMesh((4, 4), polydeg = 1,
+                                       coordinates_min = coordinates_min,
+                                       coordinates_max = coordinates_max,
+                                       periodicity = true),
+                        tspan=(0.0, 0.4),
+                        solver_parabolic=ViscousFormulationBassiRebay1(), nu=1e-3,
+                        stepsize_callback=TrivialCallback(), dt=1e-1,
+                        l2=[0.0017395186758592685], linf=[0.007481527467476025])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (Refined mesh)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
