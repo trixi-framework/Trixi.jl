@@ -42,7 +42,7 @@ function initial_condition_transcritical_wave(x, t,
         @warn "Solver for temperature(V, p) did not converge"
     end
 
-    return prim2cons(SVector(V, v1, T), equations)
+    return Trixi.thermo2cons(SVector(V, v1, T), equations)
 end
 initial_condition = initial_condition_transcritical_wave
 
