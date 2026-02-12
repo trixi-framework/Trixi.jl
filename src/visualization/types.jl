@@ -444,12 +444,51 @@ end
 
 """
     ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...)
+    ScalarPlotData2D(function_to_visualize, u, semi::AbstractSemidiscretization; kwargs...)
 
-Returns an `PlotData2DTriangulated` object which is used to visualize a single scalar field.
+Returns a `PlotData2DTriangulated` object which is used to visualize a single scalar field.
 `u` should be an array whose entries correspond to values of the scalar field at nodal points.
+
+The optional argument `function_to_visualize(u, equations)` should be a function which takes 
+in the conservative variables and equations as input and outputs a scalar variable to be visualized,
+e.g., [`pressure`](@ref) or [`density`](@ref) for the compressible Euler equations.
 """
-function ScalarPlotData2D(u, semi::AbstractSemidiscretization; kwargs...)
-    return ScalarPlotData2D(u, mesh_equations_solver_cache(semi)...; kwargs...)
+function ScalarPlotData2D(function_to_visualize::Func, u_ode,
+                          semi::AbstractSemidiscretization;
+                          kwargs...) where {Func}
+    u = wrap_array(u_ode, semi)
+    scalar_data = evaluate_scalar_function_at_nodes(function_to_visualize,
+                                                    u,
+                                                    mesh_equations_solver_cache(semi)...)
+    return ScalarPlotData2D(scalar_data,
+                            mesh_equations_solver_cache(semi)...; kwargs...)
+end
+
+function ScalarPlotData2D(scalar_data, semi::AbstractSemidiscretization; kwargs...)
+    return ScalarPlotData2D(scalar_data, mesh_equations_solver_cache(semi)...;
+                            kwargs...)
+end
+
+function evaluate_scalar_function_at_nodes(function_to_visualize, u, mesh, equations,
+                                           dg::DGMulti, cache)
+    # for DGMulti solvers, eltype(u) should be SVector{nvariables(equations)}, so 
+    # broadcasting `func_to_visualize` over the solution array will work. 
+    return function_to_visualize.(u, equations)
+end
+
+function evaluate_scalar_function_at_nodes(function_to_visualize, u,
+                                           mesh::AbstractMesh{2}, equations,
+                                           dg::Union{<:DGSEM, <:FDSBP}, cache)
+
+    # `u` should be an array of size (nvariables, nnodes, nnodes, nelements)
+    f = zeros(eltype(u), nnodes(dg), nnodes(dg), nelements(dg, cache))
+    @threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            f[i, j, element] = function_to_visualize(u_node, equations)
+        end
+    end
+    return f
 end
 
 # Returns an `PlotData2DTriangulated` which is used to visualize a single scalar field
@@ -479,7 +518,8 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
                                   x_face, y_face, face_data, variable_name)
 end
 
-function ScalarPlotData2D(u, mesh, equations, dg::DGSEM, cache; variable_name = nothing,
+function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache;
+                          variable_name = nothing,
                           nvisnodes = 2 * nnodes(dg))
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
