@@ -128,6 +128,7 @@ function extract_boundaries(mesh::P4estMeshView,
     # Add new boundaries that were interfaces of the parent mesh.
     # Loop over all interfaces (index 2).
     for interface in 1:ninterfaces(interfaces_parent)
+        # Create new boundary if exactly one of the neighbor cells is in the mesh view ("exclusive or" with ⊻)
         if ((interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) ⊻
             (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids))
             # Determine which of the ids is part of the mesh view.
