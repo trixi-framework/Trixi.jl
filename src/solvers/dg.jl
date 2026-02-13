@@ -284,15 +284,14 @@ end
 
 """
     VolumeIntegralAdaptive(;
-                           volume_integral_default = VolumeIntegralWeakForm(),
-                           volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
+                           volume_integral_default,
+                           volume_integral_stabilized,
                            indicator = IndicatorEntropyChange())
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
 
-Possible combinations:
-- [`VolumeIntegralWeakForm`](@ref), [`VolumeIntegralFluxDifferencing`](@ref), and [`IndicatorEntropyChange()`](@ref)
+Currently limited to `IndicatorEntropyChange()`.
 """
 struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
                               Indicator} <: AbstractVolumeIntegral
@@ -302,14 +301,11 @@ struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
 end
 
 function VolumeIntegralAdaptive(;
-                                volume_integral_default = VolumeIntegralWeakForm(),
-                                volume_integral_stabilized = VolumeIntegralFluxDifferencing(flux_central),
+                                volume_integral_default,
+                                volume_integral_stabilized,
                                 indicator = IndicatorEntropyChange())
-    if !(volume_integral_default isa VolumeIntegralWeakForm)
-        throw(ArgumentError("`volume_integral_default` must be of type `VolumeIntegralWeakForm`."))
-    end
-    if !(volume_integral_stabilized isa VolumeIntegralFluxDifferencing)
-        throw(ArgumentError("`volume_integral_stabilized` must be of type `VolumeIntegralFluxDifferencing`."))
+    if !(indicator isa IndicatorEntropyChange)
+        throw(ArgumentError("`indicator` must be of type `IndicatorEntropyChange`."))
     end
 
     return VolumeIntegralAdaptive{typeof(volume_integral_default),
@@ -322,21 +318,26 @@ end
 function Base.show(io::IO, mime::MIME"text/plain",
                    integral::VolumeIntegralAdaptive)
     @nospecialize integral # reduce precompilation time
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = integral
 
     if get(io, :compact, false)
         show(io, integral)
     else
         summary_header(io, "VolumeIntegralAdaptive")
+
         summary_line(io, "volume integral default",
-                     integral.volume_integral_default)
-        summary_line(io, "volume integral stabilized",
-                     integral.volume_integral_stabilized)
-        if integral.indicator === nothing
-            summary_line(io, "indicator", integral.indicator)
-        else
-            summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
-            show(increment_indent(io), mime, integral.indicator)
+                     volume_integral_default |> typeof |> nameof)
+        if !(volume_integral_default isa VolumeIntegralWeakForm)
+            show(increment_indent(io), mime, volume_integral_default)
         end
+
+        summary_line(io, "volume integral stabilized",
+                     volume_integral_stabilized |> typeof |> nameof)
+        show(increment_indent(io), mime, volume_integral_stabilized)
+
+        summary_line(io, "indicator", indicator |> typeof |> nameof)
+        show(increment_indent(io), mime, indicator)
+
         summary_footer(io)
     end
 end
