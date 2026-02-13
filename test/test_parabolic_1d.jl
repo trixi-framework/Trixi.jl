@@ -375,7 +375,7 @@ end
 
 @trixi_testset "elixir_viscous_burgers_shock.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_viscous_burgers_shock.jl"),
-                        l2=[0.0023435909516113], linf=[0.01233593751359452])
+                        l2 = [0.0025484696686361645], linf = [0.028069313915933147])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

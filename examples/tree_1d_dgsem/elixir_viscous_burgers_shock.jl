@@ -8,7 +8,8 @@ equations = InviscidBurgersEquation1D()
 diffusivity() = 1e-2
 equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
 
-solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs,
+               volume_integral = VolumeIntegralFluxDifferencing(flux_ec))
 
 coordinates_min = -0.25
 coordinates_max = 0.75
@@ -21,7 +22,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # This initial condition is a simplification/analogy to the
 # Navier Stokes viscous shock (Becker-Morduchow-Libby solution).
 function initial_condition_weak_shock_wave(x, t, equations)
-    x_shock = -0.0
+    x_shock = -0.0 # initial shock position
     x_translated = (x[1] - x_shock) - t # shock speed is 1
     u = 2 / (1 + exp(x_translated / diffusivity()))
 
