@@ -298,6 +298,12 @@ struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
     volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
     volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
     indicator::Indicator
+struct VolumeIntegralAdaptive{Indicator , 
+                              VolumeIntegralDefault,
+                              VolumeIntegralStabilized} <: AbstractVolumeIntegral
+    indicator::Indicator
+    volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
+    volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
 end
 
 function VolumeIntegralAdaptive(;
