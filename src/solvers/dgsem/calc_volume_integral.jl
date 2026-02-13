@@ -187,6 +187,8 @@ function calc_volume_integral!(du, u, mesh,
         entropy_change = dS_WF - dS_true
         if entropy_change > maximum_entropy_increase # Recompute using EC FD volume integral
             # Reset weak form volume integral contribution
+            # Note that this assumes that the volume terms are computed first,
+            # before any surface terms are added.
             du[.., element] .= zero(eltype(du))
 
             # Recompute using entropy-conservative volume integral

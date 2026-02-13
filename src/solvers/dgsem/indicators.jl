@@ -276,10 +276,11 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
 end
 
 @doc raw"""
-    IndicatorEntropyChange(; maximum_entropy_increase::Real=0.0)
+    IndicatorEntropyChange(; maximum_entropy_increase::Real = 0.0)
 
 This indicator checks the difference in mathematical [`entropy`](@ref) (``S``) due to the application
-of a volume integral (VI) compared to the true/analytical entropy evolution.
+of a volume integral (VI) compared to the true/analytical entropy evolution
+(without any dissipation inside the element).
 In particular, the indicator computes
 ```math
 \Delta S = \dot{S}_\mathrm{VI} - \dot{S}_\text{true} =
