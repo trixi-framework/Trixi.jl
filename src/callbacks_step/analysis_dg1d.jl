@@ -120,7 +120,7 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 # Use quadrature to numerically integrate a single element.
-# We do not multiply with the Jacobian to stay in reference space.
+# We do not multiply by the Jacobian to stay in reference space.
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
 # the time derivative of entropy, see `entropy_change_reference_element`.
 function integrate_reference_element(func::Func, u, element,

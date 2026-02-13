@@ -1153,7 +1153,7 @@ end
     entropy_potential(u, orientation::Int, equations::AbstractCompressibleEulerEquations)
 
 Calculate the entropy potential, which for the compressible Euler equations is simply 
-the momentum for the choice of mathematical entropy ``S(u) = \frac{\rho s}{\gamma - 1}``
+the momentum for the choice of mathematical [`entropy`](@ref) ``S(u) = \frac{\rho s}{\gamma - 1}``
 with thermodynamic entropy ``s = \ln(p) - \gamma \ln(\rho)``.
     
 ## References

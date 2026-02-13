@@ -446,7 +446,7 @@ end
     return 0.5f0 * (sign(sl) + sign(sr)) * max(abs(sl), abs(sr))
 end
 
-# regularized approximation to the ratio a / b which is numerically stable 
-# for b close to zero.
+# Regularized approximation to the ratio a / b, which is numerically stable 
+# for b close to zero and approaches zero as b -> 0.
 @inline regularized_ratio(a, b) = a * b / (eps(typeof(b)) + b^2)
 end # @muladd

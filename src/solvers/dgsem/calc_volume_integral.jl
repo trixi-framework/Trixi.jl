@@ -232,6 +232,8 @@ function calc_volume_integral!(du, u, mesh,
             @views du_FD_element .= du[.., element]
 
             # Reset pure flux-differencing volume integral 
+            # Note that this assumes that the volume terms are computed first,
+            # before any surface terms are added.
             du[.., element] .= zero(eltype(du))
 
             # Calculate entropy stable volume integral contribution
