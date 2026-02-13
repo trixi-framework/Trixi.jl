@@ -114,10 +114,11 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         solver=DGSEM(LobattoLegendreBasis(3),
                                      flux_lax_friedrichs,
-                                     VolumeIntegralEntropyCorrection(IndicatorEntropyCorrection(equations,
-                                                                                                LobattoLegendreBasis(3)),
-                                                                     volume_flux_dg = flux_central,
-                                                                     volume_flux_fv = flux_lax_friedrichs)),
+                                     VolumeIntegralEntropyCorrection(VolumeIntegralWeakForm(),
+                                                                     VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs),
+                                                                     IndicatorEntropyCorrection(equations,
+                                                                                                basis;
+                                                                                                scaling = 2))),
                         tspan=(0.0, 0.1),
                         l2=[
                             0.02871253948076796,
