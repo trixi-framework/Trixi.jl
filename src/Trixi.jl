@@ -181,7 +181,7 @@ export AcousticPerturbationEquations2D,
        LinearElasticityEquations1D,
        PassiveTracerEquations
 
-export NonIdealCompressibleEulerEquations1D
+export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
 export IdealGas, VanDerWaals, PengRobinson
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
@@ -245,7 +245,7 @@ export initial_condition_eoc_test_coupled_euler_gravity,
        source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons
+       cons2entropy, entropy2cons, cons2thermo, thermo2cons
 export density, pressure, density_pressure, velocity, temperature,
        global_mean_vars,
        equilibrium_distribution,
