@@ -19,13 +19,21 @@ initial_condition = initial_condition_modified_sod
 volume_flux = flux_central
 surface_flux = flux_lax_friedrichs
 basis = LobattoLegendreBasis(3)
-indicator = IndicatorEntropyCorrection(equations, basis)
+indicator_ec = IndicatorEntropyCorrection(equations, basis)
+indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                         alpha_max = 0.5,
+                                         alpha_min = 0.001,
+                                         alpha_smooth = true,
+                                         variable = density_pressure)
+indicator = IndicatorEntropyCorrectionWithShockCapturing(indicator_ec,
+                                                         indicator_sc)
+
 volume_integral_default = VolumeIntegralFluxDifferencing(volume_flux)
 volume_integral_entropy_stable = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                                      volume_flux_fv = surface_flux)
-volume_integral = VolumeIntegralEntropyCorrection(volume_integral_default,
-                                                  volume_integral_entropy_stable,
-                                                  indicator)
+volume_integral = VolumeIntegralAdaptive(indicator,
+                                         volume_integral_default,
+                                         volume_integral_entropy_stable)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = 0.0
