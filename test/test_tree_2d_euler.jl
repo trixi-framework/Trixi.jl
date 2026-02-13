@@ -114,22 +114,84 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         solver=DGSEM(LobattoLegendreBasis(3),
                                      flux_lax_friedrichs,
-                                     VolumeIntegralEntropyCorrection(equations,
-                                                                     LobattoLegendreBasis(3);
-                                                                     volume_flux_dg = volume_flux,
-                                                                     volume_flux_fv = surface_flux)),
+                                     VolumeIntegralEntropyCorrection(IndicatorEntropyCorrection(equations,
+                                                                                                LobattoLegendreBasis(3)),
+                                                                     volume_flux_dg = flux_central,
+                                                                     volume_flux_fv = flux_lax_friedrichs)),
                         tspan=(0.0, 0.1),
                         l2=[
-                            0.028712539480767976,
-                            0.0028712539480767085,
-                            0.00574250789615355,
-                            0.0007178134870171292
+                            0.02871253948076796,
+                            0.0028712539480767046,
+                            0.00574250789615359,
+                            0.0007178134870180938
                         ],
                         linf=[
-                            0.07201294589822704,
-                            0.007201294589823409,
+                            0.07201294589822727,
+                            0.007201294589823548,
                             0.014402589179645153,
                             0.0018003236474513074
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[
+                            0.005128264024223658,
+                            0.0005102755455974174,
+                            0.0010227429683760888,
+                            0.2647398010816978
+                        ],
+                        linf=[
+                            0.022550400235924695,
+                            0.00214674544358473,
+                            0.004371621105621781,
+                            1.0212525633021983
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl (FluxHLL))" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
+                        tspan=(0.0, 0.5), surface_flux=flux_hll,
+                        l2=[
+                            0.005120682930479358,
+                            0.0005107154473420592,
+                            0.0010214220340067936,
+                            0.2642543660997129
+                        ],
+                        linf=[
+                            0.022535393384123026,
+                            0.0021501709863882,
+                            0.004367450646593718,
+                            1.020387671247505
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_peng_robinson_transcritical_mixing" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_peng_robinson_transcritical_mixing.jl"),
+                        tspan=(0.0, 0.0003),
+                        # note that errors are large because the solution values are of the order 1e5-1e7
+                        l2=[
+                            0.8908754595982343,
+                            274.62878855174165,
+                            129.95856100796416,
+                            94433.86273840266
+                        ],
+                        linf=[
+                            6.623271612803023,
+                            732.0924019701561,
+                            403.7976140940856,
+                            584547.9740598286
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -587,22 +649,24 @@ end
                         # adding `scaling = 2` increases the amount of subcell FV blended in by 
                         # a factor of 2. If this is not added, the KHI simulation crashes with a 
                         # positivity violation at some time t < 3.
-                        volume_integral=VolumeIntegralEntropyCorrection(equations,
-                                                                        basis;
-                                                                        volume_flux_dg = volume_flux,
-                                                                        volume_flux_fv = surface_flux,
-                                                                        scaling = 2.0),
+                        solver=DGSEM(basis, flux_lax_friedrichs,
+                                     VolumeIntegralEntropyCorrection(VolumeIntegralWeakForm(),
+                                                                     VolumeIntegralPureLGLFiniteVolumeO2(basis,
+                                                                                                         volume_flux_fv = flux_lax_friedrichs),
+                                                                     IndicatorEntropyCorrection(equations,
+                                                                                                basis;
+                                                                                                scaling = 2))),
                         l2=[
-                            0.5598004443337804,
-                            0.19783160019699073,
-                            0.22886409540262306,
-                            0.17616905595853216
+                            0.5511948462411194,
+                            0.20453805360357122,
+                            0.22336234116471693,
+                            0.17123395645103476
                         ],
                         linf=[
-                            2.2756723403007273,
-                            0.7899848710261611,
-                            0.7613239119300793,
-                            0.6332611254490705
+                            1.9695032535249968,
+                            0.8157528342084577,
+                            0.6872258423454486,
+                            0.628912187598794
                         ])
 end
 

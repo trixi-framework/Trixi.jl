@@ -281,15 +281,16 @@ Indicator used for entropy correction using subcell FV schemes, where the
 blending is determined so that the volume integral entropy production is the 
 same or more than that of an EC scheme. 
 
-`scaling ≥ 1` arbitrarily scales the blending parameter by a constant, increasing 
-the amount of the subcell FV added in. This can be used to add shock capturing-like 
-behavior. 
+`scaling ≥ 1` scales the DG-FV blending parameter ``\\alpha``(see the
+[tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
+by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
+This can be used to add shock capturing-like behavior.
 
 See also [`VolumeIntegralEntropyCorrection`](@ref).
 """
 struct IndicatorEntropyCorrection{Cache, ScalingT} <: AbstractIndicator
     cache::Cache
-    scaling::ScalingT
+    scaling::ScalingT # either Bool or Real
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
@@ -298,6 +299,25 @@ function IndicatorEntropyCorrection(equations::AbstractEquations,
                                     scaling = true)
     cache = create_cache(IndicatorEntropyCorrection, equations, basis)
     return IndicatorEntropyCorrection{typeof(cache), typeof(scaling)}(cache, scaling)
+end
+
+# this method is used when the indicator is constructed as for 
+# shock-capturing volume integrals.
+function create_cache(::Type{IndicatorEntropyCorrection},
+                      equations::AbstractEquations{NDIMS, NVARS},
+                      basis::LobattoLegendreBasis) where {NDIMS, NVARS}
+    uEltype = real(basis)
+    AT = Array{uEltype, NDIMS + 1}
+
+    # container for elementwise volume integrals
+    volume_integral_values_threaded = AT[AT(undef, NVARS,
+                                            ntuple(_ -> nnodes(basis), NDIMS)...)
+                                         for _ in 1:Threads.maxthreadid()]
+
+    # stores the blending coefficients 
+    alpha = Vector{uEltype}()
+
+    return (; alpha, volume_integral_values_threaded)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyCorrection)

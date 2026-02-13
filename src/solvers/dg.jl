@@ -135,6 +135,8 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
     end
 end
 
+create_cache(mesh, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype) = NamedTuple()
+
 # Abstract supertype for DG subcell-based volume integrals with
 # finite volume schemes on the subcells.
 abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
@@ -281,43 +283,35 @@ function Base.show(io::IO, mime::MIME"text/plain",
 end
 
 """
-    VolumeIntegralEntropyCorrection(equations, basis;
-                                    volume_flux_dg=flux_central,
-                                    volume_flux_fv=flux_lax_friedrichs, 
-                                    scaling = true)
+    VolumeIntegralEntropyCorrection(indicator, 
+                                    volume_integral_default, 
+                                    volume_integral_entropy_stable)
 
 Entropy correction volume integral type for DG methods using a convex blending of
-the **first-order** finite volume method with numerical flux `volume_flux_fv` and the
-[`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
-The amount of blending is determined by the violation of a cell entropy equality by
-the volume integral. 
+a `volume_integral_default` (for example, [`VolumeIntegralWeakForm`](@ref)) and 
+`volume_integral_entropy_stable` (for example, [`VolumeIntegralPureLGLFiniteVolume`](@ref)
+with an entropy stable finite volume flux). 
 
-`scaling ≥ 1` arbitrarily scales the blending parameter by a constant, increasing 
-the amount of the subcell FV added in. This can be used to add shock capturing-like 
-behavior. 
+This is intended to be used with [`IndicatorEntropyCorrection`](@ref), which determines the 
+amount of blending based on the violation of a cell entropy equality by the volume integral. 
+
+The parameter `scaling ≥ 1` in [`IndicatorEntropyCorrection`](@ref) scales the DG-FV blending 
+parameter ``\\alpha``(see the [tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
+by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
+This can be used to add shock capturing-like behavior. Note though that ``\\alpha`` is computed 
+here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
 
 The use of `VolumeIntegralEntropyCorrection` requires either
     `entropy_potential(u, orientation, equations)` for TreeMesh, or
     `entropy_potential(u, normal_direction, equations)` for other mesh types
 to be defined. 
 """
-struct VolumeIntegralEntropyCorrection{VolumeFluxDG, VolumeFluxFV, Indicator} <:
+struct VolumeIntegralEntropyCorrection{VolumeIntegralDefault,
+                                       VolumeIntegralEntropyStable, Indicator} <:
        AbstractVolumeIntegralShockCapturing
-    volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
-    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+    volume_integral_default::VolumeIntegralDefault
+    volume_integral_entropy_stable::VolumeIntegralEntropyStable
     indicator::Indicator
-end
-
-function VolumeIntegralEntropyCorrection(equations, basis;
-                                         volume_flux_dg = flux_central,
-                                         volume_flux_fv = flux_lax_friedrichs,
-                                         scaling = true)
-    indicator = IndicatorEntropyCorrection(equations, basis; scaling)
-    return VolumeIntegralEntropyCorrection{typeof(volume_flux_dg),
-                                           typeof(volume_flux_fv),
-                                           typeof(indicator)}(volume_flux_dg,
-                                                              volume_flux_fv,
-                                                              indicator)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
@@ -328,8 +322,9 @@ function Base.show(io::IO, mime::MIME"text/plain",
         show(io, integral)
     else
         summary_header(io, "VolumeIntegralEntropyCorrection")
-        summary_line(io, "volume flux DG", integral.volume_flux_dg)
-        summary_line(io, "volume flux FV", integral.volume_flux_fv)
+        summary_line(io, "default volume integral", integral.volume_integral_default)
+        summary_line(io, "stable volume integral",
+                     integral.volume_integral_entropy_stable)
         summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
         show(increment_indent(io), mime, integral.indicator)
         summary_footer(io)

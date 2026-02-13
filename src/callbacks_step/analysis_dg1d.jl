@@ -119,34 +119,63 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-# integrate `du_local` against the entropy variables evaluated at `u`
-function integrate_against_entropy_variables(du_local, u, element,
-                                             mesh::AbstractMesh{1},
-                                             equations, dg::DGSEM, cache, args...)
-    (; weights) = dg.basis
+# Use quadrature to numerically integrate a single element.
+# We do not multiply with the Jacobian to stay in reference space.
+# This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
+# the time derivative of entropy, see `entropy_change_reference_element`.
+function integrate_reference_element(func::Func, u, element,
+                                     mesh::AbstractMesh{1}, equations, dg::DGSEM, cache,
+                                     args...) where {Func}
+    @unpack weights = dg.basis
 
-    # we integrate over the reference element since `du` is calculated by 
-    # a weak form-like volume integral, and should already be scaled by the 
-    # Jacobian factor. 
-
-    integral = zero(eltype(u))
+    # Initialize integral with zeros of the right shape
+    element_integral = zero(func(u, 1, 1, equations, dg, args...))
 
     for i in eachnode(dg)
-        du_node = get_node_vars(du_local, equations, dg, i)
-        u_node = get_node_vars(u, equations, dg, i, element)
-        integral = integral +
-                   weights[i] * dot(cons2entropy(u_node, equations), du_node)
+        element_integral += weights[i] *
+                            func(u, i, element, equations, dg, args...)
     end
 
-    return integral
+    return element_integral
 end
 
-# calculate surface integral of func(u, orientation, equations) * normal
-function surface_integral(func::Func, u, element, mesh::TreeMesh{1}, equations,
-                          dg::DGSEM, cache) where {Func}
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
+# Note that ∂S/∂u = w(u) with entropy variables w
+function entropy_change_reference_element(du::AbstractArray{<:Any, 3},
+                                          u, element,
+                                          mesh::AbstractMesh{1},
+                                          equations, dg::DGSEM, cache, args...)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du) do u, i, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, element)
+        du_node = get_node_vars(du, equations, dg, i, element)
+
+        dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
+function entropy_change_reference_element(du_element::AbstractArray{<:Any, 2},
+                                          u, element,
+                                          mesh::AbstractMesh{1},
+                                          equations, dg::DGSEM, cache, args...)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du_element) do u, i, element, equations, dg,
+                                                      du_element
+        u_node = get_node_vars(u, equations, dg, i, element)
+        du_node = get_node_vars(du_element, equations, dg, i)
+
+        dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
+# calculate surface integral of func(u, equations) * normal on the reference element.
+function surface_integral(func::Func, u, element,
+                          mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
+                          args...) where {Func}
     u_left = get_node_vars(u, equations, dg, 1, element)
     u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
-    surface_integral = (func(u_right, 1, equations) - func(u_left, 1, equations))
+
+    surface_integral = func(u_right, 1, equations) - func(u_left, 1, equations)
     return surface_integral
 end
 

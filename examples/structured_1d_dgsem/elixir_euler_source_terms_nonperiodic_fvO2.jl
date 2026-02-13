@@ -11,10 +11,9 @@ initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 # you can either use a single function to impose the BCs weakly in all
-# 2*ndims == 2 directions or you can pass a tuple containing BCs for
-# each direction (first one being `x_neg`, second `x_pos`)
+# 2*ndims == 2 directions or you can pass a named tuple containing BCs
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (boundary_condition, boundary_condition)
+boundary_conditions = (; x_neg = boundary_condition, x_pos = boundary_condition)
 
 polydeg = 8 # Governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)
@@ -33,7 +32,7 @@ cells_per_dimension = (8,)
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
                       periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_terms,
                                     boundary_conditions = boundary_conditions)
 
