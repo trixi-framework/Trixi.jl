@@ -1013,6 +1013,88 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
+@trixi_testset "elixir_mhdmultiion_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
+                        l2=[
+                            0.0012066648540331743,
+                            0.0012067353037637021,
+                            0.001565945133934976,
+                            0.0013583047647386013,
+                            0.002012330709092805,
+                            0.002011735652414687,
+                            4.804141396921128e-5,
+                            0.017144773483322162,
+                            0.0027255273008884038,
+                            0.0028808581074575073,
+                            0.002878844497429858,
+                            0.0001918657806542395,
+                            0.01192557018138304,
+                            5.734428494985238e-8
+                        ],
+                        linf=[
+                            0.09869868922102043,
+                            0.09738409553073302,
+                            0.13455453913183213,
+                            0.0531174980140629,
+                            0.09357843816730584,
+                            0.0935876797704686,
+                            0.004823249474484352,
+                            0.8721038035636122,
+                            0.1097449573261321,
+                            0.15984957975732655,
+                            0.1367207696465591,
+                            0.01919363515215181,
+                            0.7126360641881493,
+                            1.1240374854420315e-5
+                        ],
+                        tspan=(0.0, 0.002))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_mhdmultiion_ec.jl with local Lax-Friedrichs at the surface" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
+                        l2=[
+                            0.003819023519156827,
+                            0.0038190538808229066,
+                            0.003919930695884498,
+                            0.0013361417518419582,
+                            0.0019343902245997572,
+                            0.0019333112274355774,
+                            0.00015845732131087009,
+                            0.016665782959823666,
+                            0.0026894005988067037,
+                            0.0028511017615652063,
+                            0.0028472947019430274,
+                            0.0006337872045691708,
+                            0.011548689776042632,
+                            2.286431442285862e-6
+                        ],
+                        linf=[
+                            0.09419896066556777,
+                            0.09420058867598291,
+                            0.11323307896398238,
+                            0.04495576740053292,
+                            0.08310737422097081,
+                            0.08078061790140298,
+                            0.003797643762882506,
+                            0.7352983249359513,
+                            0.09395502284263912,
+                            0.1662953130688809,
+                            0.12440909208369816,
+                            0.015232315287051565,
+                            0.6076682879787012,
+                            0.0004880320660495433
+                        ],
+                        tspan=(0.0, 0.002),
+                        surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
+                                      flux_nonconservative_central))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_coupled.jl"),
                         l2=[
