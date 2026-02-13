@@ -364,6 +364,26 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh1D: elixir_viscous_burgers_n_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_viscous_burgers_n_wave.jl"),
+                        l2=[0.03005971517609335], linf=[0.08174614630359545])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh1D: elixir_viscous_burgers_shock.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_viscous_burgers_shock.jl"),
+                        l2=[0.0025484696686361645], linf=[0.028069313915933147])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "DGMulti: elixir_advection_diffusion_gradient_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_advection_diffusion_gradient_source_terms.jl"),
