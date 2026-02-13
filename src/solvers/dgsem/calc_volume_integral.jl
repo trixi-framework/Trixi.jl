@@ -191,36 +191,37 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
-                               dg::DGSEM, cache)
-    @unpack volume_flux_fv = volume_integral
+"""
+    VolumeIntegralEntropyCorrection(indicator, 
+                                    volume_integral_default, 
+                                    volume_integral_entropy_stable)
 
-    # Calculate LGL FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fv_kernel!(du, u, mesh,
-                   have_nonconservative_terms, equations,
-                   volume_flux_fv, dg, cache, element, true)
-    end
+Entropy correction volume integral type for DG methods using a convex blending of
+a `volume_integral_default` (for example, [`VolumeIntegralWeakForm`](@ref)) and 
+`volume_integral_entropy_stable` (for example, [`VolumeIntegralPureLGLFiniteVolume`](@ref)
+with an entropy stable finite volume flux). 
 
-    return nothing
-end
+This is intended to be used with [`IndicatorEntropyCorrection`](@ref), which determines the 
+amount of blending based on the violation of a cell entropy equality by the volume integral. 
 
-function calc_volume_integral!(du, u, mesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
-                               dg::DGSEM, cache)
-    @unpack sc_interface_coords, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
+The parameter `scaling ≥ 1` in [`IndicatorEntropyCorrection`](@ref) scales the DG-FV blending 
+parameter ``\\alpha``(see the [tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
+by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
+This can be used to add shock capturing-like behavior. Note though that ``\\alpha`` is computed 
+here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
 
-    # Calculate LGL second-order FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fvO2_kernel!(du, u, mesh,
-                     have_nonconservative_terms, equations,
-                     volume_flux_fv, dg, cache, element,
-                     sc_interface_coords, reconstruction_mode, slope_limiter, true)
-    end
+The use of `VolumeIntegralEntropyCorrection` requires either
+    `entropy_potential(u, orientation, equations)` for TreeMesh, or
+    `entropy_potential(u, normal_direction, equations)` for other mesh types
+to be defined. 
+"""
 
+const VolumeIntegralEntropyCorrection = VolumeIntegralAdaptive{<:IndicatorEntropyCorrection}
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralEntropyCorrection,
+                                dg, cache)
+    element_variables[:indicator_shock_capturing] = volume_integral.indicator.cache.alpha
     return nothing
 end
 
