@@ -291,7 +291,7 @@ end
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
 
-Currently limited to `IndicatorEntropyChange()`.
+The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
 """
 struct VolumeIntegralAdaptive{Indicator,
                               VolumeIntegralDefault, VolumeIntegralStabilized} <:
