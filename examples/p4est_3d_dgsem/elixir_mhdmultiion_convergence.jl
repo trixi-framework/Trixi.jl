@@ -28,6 +28,8 @@ equations = IdealGlmMhdMultiIonEquations3D(gammas = (2.0, 4.0),
                                            electron_pressure = electron_pressure_alpha)
 
 """
+    initial_condition_manufactured_solution(x, t, equations::IdealGlmMhdMultiIonEquations3D)
+
 Initial (and exact) solution for the the manufactured solution test. Runs with 
 * gammas = (2.0, 4.0),
 * charge_to_mass = (2.0, 1.0)
@@ -74,6 +76,8 @@ function initial_condition_manufactured_solution(x, t,
 end
 
 """
+    source_terms_manufactured_solution_pe(u, x, t, equations::IdealGlmMhdMultiIonEquations3D)
+
 Source term that corresponds to the manufactured solution test. Runs with 
 * gammas = (2.0, 4.0),
 * charge_to_mass = (2.0, 1.0)
@@ -170,7 +174,7 @@ mesh = P4estMesh(cells_per_dimension,
                  periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms)
+                                    source_terms = source_terms, boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
