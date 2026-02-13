@@ -174,7 +174,8 @@ mesh = P4estMesh(cells_per_dimension,
                  periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms, boundary_conditions = boundary_condition_periodic)
+                                    source_terms = source_terms,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
