@@ -254,7 +254,7 @@ Generalized Henneman-Gassner shock-capturing volume integral type for DG methods
 Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
 
 In the non-stabilized region, `volume_integral_dg_default` is used, 
-which may be the [`VolumeIntegralWeakForm()`](@ref).
+which is typically a high order accurate volume integral such as [`VolumeIntegralWeakForm()`](@ref).
 
 The volume integral used for the DG portion in the convex blending `volume_integral_dg_blend`
 must be a [`VolumeIntegralFluxDifferencing`](@ref).
