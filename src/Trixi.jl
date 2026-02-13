@@ -272,7 +272,7 @@ export DG,
        VolumeIntegralAdaptive, IndicatorEntropyChange,
        IndicatorHennemannGassner,
        VolumeIntegralUpwind,
-       VolumeIntegralEntropyCorrection, IndicatorEntropyCorrection,
+       IndicatorEntropyCorrection, IndicatorEntropyCorrectionWithShockCapturing
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
