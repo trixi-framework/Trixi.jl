@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the invsicid Burgers' equation with diffusion
+# semidiscretization of the Burgers' equation with diffusion
 
 equations = InviscidBurgersEquation1D()
 
