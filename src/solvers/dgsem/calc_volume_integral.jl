@@ -229,7 +229,7 @@ function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralEntropyCorrection,
                                dg::DGSEM, cache)
-    (; volume_integral_default, volume_integral_entropy_stable, indicator) = volume_integral
+    (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
     (; scaling) = indicator
     (; alpha) = indicator.cache
     du_element_threaded = indicator.cache.volume_integral_values_threaded
@@ -277,7 +277,7 @@ function calc_volume_integral!(du, u, mesh,
             # Calculate entropy stable volume integral contribution
             volume_integral_kernel!(du, u, element, mesh,
                                     have_nonconservative_terms, equations,
-                                    volume_integral_entropy_stable, dg, cache)
+                                    volume_integral_stabilized, dg, cache)
 
             # Calculate difference between high and low order FV integral;
             # this should be made entropy dissipative if entropy_residual > 0.
