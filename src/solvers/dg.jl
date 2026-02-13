@@ -356,62 +356,6 @@ function create_cache(mesh, equations,
     return (; cache_default..., cache_stabilized...)
 end
 
-"""
-    VolumeIntegralEntropyCorrection(indicator, 
-                                    volume_integral_default, 
-                                    volume_integral_entropy_stable)
-
-Entropy correction volume integral type for DG methods using a convex blending of
-a `volume_integral_default` (for example, [`VolumeIntegralWeakForm`](@ref)) and 
-`volume_integral_entropy_stable` (for example, [`VolumeIntegralPureLGLFiniteVolume`](@ref)
-with an entropy stable finite volume flux). 
-
-This is intended to be used with [`IndicatorEntropyCorrection`](@ref), which determines the 
-amount of blending based on the violation of a cell entropy equality by the volume integral. 
-
-The parameter `scaling ≥ 1` in [`IndicatorEntropyCorrection`](@ref) scales the DG-FV blending 
-parameter ``\\alpha``(see the [tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
-by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
-This can be used to add shock capturing-like behavior. Note though that ``\\alpha`` is computed 
-here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
-
-The use of `VolumeIntegralEntropyCorrection` requires either
-    `entropy_potential(u, orientation, equations)` for TreeMesh, or
-    `entropy_potential(u, normal_direction, equations)` for other mesh types
-to be defined. 
-"""
-struct VolumeIntegralEntropyCorrection{VolumeIntegralDefault,
-                                       VolumeIntegralEntropyStable, Indicator} <:
-       AbstractVolumeIntegralShockCapturing
-    volume_integral_default::VolumeIntegralDefault
-    volume_integral_entropy_stable::VolumeIntegralEntropyStable
-    indicator::Indicator
-end
-
-function Base.show(io::IO, mime::MIME"text/plain",
-                   integral::VolumeIntegralEntropyCorrection)
-    @nospecialize integral # reduce precompilation time
-
-    if get(io, :compact, false)
-        show(io, integral)
-    else
-        summary_header(io, "VolumeIntegralEntropyCorrection")
-        summary_line(io, "default volume integral", integral.volume_integral_default)
-        summary_line(io, "stable volume integral",
-                     integral.volume_integral_entropy_stable)
-        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
-        show(increment_indent(io), mime, integral.indicator)
-        summary_footer(io)
-    end
-end
-
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralEntropyCorrection,
-                                dg, cache)
-    element_variables[:indicator_shock_capturing] = volume_integral.indicator.cache.alpha
-    return nothing
-end
-
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.
