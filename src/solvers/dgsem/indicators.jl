@@ -307,7 +307,8 @@ This is discussed in more detail in
 
 For ``\Delta S < \sigma \leq 0`` with ``\sigma`` being set to `maximum_entropy_increase`,
 the e.g. [`VolumeIntegralWeakForm`](@ref) is more entropy-diffusive than the true entropy change
-(which could be recovered with the [`VolumeIntegralFluxDifferencing`](@ref)).
+(which could be recovered with the [`VolumeIntegralFluxDifferencing`](@ref) and an
+entropy-conservative flux such as [`flux_ranocha`](@ref), for instance).
 
 If ``\sigma > 0`` is set, i.e., `maximum_entropy_increase > 0`, the indicator allows for
 limited entropy increase, thereby allowing to use e.g. the cheaper weak-form volume integral
