@@ -649,24 +649,24 @@ end
                         # adding `scaling = 2` increases the amount of subcell FV blended in by 
                         # a factor of 2. If this is not added, the KHI simulation crashes with a 
                         # positivity violation at some time t < 3.
-                        solver=DGSEM(LobattoLegendreBasis(3),
-                                     flux_lax_friedrichs,
-                                     VolumeIntegralEntropyCorrection(IndicatorEntropyCorrection(equations,
-                                                                                                LobattoLegendreBasis(3);
-                                                                                                scaling = 2),
-                                                                     volume_flux_dg = flux_central,
-                                                                     volume_flux_fv = flux_lax_friedrichs)),
+                        solver=DGSEM(basis, flux_lax_friedrichs,
+                                     VolumeIntegralEntropyCorrection(VolumeIntegralWeakForm(),
+                                                                     VolumeIntegralPureLGLFiniteVolumeO2(basis,
+                                                                                                         volume_flux_fv = flux_lax_friedrichs),
+                                                                     IndicatorEntropyCorrection(equations,
+                                                                                                basis;
+                                                                                                scaling = 2))),
                         l2=[
-                            0.5478424814984363,
-                            0.2040045541508178,
-                            0.22224623172603333,
-                            0.1688290550316014
+                            0.5511948462411194,
+                            0.20453805360357122,
+                            0.22336234116471693,
+                            0.17123395645103476
                         ],
                         linf=[
-                            2.0077477196844606,
-                            0.7856525305298842,
-                            0.6907389422800942,
-                            0.6256780117443306
+                            1.9695032535249968,
+                            0.8157528342084577,
+                            0.6872258423454486,
+                            0.628912187598794
                         ])
 end
 

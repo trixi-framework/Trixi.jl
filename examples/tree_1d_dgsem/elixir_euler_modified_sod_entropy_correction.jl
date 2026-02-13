@@ -20,9 +20,12 @@ volume_flux = flux_central
 surface_flux = flux_lax_friedrichs
 basis = LobattoLegendreBasis(3)
 indicator = IndicatorEntropyCorrection(equations, basis)
-volume_integral = VolumeIntegralEntropyCorrection(indicator;
-                                                  volume_flux_dg = volume_flux,
-                                                  volume_flux_fv = surface_flux)
+volume_integral_default = VolumeIntegralFluxDifferencing(volume_flux)
+volume_integral_entropy_stable = VolumeIntegralPureLGLFiniteVolumeO2(basis,
+                                                                     volume_flux_fv = surface_flux)
+volume_integral = VolumeIntegralEntropyCorrection(volume_integral_default,
+                                                  volume_integral_entropy_stable,
+                                                  indicator)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = 0.0
