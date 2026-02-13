@@ -284,35 +284,36 @@ end
 
 """
     VolumeIntegralAdaptive(;
+                           indicator = IndicatorEntropyChange(),
                            volume_integral_default,
-                           volume_integral_stabilized,
-                           indicator = IndicatorEntropyChange())
+                           volume_integral_stabilized)
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
 
 Currently limited to `IndicatorEntropyChange()`.
 """
-struct VolumeIntegralAdaptive{VolumeIntegralDefault, VolumeIntegralStabilized,
-                              Indicator} <: AbstractVolumeIntegral
+struct VolumeIntegralAdaptive{Indicator,
+                              VolumeIntegralDefault, VolumeIntegralStabilized} <:
+       AbstractVolumeIntegral
+    indicator::Indicator # A-posteriori indicator called after computation of `volume_integral_default`
     volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
     volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
-    indicator::Indicator
 end
 
 function VolumeIntegralAdaptive(;
+                                indicator = IndicatorEntropyChange(),
                                 volume_integral_default,
-                                volume_integral_stabilized,
-                                indicator = IndicatorEntropyChange())
+                                volume_integral_stabilized)
     if !(indicator isa IndicatorEntropyChange)
         throw(ArgumentError("`indicator` must be of type `IndicatorEntropyChange`."))
     end
 
-    return VolumeIntegralAdaptive{typeof(volume_integral_default),
-                                  typeof(volume_integral_stabilized),
-                                  typeof(indicator)}(volume_integral_default,
-                                                     volume_integral_stabilized,
-                                                     indicator)
+    return VolumeIntegralAdaptive{typeof(indicator),
+                                  typeof(volume_integral_default),
+                                  typeof(volume_integral_stabilized)}(indicator,
+                                                                      volume_integral_default,
+                                                                      volume_integral_stabilized)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",

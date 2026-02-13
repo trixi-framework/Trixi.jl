@@ -60,6 +60,43 @@ end
     return nothing
 end
 
+@inline function volume_integral_kernel!(du, u, element, mesh,
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralAdaptive{<:IndicatorEntropyChange},
+                                         dg::DGSEM, cache)
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+    @unpack maximum_entropy_increase = indicator
+
+    volume_integral_kernel!(du, u, element, mesh,
+                            have_nonconservative_terms, equations,
+                            volume_integral_default, dg, cache)
+
+    # Compute entropy production of the default volume integral.
+    # Minus sign because of the flipped sign of the volume term in the DG RHS.
+    # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
+    # in `integrate_reference_element`.
+    dS_default = -entropy_change_reference_element(du, u, element,
+                                                   mesh, equations, dg, cache)
+
+    # Compute true entropy change given by surface integral of the entropy potential
+    dS_true = surface_integral(entropy_potential, u, element,
+                               mesh, equations, dg, cache)
+
+    entropy_change = dS_default - dS_true
+    if entropy_change > maximum_entropy_increase # Recompute using EC FD volume integral
+        # Reset default volume integral contribution.
+        # Note that this assumes that the volume terms are computed first,
+        # before any surface terms are added.
+        du[.., element] .= zero(eltype(du))
+
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral_stabilized, dg, cache)
+    end
+
+    return nothing
+end
+
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
@@ -148,53 +185,6 @@ function calc_volume_integral!(du, u, mesh,
                          # `reconstruction_O2_inner` is needed for limiting effect
                          sc_interface_coords, reconstruction_O2_inner, slope_limiter,
                          alpha_element)
-        end
-    end
-
-    return nothing
-end
-
-function calc_volume_integral!(du, u, mesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralAdaptive{VolumeIntegralDefault,
-                                                                       VolumeIntegralStabilized,
-                                                                       Indicator},
-                               dg::DGSEM,
-                               cache) where {
-                                             VolumeIntegralDefault <:
-                                             AbstractVolumeIntegral,
-                                             VolumeIntegralStabilized <:
-                                             AbstractVolumeIntegral,
-                                             Indicator <: IndicatorEntropyChange}
-    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
-    @unpack maximum_entropy_increase = indicator
-
-    @threaded for element in eachelement(dg, cache)
-        volume_integral_kernel!(du, u, element, mesh,
-                                have_nonconservative_terms, equations,
-                                volume_integral_default, dg, cache)
-
-        # Compute entropy production of the default volume integral.
-        # Minus sign because of the flipped sign of the volume term in the DG RHS.
-        # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
-        # in `integrate_reference_element`.
-        dS_default = -entropy_change_reference_element(du, u, element,
-                                                  mesh, equations, dg, cache)
-
-        # Compute true entropy change given by surface integral of the entropy potential
-        dS_true = surface_integral(entropy_potential, u, element,
-                                   mesh, equations, dg, cache)
-
-        entropy_change = dS_default - dS_true
-        if entropy_change > maximum_entropy_increase # Recompute using EC FD volume integral
-            # Reset default volume integral contribution.
-            # Note that this assumes that the volume terms are computed first,
-            # before any surface terms are added.
-            du[.., element] .= zero(eltype(du))
-
-            volume_integral_kernel!(du, u, element, mesh,
-                                    have_nonconservative_terms, equations,
-                                    volume_integral_stabilized, dg, cache)
         end
     end
 

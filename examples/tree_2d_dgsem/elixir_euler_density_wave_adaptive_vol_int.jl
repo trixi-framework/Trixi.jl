@@ -29,9 +29,9 @@ indicator = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
 
 # Adaptive volume integral using the entropy change indicator to perform the 
 # stabilized/EC volume integral when needed and keeping the weak form if it is more diffusive.
-volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,
-                                         volume_integral_stabilized = volume_integral_fluxdiff,
-                                         indicator = indicator)
+volume_integral = VolumeIntegralAdaptive(indicator = indicator,
+                                         volume_integral_default = volume_integral_weakform,
+                                         volume_integral_stabilized = volume_integral_fluxdiff)
 
 #volume_integral = volume_integral_weakform # Stable, but unphysical entropy increase!
 #volume_integral = volume_integral_fluxdiff # Crashes!
