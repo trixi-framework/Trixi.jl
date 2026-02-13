@@ -6,19 +6,20 @@ using Trixi: ForwardDiff
 # semidiscretization of the compressible Euler equations
 
 eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
-equations = NonIdealCompressibleEulerEquations1D(eos)
+equations = NonIdealCompressibleEulerEquations2D(eos)
 
-# The default amplitude and frequency k are consistent with initial_condition_density_wave 
-# for CompressibleEulerEquations1D. Note that this initial condition may not define admissible 
-# solution states for all non-ideal equations of state!
+# the default amplitude and frequency k are chosen to be consistent with 
+# initial_condition_density_wave for CompressibleEulerEquations1D
 function Trixi.initial_condition_density_wave(x, t,
-                                              equations::NonIdealCompressibleEulerEquations1D;
+                                              equations::NonIdealCompressibleEulerEquations2D;
                                               amplitude = 0.98, k = 2)
     RealT = eltype(x)
+
     eos = equations.equation_of_state
 
     v1 = convert(RealT, 0.1)
-    rho = 1 + convert(RealT, amplitude) * sinpi(k * (x[1] - v1 * t))
+    v2 = convert(RealT, 0.2)
+    rho = 1 + convert(RealT, amplitude) * sinpi(k * (x[1] + x[2] - t * (v1 + v2)))
     p = 20
 
     V = inv(rho)
@@ -38,17 +39,21 @@ function Trixi.initial_condition_density_wave(x, t,
         @warn "Solver for temperature(V, p) did not converge"
     end
 
-    return thermo2cons(SVector(V, v1, T), equations)
+    return thermo2cons(SVector(V, v1, v2, T), equations)
 end
 initial_condition = initial_condition_density_wave
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+volume_flux = flux_terashima_etal
+volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+solver = DGSEM(polydeg = 3, volume_integral = volume_integral,
+               surface_flux = flux_lax_friedrichs)
 
-coordinates_min = -1.0
-coordinates_max = 1.0
+coordinates_min = (-1.0, -1.0)
+coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000, periodicity = true)
+                n_cells_max = 30_000,
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)
@@ -66,16 +71,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
-
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.75)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
                         stepsize_callback)
 
 ###############################################################################
