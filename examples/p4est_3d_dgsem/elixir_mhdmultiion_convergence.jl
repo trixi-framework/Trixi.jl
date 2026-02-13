@@ -144,19 +144,19 @@ function mapping(xi_, eta_, zeta_)
     zeta = 1.5 * zeta_ + 1.5
 
     y = eta +
-        0.1 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
-         cos(0.5 * pi * (2 * eta - 3) / 3) *
-         cos(0.5 * pi * (2 * zeta - 3) / 3))
+        0.1 * (cospi(1.5 * (2 * xi - 3) / 3) *
+         cospi(0.5 * (2 * eta - 3) / 3) *
+         cospi(0.5 * (2 * zeta - 3) / 3))
 
     x = xi +
-        0.1 * (cos(0.5 * pi * (2 * xi - 3) / 3) *
-         cos(2 * pi * (2 * y - 3) / 3) *
-         cos(0.5 * pi * (2 * zeta - 3) / 3))
+        0.1 * (cospi(0.5 * (2 * xi - 3) / 3) *
+         cospi(2 * (2 * y - 3) / 3) *
+         cospi(0.5 * (2 * zeta - 3) / 3))
 
     z = zeta +
-        0.1 * (cos(0.5 * pi * (2 * x - 3) / 3) *
-         cos(pi * (2 * y - 3) / 3) *
-         cos(0.5 * pi * (2 * zeta - 3) / 3))
+        0.1 * (cospi(0.5 * (2 * x - 3) / 3) *
+         cospi((2 * y - 3) / 3) *
+         cospi(0.5 * (2 * zeta - 3) / 3))
 
     # Go back to [-1,1]^3
     x = x * 2 / 3 - 1
