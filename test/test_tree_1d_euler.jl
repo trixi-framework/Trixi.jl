@@ -688,7 +688,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
                         solver=DGSEM(LobattoLegendreBasis(3), flux_lax_friedrichs,
-                                     VolumeIntegralEntropyCorrection(VolumeIntegralWeakForm(), 
+                                     VolumeIntegralEntropyCorrection(VolumeIntegralWeakForm(),
                                                                      VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs),
                                                                      IndicatorEntropyCorrection(equations,
                                                                                                 LobattoLegendreBasis(3)))),
