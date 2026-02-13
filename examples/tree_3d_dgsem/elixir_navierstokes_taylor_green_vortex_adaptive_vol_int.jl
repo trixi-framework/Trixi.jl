@@ -64,7 +64,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0, 1.0) .* pi
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 2, #5
+                initial_refinement_level = 5,
                 n_cells_max = 100_000,
                 periodicity = true)
 
@@ -76,7 +76,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.25)
+tspan = (0.0, 20.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
