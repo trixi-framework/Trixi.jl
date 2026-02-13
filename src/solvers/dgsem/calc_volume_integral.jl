@@ -156,22 +156,23 @@ end
 
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralAdaptive{VolumeIntegralWeakForm,
-                                                                       VolumeIntegralFD,
+                               volume_integral::VolumeIntegralAdaptive{VolumeIntegralDefault,
+                                                                       VolumeIntegralStabilized,
                                                                        Indicator},
                                dg::DGSEM,
                                cache) where {
-                                             VolumeIntegralFD <:
-                                             VolumeIntegralFluxDifferencing,
+                                             VolumeIntegralDefault <:
+                                             AbstractVolumeIntegral,
+                                             VolumeIntegralStabilized <:
+                                             AbstractVolumeIntegral,
                                              Indicator <: IndicatorEntropyChange}
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
     @unpack maximum_entropy_increase = indicator
 
     @threaded for element in eachelement(dg, cache)
-        # Compute weak form (WF) volume integral
-        weak_form_kernel!(du, u, element, mesh,
-                          have_nonconservative_terms, equations,
-                          dg, cache)
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral_default, dg, cache)
 
         # Compute entropy production of the WF volume integral.
         # Minus sign because of the flipped sign of the volume term in the DG RHS.
@@ -191,11 +192,9 @@ function calc_volume_integral!(du, u, mesh,
             # before any surface terms are added.
             du[.., element] .= zero(eltype(du))
 
-            # Recompute using entropy-conservative volume integral
-            flux_differencing_kernel!(du, u, element, mesh,
-                                      have_nonconservative_terms, equations,
-                                      volume_integral_stabilized.volume_flux,
-                                      dg, cache)
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_stabilized, dg, cache)
         end
     end
 
