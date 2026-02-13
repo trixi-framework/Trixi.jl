@@ -460,8 +460,8 @@ end
 
 function IndicatorEntropyCorrectionWithShockCapturing(; indicator_shock_capturing,
                                                       indicator_entropy_correction)
-    return IndicatorEntropyCorrectionWithShockCapturing(indicator_shock_capturing,
-                                                        indicator_entropy_correction)
+    return IndicatorEntropyCorrectionWithShockCapturing(indicator_entropy_correction,
+                                                        indicator_shock_capturing)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyCorrectionWithShockCapturing)
