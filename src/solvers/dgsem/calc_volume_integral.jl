@@ -174,20 +174,20 @@ function calc_volume_integral!(du, u, mesh,
                                 have_nonconservative_terms, equations,
                                 volume_integral_default, dg, cache)
 
-        # Compute entropy production of the WF volume integral.
+        # Compute entropy production of the default volume integral.
         # Minus sign because of the flipped sign of the volume term in the DG RHS.
         # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
         # in `integrate_reference_element`.
-        dS_WF = -entropy_change_reference_element(du, u, element,
+        dS_default = -entropy_change_reference_element(du, u, element,
                                                   mesh, equations, dg, cache)
 
         # Compute true entropy change given by surface integral of the entropy potential
         dS_true = surface_integral(entropy_potential, u, element,
                                    mesh, equations, dg, cache)
 
-        entropy_change = dS_WF - dS_true
+        entropy_change = dS_default - dS_true
         if entropy_change > maximum_entropy_increase # Recompute using EC FD volume integral
-            # Reset weak form volume integral contribution
+            # Reset default volume integral contribution.
             # Note that this assumes that the volume terms are computed first,
             # before any surface terms are added.
             du[.., element] .= zero(eltype(du))
