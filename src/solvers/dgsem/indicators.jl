@@ -434,8 +434,8 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyCorrec
 end
 
 """
-    IndicatorEntropyCorrectionWithShockCapturing(indicator_shock_capturing, 
-                                                 indicator_entropy_correction)
+    IndicatorEntropyCorrectionWithShockCapturing(; indicator_shock_capturing, 
+                                                   indicator_entropy_correction)
 
 Indicator used for entropy correction using subcell FV schemes, where the blending 
 is taken to be the maximum between a blending determined by shock capturing 
@@ -456,6 +456,12 @@ to be defined.
 struct IndicatorEntropyCorrectionWithShockCapturing <: AbstractIndicator
     indicator_entropy_correction::IndicatorEntropyCorrection
     indicator_shock_capturing::AbstractIndicator
+end
+
+function IndicatorEntropyCorrectionWithShockCapturing(; indicator_shock_capturing,
+                                                      indicator_entropy_correction)
+    return IndicatorEntropyCorrectionWithShockCapturing(indicator_shock_capturing,
+                                                        indicator_entropy_correction)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyCorrectionWithShockCapturing)
