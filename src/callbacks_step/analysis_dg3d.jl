@@ -209,10 +209,10 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-# Use quadrature to numerically integrate over element.
-# We do not multiply with the Jacobian to stay in reference space.
+# Use quadrature to numerically integrate a single element.
+# We do not multiply by the Jacobian to stay in reference space.
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
-# the time derivative of entropy, see `calc_entropy_change_element`.
+# the time derivative of entropy, see `entropy_change_reference_element`.
 function integrate_reference_element(func::Func, u, element,
                                      mesh::AbstractMesh{3}, equations, dg::DGSEM, cache,
                                      args...; normalize = true) where {Func}
@@ -245,9 +245,9 @@ function entropy_change_reference_element(du::AbstractArray{<:Any, 5}, u,
 end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
-function surface_integral(func::Func, u, element,
-                          mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
-                          args...) where {Func}
+function surface_integral_reference_element(func::Func, u, element,
+                                            mesh::TreeMesh{3}, equations, dg::DGSEM,
+                                            cache, args...) where {Func}
     @unpack weights = dg.basis
 
     u_tmp = get_node_vars(u, equations, dg, 1, 1, 1, element)

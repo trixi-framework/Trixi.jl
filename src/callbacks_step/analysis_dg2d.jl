@@ -221,9 +221,9 @@ function entropy_change_reference_element(du::AbstractArray{<:Any, 4}, u,
 end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
-function surface_integral(func::Func, u, element,
-                          mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
-                          args...) where {Func}
+function surface_integral_reference_element(func::Func, u, element,
+                                            mesh::TreeMesh{2}, equations, dg::DGSEM,
+                                            cache, args...) where {Func}
     @unpack weights = dg.basis
 
     u_tmp = get_node_vars(u, equations, dg, 1, 1, element)
