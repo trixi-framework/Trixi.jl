@@ -575,6 +575,38 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_density_wave_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_density_wave_adaptive_vol_int.jl"),
+                        l2=[
+                            0.034677655030611376,
+                            0.00346776550306035,
+                            0.0069355310061214445,
+                            0.0008669413757631413
+                        ],
+                        linf=[
+                            0.13358170277079373,
+                            0.013358170277035189,
+                            0.026716340554125667,
+                            0.0033395425693640846
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `show`
+    @test_nowarn show(stdout, indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      indicator)
+
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      volume_integral)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      volume_integral)
+end
+
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_fjordholm_etal.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_fjordholm_etal.jl"),
@@ -667,6 +699,27 @@ end
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.026078588204610408,
+                            0.020356972101548874,
+                            0.02851024015440993,
+                            0.02951575049839344
+                        ],
+                        linf=[
+                            0.120658689916814,
+                            0.10672357779516586,
+                            0.06256826531635475,
+                            0.1199900961506577
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_colliding_flow.jl" begin

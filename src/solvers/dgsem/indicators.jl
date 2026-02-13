@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+# Abstract supertype of indicators used for AMR, shock capturing, and
+# adaptive volume-integral selection
 abstract type AbstractIndicator end
 
 function create_cache(typ::Type{IndicatorType},
@@ -270,6 +272,95 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
             "indicator variable" => indicator.variable
         ]
         summary_box(io, "IndicatorMax", setup)
+    end
+end
+
+@doc raw"""
+    IndicatorEntropyChange(; maximum_entropy_increase::Real = 0.0)
+
+This indicator checks the difference in mathematical [`entropy`](@ref) (``S``) due to the application
+of a volume integral (VI) compared to the true/analytical entropy evolution
+(without any dissipation inside the element).
+In particular, the indicator computes
+```math
+\Delta S = \dot{S}_\mathrm{VI} - \dot{S}_\text{true} =
+\int_{\Omega_m}
+\frac{\partial S}{\partial \boldsymbol{u}} \cdot \dot{\boldsymbol u}_\mathrm{VI}
+\mathrm{d} \Omega_m
+- 
+\int_{\partial \Omega_m}
+\boldsymbol{\psi} \cdot \hat{\boldsymbol{n}}
+\mathrm{d} \partial \Omega_m
+```
+for the currently processed element/cell ``m``.
+Here, ``\dot{\boldsymbol u}_\mathrm{VI}`` is the change in the DG right-hand-side due to the volume integral only.
+``\dot{S}_\text{true}`` is the true entropy evolution, which can be computed from the
+entropy potential ``\boldsymbol{\psi}`` (see also [`entropy_potential`](@ref)).
+
+This is discussed in more detail in
+- Chen, Shu (2017)
+  "Entropy stable high order discontinuous Galerkin methods with suitable quadrature rules for hyperbolic conservation laws"
+  [DOI: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
+- Lin, Chan (2024)
+  "High order entropy stable discontinuous Galerkin spectral element methods through subcell limiting"
+  [DOI: 10.1016/j.jcp.2023.112677](https://doi.org/10.1016/j.jcp.2023.112677)
+
+For ``\Delta S < \sigma \leq 0`` with ``\sigma`` being set to `maximum_entropy_increase`,
+the e.g. [`VolumeIntegralWeakForm`](@ref) is more entropy-diffusive than the true entropy change
+(which could be recovered with the [`VolumeIntegralFluxDifferencing`](@ref) and an
+entropy-conservative flux such as [`flux_ranocha`](@ref), for instance).
+
+If ``\sigma > 0`` is set, i.e., `maximum_entropy_increase > 0`, the indicator allows for
+limited entropy increase, thereby allowing to use e.g. the cheaper weak-form volume integral
+even in slightly entropy-producing situations to reduce computational cost.
+
+Supposed to be used in conjunction with [`VolumeIntegralAdaptive`](@ref) which then selects
+a volume integral for every cell/element ``m``.
+
+The logic behind this indicator is similar to the "companion" scheme
+approach proposed in Chapter 5 of
+
+- Carpenter, Fisher, Nielsen, and Frankel (2014)
+  "Entropy Stable Spectral Collocation Schemes for the Navier-Stokes Equations: Discontinuous Interfaces"
+  [DOI: 10.1137/130932193](https://doi.org/10.1137/130932193)
+
+Here, we thus equip e.g. the flux-differencing volume integral with a "companion" weak-form
+volume integral.
+However, usage of the entropy potential allows for comparison with the true entropy change.
+
+!!! note
+    This indicator is **not implemented as an AMR indicator**, i.e., it is **not
+    possible** to employ this as the `indicator` in [`ControllerThreeLevel`](@ref),
+    for instance.
+"""
+struct IndicatorEntropyChange{RealT <: Real} <:
+       AbstractIndicator
+    maximum_entropy_increase::RealT
+
+    function IndicatorEntropyChange(; maximum_entropy_increase = 0.0)
+        return new{typeof(maximum_entropy_increase)}(maximum_entropy_increase)
+    end
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyChange)
+    @nospecialize indicator # reduce precompilation time
+
+    print(io, "IndicatorEntropyChange(")
+    print(io, "maximum_entropy_increase=", indicator.maximum_entropy_increase, ")")
+
+    return nothing
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyChange)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "maximum_entropy_increase" => indicator.maximum_entropy_increase
+        ]
+        summary_box(io, "IndicatorEntropyChange", setup)
     end
 end
 end # @muladd
