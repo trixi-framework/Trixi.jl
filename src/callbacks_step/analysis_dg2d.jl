@@ -186,7 +186,7 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 # Use quadrature to numerically integrate a single element.
-# We do not multiply with the Jacobian to stay in reference space.
+# We do not multiply by the Jacobian to stay in reference space.
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
 # the time derivative of entropy, see `entropy_change_reference_element`.
 function integrate_reference_element(func::Func, u, element,
@@ -195,7 +195,7 @@ function integrate_reference_element(func::Func, u, element,
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
-    element_integral = zero(func(u, 1, 1, 1, equations, dg, args...))
+    element_integral = zero(func(u, 1, 1, element, equations, dg, args...))
 
     for j in eachnode(dg), i in eachnode(dg)
         element_integral += weights[i] * weights[j] *
@@ -220,38 +220,27 @@ function entropy_change_reference_element(du::AbstractArray{<:Any, 4}, u,
     end
 end
 
-function entropy_change_reference_element(du_element::AbstractArray{<:Any, 3}, u,
-                                          element,
-                                          mesh::AbstractMesh{2},
-                                          equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, mesh, equations, dg, cache,
-                                       du_element) do u, i, j, element, equations, dg,
-                                                      du_element
-        u_node = get_node_vars(u, equations, dg, i, j, element)
-        du_node = get_node_vars(du_element, equations, dg, i, j)
-
-        dot(cons2entropy(u_node, equations), du_node)
-    end
-end
-
 # calculate surface integral of func(u, equations) * normal on the reference element.
 function surface_integral(func::Func, u, element,
                           mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                           args...) where {Func}
-    surface_integral = zero(real(dg))
+    @unpack weights = dg.basis
+
+    u_tmp = get_node_vars(u, equations, dg, 1, 1, element)
+    surface_integral = zero(func(u_tmp, 1, equations))
     for i in eachnode(dg)
         # integrate along x direction, normal in y (2) direction
         u_bottom = get_node_vars(u, equations, dg, i, 1, element)
         u_top = get_node_vars(u, equations, dg, i, nnodes(dg), element)
 
-        surface_integral += dg.basis.weights[i] *
+        surface_integral += weights[i] *
                             (func(u_top, 2, equations) - func(u_bottom, 2, equations))
 
         # integrate along y direction, normal in x (1) direction
         u_left = get_node_vars(u, equations, dg, 1, i, element)
         u_right = get_node_vars(u, equations, dg, nnodes(dg), i, element)
 
-        surface_integral += dg.basis.weights[i] *
+        surface_integral += weights[i] *
                             (func(u_right, 1, equations) - func(u_left, 1, equations))
     end
 
@@ -287,8 +276,8 @@ function integrate_via_indices(func::Func, u,
                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                            UnstructuredMesh2D, P4estMesh{2},
                                            T8codeMesh{2}},
-                               equations,
-                               dg::DGSEM, cache, args...; normalize = true) where {Func}
+                               equations, dg::DGSEM, cache,
+                               args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape

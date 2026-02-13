@@ -283,6 +283,80 @@ function Base.show(io::IO, mime::MIME"text/plain",
 end
 
 """
+    VolumeIntegralAdaptive(;
+                           indicator = IndicatorEntropyChange(),
+                           volume_integral_default,
+                           volume_integral_stabilized)
+
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
+
+The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
+"""
+struct VolumeIntegralAdaptive{Indicator,
+                              VolumeIntegralDefault, VolumeIntegralStabilized} <:
+       AbstractVolumeIntegral
+    indicator::Indicator # A-posteriori indicator called after computation of `volume_integral_default`
+    volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
+    volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
+end
+
+function VolumeIntegralAdaptive(;
+                                indicator = IndicatorEntropyChange(),
+                                volume_integral_default,
+                                volume_integral_stabilized)
+    if !(indicator isa IndicatorEntropyChange)
+        throw(ArgumentError("`indicator` must be of type `IndicatorEntropyChange`."))
+    end
+
+    return VolumeIntegralAdaptive{typeof(indicator),
+                                  typeof(volume_integral_default),
+                                  typeof(volume_integral_stabilized)}(indicator,
+                                                                      volume_integral_default,
+                                                                      volume_integral_stabilized)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralAdaptive)
+    @nospecialize integral # reduce precompilation time
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = integral
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralAdaptive")
+
+        summary_line(io, "volume integral default",
+                     volume_integral_default |> typeof |> nameof)
+        if !(volume_integral_default isa VolumeIntegralWeakForm)
+            show(increment_indent(io), mime, volume_integral_default)
+        end
+
+        summary_line(io, "volume integral stabilized",
+                     volume_integral_stabilized |> typeof |> nameof)
+        show(increment_indent(io), mime, volume_integral_stabilized)
+
+        summary_line(io, "indicator", indicator |> typeof |> nameof)
+        show(increment_indent(io), mime, indicator)
+
+        summary_footer(io)
+    end
+end
+
+function create_cache(mesh, equations,
+                      volume_integral::VolumeIntegralAdaptive,
+                      dg, cache_containers, uEltype)
+    cache_default = create_cache(mesh, equations,
+                                 volume_integral.volume_integral_default,
+                                 dg, cache_containers, uEltype)
+    cache_stabilized = create_cache(mesh, equations,
+                                    volume_integral.volume_integral_stabilized,
+                                    dg, cache_containers, uEltype)
+
+    return (; cache_default..., cache_stabilized...)
+end
+
+"""
     VolumeIntegralEntropyCorrection(indicator, 
                                     volume_integral_default, 
                                     volume_integral_entropy_stable)
