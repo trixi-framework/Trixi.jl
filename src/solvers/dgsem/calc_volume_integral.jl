@@ -179,7 +179,7 @@ function calc_volume_integral!(du, u, mesh,
         # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
         # in `integrate_reference_element`.
         dS_default = -entropy_change_reference_element(du, u, element,
-                                                  mesh, equations, dg, cache)
+                                                       mesh, equations, dg, cache)
 
         # Compute true entropy change given by surface integral of the entropy potential
         dS_true = surface_integral(entropy_potential, u, element,
