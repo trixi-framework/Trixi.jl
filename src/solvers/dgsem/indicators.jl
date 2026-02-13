@@ -372,12 +372,22 @@ Indicator used for entropy correction using subcell FV schemes, where the
 blending is determined so that the volume integral entropy production is the 
 same or more than that of an EC scheme. 
 
-`scaling ≥ 1` scales the DG-FV blending parameter ``\\alpha``(see the
-[tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
-by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
-This can be used to add shock capturing-like behavior.
+This is intended to guide the convex blending of a `volume_integral_default` 
+(for example, [`VolumeIntegralWeakForm`](@ref)) and `volume_integral_stabilized` 
+(for example, [`VolumeIntegralPureLGLFiniteVolume`](@ref) with an entropy stable 
+finite volume flux). 
 
-See also [`VolumeIntegralEntropyCorrection`](@ref).
+The parameter `scaling ≥ 1` in [`IndicatorEntropyCorrection`](@ref) scales the DG-FV blending 
+parameter ``\\alpha``(see the [tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
+by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
+This can be used to add shock capturing-like behavior. Note though that ``\\alpha`` is computed 
+here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
+
+The use of `IndicatorEntropyCorrection` requires either
+    `entropy_potential(u, orientation, equations)` for TreeMesh, or
+    `entropy_potential(u, normal_direction, equations)` for other mesh types
+to be defined. 
+
 """
 struct IndicatorEntropyCorrection{Cache, ScalingT} <: AbstractIndicator
     cache::Cache
