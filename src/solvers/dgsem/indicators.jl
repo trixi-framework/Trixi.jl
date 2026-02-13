@@ -432,4 +432,56 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyCorrec
     summary_box(io, "IndicatorEntropyCorrection")
     return nothing
 end
+
+"""
+    IndicatorEntropyCorrectionWithShockCapturing(indicator_shock_capturing, 
+                                                 indicator_entropy_correction)
+
+Indicator used for entropy correction using subcell FV schemes, where the blending 
+is taken to be the maximum between a blending determined by shock capturing 
+(indicator_shock_capturing) and a blending determined so that the volume integral 
+entropy production is the same or more than that of an EC scheme (indicator_entropy_correction). 
+
+This is intended to guide the convex blending of a `volume_integral_default` (for 
+example, [`VolumeIntegralWeakForm`](@ref)) and `volume_integral_stabilized` (for 
+example, [`VolumeIntegralPureLGLFiniteVolume`](@ref) with an entropy stable finite 
+volume flux). 
+
+The use of `IndicatorEntropyCorrection` requires either
+    `entropy_potential(u, orientation, equations)` for TreeMesh, or
+    `entropy_potential(u, normal_direction, equations)` for other mesh types
+to be defined. 
+
+"""
+struct IndicatorEntropyCorrectionWithShockCapturing <: AbstractIndicator
+    indicator_entropy_correction::IndicatorEntropyCorrection
+    indicator_shock_capturing::AbstractIndicator
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyCorrectionWithShockCapturing)
+    @nospecialize indicator # reduce precompilation time
+    print(io, "IndicatorEntropyCorrectionWithShockCapturing")
+    # print(io, "IndicatorEntropyCorrectionWithShockCapturing(")
+    # print(io, indicator.indicator_entropy_correction)
+    # print(io, ", ")
+    # print(io, indicator.indicator_shock_capturing |> typeof |> nameof)
+    # print(io, ")")
+    return nothing
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   indicator::IndicatorEntropyCorrectionWithShockCapturing)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "indicator EC" => indicator.indicator_entropy_correction,
+            "indicator SC" => indicator.indicator_shock_capturing |> typeof |> nameof
+        ]
+        summary_box(io, "IndicatorEntropyCorrectionWithShockCapturing", setup)
+    end
+    return nothing
+end
 end # @muladd
