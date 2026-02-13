@@ -163,7 +163,7 @@ function calc_volume_integral!(du, u,
                                volume_integral::VolumeIntegralShockCapturingHGType,
                                dg::DGMultiFluxDiff, cache)
     (; volume_integral_dg, volume_integral_fv, indicator) = volume_integral
-    (; volume_flux_dg) = volume_integral_dg
+    (; volume_flux) = volume_integral_dg
     (; volume_flux_fv) = volume_integral_fv
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
@@ -182,12 +182,12 @@ function calc_volume_integral!(du, u,
 
         if dg_only
             flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
-                                      equations, volume_flux_dg, dg, cache)
+                                      equations, volume_flux, dg, cache)
         else
             # Calculate DG volume integral contribution
             flux_differencing_kernel!(du, u, element, mesh,
                                       have_nonconservative_terms, equations,
-                                      volume_flux_dg, dg, cache, 1 - alpha_element)
+                                      volume_flux, dg, cache, 1 - alpha_element)
 
             # Calculate "FV" low order volume integral contribution
             low_order_flux_differencing_kernel!(du, u, element, mesh,
