@@ -1,6 +1,6 @@
 # by default, return an empty tuple for volume integral caches
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG,
+                      volume_integral::VolumeIntegralShockCapturingHGType,
                       dg::DGMultiFluxDiff{<:GaussSBP}, RealT, uEltype) where {NDIMS}
     # build element to element (element_to_element_connectivity) connectivity for smoothing of
     # shock capturing parameters.
@@ -160,7 +160,7 @@ end
 function calc_volume_integral!(du, u,
                                mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralShockCapturingHG,
+                               volume_integral::VolumeIntegralShockCapturingHGType,
                                dg::DGMultiFluxDiff, cache)
     (; volume_flux_dg, volume_flux_fv, indicator) = volume_integral
 
