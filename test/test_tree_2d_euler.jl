@@ -114,11 +114,11 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         solver=DGSEM(LobattoLegendreBasis(3),
                                      flux_lax_friedrichs,
-                                     VolumeIntegralEntropyCorrection(VolumeIntegralWeakForm(),
-                                                                     VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs),
-                                                                     IndicatorEntropyCorrection(equations,
-                                                                                                basis;
-                                                                                                scaling = 2))),
+                                     VolumeIntegralAdaptive(IndicatorEntropyCorrection(equations,
+                                                                                       basis;
+                                                                                       scaling = 2),
+                                                            VolumeIntegralWeakForm(),
+                                                            VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs))),
                         tspan=(0.0, 0.1),
                         l2=[
                             0.02871253948076796,
@@ -676,19 +676,19 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (VolumeIntegralEntropyCorrection)" begin
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (with entropy correction)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
                         # adding `scaling = 2` increases the amount of subcell FV blended in by 
                         # a factor of 2. If this is not added, the KHI simulation crashes with a 
                         # positivity violation at some time t < 3.
                         solver=DGSEM(basis, flux_lax_friedrichs,
-                                     VolumeIntegralEntropyCorrection(VolumeIntegralWeakForm(),
-                                                                     VolumeIntegralPureLGLFiniteVolumeO2(basis,
-                                                                                                         volume_flux_fv = flux_lax_friedrichs),
-                                                                     IndicatorEntropyCorrection(equations,
-                                                                                                basis;
-                                                                                                scaling = 2))),
+                                     VolumeIntegralAdaptive(IndicatorEntropyCorrection(equations,
+                                                                                       basis;
+                                                                                       scaling = 2),
+                                                            VolumeIntegralWeakForm(),
+                                                            VolumeIntegralPureLGLFiniteVolumeO2(basis,
+                                                                                                volume_flux_fv = flux_lax_friedrichs))),
                         l2=[
                             0.5511948462411194,
                             0.20453805360357122,
