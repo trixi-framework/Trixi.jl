@@ -190,10 +190,10 @@ function Base.show(io::IO, mime::MIME"text/plain",
     else
         summary_header(io, "VolumeIntegralShockCapturingHGType")
 
-        summary_line(io, "volume integral DG", volume_integral_dg)
+        summary_line(io, "volume integral DG", volume_integral_dg |> typeof |> nameof)
         show(increment_indent(io), mime, volume_integral_dg)
 
-        summary_line(io, "volume integral FV", volume_integral_fv)
+        summary_line(io, "volume integral FV", volume_integral_fv |> typeof |> nameof)
         show(increment_indent(io), mime, volume_integral_fv)
 
         summary_line(io, "indicator", indicator |> typeof |> nameof)
