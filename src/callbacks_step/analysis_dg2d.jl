@@ -207,8 +207,7 @@ end
 
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
-function entropy_change_reference_element(du::AbstractArray{<:Any, 4}, u,
-                                          element,
+function entropy_change_reference_element(du::AbstractArray{<:Any, 4}, u, element,
                                           mesh::AbstractMesh{2},
                                           equations, dg::DGSEM, cache, args...)
     return integrate_reference_element(u, element, mesh, equations, dg, cache,
@@ -221,9 +220,9 @@ function entropy_change_reference_element(du::AbstractArray{<:Any, 4}, u,
 end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
-function surface_integral(func::Func, u, element,
-                          mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
-                          args...) where {Func}
+function surface_integral_reference_element(func::Func, u, element,
+                                            mesh::TreeMesh{2}, equations, dg::DGSEM,
+                                            cache, args...) where {Func}
     @unpack weights = dg.basis
 
     u_tmp = get_node_vars(u, equations, dg, 1, 1, element)
