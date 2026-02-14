@@ -43,13 +43,32 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
-# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 100_000, periodicity = true)
+# This setup is identical to the one for the `TreeMesh`, allowing for error comparison.
+trees_per_dimension = (1, 1)
+mesh = P4estMesh(trees_per_dimension, polydeg = 1,
+                 initial_refinement_level = 4,
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 periodicity = true)
+
+# Refine bottom left cell
+function refine_fn(p4est, which_tree, quadrant)
+    quadrant_obj = unsafe_load(quadrant)
+    if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.level < 5
+        # return true (refine)
+        return Cint(1)
+    else
+        # return false (don't refine)
+        return Cint(0)
+    end
+end
+refine_fn_c = @cfunction(refine_fn, Cint,
+                         (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                          Ptr{Trixi.p4est_quadrant_t}))
+Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ViscousFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_condition_periodic,
                                                                     boundary_condition_periodic))
 
@@ -66,28 +85,11 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# This uses velocity-based AMR
-@inline function v1(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, _, _ = u
-    return rho_v1 / rho
-end
-# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
-amr_indicator = IndicatorLöhner(semi, variable = v1)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 3,
-                                      med_level = 5, med_threshold = 0.2,
-                                      max_level = 7, max_threshold = 0.5)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 50,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
-
 stepsize_callback = StepsizeCallback(cfl = 1.3)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
-                        amr_callback,
                         stepsize_callback)
 
 ###############################################################################

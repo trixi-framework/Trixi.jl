@@ -828,13 +828,9 @@ end
 
     # Copy to buffer
     set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
-                   i_node_index,
-                   j_node_index,
-                   position_index)
+                   i_node_index, j_node_index, position_index)
     set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
-                   i_node_index,
-                   j_node_index,
-                   position_index)
+                   i_node_index, j_node_index, position_index)
 
     return nothing
 end
