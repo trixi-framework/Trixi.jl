@@ -52,24 +52,16 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
 volume_integral_default = VolumeIntegralWeakForm()
 
 # For the blended/limited regions, we need to supply compatible high-order and low-order volume integrals.
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_chandrashekar
 volume_integral_blend_high_order = VolumeIntegralFluxDifferencing(volume_flux)
-volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolume(volume_flux)
+volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolume(surface_flux)
 
 volume_integral = VolumeIntegralShockCapturingHGType(indicator_sc;
-                                                    volume_integral_default = volume_integral_default,
-                                                    volume_integral_blend_high_order = volume_integral_blend_high_order,
-                                                    volume_integral_blend_low_order = volume_integral_blend_low_order)
+                                                     volume_integral_default = volume_integral_default,
+                                                     volume_integral_blend_high_order = volume_integral_blend_high_order,
+                                                     volume_integral_blend_low_order = volume_integral_blend_low_order)
 
-volume_integral_stabilized = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                            volume_flux_dg = volume_flux,
-                                                            volume_flux_fv = surface_flux)
-
-volume_integral = VolumeIntegralAdaptive(volume_integral_default = VolumeIntegralWeakForm(),
-                                         volume_integral_stabilized = volume_integral_stabilized,
-                                         indicator = nothing) # Indicator taken from `volume_integral_stabilized`
-
-surface_flux = flux_lax_friedrichs
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0, -2.0)
