@@ -103,7 +103,7 @@ These fluxes computes the gradient and divergence interface fluxes for the
 local DG method. The local DG method uses an "upwind/downwind" flux for the 
 gradient and divergence (i.e., if the gradient is upwinded, the divergence
 must be downwinded in order to preserve symmetry and positive definiteness).
-Here, we use the convention that the divergence flux is upwinded, thus we have
+Here, we use the convention that, because the gradient flux is upwinded, the divergence flux is downwinded. Thus we have
 ```math
 f_{\text{divergence}} = u_{R}
 ```

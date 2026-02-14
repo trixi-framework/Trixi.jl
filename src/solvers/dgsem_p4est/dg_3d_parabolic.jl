@@ -181,7 +181,8 @@ end
 
     for v in eachvariable(equations_parabolic)
         surface_flux_values[v, primary_i_node_index, primary_j_node_index, primary_direction_index, primary_element_index] = flux_[v]
-        # No sign flip required for gradient calculation
+        # No sign flip required for gradient calculation because for parabolic terms,
+        # the normals are not embedded in `flux_` for gradient computations.
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
     end
 
@@ -427,7 +428,8 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i, j, primary_direction_index, primary_element] = flux[v]
-                    # Sign flip required for divergence calculation
+                    # Sign flip required for divergence calculation since the flux for the 
+                    # divergence involves the normal direction.
                     surface_flux_values[v, i_secondary, j_secondary, secondary_direction_index, secondary_element] = -flux[v]
                 end
 
@@ -619,13 +621,13 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                         viscous_flux_normal_rr = cache.mortars.u[2, v, position, i, j,
                                                                  mortar]
 
-                        flux = flux_parabolic(viscous_flux_normal_ll,
+                        flux_ = flux_parabolic(viscous_flux_normal_ll,
                                               viscous_flux_normal_rr,
                                               Divergence(),
                                               equations_parabolic, parabolic_scheme)
 
                         # Sign flip (and scaling) already handled above in `prolong2mortars_divergence!`
-                        fstar[v, i, j, position] = flux
+                        fstar[v, i, j, position] = flux_
                     end
 
                     i_small += i_small_step_i

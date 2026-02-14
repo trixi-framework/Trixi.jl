@@ -352,7 +352,8 @@ end
 
     for v in eachvariable(equations_parabolic)
         surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
-        # No sign flip required for gradient calculation
+        # No sign flip required for gradient calculation because for parabolic terms,
+        # the normals are not embedded in `flux_` for gradient computations.
         surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
     end
 
@@ -549,7 +550,8 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
 
             for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, i, primary_direction_index, primary_element] = flux[v]
-                # Sign flip required for divergence calculation
+                # Sign flip required for divergence calculation since the divergence interface flux 
+                # involves the normal direction.
                 surface_flux_values[v, node_secondary, secondary_direction_index, secondary_element] = -flux[v]
             end
 
@@ -757,7 +759,8 @@ end
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux_, equations_parabolic, dg,
                    node_index)
-    # As in `calc_interface_flux_gradient!`, no sign flip is necessary for the fluxes used in gradient calculations
+    # As in `calc_interface_flux_gradient!`, no sign flip is necessary for the fluxes used in gradient
+    # because for parabolic terms, the normals are not embedded in `flux_` for gradient computations.
     set_node_vars!(fstar_secondary[position_index], flux_, equations_parabolic, dg,
                    node_index)
 
