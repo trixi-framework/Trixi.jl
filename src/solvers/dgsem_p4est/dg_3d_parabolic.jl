@@ -603,7 +603,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                       dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
-    @unpack (fstar_primary_threaded, fstar_tmp_threaded) = cache
+    @unpack fstar_primary_threaded, fstar_tmp_threaded = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
