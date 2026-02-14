@@ -1949,6 +1949,17 @@ end
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
 
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerEquations3D)
+    if orientation == 1
+        return u[2]
+    elseif orientation == 2
+        return u[3]
+    else # orientation == 3
+        return u[4]
+    end
+end
+
 # State validation for Newton-bisection method of subcell IDP limiting
 @inline function Base.isvalid(u, equations::CompressibleEulerEquations3D)
     if u[1] <= 0 || pressure(u, equations) <= 0
