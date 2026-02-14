@@ -36,12 +36,12 @@ not need to be specialized for `Gradient` and `Divergence`.
 but is included as an argument for consistency with the [`ViscousFormulationLocalDG`](@ref) flux,
 which does use the `normal_direction` to compute the LDG "switch" on the generally non-Cartesian [`P4estMesh`](@ref).
 """
-function flux_parabolic(u_ll, u_rr,
+function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
                         gradient_or_divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationBassiRebay1)
     return 0.5f0 * (u_ll + u_rr)
 end
-# For `P4estMesh`
+# Version for `P4estMesh`
 function flux_parabolic(u_ll, u_rr, normal_direction::AbstractVector,
                         gradient_or_divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationBassiRebay1)
@@ -107,7 +107,7 @@ This is realized by taking the sign of the dot product of the normal and positiv
 f = \frac{1}{2}\Big(f(u_{L}) + f(u_{R}) - \sigma \big[f(u_{R}) - f(u_{L})\big]\Big)
 ```
 """
-function flux_parabolic(u_ll, u_rr,
+function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     # The LDG flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
@@ -117,7 +117,7 @@ function flux_parabolic(u_ll, u_rr,
     # and `u_rr` for the divergence. 
     return u_ll # Use the upwind value for the gradient interface flux
 end
-
+# Version for `P4estMesh`
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
@@ -152,11 +152,12 @@ This is realized by taking the sign of the dot product of the normal and positiv
 f = \frac{1}{2}\Big(f(u_{L}) + f(u_{R}) + \sigma \big[f(u_{R}) - f(u_{L})\big]\Big)
 ```
 """
-function flux_parabolic(u_ll, u_rr, ::Divergence, equations_parabolic,
+function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
+                        ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux
 end
-
+# Version or `P4estMesh`
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
