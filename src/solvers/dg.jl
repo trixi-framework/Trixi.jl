@@ -146,7 +146,7 @@ struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
                                           VolumeIntegralBlendHighOrder,
                                           VolumeIntegralBlendLowOrder} <:
        AbstractVolumeIntegralShockCapturing
-    # A-priori indicator to determine the amount of blending if any)
+    # A-priori indicator to determine the amount of blending (if any)
     # between the high-order and low-order volume integrals.
     indicator::Indicator
 
