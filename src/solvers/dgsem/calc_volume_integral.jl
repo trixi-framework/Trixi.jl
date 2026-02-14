@@ -113,7 +113,8 @@ function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHGType,
                                dg::DGSEM, cache)
-    @unpack volume_integral_dg, volume_integral_fv, indicator = volume_integral
+    @unpack (indicator, volume_integral_default,
+    volume_integral_blend_high_order, volume_integral_low_order) = volume_integral
 
     # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations,
@@ -131,17 +132,19 @@ function calc_volume_integral!(du, u, mesh,
         if dg_only
             volume_integral_kernel!(du, u, element, mesh,
                                     have_nonconservative_terms, equations,
-                                    volume_integral_dg, dg, cache)
+                                    volume_integral_default, dg, cache)
         else
             # Calculate DG volume integral contribution
             volume_integral_kernel!(du, u, element, mesh,
                                     have_nonconservative_terms, equations,
-                                    volume_integral_dg, dg, cache, 1 - alpha_element)
+                                    volume_integral_blend_high_order, dg, cache,
+                                    1 - alpha_element)
 
             # Calculate FV volume integral contribution
             volume_integral_kernel!(du, u, element, mesh,
                                     have_nonconservative_terms, equations,
-                                    volume_integral_fv, dg, cache, alpha_element)
+                                    volume_integral_blend_low_order, dg, cache,
+                                    alpha_element)
         end
     end
 
