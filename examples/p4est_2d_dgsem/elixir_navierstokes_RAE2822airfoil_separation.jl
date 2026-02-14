@@ -12,7 +12,7 @@ airfoil_cord_length = 1.0
 
 # See https://www1.grc.nasa.gov/wp-content/uploads/case_c2.1.pdf or
 # https://cfd.ku.edu/hiocfd/case_c2.2.html
-U_inf() = 0.734
+U_inf() = 0.734 # Mach_inf = 1.0
 rho_inf() = gamma() # => p_inf = 1.0
 
 mu() = rho_inf() * U_inf() * airfoil_cord_length / Re
@@ -20,8 +20,6 @@ prandtl_number() = 0.71
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
-p_inf() = 1.0
-mach_inf() = U_inf()
 aoa() = deg2rad(2.79) # 2.79 Degree angle of attack
 
 @inline function initial_condition_mach085_flow(x, t, equations)
