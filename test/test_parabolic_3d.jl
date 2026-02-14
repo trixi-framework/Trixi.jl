@@ -502,8 +502,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         solver_parabolic=ViscousFormulationLocalDG(),
-                        cfl_diffusive=0.1,
-                        l2=[0.004180416884031117], linf=[0.051662524467102636])
+                        cfl_diffusive=0.07,
+                        l2=[0.0041854757843498725], linf=[0.05166356737492643])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
