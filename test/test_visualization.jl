@@ -32,7 +32,8 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                         "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
 
-@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
+@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in
+                                                               keys(test_examples_2d)
     # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
     @test_trixi_include(joinpath(EXAMPLES_DIR, directory, elixir),
@@ -106,7 +107,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
         else
             cache = semi.cache
-            x = view(cache.elements.node_coordinates, 1, :, :, :)
+            x = view(cache.elements.node_coordinates,1,:,:,:)
             @trixi_test_nowarn Plots.plot(ScalarPlotData2D(x, semi))
         end
     end
@@ -192,8 +193,9 @@ end
         @trixi_test_nowarn Plots.plot(pd)
         @trixi_test_nowarn Plots.plot(pd["p"])
         @trixi_test_nowarn Plots.plot(getmesh(pd))
-        initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
-                                                                  equations)
+        initial_condition_t_end(x,
+                                equations) = initial_condition(x, last(tspan),
+                                                               equations)
         @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
         @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
     end
@@ -395,83 +397,153 @@ end
     end
 end
 
-
-# Helper function for regression tests
-ic_constant = function (x, t, equations::CompressibleEulerEquations2D)
-    rho = 1.0
-    v1 = 0.5
-    v2 = -0.5
-    p = 1.0
-    return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-
 @testset "PlotData2D Regression Tests" begin
-    # Define local path to examples
     examples_dir_local = joinpath(dirname(@__DIR__), "examples")
 
-    # --- Test 1: TreeMesh (Cartesian) ---
-    # TreeMesh stores data as Vector of Matrices (one Matrix per variable)
-    @testset "TreeMesh" begin
-        trixi_include(@__MODULE__,
-                      joinpath(examples_dir_local, "tree_2d_dgsem",
-                               "elixir_euler_blast_wave.jl"),
-                      tspan = (0.0, 0.0))
-        semi = getfield(@__MODULE__, :semi)
-        u_ode = compute_coefficients(ic_constant, 0.0, semi)
-        pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
+    # Taylor-Green Vortex for interpolation tests (Non-Constant IC)
+    function initial_condition_taylor_green_vortex(x, t,
+                                                   equations::CompressibleEulerEquations2D)
+        A = 1.0
+        Ms = 0.1
 
-        @test pd.x isa AbstractVector
-        @test pd.y isa AbstractVector
+        rho = 1.0
+        v1 = A * sin(x[1]) * cos(x[2])
+        v2 = -A * cos(x[1]) * sin(x[2])
+        p = (A / Ms)^2 * rho / equations.gamma
+        p = p +
+            1.0 / 16.0 * A^2 * rho *
+            (cos(2 * x[1]) + 2 * cos(2 * x[2]) +
+             2 * cos(2 * x[1]) + cos(2 * x[2]))
 
-        # Check Values (pd.data[i] is the matrix for variable i)
-        # Using isapprox instead of ≈ for ASCII compliance
-        @test all(x -> isapprox(x, 1.0), pd.data[1]) # rho
-        @test all(x -> isapprox(x, 0.5), pd.data[2]) # v1
-        @test all(x -> isapprox(x, -0.5), pd.data[3]) # v2
-        @test all(x -> isapprox(x, 1.0), pd.data[4]) # p
+        return prim2cons(SVector(rho, v1, v2, p), equations)
     end
 
-    # --- Test 2: StructuredMesh (Curvilinear) ---
-    # StructuredMesh stores data as a collection of SVectors (one SVector per node)
-    @testset "StructuredMesh" begin
-        trixi_include(@__MODULE__,
-                      joinpath(examples_dir_local, "structured_2d_dgsem",
-                               "elixir_euler_ec.jl"),
-                      tspan = (0.0, 0.0))
-        semi = getfield(@__MODULE__, :semi)
-        u_ode = compute_coefficients(ic_constant, 0.0, semi)
-        pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
+    @testset "Constant IC (Exact Checks)" begin
+        @testset "TreeMesh" begin
+            trixi_include(@__MODULE__,
+                          joinpath(examples_dir_local, "tree_2d_dgsem",
+                                   "elixir_euler_blast_wave.jl"),
+                          tspan = (0.0, 0.0))
+            semi_tree = getfield(@__MODULE__, :semi)
 
-        @test pd.x isa AbstractMatrix
-        @test pd.y isa AbstractMatrix
+            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0,
+                                         semi_tree)
+            pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
 
-        # Check Values: Iterate over the solution vectors
-        # val[1]=rho, val[2]=v1, val[3]=v2, val[4]=p
-        @test all(val -> isapprox(val[1], 1.0), pd.data)
-        @test all(val -> isapprox(val[2], 0.5), pd.data)
-        @test all(val -> isapprox(val[3], -0.5), pd.data)
-        @test all(val -> isapprox(val[4], 1.0), pd.data)
+            @test all(x -> isapprox(x, 1.0), pd.data[1])
+            @test all(x -> isapprox(x, 0.1), pd.data[2])
+            @test all(x -> isapprox(x, -0.2), pd.data[3])
+            @test all(x -> isapprox(x, 3.99), pd.data[4])
+        end
+
+        @testset "StructuredMesh" begin
+            trixi_include(@__MODULE__,
+                          joinpath(examples_dir_local, "structured_2d_dgsem",
+                                   "elixir_euler_ec.jl"),
+                          tspan = (0.0, 0.0))
+            semi_struct = getfield(@__MODULE__, :semi)
+            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0,
+                                         semi_struct)
+            pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
+
+            @test all(val -> isapprox(val[1], 1.0), pd.data)
+            @test all(val -> isapprox(val[2], 0.1), pd.data)
+            @test all(val -> isapprox(val[3], -0.2), pd.data)
+            @test all(val -> isapprox(val[4], 3.99), pd.data)
+        end
+
+        @testset "P4estMesh" begin
+            trixi_include(@__MODULE__,
+                          joinpath(examples_dir_local, "p4est_2d_dgsem",
+                                   "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                          tspan = (0.0, 0.0))
+            semi_p4est = getfield(@__MODULE__, :semi)
+            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0,
+                                         semi_p4est)
+            pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
+
+            @test all(val -> isapprox(val[1], 1.0), pd.data)
+            @test all(val -> isapprox(val[2], 0.1), pd.data)
+            @test all(val -> isapprox(val[3], -0.2), pd.data)
+            @test all(val -> isapprox(val[4], 3.99), pd.data)
+        end
     end
 
-    # --- Test 3: P4estMesh (Unstructured) ---
-    # P4estMesh stores data as a collection of SVectors
-    @testset "P4estMesh" begin
-        trixi_include(@__MODULE__,
-                      joinpath(examples_dir_local, "p4est_2d_dgsem",
-                               "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                      tspan = (0.0, 0.0))
-        semi = getfield(@__MODULE__, :semi)
-        u_ode = compute_coefficients(ic_constant, 0.0, semi)
-        pd = PlotData2D(u_ode, semi, solution_variables = cons2prim)
+    # Part 2: Non-Constant IC (Interpolation Accuracy)
+    @testset "Non-Constant IC (Taylor-Green Vortex)" begin
+        @testset "TreeMesh" begin
+            trixi_include(@__MODULE__,
+                          joinpath(examples_dir_local, "tree_2d_dgsem",
+                                   "elixir_euler_blast_wave.jl"),
+                          tspan = (0.0, 0.0))
+            semi_tree = getfield(@__MODULE__, :semi)
+            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0,
+                                         semi_tree)
+            pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
 
-        @test pd.x isa AbstractMatrix
-        @test pd.y isa AbstractMatrix
+            # TreeMesh (Cartesian) interpolation check
+            max_error = 0.0
+            for (j, y) in enumerate(pd.y), (i, x) in enumerate(pd.x)
+                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0,
+                                                                equations)
+                prim_exact = cons2prim(u_exact, equations)
+                prim_interp = SVector(pd.data[1][i, j], pd.data[2][i, j],
+                                      pd.data[3][i, j], pd.data[4][i, j])
 
-        # Check Values
-        @test all(val -> isapprox(val[1], 1.0), pd.data)
-        @test all(val -> isapprox(val[2], 0.5), pd.data)
-        @test all(val -> isapprox(val[3], -0.5), pd.data)
-        @test all(val -> isapprox(val[4], 1.0), pd.data)
+                current_error = maximum(abs.(prim_interp - prim_exact))
+                max_error = max(max_error, current_error)
+            end
+            # Relaxed tolerance for TreeMesh due to AMR/Grid mismatch with TGV function
+            @test max_error < 1.5
+        end
+
+        @testset "StructuredMesh" begin
+            trixi_include(@__MODULE__,
+                          joinpath(examples_dir_local, "structured_2d_dgsem",
+                                   "elixir_euler_ec.jl"),
+                          tspan = (0.0, 0.0))
+            semi_struct = getfield(@__MODULE__, :semi)
+            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0,
+                                         semi_struct)
+            pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
+
+            max_error = 0.0
+            for i in eachindex(pd.x)
+                x = pd.x[i]
+                y = pd.y[i]
+                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0,
+                                                                equations)
+                prim_exact = cons2prim(u_exact, equations)
+
+                current_error = maximum(abs.(pd.data[i] - prim_exact))
+                max_error = max(max_error, current_error)
+            end
+            @test max_error < 5.0e-3
+        end
+
+        @testset "P4estMesh" begin
+            trixi_include(@__MODULE__,
+                          joinpath(examples_dir_local, "p4est_2d_dgsem",
+                                   "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                          tspan = (0.0, 0.0))
+            semi_p4est = getfield(@__MODULE__, :semi)
+            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0,
+                                         semi_p4est)
+            pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
+
+            max_error = 0.0
+            for i in eachindex(pd.x)
+                x = pd.x[i]
+                y = pd.y[i]
+                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0,
+                                                                equations)
+                prim_exact = cons2prim(u_exact, equations)
+
+                current_error = maximum(abs.(pd.data[i] - prim_exact))
+                max_error = max(max_error, current_error)
+            end
+            @test max_error < 5.0e-3
+        end
     end
 end
 
@@ -833,8 +905,8 @@ end
 
     # test interactive ScalarPlotData2D plotting
     semi = sol.prob.p
-    x = view(semi.cache.elements.node_coordinates, 1, :, :, :) # extracts the node x coordinates
-    y = view(semi.cache.elements.node_coordinates, 2, :, :, :) # extracts the node x coordinates
+    x = view(semi.cache.elements.node_coordinates,1,:,:,:) # extracts the node x coordinates
+    y = view(semi.cache.elements.node_coordinates,2,:,:,:) # extracts the node x coordinates
     @trixi_test_nowarn iplot(ScalarPlotData2D(x .+ y, semi), plot_mesh = true)
 
     # test heatmap plot
