@@ -83,7 +83,8 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations,
-                      mortar_l2::LobattoLegendreMortarL2, uEltype)
+                      mortar_l2::Union{LobattoLegendreMortarL2,
+                                       LobattoLegendreMortarIDP}, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -1126,7 +1127,7 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
 
     @threaded for element in eachelement(dg, cache)
         # Negative sign included to account for the negated surface and volume terms,
-        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # see e.g. the computation of `derivative_hat` in the basis setup and
         # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 

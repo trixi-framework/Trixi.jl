@@ -110,6 +110,32 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_density_wave_nonconforming_idp_mortars.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_density_wave_nonconforming_idp_mortars.jl"),
+                        initial_refinement_level=2,
+                        l2=[
+                            0.01853467680355577,
+                            0.0018534676803570467,
+                            0.003706935360709665,
+                            0.0004633669200885599
+                        ],
+                        linf=[
+                            0.3234934074357616,
+                            0.03234934074339482,
+                            0.06469868148701247,
+                            0.008087335185543054
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
+
 @trixi_testset "elixir_euler_nonideal_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
                         tspan=(0.0, 0.5),
@@ -670,28 +696,30 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl" begin
     rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
+                                 "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
+                        cfl=0.5,
                         l2=[
-                            0.42185634563805724,
-                            0.1686471269704017,
-                            0.18240674916968103,
-                            0.17858250604280654
+                            0.19185209602478717,
+                            0.09515534096951954,
+                            0.13633655773802925,
+                            0.0732414323778663
                         ],
                         linf=[
-                            1.7012978064377158,
-                            0.7149714986746726,
-                            0.5822547982757897,
-                            0.7300051017382696
+                            0.8812860825078623,
+                            0.47063513971549836,
+                            0.29315653000200037,
+                            0.3380020196107205
                         ],
-                        tspan=(0.0, 2.0),
+                        tspan=(0.0, 1.0),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
-    @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
-    # Run takes 745 time steps
-    @test startswith(lines[end], "745")
+    @test lines[1] == "# iter, simu_time, rho_min, rho_max, pressure_min"
+    # Run takes 495 time steps
+    @test startswith(lines[end], "495")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -699,6 +727,9 @@ end
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
+
+    # test long printing format
+    @test_nowarn display(solver.mortar)
 end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
