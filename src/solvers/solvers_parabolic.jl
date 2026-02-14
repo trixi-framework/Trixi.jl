@@ -20,14 +20,16 @@ In the latter case, the [`ViscousFormulationLocalDG`](@ref) scheme is recommende
 struct ViscousFormulationBassiRebay1 end
 
 """
-    flux_parabolic(u_ll, u_rr, gradient_or_divergence, equations_parabolic,
+    flux_parabolic(u_ll, u_rr,
+                   gradient_or_divergence, equations_parabolic,
                    parabolic_scheme::ViscousFormulationBassiRebay1)
 
 This computes the classical BR1 flux. Since the interface flux for both the 
 DG gradient and DG divergence under BR1 are identical, this function does 
 not need to be specialized for `Gradient` and `Divergence`.
 """
-function flux_parabolic(u_ll, u_rr, gradient_or_divergence, equations_parabolic,
+function flux_parabolic(u_ll, u_rr,
+                        gradient_or_divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationBassiRebay1)
     return 0.5f0 * (u_ll + u_rr)
 end
@@ -65,19 +67,24 @@ Cockburn and Dong proved that this scheme is still stable despite the zero penal
 """
 ViscousFormulationLocalDG() = ViscousFormulationLocalDG(nothing)
 
-"""
-    flux_parabolic(u_ll, u_rr, ::Gradient, equations_parabolic,
-                   parabolic_scheme::ViscousFormulationLocalDG)
-
-    flux_parabolic(u_ll, u_rr, ::Divergence, equations_parabolic,
+@doc raw"""
+    flux_parabolic(u_ll, u_rr,
+                   ::Gradient, equations_parabolic,
                    parabolic_scheme::ViscousFormulationLocalDG)
 
 These fluxes computes the gradient and divergence interface fluxes for the 
 local DG method. The local DG method uses an "upwind/downwind" flux for the 
 gradient and divergence (i.e., if the gradient is upwinded, the divergence
-must be downwinded in order to preserve symmetry and positive definiteness). 
+must be downwinded in order to preserve symmetry and positive definiteness).
+Here, we use the convention that the gradient flux is upwinded, thus we have
+```math
+f_{\text{gradient}} = u_{L}
+```
+on the Cartesian [`TreeMesh`](@ref).
+```
 """
-function flux_parabolic(u_ll, u_rr, ::Gradient, equations_parabolic,
+function flux_parabolic(u_ll, u_rr,
+                        ::Gradient, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     # The LDG flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
     # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
@@ -87,6 +94,22 @@ function flux_parabolic(u_ll, u_rr, ::Gradient, equations_parabolic,
     return u_ll # Use the upwind value for the gradient interface flux
 end
 
+@doc raw"""
+    flux_parabolic(u_ll, u_rr,
+                   ::Divergence, equations_parabolic,
+                   parabolic_scheme::ViscousFormulationLocalDG)
+
+These fluxes computes the gradient and divergence interface fluxes for the 
+local DG method. The local DG method uses an "upwind/downwind" flux for the 
+gradient and divergence (i.e., if the gradient is upwinded, the divergence
+must be downwinded in order to preserve symmetry and positive definiteness).
+Here, we use the convention that, because the gradient flux is upwinded, the divergence flux is downwinded. Thus we have
+```math
+f_{\text{divergence}} = u_{R}
+```
+on the Cartesian [`TreeMesh`](@ref).
+```
+"""
 function flux_parabolic(u_ll, u_rr, ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux

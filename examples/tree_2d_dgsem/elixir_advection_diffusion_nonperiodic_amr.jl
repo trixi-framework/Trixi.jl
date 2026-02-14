@@ -14,12 +14,11 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-1.0, -0.5) # minimum coordinates (min(x), min(y))
 coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
 
-# This setup is identical to the one for the `TreeMesh`, allowing for error comparison.
-trees_per_dimension = (4, 4)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 1,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 periodicity = false)
+# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 3,
+                periodicity = false,
+                n_cells_max = 30_000)
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
@@ -67,11 +66,11 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# This setup is identical to the one for the `TreeMesh`, allowing for error comparison.
+# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
-                                      base_level = 1,
-                                      med_level = 2, med_threshold = 0.9,
-                                      max_level = 3, max_threshold = 1.0)
+                                      base_level = 3,
+                                      med_level = 4, med_threshold = 0.9,
+                                      max_level = 5, max_threshold = 1.0)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 50)
 
