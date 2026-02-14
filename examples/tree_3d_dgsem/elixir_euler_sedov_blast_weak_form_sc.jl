@@ -61,6 +61,14 @@ volume_integral = VolumeIntegralShockCapturingHGType(indicator_sc;
                                                     volume_integral_blend_high_order = volume_integral_blend_high_order,
                                                     volume_integral_blend_low_order = volume_integral_blend_low_order)
 
+volume_integral_stabilized = VolumeIntegralShockCapturingHG(indicator_sc;
+                                                            volume_flux_dg = volume_flux,
+                                                            volume_flux_fv = surface_flux)
+
+volume_integral = VolumeIntegralAdaptive(volume_integral_default = VolumeIntegralWeakForm(),
+                                         volume_integral_stabilized = volume_integral_stabilized,
+                                         indicator = nothing) # Indicator taken from `volume_integral_stabilized`
+
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(basis, surface_flux, volume_integral)
 
