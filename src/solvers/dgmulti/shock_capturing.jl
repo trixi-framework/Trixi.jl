@@ -1,6 +1,6 @@
 # by default, return an empty tuple for volume integral caches
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG,
+                      volume_integral::VolumeIntegralShockCapturingHGType,
                       dg::DGMultiFluxDiff{<:GaussSBP}, RealT, uEltype) where {NDIMS}
     # build element to element (element_to_element_connectivity) connectivity for smoothing of
     # shock capturing parameters.
@@ -160,9 +160,10 @@ end
 function calc_volume_integral!(du, u,
                                mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralShockCapturingHG,
+                               volume_integral::VolumeIntegralShockCapturingHGType,
                                dg::DGMultiFluxDiff, cache)
-    (; volume_flux_dg, volume_flux_fv, indicator) = volume_integral
+    (; indicator, volume_integral_default,
+    volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
@@ -179,18 +180,22 @@ function calc_volume_integral!(du, u,
         dg_only = isapprox(alpha_element, 0, atol = atol)
 
         if dg_only
-            flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
-                                      equations, volume_flux_dg, dg, cache)
+            flux_differencing_kernel!(du, u, element, mesh,
+                                      have_nonconservative_terms, equations,
+                                      volume_integral_default.volume_flux,
+                                      dg, cache)
         else
             # Calculate DG volume integral contribution
             flux_differencing_kernel!(du, u, element, mesh,
                                       have_nonconservative_terms, equations,
-                                      volume_flux_dg, dg, cache, 1 - alpha_element)
+                                      volume_integral_blend_high_order.volume_flux,
+                                      dg, cache, 1 - alpha_element)
 
             # Calculate "FV" low order volume integral contribution
             low_order_flux_differencing_kernel!(du, u, element, mesh,
                                                 have_nonconservative_terms, equations,
-                                                volume_flux_fv, dg, cache, alpha_element)
+                                                volume_integral_blend_low_order.volume_flux_fv,
+                                                dg, cache, alpha_element)
         end
     end
 

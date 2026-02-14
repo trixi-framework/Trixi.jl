@@ -993,6 +993,28 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_navierstokes_RAE2822airfoil_separation.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_RAE2822airfoil_separation.jl"),
+                        l2=[
+                            4.8255566426589665e-5,
+                            5.931071150349788e-5,
+                            4.275944744545643e-5,
+                            0.00013394508766219007
+                        ],
+                        linf=[
+                            1.3047938125092857,
+                            1.1020295003878038,
+                            0.8730428343168632,
+                            3.6011034352098985
+                        ],
+                        tspan=(0.0, 5e-5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_navierstokes_vortex_street.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
