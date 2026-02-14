@@ -5,24 +5,93 @@
 @muladd begin
 #! format: noindent
 
-# Dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes
-function create_cache(mesh, equations,
-                      volume_integral::VolumeIntegralFluxDifferencing,
-                      dg::DG, cache_containers, uEltype)
-    return NamedTuple()
-end
-
-# The following `calc_volume_integral!` functions are
+# The following `volume_integral_kernel!` and `calc_volume_integral!` functions are
 # dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
 
-function calc_volume_integral!(du, u, mesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel!(du, u, element, mesh,
-                          have_nonconservative_terms, equations,
-                          dg, cache)
+@inline function volume_integral_kernel!(du, u, element, mesh,
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralWeakForm,
+                                         dg, cache, alpha = true)
+    weak_form_kernel!(du, u, element, mesh,
+                      have_nonconservative_terms, equations,
+                      dg, cache, alpha)
+
+    return nothing
+end
+
+@inline function volume_integral_kernel!(du, u, element, mesh,
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralFluxDifferencing,
+                                         dg, cache, alpha = true)
+    @unpack volume_flux = volume_integral # Volume integral specific data
+
+    flux_differencing_kernel!(du, u, element, mesh,
+                              have_nonconservative_terms, equations,
+                              volume_flux, dg, cache, alpha)
+
+    return nothing
+end
+
+@inline function volume_integral_kernel!(du, u, element, mesh,
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                                         dg::DGSEM, cache, alpha = true)
+    @unpack volume_flux_fv = volume_integral # Volume integral specific data
+
+    fv_kernel!(du, u, mesh,
+               have_nonconservative_terms, equations,
+               volume_flux_fv, dg, cache, element, alpha)
+
+    return nothing
+end
+
+@inline function volume_integral_kernel!(du, u, element, mesh,
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
+                                         dg::DGSEM, cache, alpha = true)
+    # Unpack volume integral specific data
+    @unpack sc_interface_coords, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
+
+    fvO2_kernel!(du, u, mesh,
+                 have_nonconservative_terms, equations,
+                 volume_flux_fv, dg, cache, element,
+                 sc_interface_coords, reconstruction_mode, slope_limiter, alpha)
+
+    return nothing
+end
+
+@inline function volume_integral_kernel!(du, u, element, mesh,
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralAdaptive{<:IndicatorEntropyChange},
+                                         dg::DGSEM, cache)
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+    @unpack maximum_entropy_increase = indicator
+
+    volume_integral_kernel!(du, u, element, mesh,
+                            have_nonconservative_terms, equations,
+                            volume_integral_default, dg, cache)
+
+    # Compute entropy production of the default volume integral.
+    # Minus sign because of the flipped sign of the volume term in the DG RHS.
+    # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
+    # in `integrate_reference_element`.
+    dS_default = -entropy_change_reference_element(du, u, element,
+                                                   mesh, equations, dg, cache)
+
+    # Compute true entropy change given by surface integral of the entropy potential
+    dS_true = surface_integral(entropy_potential, u, element,
+                               mesh, equations, dg, cache)
+
+    entropy_change = dS_default - dS_true
+    if entropy_change > maximum_entropy_increase # Recompute using EC FD volume integral
+        # Reset default volume integral contribution.
+        # Note that this assumes that the volume terms are computed first,
+        # before any surface terms are added.
+        du[.., element] .= zero(eltype(du))
+
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral_stabilized, dg, cache)
     end
 
     return nothing
@@ -30,12 +99,11 @@ end
 
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache)
+                               volume_integral, dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
-        flux_differencing_kernel!(du, u, element, mesh,
-                                  have_nonconservative_terms, equations,
-                                  volume_integral.volume_flux, dg, cache)
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral, dg, cache)
     end
 
     return nothing
@@ -47,7 +115,7 @@ function calc_volume_integral!(du, u, mesh,
                                dg::DGSEM, cache)
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
-    # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
+    # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations,
                                                                dg, cache)
 
@@ -87,7 +155,7 @@ function calc_volume_integral!(du, u, mesh,
     @unpack volume_flux_dg, volume_flux_fv, indicator,
     sc_interface_coords, slope_limiter = volume_integral # Second-oder/RG additions
 
-    # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
+    # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations,
                                                                dg, cache)
 
@@ -118,39 +186,6 @@ function calc_volume_integral!(du, u, mesh,
                          sc_interface_coords, reconstruction_O2_inner, slope_limiter,
                          alpha_element)
         end
-    end
-
-    return nothing
-end
-
-function calc_volume_integral!(du, u, mesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
-                               dg::DGSEM, cache)
-    @unpack volume_flux_fv = volume_integral
-
-    # Calculate LGL FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fv_kernel!(du, u, mesh,
-                   have_nonconservative_terms, equations,
-                   volume_flux_fv, dg, cache, element, true)
-    end
-
-    return nothing
-end
-
-function calc_volume_integral!(du, u, mesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
-                               dg::DGSEM, cache)
-    @unpack sc_interface_coords, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
-
-    # Calculate LGL second-order FV volume integral
-    @threaded for element in eachelement(dg, cache)
-        fvO2_kernel!(du, u, mesh,
-                     have_nonconservative_terms, equations,
-                     volume_flux_fv, dg, cache, element,
-                     sc_interface_coords, reconstruction_mode, slope_limiter, true)
     end
 
     return nothing

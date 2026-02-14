@@ -434,7 +434,8 @@ function calc_interface_flux_gradient!(surface_flux_values,
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
             surface_flux_values[v, left_direction, left_id] = flux[v]
-            # No sign flip needed for gradient computation
+            # No sign flip needed for gradient computation because for parabolic terms, 
+            # the normals are not embedded in `flux_` for gradient computations.
             surface_flux_values[v, right_direction, right_id] = flux[v]
         end
     end

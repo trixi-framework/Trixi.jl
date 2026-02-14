@@ -137,8 +137,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
                 calc_interface_flux_gradient!(surface_flux_values, mesh,
                                               equations_parabolic,
                                               dg, parabolic_scheme, cache,
-                                              interface, normal_direction,
-                                              i, j,
+                                              interface, normal_direction, i, j,
                                               primary_direction, primary_element,
                                               i_secondary, j_secondary,
                                               secondary_direction, secondary_element)
@@ -188,7 +187,8 @@ end
 
     for v in eachvariable(equations_parabolic)
         surface_flux_values[v, primary_i_node_index, primary_j_node_index, primary_direction_index, primary_element_index] = flux_[v]
-        # No sign flip required for gradient calculation
+        # No sign flip required for gradient calculation because for parabolic terms,
+        # the normals are not embedded in `flux_` for gradient computations.
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
     end
 
@@ -439,7 +439,8 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i, j, primary_direction_index, primary_element] = flux[v]
-                    # Sign flip required for divergence calculation
+                    # Sign flip required for divergence calculation since the flux for the 
+                    # divergence involves the normal direction.
                     surface_flux_values[v, i_secondary, j_secondary, secondary_direction_index, secondary_element] = -flux[v]
                 end
 
@@ -625,7 +626,6 @@ function calc_mortar_flux_divergence!(surface_flux_values,
             i_small = i_small_start
             j_small = j_small_start
             k_small = k_small_start
-            element = neighbor_ids[position, mortar]
             for j in eachnode(dg)
                 for i in eachnode(dg)
                     normal_direction = get_normal_direction(small_direction,
@@ -644,7 +644,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                               normal_direction, Divergence(),
                                               equations_parabolic, parabolic_scheme)
 
-                        # Sign flip (and scaling) already handled above in `prolong2mortars_divergence!`
+                        # Sign flip (and scaling by 0.5) already handled above in `prolong2mortars_divergence!`
                         fstar[v, i, j, position] = flux
                     end
 
