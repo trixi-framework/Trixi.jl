@@ -626,6 +626,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
             i_small = i_small_start
             j_small = j_small_start
             k_small = k_small_start
+            element = neighbor_ids[position, mortar]
             for j in eachnode(dg)
                 for i in eachnode(dg)
                     normal_direction = get_normal_direction(small_direction,
