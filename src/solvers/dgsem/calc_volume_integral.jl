@@ -190,4 +190,216 @@ function calc_volume_integral!(du, u, mesh,
 
     return nothing
 end
+
+"""
+    VolumeIntegralEntropyCorrection(indicator, 
+                                    volume_integral_default, 
+                                    volume_integral_entropy_stable)
+
+Entropy correction volume integral type for DG methods using a convex blending of
+a `volume_integral_default` (for example, [`VolumeIntegralWeakForm`](@ref)) and 
+`volume_integral_entropy_stable` (for example, [`VolumeIntegralPureLGLFiniteVolume`](@ref)
+with an entropy stable finite volume flux). 
+
+This is intended to be used with [`IndicatorEntropyCorrection`](@ref), which determines the 
+amount of blending based on the violation of a cell entropy equality by the volume integral. 
+
+The parameter `scaling ≥ 1` in [`IndicatorEntropyCorrection`](@ref) scales the DG-FV blending 
+parameter ``\\alpha``(see the [tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
+by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
+This can be used to add shock capturing-like behavior. Note though that ``\\alpha`` is computed 
+here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
+
+The use of `VolumeIntegralEntropyCorrection` requires either
+    `entropy_potential(u, orientation, equations)` for TreeMesh, or
+    `entropy_potential(u, normal_direction, equations)` for other mesh types
+to be defined. 
+"""
+
+const VolumeIntegralEntropyCorrection = VolumeIntegralAdaptive{<:IndicatorEntropyCorrection}
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralEntropyCorrection,
+                                dg, cache)
+    element_variables[:indicator_shock_capturing] = volume_integral.indicator.cache.alpha
+    return nothing
+end
+
+function calc_volume_integral!(du, u, mesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralEntropyCorrection,
+                               dg::DGSEM, cache)
+    (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
+    (; scaling) = indicator
+    (; alpha) = indicator.cache
+    du_element_threaded = indicator.cache.volume_integral_values_threaded
+
+    resize!(alpha, nelements(dg, cache))
+
+    @threaded for element in eachelement(dg, cache)
+        # run default volume integral 
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral_default, dg, cache)
+
+        # Check entropy production of "high order" volume integral. 
+        # 
+        # Note that, for `TreeMesh`, both volume and surface integrals are calculated
+        # on the reference element. For other mesh types, because the volume integral 
+        # incorporates the scaled contravariant vectors, the surface integral should 
+        # be calculated on the physical element instead.
+        #
+        # Minus sign because of the flipped sign of the volume term in the DG RHS.
+        # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
+        # in `integrate_reference_element`.
+        dS_volume_integral = -entropy_change_reference_element(du, u, element,
+                                                               mesh, equations,
+                                                               dg, cache)
+
+        # Compute true entropy change given by surface integral of the entropy potential
+        dS_true = surface_integral(entropy_potential, u, element,
+                                   mesh, equations, dg, cache)
+
+        # This quantity should be ≤ 0 for an entropy stable volume integral, and 
+        # exactly zero for an entropy conservative volume integral. 
+        entropy_residual = dS_volume_integral - dS_true
+
+        if entropy_residual > 0
+            # Store "high order" result
+            du_FD_element = du_element_threaded[Threads.threadid()]
+            @views du_FD_element .= du[.., element]
+
+            # Reset pure flux-differencing volume integral 
+            # Note that this assumes that the volume terms are computed first,
+            # before any surface terms are added.
+            du[.., element] .= zero(eltype(du))
+
+            # Calculate entropy stable volume integral contribution
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_stabilized, dg, cache)
+
+            # Calculate difference between high and low order FV integral;
+            # this should be made entropy dissipative if entropy_residual > 0.
+            @views du_FD_element .= (du_FD_element .- du[.., element])
+
+            entropy_dissipation = entropy_change_reference_element(du_FD_element, u,
+                                                                   element,
+                                                                   mesh, equations,
+                                                                   dg, cache)
+
+            # Calculate DG-FV blending factor 
+            ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
+            alpha_element = min(1, scaling * ratio) # TODO: replacing this with a differentiable version of `min`
+
+            # Save blending coefficient for visualization
+            alpha[element] = alpha_element
+
+            # Blend the high order method back in 
+            @views du[.., element] .= du[.., element] .+
+                                      (1 - alpha_element) .* du_FD_element
+        end
+    end
+
+    return nothing
+end
+
+const VolumeIntegralEntropyCorrectionWithShockCapturing = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionWithShockCapturing}
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralEntropyCorrectionWithShockCapturing,
+                                dg, cache)
+    element_variables[:indicator_shock_capturing] = volume_integral.indicator_entropy_correction.cache.alpha
+    return nothing
+end
+
+function calc_volume_integral!(du, u, mesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralEntropyCorrectionWithShockCapturing,
+                               dg::DGSEM, cache)
+    (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
+    (; indicator_entropy_correction, indicator_shock_capturing) = indicator
+    (; scaling) = indicator_entropy_correction
+    (; alpha) = indicator_entropy_correction.cache # TODO: remove array since it's duplicated in indicator_shock_capturing?
+    du_element_threaded = indicator_entropy_correction.cache.volume_integral_values_threaded
+
+    resize!(alpha, nelements(dg, cache))
+
+    # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
+    alpha_shock_capturing = @trixi_timeit timer() "blending factors" indicator_shock_capturing(u,
+                                                                                               mesh,
+                                                                                               equations,
+                                                                                               dg,
+                                                                                               cache)
+
+    @threaded for element in eachelement(dg, cache)
+
+        # run default volume integral 
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral_default, dg, cache)
+
+        # Check entropy production of "high order" volume integral. 
+        # 
+        # Note that, for `TreeMesh`, both volume and surface integrals are calculated
+        # on the reference element. For other mesh types, because the volume integral 
+        # incorporates the scaled contravariant vectors, the surface integral should 
+        # be calculated on the physical element instead.
+        #
+        # Minus sign because of the flipped sign of the volume term in the DG RHS.
+        # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
+        # in `integrate_reference_element`.
+        dS_volume_integral = -entropy_change_reference_element(du, u, element,
+                                                               mesh, equations,
+                                                               dg, cache)
+
+        # Compute true entropy change given by surface integral of the entropy potential
+        dS_true = surface_integral(entropy_potential, u, element,
+                                   mesh, equations, dg, cache)
+
+        # This quantity should be ≤ 0 for an entropy stable volume integral, and 
+        # exactly zero for an entropy conservative volume integral. 
+        entropy_residual = dS_volume_integral - dS_true
+
+        if entropy_residual > 0
+            # Store "high order" result
+            du_FD_element = du_element_threaded[Threads.threadid()]
+            @views du_FD_element .= du[.., element]
+
+            # Reset pure flux-differencing volume integral 
+            # Note that this assumes that the volume terms are computed first,
+            # before any surface terms are added.
+            du[.., element] .= zero(eltype(du))
+
+            # Calculate entropy stable volume integral contribution
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_stabilized, dg, cache)
+
+            # Calculate difference between high and low order FV integral;
+            # this should be made entropy dissipative if entropy_residual > 0.
+            @views du_FD_element .= (du_FD_element .- du[.., element])
+
+            entropy_dissipation = entropy_change_reference_element(du_FD_element, u,
+                                                                   element,
+                                                                   mesh, equations,
+                                                                   dg, cache)
+
+            # Calculate DG-FV blending factor as the minimum between the entropy correction 
+            # indicator and shock capturing indicator
+            # TODO: replacing this with a differentiable version of `min`
+            ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
+            alpha_element = min(1, max(alpha_shock_capturing[element], scaling * ratio))
+
+            # Save blending coefficient for visualization
+            alpha[element] = alpha_element
+
+            # Blend the high order method back in 
+            @views du[.., element] .= du[.., element] .+
+                                      (1 - alpha_element) .* du_FD_element
+        end
+    end
+
+    return nothing
+end
 end # @muladd
