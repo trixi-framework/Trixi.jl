@@ -7,15 +7,15 @@ using Trixi
 gamma() = 1.4
 equations = CompressibleEulerEquations2D(gamma())
 
-Re = 6.5 * 10^6
-airfoil_cord_length = 1.0
+Re() = 6.5 * 10^6
+airfoil_chord_length() = 1.0
 
 # See https://www1.grc.nasa.gov/wp-content/uploads/case_c2.1.pdf or
 # https://cfd.ku.edu/hiocfd/case_c2.2.html
 U_inf() = 0.734 # Mach_inf = 1.0
 rho_inf() = gamma() # => p_inf = 1.0
 
-mu() = rho_inf() * U_inf() * airfoil_cord_length / Re
+mu() = rho_inf() * U_inf() * airfoil_chord_length() / Re()
 prandtl_number() = 0.71
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
@@ -88,9 +88,8 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-t_c = airfoil_cord_length / U_inf() # convective time
+t_c = airfoil_chord_length() / U_inf() # convective time
 tspan = (0.0, 25 * t_c)
-tspan = (0.0, 5e-5)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -104,11 +103,11 @@ force_boundary_names = (:WallBoundary,)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            DragCoefficientPressure2D(aoa(), rho_inf(),
                                                                      U_inf(),
-                                                                     airfoil_cord_length))
+                                                                     airfoil_cord_length()))
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            LiftCoefficientPressure2D(aoa(), rho_inf(),
                                                                      U_inf(),
-                                                                     airfoil_cord_length))
+                                                                     airfoil_cord_length()))
 
 analysis_callback = AnalysisCallback(semi, interval = save_sol_interval,
                                      output_directory = "out",
@@ -130,8 +129,8 @@ callbacks = CallbackSet(summary_callback,
 
 ode_algorithm = SSPRK43(thread = Trixi.True())
 
-tols = 1e-4
+time_int_tol = 1e-4
 sol = solve(ode, ode_algorithm;
-            abstol = tols, reltol = tols, dt = 1e-6,
+            abstol = time_int_tol, reltol = time_int_tol, dt = 1e-6,
             maxiters = Inf,
             ode_default_options()..., callback = callbacks)
