@@ -328,6 +328,19 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        tspan=(0.0, 0.01),
+                        l2=[0.0006847528246312027],
+                        linf=[0.01141427135401191])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion_imex_operator.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_imex_operator.jl"),
@@ -722,8 +735,8 @@ end
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         solver_parabolic=ViscousFormulationLocalDG(),
                         tspan=(0.0, 0.01),
-                        l2=[0.0019455489269807713],
-                        linf=[0.030752702643474072])
+                        l2=[0.0006847519464844491],
+                        linf=[0.011414219857791464])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
