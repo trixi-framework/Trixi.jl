@@ -115,7 +115,7 @@ end
                         solver=DGSEM(LobattoLegendreBasis(3),
                                      flux_lax_friedrichs,
                                      VolumeIntegralAdaptive(IndicatorEntropyCorrection(equations,
-                                                                                       basis;
+                                                                                       LobattoLegendreBasis(3);
                                                                                        scaling = 2),
                                                             VolumeIntegralWeakForm(),
                                                             VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs))),
