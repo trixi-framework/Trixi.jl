@@ -1138,7 +1138,7 @@ end
                             1.5543122344752192e-15,
                             1.2378986724570495e-13,
                             1.7111312367035225e-13,
-                            1.5727863456049818e-11
+                            1.0867751143450732e-11
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
