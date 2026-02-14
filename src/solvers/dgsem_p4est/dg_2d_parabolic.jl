@@ -556,15 +556,15 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
                                                                                    i,
                                                                                    interface)
 
-            flux = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
-                                  normal_direction, Divergence(),
-                                  equations_parabolic, parabolic_scheme)
+            flux_ = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
+                                   normal_direction, Divergence(),
+                                   equations_parabolic, parabolic_scheme)
 
             for v in eachvariable(equations_parabolic)
-                surface_flux_values[v, i, primary_direction_index, primary_element] = flux[v]
+                surface_flux_values[v, i, primary_direction_index, primary_element] = flux_[v]
                 # Sign flip required for divergence calculation since the divergence interface flux 
                 # involves the normal direction.
-                surface_flux_values[v, node_secondary, secondary_direction_index, secondary_element] = -flux[v]
+                surface_flux_values[v, node_secondary, secondary_direction_index, secondary_element] = -flux_[v]
             end
 
             # Increment primary element indices to pull the normal direction
@@ -703,13 +703,13 @@ function calc_mortar_flux_divergence!(surface_flux_values, mesh::P4estMesh{2},
                     viscous_flux_normal_ll = cache.mortars.u[1, v, position, i, mortar]
                     viscous_flux_normal_rr = cache.mortars.u[2, v, position, i, mortar]
 
-                    flux = flux_parabolic(viscous_flux_normal_ll,
-                                          viscous_flux_normal_rr,
-                                          normal_direction, Divergence(),
-                                          equations_parabolic, parabolic_scheme)
+                    flux_ = flux_parabolic(viscous_flux_normal_ll,
+                                           viscous_flux_normal_rr,
+                                           normal_direction, Divergence(),
+                                           equations_parabolic, parabolic_scheme)
 
-                    # Sign flip (and scaling) already handled above in `prolong2mortars_divergence!`
-                    fstar[position][v, i] = flux
+                    # Sign flip (and scaling by 0.5) already handled above in `prolong2mortars_divergence!`
+                    fstar[position][v, i] = flux_
                 end
                 i_small += i_small_step
                 j_small += j_small_step
