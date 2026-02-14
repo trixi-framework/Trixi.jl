@@ -453,9 +453,10 @@ The use of `IndicatorEntropyCorrection` requires either
 to be defined. 
 
 """
-struct IndicatorEntropyCorrectionWithShockCapturing <: AbstractIndicator
-    indicator_entropy_correction::IndicatorEntropyCorrection
-    indicator_shock_capturing::AbstractIndicator
+struct IndicatorEntropyCorrectionWithShockCapturing{IndicatorEC, IndicatorSC} <:
+       AbstractIndicator
+    indicator_entropy_correction::IndicatorEC
+    indicator_shock_capturing::IndicatorSC
 end
 
 function IndicatorEntropyCorrectionWithShockCapturing(; indicator_shock_capturing,
