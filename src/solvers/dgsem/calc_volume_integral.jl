@@ -215,7 +215,6 @@ The use of `VolumeIntegralEntropyCorrection` requires either
     `entropy_potential(u, normal_direction, equations)` for other mesh types
 to be defined. 
 """
-
 const VolumeIntegralEntropyCorrection = VolumeIntegralAdaptive{<:IndicatorEntropyCorrection}
 
 function get_element_variables!(element_variables, u, mesh, equations,
