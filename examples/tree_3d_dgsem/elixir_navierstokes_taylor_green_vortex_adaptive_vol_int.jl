@@ -14,7 +14,11 @@ equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
 """
     initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations3D)
 
-The classical Taylor-Green vortex.
+The classical viscous Taylor-Green vortex, as found for instance in
+
+- Jonathan R. Bull and Antony Jameson
+  Simulation of the Compressible Taylor Green Vortex using High-Order Flux Reconstruction Schemes
+  [DOI: 10.2514/6.2014-3210](https://doi.org/10.2514/6.2014-3210)
 """
 function initial_condition_taylor_green_vortex(x, t,
                                                equations::CompressibleEulerEquations3D)
@@ -35,23 +39,35 @@ function initial_condition_taylor_green_vortex(x, t,
 end
 initial_condition = initial_condition_taylor_green_vortex
 
-@inline function vel_mag(u, equations::CompressibleEulerEquations3D)
-    rho, rho_v1, rho_v2, rho_v3, _ = u
-    return sqrt(rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-end
-
+surface_flux = flux_hllc
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
+
+volume_integral_weakform = VolumeIntegralWeakForm()
+volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
+
+# `target_decay` governs the tolerated entropy increase due to the weak-form
+# volume integral before switching to the stabilized version.
+# Tolerating some entropy production allows following the enstrophy profile better.
+indicator = IndicatorEntropyChange(maximum_entropy_increase = 4e-4)
+# Adaptive volume integral using the entropy increase indicator to perform the
+# stabilized/EC volume integral when needed
+volume_integral = VolumeIntegralAdaptive(indicator = indicator,
+                                         volume_integral_default = volume_integral_weakform,
+                                         volume_integral_stabilized = volume_integral_fluxdiff)
+
+#volume_integral = volume_integral_weakform # Crashes
+#volume_integral = volume_integral_fluxdiff # Runs, but is (slightly) more expensive
+
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0, 1.0) .* pi
-
-trees_per_dimension = (2, 2, 2)
-
-mesh = P4estMesh(trees_per_dimension, polydeg = 3,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 periodicity = (true, true, true), initial_refinement_level = 0)
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 5,
+                n_cells_max = 100_000,
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
@@ -61,45 +77,27 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.5)
+tspan = (0.0, 20.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 50
+analysis_interval = 10
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      save_analysis = true,
+                                     analysis_errors = Symbol[],
                                      extra_analysis_integrals = (energy_kinetic,
-                                                                 energy_internal,
+                                                                 entropy,
                                                                  enstrophy))
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
 
-amr_indicator = IndicatorLöhner(semi, variable = vel_mag)
-
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 0,
-                                      med_level = 1, med_threshold = 0.1,
-                                      max_level = 3, max_threshold = 0.2)
-
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5,
-                           adapt_initial_condition = false,
-                           adapt_initial_condition_only_refine = false)
-
-alive_callback = AliveCallback(analysis_interval = analysis_interval)
+alive_callback = AliveCallback(alive_interval = 50)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
                         alive_callback,
-                        amr_callback,
-                        save_solution)
+                        analysis_callback)
 
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True()); adaptive = true,
             ode_default_options()..., callback = callbacks)
