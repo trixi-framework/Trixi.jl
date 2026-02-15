@@ -247,6 +247,56 @@ function surface_integral(func::Func, u, element,
     return surface_integral
 end
 
+# calculate surface integral of func(u, normal_direction, equations) * normal on the reference element.
+# Note: `get_normal_direction` already returns an outward-pointing normal for all directions,
+# thus no +- flips are needed here.
+function surface_integral(func::Func, u, element,
+                          mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                      UnstructuredMesh2D, P4estMesh{2},
+                                      T8codeMesh{2}},
+                          equations, dg::DGSEM, cache,
+                          args...) where {Func}
+    @unpack contravariant_vectors = cache.elements
+    @unpack weights = dg.basis
+
+    u_tmp = get_node_vars(u, equations, dg, 1, 1, element)
+    surface_integral = zero(func(u_tmp, 1, equations))
+
+    # Direction 1: face at i = 1 (x_min)
+    for j in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, 1, j, element)
+        normal_direction = get_normal_direction(1, contravariant_vectors,
+                                                1, j, element)
+        surface_integral += weights[j] * func(u_node, normal_direction, equations)
+    end
+
+    # Direction 2: face at i = nnodes(dg) (x_max)
+    for j in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, nnodes(dg), j, element)
+        normal_direction = get_normal_direction(2, contravariant_vectors,
+                                                nnodes(dg), j, element)
+        surface_integral += weights[j] * func(u_node, normal_direction, equations)
+    end
+
+    # Direction 3: face at j = 1 (y_min)
+    for i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, 1, element)
+        normal_direction = get_normal_direction(3, contravariant_vectors,
+                                                i, 1, element)
+        surface_integral += weights[i] * func(u_node, normal_direction, equations)
+    end
+
+    # Direction 4: face at j = nnodes(dg) (y_max)
+    for i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+        normal_direction = get_normal_direction(4, contravariant_vectors,
+                                                i, nnodes(dg), element)
+        surface_integral += weights[i] * func(u_node, normal_direction, equations)
+    end
+
+    return surface_integral
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}

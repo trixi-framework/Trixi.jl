@@ -2257,6 +2257,11 @@ with thermodynamic entropy ``s = \ln(p) - \gamma \ln(\rho)``.
     end
 end
 
+@inline function entropy_potential(u, normal_direction::AbstractVector,
+                                   equations::CompressibleEulerEquations2D)
+    return u[2] * normal_direction[1] + u[3] * normal_direction[2]
+end
+
 # State validation for Newton-bisection method of subcell IDP limiting
 @inline function Base.isvalid(u, equations::CompressibleEulerEquations2D)
     if u[1] <= 0 || pressure(u, equations) <= 0
