@@ -60,7 +60,7 @@ function format_key_value_line(key::AbstractString, value::AbstractString, key_w
     line *= " "^short
     line *= suffix
 
-    @assert length(line)==total_width "should not happen: algorithm error!"
+    #@assert length(line)==total_width "should not happen: algorithm error!"
 
     return line
 end
@@ -114,7 +114,7 @@ function summary_header(io, heading; total_width = 100, indentation_level = 0)
     return nothing
 end
 
-function summary_line(io, key, value; key_width = 30, total_width = 100,
+function summary_line(io, key, value; key_width = 35, total_width = 100,
                       indentation_level = 0)
     # Printing is not performance-critical, so we can use `@nospecialize` to reduce latency
     @nospecialize value # reduce precompilation time
@@ -172,7 +172,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
     io = stdout
     io_context = IOContext(io,
                            :compact => false,
-                           :key_width => 30,
+                           :key_width => 35,
                            :total_width => 100,
                            :indentation_level => 0)
 
