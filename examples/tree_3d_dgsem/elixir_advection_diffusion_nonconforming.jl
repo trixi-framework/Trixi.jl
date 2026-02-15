@@ -5,21 +5,24 @@ using Trixi
 # semidiscretization of the linear advection-diffusion equation
 
 diffusivity() = 5.0e-2
-advection_velocity = (1.0, 0.0)
-equations = LinearScalarAdvectionEquation2D(advection_velocity)
-equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
+advection_velocity = (1.0, 0.0, 0.0)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
+equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
 
+# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -0.5) # minimum coordinates (min(x), min(y))
-coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
+coordinates_min = (-1.0, -0.5, -0.5) # minimum coordinates (min(x), min(y), min(z))
+coordinates_max = (0.0, 0.5, 0.5) # maximum coordinates (max(x), max(y), max(z))
 
-# This setup is identical to the one for the `TreeMesh`, allowing for error comparison.
-trees_per_dimension = (4, 4)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 1,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 periodicity = false)
+refinement_patches = ((type = "box", coordinates_min = (-1.0, -0.5, -0.5),
+                       coordinates_max = (-(1.0 - 1 / 8), -(0.5 - 1 / 8), -(0.5 - 1 / 8))),)
+
+# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 3,
+                refinement_patches = refinement_patches,
+                n_cells_max = 100_000, periodicity = false)
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
@@ -42,8 +45,10 @@ initial_condition = initial_condition_eriksson_johnson
 
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
                        y_neg = BoundaryConditionDirichlet(initial_condition),
+                       z_neg = boundary_condition_do_nothing,
                        y_pos = BoundaryConditionDirichlet(initial_condition),
-                       x_pos = boundary_condition_do_nothing)
+                       x_pos = boundary_condition_do_nothing,
+                       z_pos = boundary_condition_do_nothing)
 
 boundary_conditions_parabolic = BoundaryConditionDirichlet(initial_condition)
 
@@ -62,26 +67,16 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 1000
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# This setup is identical to the one for the `TreeMesh`, allowing for error comparison.
-amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
-                                      base_level = 1,
-                                      med_level = 2, med_threshold = 0.9,
-                                      max_level = 3, max_threshold = 1.0)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 50)
-
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 ###############################################################################
 # run the simulation
 
-ode_alg = RDPK3SpFSAL49()
 time_int_tol = 1.0e-11
-sol = solve(ode, ode_alg; dt = 1e-7,
-            abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

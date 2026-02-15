@@ -79,8 +79,8 @@ end
                                                    mesh, equations, dg, cache)
 
     # Compute true entropy change given by surface integral of the entropy potential
-    dS_true = surface_integral(entropy_potential, u, element,
-                               mesh, equations, dg, cache)
+    dS_true = surface_integral_reference_element(entropy_potential, u, element,
+                                                 mesh, equations, dg, cache)
 
     entropy_change = dS_default - dS_true
     if entropy_change > maximum_entropy_increase # Recompute using EC FD volume integral
