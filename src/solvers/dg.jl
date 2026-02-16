@@ -266,14 +266,13 @@ In the non-stabilized region, `volume_integral_default` is used,
 which is typically a high-order accurate volume integral such as [`VolumeIntegralWeakForm`](@ref)
 or [`VolumeIntegralFluxDifferencing`](@ref).
 
-The volume integral used for the DG portion in the convex blending `volume_integral_blend_high_order`
-must give a valid two-point flux that can be blended with the `volume_integral_blend_low_order` to achieve shock-capturing behaviour. 
+The volume integral used for the DG portion in the convex blending `volume_integral_blend_high_order` is blended with
+the `volume_integral_blend_low_order` to achieve shock-capturing behaviour. 
 This is typically a symmetric, entropy-conservative volume integral such as [`VolumeIntegralFluxDifferencing`](@ref),
-but [`VolumeIntegralWeakForm`](@ref) can be used as well.
+but [`VolumeIntegralWeakForm`](@ref) can be used (in principle) as well.
 
 Finally, the `volume_integral_blend_low_order` should be entropy-dissipative, for instance
 [`VolumeIntegralPureLGLFiniteVolume`](@ref) or [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
-Again, to work with the convex blending, the `volume_integral_blend_low_order` must be consistent with `volume_integral_blend_high_order`.
 
 ## References
 
