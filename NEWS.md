@@ -7,8 +7,15 @@ for human readability.
 
 ## Changes in the v0.15 lifecycle
 
+#### Added
+
 - Added functionality to `ScalarPlotData2D` allowing visualization a field provided by a user-defined scalar function ([#2796]).
 - Added `NonIdealCompressibleEuler2D` ([#2768]).
+- Generalization of `VolumeIntegralShockCapturingHG` and `VolumeIntegralShockCapturingRRG` to support a different volume integrals on the 
+  non-stabilized and stabilized cells.
+  The generalized volume integral is called `VolumeIntegralShockCapturingHGType` and takes three keyword arguments `volume_integral_default`,
+  `volume_integral_blend_high_order`, and `volume_integral_blend_low_order`. In particular, `volume_integral_default` may be e.g. 
+  `VolumeIntegralWeakForm` or even `VolumeIntegralAdaptive`, i.e., is no longer restricted to `VolumeIntegralFluxDifferencing` only ([#2802]).
 
 ## Changes when updating to v0.15 from v0.14.x
 
