@@ -83,33 +83,32 @@ boundary_conditions = (; Bottom = boundary_condition_mixed_dirichlet_wall,
 volume_flux = flux_ranocha
 surface_flux = flux_lax_friedrichs
 
-polydeg = 4
-basis = LobattoLegendreBasis(polydeg)
-shock_indicator = IndicatorHennemannGassner(equations, basis,
-                                            alpha_max = 0.5,
-                                            alpha_min = 5e-2,
-                                            alpha_smooth = true,
-                                            variable = density_pressure)
-
 volume_integral_wf = VolumeIntegralWeakForm()
 volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
+# This indicator ensures entropy-stability even with usage of the weak form volume integral by
+# checking the entropy production of the weak form volume term after (i.e., a-posteriori) computation
 indicator_a_posteriori = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
 
-# Adaptive volume integral using the entropy change indicator to perform the 
-# stabilized/EC volume integral when needed and keeping the weak form if it is more diffusive.
 volume_integral_adaptive = VolumeIntegralAdaptive(indicator = indicator_a_posteriori,
-                                         volume_integral_default = volume_integral_wf,
-                                         volume_integral_stabilized = volume_integral_fluxdiff)
+                                                  volume_integral_default = volume_integral_wf,
+                                                  volume_integral_stabilized = volume_integral_fluxdiff)
 
+polydeg = 4
+basis = LobattoLegendreBasis(polydeg)
 volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                                                       volume_flux_fv = surface_flux,
                                                                       reconstruction_mode = reconstruction_O2_inner,
                                                                       slope_limiter = minmod)
 
+# This volume integral applies blended DG-FV shock capturing on the elements based on the shock indicator 
+shock_indicator = IndicatorHennemannGassner(equations, basis,
+                                            alpha_max = 0.5, alpha_min = 5e-2,
+                                            alpha_smooth = true,
+                                            variable = density_pressure)
+
 volume_integral = VolumeIntegralShockCapturingHGType(shock_indicator;
                                                      volume_integral_default = volume_integral_adaptive,
-                                                     #volume_integral_default = volume_integral_fluxdiff,
                                                      volume_integral_blend_high_order = volume_integral_fluxdiff,
                                                      volume_integral_blend_low_order = volume_integral_blend_low_order)
 
@@ -129,6 +128,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 0.2)
+tspan = (0.0, 0.0001)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -140,7 +140,8 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 200,
+save_interval = 500
+save_solution = SaveSolutionCallback(interval = save_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
@@ -169,6 +170,20 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 ###############################################################################
 # run the simulation
 sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
-            dt = 5e-7, # Reducing initial timestep allows increasing AMR interval from 1 to 2
+            dt = 5e-7, # Reducing initial timestep allows AMR interval of 2 instead of 1
             adaptive = true,
             ode_default_options()..., callback = callbacks);
+
+u_ode = sol.u[end]
+u = Trixi.wrap_array(u_ode, semi)
+
+for element in eachelement(solver, semi.cache)
+    for j in eachnode(solver), i in eachnode(solver)
+        u_node = Trixi.get_node_vars(u, equations, solver, i, j, element)
+
+        prim_node = cons2prim(u_node, equations)
+        if prim_node[1] < 0 || prim_node[4] < 0
+            println("Negative density or pressure detected at element $(element.id), node ($i,$j)")
+        end
+    end
+end
