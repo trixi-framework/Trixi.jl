@@ -128,7 +128,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 0.2)
-tspan = (0.0, 0.0001)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -160,8 +159,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        #save_solution,
-                        amr_callback)
+                        save_solution, amr_callback)
 
 # positivity limiter necessary for this example with strong shocks
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
@@ -171,19 +169,4 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 # run the simulation
 sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
             dt = 5e-7, # Reducing initial timestep allows AMR interval of 2 instead of 1
-            adaptive = true,
-            ode_default_options()..., callback = callbacks);
-
-u_ode = sol.u[end]
-u = Trixi.wrap_array(u_ode, semi)
-
-for element in eachelement(solver, semi.cache)
-    for j in eachnode(solver), i in eachnode(solver)
-        u_node = Trixi.get_node_vars(u, equations, solver, i, j, element)
-
-        prim_node = cons2prim(u_node, equations)
-        if prim_node[1] < 0 || prim_node[4] < 0
-            println("Negative density or pressure detected at element $(element.id), node ($i,$j)")
-        end
-    end
-end
+            adaptive = true, ode_default_options()..., callback = callbacks);
