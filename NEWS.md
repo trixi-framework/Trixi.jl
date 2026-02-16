@@ -14,6 +14,12 @@ This is useful for (locally) diffusion-dominated problems.
 This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
 - Added functionality to `ScalarPlotData2D` allowing visualization a field provided by a user-defined scalar function ([#2796]).
 - Added `NonIdealCompressibleEuler2D` ([#2768]).
+- Generalization of `VolumeIntegralShockCapturingHG` and `VolumeIntegralShockCapturingRRG` to support different volume integrals on the 
+  non-stabilized and stabilized elements/cells.
+  The generalized volume integral is called `VolumeIntegralShockCapturingHGType` and takes the three keyword arguments `volume_integral_default`,
+  `volume_integral_blend_high_order`, and `volume_integral_blend_low_order` besides the usual `indicator` argument.
+  In particular, `volume_integral_default` may be e.g.  `VolumeIntegralWeakForm` or `VolumeIntegralAdaptive`, i.e.,
+  the non-stabilized elements/cells are no longer restricted to `VolumeIntegralFluxDifferencing` only ([#2802]).
 
 ## Changes when updating to v0.15 from v0.14.x
 

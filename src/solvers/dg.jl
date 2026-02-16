@@ -142,6 +142,28 @@ create_cache(mesh, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype) = N
 abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
 abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubcell end
 
+struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
+                                          VolumeIntegralBlendHighOrder,
+                                          VolumeIntegralBlendLowOrder} <:
+       AbstractVolumeIntegralShockCapturing
+    # A-priori indicator to determine the amount of blending (if any)
+    # between the high-order and low-order volume integrals.
+    indicator::Indicator
+
+    # In classic HG shock capturing this is also `VolumeIntegralBlendHighOrder`.
+    # This implementation is a generalization, which allows also usage of e.g. 
+    # the (potentially) cheaper weak form volume integral.
+    volume_integral_default::VolumeIntegralDefault
+
+    # The volume integral used for the DG portion in the convex blending.
+    # Usually symmetric, e.g. split-form with entropy-conserative flux.
+    volume_integral_blend_high_order::VolumeIntegralBlendHighOrder
+
+    # Typically a first- or second-order finite volume method on the DG subcells.
+    # Non-symmetric, e.g. entropy-dissipative, to achieve shock-capturing behaviour.
+    volume_integral_blend_low_order::VolumeIntegralBlendLowOrder
+end
+
 """
     VolumeIntegralShockCapturingHG(indicator;
                                    volume_flux_dg=flux_central,
@@ -159,46 +181,19 @@ The amount of blending is determined by the `indicator`, e.g.,
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct VolumeIntegralShockCapturingHG{VolumeFluxDG, VolumeFluxFV, Indicator} <:
-       AbstractVolumeIntegralShockCapturing
-    volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
-    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
-    indicator::Indicator
-end
-
 function VolumeIntegralShockCapturingHG(indicator;
                                         volume_flux_dg = flux_central,
                                         volume_flux_fv = flux_lax_friedrichs)
-    return VolumeIntegralShockCapturingHG{typeof(volume_flux_dg),
-                                          typeof(volume_flux_fv),
-                                          typeof(indicator)}(volume_flux_dg,
-                                                             volume_flux_fv,
-                                                             indicator)
-end
+    volume_integral_fd = VolumeIntegralFluxDifferencing(volume_flux_dg)
+    volume_integral_fv = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
 
-function Base.show(io::IO, mime::MIME"text/plain",
-                   integral::VolumeIntegralShockCapturingHG)
-    @nospecialize integral # reduce precompilation time
-
-    if get(io, :compact, false)
-        show(io, integral)
-    else
-        summary_header(io, "VolumeIntegralShockCapturingHG")
-        summary_line(io, "volume flux DG", integral.volume_flux_dg)
-        summary_line(io, "volume flux FV", integral.volume_flux_fv)
-        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
-        show(increment_indent(io), mime, integral.indicator)
-        summary_footer(io)
-    end
-end
-
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::AbstractVolumeIntegralShockCapturing,
-                                dg, cache)
-    # call the indicator to get up-to-date values for IO
-    volume_integral.indicator(u, mesh, equations, dg, cache)
-    return get_element_variables!(element_variables, volume_integral.indicator,
-                                  volume_integral)
+    return VolumeIntegralShockCapturingHGType{typeof(indicator),
+                                              typeof(volume_integral_fd),
+                                              typeof(volume_integral_fd),
+                                              typeof(volume_integral_fv)}(indicator,
+                                                                          volume_integral_fd,
+                                                                          volume_integral_fd,
+                                                                          volume_integral_fv)
 end
 
 """
@@ -237,49 +232,110 @@ See especially Section 3.2, Section 4, and Appendix D of the paper
    Part II: Subcell finite volume shock capturing"
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
-struct VolumeIntegralShockCapturingRRG{VolumeFluxDG, VolumeFluxFV, Indicator,
-                                       SubCellInterfaceCoordinates, Limiter} <:
-       AbstractVolumeIntegralShockCapturing
-    volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
-    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
-    indicator::Indicator
-    sc_interface_coords::SubCellInterfaceCoordinates # (x-)coordinates of the sub-cell element interfaces
-    slope_limiter::Limiter # slope limiter used for the inner subcell reconstructions
-end
-
 function VolumeIntegralShockCapturingRRG(basis, indicator;
                                          volume_flux_dg = flux_central,
                                          volume_flux_fv = flux_lax_friedrichs,
                                          slope_limiter = minmod)
-    polydeg = nnodes(basis) - 1
-    # Suffices to store only the intermediate boundaries of the sub-cell elements
-    sc_interface_coords = SVector{polydeg}(cumsum(basis.weights)[1:polydeg] .- 1)
-    return VolumeIntegralShockCapturingRRG{typeof(volume_flux_dg),
-                                           typeof(volume_flux_fv),
-                                           typeof(indicator),
-                                           typeof(sc_interface_coords),
-                                           typeof(slope_limiter)}(volume_flux_dg,
-                                                                  volume_flux_fv,
-                                                                  indicator,
-                                                                  sc_interface_coords,
-                                                                  slope_limiter)
+    volume_integral_fd = VolumeIntegralFluxDifferencing(volume_flux_dg)
+
+    # `reconstruction_mode` is hard-coded to `reconstruction_O2_inner` to
+    # achieve shock-capturing behaviour. See the paper mentioned above for details.
+    volume_integral_fv = VolumeIntegralPureLGLFiniteVolumeO2(basis;
+                                                             volume_flux_fv = volume_flux_fv,
+                                                             reconstruction_mode = reconstruction_O2_inner,
+                                                             slope_limiter = slope_limiter)
+    return VolumeIntegralShockCapturingHGType{typeof(indicator),
+                                              typeof(volume_integral_fd),
+                                              typeof(volume_integral_fd),
+                                              typeof(volume_integral_fv)}(indicator,
+                                                                          volume_integral_fd,
+                                                                          volume_integral_fd,
+                                                                          volume_integral_fv)
+end
+
+"""
+    VolumeIntegralShockCapturingHGType(indicator;
+                                       volume_integral_default,
+                                       volume_integral_blend_high_order,
+                                       volume_integral_blend_low_order)
+
+Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
+Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
+
+In the non-stabilized region, `volume_integral_default` is used, 
+which is typically a high-order accurate volume integral such as [`VolumeIntegralWeakForm`](@ref)
+or [`VolumeIntegralFluxDifferencing`](@ref).
+
+The volume integral used for the DG portion in the convex blending `volume_integral_blend_high_order` is blended with
+the `volume_integral_blend_low_order` to achieve shock-capturing behaviour. 
+This is typically a symmetric, entropy-conservative volume integral such as [`VolumeIntegralFluxDifferencing`](@ref),
+but [`VolumeIntegralWeakForm`](@ref) can be used (in principle) as well.
+
+Finally, the `volume_integral_blend_low_order` should be entropy-dissipative, for instance
+[`VolumeIntegralPureLGLFiniteVolume`](@ref) or [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
+
+## References
+
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+"""
+function VolumeIntegralShockCapturingHGType(indicator;
+                                            volume_integral_default,
+                                            volume_integral_blend_high_order,
+                                            volume_integral_blend_low_order)
+    return VolumeIntegralShockCapturingHGType{typeof(indicator),
+                                              typeof(volume_integral_default),
+                                              typeof(volume_integral_blend_high_order),
+                                              typeof(volume_integral_blend_low_order)}(indicator,
+                                                                                       volume_integral_default,
+                                                                                       volume_integral_blend_high_order,
+                                                                                       volume_integral_blend_low_order)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
-                   integral::VolumeIntegralShockCapturingRRG)
+                   integral::VolumeIntegralShockCapturingHGType)
     @nospecialize integral # reduce precompilation time
+    @unpack volume_integral_default, volume_integral_blend_high_order, volume_integral_blend_low_order, indicator = integral
 
     if get(io, :compact, false)
         show(io, integral)
     else
-        summary_header(io, "VolumeIntegralShockCapturingRRG")
-        summary_line(io, "volume flux DG", integral.volume_flux_dg)
-        summary_line(io, "volume flux FV", integral.volume_flux_fv)
-        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
-        show(increment_indent(io), mime, integral.indicator)
-        summary_line(io, "slope limiter", integral.slope_limiter)
+        summary_header(io, "VolumeIntegralShockCapturingHGType")
+
+        summary_line(io, "volume integral DG default",
+                     volume_integral_default |> typeof |> nameof)
+        if !(volume_integral_default isa VolumeIntegralWeakForm)
+            show(increment_indent(io), mime, volume_integral_default)
+        end
+
+        summary_line(io, "volume integral DG blend",
+                     volume_integral_blend_high_order |> typeof |> nameof)
+        show(increment_indent(io), mime, volume_integral_blend_high_order)
+
+        summary_line(io, "volume integral FV",
+                     volume_integral_blend_low_order |> typeof |> nameof)
+        show(increment_indent(io), mime, volume_integral_blend_low_order)
+
+        summary_line(io, "indicator", indicator |> typeof |> nameof)
+        show(increment_indent(io), mime, indicator)
+
         summary_footer(io)
     end
+end
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::AbstractVolumeIntegralShockCapturing,
+                                dg, cache)
+    # call the indicator to get up-to-date values for IO
+    volume_integral.indicator(u, mesh, equations, dg, cache)
+    return get_element_variables!(element_variables, volume_integral.indicator,
+                                  volume_integral)
 end
 
 """
