@@ -1,4 +1,5 @@
 using OrdinaryDiffEqSSPRK
+using OrdinaryDiffEqCore: PIDController
 using Trixi
 
 ###############################################################################
@@ -103,11 +104,11 @@ force_boundary_names = (:WallBoundary,)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            DragCoefficientPressure2D(aoa(), rho_inf(),
                                                                      U_inf(),
-                                                                     airfoil_cord_length()))
+                                                                     airfoil_chord_length()))
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            LiftCoefficientPressure2D(aoa(), rho_inf(),
                                                                      U_inf(),
-                                                                     airfoil_cord_length()))
+                                                                     airfoil_chord_length()))
 
 analysis_callback = AnalysisCallback(semi, interval = save_sol_interval,
                                      output_directory = "out",
@@ -132,5 +133,6 @@ ode_algorithm = SSPRK43(thread = Trixi.True())
 time_int_tol = 1e-4
 sol = solve(ode, ode_algorithm;
             abstol = time_int_tol, reltol = time_int_tol, dt = 1e-6,
-            maxiters = Inf,
+            maxiters = Inf, # long simulation
+            controller = PIDController(0.55, -0.27, 0.05), # optimized for SSPRK43
             ode_default_options()..., callback = callbacks)
