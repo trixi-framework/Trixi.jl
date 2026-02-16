@@ -12,8 +12,8 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, base_elixir),
 # semidiscretization of the compressible Navier-Stokes equations
 
 Re() = 50000.0
-airfoil_cord_length() = 1.0
-mu() = rho_inf() * u_inf(equations) * airfoil_cord_length() / Re()
+airfoil_chord_length() = 1.0
+mu() = rho_inf() * u_inf(equations) * airfoil_chord_length() / Re()
 
 prandtl_number() = 0.72
 
