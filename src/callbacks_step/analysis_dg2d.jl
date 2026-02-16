@@ -249,12 +249,14 @@ end
 # calculate surface integral of func(u, normal_direction, equations) * normal on the reference element.
 # Note: `get_normal_direction` already returns an outward-pointing normal for all directions,
 # thus no +- flips are needed here.
-function surface_integral(func::Func, u, element,
-                          mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                      UnstructuredMesh2D, P4estMesh{2},
-                                      T8codeMesh{2}},
-                          equations, dg::DGSEM, cache,
-                          args...) where {Func}
+function surface_integral_reference_element(func::Func, u, element,
+                                            mesh::Union{StructuredMesh{2},
+                                                        StructuredMeshView{2},
+                                                        UnstructuredMesh2D,
+                                                        P4estMesh{2},
+                                                        T8codeMesh{2}},
+                                            equations, dg::DGSEM,
+                                            cache, args...) where {Func}
     @unpack contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
