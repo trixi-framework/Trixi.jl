@@ -35,7 +35,9 @@ function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT},
 end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
+@inline Base.real(::P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS,
+                                                                       NDIMS_AMBIENT,
+                                                                       RealT} = RealT
 
 function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
@@ -51,15 +53,15 @@ function extract_p4est_mesh_view(elements_parent,
 
     # Copy relevant entries from parent mesh
     @views elements.inverse_jacobian .= elements_parent.inverse_jacobian[..,
-                                                                         mesh.cell_ids]
+    mesh.cell_ids]
     @views elements.jacobian_matrix .= elements_parent.jacobian_matrix[..,
-                                                                       mesh.cell_ids]
+    mesh.cell_ids]
     @views elements.node_coordinates .= elements_parent.node_coordinates[..,
-                                                                         mesh.cell_ids]
+    mesh.cell_ids]
     @views elements.contravariant_vectors .= elements_parent.contravariant_vectors[..,
-                                                                                   mesh.cell_ids]
+    mesh.cell_ids]
     @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
-                                                                               mesh.cell_ids]
+    mesh.cell_ids]
     # Extract interfaces that belong to mesh view.
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
@@ -82,8 +84,10 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     mask = BitArray(undef, ninterfaces(interfaces_parent))
     # Loop over all interfaces (index 2).
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
-        mask[interface] = (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
-                          (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
+        mask[interface] = (interfaces_parent.neighbor_ids[1,
+                                                          interface] in mesh.cell_ids) &&
+                          (interfaces_parent.neighbor_ids[2,
+                                                          interface] in mesh.cell_ids)
     end
 
     # Create deepcopy to get completely independent interfaces container
@@ -99,10 +103,12 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
     for interface in 1:size(neighbor_ids)[2]
         interfaces.neighbor_ids[1, interface] = findall(id -> id ==
-                                                              neighbor_ids[1, interface],
+                                                              neighbor_ids[1,
+                                                                           interface],
                                                         mesh.cell_ids)[1]
         interfaces.neighbor_ids[2, interface] = findall(id -> id ==
-                                                              neighbor_ids[2, interface],
+                                                              neighbor_ids[2,
+                                                                           interface],
                                                         mesh.cell_ids)[1]
     end
 
@@ -173,8 +179,8 @@ function extract_boundaries(mesh::P4estMeshView{2},
 
     resize!(boundaries._u, n_variables * n_nodes^(n_dims - 1) * capacity)
     boundaries.u = unsafe_wrap(Array, pointer(boundaries._u),
-                           (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
-                            capacity))
+                               (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
+                                capacity))
 
     return boundaries
 end
@@ -202,10 +208,10 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
                                                                        interface])
                     if global_id == interfaces_parent.neighbor_ids[1, interface]
                         neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[2,
-                                                                                  interface]
+                        interface]
                     else
                         neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[1,
-                                                                                  interface]
+                        interface]
                     end
                 end
             end
@@ -223,19 +229,19 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
                     # Make the coupling periodic.
                     if boundaries_parent.name[parent_idx] == :x_neg
                         neighbor_ids_global[idx] = parent_xpos_element_ids[findfirst(parent_xneg_element_ids .==
-                                                                                     boundary)]
+                                                                                                             boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :x_pos
                         neighbor_ids_global[idx] = parent_xneg_element_ids[findfirst(parent_xpos_element_ids .==
-                                                                                     boundary)]
+                                                                                                             boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :y_neg
                         neighbor_ids_global[idx] = parent_ypos_element_ids[findfirst(parent_yneg_element_ids .==
-                                                                                     boundary)]
+                                                                                                             boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :y_pos
                         neighbor_ids_global[idx] = parent_yneg_element_ids[findfirst(parent_ypos_element_ids .==
-                                                                                     boundary)]
+                                                                                                             boundary)]
                     end
                 end
             end
@@ -369,10 +375,10 @@ function calc_node_coordinates!(node_coordinates,
             polynomial_interpolation_matrix!(matrix2, mesh.parent.nodes, nodes_out_y,
                                              baryweights_in)
 
-            multiply_dimensionwise!(view(node_coordinates, :, :, :, mesh_view_cell_id),
+            multiply_dimensionwise!(view(node_coordinates,:,:,:,mesh_view_cell_id),
                                     matrix1, matrix2,
-                                    view(mesh.parent.tree_node_coordinates, :, :, :,
-                                         tree_id),
+                                    view(mesh.parent.tree_node_coordinates,:,:,:,
+                                    tree_id),
                                     tmp1)
         end
     end
