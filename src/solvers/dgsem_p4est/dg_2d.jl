@@ -379,8 +379,6 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
     return nothing
 end
 
-# We require this function definition, as the function calls for the
-# coupled simulations pass the u_global variable.
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG, u_global) where {BC}
@@ -452,8 +450,6 @@ end
 end
 
 # inlined version of the boundary flux calculation along a physical interface
-# We require this function definition, as the function calls for the
-# coupled simulations pass the u_global variable.
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::P4estMeshView{2},
                                      nonconservative_terms::False, equations,
@@ -580,8 +576,6 @@ end
 end
 
 # Function barrier for type stability
-# We require this function definition, as the function calls for the
-# coupled simulations pass the u_global variable.
 function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::P4estMeshView,
                              equations, surface_integral, dg::DG, u_global)
@@ -594,8 +588,6 @@ end
 
 # Iterate over tuples of boundary condition types and associated indices
 # in a type-stable way using "lispy tuple programming".
-# We require this function definition, as the function calls for the
-# coupled simulations pass the u_global variable.
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
                                      mesh::P4estMeshView,
