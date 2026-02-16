@@ -110,6 +110,68 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_nonideal_density_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[
+                            0.005128264024223658,
+                            0.0005102755455974174,
+                            0.0010227429683760888,
+                            0.2647398010816978
+                        ],
+                        linf=[
+                            0.022550400235924695,
+                            0.00214674544358473,
+                            0.004371621105621781,
+                            1.0212525633021983
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl (FluxHLL))" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
+                        tspan=(0.0, 0.5), surface_flux=flux_hll,
+                        l2=[
+                            0.005120682930479358,
+                            0.0005107154473420592,
+                            0.0010214220340067936,
+                            0.2642543660997129
+                        ],
+                        linf=[
+                            0.022535393384123026,
+                            0.0021501709863882,
+                            0.004367450646593718,
+                            1.020387671247505
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_peng_robinson_transcritical_mixing" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_peng_robinson_transcritical_mixing.jl"),
+                        tspan=(0.0, 0.0003),
+                        # note that errors are large because the solution values are of the order 1e5-1e7
+                        l2=[
+                            0.8908754595982343,
+                            274.62878855174165,
+                            129.95856100796416,
+                            94433.86273840266
+                        ],
+                        linf=[
+                            6.623271612803023,
+                            732.0924019701561,
+                            403.7976140940856,
+                            584547.9740598286
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
@@ -513,6 +575,38 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_density_wave_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_density_wave_adaptive_vol_int.jl"),
+                        l2=[
+                            0.034677655030611376,
+                            0.00346776550306035,
+                            0.0069355310061214445,
+                            0.0008669413757631413
+                        ],
+                        linf=[
+                            0.13358170277079373,
+                            0.013358170277035189,
+                            0.026716340554125667,
+                            0.0033395425693640846
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `show`
+    @test_nowarn show(stdout, indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      indicator)
+
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      volume_integral)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      volume_integral)
+end
+
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_fjordholm_etal.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_fjordholm_etal.jl"),
@@ -605,6 +699,27 @@ end
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.026078588204610408,
+                            0.020356972101548874,
+                            0.02851024015440993,
+                            0.02951575049839344
+                        ],
+                        linf=[
+                            0.120658689916814,
+                            0.10672357779516586,
+                            0.06256826531635475,
+                            0.1199900961506577
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_colliding_flow.jl" begin

@@ -52,10 +52,10 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
     function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
                                               domain_center::AbstractArray{RealT},
                                               domain_length::RealT,
-                                              periodicity = true) where {NDIMS,
-                                                                         TreeType <:
-                                                                         AbstractTree{NDIMS},
-                                                                         RealT <: Real}
+                                              periodicity = false) where {NDIMS,
+                                                                          TreeType <:
+                                                                          AbstractTree{NDIMS},
+                                                                          RealT <: Real}
         tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
         current_filename = ""
         unsaved_changes = true
@@ -71,13 +71,13 @@ const TreeMesh1D = TreeMesh{1, TreeType} where {TreeType <: AbstractTree{1}}
 const TreeMesh2D = TreeMesh{2, TreeType} where {TreeType <: AbstractTree{2}}
 const TreeMesh3D = TreeMesh{3, TreeType} where {TreeType <: AbstractTree{3}}
 
-const SerialTreeMesh{NDIMS} = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
-const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
+const TreeMeshSerial{NDIMS} = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
+const TreeMeshParallel{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
 
-@inline mpi_parallel(mesh::SerialTreeMesh) = False()
-@inline mpi_parallel(mesh::ParallelTreeMesh) = True()
+@inline mpi_parallel(mesh::TreeMeshSerial) = False()
+@inline mpi_parallel(mesh::TreeMeshParallel) = True()
 
-partition!(mesh::SerialTreeMesh) = nothing
+partition!(mesh::TreeMeshSerial) = nothing
 
 # Constructor for passing the dimension and mesh type as an argument
 function TreeMesh(::Type{TreeType}, args...;
@@ -87,29 +87,50 @@ end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
 function TreeMesh{1, TreeType, RealT}(n::Int, center::RealT, len::RealT,
-                                      periodicity = true) where {
-                                                                 TreeType <:
-                                                                 AbstractTree{1},
-                                                                 RealT <: Real}
+                                      periodicity = false) where {
+                                                                  TreeType <:
+                                                                  AbstractTree{1},
+                                                                  RealT <: Real}
     return TreeMesh{1, TreeType, RealT}(n, SVector{1, RealT}(center), len, periodicity)
 end
 
 function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
                                           domain_center::NTuple{NDIMS, RealT},
                                           domain_length::RealT,
-                                          periodicity = true) where {NDIMS,
-                                                                     TreeType <:
-                                                                     AbstractTree{NDIMS},
-                                                                     RealT <: Real}
+                                          periodicity = false) where {NDIMS,
+                                                                      TreeType <:
+                                                                      AbstractTree{NDIMS},
+                                                                      RealT <: Real}
     return TreeMesh{NDIMS, TreeType, RealT}(n_cells_max,
                                             SVector{NDIMS, RealT}(domain_center),
                                             domain_length, periodicity)
 end
 
+"""
+    TreeMesh(coordinates_min::NTuple{NDIMS, Real},
+             coordinates_max::NTuple{NDIMS, Real};
+             n_cells_max,
+             periodicity = false,
+             initial_refinement_level,
+             refinement_patches = (),
+             coarsening_patches = (),
+             RealT = Float64) where {NDIMS}
+
+Create a `TreeMesh` in `NDIMS` dimensions with real type `RealT` covering the domain defined by
+`coordinates_min` and `coordinates_max`. The mesh is initialized with a uniform
+refinement to the specified `initial_refinement_level`. Further refinement and
+coarsening patches can be specified using `refinement_patches` and
+`coarsening_patches`, respectively. The maximum number of cells allowed in the mesh is
+given by `n_cells_max`. The periodicity in each dimension can be specified using the
+`periodicity` argument (default: non-periodic in all dimensions). If it is a single
+`Bool`, the same periodicity is applied in all dimensions; otherwise, a tuple of
+`Bool`s of length `NDIMS` must be provided. Note that the domain must be a hypercube, i.e.,
+all dimensions must have the same length.
+"""
 function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                   coordinates_max::NTuple{NDIMS, Real};
                   n_cells_max,
-                  periodicity = true,
+                  periodicity = false,
                   initial_refinement_level,
                   refinement_patches = (),
                   coarsening_patches = (),

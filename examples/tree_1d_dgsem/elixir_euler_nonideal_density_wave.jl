@@ -8,12 +8,15 @@ using Trixi: ForwardDiff
 eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# the default amplitude and frequency k are chosen to be consistent with 
-# initial_condition_density_wave for CompressibleEulerEquations1D
-function initial_condition_density_wave(x, t,
-                                        equations::NonIdealCompressibleEulerEquations1D;
-                                        amplitude = 0.98, k = 2)
+# The default amplitude and frequency k are consistent with initial_condition_density_wave 
+# for CompressibleEulerEquations1D. Note that this initial condition may not define admissible 
+# solution states for all non-ideal equations of state!
+function Trixi.initial_condition_density_wave(x, t,
+                                              equations::NonIdealCompressibleEulerEquations1D;
+                                              amplitude = 0.98, k = 2)
     RealT = eltype(x)
+    eos = equations.equation_of_state
+
     v1 = convert(RealT, 0.1)
     rho = 1 + convert(RealT, amplitude) * sinpi(k * (x[1] - v1 * t))
     p = 20
@@ -28,16 +31,15 @@ function initial_condition_density_wave(x, t,
     while abs(dp) / abs(p) > tol && iter < 100
         dp = pressure(V, T, eos) - p
         dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
-        T = T - dp / dpdT_V
+        T = max(tol, T - dp / dpdT_V)
         iter += 1
     end
     if iter == 100
-        println("Warning: solver for temperature(V, p) did not converge")
+        @warn "Solver for temperature(V, p) did not converge"
     end
 
-    return prim2cons(SVector(V, v1, T), equations)
+    return thermo2cons(SVector(V, v1, T), equations)
 end
-
 initial_condition = initial_condition_density_wave
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -46,9 +48,10 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000)
+                n_cells_max = 30_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

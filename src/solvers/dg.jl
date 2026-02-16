@@ -135,6 +135,8 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
     end
 end
 
+create_cache(mesh, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype) = NamedTuple()
+
 # Abstract supertype for DG subcell-based volume integrals with
 # finite volume schemes on the subcells.
 abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
@@ -212,7 +214,7 @@ slope limiter `slope_limiter` and the
 The amount of blending is determined by the `indicator`, e.g.,
 [`IndicatorHennemannGassner`](@ref).
 
-**Symmetric ** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
+**Symmetric** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)
@@ -278,6 +280,91 @@ function Base.show(io::IO, mime::MIME"text/plain",
         summary_line(io, "slope limiter", integral.slope_limiter)
         summary_footer(io)
     end
+end
+
+"""
+    VolumeIntegralAdaptive(;
+                           indicator = IndicatorEntropyChange(),
+                           volume_integral_default,
+                           volume_integral_stabilized)
+
+This volume integral allows for a-posteriori style adaptation of the volume integral/term computation.
+At every Runge-Kutta stage and for every element, the volume update is computed using
+`volume_integral_default` and the element-wise `indicator` is then evaluated based on this update.
+If the `indicator` deems the default volume integral unstable, the default update is discarded
+and the `volume_integral_stabilized` is computed and used instead for the update.
+
+The motivation for this volume integral are simulations, which require in some cells usage of e.g.
+an entropy-conservative volume integral (i.e., [`VolumeIntegralFluxDifferencing`](@ref) with an appropriate flux)
+for stability, but not everywhere in the domain.
+In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
+
+The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
+
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
+"""
+struct VolumeIntegralAdaptive{Indicator,
+                              VolumeIntegralDefault, VolumeIntegralStabilized} <:
+       AbstractVolumeIntegral
+    indicator::Indicator # A-posteriori indicator called after computation of `volume_integral_default`
+    volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
+    volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
+end
+
+function VolumeIntegralAdaptive(;
+                                indicator = IndicatorEntropyChange(),
+                                volume_integral_default,
+                                volume_integral_stabilized)
+    if !(indicator isa IndicatorEntropyChange)
+        throw(ArgumentError("`indicator` must be of type `IndicatorEntropyChange`."))
+    end
+
+    return VolumeIntegralAdaptive{typeof(indicator),
+                                  typeof(volume_integral_default),
+                                  typeof(volume_integral_stabilized)}(indicator,
+                                                                      volume_integral_default,
+                                                                      volume_integral_stabilized)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain",
+                   integral::VolumeIntegralAdaptive)
+    @nospecialize integral # reduce precompilation time
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = integral
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        summary_header(io, "VolumeIntegralAdaptive")
+
+        summary_line(io, "volume integral default",
+                     volume_integral_default |> typeof |> nameof)
+        if !(volume_integral_default isa VolumeIntegralWeakForm)
+            show(increment_indent(io), mime, volume_integral_default)
+        end
+
+        summary_line(io, "volume integral stabilized",
+                     volume_integral_stabilized |> typeof |> nameof)
+        show(increment_indent(io), mime, volume_integral_stabilized)
+
+        summary_line(io, "indicator", indicator |> typeof |> nameof)
+        show(increment_indent(io), mime, indicator)
+
+        summary_footer(io)
+    end
+end
+
+function create_cache(mesh, equations,
+                      volume_integral::VolumeIntegralAdaptive,
+                      dg, cache_containers, uEltype)
+    cache_default = create_cache(mesh, equations,
+                                 volume_integral.volume_integral_default,
+                                 dg, cache_containers, uEltype)
+    cache_stabilized = create_cache(mesh, equations,
+                                    volume_integral.volume_integral_stabilized,
+                                    dg, cache_containers, uEltype)
+
+    return (; cache_default..., cache_stabilized...)
 end
 
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
@@ -348,7 +435,7 @@ For the DG-subcells at the boundaries, two options are available:
    The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
    In the reference below, this is the recommended reconstruction mode and is thus used by default.
 
-**Symmetric ** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
+**Symmetric** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
     1) [`minmod`](@ref)
     2) [`monotonized_central`](@ref)
     3) [`superbee`](@ref)

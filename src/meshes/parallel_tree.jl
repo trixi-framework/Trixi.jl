@@ -71,7 +71,7 @@ ParallelTree(::Val{NDIMS}, args...) where {NDIMS} = ParallelTree{NDIMS, Float64}
 # Create and initialize tree
 function ParallelTree{NDIMS, RealT}(capacity::Int, center::AbstractArray{RealT},
                                     length::RealT,
-                                    periodicity = true) where {NDIMS, RealT <: Real}
+                                    periodicity = false) where {NDIMS, RealT <: Real}
     # Create instance
     t = ParallelTree{NDIMS, RealT}(capacity)
 
@@ -83,17 +83,17 @@ end
 
 # Constructors accepting a single number as center (as opposed to an array) for 1D
 function ParallelTree{1, RealT}(cap::Int, center::RealT, len::RealT,
-                                periodicity = true) where {RealT <: Real}
+                                periodicity = false) where {RealT <: Real}
     return ParallelTree{1, RealT}(cap, [center], len, periodicity)
 end
 function ParallelTree{1}(cap::Int, center::RealT, len::RealT,
-                         periodicity = true) where {RealT <: Real}
+                         periodicity = false) where {RealT <: Real}
     return ParallelTree{1, RealT}(cap, [center], len, periodicity)
 end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
 function init!(t::ParallelTree, center::AbstractArray{RealT}, length::RealT,
-               periodicity = true) where {RealT}
+               periodicity = false) where {RealT}
     clear!(t)
 
     # Set domain information

@@ -141,7 +141,6 @@ include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
-include("solvers/boundary_condition_default.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
@@ -183,7 +182,8 @@ export AcousticPerturbationEquations2D,
        LinearElasticityEquations1D,
        PassiveTracerEquations
 
-export NonIdealCompressibleEulerEquations1D, IdealGas, VanDerWaals
+export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
+export IdealGas, VanDerWaals, PengRobinson
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
@@ -204,6 +204,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
        flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
+       flux_terashima_etal, flux_central_terashima_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        DissipationLaxFriedrichsEntropyVariables, DissipationMatrixWintersEtal,
        FluxLaxFriedrichs, max_abs_speed_naive, max_abs_speed,
@@ -224,7 +225,6 @@ export initial_condition_constant,
        initial_condition_weak_blast_wave
 
 export boundary_condition_do_nothing,
-       boundary_condition_default,
        boundary_condition_periodic,
        BoundaryConditionDirichlet,
        BoundaryConditionNeumann,
@@ -246,13 +246,14 @@ export initial_condition_eoc_test_coupled_euler_gravity,
        source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons
+       cons2entropy, entropy2cons, cons2thermo, thermo2cons
 export density, pressure, density_pressure, velocity, temperature,
        global_mean_vars,
        equilibrium_distribution,
        waterheight, waterheight_pressure
 export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
-       energy_total, energy_kinetic, energy_internal,
+       entropy_potential,
+       energy_total, energy_kinetic, energy_internal, energy_internal_specific,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
 export lake_at_rest_error
@@ -269,6 +270,7 @@ export DG,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
+       VolumeIntegralAdaptive, IndicatorEntropyChange,
        IndicatorHennemannGassner,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
