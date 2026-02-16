@@ -2,6 +2,11 @@
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
                       volume_integral::VolumeIntegralShockCapturingHGType,
                       dg::DGMultiFluxDiff{<:GaussSBP}, RealT, uEltype) where {NDIMS}
+    (; volume_integral_default, volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
+    @assert volume_integral_default isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_default`"
+    @assert volume_integral_blend_high_order isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_blend_high_order`"
+    @assert volume_integral_blend_low_order isa AbstractVolumeIntegralPureLGLFiniteVolume "DGMulti is currently only compatible with `VolumeIntegralPureLGLFiniteVolume` as `volume_integral_blend_low`"
+
     # build element to element (element_to_element_connectivity) connectivity for smoothing of
     # shock capturing parameters.
     face_to_face_connectivity = mesh.md.FToF # num_faces x num_elements matrix
