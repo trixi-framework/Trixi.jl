@@ -9,6 +9,12 @@ for human readability.
 
 #### Added
 
+<<<<<<< UnifyHG_RRG_SC
+=======
+- It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
+This is useful for (locally) diffusion-dominated problems.
+This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
+>>>>>>> main
 - Added functionality to `ScalarPlotData2D` allowing visualization a field provided by a user-defined scalar function ([#2796]).
 - Added `NonIdealCompressibleEuler2D` ([#2768]).
 - Generalization of `VolumeIntegralShockCapturingHG` and `VolumeIntegralShockCapturingRRG` to support different volume integrals on the 
