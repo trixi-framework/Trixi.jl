@@ -45,7 +45,7 @@ volume_integral_default = VolumeIntegralWeakForm()
 
 surface_flux = flux_hllc
 volume_flux = flux_ranocha
-# For the blended/limited regions, we need to supply compatible high-order and low-order volume integrals.
+# For the blended/limited regions, we need to supply high-order and low-order volume integrals.
 volume_integral_blend_high_order = VolumeIntegralFluxDifferencing(volume_flux)
 volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                                                       volume_flux_fv = surface_flux,

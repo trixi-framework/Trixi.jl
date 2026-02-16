@@ -2,10 +2,10 @@
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
                       volume_integral::VolumeIntegralShockCapturingHGType,
                       dg::DGMultiFluxDiff{<:GaussSBP}, RealT, uEltype) where {NDIMS}
-    (; volume_integral_default, volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
+    (; volume_integral_default, volume_integral_blend_high_order) = volume_integral
     @assert volume_integral_default isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_default`"
     @assert volume_integral_blend_high_order isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_blend_high_order`"
-    @assert volume_integral_blend_low_order isa AbstractVolumeIntegralPureLGLFiniteVolume "DGMulti is currently only compatible with `VolumeIntegralPureLGLFiniteVolume` as `volume_integral_blend_low`"
+    # `volume_integral_blend_low_order` limited to finite-volume on Gauss-node subcells
 
     # build element to element (element_to_element_connectivity) connectivity for smoothing of
     # shock capturing parameters.
@@ -185,22 +185,22 @@ function calc_volume_integral!(du, u,
         dg_only = isapprox(alpha_element, 0, atol = atol)
 
         if dg_only
-            flux_differencing_kernel!(du, u, element, mesh,
-                                      have_nonconservative_terms, equations,
-                                      volume_integral_default.volume_flux,
-                                      dg, cache)
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_default,
+                                    dg, cache)
         else
             # Calculate DG volume integral contribution
-            flux_differencing_kernel!(du, u, element, mesh,
-                                      have_nonconservative_terms, equations,
-                                      volume_integral_blend_high_order.volume_flux,
-                                      dg, cache, 1 - alpha_element)
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_blend_high_order,
+                                    dg, cache, 1 - alpha_element)
 
             # Calculate "FV" low order volume integral contribution
-            low_order_flux_differencing_kernel!(du, u, element, mesh,
-                                                have_nonconservative_terms, equations,
-                                                volume_integral_blend_low_order.volume_flux_fv,
-                                                dg, cache, alpha_element)
+            low_order_flux_differencing_kernel(du, u, element, mesh,
+                                               have_nonconservative_terms, equations,
+                                               volume_integral_blend_low_order,
+                                               dg, cache, alpha_element)
         end
     end
 
@@ -264,11 +264,13 @@ end
 
 # computes an algebraic low order method with internal dissipation.
 # This method is for affine/Cartesian meshes
-function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
-                                             have_nonconservative_terms::False, equations,
-                                             volume_flux_fv,
-                                             dg::DGMultiFluxDiff{<:GaussSBP},
-                                             cache, alpha = true)
+function low_order_flux_differencing_kernel(du, u, element,
+                                            mesh::DGMultiMesh,
+                                            have_nonconservative_terms::False, equations,
+                                            volume_integral,
+                                            dg::DGMultiFluxDiff{<:GaussSBP},
+                                            cache, alpha = true)
+    (; volume_flux_fv) = volume_integral
 
     # accumulates output from flux differencing
     rhs_local = cache.rhs_local_threaded[Threads.threadid()]
@@ -305,12 +307,13 @@ function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
     return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 end
 
-function low_order_flux_differencing_kernel!(du, u, element,
-                                             mesh::DGMultiMesh{NDIMS, <:NonAffine},
-                                             have_nonconservative_terms::False, equations,
-                                             volume_flux_fv,
-                                             dg::DGMultiFluxDiff{<:GaussSBP},
-                                             cache, alpha = true) where {NDIMS}
+function low_order_flux_differencing_kernel(du, u, element,
+                                            mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                                            have_nonconservative_terms::False, equations,
+                                            volume_integral,
+                                            dg::DGMultiFluxDiff{<:GaussSBP},
+                                            cache, alpha = true) where {NDIMS}
+    (; volume_flux_fv) = volume_integral
 
     # accumulates output from flux differencing
     rhs_local = cache.rhs_local_threaded[Threads.threadid()]
