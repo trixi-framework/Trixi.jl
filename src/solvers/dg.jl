@@ -345,10 +345,21 @@ end
                            volume_integral_default,
                            volume_integral_stabilized)
 
-!!! warning "Experimental code"
-    This code is experimental and may change in any future release.
+This volume integral allows for a-posteriori style adaptation of the volume integral/term computation.
+At every Runge-Kutta stage and for every element, the volume update is computed using
+`volume_integral_default` and the element-wise `indicator` is then evaluated based on this update.
+If the `indicator` deems the default volume integral unstable, the default update is discarded
+and the `volume_integral_stabilized` is computed and used instead for the update.
+
+The motivation for this volume integral are simulations, which require in some cells usage of e.g.
+an entropy-conservative volume integral (i.e., [`VolumeIntegralFluxDifferencing`](@ref) with an appropriate flux)
+for stability, but not everywhere in the domain.
+In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
 
 The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
+
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
 """
 struct VolumeIntegralAdaptive{Indicator,
                               VolumeIntegralDefault, VolumeIntegralStabilized} <:
