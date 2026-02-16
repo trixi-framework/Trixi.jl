@@ -328,6 +328,19 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        tspan=(0.0, 0.01),
+                        l2=[0.000684755734524055],
+                        linf=[0.01141444199847298])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion_imex_operator.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_imex_operator.jl"),
@@ -594,6 +607,28 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_shearlayer_nonconforming.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        l2=[
+                            0.005352370793583371,
+                            0.5969444914287823,
+                            0.6317300073130132,
+                            1.1794786369127415
+                        ],
+                        linf=[
+                            0.027301485183723107,
+                            1.418851037417376,
+                            1.3376325628056016,
+                            6.713351975092763
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh2D: elixir_navierstokes_taylor_green_vortex_sutherland.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_sutherland.jl"),
@@ -717,6 +752,19 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        tspan=(0.0, 0.01),
+                        l2=[0.0006847533999311489],
+                        linf=[0.01141430509080712])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_curved.jl"),
@@ -828,6 +876,28 @@ end
                             1.2597266873187805,
                             1.3269424500029385,
                             6.7803480962822675
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@trixi_testset "P4estMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl (LDG)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_shearlayer_nonconforming.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        l2=[
+                            0.0053523707935916025,
+                            0.5969444914278867,
+                            0.6317300073116101,
+                            1.1794786369145007
+                        ],
+                        linf=[
+                            0.027301485183779173,
+                            1.4188510374095429,
+                            1.3376325628060792,
+                            6.7133519750896085
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -1147,7 +1217,7 @@ end
                             1.5543122344752192e-15,
                             1.2378986724570495e-13,
                             1.7111312367035225e-13,
-                            1.0867751143450732e-11
+                            1.5727863456049818e-11
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
