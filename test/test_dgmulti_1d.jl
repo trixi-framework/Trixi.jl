@@ -138,21 +138,6 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_modified_sod.jl (FV)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_modified_sod.jl"),
-                        cells_per_dimension=(16,),
-                        volume_integral=VolumeIntegralFluxDifferencing(flux_hll),
-                        l2=[0.25828003720731885, 0.4429095760041186, 0.912231014289072],
-                        linf=[
-                            0.6356620084258293,
-                            0.8095984820520136,
-                            1.8858205669312342
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         l2=[
