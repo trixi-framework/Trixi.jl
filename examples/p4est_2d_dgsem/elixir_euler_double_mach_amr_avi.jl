@@ -81,25 +81,15 @@ boundary_conditions = (; Bottom = boundary_condition_mixed_dirichlet_wall,
                        Left = boundary_condition_inflow)
 
 volume_flux = flux_ranocha
-# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
-# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
-surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
+surface_flux = flux_lax_friedrichs
 
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 shock_indicator = IndicatorHennemannGassner(equations, basis,
                                             alpha_max = 0.5,
-                                            alpha_min = 0.001,
+                                            alpha_min = 5e-2,
                                             alpha_smooth = true,
                                             variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
 
 volume_integral_wf = VolumeIntegralWeakForm()
 volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
@@ -117,10 +107,10 @@ volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                                                       reconstruction_mode = reconstruction_O2_inner,
                                                                       slope_limiter = minmod)
 
-volume_integral_blend_high_order = volume_integral_fluxdiff
 volume_integral = VolumeIntegralShockCapturingHGType(shock_indicator;
                                                      volume_integral_default = volume_integral_adaptive,
-                                                     volume_integral_blend_high_order = volume_integral_blend_high_order,
+                                                     #volume_integral_default = volume_integral_fluxdiff,
+                                                     volume_integral_blend_high_order = volume_integral_fluxdiff,
                                                      volume_integral_blend_low_order = volume_integral_blend_low_order)
 
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
@@ -143,13 +133,14 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 200
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
+                                     analysis_errors = Symbol[],
                                      extra_analysis_integrals = (entropy,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
+save_solution = SaveSolutionCallback(interval = 200,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
@@ -162,7 +153,7 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       max_level = 6, max_threshold = 0.1)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5, # 1
+                           interval = 2,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
@@ -177,5 +168,7 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
+            dt = 5e-7, # Reducing initial timestep allows increasing AMR interval from 1 to 2
+            adaptive = true,
             ode_default_options()..., callback = callbacks);
