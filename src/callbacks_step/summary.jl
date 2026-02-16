@@ -60,7 +60,7 @@ function format_key_value_line(key::AbstractString, value::AbstractString, key_w
     line *= " "^short
     line *= suffix
 
-    #@assert length(line)==total_width "should not happen: algorithm error!"
+    @assert length(line)==total_width "should not happen: algorithm error!"
 
     return line
 end
