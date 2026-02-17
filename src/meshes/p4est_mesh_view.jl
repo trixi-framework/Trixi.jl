@@ -190,7 +190,7 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
                                      boundaries_parent, interfaces_parent,
                                      boundaries)
     # Determine the global indices of the boundaring elements.
-    neighbor_ids_global = zero.(boundaries.neighbor_ids)
+    neighbor_ids_global = similar(boundaries.neighbor_ids)
     for (idx, id) in enumerate(boundaries.neighbor_ids)
         global_id = mesh.cell_ids[id]
         # Find this id in the parent's interfaces.
