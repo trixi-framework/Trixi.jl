@@ -152,14 +152,14 @@ function extract_boundaries(mesh::P4estMeshView{2},
             # Update the boundary names to reflect where the neighboring cell is
             # relative to this one, i.e. left, right, up, down.
             # In 3d one would need to add the third dimension.
-            if interfaces_parent.node_indices[view_idx, interface] ==
-               (:end, :i_forward)
+            if (interfaces_parent.node_indices[view_idx, interface] ==
+                (:end, :i_forward))
                 push!(boundaries.name, :x_pos)
-            elseif interfaces_parent.node_indices[view_idx, interface] ==
-                   (:begin, :i_forward)
+            elseif (interfaces_parent.node_indices[view_idx, interface] ==
+                    (:begin, :i_forward))
                 push!(boundaries.name, :x_neg)
-            elseif interfaces_parent.node_indices[view_idx, interface] ==
-                   (:i_forward, :end)
+            elseif (interfaces_parent.node_indices[view_idx, interface] ==
+                    (:i_forward, :end))
                 push!(boundaries.name, :y_pos)
             else
                 push!(boundaries.name, :y_neg)
