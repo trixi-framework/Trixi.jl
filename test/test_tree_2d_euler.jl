@@ -625,7 +625,6 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
                         alternative=true,
-                        newton_tolerances=(1e-13, 1e-14),
                         l2=[
                             0.5723638475234377,
                             0.23588757931622778,
