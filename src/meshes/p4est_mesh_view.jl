@@ -375,7 +375,7 @@ function calc_node_coordinates!(node_coordinates,
             polynomial_interpolation_matrix!(matrix2, mesh.parent.nodes, nodes_out_y,
                                              baryweights_in)
 
-            multiply_dimensionwise!(view(node_coordinates,:,:,:,mesh_view_cell_id),
+            multiply_dimensionwise!(view(node_coordinates, :, :, :, mesh_view_cell_id),
                                     matrix1, matrix2,
                                     view(mesh.parent.tree_node_coordinates,:,:,:,
                                     tree_id),
