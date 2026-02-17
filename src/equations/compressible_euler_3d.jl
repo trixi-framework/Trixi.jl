@@ -1959,10 +1959,11 @@ end
         return u[4]
     end
 end
-
+# Version for non-Cartesian meshes, i.e., everything but `TreeMesh`es.
 @inline function entropy_potential(u, normal_direction::AbstractVector,
                                    equations::CompressibleEulerEquations3D)
-    return u[2] * normal_direction[1] + u[3] * normal_direction[2] +
+    return u[2] * normal_direction[1] +
+           u[3] * normal_direction[2] +
            u[4] * normal_direction[3]
 end
 
