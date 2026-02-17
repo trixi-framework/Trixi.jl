@@ -1,5 +1,5 @@
 # Package extension for adding NLsolve-based features to Trixi.jl
-module TrixiNLsolveExt
+module NLsolveExt
 
 # Required for finding coefficients in Butcher tableau in the third order of
 # PERK scheme integrators

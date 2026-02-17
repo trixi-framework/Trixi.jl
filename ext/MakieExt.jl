@@ -1,5 +1,5 @@
 # Package extension for adding Makie-based features to Trixi.jl
-module TrixiMakieExt
+module MakieExt
 
 # Required for visualization code
 using Makie: Makie, GeometryBasics
