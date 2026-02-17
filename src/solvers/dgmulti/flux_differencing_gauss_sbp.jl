@@ -553,10 +553,23 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGMultiFluxDiff{<:GaussSBP}, cache)
     @threaded for e in eachelement(mesh, dg, cache)
-        flux_differencing_kernel!(du, u, e, mesh,
-                                  have_nonconservative_terms, equations,
-                                  volume_integral.volume_flux, dg, cache)
+        volume_integral_kernel!(du, u, e, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral, dg, cache)
     end
+end
+
+function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                 have_nonconservative_terms, equations,
+                                 volume_integral::VolumeIntegralFluxDifferencing,
+                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
+    (; volume_flux) = volume_integral
+
+    flux_differencing_kernel!(du, u, element, mesh,
+                              have_nonconservative_terms, equations,
+                              volume_flux, dg, cache)
+
+    return nothing
 end
 
 # interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points

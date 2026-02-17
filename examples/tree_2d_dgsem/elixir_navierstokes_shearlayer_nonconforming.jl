@@ -44,12 +44,18 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 # This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
+# refine bottom left cell
+refinement_patches = ((type = "box", coordinates_min = (0.0, 0.0),
+                       coordinates_max = (1 / 16, 1 / 16)),)
+
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
+                refinement_patches = refinement_patches,
                 n_cells_max = 100_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ViscousFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_condition_periodic,
                                                                     boundary_condition_periodic))
 
@@ -66,28 +72,11 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# This uses velocity-based AMR
-@inline function v1(u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, _, _ = u
-    return rho_v1 / rho
-end
-# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
-amr_indicator = IndicatorLöhner(semi, variable = v1)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 3,
-                                      med_level = 5, med_threshold = 0.2,
-                                      max_level = 7, max_threshold = 0.5)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 50,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
-
 stepsize_callback = StepsizeCallback(cfl = 1.3)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
-                        amr_callback,
                         stepsize_callback)
 
 ###############################################################################

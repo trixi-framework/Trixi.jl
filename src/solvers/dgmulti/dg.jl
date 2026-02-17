@@ -357,9 +357,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
                                cache)
     rd = dg.basis
-    md = mesh.md
     @unpack weak_differentiation_matrices, dxidxhatj, u_values, local_values_threaded = cache
-    @unpack rstxyzJ = md # geometric terms
 
     # interpolate to quadrature points
     apply_to_each_field(mul_by!(rd.Vq), u_values, u)
@@ -390,8 +388,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
                                cache) where {NDIMS}
     rd = dg.basis
-    (; weak_differentiation_matrices, u_values) = cache
-    (; dxidxhatj) = cache
+    (; weak_differentiation_matrices, dxidxhatj, u_values) = cache
 
     # interpolate to quadrature points
     apply_to_each_field(mul_by!(rd.Vq), u_values, u)

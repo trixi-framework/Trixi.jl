@@ -2235,6 +2235,33 @@ end
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
 
+@doc raw"""
+    entropy_potential(u, orientation_or_normal_direction, 
+                      equations::AbstractCompressibleEulerEquations)
+
+Calculate the entropy potential, which for the compressible Euler equations is simply 
+the momentum for the choice of mathematical [`entropy`](@ref) ``S(u) = \frac{\rho s}{\gamma - 1}``
+with thermodynamic entropy ``s = \ln(p) - \gamma \ln(\rho)``.
+    
+## References
+- Eitan Tadmor (2003)
+  Entropy stability theory for difference approximations of nonlinear conservation laws and related time-dependent problems
+  [DOI: 10.1017/S0962492902000156](https://doi.org/10.1017/S0962492902000156)
+"""
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerEquations2D)
+    if orientation == 1
+        return u[2]
+    else # if orientation == 2
+        return u[3]
+    end
+end
+# Version for non-Cartesian meshes, i.e., everything but `TreeMesh`es.
+@inline function entropy_potential(u, normal_direction::AbstractVector,
+                                   equations::CompressibleEulerEquations2D)
+    return u[2] * normal_direction[1] + u[3] * normal_direction[2]
+end
+
 # State validation for Newton-bisection method of subcell IDP limiting
 @inline function Base.isvalid(u, equations::CompressibleEulerEquations2D)
     if u[1] <= 0 || pressure(u, equations) <= 0

@@ -16,8 +16,7 @@ include("test_trixi.jl")
                   piracies = (treat_as_own = [Trixi.StartUpDG.RefElemData,
                                   Trixi.StartUpDG.MeshData],),
                   # exception necessary because StableRNGs.jl is only used in an extension
-                  # OrdinaryDiffEqCore.jl is a hotfix introduced in https://github.dev/trixi-framework/Trixi.jl/pull/2775
-                  stale_deps = (ignore = [:StableRNGs, :OrdinaryDiffEqCore],))
+                  stale_deps = (ignore = [:StableRNGs],))
     @test isnothing(check_no_implicit_imports(Trixi,
                                               skip = (Core, Base, Trixi.P4est, Trixi.T8code,
                                                       Trixi.EllipsisNotation)))
