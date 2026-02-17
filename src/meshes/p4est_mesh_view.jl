@@ -53,7 +53,7 @@ function extract_p4est_mesh_view(elements_parent,
 
     # Copy relevant entries from parent mesh
     @views elements.inverse_jacobian .= elements_parent.inverse_jacobian[..,
-    mesh.cell_ids]
+                                                                         mesh.cell_ids]
     @views elements.jacobian_matrix .= elements_parent.jacobian_matrix[..,
     mesh.cell_ids]
     @views elements.node_coordinates .= elements_parent.node_coordinates[..,
