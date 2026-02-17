@@ -542,32 +542,6 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
-                        l2=[
-                            0.3221078812528291,
-                            0.17985175694043076,
-                            0.17983453493705628,
-                            0.6136916718599121
-                        ],
-                        linf=[
-                            1.343237509126809,
-                            1.1747101056222315,
-                            1.174585608472406,
-                            2.4216027326405487
-                        ],
-                        tspan=(0.0, 0.5),
-                        initial_refinement_level=4)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    # Larger values for allowed allocations due to usage of custom
-    # integrator which are not *recorded* for the methods from
-    # OrdinaryDiffEq.jl
-    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
-end
-
 @trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (local factor, piecewise constant)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
@@ -627,7 +601,7 @@ end
                         local_factor=false,
                         l2=[
                             0.5643848812333524,
-                            0.23373243126305018,
+                            0.23373243126111307,
                             0.23267026249346812,
                             0.7035211726981762
                         ],
@@ -651,6 +625,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
                         alternative=true,
+                        newton_tolerances=(1e-13, 1e-14),
                         l2=[
                             0.5723638475234377,
                             0.23588757931622778,
@@ -737,6 +712,32 @@ end
         @test_broken isapprox(state_integrals[4], initial_state_integrals[4],
                               atol = 1e-13)
     end
+end
+
+@trixi_testset "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
+                        l2=[
+                            0.3221078812528291,
+                            0.17985175694043076,
+                            0.17983453493705628,
+                            0.6136916718599121
+                        ],
+                        linf=[
+                            1.343237509126809,
+                            1.1747101056222315,
+                            1.174585608472406,
+                            2.4216027326405487
+                        ],
+                        tspan=(0.0, 0.5),
+                        initial_refinement_level=4)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin

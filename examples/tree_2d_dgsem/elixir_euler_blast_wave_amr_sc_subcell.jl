@@ -43,11 +43,10 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_correction_factor = 0.5,
                                 positivity_variables_nonlinear = [pressure],
                                 local_twosided_variables_cons = ["rho"],
-                                local_onesided_variables_nonlinear = [(Trixi.entropy_math,
+                                local_onesided_variables_nonlinear = [(entropy_math,
                                                                        max)],
                                 # Default parameters are not sufficient to fulfill bounds properly.
-                                max_iterations_newton = 70,
-                                newton_tolerances = (1.0e-13, 1.0e-14))
+                                max_iterations_newton = 70)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -117,8 +116,6 @@ callbacks = CallbackSet(summary_callback,
 stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_errors = false))
 
 sol = Trixi.solve(ode,
-                  # Trixi.SimpleEuler(stage_callbacks = stage_callbacks);
                   Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  ode_default_options()...,
                   callback = callbacks);
