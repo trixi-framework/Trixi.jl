@@ -423,6 +423,17 @@ function create_cache(mesh, equations,
     return (; cache_default..., cache_stabilized...)
 end
 
+# `VolumeIntegralEntropyCorrectionShockCapturingCombined` combines the entropy correction 
+# indicator with a heuristic shock capturing indicator. 
+const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionWithShockCapturing}
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                                dg, cache)
+    element_variables[:indicator_shock_capturing] = volume_integral.indicator_entropy_correction.cache.alpha
+    return nothing
+end
+
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.

@@ -263,18 +263,9 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
-const VolumeIntegralEntropyCorrectionWithShockCapturing = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionWithShockCapturing}
-
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralEntropyCorrectionWithShockCapturing,
-                                dg, cache)
-    element_variables[:indicator_shock_capturing] = volume_integral.indicator_entropy_correction.cache.alpha
-    return nothing
-end
-
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralEntropyCorrectionWithShockCapturing,
+                               volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
                                dg::DGSEM, cache)
     (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
     (; indicator_entropy_correction, indicator_shock_capturing) = indicator
