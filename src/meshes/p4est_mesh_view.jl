@@ -229,7 +229,7 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
                     # Make the coupling periodic.
                     if boundaries_parent.name[parent_idx] == :x_neg
                         neighbor_ids_global[idx] = parent_xpos_element_ids[findfirst(parent_xneg_element_ids .==
-                                                                                                             boundary)]
+                                                                                     boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :x_pos
                         neighbor_ids_global[idx] = parent_xneg_element_ids[findfirst(parent_xpos_element_ids .==
