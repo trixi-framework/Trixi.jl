@@ -294,8 +294,8 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFlux
     return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
-function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, RealT,
-                      uEltype)
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
+                      RealT, uEltype)
     rd = dg.basis
     md = mesh.md
 
@@ -550,8 +550,8 @@ end
 # face nodes, tensor product structure, etc) in `DGMulti`.
 @inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                          have_nonconservative_terms, equations,
-                                         volume_integral, dg::DGMultiFluxDiff,
-                                         cache)
+                                         volume_integral::VolumeIntegralFluxDifferencing,
+                                         dg::DGMultiFluxDiff, cache)
     @unpack entropy_projected_u_values, Ph = cache
     @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
 
@@ -578,8 +578,8 @@ end
 
 @inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                          have_nonconservative_terms, equations,
-                                         volume_integral, dg::DGMultiFluxDiffSBP,
-                                         cache)
+                                         volume_integral::VolumeIntegralFluxDifferencing,
+                                         dg::DGMultiFluxDiffSBP, cache)
     @unpack fluxdiff_local_threaded, inv_wq = cache
 
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
