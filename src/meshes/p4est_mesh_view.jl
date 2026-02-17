@@ -211,7 +211,7 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
                                                                                   interface]
                     else
                         neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[1,
-                        interface]
+                                                                                  interface]
                     end
                 end
             end
