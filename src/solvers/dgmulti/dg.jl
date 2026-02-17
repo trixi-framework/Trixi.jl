@@ -355,8 +355,7 @@ end
 @inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                          have_nonconservative_terms::False, equations,
                                          volume_integral::VolumeIntegralWeakForm,
-                                         dg::DGMulti,
-                                         cache)
+                                         dg::DGMulti, cache)
     rd = dg.basis
     @unpack weak_differentiation_matrices, dxidxhatj, u_values, local_values_threaded = cache
 
@@ -386,8 +385,7 @@ end
                                          mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                          have_nonconservative_terms::False, equations,
                                          volume_integral::VolumeIntegralWeakForm,
-                                         dg::DGMulti,
-                                         cache) where {NDIMS}
+                                         dg::DGMulti, cache) where {NDIMS}
     rd = dg.basis
     (; weak_differentiation_matrices, dxidxhatj, u_values) = cache
 
@@ -429,11 +427,10 @@ end
 end
 
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms::False, equations,
-                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
-                               cache)
-    @threaded for e in eachelement(mesh, dg, cache)
-        volume_integral_kernel!(du, u, e, mesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral, dg::DGMulti, cache)
+    @threaded for element in eachelement(mesh, dg, cache)
+        volume_integral_kernel!(du, u, element, mesh,
                                 have_nonconservative_terms, equations,
                                 volume_integral, dg, cache)
     end
