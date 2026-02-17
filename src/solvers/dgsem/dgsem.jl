@@ -134,5 +134,4 @@ end
 
 include("containers.jl")
 include("indicators.jl")
-include("calc_volume_integral.jl")
 end # @muladd
