@@ -241,7 +241,7 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
                     end
                     if boundaries_parent.name[parent_idx] == :y_pos
                         neighbor_ids_global[idx] = parent_yneg_element_ids[findfirst(parent_ypos_element_ids .==
-                                                                                                             boundary)]
+                                                                                     boundary)]
                     end
                 end
             end
