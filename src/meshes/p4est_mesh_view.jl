@@ -230,18 +230,17 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
                     if boundaries_parent.name[parent_idx] == :x_neg
                         neighbor_ids_global[idx] = parent_xpos_element_ids[findfirst(parent_xneg_element_ids .==
                                                                                      boundary)]
-                    end
-                    if boundaries_parent.name[parent_idx] == :x_pos
+                    elseif boundaries_parent.name[parent_idx] == :x_pos
                         neighbor_ids_global[idx] = parent_xneg_element_ids[findfirst(parent_xpos_element_ids .==
                                                                                      boundary)]
-                    end
-                    if boundaries_parent.name[parent_idx] == :y_neg
+                    elseif boundaries_parent.name[parent_idx] == :y_neg
                         neighbor_ids_global[idx] = parent_ypos_element_ids[findfirst(parent_yneg_element_ids .==
                                                                                      boundary)]
-                    end
-                    if boundaries_parent.name[parent_idx] == :y_pos
+                    elseif boundaries_parent.name[parent_idx] == :y_pos
                         neighbor_ids_global[idx] = parent_yneg_element_ids[findfirst(parent_ypos_element_ids .==
                                                                                      boundary)]
+                    else
+                        error("Unknown boundary name: $(boundaries_parent.name[parent_idx])")
                     end
                 end
             end
