@@ -87,7 +87,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
         mask[interface] = (interfaces_parent.neighbor_ids[1,
                            interface] in mesh.cell_ids) &&
                           (interfaces_parent.neighbor_ids[2,
-                                                          interface] in mesh.cell_ids)
+                           interface] in mesh.cell_ids)
     end
 
     # Create deepcopy to get completely independent interfaces container
