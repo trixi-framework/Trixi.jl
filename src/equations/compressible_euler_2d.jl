@@ -2236,7 +2236,7 @@ end
 end
 
 @doc raw"""
-    entropy_potential(u, orientation::Int, 
+    entropy_potential(u, orientation_or_normal_direction, 
                       equations::AbstractCompressibleEulerEquations)
 
 Calculate the entropy potential, which for the compressible Euler equations is simply 
@@ -2255,6 +2255,11 @@ with thermodynamic entropy ``s = \ln(p) - \gamma \ln(\rho)``.
     else # if orientation == 2
         return u[3]
     end
+end
+# Version for non-Cartesian meshes, i.e., everything but `TreeMesh`es.
+@inline function entropy_potential(u, normal_direction::AbstractVector,
+                                   equations::CompressibleEulerEquations2D)
+    return u[2] * normal_direction[1] + u[3] * normal_direction[2]
 end
 
 # State validation for Newton-bisection method of subcell IDP limiting
