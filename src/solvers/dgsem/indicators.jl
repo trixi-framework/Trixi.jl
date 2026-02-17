@@ -434,8 +434,8 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyCorrec
 end
 
 """
-    IndicatorEntropyCorrectionWithShockCapturing(; indicator_shock_capturing, 
-                                                   indicator_entropy_correction)
+    IndicatorEntropyCorrectionShockCapturingCombined(; indicator_shock_capturing, 
+                                                       indicator_entropy_correction)
 
 Indicator used for entropy correction using subcell FV schemes, where the blending 
 is taken to be the maximum between a blending determined by shock capturing 
@@ -453,22 +453,22 @@ The use of `IndicatorEntropyCorrection` requires either
 to be defined. 
 
 """
-struct IndicatorEntropyCorrectionWithShockCapturing{IndicatorEC, IndicatorSC} <:
+struct IndicatorEntropyCorrectionShockCapturingCombined{IndicatorEC, IndicatorSC} <:
        AbstractIndicator
     indicator_entropy_correction::IndicatorEC
     indicator_shock_capturing::IndicatorSC
 end
 
-function IndicatorEntropyCorrectionWithShockCapturing(; indicator_shock_capturing,
-                                                      indicator_entropy_correction)
-    return IndicatorEntropyCorrectionWithShockCapturing(indicator_entropy_correction,
-                                                        indicator_shock_capturing)
+function IndicatorEntropyCorrectionShockCapturingCombined(; indicator_shock_capturing,
+                                                          indicator_entropy_correction)
+    return IndicatorEntropyCorrectionShockCapturingCombined(indicator_entropy_correction,
+                                                            indicator_shock_capturing)
 end
 
-function Base.show(io::IO, indicator::IndicatorEntropyCorrectionWithShockCapturing)
+function Base.show(io::IO, indicator::IndicatorEntropyCorrectionShockCapturingCombined)
     @nospecialize indicator # reduce precompilation time
-    print(io, "IndicatorEntropyCorrectionWithShockCapturing")
-    # print(io, "IndicatorEntropyCorrectionWithShockCapturing(")
+    print(io, "IndicatorEntropyCorrectionShockCapturingCombined")
+    # print(io, "IndicatorEntropyCorrectionShockCapturingCombined(")
     # print(io, indicator.indicator_entropy_correction)
     # print(io, ", ")
     # print(io, indicator.indicator_shock_capturing |> typeof |> nameof)
@@ -477,7 +477,7 @@ function Base.show(io::IO, indicator::IndicatorEntropyCorrectionWithShockCapturi
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
-                   indicator::IndicatorEntropyCorrectionWithShockCapturing)
+                   indicator::IndicatorEntropyCorrectionShockCapturingCombined)
     @nospecialize indicator # reduce precompilation time
 
     if get(io, :compact, false)
@@ -487,7 +487,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "indicator EC" => indicator.indicator_entropy_correction,
             "indicator SC" => indicator.indicator_shock_capturing |> typeof |> nameof
         ]
-        summary_box(io, "IndicatorEntropyCorrectionWithShockCapturing", setup)
+        summary_box(io, "IndicatorEntropyCorrectionShockCapturingCombined", setup)
     end
     return nothing
 end

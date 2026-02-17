@@ -263,6 +263,17 @@ function calc_volume_integral!(du, u, mesh,
     return nothing
 end
 
+# `VolumeIntegralEntropyCorrectionShockCapturingCombined` combines the entropy correction 
+# indicator with a heuristic shock capturing indicator. 
+const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionShockCapturingCombined}
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                                dg, cache)
+    element_variables[:indicator_shock_capturing] = volume_integral.indicator_entropy_correction.cache.alpha
+    return nothing
+end
+
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
