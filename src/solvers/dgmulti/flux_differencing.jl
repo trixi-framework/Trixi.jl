@@ -450,6 +450,18 @@ end
     return True()
 end
 
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral, dg::DGMulti, cache)
+    @threaded for element in eachelement(mesh, dg, cache)
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral, dg, cache)
+    end
+
+    return nothing
+end
+
 # Computes flux differencing contribution from each Cartesian direction over a single element.
 # For dense operators, we do not use sum factorization.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
