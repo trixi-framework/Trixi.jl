@@ -452,9 +452,10 @@ end
 
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
-                               volume_integral, dg::DGMulti, cache)
+                               volume_integral, dg::DGMultiFluxDiff, cache)
     # No interpolation performed for general volume integral.
-    # Instead, an element-wise entropy projection is performed within `volume_integral_kernel!`
+    # Instead, an element-wise entropy projection (`entropy_projection!`) is performed before, see
+    # `rhs!` for `DGMultiFluxDiff`, which populates `entropy_projected_u_values`
     @threaded for element in eachelement(mesh, dg, cache)
         volume_integral_kernel!(du, u, element, mesh,
                                 have_nonconservative_terms, equations,
