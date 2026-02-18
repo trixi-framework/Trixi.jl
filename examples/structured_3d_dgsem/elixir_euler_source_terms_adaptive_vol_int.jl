@@ -1,0 +1,87 @@
+using OrdinaryDiffEqLowStorageRK
+using Trixi
+
+###############################################################################
+# semidiscretization of the compressible Euler equations
+
+equations = CompressibleEulerEquations3D(1.4)
+
+initial_condition = initial_condition_convergence_test
+
+# Set up volume integral
+
+volume_integral_weakform = VolumeIntegralWeakForm()
+volume_flux = flux_ranocha
+volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
+
+# `target_decay` governs the tolerated entropy increase due to the weak-form
+# volume integral before switching to the stabilized version.
+indicator = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
+# Adaptive volume integral using the entropy increase indicator to perform the
+# stabilized/EC volume integral when needed
+volume_integral = VolumeIntegralAdaptive(indicator = indicator,
+                                         volume_integral_default = volume_integral_weakform,
+                                         volume_integral_stabilized = volume_integral_fluxdiff)
+
+solver = DGSEM(polydeg = 3, surface_flux = flux_hll, volume_integral = volume_integral)
+
+# Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
+function mapping(xi, eta, zeta)
+    # Don't transform input variables between -1 and 1 onto [0,3] to obtain curved boundaries
+    # xi = 1.5 * xi_ + 1.5
+    # eta = 1.5 * eta_ + 1.5
+    # zeta = 1.5 * zeta_ + 1.5
+
+    y = eta +
+        1 / 6 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
+         cos(0.5 * pi * (2 * eta - 3) / 3) *
+         cos(0.5 * pi * (2 * zeta - 3) / 3))
+
+    x = xi +
+        1 / 6 * (cos(0.5 * pi * (2 * xi - 3) / 3) *
+         cos(2 * pi * (2 * y - 3) / 3) *
+         cos(0.5 * pi * (2 * zeta - 3) / 3))
+
+    z = zeta +
+        1 / 6 * (cos(0.5 * pi * (2 * x - 3) / 3) *
+         cos(pi * (2 * y - 3) / 3) *
+         cos(0.5 * pi * (2 * zeta - 3) / 3))
+
+    # Transform the weird deformed cube to be approximately the cube [0,2]^3
+    return SVector(x + 1, y + 1, z + 1)
+end
+
+cells_per_dimension = (4, 4, 4)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
+
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    source_terms = source_terms_convergence_test,
+                                    boundary_conditions = boundary_conditions)
+
+###############################################################################
+# ODE solvers, callbacks etc.
+
+tspan = (0.0, 5.0)
+ode = semidiscretize(semi, tspan)
+
+summary_callback = SummaryCallback()
+
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
+stepsize_callback = StepsizeCallback(cfl = 0.6)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback,
+                        stepsize_callback)
+
+###############################################################################
+# run the simulation
+
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);
