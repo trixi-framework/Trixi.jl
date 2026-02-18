@@ -215,7 +215,8 @@ end
 # Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh
 # define in two functions to resolve ambiguities
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
-                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                    mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                UnstructuredMesh2D,
                                                 T8codeMesh{2}},
                                     solver, cache)
     return UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
@@ -228,7 +229,8 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple,
 end
 
 function digest_boundary_conditions(boundary_conditions::UnstructuredSortedBoundaryTypes,
-                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                    mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                UnstructuredMesh2D,
                                                 T8codeMesh{2}},
                                     solver, cache)
     return boundary_conditions
@@ -243,7 +245,8 @@ end
 # allow passing a single BC that get converted into a named tuple of BCs
 # on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions,
-                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                    mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                UnstructuredMesh2D,
                                                 T8codeMesh{2}},
                                     solver, cache)
     bcs = (; x_neg = boundary_conditions, x_pos = boundary_conditions,
