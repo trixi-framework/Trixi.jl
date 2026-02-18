@@ -351,8 +351,8 @@ function prolong2interfaces!(cache, u,
     return nothing
 end
 
-# CARE: This function requires that interpolation to quadrature points is performed before, see
-# `calc_volume_integral!` for `VolumeIntegralWeakForm` and `DGMulti`.
+# CARE: This function requires that interpolation to quadrature points is performed before
+# to populate cache.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for affine meshes
 @inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                          have_nonconservative_terms::False, equations,
@@ -378,8 +378,8 @@ end
     return nothing
 end
 
-# CARE: This function requires that interpolation to quadrature points is performed before, see
-# `calc_volume_integral!` for `VolumeIntegralWeakForm` and `DGMulti`.
+# CARE: This function requires that interpolation to quadrature points is performed before
+# to populate cache.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for curved meshes
 @inline function volume_integral_kernel!(du, u, element,
                                          mesh::DGMultiMesh{NDIMS, <:NonAffine},
