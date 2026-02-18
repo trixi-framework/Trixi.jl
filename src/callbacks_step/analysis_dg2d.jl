@@ -275,8 +275,12 @@ function surface_integral_reference_element(func::Func, u, element,
     @unpack contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
+    # Construct zero of right shape:
+    # Evaluate `func` at actual quadrature node and normal direction
     u_tmp = get_node_vars(u, equations, dg, 1, 1, element)
-    surface_integral = zero(func(u_tmp, 1, equations))
+    normal_direction = get_normal_direction(1, contravariant_vectors,
+                                            1, 1, element)
+    surface_integral = zero(func(u_tmp, normal_direction, equations))
 
     # Direction 1: face at i = 1 (x_min)
     for j in eachnode(dg)
