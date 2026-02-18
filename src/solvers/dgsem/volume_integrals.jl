@@ -7,8 +7,6 @@
 
 # `VolumeIntegralEntropyCorrectionShockCapturingCombined` combines the entropy correction 
 # indicator with a heuristic shock capturing indicator. 
-# We define this here since it needs to be defined after the `indicators.jl` are included 
-# in `dgsem.jl`, but before `calc_volume_integral.jl` is included.
 const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionShockCapturingCombined}
 
 function get_element_variables!(element_variables, u, mesh, equations,
