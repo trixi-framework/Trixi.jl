@@ -17,7 +17,7 @@ This is the function ``d_{a,b}`` from the paper
   [DOI: 10.3389/fphy.2022.898028](https://doi.org/10.3389/fphy.2022.898028)
 """
 @inline function smoothed_discontinuity(x, a, b; slope = 15)
-    return a + 0.5 * (1 + tanh(slope * x)) * (b - a)
+    return a + 0.5f0 * (1 + tanh(slope * x)) * (b - a)
 end
 
 """
