@@ -36,10 +36,10 @@ coupling_function = (x, u, equations_other, equations_own) -> u
 
 # The mesh is coupled across the physical boundaries, which makes this setup
 # effectively double periodic.
-boundary_conditions = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_function),
-                           :y_neg => BoundaryConditionCoupledP4est(coupling_function),
-                           :y_pos => BoundaryConditionCoupledP4est(coupling_function),
-                           :x_pos => BoundaryConditionCoupledP4est(coupling_function))
+boundary_conditions = (; x_neg = BoundaryConditionCoupledP4est(coupling_function),
+                         y_neg = BoundaryConditionCoupledP4est(coupling_function),
+                         y_pos = BoundaryConditionCoupledP4est(coupling_function),
+                         x_pos = BoundaryConditionCoupledP4est(coupling_function))
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
                                      solver,
