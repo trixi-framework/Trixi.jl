@@ -25,8 +25,8 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_min = 0.001,
                                          alpha_smooth = true,
                                          variable = density_pressure)
-indicator = IndicatorEntropyCorrectionWithShockCapturing(indicator_ec,
-                                                         indicator_sc)
+indicator = IndicatorEntropyCorrectionShockCapturingCombined(indicator_ec,
+                                                             indicator_sc)
 
 volume_integral_default = VolumeIntegralFluxDifferencing(volume_flux)
 volume_integral_entropy_stable = VolumeIntegralPureLGLFiniteVolumeO2(basis,

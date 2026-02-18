@@ -982,21 +982,6 @@ AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
 # DGSEM (discontinuous Galerkin spectral element method)
 include("dgsem/dgsem.jl")
 
-# `VolumeIntegralEntropyCorrectionShockCapturingCombined` combines the entropy correction 
-# indicator with a heuristic shock capturing indicator. 
-# We define this here since it needs to be defined after the `indicators.jl` are included 
-# in `dgsem.jl`, but before `calc_volume_integral.jl` is included.
-const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionShockCapturingCombined}
-
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
-                                dg, cache)
-    element_variables[:indicator_shock_capturing] = volume_integral.indicator_entropy_correction.cache.alpha
-    return nothing
-end
-
-include("dgsem/calc_volume_integral.jl")
-
 # Finite difference methods using summation by parts (SBP) operators
 # These methods are very similar to DG methods since they also impose interface
 # and boundary conditions weakly. Thus, these methods can re-use a lot of
