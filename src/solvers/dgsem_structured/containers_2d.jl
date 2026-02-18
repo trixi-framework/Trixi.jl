@@ -324,6 +324,22 @@ function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh
                                           _normal_vectors_1, _normal_vectors_2)
 end
 
+resize_normal_vectors!(cache, mesh::TreeMesh, capacity) = nothing
+
+function resize_normal_vectors!(cache, mesh::Union{P4estMesh, T8codeMesh}, capacity)
+    resize!(cache.normal_vectors, capacity)
+
+    return nothing
+end
+
+init_normal_vectors!(cache, mesh::TreeMesh, dg) = nothing
+
+function init_normal_vectors!(cache, mesh::Union{P4estMesh, T8codeMesh}, dg)
+    init_normal_vectors!(cache.normal_vectors, mesh, dg, cache)
+
+    return nothing
+end
+
 # Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
 function Base.resize!(normal_vectors::NormalVectorContainer2D, capacity)
     @unpack n_nodes, _normal_vectors_1, _normal_vectors_2 = normal_vectors

@@ -75,11 +75,19 @@ end
 function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
+    n_cells = length(leaf_cell_ids)
 
     # re-initialize elements container
     @unpack elements = cache
-    resize!(elements, length(leaf_cell_ids))
+    resize!(elements, n_cells)
     init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+
+    # Resize volume integral and related datastructures
+    @unpack volume_integral = cache
+    resize!(cache, mesh, volume_integral, n_cells)
+    init_volume_integral!(cache, mesh, dg, volume_integral, n_cells)
+
+    println("reinit: ", length(volume_integral.indicator.cache.alpha))
 
     # re-initialize interfaces container
     @unpack interfaces = cache

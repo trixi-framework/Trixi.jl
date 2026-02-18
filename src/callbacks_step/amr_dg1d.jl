@@ -32,6 +32,11 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
         @assert nelements(dg, cache) > old_n_elements
 
+        @trixi_timeit timer() "reinitialize data structures" begin
+            println("reinit containers")
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
+
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
@@ -161,6 +166,11 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         resize!(elements, length(leaf_cell_ids))
         init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
         @assert nelements(dg, cache) < old_n_elements
+
+        @trixi_timeit timer() "reinitialize data structures" begin
+            println("reinit containers")
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
 
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))

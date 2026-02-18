@@ -338,6 +338,23 @@ function get_element_variables!(element_variables, u, mesh, equations,
                                   volume_integral)
 end
 
+# `resize!` functions are called after mesh adaptation
+function Base.resize!(cache, mesh, volume_integral::AbstractVolumeIntegralSubcell,
+                      new_size)
+    resize_normal_vectors!(cache, mesh, new_size)
+
+    return nothing
+end
+
+init_volume_integral!(cache, mesh::TreeMesh, dg, volume_integral::AbstractVolumeIntegralSubcell, new_size) = nothing
+
+function init_volume_integral!(cache, mesh::Union{P4estMesh, T8codeMesh}, dg,
+                               volume_integral::AbstractVolumeIntegralSubcell, new_size)
+    init_normal_vectors!(cache, mesh, dg)
+
+    return nothing
+end
+
 """
     VolumeIntegralAdaptive(;
                            indicator = IndicatorEntropyChange(),

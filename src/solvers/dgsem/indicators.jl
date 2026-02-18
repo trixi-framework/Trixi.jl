@@ -111,13 +111,6 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
                                                    kwargs...)
     @unpack alpha_smooth = indicator_hg
     @unpack alpha, alpha_tmp = indicator_hg.cache
-    # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-    #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
-    #       or just `resize!` whenever we call the relevant methods as we do now?
-    resize!(alpha, nelements(dg, cache))
-    if alpha_smooth
-        resize!(alpha_tmp, nelements(dg, cache))
-    end
 
     # magic parameters
     # TODO: Are there better values for Float32?
@@ -125,6 +118,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     threshold = 0.5f0 * 10^(convert(RealT, -1.8) * nnodes(dg)^convert(RealT, 0.25))
     o_0001 = convert(RealT, 0.0001)
     parameter_s = log((1 - o_0001) / o_0001)
+
+    println("Length of alpha: ", length(alpha))
 
     @threaded for element in eachelement(dg, cache)
         # This is dispatched by mesh dimension.
@@ -141,6 +136,24 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     end
 
     return alpha
+end
+
+# `resize!` functions are called after mesh adaptation
+function Base.resize!(cache, mesh,
+                      volume_integral::VolumeIntegralShockCapturingHGType{<:IndicatorHennemannGassner},
+                      new_size)
+    # Resize normal vectors
+    resize_normal_vectors!(cache, mesh, new_size)
+
+    @unpack indicator = volume_integral
+    resize!(indicator.cache.alpha, new_size)
+    if indicator.alpha_smooth
+        resize!(indicator.cache.alpha_tmp, new_size)
+    end
+
+    println("resize alpha")
+
+    return nothing
 end
 
 """

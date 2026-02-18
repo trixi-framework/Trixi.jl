@@ -102,7 +102,8 @@ stepsize_callback = StepsizeCallback(cfl = 0.5)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
-                        amr_callback, stepsize_callback)
+                        amr_callback, 
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation

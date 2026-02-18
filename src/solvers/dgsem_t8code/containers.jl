@@ -1,14 +1,14 @@
 function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
     # Re-initialize elements container.
     @unpack elements = cache
-    resize!(elements, ncells(mesh))
+    n_cells = ncells(mesh)
+    resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
 
-    if dg.volume_integral isa AbstractVolumeIntegralSubcell
-        @unpack normal_vectors = cache
-        resize!(normal_vectors, ncells(mesh))
-        init_normal_vectors!(normal_vectors, mesh, dg, cache)
-    end
+    # Resize volume integral and related datastructures
+    @unpack volume_integral = cache
+    resize!(cache, mesh, volume_integral, n_cells)
+    init_volume_integral!(cache, mesh, dg, volume_integral, n_cells)
 
     count_required_surfaces!(mesh)
 
