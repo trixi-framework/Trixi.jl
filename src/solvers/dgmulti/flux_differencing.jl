@@ -453,6 +453,8 @@ end
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGMulti, cache)
+    # No interpolation performed for general volume integral.
+    # Instead, an element-wise entropy projection is performed within `volume_integral_kernel!`
     @threaded for element in eachelement(mesh, dg, cache)
         volume_integral_kernel!(du, u, element, mesh,
                                 have_nonconservative_terms, equations,
