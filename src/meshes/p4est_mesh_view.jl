@@ -127,7 +127,7 @@ function extract_boundaries(mesh::P4estMeshView{2},
         mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
     end
     boundaries.neighbor_ids = global_cell_id_to_local(boundaries_parent.neighbor_ids[mask],
-                                                         mesh)
+                                                      mesh)
     boundaries.name = boundaries_parent.name[mask]
     boundaries.node_indices = boundaries_parent.node_indices[mask]
 
@@ -195,8 +195,8 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
         global_id = mesh.cell_ids[id]
         # Find this id in the parent's interfaces.
         for interface in eachindex(interfaces_parent.neighbor_ids[1, :])
-            if global_id == interfaces_parent.neighbor_ids[1, interface] ||
-               global_id == interfaces_parent.neighbor_ids[2, interface]
+            if (global_id == interfaces_parent.neighbor_ids[1, interface] ||
+                global_id == interfaces_parent.neighbor_ids[2, interface])
                 if global_id == interfaces_parent.neighbor_ids[1, interface]
                     matching_boundary = 1
                 else
@@ -229,16 +229,16 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
                     # Make the coupling periodic.
                     if boundaries_parent.name[parent_idx] == :x_neg
                         neighbor_ids_global[idx] = parent_xpos_cell_ids[findfirst(parent_xneg_cell_ids .==
-                                                                                     boundary)]
+                                                                                  boundary)]
                     elseif boundaries_parent.name[parent_idx] == :x_pos
                         neighbor_ids_global[idx] = parent_xneg_cell_ids[findfirst(parent_xpos_cell_ids .==
-                                                                                     boundary)]
+                                                                                  boundary)]
                     elseif boundaries_parent.name[parent_idx] == :y_neg
                         neighbor_ids_global[idx] = parent_ypos_cell_ids[findfirst(parent_yneg_cell_ids .==
-                                                                                     boundary)]
+                                                                                  boundary)]
                     elseif boundaries_parent.name[parent_idx] == :y_pos
                         neighbor_ids_global[idx] = parent_yneg_cell_ids[findfirst(parent_ypos_cell_ids .==
-                                                                                     boundary)]
+                                                                                  boundary)]
                     else
                         error("Unknown boundary name: $(boundaries_parent.name[parent_idx])")
                     end

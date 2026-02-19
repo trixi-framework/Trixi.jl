@@ -322,7 +322,7 @@ end
 
 Boundary condition to glue two meshes together. Solution values at the boundary
 of another mesh will be used as boundary values. This requires the use
-of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`,
+of [`SemidiscretizationCoupledP4est`](@ref). The other mesh is specified by `other_semi_index`,
 which is the index of the mesh in the tuple of semidiscretizations.
 
 Note that the elements and nodes of the two meshes at the coupled boundary must coincide.
@@ -380,14 +380,14 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         if sum(normal_direction .* (1.0, 0.0)) >
            sum(normal_direction .* (-1.0, 0.0))
             cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :x_pos) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+                                                                     :x_pos) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         else
             cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :x_neg) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+                                                                     :x_neg) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         end
         i_index_g = i_index
         # Make sure we do not leave the domain.
@@ -400,14 +400,14 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     else
         if sum(normal_direction .* (0.0, 1.0)) > sum(normal_direction .* (0.0, -1.0))
             cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :y_pos) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+                                                                     :y_pos) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         else
             cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :y_neg) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+                                                                     :y_neg) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         end
         j_index_g = j_index
         # Make sure we do not leave the domain.
