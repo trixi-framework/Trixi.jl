@@ -238,7 +238,7 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
                                                                                   boundary)]
                     elseif boundaries_parent.name[parent_idx] == :y_pos
                         neighbor_ids_global[idx] = parent_yneg_cell_ids[findfirst(parent_ypos_cell_ids .==
-                                                                                     boundary)]
+                                                                                  boundary)]
                     else
                         error("Unknown boundary name: $(boundaries_parent.name[parent_idx])")
                     end
