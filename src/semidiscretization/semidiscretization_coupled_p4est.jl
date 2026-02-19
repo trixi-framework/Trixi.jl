@@ -420,7 +420,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     end
     # Perform integer division to get the right shape of the array.
     u_global_reshape = reshape(u_ode_coupled,
-                               (n_nodes, n_nodes, length(u_ode_coupled) ÷ n_nodes^2))
+                               (n_nodes, n_nodes, length(u_ode_coupled) ÷ n_nodes^ndims(mesh.parent)))
     u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, cell_index_global])
 
     # u_boundary = u_inner
