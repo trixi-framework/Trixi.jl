@@ -1150,11 +1150,11 @@ of total energy and kinetic energy.
 end
 
 @doc raw"""
-    entropy_potential(u, orientation_or_normal_direction,
+    entropy_potential(u, orientation_or_normal_direction, 
                       equations::AbstractCompressibleEulerEquations)
 
 Calculate the entropy potential, which for the compressible Euler equations is simply 
-the momentum for the choice of mathematical [`entropy`](@ref) ``S(u) = \frac{\rho s}{\gamma - 1}``
+the momentum for the choice of mathematical [`entropy`](@ref) ``S(u) = -\frac{\rho s}{\gamma - 1}``
 with thermodynamic entropy ``s = \ln(p) - \gamma \ln(\rho)``.
     
 ## References

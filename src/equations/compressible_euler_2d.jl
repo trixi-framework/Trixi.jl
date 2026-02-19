@@ -2246,7 +2246,8 @@ end
 # Version for non-Cartesian meshes, i.e., everything but `TreeMesh`es.
 @inline function entropy_potential(u, normal_direction::AbstractVector,
                                    equations::CompressibleEulerEquations2D)
-    return u[2] * normal_direction[1] + u[3] * normal_direction[2]
+    return u[2] * normal_direction[1] +
+           u[3] * normal_direction[2]
 end
 
 # State validation for Newton-bisection method of subcell IDP limiting
