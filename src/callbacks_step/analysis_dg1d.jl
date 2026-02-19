@@ -153,9 +153,9 @@ function entropy_change_reference_element(du, u, element,
     end
 end
 
-function entropy_change_reference_element(du_element::AbstractArray{<:Any, 2},
-                                          u, element,
-                                          mesh::AbstractMesh{1},
+# This version is intended to be used with `du_element` (`du` over a single element)
+function entropy_change_reference_element(du_element::AbstractArray{<:Any, 2}, u,
+                                          element, mesh::AbstractMesh{1},
                                           equations, dg::DGSEM, cache, args...)
     return integrate_reference_element(u, element, mesh, equations, dg, cache,
                                        du_element) do u, i, element, equations, dg,
