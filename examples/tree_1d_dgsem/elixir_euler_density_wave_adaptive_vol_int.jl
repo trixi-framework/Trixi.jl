@@ -10,7 +10,7 @@ initial_condition = initial_condition_density_wave
 
 # Inviscid surface & volume flux, which results in an entropy-conservative
 # semidiscretization if `VolumeIntegralFluxDifferencing` is used.
-# Turned entropy-diffusive through `IndicatorEntropyChange` and `VolumeIntegralAdaptive` defined below.
+# Turned entropy-dissipative through `IndicatorEntropyChange` and `VolumeIntegralAdaptive` defined below.
 surface_flux = flux_ranocha
 volume_flux = flux_ranocha
 
