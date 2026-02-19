@@ -322,7 +322,7 @@ end
 
 Boundary condition to glue two meshes together. Solution values at the boundary
 of another mesh will be used as boundary values. This requires the use
-of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`,
+of [`SemidiscretizationCoupledP4est`](@ref). The other mesh is specified by `other_semi_index`,
 which is the index of the mesh in the tuple of semidiscretizations.
 
 Note that the elements and nodes of the two meshes at the coupled boundary must coincide.
