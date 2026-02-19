@@ -30,7 +30,7 @@ end
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
 function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
                         equations_parabolic::AbstractEquationsParabolic,
-                        boundary_conditions_parabolic, source_terms_parabolic,
+                        boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack viscous_container = cache_parabolic
     @unpack u_transformed, gradients, flux_viscous = viscous_container
@@ -114,12 +114,6 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
-    end
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
-                                equations_parabolic, dg, cache)
     end
 
     return nothing
@@ -545,34 +539,6 @@ function apply_jacobian_parabolic!(du::AbstractArray, mesh::TreeMesh{1},
             for v in eachvariable(equations)
                 du[v, i, element] *= factor
             end
-        end
-    end
-
-    return nothing
-end
-
-# Need dimension specific version to avoid error at dispatching
-function calc_sources_parabolic!(du, u, gradients, t, source_terms::Nothing,
-                                 equations_parabolic::AbstractEquations{1}, dg::DG,
-                                 cache)
-    return nothing
-end
-
-function calc_sources_parabolic!(du, u, gradients, t, source_terms,
-                                 equations_parabolic::AbstractEquations{1}, dg::DG,
-                                 cache)
-    @unpack node_coordinates = cache.elements
-    equations = equations_parabolic.equations_hyperbolic
-
-    @threaded for element in eachelement(dg, cache)
-        for i in eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, element)
-            gradients_x_local = get_node_vars(gradients, equations, dg, i, element)
-            x_local = get_node_coords(node_coordinates, equations, dg,
-                                      i, element)
-            du_local = source_terms(u_local, (gradients_x_local,), x_local, t,
-                                    equations_parabolic)
-            add_to_node_vars!(du, du_local, equations, dg, i, element)
         end
     end
 

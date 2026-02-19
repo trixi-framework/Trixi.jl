@@ -19,6 +19,7 @@ macro test_trixi_include(expr, args...)
     # run only a few steps - ignore possible warnings coming from that
     if any(expr.args[1] == (:maxiters) for expr in args)
         push!(add_to_additional_ignore_content,
+              r"┌ Warning: Verbosity toggle: max_iters \n│  Interrupted\. Larger maxiters is needed\..*\n└ @ Trixi .+\n",
               r"┌ Warning: Interrupted\. Larger maxiters is needed\..*\n└ @ Trixi .+\n")
     end
     args = append_to_kwargs(args, :additional_ignore_content,
