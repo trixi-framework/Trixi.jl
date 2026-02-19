@@ -195,8 +195,8 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
         global_id = mesh.cell_ids[id]
         # Find this id in the parent's interfaces.
         for interface in eachindex(interfaces_parent.neighbor_ids[1, :])
-            if global_id == interfaces_parent.neighbor_ids[1, interface] ||
-               global_id == interfaces_parent.neighbor_ids[2, interface]
+            if (global_id == interfaces_parent.neighbor_ids[1, interface] ||
+                global_id == interfaces_parent.neighbor_ids[2, interface])
                 if global_id == interfaces_parent.neighbor_ids[1, interface]
                     matching_boundary = 1
                 else
