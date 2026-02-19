@@ -219,6 +219,18 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         end
     end
 
+    # Zero stale coupled mortar flux values in surface_flux_values BEFORE the
+    # regular rhs! calls. This prevents calc_surface_integral! (inside rhs!)
+    # from picking up stale values from the previous time step.
+    foreach_enumerate(semi.semis) do (i, semi_)
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
+        if isdefined(cache, :coupled_mortars) &&
+           ncoupledmortars(cache.coupled_mortars) > 0
+            zero_coupled_mortar_surface_flux!(cache.elements.surface_flux_values,
+                                              mesh, equations, solver, cache)
+        end
+    end
+
     # Call rhs! for each semidiscretization
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
@@ -631,5 +643,38 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     end
 
     return flux
+end
+
+# Coupled boundary condition on P4estMeshView - uses the coupled call interface
+# with u_global and semi for cross-view data exchange.
+# This overrides the fallback method in dg_2d.jl for BoundaryConditionCoupledP4est.
+@inline function calc_boundary_flux!(surface_flux_values, t,
+                                     boundary_condition::BoundaryConditionCoupledP4est,
+                                     mesh::P4estMeshView{2},
+                                     nonconservative_terms, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index, u_global, semi)
+    @unpack boundaries = cache
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
+                               element_index, normal_direction, surface_flux,
+                               normal_direction, u_global, semi)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+    return nothing
 end
 end # @muladd

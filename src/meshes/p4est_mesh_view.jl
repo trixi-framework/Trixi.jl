@@ -212,7 +212,9 @@ function extract_mortars(mesh::P4estMeshView, mortars_parent)
             global_id = mortars_parent.neighbor_ids[pos, old_idx]
             mortars.neighbor_ids[pos, new_idx] = global_element_id_to_local(global_id, mesh)
         end
-        mortars.node_indices[new_idx] = mortars_parent.node_indices[old_idx]
+        # node_indices has shape (2, n_mortars): row 1 = small face, row 2 = large face.
+        # Use column indexing to copy both entries correctly.
+        mortars.node_indices[:, new_idx] = mortars_parent.node_indices[:, old_idx]
     end
 
     # Note: mortars.u arrays are already resized by resize!(mortars, n_mortars_view)
@@ -365,9 +367,14 @@ function extract_coupled_mortars(mesh::P4estMeshView, mortars_parent)
         large_in_view = large_id in mesh.cell_ids
         small_in_view = [id in mesh.cell_ids for id in small_ids]
 
-        # Mortar is "coupled" if elements are split across views
-        # XOR: either large is in view but not all small, or vice versa
-        if large_in_view ⊻ any(small_in_view)
+        # Mortar is "coupled" if some but not all elements are in this view.
+        # This covers all cross-boundary cases:
+        #   - Large in view, no small in view
+        #   - Large not in view, some/all small in view
+        #   - Large in view, some but not all small in view
+        some_in_view = large_in_view || any(small_in_view)
+        all_in_view = large_in_view && all(small_in_view)
+        if some_in_view && !all_in_view
             push!(coupled_mortar_indices, mortar_id)
 
             # Collect locally available elements

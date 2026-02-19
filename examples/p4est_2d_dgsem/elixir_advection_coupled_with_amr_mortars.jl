@@ -135,32 +135,42 @@ coupling_functions[2, 2] = (x, u, equations_other, equations_own) -> u
 # Use coupled boundary condition for all boundaries
 coupled_bc = BoundaryConditionCoupledP4est(coupling_functions)
 
-# Determine which domain boundaries each view touches based on element coordinates
-function get_domain_boundaries(element_ids, elements_cache, domain_min, domain_max; tol=1e-10)
-    boundaries = Set{Symbol}()
-    for elem in element_ids
-        coords = elements_cache.node_coordinates[:, :, :, elem]
-        x_min, x_max = extrema(coords[1, :, :])
-        y_min, y_max = extrema(coords[2, :, :])
+# Boundary conditions for each view:
+# - Physical domain boundaries use Dirichlet BCs
+# - View interface boundaries (conforming, at x=0 split) use coupled BCs
+# - Non-conforming view interfaces are handled as coupled mortars (not BCs)
+#
+# Discover actual boundary names by calling create_cache directly, then
+# assign Dirichlet BCs for physical boundaries and coupled BCs for view interfaces.
+dirichlet_bc = BoundaryConditionDirichlet(initial_condition_convergence_test)
 
-        abs(x_min - domain_min[1]) < tol && push!(boundaries, :x_neg)
-        abs(x_max - domain_max[1]) < tol && push!(boundaries, :x_pos)
-        abs(y_min - domain_min[2]) < tol && push!(boundaries, :y_neg)
-        abs(y_max - domain_max[2]) < tol && push!(boundaries, :y_pos)
+# View interface names that should get coupled BCs (conforming coupling at x=0)
+view_interface_names_left = Set([:x_pos])   # left view's x_pos is the view interface
+view_interface_names_right = Set([:x_neg])  # right view's x_neg is the view interface
+
+function build_view_bcs(mesh_view, equations, solver,
+                        dirichlet_bc, coupled_bc, view_interface_names)
+    # Call create_cache to discover actual boundary names without building a full semi
+    cache_temp = Trixi.create_cache(mesh_view, equations, solver,
+                                    initial_condition_convergence_test, Float64)
+    actual_names = unique(cache_temp.boundaries.name)
+
+    bc_dict = Dict{Symbol, Any}()
+    for name in actual_names
+        if name in view_interface_names
+            bc_dict[name] = coupled_bc
+        else
+            bc_dict[name] = dirichlet_bc
+        end
     end
-    return boundaries
+    println("  Boundary names: $actual_names → $(Dict(n => (n in view_interface_names ? "Coupled" : "Dirichlet") for n in actual_names))")
+    return bc_dict
 end
 
-# Get boundaries for each view
-boundaries1 = get_domain_boundaries(left_elements, cache_parent.elements, coordinates_min, coordinates_max)
-boundaries2 = get_domain_boundaries(right_elements, cache_parent.elements, coordinates_min, coordinates_max)
-
-println("Left view boundaries: $boundaries1")
-println("Right view boundaries: $boundaries2")
-
-# Create boundary conditions for each view (coupled BC for all boundaries)
-bc1 = Dict(name => coupled_bc for name in boundaries1)
-bc2 = Dict(name => coupled_bc for name in boundaries2)
+println("Building left view BCs...")
+bc1 = build_view_bcs(mesh1, equations, solver, dirichlet_bc, coupled_bc, view_interface_names_left)
+println("Building right view BCs...")
+bc2 = build_view_bcs(mesh2, equations, solver, dirichlet_bc, coupled_bc, view_interface_names_right)
 
 # Create semidiscretizations
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
