@@ -380,9 +380,9 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         if sum(normal_direction .* (1.0, 0.0)) >
            sum(normal_direction .* (-1.0, 0.0))
             cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :x_pos) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+                                                                     :x_pos) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         else
             cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
                                                                         :x_neg) .*
