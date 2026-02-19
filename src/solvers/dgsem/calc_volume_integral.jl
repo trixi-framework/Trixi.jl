@@ -122,12 +122,12 @@ end
     # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
     # in `integrate_reference_element`.
     dS_volume_integral = -entropy_change_reference_element(du, u, element,
-                                                            mesh, equations,
-                                                            dg, cache)
+                                                           mesh, equations,
+                                                           dg, cache)
 
     # Compute true entropy change given by surface integral of the entropy potential
     dS_true = surface_integral_reference_element(entropy_potential, u, element,
-                                                    mesh, equations, dg, cache)
+                                                 mesh, equations, dg, cache)
 
     # This quantity should be ≤ 0 for an entropy stable volume integral, and 
     # exactly zero for an entropy conservative volume integral. 
@@ -153,9 +153,9 @@ end
         @views du_FD_element .= (du_FD_element .- du[.., element])
 
         entropy_dissipation = entropy_change_reference_element(du_FD_element, u,
-                                                                element,
-                                                                mesh, equations,
-                                                                dg, cache)
+                                                               element,
+                                                               mesh, equations,
+                                                               dg, cache)
 
         # Calculate DG-FV blending factor 
         ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
@@ -166,7 +166,7 @@ end
 
         # Blend the high order method back in 
         @views du[.., element] .= du[.., element] .+
-                                    (1 - alpha_element) .* du_FD_element
+                                  (1 - alpha_element) .* du_FD_element
     end
 
     return nothing
