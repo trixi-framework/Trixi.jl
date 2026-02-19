@@ -129,7 +129,7 @@ function integrate_reference_element(func::Func, u, element,
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
-    element_integral = zero(func(u, 1, 1, equations, dg, args...))
+    element_integral = zero(func(u, 1, element, equations, dg, args...))
 
     for i in eachnode(dg)
         element_integral += weights[i] *
