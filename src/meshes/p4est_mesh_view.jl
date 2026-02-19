@@ -126,7 +126,7 @@ function extract_boundaries(mesh::P4estMeshView{2},
     for boundary in 1:nboundaries(boundaries_parent)
         mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
     end
-    boundaries.neighbor_ids = global_element_id_to_local(boundaries_parent.neighbor_ids[mask],
+    boundaries.neighbor_ids = global_cell_id_to_local(boundaries_parent.neighbor_ids[mask],
                                                          mesh)
     boundaries.name = boundaries_parent.name[mask]
     boundaries.node_indices = boundaries_parent.node_indices[mask]
@@ -148,7 +148,7 @@ function extract_boundaries(mesh::P4estMeshView{2},
 
             # Update the neighbor ids.
             push!(boundaries.neighbor_ids,
-                  global_element_id_to_local(neighbor_id, mesh))
+                  global_cell_id_to_local(neighbor_id, mesh))
             # Update the boundary names to reflect where the neighboring cell is
             # relative to this one, i.e. left, right, up, down.
             # In 3d one would need to add the third dimension.
@@ -218,26 +218,26 @@ function extract_neighbor_ids_global(mesh::P4estMeshView,
         end
 
         # Find this id in the parent's boundaries.
-        parent_xneg_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
-        parent_xpos_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
-        parent_yneg_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_neg]
-        parent_ypos_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]
+        parent_xneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
+        parent_xpos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
+        parent_yneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_neg]
+        parent_ypos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]
         for (parent_idx, boundary) in enumerate(boundaries_parent.neighbor_ids)
             if global_id == boundary
                 # Check if boundaries with this id have the right name/node_indices.
                 if boundaries.name[idx] == boundaries_parent.name[parent_idx]
                     # Make the coupling periodic.
                     if boundaries_parent.name[parent_idx] == :x_neg
-                        neighbor_ids_global[idx] = parent_xpos_element_ids[findfirst(parent_xneg_element_ids .==
+                        neighbor_ids_global[idx] = parent_xpos_cell_ids[findfirst(parent_xneg_cell_ids .==
                                                                                      boundary)]
                     elseif boundaries_parent.name[parent_idx] == :x_pos
-                        neighbor_ids_global[idx] = parent_xneg_element_ids[findfirst(parent_xpos_element_ids .==
+                        neighbor_ids_global[idx] = parent_xneg_cell_ids[findfirst(parent_xpos_cell_ids .==
                                                                                      boundary)]
                     elseif boundaries_parent.name[parent_idx] == :y_neg
-                        neighbor_ids_global[idx] = parent_ypos_element_ids[findfirst(parent_yneg_element_ids .==
+                        neighbor_ids_global[idx] = parent_ypos_cell_ids[findfirst(parent_yneg_cell_ids .==
                                                                                      boundary)]
                     elseif boundaries_parent.name[parent_idx] == :y_pos
-                        neighbor_ids_global[idx] = parent_yneg_element_ids[findfirst(parent_ypos_element_ids .==
+                        neighbor_ids_global[idx] = parent_yneg_cell_ids[findfirst(parent_ypos_cell_ids .==
                                                                                      boundary)]
                     else
                         error("Unknown boundary name: $(boundaries_parent.name[parent_idx])")
@@ -267,7 +267,7 @@ function node_indices_to_name(node_index)
 end
 
 # Convert a global cell id to a local cell id in the mesh view.
-function global_element_id_to_local(id::Integer, mesh::P4estMeshView)
+function global_cell_id_to_local(id::Integer, mesh::P4estMeshView)
     # Find the index of the cell id in the mesh view
     local_id = searchsortedfirst(mesh.cell_ids, id)
 
@@ -275,11 +275,11 @@ function global_element_id_to_local(id::Integer, mesh::P4estMeshView)
 end
 
 # Convert an array of global cell ids to a local cell id in the mesh view.
-function global_element_id_to_local(ids::AbstractArray, mesh::P4estMeshView)
+function global_cell_id_to_local(ids::AbstractArray, mesh::P4estMeshView)
     # Find the index of the cell id in the mesh view
     local_id = zeros(Int, length(ids))
     for i in eachindex(ids)
-        local_id[i] = global_element_id_to_local(ids[i], mesh)
+        local_id[i] = global_cell_id_to_local(ids[i], mesh)
     end
     return local_id
 end
