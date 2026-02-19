@@ -13,9 +13,9 @@ given by the pressure and internal energy relations
 ```math
 p = \frac{R T}{V - b} - \frac{a(T)}{V^2 + 2bV - b^2}, \quad e_{\text{internal}} = c_{v,0} T + K(a(T) - Ta'(T))
 ```
-where ``V = inv(rho)`` and auxiliary expressions for ``a(T)`` and ``K`` are given by 
+where ``V = \rho^{-1}`` and auxiliary expressions for ``a(T)`` and ``K`` are given by 
 ```math
-a(T) = a_0\left(1 + \kappa \left 1 - \sqrt{\frac{T}{T_0}}\right)\right)^2, \quad 
+a(T) = a_0\left(1 + \kappa \left(1 - \sqrt{\frac{T}{T_0}}\right)\right)^2, \quad 
 K = \frac{1}{b 2\sqrt{2}} \log\left( \frac{V + (1 - b \sqrt{2})}{V + (1 + b\sqrt{2})}\right).
 ```
 Moreover, ``c_v = c_{v,0} - K T a''(T)``. 
