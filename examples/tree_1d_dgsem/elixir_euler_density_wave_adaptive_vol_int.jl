@@ -8,7 +8,8 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_density_wave
 
-# Inviscid surface & volume flux, resulting in an entropy conservative scheme.
+# Inviscid surface & volume flux, which results in an entropy conservative
+# if `VolumeIntegralFluxDifferencing` is used.
 # Turned entropy-diffusive through `IndicatorEntropyChange` and `VolumeIntegralAdaptive` defined below.
 surface_flux = flux_ranocha
 volume_flux = flux_ranocha
