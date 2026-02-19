@@ -405,9 +405,9 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                                      element_index))]
         else
             cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :y_neg) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+                                                                     :y_neg) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         end
         j_index_g = j_index
         # Make sure we do not leave the domain.
