@@ -1166,5 +1166,4 @@ with thermodynamic entropy ``s = \ln(p) - \gamma \ln(\rho)``.
                                    equations::CompressibleEulerEquations1D)
     return u[2]
 end
-
 end # @muladd

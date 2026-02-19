@@ -155,7 +155,8 @@ end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
 function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations, dg::DGSEM,
+                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                            equations, dg::DGSEM,
                                             cache, args...) where {Func}
     u_left = get_node_vars(u, equations, dg, 1, element)
     u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
