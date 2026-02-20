@@ -388,13 +388,13 @@ end
     end
 
     for j in 2:nnodes(dg), i in eachnode(dg)
-        u_ll = recon2cons(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
                           equations)
-        u_lr = recon2cons(get_node_vars(u, equations, dg, i, j - 1, element),
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, element),
                           equations)
-        u_rl = recon2cons(get_node_vars(u, equations, dg, i, j, element),
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
                           equations)
-        u_rr = recon2cons(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
                                         element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
