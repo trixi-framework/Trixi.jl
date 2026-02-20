@@ -87,8 +87,6 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     resize!(cache, mesh, volume_integral, n_cells)
     init_volume_integral!(cache, mesh, dg, volume_integral, n_cells)
 
-    println("reinit: ", length(volume_integral.indicator.cache.alpha))
-
     # re-initialize interfaces container
     @unpack interfaces = cache
     resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
