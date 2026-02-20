@@ -13,6 +13,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         return
     end
 
+    println("AMR refine")
+
     # Determine for each existing element whether it needs to be refined
     needs_refinement = falses(nelements(dg, cache))
     needs_refinement[elements_to_refine] .= true
@@ -147,6 +149,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     if isempty(elements_to_remove)
         return
     end
+
+    println("AMR coarsen")
 
     # Determine for each old element whether it needs to be removed
     to_be_removed = falses(nelements(dg, cache))
