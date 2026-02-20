@@ -324,7 +324,7 @@ end
 end
 
 """
-    entropy_potential(u, orientation::Int, equations::NonIdealCompressibleEulerEquations1D)
+    entropy_potential(u, orientation::Int, equations::AbstractNonIdealCompressibleEulerEquations)
 
 Calculate the entropy potential, which for the compressible Euler equations with general
 EOS is ``p v_i / T`` for the choice of [`entropy`](@ref) ``S(u) = -\rho s``. 
