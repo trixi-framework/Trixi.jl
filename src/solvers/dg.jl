@@ -221,6 +221,9 @@ The amount of blending is determined by the `indicator`, e.g.,
     1) [`koren`](@ref) for positive (right-going) velocities
     2) [`koren_flipped`](@ref) for negative (left-going) velocities
 
+The reconstruction is performed in reconstruction variables, which default to the primitive variables.
+Other choices are possible, e.g. thermodynamic variables, see [`cons2therm`](@ref).
+
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
@@ -508,6 +511,9 @@ For the DG-subcells at the boundaries, two options are available:
 **Asymmetric** TVD limiters are also available, e.g.,
     1) [`koren`](@ref) for positive (right-going) velocities
     2) [`koren_flipped`](@ref) for negative (left-going) velocities
+
+The reconstruction is performed in reconstruction variables, which default to the primitive variables.
+Other choices are possible, e.g. thermodynamic variables, see [`cons2therm`](@ref).
 
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
