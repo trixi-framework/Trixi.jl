@@ -633,7 +633,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = cache
+    @unpack volume_integral = dg
     resize!(cache, mesh, volume_integral, n_cells)
     init_volume_integral!(cache, mesh, dg, volume_integral, n_cells)
 

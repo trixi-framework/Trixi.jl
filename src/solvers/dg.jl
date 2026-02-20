@@ -339,6 +339,13 @@ function get_element_variables!(element_variables, u, mesh, equations,
 end
 
 # `resize!` functions are called after mesh adaptation
+# Default `nothing` required for dispatch
+function Base.resize!(cache, mesh, volume_integral::AbstractVolumeIntegral,
+                      new_size)
+    return nothing
+end
+# `AbstractVolumeIntegralSubcell` require resizing of the subcell normal vectors for
+# non-Cartesian meshes
 function Base.resize!(cache, mesh, volume_integral::AbstractVolumeIntegralSubcell,
                       new_size)
     resize_normal_vectors!(cache, mesh, new_size)
@@ -346,6 +353,7 @@ function Base.resize!(cache, mesh, volume_integral::AbstractVolumeIntegralSubcel
     return nothing
 end
 
+# `init_volume_integral!` functions are called after mesh adaptation in `reinitialize_containers`
 init_volume_integral!(cache, mesh::TreeMesh, dg, volume_integral::AbstractVolumeIntegralSubcell, new_size) = nothing
 
 function init_volume_integral!(cache, mesh::Union{P4estMesh, T8codeMesh}, dg,
