@@ -600,9 +600,11 @@ end
         # Set up correct direction and factors
         if large_sides[mortar] == 1 # -> small elements on right side
             if orientations[mortar] == 1
+                # L2 mortars in x-direction
                 direction_small = 1
                 direction_large = 2
             else
+                # L2 mortars in y-direction
                 direction_small = 3
                 direction_large = 4
             end
@@ -612,9 +614,11 @@ end
             factor_large = -factor
         else # large_sides[mortar] == 2 -> small elements on left side
             if orientations[mortar] == 1
+                # L2 mortars in x-direction
                 direction_small = 2
                 direction_large = 1
             else
+                # L2 mortars in y-direction
                 direction_small = 4
                 direction_large = 3
             end
