@@ -246,6 +246,50 @@ function initial_condition_weak_blast_wave(x, t,
     return prim2cons(SVector(prim), equations)
 end
 
+"""
+    initial_condition_convergence_test(x, t, equations::IdealGlmMhdMultiIonEquations2D)
+
+An Alfvén wave as smooth initial condition used for convergence tests.
+The state is the same for each ion species, which is an exact solution of the multi-ion
+GLM-MHD equations since the Lorentz source terms vanish when all species have equal velocities.
+For a single ion species, no source terms are needed.
+
+See for reference section 4.2 in
+- Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, Stefanie Walch (2016)
+  A novel high-order, entropy stable, 3D AMR MHD solver with guaranteed positive pressure
+  [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
+"""
+function initial_condition_convergence_test(x, t,
+                                            equations::IdealGlmMhdMultiIonEquations2D)
+    # smooth Alfvén wave test from Derigs et al. (2016), adapted to multi-ion MHD
+    # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3 for each species
+    RealT = eltype(x)
+    alpha = 0.25f0 * convert(RealT, pi)
+    x_perp = x[1] * cos(alpha) + x[2] * sin(alpha)
+    B_perp = convert(RealT, 0.1) * sinpi(2 * (x_perp + t))
+    rho = 1
+    v1 = -B_perp * sin(alpha)
+    v2 = B_perp * cos(alpha)
+    v3 = convert(RealT, 0.1) * cospi(2 * (x_perp + t))
+    p = convert(RealT, 0.1)
+    B1 = cos(alpha) + v1
+    B2 = sin(alpha) + v2
+    B3 = v3
+    psi = 0
+
+    prim = zero(MVector{nvariables(equations), RealT})
+    prim[1] = B1
+    prim[2] = B2
+    prim[3] = B3
+    # All ion species get the same primitive state
+    for k in eachcomponent(equations)
+        set_component!(prim, k, rho, v1, v2, v3, p, equations)
+    end
+    prim[end] = psi
+
+    return prim2cons(SVector(prim), equations)
+end
+
 # 2D flux of the multi-ion GLM-MHD equations in the direction `orientation`
 @inline function flux(u, orientation::Integer,
                       equations::IdealGlmMhdMultiIonEquations2D)
