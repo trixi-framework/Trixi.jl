@@ -222,7 +222,7 @@ The amount of blending is determined by the `indicator`, e.g.,
     2) [`koren_flipped`](@ref) for negative (left-going) velocities
 
 The reconstruction is performed in reconstruction variables, which default to the primitive variables.
-Other choices are possible, e.g. thermodynamic variables, see [`cons2therm`](@ref) and [`therm2cons`](@ref).
+Other choices are possible, e.g. thermodynamic variables, see [`cons2thermo`](@ref) and [`thermo2cons`](@ref).
 
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
@@ -513,7 +513,7 @@ For the DG-subcells at the boundaries, two options are available:
     2) [`koren_flipped`](@ref) for negative (left-going) velocities
 
 The reconstruction is performed in reconstruction variables, which default to the primitive variables.
-Other choices are possible, e.g. thermodynamic variables, see [`cons2therm`](@ref) and [`therm2cons`](@ref).
+Other choices are possible, e.g. thermodynamic variables, see [`cons2thermo`](@ref) and [`thermo2cons`](@ref).
 
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
