@@ -354,7 +354,8 @@ function Base.resize!(cache, mesh, volume_integral::AbstractVolumeIntegralSubcel
 end
 
 # `init_volume_integral!` functions are called after mesh adaptation in `reinitialize_containers`
-init_volume_integral!(cache, mesh::TreeMesh, dg, volume_integral::AbstractVolumeIntegralSubcell, new_size) = nothing
+# Default `nothing` required for dispatch
+init_volume_integral!(cache, mesh, dg, volume_integral::AbstractVolumeIntegral, new_size) = nothing
 
 function init_volume_integral!(cache, mesh::Union{P4estMesh, T8codeMesh}, dg,
                                volume_integral::AbstractVolumeIntegralSubcell, new_size)
