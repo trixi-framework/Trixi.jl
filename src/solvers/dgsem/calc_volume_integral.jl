@@ -50,12 +50,15 @@ end
                                          volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                          dg::DGSEM, cache, alpha = true)
     # Unpack volume integral specific data
-    @unpack sc_interface_coords, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
+    @unpack (sc_interface_coords, volume_flux_fv, reconstruction_mode, slope_limiter,
+    cons2recon, recon2cons) = volume_integral
 
     fvO2_kernel!(du, u, mesh,
                  have_nonconservative_terms, equations,
                  volume_flux_fv, dg, cache, element,
-                 sc_interface_coords, reconstruction_mode, slope_limiter, alpha)
+                 sc_interface_coords, reconstruction_mode, slope_limiter,
+                 cons2recon, recon2cons,
+                 alpha)
 
     return nothing
 end
