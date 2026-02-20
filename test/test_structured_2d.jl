@@ -1095,6 +1095,36 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_mhdmultiion_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_convergence.jl"),
+                        l2=[
+                            2.68259948e-04,
+                            2.68259948e-04,
+                            3.17040854e-04,
+                            2.48253785e-04,
+                            2.01049233e-04,
+                            2.01049233e-04,
+                            3.16946134e-04,
+                            3.25608959e-04,
+                            3.24446906e-05
+                        ],
+                        linf=[
+                            9.84064840e-04,
+                            9.84064840e-04,
+                            1.38753272e-03,
+                            7.23791636e-04,
+                            1.18331692e-03,
+                            1.18331692e-03,
+                            1.38755171e-03,
+                            9.21433200e-04,
+                            9.60733258e-05
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_coupled.jl"),
                         l2=[
