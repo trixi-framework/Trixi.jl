@@ -227,14 +227,6 @@ const IndicatorLoehner = IndicatorLöhner
     return num / den
 end
 
-# Called from 
-@inline function resize!(indicator::AbstractIndicator, dg, cache)
-    @unpack alpha = indicator.cache
-    resize!(alpha, nelements(dg, cache))
-
-    return nothing
-end
-
 """
     IndicatorMax(equations::AbstractEquations, basis; variable)
     IndicatorMax(semi::AbstractSemidiscretization; variable)

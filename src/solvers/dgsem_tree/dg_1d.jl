@@ -50,18 +50,6 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
         fstar1_R_threaded[t][:, nnodes(dg) + 1] .= zero(uEltype)
     end
 
-    if hasproperty(volume_integral, :indicator)
-        @unpack indicator = volume_integral
-        if indicator isa IndicatorHennemannGassner
-            resize!(indicator.cache.alpha, nelements(dg, cache_containers))
-            if indicator.alpha_smooth
-                resize!(indicator.cache.alpha_tmp, nelements(dg, cache_containers))
-            end
-        end
-    end
-
-    println("length IHG: ", length(indicator.cache.alpha))
-
     return (; fstar1_L_threaded, fstar1_R_threaded)
 end
 
