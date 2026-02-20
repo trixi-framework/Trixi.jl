@@ -1,7 +1,8 @@
 function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
+    n_cells = ncells(mesh)
+
     # Re-initialize elements container.
     @unpack elements = cache
-    n_cells = ncells(mesh)
     resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
 

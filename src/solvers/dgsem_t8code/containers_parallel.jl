@@ -3,6 +3,7 @@ function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM
     mpi_cache = cache
 
     n_cells = ncells(mesh)
+
     resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
 

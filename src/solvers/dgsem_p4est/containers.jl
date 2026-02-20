@@ -627,9 +627,11 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
 end
 
 function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
+    n_cells = ncells(mesh)
+
     # Re-initialize elements container
     @unpack elements = cache
-    resize!(elements, ncells(mesh))
+    resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
