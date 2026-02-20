@@ -397,7 +397,7 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorEntropyCorrection(equations::AbstractEquations,
                                     basis::LobattoLegendreBasis;
-                                    scaling = true)
+                                    scaling = true) # true = 1 in floating point multiplication
     cache = create_cache(IndicatorEntropyCorrection, equations, basis)
     return IndicatorEntropyCorrection{typeof(cache), typeof(scaling)}(cache, scaling)
 end
