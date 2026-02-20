@@ -514,7 +514,8 @@ end
 
     @trixi_testset "conservation" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_blast_wave_amr_sc_subcell.jl"),pure_low_order=true,
+                                     "elixir_euler_blast_wave_amr_sc_subcell.jl"),
+                            pure_low_order=true,
                             tspan=(0.0, 1.0))
         state_integrals = Trixi.integrate(sol.u[2], semi)
         initial_state_integrals = analysis_callback.affect!.initial_state_integrals
