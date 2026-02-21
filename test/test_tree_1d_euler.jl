@@ -598,9 +598,9 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave_FVO2" begin
+@trixi_testset "elixir_euler_nonideal_density_wave_FVO2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_nonideal_density_wave_FVO2"),
+                                 "elixir_euler_nonideal_density_wave_FVO2.jl"),
                         l2=[
                             0.21859905356668904,
                             0.021312774105832932,
