@@ -348,6 +348,39 @@ function get_element_variables!(element_variables, u, mesh, equations,
                                   volume_integral)
 end
 
+# `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
+# Default `nothing` required for dispatch
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::AbstractVolumeIntegral,
+                                       new_size)
+    return nothing
+end
+# `AbstractVolumeIntegralSubcell` require resizing of the subcell normal vectors for
+# non-Cartesian meshes
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       new_size)
+    resize_normal_vectors!(cache, mesh, new_size)
+
+    return nothing
+end
+
+# `reinit_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::AbstractVolumeIntegral,
+                                       new_size)
+    return nothing
+end
+# `AbstractVolumeIntegralSubcell` require reinitializing of the subcell normal vectors for
+# non-Cartesian meshes
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       new_size)
+    reinit_normal_vectors!(cache, mesh, dg)
+
+    return nothing
+end
+
 """
     VolumeIntegralAdaptive(;
                            indicator = IndicatorEntropyChange(),
