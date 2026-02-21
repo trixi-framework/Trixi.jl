@@ -514,7 +514,8 @@ For the DG-subcells at the boundaries, two options are available:
     2) [`koren_flipped`](@ref) for negative (left-going) velocities
 
 The reconstruction is performed in reconstruction variables, which default to the primitive variables.
-Other choices are possible, e.g. thermodynamic variables, see [`cons2thermo`](@ref) and [`thermo2cons`](@ref).
+Other choices are possible, e.g., thermodynamic variables, see [`cons2thermo`](@ref) and [`thermo2cons`](@ref)
+for [`NonIdealCompressibleEulerEquations1D`](@ref) and [`NonIdealCompressibleEulerEquations2D`](@ref).
 
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
