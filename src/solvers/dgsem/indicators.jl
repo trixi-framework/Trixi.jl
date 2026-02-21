@@ -466,12 +466,11 @@ end
 
 function Base.show(io::IO, indicator::IndicatorEntropyCorrectionShockCapturingCombined)
     @nospecialize indicator # reduce precompilation time
-    print(io, "IndicatorEntropyCorrectionShockCapturingCombined")
-    # print(io, "IndicatorEntropyCorrectionShockCapturingCombined(")
-    # print(io, indicator.indicator_entropy_correction)
-    # print(io, ", ")
-    # print(io, indicator.indicator_shock_capturing |> typeof |> nameof)
-    # print(io, ")")
+    print(io, "IndicatorEntropyCorrectionShockCapturingCombined(")
+    print(io, indicator.indicator_entropy_correction)
+    print(io, ", ")
+    print(io, indicator.indicator_shock_capturing |> typeof |> nameof)
+    print(io, ")")
     return nothing
 end
 
