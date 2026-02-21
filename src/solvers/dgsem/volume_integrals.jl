@@ -36,8 +36,8 @@ This can be used to add shock capturing-like behavior. Note though that ``\\alph
 here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
 
 The use of `VolumeIntegralEntropyCorrection` requires either
-    `entropy_potential(u, orientation, equations)` for TreeMesh, or
-    `entropy_potential(u, normal_direction, equations)` for other mesh types
+`entropy_potential(u, orientation, equations)` for TreeMesh, or
+`entropy_potential(u, normal_direction, equations)` for other mesh types
 to be defined. 
 """
 const VolumeIntegralEntropyCorrection = VolumeIntegralAdaptive{<:IndicatorEntropyCorrection}
