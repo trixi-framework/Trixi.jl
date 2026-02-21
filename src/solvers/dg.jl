@@ -225,7 +225,7 @@ The reconstruction is performed in reconstruction variables, which default to th
 Other choices are possible, e.g., thermodynamic variables, see [`cons2thermo`](@ref) and [`thermo2cons`](@ref)
 for [`NonIdealCompressibleEulerEquations1D`](@ref) and [`NonIdealCompressibleEulerEquations2D`](@ref).
 
-!!! note "Conservative Systems only"
+!!! note "Conservative systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
 
