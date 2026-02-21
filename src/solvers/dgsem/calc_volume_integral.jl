@@ -151,14 +151,17 @@ end
                                 have_nonconservative_terms, equations,
                                 volume_integral_stabilized, dg, cache)
 
-        # Calculate difference between high and low order FV integral;
-        # this should be made entropy dissipative if entropy_residual > 0.
         @views du_FD_element .= (du_FD_element .- du[.., element])
 
-        entropy_dissipation = entropy_change_reference_element(du_FD_element, u,
-                                                               element,
-                                                               mesh, equations,
-                                                               dg, cache)
+        dS_volume_integral_stabilized = entropy_change_reference_element(du, u, element,
+                                                                         mesh,
+                                                                         equations, dg,
+                                                                         cache)
+
+        # Calculate difference between high and low order FV entropy production;
+        # this should provide positive entropy dissipation if `entropy_residual > 0`, 
+        # assuming the stabilized volume integral is entropy stable.
+        entropy_dissipation = dS_volume_integral - dS_volume_integral_stabilized
 
         # Calculate DG-FV blending factor 
         ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
@@ -311,10 +314,10 @@ function calc_volume_integral!(du, u, mesh,
             # this should be made entropy dissipative if entropy_residual > 0.
             @views du_FD_element .= (du_FD_element .- du[.., element])
 
-            entropy_dissipation = entropy_change_reference_element(du_FD_element, u,
-                                                                   element,
-                                                                   mesh, equations,
-                                                                   dg, cache)
+            entropy_dissipation = -entropy_change_reference_element(du, u,
+                                                                    element,
+                                                                    mesh, equations,
+                                                                    dg, cache)
 
             # Calculate DG-FV blending factor as the minimum between the entropy correction 
             # indicator and shock capturing indicator

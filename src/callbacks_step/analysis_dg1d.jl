@@ -153,20 +153,6 @@ function entropy_change_reference_element(du, u, element,
     end
 end
 
-# This version is intended to be used with `du_element` (`du` over a single element)
-function entropy_change_reference_element(du_element::AbstractArray{<:Any, 2}, u,
-                                          element, mesh::AbstractMesh{1},
-                                          equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, mesh, equations, dg, cache,
-                                       du_element) do u, i, element, equations, dg,
-                                                      du_element
-        u_node = get_node_vars(u, equations, dg, i, element)
-        du_node = get_node_vars(du_element, equations, dg, i)
-
-        dot(cons2entropy(u_node, equations), du_node)
-    end
-end
-
 # calculate surface integral of func(u, equations) * normal on the reference element.
 function surface_integral_reference_element(func::Func, u, element,
                                             mesh::Union{TreeMesh{1}, StructuredMesh{1}},
