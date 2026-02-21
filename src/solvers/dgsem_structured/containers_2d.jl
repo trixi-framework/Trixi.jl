@@ -332,9 +332,8 @@ function resize_normal_vectors!(cache, mesh::Union{P4estMesh, T8codeMesh}, capac
     return nothing
 end
 
-init_normal_vectors!(cache, mesh::TreeMesh, dg) = nothing
-
-function init_normal_vectors!(cache, mesh::Union{P4estMesh, T8codeMesh}, dg)
+# It suffices to specialize on the non-Cartesian mesh types with AMR only
+function reinit_normal_vectors!(cache, mesh::Union{P4estMesh, T8codeMesh}, dg)
     init_normal_vectors!(cache.normal_vectors, mesh, dg, cache)
 
     return nothing
