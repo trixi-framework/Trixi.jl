@@ -94,6 +94,24 @@ end
                                             n_cells_max = 10_000,
                                             periodicity = true)
     end
+
+    @testset "helper functions" begin
+        coordinates_min = (-0.5, -0.5, -0.5)
+        coordinates_max = (0.5, 0.5, 0.5)
+
+        for ndims in 1:3
+            coords_min = coordinates_min[1:ndims]
+            coords_max = coordinates_max[1:ndims]
+            for ref_level in 0:2
+                mesh = TreeMesh(coords_min, coords_max,
+                                initial_refinement_level = ref_level,
+                                n_cells_max = 10_000, periodicity = true)
+
+                @test Trixi.ndims(mesh) == ndims
+                @test Trixi.ncells(mesh) == (2^ndims)^ref_level
+            end
+        end
+    end
 end
 
 @timed_testset "TreeMeshParallel" begin

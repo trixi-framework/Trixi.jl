@@ -200,7 +200,9 @@ end
     VolumeIntegralShockCapturingRRG(basis, indicator;
                                     volume_flux_dg=flux_central,
                                     volume_flux_fv=flux_lax_friedrichs,
-                                    slope_limiter=minmod)
+                                    slope_limiter=minmod,
+                                    cons2recon=cons2prim,
+                                    recon2cons=prim2cons)
 
 Shock-capturing volume integral type for DG methods using a convex blending of
 a **second-order** finite volume method with numerical flux `volume_flux_fv` and
@@ -219,6 +221,10 @@ The amount of blending is determined by the `indicator`, e.g.,
     1) [`koren`](@ref) for positive (right-going) velocities
     2) [`koren_flipped`](@ref) for negative (left-going) velocities
 
+The reconstruction is performed in reconstruction variables, which default to the primitive variables.
+Other choices are possible, e.g., thermodynamic variables, see [`cons2thermo`](@ref) and [`thermo2cons`](@ref)
+for [`NonIdealCompressibleEulerEquations1D`](@ref) and [`NonIdealCompressibleEulerEquations2D`](@ref).
+
 !!! note "Conservative Systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
@@ -235,7 +241,9 @@ See especially Section 3.2, Section 4, and Appendix D of the paper
 function VolumeIntegralShockCapturingRRG(basis, indicator;
                                          volume_flux_dg = flux_central,
                                          volume_flux_fv = flux_lax_friedrichs,
-                                         slope_limiter = minmod)
+                                         slope_limiter = minmod,
+                                         cons2recon = cons2prim,
+                                         recon2cons = prim2cons)
     volume_integral_fd = VolumeIntegralFluxDifferencing(volume_flux_dg)
 
     # `reconstruction_mode` is hard-coded to `reconstruction_O2_inner` to
@@ -243,7 +251,9 @@ function VolumeIntegralShockCapturingRRG(basis, indicator;
     volume_integral_fv = VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                                              volume_flux_fv = volume_flux_fv,
                                                              reconstruction_mode = reconstruction_O2_inner,
-                                                             slope_limiter = slope_limiter)
+                                                             slope_limiter = slope_limiter,
+                                                             cons2recon = cons2recon,
+                                                             recon2cons = recon2cons)
     return VolumeIntegralShockCapturingHGType{typeof(indicator),
                                               typeof(volume_integral_fd),
                                               typeof(volume_integral_fd),
@@ -336,6 +346,39 @@ function get_element_variables!(element_variables, u, mesh, equations,
     volume_integral.indicator(u, mesh, equations, dg, cache)
     return get_element_variables!(element_variables, volume_integral.indicator,
                                   volume_integral)
+end
+
+# `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
+# Default `nothing` required for dispatch
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::AbstractVolumeIntegral,
+                                       new_size)
+    return nothing
+end
+# `AbstractVolumeIntegralSubcell` require resizing of the subcell normal vectors for
+# non-Cartesian meshes
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       new_size)
+    resize_normal_vectors!(cache, mesh, new_size)
+
+    return nothing
+end
+
+# `reinit_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::AbstractVolumeIntegral,
+                                       new_size)
+    return nothing
+end
+# `AbstractVolumeIntegralSubcell` require reinitializing of the subcell normal vectors for
+# non-Cartesian meshes
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       new_size)
+    reinit_normal_vectors!(cache, mesh, dg)
+
+    return nothing
 end
 
 """
@@ -472,7 +515,9 @@ end
     VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                         volume_flux_fv = flux_lax_friedrichs,
                                         reconstruction_mode = reconstruction_O2_full,
-                                        slope_limiter = minmod)
+                                        slope_limiter = minmod,
+                                        cons2recon = cons2prim,
+                                        recon2cons = prim2cons)
 
 This gives an up to  second order accurate finite volume scheme on an LGL-type subcell
 mesh (LGL = Legendre-Gauss-Lobatto).
@@ -501,7 +546,11 @@ For the DG-subcells at the boundaries, two options are available:
     1) [`koren`](@ref) for positive (right-going) velocities
     2) [`koren_flipped`](@ref) for negative (left-going) velocities
 
-!!! note "Conservative Systems only"
+The reconstruction is performed in reconstruction variables, which default to the primitive variables.
+Other choices are possible, e.g., thermodynamic variables, see [`cons2thermo`](@ref) and [`thermo2cons`](@ref)
+for [`NonIdealCompressibleEulerEquations1D`](@ref) and [`NonIdealCompressibleEulerEquations2D`](@ref).
+
+!!! note "Conservative systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
 
@@ -515,28 +564,37 @@ See especially Section 3.2, Section 4, and Appendix D of the paper
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 struct VolumeIntegralPureLGLFiniteVolumeO2{SubCellInterfaceCoordinates, VolumeFluxFV,
-                                           Reconstruction, Limiter} <:
+                                           Reconstruction, Limiter,
+                                           Cons2Recon, Recon2Cons} <:
        AbstractVolumeIntegralPureLGLFiniteVolume
     sc_interface_coords::SubCellInterfaceCoordinates # (x-)coordinates of the sub-cell element interfaces
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
     reconstruction_mode::Reconstruction # which type of FV reconstruction to use
     slope_limiter::Limiter # which type of slope limiter function
+    cons2recon::Cons2Recon # function to convert from conservative variables to the variables used for reconstruction
+    recon2cons::Recon2Cons # function to convert from the variables used for reconstruction back to conservative variables
 end
 
 function VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                              volume_flux_fv = flux_lax_friedrichs,
                                              reconstruction_mode = reconstruction_O2_full,
-                                             slope_limiter = minmod)
+                                             slope_limiter = minmod,
+                                             cons2recon = cons2prim,
+                                             recon2cons = prim2cons)
     polydeg = nnodes(basis) - 1
     # Suffices to store only the intermediate boundaries of the sub-cell elements
     sc_interface_coords = SVector{polydeg}(cumsum(basis.weights)[1:polydeg] .- 1)
     return VolumeIntegralPureLGLFiniteVolumeO2{typeof(sc_interface_coords),
                                                typeof(volume_flux_fv),
                                                typeof(reconstruction_mode),
-                                               typeof(slope_limiter)}(sc_interface_coords,
-                                                                      volume_flux_fv,
-                                                                      reconstruction_mode,
-                                                                      slope_limiter)
+                                               typeof(slope_limiter),
+                                               typeof(cons2recon),
+                                               typeof(recon2cons)}(sc_interface_coords,
+                                                                   volume_flux_fv,
+                                                                   reconstruction_mode,
+                                                                   slope_limiter,
+                                                                   cons2recon,
+                                                                   recon2cons)
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -550,7 +608,9 @@ function Base.show(io::IO, ::MIME"text/plain",
             "FV flux" => integral.volume_flux_fv,
             "Reconstruction" => integral.reconstruction_mode,
             "Slope limiter" => integral.slope_limiter,
-            "Subcell boundaries" => vcat([-1.0], integral.sc_interface_coords, [1.0])
+            "Subcell boundaries" => vcat([-1.0], integral.sc_interface_coords, [1.0]),
+            "cons2recon" => integral.cons2recon,
+            "recon2cons" => integral.recon2cons
         ]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolumeO2", setup)
     end
