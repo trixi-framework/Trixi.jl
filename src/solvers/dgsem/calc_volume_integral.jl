@@ -116,9 +116,9 @@ end
 
     # Check entropy production of "high order" volume integral. 
     # 
-    # Note that, for `TreeMesh`, both volume and surface integrals are calculated
-    # on the reference element. For other mesh types, because the volume integral 
-    # incorporates the scaled contravariant vectors, the surface integral should 
+    # Note that, for `TreeMesh`, `dS_volume_integral` and `dS_true` are calculated
+    # on the reference element. For other mesh types, because ``dS_volume_integral`
+    # incorporates the scaled contravariant vectors, `dS_true` should 
     # be calculated on the physical element instead.
     #
     # Minus sign because of the flipped sign of the volume term in the DG RHS.
