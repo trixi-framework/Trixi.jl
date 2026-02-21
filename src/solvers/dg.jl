@@ -356,10 +356,14 @@ function resize_volume_integral_cache!(cache, mesh,
 end
 
 # `reinit_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
-# Default `nothing` required for dispatch
-reinit_volume_integral_cache!(cache, mesh, dg, volume_integral::AbstractVolumeIntegral, new_size) = nothing
-# It suffices to specialize on the non-Cartesian mesh types with AMR only
-function reinit_volume_integral_cache!(cache, mesh::Union{P4estMesh, T8codeMesh}, dg,
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::AbstractVolumeIntegral,
+                                       new_size)
+    return nothing
+end
+# `AbstractVolumeIntegralSubcell` require reinitializing of the subcell normal vectors for
+# non-Cartesian meshes
+function reinit_volume_integral_cache!(cache, mesh, dg,
                                        volume_integral::AbstractVolumeIntegralSubcell,
                                        new_size)
     reinit_normal_vectors!(cache, mesh, dg)
