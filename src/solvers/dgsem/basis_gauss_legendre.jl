@@ -13,21 +13,21 @@ Create a nodal Gauss-Legendre basis for polynomials of degree `polydeg`.
 struct GaussLegendreBasis{RealT <: Real, NNODES,
                           VectorT <: AbstractVector{RealT},
                           InverseVandermondeLegendre <: AbstractMatrix{RealT},
-                          BoundaryMatrix <: AbstractMatrix{RealT},
-                          DerivativeMatrix <: AbstractMatrix{RealT}} <:
+                          DerivativeMatrix <: AbstractMatrix{RealT},
+                          BoundaryMatrix <: AbstractMatrix{RealT}} <:
        AbstractBasisSBP{RealT}
     nodes::VectorT
     weights::VectorT
     inverse_weights::VectorT
 
     inverse_vandermonde_legendre::InverseVandermondeLegendre
-    boundary_interpolation::BoundaryMatrix # lhat
 
     derivative_matrix::DerivativeMatrix # strong form derivative matrix
     derivative_split::DerivativeMatrix # strong form derivative matrix minus boundary terms
-    derivative_split_transpose::DerivativeMatrix # transpose of `derivative_split`
-    derivative_dhat::DerivativeMatrix # weak form matrix "dhat",
-    # negative adjoint wrt the SBP dot product
+    derivative_hat::DerivativeMatrix # weak form matrix "dhat", negative adjoint wrt the SBP dot product
+
+    # Required for Gauss-Legendre nodes (non-trivial interpolation to the boundaries)
+    boundary_interpolation::BoundaryMatrix # lhat
 end
 
 function GaussLegendreBasis(RealT, polydeg::Integer)
@@ -45,8 +45,7 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
 
     derivative_matrix_ = polynomial_derivative_matrix(nodes_)
     derivative_split_ = calc_dsplit(nodes_, weights_)
-    derivative_split_transpose_ = Matrix(derivative_split_')
-    derivative_dhat_ = calc_dhat(nodes_, weights_)
+    derivative_hat_ = calc_dhat(nodes_, weights_)
 
     # type conversions to get the requested real type and enable possible
     # optimizations of runtime performance and latency
@@ -60,20 +59,18 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
     # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
     derivative_matrix = Matrix{RealT}(derivative_matrix_)
     derivative_split = Matrix{RealT}(derivative_split_)
-    derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
-    derivative_dhat = Matrix{RealT}(derivative_dhat_)
+    derivative_hat = Matrix{RealT}(derivative_hat_)
 
     return GaussLegendreBasis{RealT, nnodes_, typeof(nodes),
                               typeof(inverse_vandermonde_legendre),
-                              typeof(boundary_interpolation),
-                              typeof(derivative_matrix)}(nodes, weights,
+                              typeof(derivative_matrix),
+                              typeof(boundary_interpolation)}(nodes, weights,
                                                          inverse_weights,
                                                          inverse_vandermonde_legendre,
-                                                         boundary_interpolation,
                                                          derivative_matrix,
                                                          derivative_split,
-                                                         derivative_split_transpose,
-                                                         derivative_dhat)
+                                                         derivative_hat,
+                                                         boundary_interpolation)
 end
 
 GaussLegendreBasis(polydeg::Integer) = GaussLegendreBasis(Float64, polydeg)
