@@ -23,6 +23,7 @@ This enables in particular adaptive mesh refinement for that solver-mesh combina
 - The second-order subcell volume integral is no longer limited to reconstruction in primitive variables.
   Instead, it is possible to reconstruct in custom variables, if functions `cons2recon` and `recon2cons` are provided to
   `VolumeIntegralPureLGLFiniteVolumeO2` and `VolumeIntegralShockCapturingRRG`([#2817]).
+- Add Legendre-Gauss basis for DGSEM and implement solver support for conforming 1D & 2D `TreeMesh`es ([#1965]).
 
 ## Changes when updating to v0.15 from v0.14.x
 
@@ -294,7 +295,6 @@ This enables in particular adaptive mesh refinement for that solver-mesh combina
 - New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
   method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#1908])
 - Add subcell limiting support for `StructuredMesh` ([#1946]).
-- Add Legendre-Gauss basis for DGSEM and implement solver support for 2D TreeMesh ([#1965]).
 
 ## Changes when updating to v0.7 from v0.6.x
 

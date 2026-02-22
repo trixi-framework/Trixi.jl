@@ -924,8 +924,7 @@ end
 
 function calc_surface_integral!(du, u,
                                 mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                equations,
-                                surface_integral::SurfaceIntegralWeakForm,
+                                equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
