@@ -496,9 +496,7 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{2}, equations,
-                             dg::DG)
+function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations, dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u

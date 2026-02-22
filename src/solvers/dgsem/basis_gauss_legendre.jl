@@ -37,15 +37,11 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
     nodes_, weights_ = gauss_nodes_weights(nnodes_)
     inverse_weights_ = inv.(weights_)
 
-    _, inverse_vandermonde_legendre_ = vandermonde_legendre(nodes_)
+    _, inverse_vandermonde_legendre = vandermonde_legendre(nodes_)
 
-    boundary_interpolation_ = zeros(nnodes_, 2)
-    boundary_interpolation_[:, 1] = calc_lhat(-1.0, nodes_, weights_)
-    boundary_interpolation_[:, 2] = calc_lhat(1.0, nodes_, weights_)
-
-    derivative_matrix_ = polynomial_derivative_matrix(nodes_)
-    derivative_split_ = calc_dsplit(nodes_, weights_)
-    derivative_hat_ = calc_dhat(nodes_, weights_)
+    derivative_matrix = polynomial_derivative_matrix(nodes_)
+    derivative_split = calc_Dsplit(derivative_matrix, weights_)
+    derivative_hat = calc_Dhat(derivative_matrix, weights_)
 
     # type conversions to get the requested real type and enable possible
     # optimizations of runtime performance and latency
@@ -53,24 +49,25 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
     weights = SVector{nnodes_, RealT}(weights_)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
-    inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre_)
-    boundary_interpolation = convert.(RealT, boundary_interpolation_)
+    boundary_interpolation = zeros(nnodes_, 2)
+    boundary_interpolation[:, 1] = calc_Lhat(-1.0, nodes_, weights_)
+    boundary_interpolation[:, 2] = calc_Lhat(1.0, nodes_, weights_)
 
-    # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
-    derivative_matrix = Matrix{RealT}(derivative_matrix_)
-    derivative_split = Matrix{RealT}(derivative_split_)
-    derivative_hat = Matrix{RealT}(derivative_hat_)
+    # We keep the matrices above stored using the standard `Matrix` type
+    # since this is usually as fast as `SMatrix`
+    # (when using `let` in the volume integral/`@threaded`)
+    # and reduces latency
 
     return GaussLegendreBasis{RealT, nnodes_, typeof(nodes),
                               typeof(inverse_vandermonde_legendre),
                               typeof(derivative_matrix),
                               typeof(boundary_interpolation)}(nodes, weights,
-                                                         inverse_weights,
-                                                         inverse_vandermonde_legendre,
-                                                         derivative_matrix,
-                                                         derivative_split,
-                                                         derivative_hat,
-                                                         boundary_interpolation)
+                                                              inverse_weights,
+                                                              inverse_vandermonde_legendre,
+                                                              derivative_matrix,
+                                                              derivative_split,
+                                                              derivative_hat,
+                                                              boundary_interpolation)
 end
 
 GaussLegendreBasis(polydeg::Integer) = GaussLegendreBasis(Float64, polydeg)
@@ -143,6 +140,11 @@ end
 # surface terms/integrals in DGSEM.
 left_boundary_weight(basis::GaussLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::GaussLegendreBasis) = last(basis.weights)
+
+# TODO: Not yet implemented
+function MortarL2(basis::GaussLegendreBasis)
+    return nothing
+end
 
 struct GaussLegendreAnalyzer{RealT <: Real, NNODES,
                              VectorT <: AbstractVector{RealT},
