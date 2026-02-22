@@ -462,7 +462,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_wall_bc_amr.jl (AVI)" begin
+@trixi_testset "elixir_euler_wall_bc_amr.jl (VolumeIntegralAdaptive)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
                         volume_integral=VolumeIntegralAdaptive(indicator = IndicatorEntropyChange(maximum_entropy_increase = 5e-3),
                                                                volume_integral_default = VolumeIntegralWeakForm(),
