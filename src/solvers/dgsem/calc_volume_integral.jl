@@ -169,7 +169,7 @@ end
         alpha[element] = alpha_element
 
         # Blend the high order method back in 
-        @views du[.., element] .= alpha .* du[.., element] .+
+        @views du[.., element] .= alpha_element .* du[.., element] .+
                                   (1 - alpha_element) .* du_FD_element
     end
 
@@ -323,7 +323,7 @@ function calc_volume_integral!(du, u, mesh,
             alpha[element] = alpha_element
 
             # Blend the high order method back in 
-            @views du[.., element] .= alpha .* du[.., element] .+
+            @views du[.., element] .= alpha_element .* du[.., element] .+
                                       (1 - alpha_element) .* du_FD_element
         end
     end
