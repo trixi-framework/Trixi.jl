@@ -10,7 +10,7 @@ function perform_idp_correction!(u, dt,
                                  equations, dg, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
     @unpack antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
-    @unpack alpha = limiter.cache.subcell_limiter_coefficients
+    @unpack alpha = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
 
     # The following code implements the IDP correction in flux-differencing form:
     # u[v, i, j, k, element] += dt * -inverse_jacobian[i, j, k, element] *
