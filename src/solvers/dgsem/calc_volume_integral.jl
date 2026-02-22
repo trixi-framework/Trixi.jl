@@ -151,8 +151,6 @@ end
                                 have_nonconservative_terms, equations,
                                 volume_integral_stabilized, dg, cache)
 
-        @views du_FD_element .= (du_FD_element .- du[.., element])
-
         dS_volume_integral_stabilized = entropy_change_reference_element(du, u, element,
                                                                          mesh,
                                                                          equations, dg,
@@ -171,7 +169,7 @@ end
         alpha[element] = alpha_element
 
         # Blend the high order method back in 
-        @views du[.., element] .= du[.., element] .+
+        @views du[.., element] .= alpha .* du[.., element] .+
                                   (1 - alpha_element) .* du_FD_element
     end
 
@@ -310,10 +308,6 @@ function calc_volume_integral!(du, u, mesh,
                                     have_nonconservative_terms, equations,
                                     volume_integral_stabilized, dg, cache)
 
-            # Calculate difference between high and low order FV integral;
-            # this should be made entropy dissipative if entropy_residual > 0.
-            @views du_FD_element .= (du_FD_element .- du[.., element])
-
             entropy_dissipation = -entropy_change_reference_element(du, u,
                                                                     element,
                                                                     mesh, equations,
@@ -329,7 +323,7 @@ function calc_volume_integral!(du, u, mesh,
             alpha[element] = alpha_element
 
             # Blend the high order method back in 
-            @views du[.., element] .= du[.., element] .+
+            @views du[.., element] .= alpha .* du[.., element] .+
                                       (1 - alpha_element) .* du_FD_element
         end
     end
