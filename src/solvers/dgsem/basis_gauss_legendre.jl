@@ -95,20 +95,6 @@ function Base.show(io::IO, ::MIME"text/plain", basis::GaussLegendreBasis)
           polydeg(basis))
 end
 
-function Base.:(==)(b1::GaussLegendreBasis, b2::GaussLegendreBasis)
-    if typeof(b1) != typeof(b2)
-        return false
-    end
-
-    for field in fieldnames(typeof(b1))
-        if getfield(b1, field) != getfield(b2, field)
-            return false
-        end
-    end
-
-    return true
-end
-
 @inline Base.real(basis::GaussLegendreBasis{RealT}) where {RealT} = RealT
 
 @inline function nnodes(basis::GaussLegendreBasis{RealT, NNODES}) where {RealT, NNODES}
@@ -164,13 +150,6 @@ function calc_Lhat(L, weights)
 
     return Lhat
 end
-
-# Return the first/last weight of the quadrature associated with `basis`.
-# Since the mass matrix for nodal Gauss-Legendre bases is diagonal,
-# these weights are the only coefficients necessary for the scaling of
-# surface terms/integrals in DGSEM.
-left_boundary_weight(basis::GaussLegendreBasis) = first(basis.weights)
-right_boundary_weight(basis::GaussLegendreBasis) = last(basis.weights)
 
 # TODO: Not yet implemented
 function MortarL2(basis::GaussLegendreBasis)

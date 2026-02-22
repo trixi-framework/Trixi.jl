@@ -363,6 +363,16 @@ end
     end
 end
 
+@timed_testset "GaussLegendreBasis" begin
+    basis = GaussLegendreBasis(3)
+    @test nnodes(basis) == 4
+    @test_nowarn show(stdout, "text/plain", basis)
+
+    solution_analyzer = Trixi.SolutionAnalyzer(basis)
+    @test nnodes(solution_analyzer) == 7
+    @test_nowarn show(stdout, "text/plain", solution_analyzer)
+end
+
 @testset "containers" begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
