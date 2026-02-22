@@ -364,6 +364,20 @@ function resize_volume_integral_cache!(cache, mesh,
 
     return nothing
 end
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralHGType,
+                                       new_size)
+    @unpack (volume_integral_default,
+    volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
+    resize_volume_integral_cache!(cache, mesh, volume_integral_default,
+                                  new_size)
+    resize_volume_integral_cache!(cache, mesh, volume_integral_blend_high_order,
+                                  new_size)
+    resize_volume_integral_cache!(cache, mesh, volume_integral_blend_low_order,
+                                  new_size)
+
+    return nothing
+end
 
 # `reinit_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
 function reinit_volume_integral_cache!(cache, mesh, dg,
@@ -377,6 +391,20 @@ function reinit_volume_integral_cache!(cache, mesh, dg,
                                        volume_integral::AbstractVolumeIntegralSubcell,
                                        new_size)
     reinit_normal_vectors!(cache, mesh, dg)
+
+    return nothing
+end
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::VolumeIntegralHGType,
+                                       new_size)
+    @unpack (volume_integral_default,
+    volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_default,
+                                  new_size)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_blend_high_order,
+                                  new_size)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_blend_low_order,
+                                  new_size)
 
     return nothing
 end
