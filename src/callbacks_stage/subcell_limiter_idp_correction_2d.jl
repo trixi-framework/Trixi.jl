@@ -8,7 +8,7 @@
 function perform_idp_correction!(u, dt,
                                  mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                              P4estMesh{2}},
-                                 equations, dg, limiter::SubcellLimiterIDP, cache)
+                                 equations, dg, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
@@ -29,7 +29,6 @@ function perform_idp_correction!(u, dt,
     # To avoid adding zeros and speed up the simulation, we directly loop over the subcell
     # interfaces.
 
-    # TODO: Need to restrict this to a list of elements for which the IDP VI has been used
     @threaded for element in eachelement(dg, cache)
         # Perform correction in 1st/x-direction
         for j in eachnode(dg), i in 2:nnodes(dg)

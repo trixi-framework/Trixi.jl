@@ -57,19 +57,6 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     return nothing
 end
 
-function perform_idp_correction!(u, dt,
-                                 mesh, equations, dg, cache)
-    return perform_idp_correction!(u, dt, mesh, equations, dg, dg.volume_integral,
-                                   cache)
-end
-
-function perform_idp_correction!(u, dt,
-                                 mesh, equations, dg,
-                                 volume_integral::VolumeIntegralSubcellLimiting, cache)
-    return perform_idp_correction!(u, dt, mesh, equations, dg, volume_integral.limiter,
-                                   cache)
-end
-
 init_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
 
 finalize_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
