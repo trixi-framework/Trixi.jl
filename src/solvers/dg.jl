@@ -466,6 +466,26 @@ function create_cache(mesh, equations,
     return (; cache_default..., cache_stabilized...)
 end
 
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralAdaptive,
+                                       new_size)
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    resize_volume_integral_cache!(cache, mesh, volume_integral_default, new_size)
+    resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
+
+    return nothing
+end
+
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::VolumeIntegralAdaptive,
+                                       new_size)
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_default, new_size)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_stabilized, new_size)
+
+    return nothing
+end
+
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
 # second-order `VolumeIntegralPureLGLFiniteVolumeO2` subcell-based finite volume
 # volume integrals.
