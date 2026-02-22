@@ -8,10 +8,10 @@
 function perform_idp_correction!(u, dt,
                                  mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                              P4estMesh{2}},
-                                 equations, dg, cache)
+                                 equations, dg, limiter::SubcellLimiterIDP, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
-    @unpack alpha = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
 
     # The following code implements the IDP correction in flux-differencing form:
     # u[v, i, j, element] += dt * -inverse_jacobian[i, j, element] *
