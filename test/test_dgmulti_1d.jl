@@ -57,16 +57,8 @@ end
 @trixi_testset "elixir_euler_shu_osher_gauss_shock_capturing.jl " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shu_osher_gauss_shock_capturing.jl"),
-                        l2=[
-                            1.696712726264938,
-                            6.018435800027037,
-                            21.774221602026298
-                        ],
-                        linf=[
-                            3.2229930998898952,
-                            10.702431261492814,
-                            38.37420027341893
-                        ])
+                        l2=[1.6967163299095107, 6.018450129099115, 21.774272062049693],
+                        linf=[3.2229821729393437, 10.702811890261692, 38.37413018581744])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -74,9 +66,10 @@ end
 
 @trixi_testset "elixir_euler_flux_diff.jl (convergence)" begin
     using Trixi: convergence_test
-    mean_convergence = convergence_test(@__MODULE__,
-                                        joinpath(EXAMPLES_DIR,
-                                                 "elixir_euler_flux_diff.jl"), 3)
+    eocs, _ = convergence_test(@__MODULE__,
+                               joinpath(EXAMPLES_DIR,
+                                        "elixir_euler_flux_diff.jl"), 3)
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
     @test isapprox(mean_convergence[:l2],
                    [4.1558759698638434, 3.977911306037128, 4.041421206468769],
                    rtol = 0.05)

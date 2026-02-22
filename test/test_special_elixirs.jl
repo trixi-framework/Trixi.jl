@@ -21,30 +21,35 @@ EXAMPLES_DIR = examples_dir()
 
 @testset "Convergence test" begin
     @timed_testset "tree_2d_dgsem" begin
-        mean_convergence = convergence_test(@__MODULE__,
-                                            joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                                                     "elixir_advection_extended.jl"),
-                                            3, initial_refinement_level = 2)
+        eocs, _ = convergence_test(@__MODULE__,
+                                   joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                            "elixir_advection_extended.jl"),
+                                   3, initial_refinement_level = 2)
+        mean_convergence = Trixi.calc_mean_convergence(eocs)
         @test isapprox(mean_convergence[:l2], [4.0], rtol = 0.05)
     end
 
     @timed_testset "structured_2d_dgsem" begin
-        mean_convergence = convergence_test(@__MODULE__,
-                                            joinpath(EXAMPLES_DIR,
-                                                     "structured_2d_dgsem",
-                                                     "elixir_advection_extended.jl"),
-                                            3, cells_per_dimension = (5, 9))
+        eocs, _ = convergence_test(@__MODULE__,
+                                   joinpath(EXAMPLES_DIR,
+                                            "structured_2d_dgsem",
+                                            "elixir_advection_extended.jl"),
+                                   3, cells_per_dimension = (5, 9))
+        mean_convergence = Trixi.calc_mean_convergence(eocs)
         @test isapprox(mean_convergence[:l2], [4.0], rtol = 0.05)
     end
 
     @timed_testset "structured_2d_dgsem coupled" begin
-        mean_convergence = convergence_test(@__MODULE__,
-                                            joinpath(EXAMPLES_DIR,
-                                                     "structured_2d_dgsem",
-                                                     "elixir_advection_coupled.jl"),
-                                            3)
-        @test isapprox(mean_convergence[1][:l2], [4.0], rtol = 0.05)
-        @test isapprox(mean_convergence[2][:l2], [4.0], rtol = 0.05)
+        eocs, _ = convergence_test(@__MODULE__,
+                                   joinpath(EXAMPLES_DIR,
+                                            "structured_2d_dgsem",
+                                            "elixir_advection_coupled.jl"),
+                                   3)
+        for i in Trixi.eachsystem(semi)
+            mean_convergence = Trixi.calc_mean_convergence(eocs[i])
+            @test isapprox(mean_convergence[:l2], [4.0], rtol = 0.05)
+            @test isapprox(mean_convergence[:l2], [4.0], rtol = 0.05)
+        end
     end
 
     @timed_testset "p4est_2d_dgsem" begin
@@ -52,37 +57,41 @@ EXAMPLES_DIR = examples_dir()
         no_refine = @cfunction((p4est, which_tree, quadrant)->Cint(0), Cint,
                                (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
                                 Ptr{Trixi.p4est_quadrant_t}))
-        mean_convergence = convergence_test(@__MODULE__,
-                                            joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                                                     "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                                            2, refine_fn_c = no_refine)
+        eocs, _ = convergence_test(@__MODULE__,
+                                   joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                            "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                                   2, refine_fn_c = no_refine)
+        mean_convergence = Trixi.calc_mean_convergence(eocs)
         @test isapprox(mean_convergence[:linf], [3.2, 3.2, 4.0, 3.7], rtol = 0.05)
     end
 
     @timed_testset "structured_3d_dgsem" begin
-        mean_convergence = convergence_test(@__MODULE__,
-                                            joinpath(EXAMPLES_DIR,
-                                                     "structured_3d_dgsem",
-                                                     "elixir_advection_basic.jl"),
-                                            2, cells_per_dimension = (7, 4, 5))
+        eocs, _ = convergence_test(@__MODULE__,
+                                   joinpath(EXAMPLES_DIR,
+                                            "structured_3d_dgsem",
+                                            "elixir_advection_basic.jl"),
+                                   2, cells_per_dimension = (7, 4, 5))
+        mean_convergence = Trixi.calc_mean_convergence(eocs)
         @test isapprox(mean_convergence[:l2], [4.0], rtol = 0.05)
     end
 
     @timed_testset "p4est_3d_dgsem" begin
-        mean_convergence = convergence_test(@__MODULE__,
-                                            joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                                                     "elixir_advection_unstructured_curved.jl"),
-                                            2, initial_refinement_level = 0)
+        eocs, _ = convergence_test(@__MODULE__,
+                                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                            "elixir_advection_unstructured_curved.jl"),
+                                   2, initial_refinement_level = 0)
+        mean_convergence = Trixi.calc_mean_convergence(eocs)
         @test isapprox(mean_convergence[:l2], [2.7], rtol = 0.05)
     end
 
     @timed_testset "paper_self_gravitating_gas_dynamics" begin
-        mean_convergence = convergence_test(@__MODULE__,
-                                            joinpath(EXAMPLES_DIR,
-                                                     "paper_self_gravitating_gas_dynamics",
-                                                     "elixir_eulergravity_convergence.jl"),
-                                            2, tspan = (0.0, 0.25),
-                                            initial_refinement_level = 1)
+        eocs, _ = convergence_test(@__MODULE__,
+                                   joinpath(EXAMPLES_DIR,
+                                            "paper_self_gravitating_gas_dynamics",
+                                            "elixir_eulergravity_convergence.jl"),
+                                   2, tspan = (0.0, 0.25),
+                                   initial_refinement_level = 1)
+        mean_convergence = Trixi.calc_mean_convergence(eocs)
         @test isapprox(mean_convergence[:l2], 4 * ones(4), atol = 0.4)
     end
 end
@@ -241,7 +250,8 @@ end
                                periodicity = (true, true))
 
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver)
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic)
 
             J = jacobian_ad_forward(semi)
             λ = eigvals(J)
@@ -263,7 +273,8 @@ end
                                periodicity = (true, true))
 
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver)
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic)
 
             J = jacobian_ad_forward(semi)
             λ = eigvals(J)
@@ -419,7 +430,7 @@ end
         function entropy_at_final_time(k) # k is the wave number of the initial condition
             equations = CompressibleEulerEquations1D(1.4)
             mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 3,
-                            n_cells_max = 10^4)
+                            n_cells_max = 10^4, periodicity = true)
             solver = DGSEM(3, FluxHLL(min_max_speed_naive),
                            VolumeIntegralFluxDifferencing(flux_ranocha))
             initial_condition = (x, t, equations) -> begin
@@ -429,7 +440,8 @@ end
                 return prim2cons(SVector(rho, v1, p), equations)
             end
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver,
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic,
                                                 uEltype = typeof(k))
             ode = semidiscretize(semi, (0.0, 1.0))
             summary_callback = SummaryCallback()
@@ -440,7 +452,7 @@ end
                                     analysis_callback,
                                     alive_callback)
             sol = solve(ode, SSPRK43(), callback = callbacks)
-            Trixi.integrate(entropy, sol.u[end], semi)
+            return Trixi.integrate(entropy, sol.u[end], semi)
         end
         ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
     end
@@ -449,14 +461,15 @@ end
         function energy_at_final_time(k) # k is the wave number of the initial condition
             equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
             mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
-                            n_cells_max = 10^4)
+                            n_cells_max = 10^4, periodicity = true)
             solver = DGSEM(3, flux_lax_friedrichs)
             initial_condition = (x, t, equation) -> begin
                 x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
                 return SVector(sinpi(k * sum(x_trans)))
             end
             semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver,
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic,
                                                 uEltype = typeof(k))
             ode = semidiscretize(semi, (0.0, 1.0))
             summary_callback = SummaryCallback()
@@ -471,7 +484,7 @@ end
             sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
                         ode_default_options()..., adaptive = false, dt = 1.0,
                         callback = callbacks)
-            Trixi.integrate(energy_total, sol.u[end], semi)
+            return Trixi.integrate(energy_total, sol.u[end], semi)
         end
         ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
     end

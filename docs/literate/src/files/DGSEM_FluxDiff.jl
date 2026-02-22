@@ -89,6 +89,16 @@
 # we replace $D \underline{f}$ in the strong form by $2D \underline{f}_{vol}(u^-, u^+)$ with
 # the consistent two-point volume flux $f_{vol}$ and receive the DGSEM formulation with flux differencing
 # (split form DGSEM) ([Gassner, Winters, Kopriva (2016)](https://doi.org/10.1016/j.jcp.2016.09.013)).
+# The above manipulations are possible due to the "telescoping" property of the derivative matrix ``D``, see
+# [Fisher, Carpenter (2013)](https://doi.org/10.1016/j.jcp.2013.06.014).
+# In particular, we can check that every row sum ``\sum_j D_{i,j}`` is zero, which makes the 
+# above manipulations possible:
+using Trixi
+
+N = 3
+basis = LobattoLegendreBasis(N)
+D = basis.derivative_matrix
+sum(D, dims = 2)
 
 # ```math
 # \begin{align*}
@@ -105,14 +115,14 @@
 
 # This formulation creates a more stable version of DGSEM, because it fulfils entropy stability.
 # Moreover it allows the construction of entropy conserving discretizations without relying on
-# exact integration. This is achieved when using a two-point entropy conserving flux function as
+# exact integration. This is achieved when using a symmetric two-point entropy conserving flux function as
 # volume flux in the volume flux differencing formulation.
-# Then, the numerical surface flux can be used to control the dissipation of the discretization and to
-# guarantee decreasing entropy, i.e. entropy stability.
+# Then, the numerical surface flux ``\underline{f}_{surface}^*`` can be used to control the
+# dissipation of the discretization and to guarantee decreasing entropy, i.e. entropy stability.
 
 # ## [Implementation in Trixi.jl](@id fluxDiffExample)
 # Now, we have a look at the implementation of DGSEM with flux differencing with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl).
-using OrdinaryDiffEqLowStorageRK, Trixi
+using OrdinaryDiffEqLowStorageRK
 
 # We implement a simulation for the compressible Euler equations in 2D
 # ```math
@@ -153,7 +163,7 @@ initial_condition = initial_condition_weak_blast_wave
 # We will confirm the entropy conservation property numerically.
 
 volume_flux = flux_ranocha # = f_vol
-solver = DGSEM(polydeg = 3, surface_flux = volume_flux,
+solver = DGSEM(polydeg = N, surface_flux = volume_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # Now, we implement Trixi.jl's `mesh`, `semi` and `ode` in a simple framework. For more information please

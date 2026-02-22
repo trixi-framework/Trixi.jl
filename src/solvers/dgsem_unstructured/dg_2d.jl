@@ -16,6 +16,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
 
     boundaries = init_boundaries(mesh, elements)
 
+    # Container cache
     cache = (; elements, interfaces, boundaries)
 
     # perform a check on the sufficient metric identities condition for free-stream preservation
@@ -27,9 +28,9 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
         error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
     end
 
-    # Add specialized parts of the cache required to compute the flux differencing volume integral
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 
     return cache
 end
@@ -39,7 +40,7 @@ function rhs!(du, u, t,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
@@ -62,8 +63,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2boundaries!(cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
@@ -277,7 +277,7 @@ end
 # move the approximate solution onto physical boundaries within a "right-handed" element
 function prolong2boundaries!(cache, u,
                              mesh::UnstructuredMesh2D,
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack boundaries = cache
     @unpack element_id, element_side_id = boundaries
     boundaries_u = boundaries.u
@@ -313,6 +313,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
                                          T8codeMesh},
                              equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
+
+    return nothing
 end
 
 # Function barrier for type stability
@@ -358,7 +360,7 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
                                      mesh::Union{UnstructuredMesh2D, P4estMesh,
                                                  T8codeMesh},
                                      equations, surface_integral, dg::DG)
-    nothing
+    return nothing
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
@@ -477,25 +479,34 @@ end
 # Therefore, we require a different surface integral routine here despite their similar structure.
 function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral, dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` and `-=` to let `@muladd`
+    # turn these into FMAs (see comment at the top of the file).
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg), v in eachvariable(equations)
             # surface contribution along local sides 2 and 4 (fixed x and y varies)
-            du[v, 1, l, element] += (surface_flux_values[v, l, 4, element]
-                                     *
-                                     boundary_interpolation[1, 1])
-            du[v, nnodes(dg), l, element] += (surface_flux_values[v, l, 2, element]
-                                              *
-                                              boundary_interpolation[nnodes(dg), 2])
+            du[v, 1, l, element] = du[v, 1, l, element] +
+                                   surface_flux_values[v, l, 4, element] *
+                                   factor
+            du[v, nnodes(dg), l, element] = du[v, nnodes(dg), l, element] +
+                                            surface_flux_values[v, l, 2, element] *
+                                            factor
+
             # surface contribution along local sides 1 and 3 (fixed y and x varies)
-            du[v, l, 1, element] += (surface_flux_values[v, l, 1, element]
-                                     *
-                                     boundary_interpolation[1, 1])
-            du[v, l, nnodes(dg), element] += (surface_flux_values[v, l, 3, element]
-                                              *
-                                              boundary_interpolation[nnodes(dg), 2])
+            du[v, l, 1, element] = du[v, l, 1, element] +
+                                   surface_flux_values[v, l, 1, element] *
+                                   factor
+            du[v, l, nnodes(dg), element] = du[v, l, nnodes(dg), element] +
+                                            surface_flux_values[v, l, 3, element] *
+                                            factor
         end
     end
 

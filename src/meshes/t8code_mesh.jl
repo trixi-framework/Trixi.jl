@@ -7,18 +7,19 @@ to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    forest      :: T8code.ForestWrapper
-    is_parallel :: IsParallel
+    forest::T8code.ForestWrapper
+    const is_parallel::IsParallel
 
     # This specifies the geometry interpolation for each tree.
-    tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
+    const tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
 
     # Stores the quadrature nodes.
-    nodes::SVector{NNODES, RealT}
+    const nodes::SVector{NNODES, RealT}
+    const boundary_names::Array{Symbol, 2} # [face direction, tree]
 
-    boundary_names   :: Array{Symbol, 2}      # [face direction, tree]
-    current_filename :: String
+    current_filename::String
 
+    # These guys are set in `fill_mesh_info`
     ninterfaces :: Int
     nmortars    :: Int
     nboundaries :: Int
@@ -33,15 +34,18 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                current_filename,
                                RealT = Float64) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
-
         mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
-                                                                                is_parallel)
-
-        mesh.nodes = nodes
-        mesh.boundary_names = boundary_names
-        mesh.current_filename = current_filename
-        mesh.tree_node_coordinates = tree_node_coordinates
-        mesh.unsaved_changes = true
+                                                                                is_parallel,
+                                                                                tree_node_coordinates,
+                                                                                nodes,
+                                                                                boundary_names,
+                                                                                current_filename,
+                                                                                -1, # ninterfaces
+                                                                                -1, # nmortars
+                                                                                -1, # nboundaries
+                                                                                -1, # nmpiinterfaces
+                                                                                -1, # nmpimortars
+                                                                                true)
 
         finalizer(mesh) do mesh
             # In serial mode we can finalize the forest right away. In parallel
@@ -75,10 +79,10 @@ function update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
     return nothing
 end
 
-const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
-const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
-@inline mpi_parallel(mesh::SerialT8codeMesh) = False()
-@inline mpi_parallel(mesh::ParallelT8codeMesh) = True()
+const T8codeMeshSerial{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
+const T8codeMeshParallel{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
+@inline mpi_parallel(mesh::T8codeMeshSerial) = False()
+@inline mpi_parallel(mesh::T8codeMeshParallel) = True()
 
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
@@ -89,6 +93,7 @@ const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
@@ -386,7 +391,7 @@ end
 
 """
     T8codeMesh(trees_per_dimension; polydeg, mapping=identity,
-               RealT=Float64, initial_refinement_level=0, periodicity=true)
+               RealT=Float64, initial_refinement_level=0, periodicity=false)
 
 Create a structured potentially curved 'T8codeMesh' of the specified size.
 
@@ -417,14 +422,14 @@ Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', '
                      Use only one of `mapping`, `faces` and `coordinates_min`/`coordinates_max`.
 - 'RealT::Type': the type that should be used for coordinates.
 - 'initial_refinement_level::Integer': refine the mesh uniformly to this level before the simulation starts.
-- 'periodicity': either a 'Bool' deciding if all of the boundaries are periodic or an 'NTuple{NDIMS, Bool}'
+- 'periodicity': either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
 """
 function T8codeMesh(trees_per_dimension; polydeg = 1,
                     mapping = nothing, faces = nothing, coordinates_min = nothing,
                     coordinates_max = nothing,
                     RealT = Float64, initial_refinement_level = 0,
-                    periodicity = true)
+                    periodicity = false)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
     coordinates_min_max_check(coordinates_min, coordinates_max)
@@ -742,7 +747,7 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
     # Read in the Header of the meshfile to determine which constructor is appropriate.
     header = open(meshfile.path, "r") do io
         readline(io) # Header of the Abaqus file; discarded
-        readline(io) # Read in the actual header information
+        return readline(io) # Read in the actual header information
     end
 
     # Check if the meshfile was generated using HOHQMesh.

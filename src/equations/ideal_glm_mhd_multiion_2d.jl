@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    IdealGlmMhdMultiIonEquations2D(; gammas, charge_to_mass, 
+    IdealGlmMhdMultiIonEquations2D(; gammas, charge_to_mass,
                                    gas_constants = zero(SVector{length(gammas),
                                                                 eltype(gammas)}),
                                    molar_masses = zero(SVector{length(gammas),
@@ -20,44 +20,44 @@
                                    electron_temperature = electron_pressure_zero,
                                    initial_c_h = NaN)
 
-The ideal compressible multi-ion MHD equations in two space dimensions augmented with a 
+The ideal compressible multi-ion MHD equations in two space dimensions augmented with a
 generalized Langange multipliers (GLM) divergence-cleaning technique. This is a
 multi-species variant of the ideal GLM-MHD equations for calorically perfect plasmas
-with independent momentum and energy equations for each ion species. This implementation 
+with independent momentum and energy equations for each ion species. This implementation
 assumes that the equations are non-dimensionalized such, that the vacuum permeability is ``\mu_0 = 1``.
 
-In case of more than one ion species, the specific heat capacity ratios `gammas` and the charge-to-mass 
+In case of more than one ion species, the specific heat capacity ratios `gammas` and the charge-to-mass
 ratios `charge_to_mass` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
 
-The ion-ion and ion-electron collision source terms can be computed using the functions 
+The ion-ion and ion-electron collision source terms can be computed using the functions
 [`source_terms_collision_ion_ion`](@ref) and [`source_terms_collision_ion_electron`](@ref), respectively.
 
-For ion-ion collision terms, the optional keyword arguments `gas_constants`, `molar_masses`, and `ion_ion_collision_constants` 
-must be provided.  For ion-electron collision terms, the optional keyword arguments `gas_constants`, `molar_masses`, 
+For ion-ion collision terms, the optional keyword arguments `gas_constants`, `molar_masses`, and `ion_ion_collision_constants`
+must be provided.  For ion-electron collision terms, the optional keyword arguments `gas_constants`, `molar_masses`,
 `ion_electron_collision_constants`, and `electron_temperature` are required.
 
-- **`gas_constants`** and **`molar_masses`** are tuples containing the gas constant and molar mass of each 
-  ion species, respectively. The **molar masses** can be provided in any unit system, as they are only used to 
+- **`gas_constants`** and **`molar_masses`** are tuples containing the gas constant and molar mass of each
+  ion species, respectively. The **molar masses** can be provided in any unit system, as they are only used to
   compute ratios and are independent of the other arguments.
 
 - **`ion_ion_collision_constants`** is a symmetric matrix that contains coefficients to compute the collision
-  frequencies between pairs of ion species. For example, `ion_ion_collision_constants[2, 3]` contains the collision 
+  frequencies between pairs of ion species. For example, `ion_ion_collision_constants[2, 3]` contains the collision
   coefficient for collisions between the ion species 2 and the ion species 3. These constants are derived using the kinetic
   theory of gases (see, e.g., *Schunk & Nagy, 2000*). They are related to the collision coefficients ``B_{st}`` listed
-  in Table 4.3 of *Schunk & Nagy (2000)*, but are scaled by the molecular mass of ion species ``t`` (i.e., 
-  `ion_ion_collision_constants[2, 3] = ` ``B_{st}/m_{t}``) and must be provided in consistent physical units 
-  (Schunk & Nagy use ``cm^3 K^{3/2} / s``). 
+  in Table 4.3 of *Schunk & Nagy (2000)*, but are scaled by the molecular mass of ion species ``t`` (i.e.,
+  `ion_ion_collision_constants[2, 3] = ` ``B_{st}/m_{t}``) and must be provided in consistent physical units
+  (Schunk & Nagy use ``cm^3 K^{3/2} / s``).
   See [`source_terms_collision_ion_ion`](@ref) for more details on how these constants are used to compute the collision
   frequencies.
 
-- **`ion_electron_collision_constants`** is a tuple containing coefficients to compute the ion-electron collision frequency 
-  for each ion species. They correspond to the collision coefficients `B_{se}` divided by the elementary charge. 
-  The ion-electron collision frequencies can also be computed using the kinetic theory 
+- **`ion_electron_collision_constants`** is a tuple containing coefficients to compute the ion-electron collision frequency
+  for each ion species. They correspond to the collision coefficients `B_{se}` divided by the elementary charge.
+  The ion-electron collision frequencies can also be computed using the kinetic theory
   of gases (see, e.g., *Schunk & Nagy, 2000*). See [`source_terms_collision_ion_electron`](@ref) for more details on how these
   constants are used to compute the collision frequencies.
 
 - **`electron_temperature`** is a function with the signature `electron_temperature(u, equations)` that can be used
-  compute the electron temperature as a function of the state `u`. The electron temperature is relevant for the computation 
+  compute the electron temperature as a function of the state `u`. The electron temperature is relevant for the computation
   of the ion-electron collision source terms.
 
 The argument `electron_pressure` can be used to pass a function that computes the electron
@@ -65,26 +65,26 @@ pressure as a function of the state `u` with the signature `electron_pressure(u,
 The gradient of the electron pressure is relevant for the computation of the Lorentz flux
 and non-conservative term. By default, the electron pressure is zero.
 
-The argument `initial_c_h` can be used to set the GLM divergence-cleaning speed. Note that 
+The argument `initial_c_h` can be used to set the GLM divergence-cleaning speed. Note that
 `initial_c_h = 0` deactivates the divergence cleaning. The callback [`GlmSpeedCallback`](@ref)
 can be used to adjust the GLM divergence-cleaning speed according to the time-step size.
 
 References:
-- G. Toth, A. Glocer, Y. Ma, D. Najib, Multi-Ion Magnetohydrodynamics 429 (2010). Numerical 
+- G. Toth, A. Glocer, Y. Ma, D. Najib, Multi-Ion Magnetohydrodynamics 429 (2010). Numerical
   Modeling of Space Plasma Flows, 213–218. [Bib Code: Code: 2010ASPC..429..213T](https://adsabs.harvard.edu/full/2010ASPC..429..213T).
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
-- Schunk, R. W., & Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry. 
+- Schunk, R. W., & Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry.
   Cambridge university press. [DOI: 10.1017/CBO9780511635342](https://doi.org/10.1017/CBO9780511635342).
 
 !!! info "The multi-ion GLM-MHD equations require source terms"
     In case of more than one ion species, the multi-ion GLM-MHD equations should ALWAYS be used
     with [`source_terms_lorentz`](@ref).
 """
-mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
-                                              ElectronPressure, ElectronTemperature} <:
-               AbstractIdealGlmMhdMultiIonEquations{2, NVARS, NCOMP}
+struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
+                                      ElectronPressure, ElectronTemperature} <:
+       AbstractIdealGlmMhdMultiIonEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
     gas_constants::SVector{NCOMP, RealT} # Specific gas constants
@@ -122,10 +122,11 @@ mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
-        new(gammas, charge_to_mass, gas_constants, molar_masses,
-            ion_ion_collision_constants,
-            ion_electron_collision_constants, electron_pressure, electron_temperature,
-            c_h)
+        return new(gammas, charge_to_mass, gas_constants, molar_masses,
+                   ion_ion_collision_constants,
+                   ion_electron_collision_constants, electron_pressure,
+                   electron_temperature,
+                   c_h)
     end
 end
 
@@ -198,15 +199,15 @@ end
                                                                                          NCOMP,
                                                                                          RealT
                                                                                          }
-    RealT
+    return RealT
 end
 
 """
     initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations2D)
 
 A weak blast wave (adapted to multi-ion MHD) from
-- Hennemann, S., Rueda-Ramírez, A. M., Hindenlang, F. J., & Gassner, G. J. (2021). A provably entropy 
-  stable subcell shock capturing approach for high order split form DG for the compressible Euler equations. 
+- Hennemann, S., Rueda-Ramírez, A. M., Hindenlang, F. J., & Gassner, G. J. (2021). A provably entropy
+  stable subcell shock capturing approach for high order split form DG for the compressible Euler equations.
   Journal of Computational Physics, 426, 109935. [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044).
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
@@ -265,7 +266,7 @@ end
         f[3] = v1_plus * B3 - v3_plus * B1
 
         for k in eachcomponent(equations)
-            rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+            rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, u, equations)
             rho_inv = 1 / rho
             v1 = rho_v1 * rho_inv
             v2 = rho_v2 * rho_inv
@@ -273,7 +274,7 @@ end
             kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
-            p = (gamma - 1) * (rho_e - kin_en - mag_en - div_clean_energy)
+            p = (gamma - 1) * (rho_e_total - kin_en - mag_en - div_clean_energy)
 
             f1 = rho_v1
             f2 = rho_v1 * v1 + p
@@ -292,7 +293,7 @@ end
         f[3] = v2_plus * B3 - v3_plus * B2
 
         for k in eachcomponent(equations)
-            rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+            rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, u, equations)
             rho_inv = 1 / rho
             v1 = rho_v1 * rho_inv
             v2 = rho_v2 * rho_inv
@@ -300,7 +301,7 @@ end
             kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
-            p = (gamma - 1) * (rho_e - kin_en - mag_en - div_clean_energy)
+            p = (gamma - 1) * (rho_e_total - kin_en - mag_en - div_clean_energy)
 
             f1 = rho_v2
             f2 = rho_v2 * v1
@@ -323,7 +324,7 @@ end
                                            orientation::Integer,
                                            equations::IdealGlmMhdMultiIonEquations2D)
 
-Entropy-conserving non-conservative two-point "flux" as described in 
+Entropy-conserving non-conservative two-point "flux" as described in
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
@@ -331,8 +332,8 @@ Entropy-conserving non-conservative two-point "flux" as described in
 !!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi.jl"
     The non-conservative fluxes derived in the reference above are written as the product
     of local and symmetric parts and are meant to be used in the same way as the conservative
-    fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
-    the fluxes are multiplied by 2 because the non-conservative fluxes are always multiplied 
+    fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine,
+    the fluxes are multiplied by 2 because the non-conservative fluxes are always multiplied
     by 0.5 whenever they are used in the Trixi code.
 
 The term is composed of four individual non-conservative terms:
@@ -386,7 +387,7 @@ The term is composed of four individual non-conservative terms:
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
     if orientation == 1
-        # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
+        # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is
         # multiplied by 0.5 whenever it's used in the Trixi code)
         f[1] = 2 * v1_plus_ll * B1_avg
         f[2] = 2 * v2_plus_ll * B1_avg
@@ -422,17 +423,17 @@ The term is composed of four individual non-conservative terms:
             # Compute GLM term for the energy
             f5 += v1_plus_ll * psi_ll * psi_avg
 
-            # Add to the flux vector (multiply by 2 because the non-conservative flux is 
+            # Add to the flux vector (multiply by 2 because the non-conservative flux is
             # multiplied by 0.5 whenever it's used in the Trixi code)
             set_component!(f, k, 0, 2 * f2, 2 * f3, 2 * f4, 2 * f5,
                            equations)
         end
-        # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
+        # Compute GLM term for psi (multiply by 2 because the non-conservative flux is
         # multiplied by 0.5 whenever it's used in the Trixi code)
         f[end] = 2 * v1_plus_ll * psi_avg
 
     else #if orientation == 2
-        # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
+        # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is
         # multiplied by 0.5 whenever it's used in the Trixi code)
         f[1] = 2 * v1_plus_ll * B2_avg
         f[2] = 2 * v2_plus_ll * B2_avg
@@ -469,12 +470,12 @@ The term is composed of four individual non-conservative terms:
             # Compute GLM term for the energy
             f5 += v2_plus_ll * psi_ll * psi_avg
 
-            # Add to the flux vector (multiply by 2 because the non-conservative flux is 
+            # Add to the flux vector (multiply by 2 because the non-conservative flux is
             # multiplied by 0.5 whenever it's used in the Trixi code)
             set_component!(f, k, 0, 2 * f2, 2 * f3, 2 * f4, 2 * f5,
                            equations)
         end
-        # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
+        # Compute GLM term for psi (multiply by 2 because the non-conservative flux is
         # multiplied by 0.5 whenever it's used in the Trixi code)
         f[end] = 2 * v2_plus_ll * psi_avg
     end
@@ -487,7 +488,7 @@ end
                                  equations::IdealGlmMhdMultiIonEquations2D)
 
 Central non-conservative two-point "flux", where the symmetric parts are computed with standard averages.
-The use of this term together with [`flux_central`](@ref) 
+The use of this term together with [`flux_central`](@ref)
 with [`VolumeIntegralFluxDifferencing`](@ref) yields a "standard"
 (weak-form) DGSEM discretization of the multi-ion GLM-MHD system. This flux can also be used to construct a
 standard local Lax-Friedrichs flux using `surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)`.
@@ -495,8 +496,8 @@ standard local Lax-Friedrichs flux using `surface_flux = (flux_lax_friedrichs, f
 !!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi"
     The central non-conservative fluxes implemented in this function are written as the product
     of local and symmetric parts, where the symmetric part is a standard average. These fluxes
-    are meant to be used in the same way as the conservative fluxes (i.e., flux + flux_noncons 
-    in both volume and surface integrals). In this routine, the fluxes are multiplied by 2 because 
+    are meant to be used in the same way as the conservative fluxes (i.e., flux + flux_noncons
+    in both volume and surface integrals). In this routine, the fluxes are multiplied by 2 because
     the non-conservative fluxes are always multiplied by 0.5 whenever they are used in the Trixi code.
 
 The term is composed of four individual non-conservative terms:
@@ -520,7 +521,7 @@ The term is composed of four individual non-conservative terms:
     mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
 
-    # Electron pressure 
+    # Electron pressure
     pe_ll = equations.electron_pressure(u_ll, equations)
     pe_rr = equations.electron_pressure(u_rr, equations)
 
@@ -688,10 +689,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
         # Iterate over all components
         for k in eachcomponent(equations)
             # Unpack left and right states
-            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll,
-                                                                              equations)
-            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
-                                                                              equations)
+            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll = get_component(k,
+                                                                                    u_ll,
+                                                                                    equations)
+            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr = get_component(k,
+                                                                                    u_rr,
+                                                                                    equations)
             rho_inv_ll = 1 / rho_ll
             v1_ll = rho_v1_ll * rho_inv_ll
             v2_ll = rho_v2_ll * rho_inv_ll
@@ -704,10 +707,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
             p_ll = (gammas[k] - 1) *
-                   (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
+                   (rho_e_total_ll - 0.5f0 * rho_ll * vel_norm_ll -
+                    0.5f0 * mag_norm_ll -
                     0.5f0 * psi_ll^2)
             p_rr = (gammas[k] - 1) *
-                   (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
+                   (rho_e_total_rr - 0.5f0 * rho_rr * vel_norm_rr -
+                    0.5f0 * mag_norm_rr -
                     0.5f0 * psi_rr^2)
             beta_ll = 0.5f0 * rho_ll / p_ll
             beta_rr = 0.5f0 * rho_rr / p_rr
@@ -786,10 +791,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
         # Iterate over all components
         for k in eachcomponent(equations)
             # Unpack left and right states
-            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll,
-                                                                              equations)
-            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
-                                                                              equations)
+            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll = get_component(k,
+                                                                                    u_ll,
+                                                                                    equations)
+            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr = get_component(k,
+                                                                                    u_rr,
+                                                                                    equations)
 
             rho_inv_ll = 1 / rho_ll
             v1_ll = rho_v1_ll * rho_inv_ll
@@ -803,10 +810,12 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
             p_ll = (gammas[k] - 1) *
-                   (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
+                   (rho_e_total_ll - 0.5f0 * rho_ll * vel_norm_ll -
+                    0.5f0 * mag_norm_ll -
                     0.5f0 * psi_ll^2)
             p_rr = (gammas[k] - 1) *
-                   (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
+                   (rho_e_total_rr - 0.5f0 * rho_rr * vel_norm_rr -
+                    0.5f0 * mag_norm_rr -
                     0.5f0 * psi_rr^2)
             beta_ll = 0.5f0 * rho_ll / p_ll
             beta_rr = 0.5f0 * rho_rr / p_rr
@@ -873,7 +882,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-# This routine approximates the maximum wave speed as sum of the maximum ion velocity 
+# This routine approximates the maximum wave speed as sum of the maximum ion velocity
 # for all species and the maximum magnetosonic speed.
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::IdealGlmMhdMultiIonEquations2D)
@@ -951,9 +960,9 @@ end
     return (abs(v1) + cf_x_direction, abs(v2) + cf_y_direction)
 end
 
-# Compute the fastest wave speed for ideal multi-ion GLM-MHD equations: c_f, the fast 
+# Compute the fastest wave speed for ideal multi-ion GLM-MHD equations: c_f, the fast
 # magnetoacoustic eigenvalue. This routine computes the fast magnetosonic speed for each ion
-# species using the single-fluid MHD expressions and approximates the multi-ion c_f as 
+# species using the single-fluid MHD expressions and approximates the multi-ion c_f as
 # the maximum of these individual magnetosonic speeds.
 @inline function calc_fast_wavespeed(cons, orientation::Integer,
                                      equations::IdealGlmMhdMultiIonEquations2D)
@@ -962,7 +971,7 @@ end
 
     c_f = zero(real(equations))
     for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, cons, equations)
 
         rho_inv = 1 / rho
         v1 = rho_v1 * rho_inv
@@ -970,7 +979,8 @@ end
         v3 = rho_v3 * rho_inv
         gamma = equations.gammas[k]
         p = (gamma - 1) *
-            (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+            (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) -
+             0.5f0 * (B1^2 + B2^2 + B3^2) -
              0.5f0 * psi^2)
         a_square = gamma * p * rho_inv
         inv_sqrt_rho = 1 / sqrt(rho)

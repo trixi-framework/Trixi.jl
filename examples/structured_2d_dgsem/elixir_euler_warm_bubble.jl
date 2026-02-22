@@ -22,7 +22,7 @@ struct WarmBubbleSetup
     gamma::Float64   # heat capacity ratio (dry air)
 
     function WarmBubbleSetup(; g = 9.81, c_p = 1004.0, c_v = 717.0, gamma = c_p / c_v)
-        new(g, c_p, c_v, gamma)
+        return new(g, c_p, c_v, gamma)
     end
 end
 
@@ -79,7 +79,7 @@ warm_bubble_setup = WarmBubbleSetup()
 
 equations = CompressibleEulerEquations2D(warm_bubble_setup.gamma)
 
-boundary_conditions = (x_neg = boundary_condition_periodic,
+boundary_conditions = (; x_neg = boundary_condition_periodic,
                        x_pos = boundary_condition_periodic,
                        y_neg = boundary_condition_slip_wall,
                        y_pos = boundary_condition_slip_wall)
