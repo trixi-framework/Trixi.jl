@@ -673,10 +673,6 @@ function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_
     @unpack limiter = volume_integral
     return resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 end
-function Base.resize!(semi, volume_integral::VolumeIntegralAdaptive, new_size)
-    @unpack volume_integral_stabilized = volume_integral
-    return resize!(semi, volume_integral_stabilized, new_size)
-end
 
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?

@@ -39,11 +39,6 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     @trixi_timeit timer() "a posteriori limiter" limiter!(u_ode, semi, t, dt,
                                                           volume_integral.limiter)
 end
-function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
-                                                 volume_integral::VolumeIntegralAdaptive)
-    @unpack volume_integral_stabilized = volume_integral
-    return limiter!(u_ode, semi, t, dt, volume_integral_stabilized)
-end
 
 function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
                                                  limiter::SubcellLimiterIDP)
@@ -73,13 +68,6 @@ function perform_idp_correction!(u, dt,
                                  volume_integral::VolumeIntegralSubcellLimiting, cache)
     return perform_idp_correction!(u, dt, mesh, equations, dg, volume_integral.limiter,
                                    cache)
-end
-function perform_idp_correction!(u, dt,
-                                 mesh, equations, dg,
-                                 volume_integral::VolumeIntegralAdaptive, cache)
-    @unpack volume_integral_stabilized = volume_integral
-    return perform_idp_correction!(u, dt, mesh, equations, dg,
-                                   volume_integral_stabilized, cache)
 end
 
 init_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
