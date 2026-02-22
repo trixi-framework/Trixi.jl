@@ -316,10 +316,12 @@ end
             nodes = basis.nodes
             weights = basis.weights
 
-            Lhat_minus1 = Trixi.calc_Lhat(-1.0, nodes, weights)
+            L_minus1 = Trixi.calc_L(-1.0, nodes, weights)
+            Lhat_minus1 = Trixi.calc_Lhat(L_minus1, weights)
             @test basis.inverse_weights[1] == Lhat_minus1[1]
 
-            Lhat_plus1 = Trixi.calc_Lhat(1.0, nodes, weights)
+            L_plus1 = Trixi.calc_L(1.0, nodes, weights)
+            Lhat_plus1 = Trixi.calc_Lhat(L_plus1, weights)
             @test basis.inverse_weights[p + 1] == Lhat_plus1[p + 1]
         end
     end

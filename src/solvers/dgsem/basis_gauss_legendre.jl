@@ -27,7 +27,8 @@ struct GaussLegendreBasis{RealT <: Real, NNODES,
     derivative_hat::DerivativeMatrix # weak form matrix "dhat", negative adjoint wrt the SBP dot product
 
     # Required for Gauss-Legendre nodes (non-trivial interpolation to the boundaries)
-    boundary_interpolation::BoundaryMatrix # lhat
+    boundary_interpolation::BoundaryMatrix # L
+    boundary_interpolation_inverse_weights::BoundaryMatrix # M^{-1} * L = Lhat
 end
 
 function GaussLegendreBasis(RealT, polydeg::Integer)
@@ -50,8 +51,16 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
     boundary_interpolation = zeros(nnodes_, 2)
-    boundary_interpolation[:, 1] = calc_Lhat(-1.0, nodes_, weights_)
-    boundary_interpolation[:, 2] = calc_Lhat(1.0, nodes_, weights_)
+    boundary_interpolation[:, 1] = calc_L(-1.0, nodes_, weights_)
+    boundary_interpolation[:, 2] = calc_L(1.0, nodes_, weights_)
+
+    boundary_interpolation_inverse_weights = copy(boundary_interpolation)
+    boundary_interpolation_inverse_weights[:, 1] = calc_Lhat(boundary_interpolation[:,
+                                                                                    1],
+                                                             weights_)
+    boundary_interpolation_inverse_weights[:, 2] = calc_Lhat(boundary_interpolation[:,
+                                                                                    2],
+                                                             weights_)
 
     # We keep the matrices above stored using the standard `Matrix` type
     # since this is usually as fast as `SMatrix`
@@ -67,7 +76,8 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
                                                               derivative_matrix,
                                                               derivative_split,
                                                               derivative_hat,
-                                                              boundary_interpolation)
+                                                              boundary_interpolation,
+                                                              boundary_interpolation_inverse_weights)
 end
 
 GaussLegendreBasis(polydeg::Integer) = GaussLegendreBasis(Float64, polydeg)
@@ -132,6 +142,27 @@ function integrate(f, u, basis::GaussLegendreBasis)
         res += f(u[i]) * weights[i]
     end
     return res
+end
+
+# L(x), where L(x) is the Lagrange polynomial vector at point x.
+function calc_L(x, nodes, weights)
+    n_nodes = length(nodes)
+    wbary = barycentric_weights(nodes)
+
+    return lagrange_interpolating_polynomials(x, nodes, wbary)
+end
+
+# Calculate M^{-1} * L(x), where L(x) is the Lagrange polynomial
+# vector at point x.
+# Not required for the DGSEM with LGL basis, as boundary evaluations
+# collapse to boundary node evaluations.
+function calc_Lhat(L, weights)
+    Lhat = copy(L)
+    for i in 1:length(weights)
+        Lhat[i] /= weights[i]
+    end
+
+    return Lhat
 end
 
 # Return the first/last weight of the quadrature associated with `basis`.

@@ -513,23 +513,6 @@ function barycentric_weights(nodes)
     return weights
 end
 
-# Calculate M^{-1} * L(x), where L(x) is the Lagrange polynomial
-# vector at point x.
-# Not required for the DGSEM with LGL basis, as boundary evaluations
-# collapse to boundary node evaluations.
-function calc_Lhat(x, nodes, weights)
-    n_nodes = length(nodes)
-    wbary = barycentric_weights(nodes)
-
-    Lhat = lagrange_interpolating_polynomials(x, nodes, wbary)
-
-    for i in 1:n_nodes
-        Lhat[i] /= weights[i]
-    end
-
-    return Lhat
-end
-
 """
     lagrange_interpolating_polynomials(x, nodes, wbary)
 

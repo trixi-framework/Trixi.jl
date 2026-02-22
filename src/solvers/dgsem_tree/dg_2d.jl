@@ -523,12 +523,11 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations, dg::DG)
     return nothing
 end
 
-function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{2}, equations,
+function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations,
                              dg::DG{<:GaussLegendreBasis})
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
-    @unpack boundary_interpolation, weights = dg.basis
+    @unpack boundary_interpolation = dg.basis
     interfaces_u = interfaces.u
 
     @threaded for interface in eachinterface(dg, cache)
@@ -542,10 +541,8 @@ function prolong2interfaces!(cache, u,
                 interfaces_u[2, v, j, interface] = 0
                 for ii in eachnode(dg)
                     interfaces_u[1, v, j, interface] += (u[v, ii, j, left_element] *
-                                                         weights[ii] *
                                                          boundary_interpolation[ii, 2])
                     interfaces_u[2, v, j, interface] += (u[v, ii, j, right_element] *
-                                                         weights[ii] *
                                                          boundary_interpolation[ii, 1])
                 end
             end
@@ -556,10 +553,8 @@ function prolong2interfaces!(cache, u,
                 interfaces_u[2, v, i, interface] = 0
                 for jj in eachnode(dg)
                     interfaces_u[1, v, i, interface] += (u[v, i, jj, left_element] *
-                                                         weights[jj] *
                                                          boundary_interpolation[jj, 2])
                     interfaces_u[2, v, i, interface] += (u[v, i, jj, right_element] *
-                                                         weights[jj] *
                                                          boundary_interpolation[jj, 1])
                 end
             end
@@ -1174,7 +1169,7 @@ function calc_surface_integral!(du, u,
                                             StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DG{<:GaussLegendreBasis}, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack boundary_interpolation_inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
@@ -1188,24 +1183,28 @@ function calc_surface_integral!(du, u,
                     # surface at -x
                     du[v, ii, l, element] = (du[v, ii, l, element] -
                                              surface_flux_values[v, l, 1, element] *
-                                             boundary_interpolation[ii, 1])
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    1])
 
                     # surface at +x
                     du[v, ii, l, element] = (du[v, ii, l, element] +
                                              surface_flux_values[v, l, 2, element] *
-                                             boundary_interpolation[ii, 2])
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    2])
                 end
 
                 for jj in eachnode(dg)
                     # surface at -y
                     du[v, l, jj, element] = (du[v, l, jj, element] -
                                              surface_flux_values[v, l, 3, element] *
-                                             boundary_interpolation[jj, 1])
+                                             boundary_interpolation_inverse_weights[jj,
+                                                                                    1])
 
                     # surface at +y
                     du[v, l, jj, element] = (du[v, l, jj, element] +
                                              surface_flux_values[v, l, 4, element] *
-                                             boundary_interpolation[jj, 2])
+                                             boundary_interpolation_inverse_weights[jj,
+                                                                                    2])
                 end
             end
         end
