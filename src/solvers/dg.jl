@@ -726,6 +726,28 @@ function Base.resize!(semi, volume_integral::VolumeIntegralAdaptive, new_size)
     return resize!(semi, volume_integral_stabilized, new_size)
 end
 
+function create_cache(mesh, equations,
+                      volume_integral::VolumeIntegralAdaptive{Indicator,
+                                                              VolumeIntegralDefault,
+                                                              VolumeIntegralStabilized},
+                      dg, cache_containers,
+                      uEltype) where {Indicator <: AbstractIndicator,
+                                      VolumeIntegralDefault <: AbstractVolumeIntegral,
+                                      VolumeIntegralStabilized <:
+                                      VolumeIntegralSubcellLimiting}
+    cache_default = create_cache(mesh, equations,
+                                 volume_integral.volume_integral_default,
+                                 dg, cache_containers, uEltype)
+    cache_stabilized = create_cache(mesh, equations,
+                                    volume_integral.volume_integral_stabilized,
+                                    dg, cache_containers, uEltype)
+
+    subcell_limited = BitVector(undef, nelements(dg, cache_containers))
+    fill!(subcell_limited, false)
+
+    return (; cache_default..., cache_stabilized..., subcell_limited)
+end
+
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
 """

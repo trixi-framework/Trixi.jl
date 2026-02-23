@@ -5,10 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# Abstract supertype of indicators used for AMR, shock capturing, and
-# adaptive volume-integral selection
-abstract type AbstractIndicator end
-
 function create_cache(typ::Type{IndicatorType},
                       semi) where {IndicatorType <: AbstractIndicator}
     return create_cache(typ, mesh_equations_solver_cache(semi)...)

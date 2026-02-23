@@ -45,9 +45,17 @@ basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure])
-volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+volume_integral_stab = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
+
+indicator = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
+# Adaptive volume integral using the entropy increase indicator to perform the
+# stabilized/EC volume integral when needed
+volume_integral = VolumeIntegralAdaptive(indicator = indicator,
+                                         volume_integral_default = VolumeIntegralFluxDifferencing(volume_flux),
+                                         volume_integral_stabilized = volume_integral_stab)
+
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)
@@ -85,7 +93,8 @@ stepsize_callback = StepsizeCallback(cfl = 0.7)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         stepsize_callback,
-                        save_restart, save_solution)
+                        #save_restart, save_solution
+                        )
 
 ###############################################################################
 # run the simulation

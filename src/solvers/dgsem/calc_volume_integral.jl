@@ -95,6 +95,8 @@ end
         volume_integral_kernel!(du, u, element, mesh,
                                 have_nonconservative_terms, equations,
                                 volume_integral_stabilized, dg, cache)
+        
+        cache.subcell_limited[element] = true
     end
 
     return nothing

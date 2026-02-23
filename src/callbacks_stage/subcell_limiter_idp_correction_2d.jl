@@ -31,6 +31,7 @@ function perform_idp_correction!(u, dt,
 
     # TODO: Need to restrict this to a list of elements for which the IDP VI has been used
     @threaded for element in eachelement(dg, cache)
+        if cache.subcell_limited[element]
         # Perform correction in 1st/x-direction
         for j in eachnode(dg), i in 2:nnodes(dg)
             # Subcell interface between nodes (i - 1, j) and (i, j)
@@ -81,6 +82,7 @@ function perform_idp_correction!(u, dt,
             dg_factor = dt * inverse_jacobian * inverse_weights[j - 1] * (1 - alpha2)
             multiply_add_to_node_vars!(u, dg_factor, flux2_jp1,
                                        equations, dg, i, j - 1, element)
+        end
         end
     end
 
