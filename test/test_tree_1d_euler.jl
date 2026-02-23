@@ -111,6 +111,24 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_density_wave_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_density_wave_adaptive_vol_int.jl"),
+                        l2=[
+                            0.07468001770571216,
+                            0.007468001770606171,
+                            0.000373400088537588
+                        ],
+                        linf=[
+                            0.2796538165732152,
+                            0.02796538165747514,
+                            0.0013982690828555633
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
@@ -573,6 +591,25 @@ end
                             0.0029288236477780227,
                             0.0007326399340998047,
                             0.19711518375221715
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave_FVO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave_FVO2.jl"),
+                        l2=[
+                            0.21859905356668904,
+                            0.021312774105832932,
+                            6.159274882735111
+                        ],
+                        linf=[
+                            0.343642444425342,
+                            0.03393451559504808,
+                            10.142735502826085
                         ])
 
     # Ensure that we do not have excessive memory allocations

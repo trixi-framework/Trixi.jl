@@ -695,6 +695,28 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_richtmyer_meshkov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_richtmyer_meshkov.jl"),
+                        l2=[
+                            0.11325554126117648,
+                            3.846072397992506e-14,
+                            0.30067515354593266,
+                            0.4451325203339372
+                        ],
+                        linf=[
+                            0.4630182829483884,
+                            3.795750685486191e-13,
+                            1.265147868668324,
+                            1.8837528418813672
+                        ],
+                        adaptive=false, dt=1e-2,
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_warm_bubble.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_warm_bubble.jl"),

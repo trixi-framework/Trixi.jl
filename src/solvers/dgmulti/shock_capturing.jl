@@ -79,7 +79,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         # Calculate indicator variable at interpolation (Lobatto) nodes.
         # TODO: calculate indicator variables at Gauss nodes or using `cache.entropy_projected_u_values`
         for i in eachnode(dg)
-            indicator[i] = indicator_hg.variable(u[i, element], equations)
+            indicator[i] = variable(u[i, element], equations)
         end
 
         # multiply by invVDM::SimpleKronecker
@@ -162,8 +162,7 @@ function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cach
     return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::DGMultiMesh,
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHGType,
                                dg::DGMultiFluxDiff, cache)

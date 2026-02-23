@@ -231,7 +231,7 @@ end
 
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
-function entropy_change_reference_element(du::AbstractArray{<:Any, 5}, u, element,
+function entropy_change_reference_element(du, u, element,
                                           mesh::AbstractMesh{3},
                                           equations, dg::DGSEM, cache, args...)
     return integrate_reference_element(u, element, mesh, equations, dg, cache,
@@ -272,6 +272,81 @@ function surface_integral_reference_element(func::Func, u, element,
 
         surface_integral += dg.basis.weights[i] * dg.basis.weights[j] *
                             (func(u_right, 1, equations) - func(u_left, 1, equations))
+    end
+
+    return surface_integral
+end
+
+# calculate surface integral of func(u, normal_direction, equations) * normal on the reference element.
+# Note: `get_normal_direction` already returns an outward-pointing normal for all directions,
+# thus no +- flips are needed here.
+function surface_integral_reference_element(func::Func, u, element,
+                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                                        T8codeMesh{3}},
+                                            equations, dg::DGSEM, cache,
+                                            args...) where {Func}
+    @unpack contravariant_vectors = cache.elements
+    @unpack weights = dg.basis
+
+    # Construct zero of right shape:
+    # Evaluate `func` at actual quadrature node and normal direction
+    u_tmp = get_node_vars(u, equations, dg, 1, 1, 1, element)
+    normal_direction = get_normal_direction(1, contravariant_vectors,
+                                            1, 1, 1, element)
+    surface_integral = zero(func(u_tmp, normal_direction, equations))
+
+    # Direction 1: face at i = 1 (x_min)
+    for k in eachnode(dg), j in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, 1, j, k, element)
+        normal_direction = get_normal_direction(1, contravariant_vectors,
+                                                1, j, k, element)
+        surface_integral += weights[j] * weights[k] *
+                            func(u_node, normal_direction, equations)
+    end
+
+    # Direction 2: face at i = nnodes(dg) (x_max)
+    for k in eachnode(dg), j in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, nnodes(dg), j, k, element)
+        normal_direction = get_normal_direction(2, contravariant_vectors,
+                                                nnodes(dg), j, k, element)
+        surface_integral += weights[j] * weights[k] *
+                            func(u_node, normal_direction, equations)
+    end
+
+    # Direction 3: face at j = 1 (y_min)
+    for k in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, 1, k, element)
+        normal_direction = get_normal_direction(3, contravariant_vectors,
+                                                i, 1, k, element)
+        surface_integral += weights[i] * weights[k] *
+                            func(u_node, normal_direction, equations)
+    end
+
+    # Direction 4: face at j = nnodes(dg) (y_max)
+    for k in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, nnodes(dg), k, element)
+        normal_direction = get_normal_direction(4, contravariant_vectors,
+                                                i, nnodes(dg), k, element)
+        surface_integral += weights[i] * weights[k] *
+                            func(u_node, normal_direction, equations)
+    end
+
+    # Direction 5: face at k = 1 (z_min)
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, 1, element)
+        normal_direction = get_normal_direction(5, contravariant_vectors,
+                                                i, j, 1, element)
+        surface_integral += weights[i] * weights[j] *
+                            func(u_node, normal_direction, equations)
+    end
+
+    # Direction 6: face at k = nnodes(dg) (z_max)
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, nnodes(dg), element)
+        normal_direction = get_normal_direction(6, contravariant_vectors,
+                                                i, j, nnodes(dg), element)
+        surface_integral += weights[i] * weights[j] *
+                            func(u_node, normal_direction, equations)
     end
 
     return surface_integral
