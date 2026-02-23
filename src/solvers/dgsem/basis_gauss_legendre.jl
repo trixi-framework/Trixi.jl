@@ -23,7 +23,8 @@ struct GaussLegendreBasis{RealT <: Real, NNODES,
     inverse_vandermonde_legendre::InverseVandermondeLegendre
 
     derivative_matrix::DerivativeMatrix # strong form derivative matrix
-    derivative_split::DerivativeMatrix # strong form derivative matrix minus boundary terms
+    # `derivative_split` currently not implemented since
+    # Flux-Differencing is not supported for Gauss-Legendre DGSEM at the moment.
     derivative_hat::DerivativeMatrix # weak form matrix "dhat", negative adjoint wrt the SBP dot product
 
     # Required for Gauss-Legendre nodes (non-trivial interpolation to the boundaries)
@@ -40,7 +41,6 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
     _, inverse_vandermonde_legendre = vandermonde_legendre(nodes_, RealT)
 
     derivative_matrix = polynomial_derivative_matrix(nodes_)
-    derivative_split = calc_Dsplit(derivative_matrix, weights_)
     derivative_hat = calc_Dhat(derivative_matrix, weights_)
 
     # Type conversions to enable possible optimizations of runtime performance
@@ -73,7 +73,6 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
                                                               inverse_weights,
                                                               inverse_vandermonde_legendre,
                                                               derivative_matrix,
-                                                              derivative_split,
                                                               derivative_hat,
                                                               boundary_interpolation,
                                                               boundary_interpolation_inverse_weights)
