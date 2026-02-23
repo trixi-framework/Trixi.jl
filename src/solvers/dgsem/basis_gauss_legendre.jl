@@ -49,7 +49,7 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
     weights = SVector{nnodes_, RealT}(weights_)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
-    boundary_interpolation = zeros(nnodes_, 2)
+    boundary_interpolation = zeros(RealT, nnodes_, 2)
     boundary_interpolation[:, 1] = calc_L(-one(RealT), nodes_, weights_)
     boundary_interpolation[:, 2] = calc_L(one(RealT), nodes_, weights_)
 
