@@ -365,7 +365,8 @@ end
     # Test `resize!` for non `VolumeIntegralSubcellLimiting`
     let
         solver = DGSEM(basis, surface_flux)
-        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic)
 
         ode = semidiscretize(semi, tspan)
         ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = (;))
@@ -495,6 +496,27 @@ end
                             53.95714139820832,
                             24.241610279839758,
                             561.0630401858057
+                        ],
+                        tspan=(0.0, 0.0001))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_double_mach_amr_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_double_mach_amr_adaptive_vol_int.jl"),
+                        l2=[
+                            0.046508656202994735,
+                            0.38925590603007865,
+                            0.22337270373046914,
+                            3.7509064689285547
+                        ],
+                        linf=[
+                            6.773181572561935,
+                            54.16833175380782,
+                            24.617192749059083,
+                            549.5957500288448
                         ],
                         tspan=(0.0, 0.0001))
     # Ensure that we do not have excessive memory allocations
@@ -853,7 +875,8 @@ end
                         tspan=(0.0, 0.5),
                         mesh=P4estMesh((64, 64), polydeg = 3,
                                        coordinates_min = (-2.0, -2.0),
-                                       coordinates_max = (2.0, 2.0)))
+                                       coordinates_max = (2.0, 2.0),
+                                       periodicity = true))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

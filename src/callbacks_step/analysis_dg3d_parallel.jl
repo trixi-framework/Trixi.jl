@@ -6,7 +6,7 @@
 #! format: noindent
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::Union{ParallelP4estMesh{3}, ParallelT8codeMesh{3}},
+                          mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
                           equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
@@ -67,14 +67,14 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 function integrate_via_indices(func::Func, u,
-                               mesh::Union{ParallelP4estMesh{3}, ParallelT8codeMesh{3}},
+                               mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
                                equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
-    # Pass `zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), 1)` 
-    # to `func` since `u` might be empty, if the current rank has no elements. 
+    # Pass `zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), 1)`
+    # to `func` since `u` might be empty, if the current rank has no elements.
     # See also https://github.com/trixi-framework/Trixi.jl/issues/1096, and
     # https://github.com/trixi-framework/Trixi.jl/pull/2126/files/7cbc57cfcba93e67353566e10fce1f3edac27330#r1814483243.
     integral = zero(func(zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg),

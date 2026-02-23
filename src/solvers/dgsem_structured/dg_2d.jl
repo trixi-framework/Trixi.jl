@@ -5,50 +5,6 @@
 @muladd begin
 #! format: noindent
 
-function calc_volume_integral!(backend::Nothing, du, u,
-                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           P4estMeshView{2}, T8codeMesh{2}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    @unpack contravariant_vectors = cache.elements
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel_per_element!(du, u, element, typeof(mesh),
-                                      have_nonconservative_terms, equations, dg,
-                                      contravariant_vectors)
-    end
-    return nothing
-end
-
-function calc_volume_integral!(backend::Backend, du, u,
-                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           P4estMeshView{2}, T8codeMesh{2}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack contravariant_vectors = cache.elements
-    kernel! = weak_form_KAkernel!(backend)
-    kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations, dg,
-            contravariant_vectors, ndrange = nelements(dg, cache))
-    return nothing
-end
-
-@kernel function weak_form_KAkernel!(du, u,
-                                     mT::Type{<:Union{StructuredMesh{2},
-                                                      StructuredMeshView{2},
-                                                      UnstructuredMesh2D,
-                                                      P4estMesh{2},
-                                                      P4estMeshView{2},
-                                                      T8codeMesh{2}}},
-                                     have_nonconservative_terms, equations,
-                                     dg::DGSEM, contravariant_vectors)
-    element = @index(Global)
-    weak_form_kernel_per_element!(du, u, element, mT, have_nonconservative_terms,
-                                  equations, dg, contravariant_vectors)
-end
 function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::AbstractVolumeIntegralSubcell,
@@ -71,19 +27,17 @@ see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
-@inline function weak_form_kernel_per_element!(du, u, element,
-                                               ::Type{<:Union{StructuredMesh{2},
-                                                              StructuredMeshView{2},
-                                                              UnstructuredMesh2D,
-                                                              P4estMesh{2},
-                                                              P4estMeshView{2},
-                                                              T8codeMesh{2}}},
-                                               have_nonconservative_terms::False,
-                                               equations, dg::DGSEM,
-                                               contravariant_vectors, alpha = true)
+@inline function weak_form_kernel!(du, u,
+                                   element,
+                                   ::Type{<:Union{StructuredMesh{2}, StructuredMeshView{2},
+                                                  UnstructuredMesh2D, P4estMesh{2},
+                                                  P4estMeshView{2}, T8codeMesh{2}}},
+                                   have_nonconservative_terms::False, equations,
+                                   dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_hat = dg.basis
+    @unpack contravariant_vectors = cache.elements
 
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -115,12 +69,11 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::Union{StructuredMesh{2},
-                                                       StructuredMeshView{2},
-                                                       UnstructuredMesh2D, P4estMesh{2},
-                                                       T8codeMesh{2}},
+@inline function flux_differencing_kernel!(du, u, element,
+                                           ::Type{<:Union{StructuredMesh{2},
+                                                          StructuredMeshView{2},
+                                                          UnstructuredMesh2D, P4estMesh{2},
+                                                          T8codeMesh{2}}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
@@ -179,12 +132,11 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::Union{StructuredMesh{2},
+@inline function flux_differencing_kernel!(du, u, element,
+                                           ::Type{<:Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
-                                                       T8codeMesh{2}},
+                                                       T8codeMesh{2}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
@@ -196,12 +148,11 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::Union{StructuredMesh{2},
+@inline function flux_differencing_kernel!(du, u, element,
+                                           ::Type{<:Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
-                                                       T8codeMesh{2}},
+                                                       T8codeMesh{2}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::False,
                                            equations,
@@ -270,12 +221,11 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::Union{StructuredMesh{2},
+@inline function flux_differencing_kernel!(du, u, element,
+                                           ::Type{<:Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
-                                                       T8codeMesh{2}},
+                                                       T8codeMesh{2}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::True,
                                            equations,

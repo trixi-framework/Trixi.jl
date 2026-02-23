@@ -82,7 +82,8 @@ mesh = P4estMesh(trees_per_dimension,
                  initial_refinement_level = 2,
                  periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -117,7 +118,7 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-stage_callbacks = (SubcellLimiterIDPCorrection(),)
+stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

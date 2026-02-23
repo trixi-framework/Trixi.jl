@@ -17,7 +17,7 @@ polydeg = 3
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = polydeg, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                RealT = Float32)
@@ -36,10 +36,10 @@ boundary_symbols = [:PhysicalSurface1, :PhysicalSurface2]
 mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols,
                     RealT = Float32)
 
-boundary_conditions = Dict(:PhysicalSurface1 => BoundaryConditionDirichlet(initial_condition),
-                           :PhysicalSurface2 => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (; PhysicalSurface1 = BoundaryConditionDirichlet(initial_condition),
+                       PhysicalSurface2 = BoundaryConditionDirichlet(initial_condition))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

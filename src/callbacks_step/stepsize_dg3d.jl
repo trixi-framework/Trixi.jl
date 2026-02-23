@@ -300,7 +300,7 @@ function max_dt(backend::Nothing, u, t,
     return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
-function max_dt(backend::Nothing, u, t, mesh::ParallelP4estMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::P4estMeshParallel{3},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -317,7 +317,7 @@ function max_dt(backend::Nothing, u, t, mesh::ParallelP4estMesh{3},
     return dt
 end
 
-function max_dt(backend::Nothing, u, t, mesh::ParallelP4estMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::P4estMeshParallel{3},
                 constant_speed::True, equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -334,7 +334,7 @@ function max_dt(backend::Nothing, u, t, mesh::ParallelP4estMesh{3},
     return dt
 end
 
-function max_dt(backend::Nothing, u, t, mesh::ParallelT8codeMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::T8codeMeshParallel{3},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -351,7 +351,7 @@ function max_dt(backend::Nothing, u, t, mesh::ParallelT8codeMesh{3},
     return dt
 end
 
-function max_dt(backend::Nothing, u, t, mesh::ParallelT8codeMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::T8codeMeshParallel{3},
                 constant_speed::True, equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`

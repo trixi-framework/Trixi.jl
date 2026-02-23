@@ -138,8 +138,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
@@ -168,8 +167,7 @@ end
     end
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
@@ -589,7 +587,7 @@ end
 function calc_surface_integral!(backend::Nothing, du, u,
                                 mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral, dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # This computes the **negative** surface integral contribution,
@@ -598,17 +596,18 @@ function calc_surface_integral!(backend::Nothing, du, u,
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations)
             # surface at -x
             du[v, 1, element] = (du[v, 1, element] -
-                                 surface_flux_values[v, 1, element] * factor_1)
+                                 surface_flux_values[v, 1, element] *
+                                 factor)
 
             # surface at +x
             du[v, nnodes(dg), element] = (du[v, nnodes(dg), element] +
-                                          surface_flux_values[v, 2, element] * factor_2)
+                                          surface_flux_values[v, 2, element] *
+                                          factor)
         end
     end
 

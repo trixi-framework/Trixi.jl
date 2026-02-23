@@ -8,7 +8,7 @@ equations = HyperbolicDiffusionEquations2D()
 
 initial_condition = initial_condition_poisson_nonperiodic
 # 1 => -x, 2 => +x, 3 => -y, 4 => +y as usual for orientations
-boundary_conditions = (x_neg = boundary_condition_poisson_nonperiodic,
+boundary_conditions = (; x_neg = boundary_condition_poisson_nonperiodic,
                        x_pos = boundary_condition_poisson_nonperiodic,
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)

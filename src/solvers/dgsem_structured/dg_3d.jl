@@ -4,51 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
-
-function calc_volume_integral!(backend::Nothing, du, u,
-                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    @unpack contravariant_vectors = cache.elements
-    @threaded for element in eachelement(dg, cache)
-        weak_form_kernel_element!(du, u, element, typeof(mesh),
-                                  have_nonconservative_terms, equations,
-                                  dg, contravariant_vectors)
-    end
-    return nothing
-end
-
-function calc_volume_integral!(backend::Backend, du, u,
-                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack contravariant_vectors = cache.elements
-
-    kernel! = weak_form_KAkernel!(backend)
-    kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations, dg,
-            contravariant_vectors,
-            ndrange = nelements(dg, cache))
-    return nothing
-end
-
-@kernel function weak_form_KAkernel!(du, u,
-                                     meshT::Type{<:Union{StructuredMesh{3},
-                                                         P4estMesh{3},
-                                                         T8codeMesh{3}}},
-                                     have_nonconservative_terms,
-                                     equations,
-                                     dg::DGSEM, contravariant_vectors)
-    element = @index(Global)
-    weak_form_kernel_element!(du, u, element, meshT,
-                              have_nonconservative_terms, equations,
-                              dg, contravariant_vectors)
-end
-
 function create_cache(mesh::Union{StructuredMesh{3},
                                   P4estMesh{3}, T8codeMesh{3}},
                       equations,
@@ -74,17 +29,16 @@ see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
-@inline function weak_form_kernel_element!(du, u,
-                                           element,
-                                           ::Type{<:Union{StructuredMesh{3},
-                                                          P4estMesh{3},
-                                                          T8codeMesh{3}}},
-                                           have_nonconservative_terms::False, equations,
-                                           dg::DGSEM, contravariant_vectors,
-                                           alpha = true)
+@inline function weak_form_kernel!(du, u,
+                                   element,
+                                   ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                               T8codeMesh{3}}},
+                                   have_nonconservative_terms::False, equations,
+                                   dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_hat = dg.basis
+    @unpack contravariant_vectors = cache.elements
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -133,10 +87,9 @@ end
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}},
+@inline function flux_differencing_kernel!(du, u, element,
+                                           ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                                       T8codeMesh{3}}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -216,10 +169,9 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}},
+@inline function flux_differencing_kernel!(du, u, element,
+                                           ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                                       T8codeMesh{3}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
@@ -230,10 +182,9 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}},
+@inline function flux_differencing_kernel!(du, u, element,
+                                           ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                                       T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::False,
                                            equations,
@@ -321,10 +272,9 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}},
+@inline function flux_differencing_kernel!(du, u, element,
+                                           ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                                       T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::True,
                                            equations,
@@ -568,6 +518,90 @@ end
 
         set_node_vars!(fstar3_L, ftilde_L, equations, dg, i, j, k)
         set_node_vars!(fstar3_R, ftilde_R, equations, dg, i, j, k)
+    end
+
+    return nothing
+end
+
+@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                fstar3_L, fstar3_R, u,
+                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                            T8codeMesh{3}},
+                                have_nonconservative_terms::False, equations,
+                                volume_flux_fv, dg::DGSEM, element, cache,
+                                sc_interface_coords, reconstruction_mode, slope_limiter)
+    @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
+
+    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, k,
+                                       element), equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, k,
+                                       element), equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k,
+                                       element), equations)
+        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j, k,
+                                       element), equations)
+
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       sc_interface_coords, i,
+                                       slope_limiter, dg)
+
+        normal_direction = get_normal_vector(normal_vectors_1, i - 1, j, k, element)
+
+        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
+                                            prim2cons(u_r, equations),
+                                            normal_direction, equations)
+
+        set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j, k)
+    end
+
+    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), k,
+                                       element), equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, k,
+                                       element), equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k,
+                                       element), equations)
+        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1), k,
+                                       element), equations)
+
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       sc_interface_coords, j,
+                                       slope_limiter, dg)
+
+        normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, k, element)
+
+        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
+                                            prim2cons(u_r, equations),
+                                            normal_direction, equations)
+
+        set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j, k)
+    end
+
+    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, i, j, max(1, k - 2),
+                                       element), equations)
+        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j, k - 1,
+                                       element), equations)
+        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k,
+                                       element), equations)
+        u_rr = cons2prim(get_node_vars(u, equations, dg, i, j, min(nnodes(dg), k + 1),
+                                       element), equations)
+
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       sc_interface_coords, k,
+                                       slope_limiter, dg)
+
+        normal_direction = get_normal_vector(normal_vectors_3, i, j, k - 1, element)
+
+        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
+                                            prim2cons(u_r, equations),
+                                            normal_direction, equations)
+
+        set_node_vars!(fstar3_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar3_R, contravariant_flux, equations, dg, i, j, k)
     end
 
     return nothing

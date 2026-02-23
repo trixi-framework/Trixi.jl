@@ -908,13 +908,9 @@ end
 
     # Copy to buffer
     set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
-                   i_node_index,
-                   j_node_index,
-                   position_index)
+                   i_node_index, j_node_index, position_index)
     set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
-                   i_node_index,
-                   j_node_index,
-                   position_index)
+                   i_node_index, j_node_index, position_index)
 
     return nothing
 end
@@ -1011,13 +1007,14 @@ function calc_surface_integral!(backend::Nothing, du, u,
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     @threaded for element in eachelement(dg, cache)
         calc_surface_integral_element!(du, typeof(mesh),
-                                       equations,
-                                       surface_integral, dg, surface_flux_values,
+                                       equations, surface_integral,
+                                       dg, inverse_weights[1],
+                                       surface_flux_values,
                                        element)
     end
     return nothing
@@ -1028,29 +1025,29 @@ function calc_surface_integral!(backend::Backend, du, u,
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     kernel! = calc_surface_integral_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, surface_integral, dg, surface_flux_values,
-            ndrange = nelements(cache.elements))
+    kernel!(du, typeof(mesh), equations, surface_integral, dg, inverse_weights[1],
+            surface_flux_values, ndrange = nelements(cache.elements))
     return nothing
 end
 
 @kernel function calc_surface_integral_KAkernel!(du, meshT, equations,
-                                                 surface_integral, dg,
+                                                 surface_integral, dg, factor,
                                                  surface_flux_values)
     element = @index(Global)
     calc_surface_integral_element!(du, meshT,
-                                   equations,
-                                   surface_integral, dg, surface_flux_values, element)
+                                   equations, surface_integral, dg, factor,
+                                   surface_flux_values, element)
 end
 
 function calc_surface_integral_element!(du,
                                         ::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
-                                        equations,
+                                        equations, 
                                         surface_integral::SurfaceIntegralWeakForm,
-                                        dg::DGSEM, surface_flux_values, element)
+                                        dg::DGSEM, factor, surface_flux_values, element)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
     # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
@@ -1058,43 +1055,46 @@ function calc_surface_integral_element!(du,
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    # TODO GPU: dg is adapted, accessing scalars outside of kernel is therefor not useful
-    factor_1 = dg.basis.boundary_interpolation[1, 1]
-    factor_2 = dg.basis.boundary_interpolation[nnodes(dg), 2]
+    #
+    # factor = inverse_weights[1]
+    # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     for m in eachnode(dg), l in eachnode(dg)
         for v in eachvariable(equations)
             # surface at -x
             du[v, 1, l, m, element] = (du[v, 1, l, m, element] +
-                                       surface_flux_values[v, l, m, 1, element] *
-                                       factor_1)
+                                        surface_flux_values[v, l, m, 1,
+                                                            element] *
+                                        factor)
 
             # surface at +x
             du[v, nnodes(dg), l, m, element] = (du[v, nnodes(dg), l, m, element] +
                                                 surface_flux_values[v, l, m, 2,
                                                                     element] *
-                                                factor_2)
+                                                factor)
 
             # surface at -y
             du[v, l, 1, m, element] = (du[v, l, 1, m, element] +
-                                       surface_flux_values[v, l, m, 3, element] *
-                                       factor_1)
+                                        surface_flux_values[v, l, m, 3,
+                                                            element] *
+                                        factor)
 
             # surface at +y
             du[v, l, nnodes(dg), m, element] = (du[v, l, nnodes(dg), m, element] +
                                                 surface_flux_values[v, l, m, 4,
                                                                     element] *
-                                                factor_2)
+                                                factor)
 
             # surface at -z
             du[v, l, m, 1, element] = (du[v, l, m, 1, element] +
-                                       surface_flux_values[v, l, m, 5, element] *
-                                       factor_1)
+                                        surface_flux_values[v, l, m, 5,
+                                                            element] *
+                                        factor)
 
             # surface at +z
             du[v, l, m, nnodes(dg), element] = (du[v, l, m, nnodes(dg), element] +
                                                 surface_flux_values[v, l, m, 6,
                                                                     element] *
-                                                factor_2)
+                                                factor)
         end
     end
     return nothing
