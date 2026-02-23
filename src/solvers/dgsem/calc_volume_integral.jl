@@ -238,10 +238,10 @@ function calc_volume_integral!(du, u, mesh,
     (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
     (; indicator_entropy_correction, indicator_shock_capturing) = indicator
     (; scaling) = indicator_entropy_correction
-    (; alpha) = indicator_shock_capturing.cache # since `alpha` is defined in `indicator_shock_capturing`, we reuse it instead
     du_element_threaded = indicator_entropy_correction.cache.volume_integral_values_threaded
 
     # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
+    # Note that we also reuse the `alpha_shock_capturing` array to store the indicator values for visualization.
     alpha_shock_capturing = @trixi_timeit timer() "blending factors" indicator_shock_capturing(u,
                                                                                                mesh,
                                                                                                equations,
@@ -309,8 +309,9 @@ function calc_volume_integral!(du, u, mesh,
             ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
             alpha_element = min(1, max(alpha_shock_capturing[element], scaling * ratio))
 
-            # Save blending coefficient for visualization
-            alpha[element] = alpha_element
+            # Save blending coefficient for visualization. Note that we overwrite the data 
+            # in `alpha_shock_capturing[element]`. 
+            alpha_shock_capturing[element] = alpha_element
 
             # Blend the high order method back in 
             @views du[.., element] .= alpha_element .* du[.., element] .+
