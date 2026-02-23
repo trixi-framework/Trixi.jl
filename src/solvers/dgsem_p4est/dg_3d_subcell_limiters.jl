@@ -58,11 +58,13 @@ function create_cache(mesh::P4estMesh{3},
             flux_temp_threaded, fhat_temp_threaded)
 end
 
-@inline function subcell_limiting_kernel!(du, u, element,
-                                          mesh::P4estMesh{3},
-                                          nonconservative_terms, equations,
-                                          volume_integral, limiter::SubcellLimiterIDP,
-                                          dg::DGSEM, cache)
+# Subcell limiting currently only implemented for certain mesh types
+@inline function volume_integral_kernel!(du, u, element,
+                                         mesh::P4estMesh{3},
+                                         nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralSubcellLimiting,
+                                         limiter::SubcellLimiterIDP,
+                                         dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of DG subcell sizes
     @unpack volume_flux_dg, volume_flux_fv = volume_integral
 

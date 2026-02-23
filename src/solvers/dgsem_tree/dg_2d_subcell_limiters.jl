@@ -109,31 +109,32 @@ function calc_volume_integral!(du, u,
         # Loop over blended DG-FV elements
         @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
             element = element_ids_dgfv[idx_element]
-            subcell_limiting_kernel!(du, u, element, mesh,
-                                     have_nonconservative_terms, equations,
-                                     volume_integral, limiter,
-                                     dg, cache)
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral, limiter,
+                                    dg, cache)
         end
     else # limiter.smoothness_indicator == false
         # Loop over all elements
         @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for element in eachelement(dg,
                                                                                                 cache)
-            subcell_limiting_kernel!(du, u, element, mesh,
-                                     have_nonconservative_terms, equations,
-                                     volume_integral, limiter,
-                                     dg, cache)
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral, limiter,
+                                    dg, cache)
         end
     end
 
     return nothing
 end
 
-@inline function subcell_limiting_kernel!(du, u, element,
-                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                                      P4estMesh{2}},
-                                          have_nonconservative_terms, equations,
-                                          volume_integral, limiter::SubcellLimiterIDP,
-                                          dg::DGSEM, cache)
+@inline function volume_integral_kernel!(du, u, element,
+                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                     P4estMesh{2}},
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralSubcellLimiting,
+                                         limiter::SubcellLimiterIDP,
+                                         dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
     @unpack volume_flux_dg, volume_flux_fv = volume_integral
 
@@ -178,13 +179,13 @@ end
     return nothing
 end
 
-@inline function subcell_limiting_kernel!(du, u,
-                                          element,
-                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                                      P4estMesh{2}},
-                                          nonconservative_terms::False, equations,
-                                          volume_integral, limiter::SubcellLimiterMCL,
-                                          dg::DGSEM, cache)
+@inline function volume_integral_kernel!(du, u, element,
+                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                     P4estMesh{2}},
+                                         nonconservative_terms::False, equations,
+                                         volume_integral::VolumeIntegralSubcellLimiting,
+                                         limiter::SubcellLimiterMCL,
+                                         dg::DGSEM, cache)
     (; inverse_weights) = dg.basis
     (; volume_flux_dg, volume_flux_fv) = volume_integral
 
