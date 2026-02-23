@@ -55,6 +55,9 @@ function create_cache(mesh, equations,
     return (; cache_default..., cache_stabilized...)
 end
 
+# `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
+# We only need to resize `volume_integral.indicator.cache.alpha`, which stores the blending factors
+# for visualization. 
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralEntropyCorrection,
                                        new_size)
@@ -79,6 +82,7 @@ function get_element_variables!(element_variables, u, mesh, equations,
     return nothing
 end
 
+# `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
 # For `VolumeIntegralEntropyCorrectionShockCapturingCombined`, we can reuse the `alpha` array from 
 # `indicator_shock_capturing` and avoid resizing `indicator_entropy_correction.cache.alpha`
 function resize_volume_integral_cache!(cache, mesh,
@@ -87,6 +91,8 @@ function resize_volume_integral_cache!(cache, mesh,
     @unpack volume_integral_default, volume_integral_stabilized = volume_integral
     resize_volume_integral_cache!(cache, mesh, volume_integral_default, new_size)
     resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
+
+    resize!(volume_integral.indicator.indicator_shock_capturing.cache.alpha, new_size)
 
     return nothing
 end

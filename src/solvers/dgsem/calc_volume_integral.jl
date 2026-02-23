@@ -241,8 +241,6 @@ function calc_volume_integral!(du, u, mesh,
     (; alpha) = indicator_shock_capturing.cache # since `alpha` is defined in `indicator_shock_capturing`, we reuse it instead
     du_element_threaded = indicator_entropy_correction.cache.volume_integral_values_threaded
 
-    resize!(alpha, nelements(dg, cache))
-
     # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
     alpha_shock_capturing = @trixi_timeit timer() "blending factors" indicator_shock_capturing(u,
                                                                                                mesh,
