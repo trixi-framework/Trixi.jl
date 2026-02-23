@@ -233,22 +233,6 @@ end
 
 function calc_volume_integral!(du, u, mesh,
                                have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralEntropyCorrection,
-                               dg::DGSEM, cache)
-    @unpack alpha = volume_integral.indicator.cache
-    resize!(alpha, nelements(dg, cache))
-
-    @threaded for element in eachelement(dg, cache)
-        volume_integral_kernel!(du, u, element, mesh,
-                                have_nonconservative_terms, equations,
-                                volume_integral, dg, cache)
-    end
-
-    return nothing
-end
-
-function calc_volume_integral!(du, u, mesh,
-                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
                                dg::DGSEM, cache)
     (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral

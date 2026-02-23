@@ -77,6 +77,6 @@ include("compute_u_mean.jl")
 include("containers.jl")
 
 include("indicators.jl")
-include("volume_integrals.jl")
+include("special_volume_integrals.jl")
 include("calc_volume_integral.jl")
 end # @muladd
