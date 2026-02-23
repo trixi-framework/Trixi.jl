@@ -58,6 +58,7 @@ initial_condition = initial_condition_transcritical_mixing
 volume_flux = flux_terashima_etal
 surface_flux = FluxPlusDissipation(volume_flux, DissipationLocalLaxFriedrichs())
 
+basis = LobattoLegendreBasis(3)
 volume_integral_default = VolumeIntegralFluxDifferencing(volume_flux)
 volume_integral_entropy_stable = VolumeIntegralPureLGLFiniteVolume(surface_flux)
 volume_integral = VolumeIntegralAdaptive(IndicatorEntropyCorrection(equations, basis),
