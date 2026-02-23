@@ -98,7 +98,7 @@ end
 @inline Base.real(basis::GaussLegendreBasis{RealT}) where {RealT} = RealT
 
 @inline function nnodes(basis::GaussLegendreBasis{RealT, NNODES}) where {RealT, NNODES}
-    NNODES
+    return NNODES
 end
 
 """
@@ -191,6 +191,7 @@ function Base.show(io::IO, analyzer::GaussLegendreAnalyzer)
 
     print(io, "GaussLegendreAnalyzer{", real(analyzer), "}(polydeg=",
           polydeg(analyzer), ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", analyzer::GaussLegendreAnalyzer)
@@ -198,13 +199,14 @@ function Base.show(io::IO, ::MIME"text/plain", analyzer::GaussLegendreAnalyzer)
 
     print(io, "GaussLegendreAnalyzer{", real(analyzer),
           "} with polynomials of degree ", polydeg(analyzer))
+          return nothing
 end
 
 @inline Base.real(analyzer::GaussLegendreAnalyzer{RealT}) where {RealT} = RealT
 
 @inline function nnodes(analyzer::GaussLegendreAnalyzer{RealT, NNODES}) where {RealT,
                                                                                NNODES}
-    NNODES
+    return NNODES
 end
 
 """
