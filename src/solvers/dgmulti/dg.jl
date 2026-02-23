@@ -351,16 +351,14 @@ function prolong2interfaces!(cache, u,
     return nothing
 end
 
+# CARE: This function requires that interpolation to quadrature points is performed before
+# to populate cache.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for affine meshes
 @inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                          have_nonconservative_terms::False, equations,
                                          volume_integral::VolumeIntegralWeakForm,
                                          dg::DGMulti, cache)
-    rd = dg.basis
     @unpack weak_differentiation_matrices, dxidxhatj, u_values, local_values_threaded = cache
-
-    # interpolate to quadrature points
-    apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
     flux_values = local_values_threaded[Threads.threadid()]
     for i in eachdim(mesh)
@@ -380,17 +378,15 @@ end
     return nothing
 end
 
+# CARE: This function requires that interpolation to quadrature points is performed before
+# to populate cache.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for curved meshes
 @inline function volume_integral_kernel!(du, u, element,
                                          mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                          have_nonconservative_terms::False, equations,
                                          volume_integral::VolumeIntegralWeakForm,
                                          dg::DGMulti, cache) where {NDIMS}
-    rd = dg.basis
     (; weak_differentiation_matrices, dxidxhatj, u_values) = cache
-
-    # interpolate to quadrature points
-    apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
     flux_values = cache.flux_threaded[Threads.threadid()]
     for i in eachdim(mesh)
@@ -428,7 +424,13 @@ end
 
 function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
-                               volume_integral, dg::DGMulti, cache)
+                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
+                               cache)
+    rd = dg.basis
+    (; u_values) = cache
+    # interpolate to quadrature points
+    apply_to_each_field(mul_by!(rd.Vq), u_values, u)
+
     @threaded for element in eachelement(mesh, dg, cache)
         volume_integral_kernel!(du, u, element, mesh,
                                 have_nonconservative_terms, equations,

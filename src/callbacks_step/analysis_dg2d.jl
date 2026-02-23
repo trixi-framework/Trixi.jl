@@ -217,7 +217,7 @@ end
 
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
-function entropy_change_reference_element(du::AbstractArray{<:Any, 4}, u, element,
+function entropy_change_reference_element(du, u, element,
                                           mesh::AbstractMesh{2},
                                           equations, dg::DGSEM, cache, args...)
     return integrate_reference_element(u, element, mesh, equations, dg, cache,
@@ -270,8 +270,12 @@ function surface_integral_reference_element(func::Func, u, element,
     @unpack contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
+    # Construct zero of right shape:
+    # Evaluate `func` at actual quadrature node and normal direction
     u_tmp = get_node_vars(u, equations, dg, 1, 1, element)
-    surface_integral = zero(func(u_tmp, 1, equations))
+    normal_direction = get_normal_direction(1, contravariant_vectors,
+                                            1, 1, element)
+    surface_integral = zero(func(u_tmp, normal_direction, equations))
 
     # Direction 1: face at i = 1 (x_min)
     for j in eachnode(dg)
