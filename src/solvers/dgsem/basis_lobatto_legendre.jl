@@ -576,7 +576,8 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
     nodes = zeros(RealT, n_nodes)
     weights = zeros(RealT, n_nodes)
 
-    # Special case for polynomial degree zero (first order finite volume)
+    # Special case for polynomial degree zero (first order finite volume):
+    # Fall back to Gauss-Legendre
     if n_nodes == 1
         nodes[1] = 0
         weights[1] = 2
