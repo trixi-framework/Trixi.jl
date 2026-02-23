@@ -238,7 +238,7 @@ function calc_volume_integral!(du, u, mesh,
     (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
     (; indicator_entropy_correction, indicator_shock_capturing) = indicator
     (; scaling) = indicator_entropy_correction
-    (; alpha) = indicator_entropy_correction.cache # TODO: remove array since it's duplicated in indicator_shock_capturing?
+    (; alpha) = indicator_shock_capturing.cache # since `alpha` is defined in `indicator_shock_capturing`, we reuse it instead
     du_element_threaded = indicator_entropy_correction.cache.volume_integral_values_threaded
 
     resize!(alpha, nelements(dg, cache))

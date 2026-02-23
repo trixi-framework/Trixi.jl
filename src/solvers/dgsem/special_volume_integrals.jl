@@ -74,7 +74,20 @@ const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdap
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
                                 dg, cache)
-    element_variables[:indicator_shock_capturing] = volume_integral.indicator_entropy_correction.cache.alpha
+    # here, we reuse `indicator_shock_capturing.cache.alpha` to store the indicator variable 
+    element_variables[:indicator_shock_capturing] = volume_integral.indicator_shock_capturing.cache.alpha
+    return nothing
+end
+
+# For `VolumeIntegralEntropyCorrectionShockCapturingCombined`, we can reuse the `alpha` array from 
+# `indicator_shock_capturing` and avoid resizing `indicator_entropy_correction.cache.alpha`
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                                       new_size)
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    resize_volume_integral_cache!(cache, mesh, volume_integral_default, new_size)
+    resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
+
     return nothing
 end
 end # @muladd
