@@ -165,7 +165,7 @@ end
 # Local one-sided limiting of nonlinear variables
 
 @inline function idp_local_onesided!(alpha, limiter, u::AbstractArray{<:Real, 5},
-                                     t, dt, semi,
+                                     t, dt, semi, elements,
                                      variable, min_or_max)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -173,7 +173,7 @@ end
     calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
 
     # Perform Newton's bisection method to find new alpha
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in elements
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)

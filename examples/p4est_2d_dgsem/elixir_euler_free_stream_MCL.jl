@@ -59,9 +59,11 @@ trees_per_dimension = (16, 16)
 # Create P4estMesh with 16 x 16 trees and 16 x 16 elements
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  mapping = mapping,
-                 initial_refinement_level = 0, periodicity = true)
+                 initial_refinement_level = 0,
+                 periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

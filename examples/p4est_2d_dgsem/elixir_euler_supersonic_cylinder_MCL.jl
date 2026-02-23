@@ -101,12 +101,11 @@ end
 #                            :Right => boundary_condition_inflow_outflow,
 #                            :Left => boundary_condition_inflow_outflow)
 
-boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
-                           :Circle => boundary_condition_slip_wall,
-                           :Top => boundary_condition_slip_wall,
-                           :Right => boundary_condition_outflow,
-                           :Left => boundary_condition_supersonic_inflow)
-
+boundary_conditions = (; Bottom = boundary_condition_slip_wall,
+                       Circle = boundary_condition_slip_wall,
+                       Top = boundary_condition_slip_wall,
+                       Right = boundary_condition_outflow,
+                       Left = boundary_condition_supersonic_inflow)
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.

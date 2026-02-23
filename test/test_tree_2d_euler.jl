@@ -673,7 +673,7 @@ end
     # Test alphas_mean.txt
     lines = readlines(joinpath("out", "alphas_mean.txt"))
     @test lines[1] ==
-          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e, alpha_min_pressure, alpha_avg_pressure, alpha_min_entropy, alpha_avg_entropy"
+          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e_total, alpha_avg_rho_e_total, alpha_min_pressure, alpha_avg_pressure, alpha_min_entropy, alpha_avg_entropy"
     @test startswith(lines[end], "346, 1.0, 0.002")
     @test count(",", lines[end]) == 13
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
@@ -681,7 +681,7 @@ end
     # Test alphas_min.txt
     lines = readlines(joinpath("out", "alphas_min.txt"))
     @test lines[1] ==
-          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e, alpha_min_pressure, alpha_avg_pressure, alpha_min_entropy, alpha_avg_entropy"
+          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e_total, alpha_avg_rho_e_total, alpha_min_pressure, alpha_avg_pressure, alpha_min_entropy, alpha_avg_entropy"
     @test startswith(lines[end], "346, 1.0, -0.0, 0.761")
     @test count(",", lines[end]) == 13
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))

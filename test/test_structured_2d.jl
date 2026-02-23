@@ -699,7 +699,7 @@ end
     # Test alphas_mean.txt
     lines = readlines(joinpath("out", "alphas_mean.txt"))
     @test lines[1] ==
-          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e"
+          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e_total, alpha_avg_rho_e_total"
     @test startswith(lines[end], "191, 0.05, 3.70")
     @test count(",", lines[end]) == 9
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
@@ -707,7 +707,7 @@ end
     # Test alphas_min.txt
     lines = readlines(joinpath("out", "alphas_min.txt"))
     @test lines[1] ==
-          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e"
+          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e_total, alpha_avg_rho_e_total"
     @test startswith(lines[end], "191, 0.05, -0.0, 0.7216")
     @test count(",", lines[end]) == 9
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))

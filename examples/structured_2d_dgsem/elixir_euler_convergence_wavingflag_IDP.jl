@@ -41,9 +41,10 @@ f4(s) = SVector(s, 1.0 + sin(0.5 * pi * s))
 
 cells_per_dimension = (4, 4)
 
-mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4))
+mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4), periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

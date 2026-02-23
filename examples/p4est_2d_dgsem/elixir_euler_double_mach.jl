@@ -94,10 +94,10 @@ end
     return u_outer
 end
 
-boundary_conditions = Dict(:y_neg => boundary_condition_mixed_characteristic_wall,
-                           :y_pos => boundary_condition_inflow_outflow,
-                           :x_pos => boundary_condition_inflow_outflow,
-                           :x_neg => boundary_condition_inflow_outflow)
+boundary_conditions = (; y_neg = boundary_condition_mixed_characteristic_wall,
+                       y_pos = boundary_condition_inflow_outflow,
+                       x_pos = boundary_condition_inflow_outflow,
+                       x_neg = boundary_condition_inflow_outflow)
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
