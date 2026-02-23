@@ -16,7 +16,7 @@ coordinates_max = (1.0, 1.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                n_cells_max = 30_000, periodicity = true)
 
 ###############################################################################
 ### semidiscretization for sparsity detection ###
@@ -28,7 +28,8 @@ jac_eltype = jacobian_eltype(real(solver), jac_detector)
 
 # Semidiscretization for sparsity pattern detection
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,
-                                             initial_condition_convergence_test, solver,
+                                             initial_condition_convergence_test, solver;
+                                             boundary_conditions = boundary_condition_periodic,
                                              uEltype = jac_eltype) # Need to supply Jacobian element type
 
 tspan = (0.0, 1.0) # Re-used for wrapping `rhs` below
@@ -61,7 +62,8 @@ coloring_vec = column_colors(coloring_result)
 # Semidiscretization for actual simulation. `eEltype` is here retrieved from `solver`
 semi_float_type = SemidiscretizationHyperbolic(mesh, equation,
                                                initial_condition_convergence_test,
-                                               solver)
+                                               solver;
+                                               boundary_conditions = boundary_condition_periodic)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_jac_sparse = semidiscretize(semi_float_type, tspan,

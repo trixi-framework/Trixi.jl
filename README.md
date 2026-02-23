@@ -254,7 +254,7 @@ Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
-(Linköping University, Sweden), [Jesse Chan](https://jlchan.github.io) (Rice University, US),
+(Linköping University, Sweden), [Jesse Chan](https://jlchan.github.io) (UT Austin, US),
 and [Andrés Rueda-Ramírez](https://andres.rueda-ramirez.com) (Polytechnic University of Madrid (UPM), Spain),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
@@ -281,7 +281,7 @@ Participating research groups in alphabetical order:
 
 [Division of Applied Mathematics, Department of Mathematics, Linköping University :sweden:](https://liu.se/en/employee/andwi94)
 
-[Computational and Applied Mathematics, Rice University :us:](https://jlchan.github.io/)
+[Oden Institute for Computational Engineering and Sciences, UT Austin :us:](https://jlchan.github.io/)
 
 [High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) :de:](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
 

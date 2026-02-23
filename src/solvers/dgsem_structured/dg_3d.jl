@@ -5,6 +5,24 @@
 @muladd begin
 #! format: noindent
 
+function create_cache(mesh::Union{StructuredMesh{3},
+                                  P4estMesh{3}, T8codeMesh{3}},
+                      equations,
+                      volume_integral::AbstractVolumeIntegralSubcell,
+                      dg::DG, cache_containers, uEltype)
+    fstar1_L_threaded, fstar1_R_threaded,
+    fstar2_L_threaded, fstar2_R_threaded,
+    fstar3_L_threaded, fstar3_R_threaded = create_f_threaded(mesh, equations, dg,
+                                                             uEltype)
+
+    normal_vectors = NormalVectorContainer3D(mesh, dg, cache_containers)
+
+    return (; fstar1_L_threaded, fstar1_R_threaded,
+            fstar2_L_threaded, fstar2_R_threaded,
+            fstar3_L_threaded, fstar3_R_threaded,
+            normal_vectors)
+end
+
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -20,7 +38,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -36,7 +54,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                                     i, j, k, element)
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i],
                                        contravariant_flux1, equations, dg,
                                        ii, j, k, element)
         end
@@ -47,7 +65,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                                     i, j, k, element)
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
                                        contravariant_flux2, equations, dg,
                                        i, jj, k, element)
         end
@@ -58,7 +76,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                                     i, j, k, element)
         contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
         for kk in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[kk, k],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[kk, k],
                                        contravariant_flux3, equations, dg,
                                        i, j, kk, element)
         end
@@ -70,8 +88,7 @@ end
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
                                            have_nonconservative_terms::False, equations,
@@ -153,8 +170,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
                                            have_nonconservative_terms::True, equations,
@@ -167,8 +183,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
                                            have_nonconservative_terms::True,
@@ -258,8 +273,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
                                            have_nonconservative_terms::True,
@@ -361,76 +375,54 @@ end
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
+    @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
-    # TODO: Performance gain if the metric terms of the subcell FV method are computed
-    # only once at the beginning of the simulation (e.g. in `create_cache`)!
+    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+        u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-    for k in eachnode(dg), j in eachnode(dg)
-        normal_direction = get_contravariant_vector(1, contravariant_vectors,
-                                                    1, j, k, element)
+        # Fetch precomputed freestream-preserving normal vector
+        # We access i - 1 here since the normal vector for i = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_1,
+                                             i - 1, j, k, element)
 
-        for i in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, k, element)
+        # Compute the contravariant flux
+        contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
 
-            # Compute freestream-preserving normal vector for the finite volume flux.
-            # This is the first equation in (B.53).
-            for m in eachnode(dg)
-                normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
-                                    get_contravariant_vector(1, contravariant_vectors,
-                                                             m, j, k, element)
-            end
-
-            # Compute the contravariant flux
-            contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
-
-            set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j, k)
-            set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j, k)
-        end
+        set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j, k)
     end
 
-    for k in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, 1, k, element)
+    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+        u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-        for j in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, k, element)
+        # Fetch precomputed freestream-preserving normal vector
+        # We access j - 1 here since the normal vector for j = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_2,
+                                             i, j - 1, k, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
-                                    get_contravariant_vector(2, contravariant_vectors,
-                                                             i, m, k, element)
-            end
+        # Compute the contravariant flux
+        contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
 
-            # Compute the contravariant flux
-            contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
-
-            set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j, k)
-            set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j, k)
-        end
+        set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j, k)
     end
 
-    for j in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(3, contravariant_vectors,
-                                                    i, j, 1, element)
+    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+        u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-        for k in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, k, element)
+        # Fetch precomputed freestream-preserving normal vector
+        # We access k - 1 here since the normal vector for k = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_3,
+                                             i, j, k - 1, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[k - 1] * derivative_matrix[k - 1, m] *
-                                    get_contravariant_vector(3, contravariant_vectors,
-                                                             i, j, m, element)
-            end
+        # Compute the contravariant flux
+        contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
 
-            # Compute the contravariant flux
-            contravariant_flux = volume_flux_fv(u_ll, u_rr, normal_direction, equations)
-
-            set_node_vars!(fstar3_L, contravariant_flux, equations, dg, i, j, k)
-            set_node_vars!(fstar3_R, contravariant_flux, equations, dg, i, j, k)
-        end
+        set_node_vars!(fstar3_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar3_R, contravariant_flux, equations, dg, i, j, k)
     end
 
     return nothing
@@ -444,111 +436,174 @@ end
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
+    @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
     volume_flux, nonconservative_flux = volume_flux_fv
 
-    # TODO: Performance gain if the metric terms of the subcell FV method are computed
-    # only once at the beginning of the simulation (e.g. in `create_cache`)!
+    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+        u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-    for k in eachnode(dg), j in eachnode(dg)
-        normal_direction = get_contravariant_vector(1, contravariant_vectors,
-                                                    1, j, k, element)
+        # Fetch precomputed freestream-preserving normal vector
+        # We access i - 1 here since the normal vector for i = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_1,
+                                             i - 1, j, k, element)
 
-        for i in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, k, element)
+        # Compute the contravariant conservative flux
+        ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
 
-            # Compute freestream-preserving normal vector for the finite volume flux.
-            # This is the first equation in (B.53).
-            for m in eachnode(dg)
-                normal_direction += weights[i - 1] * derivative_matrix[i - 1, m] *
-                                    get_contravariant_vector(1, contravariant_vectors,
-                                                             m, j, k, element)
-            end
+        # Compute and add in the nonconservative part
+        # Note the factor 0.5 necessary for the nonconservative fluxes based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
+        ftilde_L = ftilde +
+                   0.5f0 *
+                   nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+        ftilde_R = ftilde +
+                   0.5f0 *
+                   nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
-            # Compute the contravariant conservative flux
-            ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
-
-            # Compute and add in the nonconservative part
-            # Note the factor 0.5 necessary for the nonconservative fluxes based on
-            # the interpretation of global SBP operators coupled discontinuously via
-            # central fluxes/SATs
-            ftilde_L = ftilde +
-                       0.5f0 *
-                       nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-            ftilde_R = ftilde +
-                       0.5f0 *
-                       nonconservative_flux(u_rr, u_ll, normal_direction, equations)
-
-            set_node_vars!(fstar1_L, ftilde_L, equations, dg, i, j, k)
-            set_node_vars!(fstar1_R, ftilde_R, equations, dg, i, j, k)
-        end
+        set_node_vars!(fstar1_L, ftilde_L, equations, dg, i, j, k)
+        set_node_vars!(fstar1_R, ftilde_R, equations, dg, i, j, k)
     end
 
-    for k in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, 1, k, element)
+    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+        u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-        for j in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, k, element)
+        # Fetch precomputed freestream-preserving normal vector
+        # We access j - 1 here since the normal vector for j = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_2,
+                                             i, j - 1, k, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[j - 1] * derivative_matrix[j - 1, m] *
-                                    get_contravariant_vector(2, contravariant_vectors,
-                                                             i, m, k, element)
-            end
+        # Compute the contravariant conservative flux
+        ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
 
-            # Compute the contravariant conservative flux
-            ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
+        # Compute and add in the nonconservative part
+        # Note the factor 0.5 necessary for the nonconservative fluxes based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
+        ftilde_L = ftilde +
+                   0.5f0 *
+                   nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+        ftilde_R = ftilde +
+                   0.5f0 *
+                   nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
-            # Compute and add in the nonconservative part
-            # Note the factor 0.5 necessary for the nonconservative fluxes based on
-            # the interpretation of global SBP operators coupled discontinuously via
-            # central fluxes/SATs
-            ftilde_L = ftilde +
-                       0.5f0 *
-                       nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-            ftilde_R = ftilde +
-                       0.5f0 *
-                       nonconservative_flux(u_rr, u_ll, normal_direction, equations)
-
-            set_node_vars!(fstar2_L, ftilde_L, equations, dg, i, j, k)
-            set_node_vars!(fstar2_R, ftilde_R, equations, dg, i, j, k)
-        end
+        set_node_vars!(fstar2_L, ftilde_L, equations, dg, i, j, k)
+        set_node_vars!(fstar2_R, ftilde_R, equations, dg, i, j, k)
     end
 
-    for j in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(3, contravariant_vectors,
-                                                    i, j, 1, element)
+    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+        u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
+        u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
-        for k in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
-            u_rr = get_node_vars(u, equations, dg, i, j, k, element)
+        # Fetch precomputed freestream-preserving normal vector
+        # We access k - 1 here since the normal vector for k = 1 is not used and stored
+        normal_direction = get_normal_vector(normal_vectors_3,
+                                             i, j, k - 1, element)
 
-            for m in eachnode(dg)
-                normal_direction += weights[k - 1] * derivative_matrix[k - 1, m] *
-                                    get_contravariant_vector(3, contravariant_vectors,
-                                                             i, j, m, element)
-            end
+        # Compute the contravariant conservative flux
+        ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
 
-            # Compute the contravariant conservative flux
-            ftilde = volume_flux(u_ll, u_rr, normal_direction, equations)
+        # Compute and add in the nonconservative part
+        # Note the factor 0.5 necessary for the nonconservative fluxes based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
+        ftilde_L = ftilde +
+                   0.5f0 *
+                   nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+        ftilde_R = ftilde +
+                   0.5f0 *
+                   nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
-            # Compute and add in the nonconservative part
-            # Note the factor 0.5 necessary for the nonconservative fluxes based on
-            # the interpretation of global SBP operators coupled discontinuously via
-            # central fluxes/SATs
-            ftilde_L = ftilde +
-                       0.5f0 *
-                       nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-            ftilde_R = ftilde +
-                       0.5f0 *
-                       nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+        set_node_vars!(fstar3_L, ftilde_L, equations, dg, i, j, k)
+        set_node_vars!(fstar3_R, ftilde_R, equations, dg, i, j, k)
+    end
 
-            set_node_vars!(fstar3_L, ftilde_L, equations, dg, i, j, k)
-            set_node_vars!(fstar3_R, ftilde_R, equations, dg, i, j, k)
-        end
+    return nothing
+end
+
+@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                fstar3_L, fstar3_R, u,
+                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                            T8codeMesh{3}},
+                                have_nonconservative_terms::False, equations,
+                                volume_flux_fv, dg::DGSEM, element, cache,
+                                sc_interface_coords, reconstruction_mode, slope_limiter,
+                                cons2recon, recon2cons)
+    @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
+
+    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, k,
+                                        element), equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, k,
+                                        element), equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, k,
+                                        element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j, k,
+                                        element), equations)
+
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       sc_interface_coords, i,
+                                       slope_limiter, dg)
+
+        normal_direction = get_normal_vector(normal_vectors_1, i - 1, j, k, element)
+
+        contravariant_flux = volume_flux_fv(recon2cons(u_l, equations),
+                                            recon2cons(u_r, equations),
+                                            normal_direction, equations)
+
+        set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j, k)
+    end
+
+    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), k,
+                                        element), equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, k,
+                                        element), equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, k,
+                                        element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1), k,
+                                        element), equations)
+
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       sc_interface_coords, j,
+                                       slope_limiter, dg)
+
+        normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, k, element)
+
+        contravariant_flux = volume_flux_fv(recon2cons(u_l, equations),
+                                            recon2cons(u_r, equations),
+                                            normal_direction, equations)
+
+        set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j, k)
+    end
+
+    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, j, max(1, k - 2),
+                                        element), equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j, k - 1,
+                                        element), equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, k,
+                                        element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, j, min(nnodes(dg), k + 1),
+                                        element), equations)
+
+        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                       sc_interface_coords, k,
+                                       slope_limiter, dg)
+
+        normal_direction = get_normal_vector(normal_vectors_3, i, j, k - 1, element)
+
+        contravariant_flux = volume_flux_fv(recon2cons(u_l, equations),
+                                            recon2cons(u_r, equations),
+                                            normal_direction, equations)
+
+        set_node_vars!(fstar3_L, contravariant_flux, equations, dg, i, j, k)
+        set_node_vars!(fstar3_R, contravariant_flux, equations, dg, i, j, k)
     end
 
     return nothing
@@ -844,9 +899,14 @@ end
 function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            factor = -cache.elements.inverse_jacobian[i, j, k, element]
+            # Negative sign included to account for the negated surface and volume terms,
+            # see e.g. the computation of `derivative_hat` in the basis setup and 
+            # the comment in `calc_surface_integral!`.
+            factor = -inverse_jacobian[i, j, k, element]
 
             for v in eachvariable(equations)
                 du[v, i, j, k, element] *= factor

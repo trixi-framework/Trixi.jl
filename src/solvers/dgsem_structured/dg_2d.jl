@@ -7,8 +7,7 @@
 
 function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
-                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             VolumeIntegralShockCapturingHG},
+                      volume_integral::AbstractVolumeIntegralSubcell,
                       dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
@@ -37,7 +36,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
 
     for j in eachnode(dg), i in eachnode(dg)
@@ -51,7 +50,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i],
                                        contravariant_flux1, equations, dg,
                                        ii, j, element)
         end
@@ -61,7 +60,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
                                        contravariant_flux2, equations, dg,
                                        i, jj, element)
         end
@@ -70,8 +69,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
@@ -134,8 +132,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
@@ -151,8 +148,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
@@ -225,8 +221,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
@@ -345,7 +340,8 @@ end
                                             P4estMesh{2}, T8codeMesh{2}},
                                 have_nonconservative_terms::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter,
+                                cons2recon, recon2cons)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
     # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
@@ -354,22 +350,22 @@ end
     # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
     # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
     for j in eachnode(dg), i in 2:nnodes(dg)
-        ## Obtain unlimited values in primitive variables ##
+        ## Obtain unlimited values in reconstruction variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                         equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                          equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
-                                       element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
+                                        element), equations)
 
         ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
@@ -382,9 +378,9 @@ end
 
         # Compute the contravariant flux by taking the scalar product of the
         # normal vector and the flux vector.
-        ## Convert primitive variables back to conservative variables ##
-        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
-                                            prim2cons(u_r, equations),
+        ## Convert reconstruction variables back to conservative variables ##
+        contravariant_flux = volume_flux_fv(recon2cons(u_l, equations),
+                                            recon2cons(u_r, equations),
                                             normal_direction, equations)
 
         set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j)
@@ -392,14 +388,14 @@ end
     end
 
     for j in 2:nnodes(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                         equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
-                                       element), equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                          equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, j,
@@ -408,8 +404,8 @@ end
         # We access j - 1 here since the normal vector for j = 1 is not used and stored
         normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, element)
 
-        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
-                                            prim2cons(u_r, equations),
+        contravariant_flux = volume_flux_fv(recon2cons(u_l, equations),
+                                            recon2cons(u_r, equations),
                                             normal_direction, equations)
 
         set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j)
@@ -724,6 +720,9 @@ function apply_jacobian!(du,
 
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
+            # Negative sign included to account for the negated surface and volume terms,
+            # see e.g. the computation of `derivative_hat` in the basis setup and 
+            # the comment in `calc_surface_integral!`.
             factor = -inverse_jacobian[i, j, element]
 
             for v in eachvariable(equations)

@@ -40,8 +40,8 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
 
 semi = SemidiscretizationHyperbolic(mesh,
                                     equations,
-                                    initial_condition_convergence_test,
-                                    dg)
+                                    initial_condition_convergence_test, dg;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)

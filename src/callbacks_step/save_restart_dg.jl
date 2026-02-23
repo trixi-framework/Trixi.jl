@@ -6,9 +6,9 @@
 #! format: noindent
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{SerialTreeMesh, StructuredMesh,
-                                       UnstructuredMesh2D, SerialP4estMesh,
-                                       SerialT8codeMesh},
+                           mesh::Union{TreeMeshSerial, StructuredMesh,
+                                       UnstructuredMesh2D, P4estMeshSerial,
+                                       T8codeMeshSerial},
                            equations, dg::DG, cache,
                            restart_callback)
     @unpack output_directory = restart_callback
@@ -108,8 +108,8 @@ end
 
 # Version for MPI-parallel run with serial I/O, i.e., `HDF5.has_parallel() == false`
 function convert_restart_file_polydeg!(u_global, file, polydeg_file,
-                                       mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                                   ParallelT8codeMesh}, equations,
+                                       mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                                   T8codeMeshParallel}, equations,
                                        dg::DGSEM, cache,
                                        nnodes_file, conversion_matrix)
     n_elements_global = nelementsglobal(mesh, dg, cache)
@@ -215,8 +215,8 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
 end
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                       ParallelT8codeMesh}, equations,
+                           mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                       T8codeMeshParallel}, equations,
                            dg::DG, cache,
                            restart_callback)
     @unpack output_directory = restart_callback
@@ -233,8 +233,8 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 function save_restart_file_parallel(u, time, dt, timestep,
-                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                                ParallelT8codeMesh},
+                                    mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                                T8codeMeshParallel},
                                     equations, dg::DG, cache,
                                     filename)
 
@@ -280,8 +280,8 @@ function save_restart_file_parallel(u, time, dt, timestep,
 end
 
 function save_restart_file_on_root(u, time, dt, timestep,
-                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                               ParallelT8codeMesh},
+                                   mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                               T8codeMeshParallel},
                                    equations, dg::DG, cache,
                                    filename)
 
@@ -334,8 +334,8 @@ function save_restart_file_on_root(u, time, dt, timestep,
     return filename
 end
 
-function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                       ParallelT8codeMesh}, equations,
+function load_restart_file(mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                       T8codeMeshParallel}, equations,
                            dg::DG, cache, restart_file, interpolate_high2low)
     if HDF5.has_parallel()
         load_restart_file_parallel(mesh, equations, dg, cache,
@@ -346,8 +346,8 @@ function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
     end
 end
 
-function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                                ParallelT8codeMesh},
+function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                                T8codeMeshParallel},
                                     equations, dg::DG, cache,
                                     restart_file, interpolate_high2low)
     # allocate memory
@@ -427,8 +427,8 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
     return u_ode
 end
 
-function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                               ParallelT8codeMesh},
+function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                               T8codeMeshParallel},
                                    equations, dg::DG, cache,
                                    restart_file, interpolate_high2low)
 
