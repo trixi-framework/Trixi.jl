@@ -81,18 +81,4 @@ function get_element_variables!(element_variables, u, mesh, equations,
     element_variables[:indicator_shock_capturing] = volume_integral.indicator_shock_capturing.cache.alpha
     return nothing
 end
-
-# `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
-# For `VolumeIntegralEntropyCorrectionShockCapturingCombined`, we can reuse the `alpha` array from 
-# `indicator_shock_capturing`, which is resized by the call to the shock capturing indicator. 
-function resize_volume_integral_cache!(cache, mesh,
-                                       volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
-                                       new_size)
-    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
-
-    resize_volume_integral_cache!(cache, mesh, volume_integral_default, new_size)
-    resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
-
-    return nothing
-end
 end # @muladd
