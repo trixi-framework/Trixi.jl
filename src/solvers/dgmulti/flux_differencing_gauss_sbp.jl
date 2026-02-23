@@ -208,6 +208,8 @@ end
                                interp_matrix_gauss_to_face_1d[2, jj] * x[i, jj]
         end
     end
+
+    return nothing
 end
 
 # Interpolates values from volume Gauss nodes to face nodes on one element.
@@ -261,6 +263,8 @@ end
                                interp_matrix_gauss_to_face_1d[2, jj] * x[j, i, jj]
         end
     end
+
+    return nothing
 end
 
 # Projects face node values to volume Gauss nodes on one element.
@@ -315,6 +319,8 @@ end
     @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d)
         out[i, j] = out[i, j] * inv_volume_weights_1d[i] * inv_volume_weights_1d[j]
     end
+
+    return nothing
 end
 
 # Interpolates values from volume Gauss nodes to face nodes on one element.
@@ -385,6 +391,8 @@ end
         out[i, j, k] = out[i, j, k] * inv_volume_weights_1d[i] *
                        inv_volume_weights_1d[j] * inv_volume_weights_1d[k]
     end
+
+    return nothing
 end
 
 # For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
@@ -499,6 +507,8 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
             du[i, e] = du[i, e] + gauss_volume_local[i]
         end
     end
+
+    return nothing
 end
 
 @inline function flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
@@ -546,17 +556,8 @@ function project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh::DGMultiMesh,
                    local_volume_flux[i] * cache.inv_gauss_weights[i]
         du[i, element] = du[i, element] + alpha * du_local
     end
-end
 
-function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGMultiFluxDiff{<:GaussSBP}, cache)
-    @threaded for e in eachelement(mesh, dg, cache)
-        volume_integral_kernel!(du, u, e, mesh,
-                                have_nonconservative_terms, equations,
-                                volume_integral, dg, cache)
-    end
+    return nothing
 end
 
 function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
@@ -591,6 +592,8 @@ function invert_jacobian_and_interpolate!(du, mesh::DGMultiMesh, equations,
         apply_to_each_field(mul_by!(interp_matrix_gauss_to_lobatto),
                             view(du, :, e), rhs_volume_local)
     end
+
+    return nothing
 end
 
 # Specialize RHS so that we can call `invert_jacobian_and_interpolate!` instead of just `invert_jacobian!`,

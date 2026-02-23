@@ -20,6 +20,9 @@ This enables in particular adaptive mesh refinement for that solver-mesh combina
   `volume_integral_blend_high_order`, and `volume_integral_blend_low_order` besides the usual `indicator` argument.
   In particular, `volume_integral_default` may be e.g.  `VolumeIntegralWeakForm` or `VolumeIntegralAdaptive`, i.e.,
   the non-stabilized elements/cells are no longer restricted to `VolumeIntegralFluxDifferencing` only ([#2802]).
+- The second-order subcell volume integral is no longer limited to reconstruction in primitive variables.
+  Instead, it is possible to reconstruct in custom variables, if functions `cons2recon` and `recon2cons` are provided to
+  `VolumeIntegralPureLGLFiniteVolumeO2` and `VolumeIntegralShockCapturingRRG`([#2817]).
 
 ## Changes when updating to v0.15 from v0.14.x
 
