@@ -65,7 +65,7 @@ end # muladd
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, mesh::TreeMesh{2},
+                                           element, ::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
@@ -227,7 +227,7 @@ end # muladd
 end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, mesh::TreeMesh{2},
+                                           element, ::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_ranocha_turbo),

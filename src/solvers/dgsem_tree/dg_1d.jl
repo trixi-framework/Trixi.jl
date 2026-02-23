@@ -118,7 +118,8 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
 @inline function weak_form_kernel!(du, u,
-                                   element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                   element,
+                                   ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                                    have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -139,7 +140,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                           ::Type{<:Union{TreeMesh{1},
+                                                          StructuredMesh{1}}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -168,7 +170,8 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                           ::Type{<:Union{TreeMesh{1},
+                                                          StructuredMesh{1}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -263,7 +266,7 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
-                              mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                              ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     for i in 2:nnodes(dg)
@@ -278,7 +281,7 @@ end
 end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
-                              mesh::TreeMesh{1},
+                              ::Type{<:TreeMesh{1}},
                               have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
@@ -309,7 +312,7 @@ end
 # "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. Part II: Subcell finite volume shock capturing"
 # [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, u,
-                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                                 nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,

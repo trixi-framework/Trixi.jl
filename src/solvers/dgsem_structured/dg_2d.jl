@@ -135,14 +135,14 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{2},
-                                                          StructuredMeshView{2},
-                                                          UnstructuredMesh2D,
-                                                          P4estMesh{2},
-                                                          T8codeMesh{2}}},
+                                           meshT::Type{<:Union{StructuredMesh{2},
+                                                               StructuredMeshView{2},
+                                                               UnstructuredMesh2D,
+                                                               P4estMesh{2},
+                                                               T8codeMesh{2}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
-    flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
+    flux_differencing_kernel!(du, u, element, meshT, have_nonconservative_terms,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
                               equations,
@@ -152,11 +152,11 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{2},
-                                                          StructuredMeshView{2},
-                                                          UnstructuredMesh2D,
-                                                          P4estMesh{2},
-                                                          T8codeMesh{2}}},
+                                           meshT::Type{<:Union{StructuredMesh{2},
+                                                               StructuredMeshView{2},
+                                                               UnstructuredMesh2D,
+                                                               P4estMesh{2},
+                                                               T8codeMesh{2}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::False,
                                            equations,
@@ -166,7 +166,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, meshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -298,9 +298,9 @@ end
 end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                          UnstructuredMesh2D,
-                                          P4estMesh{2}, T8codeMesh{2}},
+                              ::Type{<:Union{StructuredMesh{2}, StructuredMeshView{2},
+                                             UnstructuredMesh2D,
+                                             P4estMesh{2}, T8codeMesh{2}}},
                               have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
@@ -340,9 +340,9 @@ end
 end
 
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                            UnstructuredMesh2D,
-                                            P4estMesh{2}, T8codeMesh{2}},
+                                ::Type{<:Union{StructuredMesh{2}, StructuredMeshView{2},
+                                               UnstructuredMesh2D,
+                                               P4estMesh{2}, T8codeMesh{2}}},
                                 have_nonconservative_terms::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -421,9 +421,9 @@ end
 end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              mesh::Union{StructuredMesh{2}, StructuredMesh{2},
-                                          UnstructuredMesh2D,
-                                          P4estMesh{2}, T8codeMesh{2}},
+                              ::Type{<:Union{StructuredMesh{2}, StructuredMesh{2},
+                                             UnstructuredMesh2D,
+                                             P4estMesh{2}, T8codeMesh{2}}},
                               have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors

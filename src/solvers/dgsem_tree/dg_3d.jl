@@ -126,7 +126,7 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
 @inline function weak_form_kernel!(du, u,
-                                   element, mesh::TreeMesh{3},
+                                   element, ::Type{<:TreeMesh{3}},
                                    have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -158,7 +158,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element, mesh::TreeMesh{3},
+@inline function flux_differencing_kernel!(du, u, element, ::Type{<:TreeMesh{3}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -208,7 +208,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element, mesh::TreeMesh{3},
+@inline function flux_differencing_kernel!(du, u, element, ::Type{<:TreeMesh{3}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -300,9 +300,9 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              ::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
-                                             P4estMesh{3},
-                                             T8codeMesh{3}}},
+                              meshT::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
+                                                  P4estMesh{3},
+                                                  T8codeMesh{3}}},
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -322,7 +322,7 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                   mesh, have_nonconservative_terms, equations,
+                   meshT, have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
                    sc_interface_coords, reconstruction_mode, slope_limiter,
                    cons2recon, recon2cons)
@@ -352,7 +352,7 @@ end
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               fstar3_L, fstar3_R, u,
-                              mesh::TreeMesh{3}, have_nonconservative_terms::False,
+                              ::Type{<:TreeMesh{3}}, have_nonconservative_terms::False,
                               equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
@@ -384,7 +384,7 @@ end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               fstar3_L, fstar3_R, u,
-                              mesh::TreeMesh{3},
+                              ::Type{<:TreeMesh{3}},
                               have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv

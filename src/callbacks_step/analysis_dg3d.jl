@@ -224,7 +224,8 @@ end
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
 # the time derivative of entropy, see `entropy_change_reference_element`.
 function integrate_reference_element(func::Func, u, element,
-                                     mesh::AbstractMesh{3}, equations, dg::DGSEM, cache,
+                                     ::Type{<:AbstractMesh{3}}, equations, dg::DGSEM,
+                                     cache,
                                      args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
@@ -242,9 +243,9 @@ end
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
 function entropy_change_reference_element(du, u, element,
-                                          mesh::AbstractMesh{3},
+                                          meshT::Type{<:AbstractMesh{3}},
                                           equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+    return integrate_reference_element(u, element, meshT, equations, dg, cache,
                                        du) do u, i, j, k, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         du_node = get_node_vars(du, equations, dg, i, j, k, element)
@@ -255,7 +256,7 @@ end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
 function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::TreeMesh{3}, equations, dg::DGSEM,
+                                            ::Type{<:TreeMesh{3}}, equations, dg::DGSEM,
                                             cache, args...) where {Func}
     @unpack weights = dg.basis
 
@@ -291,8 +292,9 @@ end
 # Note: `get_normal_direction` already returns an outward-pointing normal for all directions,
 # thus no +- flips are needed here.
 function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                        T8codeMesh{3}},
+                                            ::Type{<:Union{StructuredMesh{3},
+                                                           P4estMesh{3},
+                                                           T8codeMesh{3}}},
                                             equations, dg::DGSEM, cache,
                                             args...) where {Func}
     @unpack contravariant_vectors = cache.elements

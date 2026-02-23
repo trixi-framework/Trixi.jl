@@ -178,7 +178,7 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
 @inline function weak_form_kernel!(du, u,
-                                   element, mesh::TreeMesh{2},
+                                   element, ::Type{<:TreeMesh{2}},
                                    have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -205,7 +205,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element, mesh::TreeMesh{2},
+@inline function flux_differencing_kernel!(du, u, element, ::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -243,7 +243,7 @@ end
     end
 end
 
-@inline function flux_differencing_kernel!(du, u, element, mesh::TreeMesh{2},
+@inline function flux_differencing_kernel!(du, u, element, ::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -286,9 +286,9 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              ::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
-                                             UnstructuredMesh2D, P4estMesh{2},
-                                             T8codeMesh{2}}},
+                              meshT::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                                  UnstructuredMesh2D, P4estMesh{2},
+                                                  T8codeMesh{2}}},
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -302,7 +302,7 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+    calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, meshT,
                    have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
                    sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -323,7 +323,7 @@ end
 end
 
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                                mesh::TreeMesh{2},
+                                ::Type{<:TreeMesh{2}},
                                 have_nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -390,9 +390,9 @@ end
 end
 
 @inline function fv_kernel!(du, u,
-                            ::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           T8codeMesh{2}}},
+                            meshT::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                                UnstructuredMesh2D, P4estMesh{2},
+                                                T8codeMesh{2}}},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
@@ -403,7 +403,7 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, meshT,
                  have_nonconservative_terms, equations, volume_flux_fv, dg, element,
                  cache)
 
@@ -426,7 +426,7 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              mesh::TreeMesh{2},
+                              ::Type{<:TreeMesh{2}},
                               have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     for j in eachnode(dg), i in 2:nnodes(dg)
@@ -449,7 +449,7 @@ end
 end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              mesh::TreeMesh{2},
+                              ::Type{<:TreeMesh{2}},
                               have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
