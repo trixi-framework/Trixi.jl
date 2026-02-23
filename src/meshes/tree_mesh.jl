@@ -275,5 +275,7 @@ isperiodic(mesh::TreeMesh, dimension) = isperiodic(mesh.tree, dimension)
 
 Base.real(::TreeMesh{NDIMS, TreeType, RealT}) where {NDIMS, TreeType, RealT} = RealT
 
+@inline ncells(mesh::TreeMesh) = length(local_leaf_cells(mesh.tree))
+
 include("parallel_tree_mesh.jl")
 end # @muladd

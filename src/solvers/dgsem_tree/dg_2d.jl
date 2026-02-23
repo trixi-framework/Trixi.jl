@@ -291,6 +291,7 @@ end
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
+                              cons2recon, recon2cons,
                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -303,7 +304,8 @@ end
     calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
                    have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
-                   sc_interface_coords, reconstruction_mode, slope_limiter)
+                   sc_interface_coords, reconstruction_mode, slope_limiter,
+                   cons2recon, recon2cons)
 
     # Calculate FV volume integral contribution
     for j in eachnode(dg), i in eachnode(dg)
@@ -323,7 +325,8 @@ end
                                 mesh::TreeMesh{2},
                                 have_nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter,
+                                cons2recon, recon2cons)
     for j in eachnode(dg), i in 2:nnodes(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
@@ -331,30 +334,30 @@ end
         # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
         # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
-        ## Obtain unlimited values in primitive variables ##
+        ## Obtain unlimited values in reconstruction variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                         equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                          equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
-                                       element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
+                                        element), equations)
 
         ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, i,
                                        slope_limiter, dg)
 
-        ## Convert primitive variables back to conservative variables ##
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+        ## Convert reconstruction variables back to conservative variables ##
+        flux = volume_flux_fv(recon2cons(u_l, equations), recon2cons(u_r, equations),
                               1, equations) # orientation 1: x direction
 
         set_node_vars!(fstar1_L, flux, equations, dg, i, j)
@@ -362,20 +365,20 @@ end
     end
 
     for j in 2:nnodes(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                         equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
-                                       element), equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                          equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, j,
                                        slope_limiter, dg)
 
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+        flux = volume_flux_fv(recon2cons(u_l, equations), recon2cons(u_r, equations),
                               2, equations) # orientation 2: y direction
 
         set_node_vars!(fstar2_L, flux, equations, dg, i, j)

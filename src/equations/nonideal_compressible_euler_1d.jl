@@ -63,7 +63,7 @@ varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations1D) = ("rho",
                                                                          "p")
 
 """
-    cons2thermo(u, equations::NonIdealCompressibleEulerEquations1D)
+    cons2thermo(u, equations::AbstractNonIdealCompressibleEulerEquations)
 
 Convert conservative variables to specific volume, velocity, and temperature
 variables `V, v1, T`. These are referred to as "thermodynamic" variables since
@@ -295,6 +295,12 @@ end
 end
 
 # Convert thermodynamic variables `V, v1, T` to conservative variables
+"""
+    thermo2cons(thermo, equations::AbstractNonIdealCompressibleEulerEquations)
+
+Convert "thermodynamic" variables (specific volume, velocity, and temperature) to
+conserved variables (density, momentum, and total energy).
+"""
 @inline function thermo2cons(thermo, equations::NonIdealCompressibleEulerEquations1D)
     eos = equations.equation_of_state
     V, v1, T = thermo

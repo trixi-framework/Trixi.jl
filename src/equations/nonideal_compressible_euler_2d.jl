@@ -503,13 +503,6 @@ end
     return (abs(v1) + c, abs(v2) + c)
 end
 
-"""
-    cons2thermo(u, equations::NonIdealCompressibleEulerEquations2D)
-        
-Convert conservative variables to specific volume, velocity, and temperature 
-variables `V, v1, v2, T`. These are referred to as "thermodynamic" variables since
-equation of state routines are assumed to be evaluated in terms of `V` and `T`. 
-"""
 @inline function cons2thermo(u, equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
     rho, rho_v1, rho_v2, rho_e_total = u

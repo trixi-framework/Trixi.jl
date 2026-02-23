@@ -438,4 +438,32 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
 
     return boundaries.n_boundaries_per_direction
 end
+
+function reinitialize_containers!(mesh::TreeMesh{1}, equations, dg::DGSEM, cache)
+    # Get new list of leaf cells
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+    n_cells = length(leaf_cell_ids)
+
+    # re-initialize elements container
+    @unpack elements = cache
+    resize!(elements, n_cells)
+    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+
+    # Resize volume integral and related datastructures
+    @unpack volume_integral = dg
+    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+
+    # re-initialize interfaces container
+    @unpack interfaces = cache
+    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+    init_interfaces!(interfaces, elements, mesh)
+
+    # re-initialize boundaries container
+    @unpack boundaries = cache
+    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+    init_boundaries!(boundaries, elements, mesh)
+
+    return nothing
+end
 end # @muladd
