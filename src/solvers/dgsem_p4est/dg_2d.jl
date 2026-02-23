@@ -923,8 +923,8 @@ function calc_surface_integral_per_element!(du,
 
             # surface at +x
             du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
-                                                surface_flux_values[v, l, 2, element] *
-                                                factor)
+                                             surface_flux_values[v, l, 2, element] *
+                                             factor)
 
             # surface at -y
             du[v, l, 1, element] = (du[v, l, 1, element] +
@@ -933,8 +933,8 @@ function calc_surface_integral_per_element!(du,
 
             # surface at +y
             du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
-                                                surface_flux_values[v, l, 4, element] *
-                                                factor)
+                                             surface_flux_values[v, l, 4, element] *
+                                             factor)
         end
     end
     return nothing

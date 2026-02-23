@@ -32,7 +32,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 @inline function weak_form_kernel!(du, u,
                                    element,
                                    ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                               T8codeMesh{3}}},
+                                                  T8codeMesh{3}}},
                                    have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -88,8 +88,9 @@ end
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
 @inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}}},
+                                           ::Type{<:Union{StructuredMesh{3},
+                                                          P4estMesh{3},
+                                                          T8codeMesh{3}}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -170,8 +171,9 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}}},
+                                           ::Type{<:Union{StructuredMesh{3},
+                                                          P4estMesh{3},
+                                                          T8codeMesh{3}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
@@ -183,8 +185,9 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}}},
+                                           ::Type{<:Union{StructuredMesh{3},
+                                                          P4estMesh{3},
+                                                          T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::False,
                                            equations,
@@ -273,8 +276,9 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}}},
+                                           ::Type{<:Union{StructuredMesh{3},
+                                                          P4estMesh{3},
+                                                          T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::True,
                                            equations,
