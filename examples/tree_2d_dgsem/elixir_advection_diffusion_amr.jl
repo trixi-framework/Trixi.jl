@@ -16,7 +16,7 @@ coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                n_cells_max = 80_000)
+                n_cells_max = 80_000, periodicity = true)
 
 # Define initial condition
 function initial_condition_diffusive_convergence_test(x, t,

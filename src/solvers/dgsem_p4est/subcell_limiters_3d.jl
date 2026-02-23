@@ -10,6 +10,187 @@
 ###############################################################################
 
 ###############################################################################
+# Calculation of local bounds using low-order FV solution
+
+@inline function calc_bounds_onesided!(var_minmax, min_or_max, variable,
+                                       u::AbstractArray{<:Any, 5}, t, semi)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    # Calc bounds inside elements
+    @threaded for element in eachelement(dg, cache)
+        # Reset bounds
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            if min_or_max === max
+                var_minmax[i, j, k, element] = typemin(eltype(var_minmax))
+            else
+                var_minmax[i, j, k, element] = typemax(eltype(var_minmax))
+            end
+        end
+
+        # Calculate bounds at Gauss-Lobatto nodes
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            var = variable(get_node_vars(u, equations, dg, i, j, k, element), equations)
+            var_minmax[i, j, k, element] = min_or_max(var_minmax[i, j, k, element], var)
+
+            if i > 1
+                var_minmax[i - 1, j, k, element] = min_or_max(var_minmax[i - 1, j, k,
+                                                                         element], var)
+            end
+            if i < nnodes(dg)
+                var_minmax[i + 1, j, k, element] = min_or_max(var_minmax[i + 1, j, k,
+                                                                         element], var)
+            end
+            if j > 1
+                var_minmax[i, j - 1, k, element] = min_or_max(var_minmax[i, j - 1, k,
+                                                                         element], var)
+            end
+            if j < nnodes(dg)
+                var_minmax[i, j + 1, k, element] = min_or_max(var_minmax[i, j + 1, k,
+                                                                         element], var)
+            end
+            if k > 1
+                var_minmax[i, j, k - 1, element] = min_or_max(var_minmax[i, j, k - 1,
+                                                                         element], var)
+            end
+            if k < nnodes(dg)
+                var_minmax[i, j, k + 1, element] = min_or_max(var_minmax[i, j, k + 1,
+                                                                         element], var)
+            end
+        end
+    end
+
+    # Values at element boundary
+    calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t, semi, mesh)
+
+    return nothing
+end
+
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi,
+                                         mesh::P4estMesh{3})
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+    (; boundary_conditions) = semi
+
+    (; neighbor_ids, node_indices) = cache.interfaces
+    index_range = eachnode(dg)
+
+    # Calc bounds at interfaces and periodic boundaries
+    for interface in eachinterface(dg, cache)
+        # Get element and side index information on the primary element
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
+
+        # Get element and side index information on the secondary element
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
+
+        # Create the local i,j,k indexing
+        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                     index_range)
+        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                     index_range)
+        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                     index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        k_primary = k_primary_start
+
+        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
+                                                                                           index_range)
+        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
+                                                                                           index_range)
+        k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
+                                                                                           index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        k_secondary = k_secondary_start
+
+        for j in eachnode(dg)
+            for i in eachnode(dg)
+                var_primary = variable(get_node_vars(u, equations, dg, i_primary,
+                                                     j_primary, k_primary,
+                                                     primary_element), equations)
+                var_secondary = variable(get_node_vars(u, equations, dg, i_secondary,
+                                                       j_secondary, k_secondary,
+                                                       secondary_element),
+                                         equations)
+
+                var_minmax[i_primary, j_primary, k_primary, primary_element] = minmax(var_minmax[i_primary,
+                                                                                                 j_primary,
+                                                                                                 k_primary,
+                                                                                                 primary_element],
+                                                                                      var_secondary)
+                var_minmax[i_secondary, j_secondary, k_secondary, secondary_element] = minmax(var_minmax[i_secondary,
+                                                                                                         j_secondary,
+                                                                                                         k_secondary,
+                                                                                                         secondary_element],
+                                                                                              var_primary)
+
+                # Increment the primary element indices
+                i_primary += i_primary_step_i
+                j_primary += j_primary_step_i
+                k_primary += k_primary_step_i
+                # Increment the secondary element surface indices
+                i_secondary += i_secondary_step_i
+                j_secondary += j_secondary_step_i
+                k_secondary += k_secondary_step_i
+            end
+            # Increment the primary element indices
+            i_primary += i_primary_step_j
+            j_primary += j_primary_step_j
+            k_primary += k_primary_step_j
+            # Increment the secondary element surface indices
+            i_secondary += i_secondary_step_j
+            j_secondary += j_secondary_step_j
+            k_secondary += k_secondary_step_j
+        end
+    end
+
+    # Calc bounds at physical boundaries
+    calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
+                                   boundary_conditions,
+                                   mesh, equations, dg, cache)
+
+    return nothing
+end
+
+@inline function calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
+                                                boundary_conditions::BoundaryConditionPeriodic,
+                                                mesh::P4estMesh{3},
+                                                equations, dg, cache)
+    return nothing
+end
+
+##############################################################################
+# Local one-sided limiting of nonlinear variables
+
+@inline function idp_local_onesided!(alpha, limiter, u::AbstractArray{<:Real, 5},
+                                     t, dt, semi,
+                                     variable, min_or_max)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
+    calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+
+    # Perform Newton's bisection method to find new alpha
+    @threaded for element in eachelement(dg, cache)
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, k, element)
+            u_local = get_node_vars(u, equations, dg, i, j, k, element)
+            newton_loops_alpha!(alpha, var_minmax[i, j, k, element],
+                                u_local, i, j, k, element,
+                                variable, min_or_max,
+                                initial_check_local_onesided_newton_idp,
+                                final_check_local_onesided_newton_idp,
+                                inverse_jacobian, dt, equations, dg, cache, limiter)
+        end
+    end
+
+    return nothing
+end
+
+###############################################################################
 # Global positivity limiting of conservative variables
 
 @inline function idp_positivity_conservative!(alpha, limiter,

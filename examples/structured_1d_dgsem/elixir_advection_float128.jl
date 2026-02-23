@@ -21,10 +21,12 @@ coordinates_max = (one(RealT),)
 cells_per_dimension = (1,)
 
 # `StructuredMesh` infers datatype from coordinates
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -139,8 +139,7 @@ end
 wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
-                                    mesh::DGMultiMesh,
-                                    dg::DGMulti,
+                                    mesh::DGMultiMesh, dg::DGMulti,
                                     cache) where {Keys, ValueTypes <: NTuple{N, Any}
                                                   } where {N}
     return boundary_conditions
@@ -154,7 +153,7 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
                                                        nvars))
 end
 
-function reset_du!(du, dg::DGMulti, other_args...)
+function set_zero!(du, dg::DGMulti, other_args...)
     @threaded for i in eachindex(du)
         du[i] = zero(eltype(du))
     end
@@ -241,12 +240,70 @@ end
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
+                constant_diffusivity::False, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DGMulti{NDIMS},
+                cache) where {NDIMS}
+    @unpack md = mesh
+    rd = dg.basis
+
+    dt_min = floatmax(typeof(t))
+    for e in eachelement(mesh, dg, cache)
+        h_e = StartUpDG.estimate_h(e, rd, md)
+        max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
+        for i in Base.OneTo(rd.Np) # loop over nodes
+            lambda_i = max_abs_speeds(u[i, e], equations)
+
+            # estimate diffusive "wavespeed" as diffusivity / h
+            # this corresponds to a CFL of h^2 * diffusivity
+            diffusivity = max_diffusivity(u[i, e], equations_parabolic)
+            max_speeds = max.(max_speeds, lambda_i, diffusivity / h_e)
+        end
+        dt_min = min(dt_min, h_e / sum(max_speeds))
+    end
+    # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
+    # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
+    # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
+    # the number of 1D nodes for `DGSEM` solvers.
+    return 2 * dt_min * dt_polydeg_scaling(dg)
+end
+
+function max_dt(u, t, mesh::DGMultiMesh,
+                constant_diffusivity::True, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DGMulti{NDIMS},
+                cache) where {NDIMS}
+    @unpack md = mesh
+    rd = dg.basis
+
+    # Compute max_speeds only once, since it's constant for all nodes/elements
+    max_speeds = max_abs_speeds(equations)
+
+    # estimate diffusive "wavespeed" as diffusivity / h
+    # this corresponds to a CFL of h^2 * diffusivity
+    diffusivity = max_diffusivity(equations_parabolic)
+
+    dt_min = floatmax(typeof(t))
+    for e in eachelement(mesh, dg, cache)
+        h_e = StartUpDG.estimate_h(e, rd, md)
+        max_speeds = max.(max_speeds, diffusivity / h_e)
+        dt_min = min(dt_min, h_e / sum(max_speeds))
+    end
+    # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
+    # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
+    # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
+    # the number of 1D nodes for `DGSEM` solvers.
+    return 2 * dt_min * dt_polydeg_scaling(dg)
+end
+
+# for the stepsize callback
+function max_dt(u, t, mesh::DGMultiMesh,
                 constant_speed::False, equations, dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
     @unpack md = mesh
     rd = dg.basis
 
-    dt_min = Inf
+    dt_min = floatmax(typeof(t))
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
         max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
@@ -272,7 +329,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     # Compute max_speeds only once, since it's constant for all nodes/elements
     max_speeds = max_abs_speeds(equations)
 
-    dt_min = Inf
+    dt_min = floatmax(typeof(t))
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
         dt_min = min(dt_min, h_e / sum(max_speeds))
@@ -294,82 +351,90 @@ function prolong2interfaces!(cache, u,
     return nothing
 end
 
+# CARE: This function requires that interpolation to quadrature points is performed before
+# to populate cache.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for affine meshes
-function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms::False, equations,
-                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
-                               cache)
-    rd = dg.basis
-    md = mesh.md
+@inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                         have_nonconservative_terms::False, equations,
+                                         volume_integral::VolumeIntegralWeakForm,
+                                         dg::DGMulti, cache)
     @unpack weak_differentiation_matrices, dxidxhatj, u_values, local_values_threaded = cache
-    @unpack rstxyzJ = md # geometric terms
 
-    # interpolate to quadrature points
-    apply_to_each_field(mul_by!(rd.Vq), u_values, u)
-
-    @threaded for e in eachelement(mesh, dg, cache)
-        flux_values = local_values_threaded[Threads.threadid()]
-        for i in eachdim(mesh)
-            # Here, the broadcasting operation does allocate
-            #flux_values .= flux.(view(u_values, :, e), i, equations)
-            # Use loop instead
-            for j in eachindex(flux_values)
-                flux_values[j] = flux(u_values[j, e], i, equations)
-            end
-            for j in eachdim(mesh)
-                apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j],
-                                                  dxidxhatj[i, j][1, e]),
-                                    view(du, :, e), flux_values)
-            end
+    flux_values = local_values_threaded[Threads.threadid()]
+    for i in eachdim(mesh)
+        # Here, the broadcasting operation does allocate
+        #flux_values .= flux.(view(u_values, :, e), i, equations)
+        # Use loop instead
+        for j in eachindex(flux_values)
+            flux_values[j] = flux(u_values[j, element], i, equations)
+        end
+        for j in eachdim(mesh)
+            apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j],
+                                              dxidxhatj[i, j][1, element]),
+                                view(du, :, element), flux_values)
         end
     end
 
     return nothing
 end
 
+# CARE: This function requires that interpolation to quadrature points is performed before
+# to populate cache.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for curved meshes
-function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
-                               have_nonconservative_terms::False, equations,
-                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
-                               cache) where {NDIMS}
-    rd = dg.basis
-    (; weak_differentiation_matrices, u_values) = cache
-    (; dxidxhatj) = cache
+@inline function volume_integral_kernel!(du, u, element,
+                                         mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                                         have_nonconservative_terms::False, equations,
+                                         volume_integral::VolumeIntegralWeakForm,
+                                         dg::DGMulti, cache) where {NDIMS}
+    (; weak_differentiation_matrices, dxidxhatj, u_values) = cache
 
+    flux_values = cache.flux_threaded[Threads.threadid()]
+    for i in eachdim(mesh)
+        # Here, the broadcasting operation does not allocate
+        flux_values[i] .= flux.(view(u_values, :, element), i, equations)
+    end
+
+    # rotate flux with df_i/dx_i = sum_j d(x_i)/d(x̂_j) * d(f_i)/d(x̂_j).
+    # Example: df_x/dx + df_y/dy = dr/dx * df_x/dr + ds/dx * df_x/ds
+    #                  + dr/dy * df_y/dr + ds/dy * df_y/ds
+    #                  = Dr * (dr/dx * fx + dr/dy * fy) + Ds * (...)
+    #                  = Dr * (f_r) + Ds * (f_s)
+
+    rotated_flux_values = cache.rotated_flux_threaded[Threads.threadid()]
+    for j in eachdim(mesh)
+        fill!(rotated_flux_values, zero(eltype(rotated_flux_values)))
+
+        # compute rotated fluxes
+        for i in eachdim(mesh)
+            for ii in eachindex(rotated_flux_values)
+                flux_i_node = flux_values[i][ii]
+                dxidxhatj_node = dxidxhatj[i, j][ii, element]
+                rotated_flux_values[ii] = rotated_flux_values[ii] +
+                                          dxidxhatj_node * flux_i_node
+            end
+        end
+
+        # apply weak differentiation matrices to rotated fluxes
+        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j]),
+                            view(du, :, element), rotated_flux_values)
+    end
+
+    return nothing
+end
+
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
+                               cache)
+    rd = dg.basis
+    (; u_values) = cache
     # interpolate to quadrature points
     apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
-    @threaded for e in eachelement(mesh, dg, cache)
-        flux_values = cache.flux_threaded[Threads.threadid()]
-        for i in eachdim(mesh)
-            # Here, the broadcasting operation does not allocate
-            flux_values[i] .= flux.(view(u_values, :, e), i, equations)
-        end
-
-        # rotate flux with df_i/dx_i = sum_j d(x_i)/d(x̂_j) * d(f_i)/d(x̂_j).
-        # Example: df_x/dx + df_y/dy = dr/dx * df_x/dr + ds/dx * df_x/ds
-        #                  + dr/dy * df_y/dr + ds/dy * df_y/ds
-        #                  = Dr * (dr/dx * fx + dr/dy * fy) + Ds * (...)
-        #                  = Dr * (f_r) + Ds * (f_s)
-
-        rotated_flux_values = cache.rotated_flux_threaded[Threads.threadid()]
-        for j in eachdim(mesh)
-            fill!(rotated_flux_values, zero(eltype(rotated_flux_values)))
-
-            # compute rotated fluxes
-            for i in eachdim(mesh)
-                for ii in eachindex(rotated_flux_values)
-                    flux_i_node = flux_values[i][ii]
-                    dxidxhatj_node = dxidxhatj[i, j][ii, e]
-                    rotated_flux_values[ii] = rotated_flux_values[ii] +
-                                              dxidxhatj_node * flux_i_node
-                end
-            end
-
-            # apply weak differentiation matrices to rotated fluxes
-            apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j]),
-                                view(du, :, e), rotated_flux_values)
-        end
+    @threaded for element in eachelement(mesh, dg, cache)
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral, dg, cache)
     end
 
     return nothing
@@ -665,7 +730,7 @@ end
 function rhs!(du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, u, mesh,

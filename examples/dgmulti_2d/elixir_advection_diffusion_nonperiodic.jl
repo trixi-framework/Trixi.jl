@@ -35,8 +35,8 @@ right(x, tol = 50 * eps()) = abs(x[1]) < tol
 bottom(x, tol = 50 * eps()) = abs(x[2] + 0.5) < tol
 top(x, tol = 50 * eps()) = abs(x[2] - 0.5) < tol
 entire_boundary(x, tol = 50 * eps()) = true
-is_on_boundary = Dict(:left => left, :right => right, :top => top, :bottom => bottom,
-                      :entire_boundary => entire_boundary)
+is_on_boundary = (; left = left, right = right, top = top, bottom = bottom,
+                  entire_boundary = entire_boundary)
 
 cells_per_dimension = (16, 16)
 mesh = DGMultiMesh(dg, cells_per_dimension;
@@ -48,13 +48,13 @@ mesh = DGMultiMesh(dg, cells_per_dimension;
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
 # define inviscid boundary conditions, enforce "do nothing" boundary condition at the outflow
-boundary_conditions = (; :left => boundary_condition,
-                       :top => boundary_condition,
-                       :bottom => boundary_condition,
-                       :right => boundary_condition_do_nothing)
+boundary_conditions = (; left = boundary_condition,
+                       top = boundary_condition,
+                       bottom = boundary_condition,
+                       right = boundary_condition_do_nothing)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; :entire_boundary => boundary_condition)
+boundary_conditions_parabolic = (; entire_boundary = boundary_condition)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, dg;

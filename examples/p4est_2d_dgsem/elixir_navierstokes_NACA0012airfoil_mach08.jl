@@ -31,7 +31,8 @@ aoa() = 10.0 * pi / 180.0 # 10 degree angle of attack
 l_inf() = 1.0
 mach_inf() = 0.8
 u_inf(equations) = mach_inf() * sqrt(equations.gamma * p_inf() / rho_inf())
-@inline function initial_condition_mach08_flow(x, t, equations)
+@inline function initial_condition_mach08_flow(x, t,
+                                               equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
     gamma = equations.gamma
     u_inf = mach_inf() * sqrt(gamma * p_inf() / rho_inf())
@@ -50,7 +51,7 @@ initial_condition = initial_condition_mach08_flow
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 
@@ -75,12 +76,12 @@ mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 1)
     return flux_hll(u_inner, u_boundary, normal_direction, equations)
 end
 
-boundary_conditions = Dict(:Left => boundary_condition_subsonic_constant,
-                           :Right => boundary_condition_subsonic_constant,
-                           :Top => boundary_condition_subsonic_constant,
-                           :Bottom => boundary_condition_subsonic_constant,
-                           :AirfoilBottom => boundary_condition_slip_wall,
-                           :AirfoilTop => boundary_condition_slip_wall)
+boundary_conditions = (; Left = boundary_condition_subsonic_constant,
+                       Right = boundary_condition_subsonic_constant,
+                       Top = boundary_condition_subsonic_constant,
+                       Bottom = boundary_condition_subsonic_constant,
+                       AirfoilBottom = boundary_condition_slip_wall,
+                       AirfoilTop = boundary_condition_slip_wall)
 
 velocity_airfoil = NoSlip((x, t, equations_parabolic) -> SVector(0.0, 0.0))
 
@@ -89,25 +90,26 @@ heat_airfoil = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_conditions_airfoil = BoundaryConditionNavierStokesWall(velocity_airfoil,
                                                                 heat_airfoil)
 
-function velocities_initial_condition_mach08_flow(x, t, equations)
+function velocities_initial_condition_mach08_flow(x, t,
+                                                  equations::CompressibleEulerEquations2D)
     u_cons = initial_condition_mach08_flow(x, t, equations)
     return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
 end
 
 velocity_bc_square = NoSlip((x, t, equations_parabolic) -> velocities_initial_condition_mach08_flow(x,
                                                                                                     t,
-                                                                                                    equations))
+                                                                                                    equations_parabolic.equations_hyperbolic))
 
 heat_bc_square = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_square = BoundaryConditionNavierStokesWall(velocity_bc_square,
                                                               heat_bc_square)
 
-boundary_conditions_parabolic = Dict(:Left => boundary_condition_square,
-                                     :Right => boundary_condition_square,
-                                     :Top => boundary_condition_square,
-                                     :Bottom => boundary_condition_square,
-                                     :AirfoilBottom => boundary_conditions_airfoil,
-                                     :AirfoilTop => boundary_conditions_airfoil)
+boundary_conditions_parabolic = (; Left = boundary_condition_square,
+                                 Right = boundary_condition_square,
+                                 Top = boundary_condition_square,
+                                 Bottom = boundary_condition_square,
+                                 AirfoilBottom = boundary_conditions_airfoil,
+                                 AirfoilTop = boundary_conditions_airfoil)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;

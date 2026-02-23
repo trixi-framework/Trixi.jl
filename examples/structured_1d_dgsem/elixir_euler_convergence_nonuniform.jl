@@ -17,10 +17,11 @@ cells_per_dimension = (8,)
 # This mapping converts [-1, 1] to [0, 2] with a non-uniform distribution of cells
 mapping(xi) = ((xi + 2)^2 - 1) / 4
 
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    source_terms = source_terms_convergence_test,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

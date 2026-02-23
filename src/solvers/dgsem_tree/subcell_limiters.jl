@@ -321,8 +321,7 @@ function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
                                       t, dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
-    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
+    @trixi_timeit timer() "reset alpha" set_zero!(alpha, dg, semi.cache)
 
     if limiter.smoothness_indicator
         elements = semi.cache.element_ids_dgfv

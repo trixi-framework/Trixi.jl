@@ -98,11 +98,11 @@ end
 #                            :Right => boundary_condition_inflow_outflow,
 #                            :Left => boundary_condition_inflow_outflow)
 
-boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
-                           :Circle => boundary_condition_slip_wall,
-                           :Top => boundary_condition_slip_wall,
-                           :Right => boundary_condition_outflow,
-                           :Left => boundary_condition_supersonic_inflow)
+boundary_conditions = (; Bottom = boundary_condition_slip_wall,
+                       Circle = boundary_condition_slip_wall,
+                       Top = boundary_condition_slip_wall,
+                       Right = boundary_condition_outflow,
+                       Left = boundary_condition_supersonic_inflow)
 
 volume_flux = flux_ranocha_turbo
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -110,7 +110,7 @@ volume_flux = flux_ranocha_turbo
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 polydeg = 3
@@ -134,7 +134,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000
 
 mesh = P4estMesh{2}(mesh_file)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

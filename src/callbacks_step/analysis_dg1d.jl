@@ -119,6 +119,52 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# Use quadrature to numerically integrate a single element.
+# We do not multiply by the Jacobian to stay in reference space.
+# This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
+# the time derivative of entropy, see `entropy_change_reference_element`.
+function integrate_reference_element(func::Func, u, element,
+                                     mesh::AbstractMesh{1}, equations, dg::DGSEM, cache,
+                                     args...) where {Func}
+    @unpack weights = dg.basis
+
+    # Initialize integral with zeros of the right shape
+    element_integral = zero(func(u, 1, element, equations, dg, args...))
+
+    for i in eachnode(dg)
+        element_integral += weights[i] *
+                            func(u, i, element, equations, dg, args...)
+    end
+
+    return element_integral
+end
+
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
+# Note that ∂S/∂u = w(u) with entropy variables w
+function entropy_change_reference_element(du, u, element,
+                                          mesh::AbstractMesh{1},
+                                          equations, dg::DGSEM, cache, args...)
+    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+                                       du) do u, i, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, element)
+        du_node = get_node_vars(du, equations, dg, i, element)
+
+        dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
+# calculate surface integral of func(u, equations) * normal on the reference element.
+function surface_integral_reference_element(func::Func, u, element,
+                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                            equations, dg::DGSEM,
+                                            cache, args...) where {Func}
+    u_left = get_node_vars(u, equations, dg, 1, element)
+    u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
+
+    surface_integral = func(u_right, 1, equations) - func(u_left, 1, equations)
+    return surface_integral
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
@@ -173,7 +219,8 @@ end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                   equations, dg::DG, cache; normalize = true) where {Func}
+                   equations, dg::Union{DGSEM, FDSBP}, cache;
+                   normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, element)
@@ -182,7 +229,8 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations, dg::DG, cache)
+                 mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+                 dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, element, equations, dg, du
@@ -194,7 +242,7 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::TreeMesh{1}, equations::IdealGlmMhdEquations1D,
-                 dg::DG, cache)
+                 dg::DGSEM, cache)
     integrate_via_indices(u, mesh, equations, dg, cache,
                           dg.basis.derivative_matrix) do u, i, element, equations, dg,
                                                          derivative_matrix
@@ -209,7 +257,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{1}, equations::IdealGlmMhdEquations1D,
-                 dg::DG, cache)
+                 dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
 
     # integrate over all elements to get the divergence-free condition errors

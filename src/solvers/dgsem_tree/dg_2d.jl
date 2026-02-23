@@ -70,8 +70,7 @@ function create_f_threaded(mesh::AbstractMesh{2}, equations,
 end
 
 function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::Union{AbstractVolumeIntegralPureLGLFiniteVolume,
-                                             VolumeIntegralShockCapturingHG},
+                      volume_integral::AbstractVolumeIntegralSubcell,
                       dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
@@ -85,7 +84,6 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
-    # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -109,7 +107,7 @@ function rhs!(du, u, t,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
@@ -196,7 +194,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
 
     # Calculate volume terms in one element
     for j in eachnode(dg), i in eachnode(dg)
@@ -204,13 +202,13 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 
         flux1 = flux(u_node, 1, equations)
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i], flux1,
                                        equations, dg, ii, j, element)
         end
 
         flux2 = flux(u_node, 2, equations)
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j], flux2,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j], flux2,
                                        equations, dg, i, jj, element)
         end
     end
@@ -218,8 +216,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element, mesh::TreeMesh{2},
+@inline function flux_differencing_kernel!(du, u, element, mesh::TreeMesh{2},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -257,8 +254,7 @@ end
     end
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element, mesh::TreeMesh{2},
+@inline function flux_differencing_kernel!(du, u, element, mesh::TreeMesh{2},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -307,6 +303,7 @@ end
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
+                              cons2recon, recon2cons,
                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -319,7 +316,8 @@ end
     calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
                    have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
-                   sc_interface_coords, reconstruction_mode, slope_limiter)
+                   sc_interface_coords, reconstruction_mode, slope_limiter,
+                   cons2recon, recon2cons)
 
     # Calculate FV volume integral contribution
     for j in eachnode(dg), i in eachnode(dg)
@@ -339,7 +337,8 @@ end
                                 mesh::TreeMesh{2},
                                 have_nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter,
+                                cons2recon, recon2cons)
     for j in eachnode(dg), i in 2:nnodes(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
@@ -347,30 +346,30 @@ end
         # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
         # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
-        ## Obtain unlimited values in primitive variables ##
+        ## Obtain unlimited values in reconstruction variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                         equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                          equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
-                                       element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
+                                        element), equations)
 
         ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, i,
                                        slope_limiter, dg)
 
-        ## Convert primitive variables back to conservative variables ##
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+        ## Convert reconstruction variables back to conservative variables ##
+        flux = volume_flux_fv(recon2cons(u_l, equations), recon2cons(u_r, equations),
                               1, equations) # orientation 1: x direction
 
         set_node_vars!(fstar1_L, flux, equations, dg, i, j)
@@ -378,20 +377,20 @@ end
     end
 
     for j in 2:nnodes(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                         equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
-                                       element), equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                          equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, j,
                                        slope_limiter, dg)
 
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+        flux = volume_flux_fv(recon2cons(u_l, equations), recon2cons(u_r, equations),
                               2, equations) # orientation 2: y direction
 
         set_node_vars!(fstar2_L, flux, equations, dg, i, j)
@@ -1097,37 +1096,38 @@ function calc_surface_integral!(du, u,
                                             StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DG, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
-    # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop to increase performance.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, element] = (du[v, 1, l, element] -
                                         surface_flux_values[v, l, 1, element] *
-                                        factor_1)
+                                        factor)
 
                 # surface at +x
                 du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
                                                  surface_flux_values[v, l, 2, element] *
-                                                 factor_2)
+                                                 factor)
 
                 # surface at -y
                 du[v, l, 1, element] = (du[v, l, 1, element] -
                                         surface_flux_values[v, l, 3, element] *
-                                        factor_1)
+                                        factor)
 
                 # surface at +y
                 du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
                                                  surface_flux_values[v, l, 4, element] *
-                                                 factor_2)
+                                                 factor)
             end
         end
     end
@@ -1140,6 +1140,9 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
+        # Negative sign included to account for the negated surface and volume terms,
+        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
         for j in eachnode(dg), i in eachnode(dg)
