@@ -410,8 +410,8 @@ function prolong2interfaces!(cache, u_or_flux_viscous,
 
         # interface in x-direction
         for v in eachvariable(equations)
-            interfaces_u[1, v, interface] = 0
-            interfaces_u[2, v, interface] = 0
+            interfaces_u[1, v, interface] = zero(eltype(interfaces_u))
+            interfaces_u[2, v, interface] = zero(eltype(interfaces_u))
             for ii in eachnode(dg)
                 interfaces_u[1, v, interface] += (u_or_flux_viscous[v, ii,
                                                                     left_element] *

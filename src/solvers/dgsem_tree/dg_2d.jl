@@ -537,8 +537,8 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations,
         if orientations[interface] == 1
             # interface in x-direction
             for j in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, j, interface] = 0
-                interfaces_u[2, v, j, interface] = 0
+                interfaces_u[1, v, j, interface] = zero(eltype(interfaces_u))
+                interfaces_u[2, v, j, interface] = zero(eltype(interfaces_u))
                 for ii in eachnode(dg)
                     interfaces_u[1, v, j, interface] += (u[v, ii, j, left_element] *
                                                          boundary_interpolation[ii, 2])
@@ -549,8 +549,8 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations,
         else # if orientations[interface] == 2
             # interface in y-direction
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, i, interface] = 0
-                interfaces_u[2, v, i, interface] = 0
+                interfaces_u[1, v, i, interface] = zero(eltype(interfaces_u))
+                interfaces_u[2, v, i, interface] = zero(eltype(interfaces_u))
                 for jj in eachnode(dg)
                     interfaces_u[1, v, i, interface] += (u[v, i, jj, left_element] *
                                                          boundary_interpolation[jj, 2])
