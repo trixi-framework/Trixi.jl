@@ -286,9 +286,9 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                          UnstructuredMesh2D, P4estMesh{2},
-                                          T8codeMesh{2}},
+                              ::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                             UnstructuredMesh2D, P4estMesh{2},
+                                             T8codeMesh{2}}},
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -390,9 +390,9 @@ end
 end
 
 @inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                        UnstructuredMesh2D, P4estMesh{2},
-                                        T8codeMesh{2}},
+                            ::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}}},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache

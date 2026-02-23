@@ -902,8 +902,6 @@ function calc_surface_integral_per_element!(du,
                                             surface_integral::SurfaceIntegralWeakForm,
                                             dg::DGSEM, factor, surface_flux_values,
                                             element)
-    @unpack boundary_interpolation = dg.basis
-
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
     # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
