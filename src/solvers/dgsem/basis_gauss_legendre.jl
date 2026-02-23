@@ -199,7 +199,7 @@ function Base.show(io::IO, ::MIME"text/plain", analyzer::GaussLegendreAnalyzer)
 
     print(io, "GaussLegendreAnalyzer{", real(analyzer),
           "} with polynomials of degree ", polydeg(analyzer))
-          return nothing
+    return nothing
 end
 
 @inline Base.real(analyzer::GaussLegendreAnalyzer{RealT}) where {RealT} = RealT
