@@ -791,4 +791,9 @@ include("maxwell_1d.jl")
 abstract type AbstractLinearElasticityEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("linear_elasticity_1d.jl")
+
+abstract type AbstractFirstOrderWaveEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("wave_1d.jl")
+include("wave_2d.jl")
 end # @muladd
