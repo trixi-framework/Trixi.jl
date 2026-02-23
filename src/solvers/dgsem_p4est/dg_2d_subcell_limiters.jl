@@ -51,8 +51,6 @@ function calc_mortar_flux_low_order!(surface_flux_values,
     (; mortar_weights, mortar_weights_sums) = mortar_idp
     index_range = eachnode(dg)
 
-    @assert mortar_idp.local_factor "local factor should be active"
-
     @threaded for mortar in eachmortar(dg, cache)
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
