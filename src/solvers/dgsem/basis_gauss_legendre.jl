@@ -34,7 +34,6 @@ end
 function GaussLegendreBasis(RealT, polydeg::Integer)
     nnodes_ = polydeg + 1
 
-    # compute everything using `Float64` by default
     nodes_, weights_ = gauss_nodes_weights(nnodes_, RealT)
     inverse_weights_ = inv.(weights_)
 
@@ -44,8 +43,8 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
     derivative_split = calc_Dsplit(derivative_matrix, weights_)
     derivative_hat = calc_Dhat(derivative_matrix, weights_)
 
-    # type conversions to get the requested real type and enable possible
-    # optimizations of runtime performance and latency
+    # Type conversions to enable possible optimizations of runtime performance
+    # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
@@ -86,6 +85,7 @@ function Base.show(io::IO, basis::GaussLegendreBasis)
     @nospecialize basis # reduce precompilation time
 
     print(io, "GaussLegendreBasis{", real(basis), "}(polydeg=", polydeg(basis), ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", basis::GaussLegendreBasis)
@@ -93,6 +93,7 @@ function Base.show(io::IO, ::MIME"text/plain", basis::GaussLegendreBasis)
 
     print(io, "GaussLegendreBasis{", real(basis), "} with polynomials of degree ",
           polydeg(basis))
+    return nothing
 end
 
 @inline Base.real(basis::GaussLegendreBasis{RealT}) where {RealT} = RealT
@@ -128,6 +129,11 @@ function integrate(f, u, basis::GaussLegendreBasis)
         res += f(u[i]) * weights[i]
     end
     return res
+end
+
+# TODO: Not yet implemented
+function MortarL2(basis::GaussLegendreBasis)
+    return nothing
 end
 
 """
@@ -219,11 +225,6 @@ function calc_Lhat(L, weights)
     end
 
     return Lhat
-end
-
-# TODO: Not yet implemented
-function MortarL2(basis::GaussLegendreBasis)
-    return nothing
 end
 
 struct GaussLegendreAnalyzer{RealT <: Real, NNODES,
