@@ -364,7 +364,7 @@ end
     return SVector(f)
 end
 
-@inline function flux(u, normal_direction::SVector{2, T},
+@inline function flux(u, normal_direction::AbstractVector,
                       equations::IdealGlmMhdMultiIonEquations2D) where {T <: Real}
     B1, B2, B3 = magnetic_field(u, equations)
     psi = divergence_cleaning_field(u, equations)
@@ -585,7 +585,7 @@ The term is composed of four individual non-conservative terms:
 end
 
 @inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
-                                                        normal_direction::SVector{2, T},
+                                                        normal_direction::AbstractVector,
                                                         equations::IdealGlmMhdMultiIonEquations2D) where {T <:
                                                                                                           Real}
     @unpack charge_to_mass = equations
@@ -850,7 +850,7 @@ The term is composed of four individual non-conservative terms:
 end
 
 @inline function flux_nonconservative_central(u_ll, u_rr,
-                                              normal_direction::SVector{2, T},
+                                              normal_direction::AbstractVector,
                                               equations::IdealGlmMhdMultiIonEquations2D) where {T <:
                                                                                                 Real}
     @unpack charge_to_mass = equations
@@ -1208,7 +1208,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
     return SVector(f)
 end
 
-function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::SVector{2, T},
+function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
                                 equations::IdealGlmMhdMultiIonEquations2D) where {T <:
                                                                                   Real}
     @unpack gammas = equations
@@ -1399,7 +1399,7 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::SVector{2, Float64},
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::IdealGlmMhdMultiIonEquations2D)
     # Calculate fast magnetoacoustic wave speeds
     # left
@@ -1516,7 +1516,7 @@ end
     return c_f
 end
 
-@inline function calc_fast_wavespeed(cons, normal_direction::SVector{2, Float64},
+@inline function calc_fast_wavespeed(cons, normal_direction::AbstractVector,
                                      equations::IdealGlmMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(cons, equations)
     psi = divergence_cleaning_field(cons, equations)

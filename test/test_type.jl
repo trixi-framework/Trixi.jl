@@ -1628,6 +1628,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                              one(RealT))
             dissipation_es = DissipationLaxFriedrichsEntropyVariables()
             orientations = [1, 2]
+            normal_direction = SVector(one(RealT), zero(RealT))
 
             @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
                   RealT
@@ -1659,6 +1660,18 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred dissipation_es(u_ll, u_rr, orientation, equations)) ==
                       RealT
             end
+
+            @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
+                                                                          normal_direction,
+                                                                          equations)) == RealT
+            @test eltype(@inferred flux_nonconservative_central(u_ll, u_rr, normal_direction,
+                                                                equations)) == RealT
+            @test eltype(@inferred flux_ruedaramirez_etal(u_ll, u_rr, normal_direction,
+                                                          equations)) == RealT
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+            @test typeof(Trixi.calc_fast_wavespeed(cons, normal_direction, equations)) == RealT
 
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
