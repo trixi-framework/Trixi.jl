@@ -950,7 +950,8 @@ end
 
 # Build a reduced cache which can be passed to GPU kernels
 @inline function kernel_filter_cache(cache)
-    return (; elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
+    return (;
+            elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
 end
 
 include("containers_2d.jl")
