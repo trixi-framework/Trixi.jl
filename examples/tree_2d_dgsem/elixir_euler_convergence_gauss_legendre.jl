@@ -12,7 +12,7 @@ surface_flux = flux_lax_friedrichs
 
 polydeg = 3
 basis = GaussLegendreBasis(polydeg)
-solver = DGSEM(basis = basis, surface_flux = surface_flux)
+solver = DGSEM(basis, surface_flux)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
