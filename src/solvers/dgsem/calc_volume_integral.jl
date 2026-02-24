@@ -194,8 +194,7 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
                                volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
     kernel! = volume_integral_KAkernel!(backend)
-    # TODO(benegee) Can we generalize this kind of filtering?
-    kernel_cache = (; elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
+    kernel_cache = kernel_filter_cache(cache)
     kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations,
             volume_integral, dg, kernel_cache,
             ndrange = nelements(dg, cache))
