@@ -328,4 +328,19 @@ end
     rho_e_internal = rho_e_total - 0.5f0 * rho_v1^2 / rho
     return rho_e_internal
 end
+
+"""
+    entropy_potential(u, orientation_or_normal_direction,
+                      equations::AbstractNonIdealCompressibleEulerEquations)
+
+Calculate the entropy potential, which for the compressible Euler equations with general
+EOS is ``p v_{\text{normal}} / T`` for the choice of [`entropy`](@ref) ``S(u) = -\rho s``. 
+"""
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::NonIdealCompressibleEulerEquations1D)
+    eos = equations.equation_of_state
+    V, v1, T = cons2thermo(u, equations)
+    p = pressure(V, T, eos)
+    return p * v1 / T
+end
 end # @muladd
