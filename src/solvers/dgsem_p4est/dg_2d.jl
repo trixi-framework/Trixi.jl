@@ -858,15 +858,14 @@ end
 function calc_surface_integral!(du, u,
                                 mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                             T8codeMesh{2}},
-                                equations,
-                                surface_integral::SurfaceIntegralWeakForm,
+                                equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
-    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
     # and the missing "-" is taken care of by `apply_jacobian!`.
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these

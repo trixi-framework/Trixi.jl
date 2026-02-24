@@ -264,7 +264,7 @@ export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMe
        P4estMeshView, P4estMeshCubedSphere, T8codeMesh
 
 export DG,
-       DGSEM, LobattoLegendreBasis,
+       DGSEM, LobattoLegendreBasis, GaussLegendreBasis,
        FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
@@ -274,6 +274,7 @@ export DG,
        VolumeIntegralAdaptive, IndicatorEntropyChange,
        IndicatorHennemannGassner,
        VolumeIntegralUpwind,
+       IndicatorEntropyCorrection, IndicatorEntropyCorrectionShockCapturingCombined,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2

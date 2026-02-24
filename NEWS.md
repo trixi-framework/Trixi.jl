@@ -20,9 +20,13 @@ This enables in particular adaptive mesh refinement for that solver-mesh combina
   `volume_integral_blend_high_order`, and `volume_integral_blend_low_order` besides the usual `indicator` argument.
   In particular, `volume_integral_default` may be e.g.  `VolumeIntegralWeakForm` or `VolumeIntegralAdaptive`, i.e.,
   the non-stabilized elements/cells are no longer restricted to `VolumeIntegralFluxDifferencing` only ([#2802]).
+- Added `IndicatorEntropyCorrection`. When combined with `VolumeIntegralAdaptive`, this blends together a stabilized and non-stabilized 
+  volume integral based on the violation of a volume entropy condition. `IndicatorEntropyCorrectionShockCapturingCombined` additionally 
+  guides the blending by taking the maximum of the entropy correction indicator and a shock capturing indicator ([#2764]). 
 - The second-order subcell volume integral is no longer limited to reconstruction in primitive variables.
   Instead, it is possible to reconstruct in custom variables, if functions `cons2recon` and `recon2cons` are provided to
   `VolumeIntegralPureLGLFiniteVolumeO2` and `VolumeIntegralShockCapturingRRG`([#2817]).
+- Add Legendre-Gauss basis for DGSEM and implement solver (`VolumeIntegralWeakForm` and `SurfaceIntegralWeakForm` only) support for conforming 1D & 2D `TreeMesh`es ([#1965]).
 
 ## Changes when updating to v0.15 from v0.14.x
 
