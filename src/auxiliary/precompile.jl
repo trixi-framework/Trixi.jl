@@ -396,7 +396,8 @@ function _precompile_manual_()
         # 1D, serial
         @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
                                       TreeMesh{1, Trixi.SerialTree{1}, RealT},
-                                      Trixi.TreeElementContainer1D{RealT, uEltype}})
+                                      Trixi.TreeElementContainer1D{RealT, uEltype},
+                                      basis_type_dgsem(RealT, nnodes_)})
         @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
                                       TreeMesh{1, Trixi.SerialTree{1}, RealT},
                                       Trixi.TreeElementContainer1D{RealT, uEltype}})
