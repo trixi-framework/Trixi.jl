@@ -104,7 +104,7 @@ end
                                       neighbor_ids, node_indices, index_range)
 end
 
-function prolong2interfaces_per_interface!(interfaces_u, u, interface,
+@inline function prolong2interfaces_per_interface!(interfaces_u, u, interface,
                                            ::Type{<:Union{P4estMesh{2},
                                                           P4estMeshView{2},
                                                           T8codeMesh{2}}},
@@ -210,7 +210,7 @@ end
                                        contravariant_vectors, index_range)
 end
 
-function calc_interface_flux_per_interface!(surface_flux_values,
+@inline function calc_interface_flux_per_interface!(surface_flux_values,
                                             mt::Type{<:Union{P4estMesh{2},
                                                              P4estMeshView{2},
                                                              T8codeMesh{2}}},
@@ -894,7 +894,7 @@ end
                                        dg, factor, surface_flux_values, element)
 end
 
-function calc_surface_integral_per_element!(du,
+@inline function calc_surface_integral_per_element!(du,
                                             ::Type{<:Union{P4estMesh{2},
                                                            P4estMeshView{2},
                                                            T8codeMesh{2}}},

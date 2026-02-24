@@ -163,7 +163,7 @@ end
                                                               element)
 end
 
-function max_scaled_speed_per_element(u,
+@inline function max_scaled_speed_per_element(u,
                                       mT::Type{<:Union{StructuredMesh{2},
                                                        UnstructuredMesh2D,
                                                        P4estMesh{2}, T8codeMesh{2},

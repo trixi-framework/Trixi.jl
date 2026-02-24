@@ -927,7 +927,7 @@ end
     apply_jacobian_element!(du, meshT, equations, dg, inverse_jacobian, element)
 end
 
-function apply_jacobian_element!(du,
+@inline function apply_jacobian_element!(du,
                                  ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                                 T8codeMesh{3}}},
                                  equations, dg, inverse_jacobian, element)

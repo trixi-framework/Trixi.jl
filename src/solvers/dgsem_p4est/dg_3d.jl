@@ -127,7 +127,7 @@ end
                                   node_indices, index_range, interface)
 end
 
-function prolong2interfaces_interface!(u_interface, u,
+@inline function prolong2interfaces_interface!(u_interface, u,
                                        ::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
                                        equations, neighbor_ids, node_indices,
                                        index_range, interface)
@@ -249,7 +249,7 @@ end
                                    index_range, interface)
 end
 
-function calc_interface_flux_interface!(surface_flux_values,
+@inline function calc_interface_flux_interface!(surface_flux_values,
                                         meshT::Type{<:Union{P4estMesh{3},
                                                             T8codeMesh{3}}},
                                         have_nonconservative_terms,
@@ -1043,7 +1043,7 @@ end
                                    surface_flux_values, element)
 end
 
-function calc_surface_integral_element!(du,
+@inline function calc_surface_integral_element!(du,
                                         ::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
                                         equations,
                                         surface_integral::SurfaceIntegralWeakForm,

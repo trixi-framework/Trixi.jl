@@ -752,7 +752,7 @@ end
     apply_jacobian_per_element!(du, mT, equations, dg, inverse_jacobian, element)
 end
 
-function apply_jacobian_per_element!(du,
+@inline function apply_jacobian_per_element!(du,
                                      ::Type{<:Union{StructuredMesh{2},
                                                     StructuredMeshView{2},
                                                     UnstructuredMesh2D, P4estMesh{2},

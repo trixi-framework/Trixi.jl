@@ -124,7 +124,7 @@ end
                                                           element)
 end
 
-function max_scaled_speed_element(u,
+@inline function max_scaled_speed_element(u,
                                   ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                                  T8codeMesh{3}}}, equations, dg,
                                   contravariant_vectors, inverse_jacobian, element)
