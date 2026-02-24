@@ -647,20 +647,19 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     rd = dg.basis
     @unpack du_values = cache
 
-    # interpolate to quadrature points, required for weak form trial
-    apply_to_each_field(mul_by!(rd.Vq), u_values, u)
+    # interpolate to quadrature points
+    apply_to_each_field(mul_by!(rd.Vq), u_values, u) # required for weak form trial
+    apply_to_each_field(mul_by!(rd.Vq), du_values, du) # required for entropy production calculation
+
+    # interpolate to face quadrature points for entropy production calculation
+    #@unpack u_face_values = cache
+    #apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 
     @threaded for e in eachelement(dg, cache)
-        du_elem = view(du, :, e) # Introduce alias due to repeated access
-
         # Try default volume integral first
         volume_integral_kernel!(du, u, e, mesh,
                                 have_nonconservative_terms, equations,
                                 volume_integral_default, dg, cache)
-
-        # interpolate du for entropy production calculation
-        du_values_elem = view(du_values, :, e)
-        apply_to_each_field(mul_by!(rd.Vq), du_values_elem, du_elem)
 
         # Compute entropy production of this volume integral
         dS_WF = -entropy_change_reference_element(du_values, u_values, e,
@@ -672,6 +671,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
         entropy_change = dS_WF - dS_true
         if entropy_change > maximum_entropy_increase # Recompute using EC FD volume integral
+            du_elem = view(du, :, e)
             # Reset default volume integral contribution.
             # Note that this assumes that the volume terms are computed first,
             # before any surface terms are added.
