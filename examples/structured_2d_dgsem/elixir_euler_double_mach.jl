@@ -118,7 +118,7 @@ basis = LobattoLegendreBasis(polydeg)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
-                                local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
+                                local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
                                 positivity_correction_factor = 0.1,
                                 max_iterations_newton = 100,

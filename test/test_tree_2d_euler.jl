@@ -463,19 +463,19 @@ end
 @trixi_testset "elixir_euler_blast_wave_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.30782862050600224,
-                            0.1759744248070631,
-                            0.17594162101505717,
-                            0.6141099918606903
+                            0.3082569219686364,
+                            0.17592701234208621,
+                            0.17587927352041374,
+                            0.6141555023436994
                         ],
                         linf=[
-                            1.297155549541467,
-                            1.105645453494246,
-                            1.1056685235443728,
-                            2.4348350700234533
+                            1.2971009475047377,
+                            1.105441805036848,
+                            1.1055838835871878,
+                            2.4453879162937766
                         ],
                         tspan=(0.0, 0.5),
-                        initial_refinement_level=4,)
+                        initial_refinement_level=4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
