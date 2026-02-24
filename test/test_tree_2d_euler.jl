@@ -609,16 +609,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.4227191130908862,
-                            0.14825292449073538,
-                            0.14822591031295396,
-                            0.6164645445036752
+                            0.4765534689295475,
+                            0.16607711235359593,
+                            0.16607711235381004,
+                            0.6184647017781566
                         ],
                         linf=[
-                            1.6394237885082292,
-                            0.8374761298606049,
-                            0.8322520901940953,
-                            6.4503170484248855
+                            2.5594865854273094,
+                            1.357936711037441,
+                            1.3579367110515173,
+                            6.451786248376559
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
@@ -667,7 +667,7 @@ end
     # Test deviations.txt
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] ==
-          "# iter, simu_time, rho_min, rho_max, rho_v1_min, rho_v1_max, rho_v2_min, rho_v2_max, rho_e_min, rho_e_max, pressure_min"
+          "# iter, simu_time, rho_min, rho_max, rho_v1_min, rho_v1_max, rho_v2_min, rho_v2_max, rho_e_total_min, rho_e_total_max, pressure_min"
     @test startswith(lines[end], "346")
 
     # Test alphas_mean.txt
