@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::StructuredMesh{1}, basis::LobattoLegendreBasis)
+function init_elements!(elements, mesh::StructuredMesh{1}, basis)
     @unpack node_coordinates, left_neighbors,
     jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
@@ -30,8 +30,7 @@ end
 # Calculate physical coordinates to which every node of the reference element is mapped
 # `mesh.mapping` is passed as an additional argument for type stability (function barrier)
 function calc_node_coordinates!(node_coordinates, cell_x, mapping,
-                                mesh::StructuredMesh{1},
-                                basis::LobattoLegendreBasis)
+                                mesh::StructuredMesh{1}, basis)
     @unpack nodes = basis
 
     # Get cell length in reference mesh
@@ -50,8 +49,7 @@ end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix, element,
-                               node_coordinates::AbstractArray{<:Any, 3},
-                               basis::LobattoLegendreBasis)
+                               node_coordinates::AbstractArray{<:Any, 3}, basis)
     @views mul!(jacobian_matrix[1, 1, :, element], basis.derivative_matrix,
                 node_coordinates[1, :, element]) # x_ξ
 
