@@ -73,7 +73,10 @@ end
 Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
 
 include("compute_u_mean.jl")
+
 include("containers.jl")
+
 include("indicators.jl")
+include("special_volume_integrals.jl")
 include("calc_volume_integral.jl")
 end # @muladd

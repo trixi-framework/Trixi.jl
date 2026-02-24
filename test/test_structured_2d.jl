@@ -739,6 +739,29 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 100)
 end
 
+@trixi_testset "elixir_euler_peng_robinson_transcritical_mixing" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_peng_robinson_transcritical_mixing.jl"),
+                        tspan=(0.0, 0.0003),
+                        # note that errors are large because the solution values are of the order 1e5-1e7
+                        l2=[
+                            0.8907552376416852,
+                            274.6262332037992,
+                            129.95629990639333,
+                            94420.33529773205
+                        ],
+                        linf=[
+                            6.617401501819359,
+                            732.0947275447616,
+                            403.74606195408825,
+                            584504.7663076259
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulerpolytropic_convergence.jl"),
                         l2=[
