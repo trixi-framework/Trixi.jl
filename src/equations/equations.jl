@@ -611,7 +611,8 @@ Calculate the point-wise error for the lake-at-rest steady state solution.
 """
 function lake_at_rest_error end
 
-# Default implementation of gradient for `variable`. Used for subcell limiting.
+# Default implementation of gradient for `variable`.
+# Used for subcell limiting and lower-bound/positivity preservation.
 # Implementing a gradient function for a specific variable improves the performance.
 @inline function gradient_conservative(variable, u, equations)
     return ForwardDiff.gradient(x -> variable(x, equations), u)
