@@ -61,7 +61,6 @@ end
 
 """
     DGSEM(basis::AbstractBasisSBP; 
-          RealT=Float64,
           surface_flux=flux_central,
           surface_integral=SurfaceIntegralWeakForm(surface_flux),
           volume_integral=VolumeIntegralWeakForm())
@@ -70,7 +69,6 @@ Create a discontinuous Galerkin spectral element method (DGSEM) using the given 
 which may be either a [`LobattoLegendreBasis`](@ref) or a [`GaussLegendreBasis`](@ref).
 """
 function DGSEM(basis::AbstractBasisSBP;
-               RealT = Float64,
                surface_flux = flux_central,
                surface_integral = SurfaceIntegralWeakForm(surface_flux),
                volume_integral = VolumeIntegralWeakForm())
