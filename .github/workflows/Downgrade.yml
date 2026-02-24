@@ -79,7 +79,8 @@ jobs:
         with:
           skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
           projects: ., test
-          mode: deps
+          mode: forcedeps
+          julia_version: ${{ matrix.version }}
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
@@ -88,6 +89,7 @@ jobs:
         with:
           coverage: false
           allow_reresolve: false
+          force_latest_compatible_version: false
         env:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
