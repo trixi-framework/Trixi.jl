@@ -16,6 +16,7 @@ const DGSEM = DG{Basis} where {Basis <: AbstractBasisSBP}
 """
     DGSEM(basis::AbstractBasisSBP,
           surface_flux = flux_central,
+          surface_integral = SurfaceIntegralWeakForm(surface_flux),
           volume_integral = VolumeIntegralWeakForm(),
           mortar = MortarL2(basis))
 
@@ -24,9 +25,9 @@ which may be either a [`LobattoLegendreBasis`](@ref) or a [`GaussLegendreBasis`]
 """
 function DGSEM(basis::AbstractBasisSBP,
                surface_flux = flux_central,
+               surface_integral = SurfaceIntegralWeakForm(surface_flux),
                volume_integral = VolumeIntegralWeakForm(),
                mortar = MortarL2(basis))
-    surface_integral = SurfaceIntegralWeakForm(surface_flux)
     return DG{typeof(basis), typeof(mortar), typeof(surface_integral),
               typeof(volume_integral)}(basis, mortar, surface_integral, volume_integral)
 end
