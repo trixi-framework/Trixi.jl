@@ -48,7 +48,7 @@ basis = LobattoLegendreBasis(polydeg)
 volume_flux = flux_terashima_etal
 volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs)
-solver = DGSEM(basis, volume_integral, surface_integral)
+solver = DGSEM(basis, surface_integral, volume_integral)
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
