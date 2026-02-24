@@ -315,7 +315,7 @@ function _precompile_manual_()
         @assert Base.precompile(Tuple{typeof(Trixi.polynomial_interpolation_matrix),
                                       Vector{RealT}, Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.barycentric_weights), Vector{RealT}})
-        @assert Base.precompile(Tuple{typeof(Trixi.calc_Lhat), RealT, Vector{RealT},
+        @assert Base.precompile(Tuple{typeof(Trixi.calc_L), RealT, Vector{RealT},
                                       Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.lagrange_interpolating_polynomials),
                                       RealT, Vector{RealT}, Vector{RealT}})
