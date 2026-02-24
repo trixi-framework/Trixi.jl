@@ -808,7 +808,6 @@ function vandermonde_legendre(nodes, N::Integer, RealT = Float64)
     inverse_vandermonde = inv(vandermonde)
     return vandermonde, inverse_vandermonde
 end
-vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
 
 function calc_modal_filter_matrix(nodes, filter_coefficients)
     @assert length(nodes)==length(filter_coefficients) "Need same number of nodes and filter coefficients"
