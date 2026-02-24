@@ -88,8 +88,8 @@ const T8codeMeshParallel{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
 @inline ntrees(mesh::T8codeMesh) = size(mesh.tree_node_coordinates)[end]
-@inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_local_num_elements(mesh.forest))
-@inline ncellsglobal(mesh::T8codeMesh) = Int(t8_forest_get_global_num_elements(mesh.forest))
+@inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_local_num_leaf_elements(mesh.forest))
+@inline ncellsglobal(mesh::T8codeMesh) = Int(t8_forest_get_global_num_leaf_elements(mesh.forest))
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -214,7 +214,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
 
     # Init a new forest with just one element per tree.
     do_face_ghost = mpi_isparallel()
-    scheme = t8_scheme_new_default_cxx()
+    scheme = t8_scheme_new_default()
     initial_refinement_level = 0
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
@@ -225,14 +225,13 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
 
     # Compute the offset within the to-be-reconstructed forest. Depends on the
     # MPI rank resp. first global tree id.
-    if mpi_rank() > 0 && t8_forest_get_local_num_elements(forest) > 0
+    if mpi_rank() > 0 && t8_forest_get_local_num_leaf_elements(forest) > 0
         last_global_tree_id_of_preceding_rank = t8_forest_global_tree_id(forest, 0) - 1
         global_element_id += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
     end
 
-    function adapt_callback(forest, local_tree_id, eclass_scheme, local_element_id,
-                            elements, is_family,
-                            user_data)
+    function adapt_callback(forest, local_tree_id, tree_class, local_element_id, scheme,
+                            is_family, elements, user_data)
 
         # Check if we are already in the next tree in terms of the `global_element_id`.
         global_tree_id = t8_forest_global_tree_id(forest, local_tree_id)
@@ -241,7 +240,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
         end
 
         # Test if we already reached the targeted level.
-        level = t8_element_level(eclass_scheme, elements[1])
+        level = t8_element_get_level(scheme, tree_class, elements[1])
         if level < levels[global_element_id + 1]
             return 1 # Go one refinement level deeper.
         end
@@ -257,7 +256,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     forest = adapt_forest(forest, adapt_callback; recursive = true, balance = false,
                           partition = false, ghost = false, user_data = C_NULL)
 
-    @assert t8_forest_get_global_num_elements(forest) == nelements
+    @assert t8_forest_get_global_num_leaf_elements(forest) == nelements
 
     if mpi_isparallel()
         forest = partition_forest(forest)
@@ -470,7 +469,7 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
     end
 
     do_face_ghost = mpi_isparallel()
-    scheme = t8_scheme_new_default_cxx()
+    scheme = t8_scheme_new_default()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
@@ -536,7 +535,7 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     @assert (NDIMS == 2||NDIMS == 3) "NDIMS should be 2 or 3."
 
     do_face_ghost = mpi_isparallel()
-    scheme = t8_scheme_new_default_cxx()
+    scheme = t8_scheme_new_default()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
@@ -772,7 +771,7 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
     p4est_connectivity_destroy(connectivity)
 
     do_face_ghost = mpi_isparallel()
-    scheme = t8_scheme_new_default_cxx()
+    scheme = t8_scheme_new_default()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
@@ -819,7 +818,7 @@ function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius,
                                                trees_per_face_dimension,
                                                layers, mpi_comm())
     do_face_ghost = mpi_isparallel()
-    scheme = t8_scheme_new_default_cxx()
+    scheme = t8_scheme_new_default()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
@@ -845,23 +844,27 @@ end
 # Otherwise `is_family` must equal zero and we consider the first entry
 # of the element array for refinement.
 # Entries of the element array beyond the first `num_elements` are undefined.
-# \param [in] forest       the forest to which the new elements belong
-# \param [in] forest_from  the forest that is adapted.
-# \param [in] which_tree   the local tree containing `elements`
-# \param [in] lelement_id  the local element id in `forest_old` in the tree of the current element
-# \param [in] ts           the eclass scheme of the tree
-# \param [in] is_family    if 1, the first `num_elements` entries in `elements` form a family. If 0, they do not.
-# \param [in] num_elements the number of entries in `elements` that are defined
-# \param [in] elements     Pointers to a family or, if `is_family` is zero,
+# \param [in] forest       The forest to which the new elements belong.
+# \param [in] forest_from  The forest that is adapted.
+# \param [in] which_tree   The local tree containing \a elements.
+# \param [in] tree_class   The eclass of \a which_tree.
+# \param [in] lelement_id  The local element id in \a forest in the tree of the current
+#                          element.
+# \param [in] scheme       The scheme of the forest.
+# \param [in] is_family    If 1, the first \a num_elements entries in \a elements form a family. If 0, they do not.
+# \param [in] num_elements The number of entries in \a elements that are defined
+# \param [in] elements     Pointers to a family or, if \a is_family is zero,
 #                          pointer to one element.
-# \return greater zero if the first entry in `elements` should be refined,
-#         smaller zero if the family `elements` shall be coarsened,
-#         zero else.
+# \return 1 if the first entry in \a elements should be refined,
+#        -1 if the family \a elements shall be coarsened,
+#        -2 if the first entry in \a elements should be removed,
+#         0 else.
 function adapt_callback_wrapper(forest,
                                 forest_from,
                                 which_tree,
+                                tree_class,
                                 lelement_id,
-                                ts,
+                                scheme,
                                 is_family,
                                 num_elements,
                                 elements_ptr)::Cint
@@ -869,8 +872,9 @@ function adapt_callback_wrapper(forest,
 
     elements = unsafe_wrap(Array, elements_ptr, num_elements)
 
-    return passthrough.adapt_callback(forest_from, which_tree, ts, lelement_id, elements,
-                                      Bool(is_family), passthrough.user_data)
+    return passthrough.adapt_callback(forest_from, which_tree, tree_class, lelement_id,
+                                      scheme, Bool(is_family), elements,
+                                      passthrough.user_data)
 end
 
 """
@@ -949,15 +953,16 @@ Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
 
     The expected callback signature is as follows:
 
-      `adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family, user_data)`
+      `adapt_callback(forest, ltreeid, scheme, tree_class, lelemntid, elements, is_family, user_data)`
         # Arguments
         - `forest`: Pointer to the analyzed forest.
         - `ltreeid`: Local index of the current tree where the analyzed elements are part of.
-        - `eclass_scheme`: Element class of `elements`.
+        - `tree_class`: Tree class.
         - `lelemntid`: Local index of the first element in `elements`.
+        - `scheme`: Forest element scheme.
+        - `is_family`: Boolean signifying if `elements` represents a family or not.
         - `elements`: Array of elements. If consecutive elements form a family
                       they are passed together, otherwise `elements` consists of just one element.
-        - `is_family`: Boolean signifying if `elements` represents a family or not.
         - `user_data`: Void pointer to some arbitrary user data. Default value is `C_NULL`.
         # Returns
           -1 : Coarsen family of elements.
@@ -1040,7 +1045,7 @@ end
 
 # Compute the global ids (zero-indexed) of first element in each MPI rank.
 function get_global_first_element_ids(mesh::T8codeMesh)
-    n_elements_local = Int(t8_forest_get_local_num_elements(mesh.forest))
+    n_elements_local = Int(t8_forest_get_local_num_leaf_elements(mesh.forest))
     n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
     n_elements_by_rank[mpi_rank() + 1] = n_elements_local
     MPI.Allgather!(MPI.UBuffer(n_elements_by_rank, 1), mpi_comm())
@@ -1054,7 +1059,7 @@ end
 function count_interfaces(forest, ndims)
     @assert t8_forest_is_committed(forest) != 0
 
-    num_local_elements = t8_forest_get_local_num_elements(forest)
+    num_local_elements = t8_forest_get_local_num_leaf_elements(forest)
     num_local_trees = t8_forest_get_num_local_trees(forest)
 
     current_index = t8_locidx_t(0)
@@ -1082,29 +1087,29 @@ function count_interfaces(forest, ndims)
                                 for itree in 0:(ghost_num_trees - 1)]
     end
 
+    scheme = t8_forest_get_scheme(forest)
     for itree in 0:(num_local_trees - 1)
         tree_class = t8_forest_get_tree_class(forest, itree)
-        eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
-        num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
+        num_elements_in_tree = t8_forest_get_tree_num_leaf_elements(forest, itree)
 
         global_itree = t8_forest_global_tree_id(forest, itree)
 
         for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(forest, itree, ielement)
+            element = t8_forest_get_leaf_element_in_tree(forest, itree, ielement)
 
-            level = t8_element_level(eclass_scheme, element)
+            level = t8_element_get_level(scheme, tree_class, element)
 
-            num_faces = t8_element_num_faces(eclass_scheme, element)
+            num_faces = t8_element_get_num_faces(scheme, tree_class, element)
 
             # Note: This works only for forests of one element class.
             current_linear_id = global_itree * max_tree_num_elements +
-                                t8_element_get_linear_id(eclass_scheme, element, max_level)
+                                t8_element_get_linear_id(scheme, tree_class, element, max_level)
 
             for iface in 0:(num_faces - 1)
                 pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
                 pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
-                pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
+                pneigh_eclass_ref = Ref{t8_eclass_t}()
 
                 dual_faces_ref = Ref{Ptr{Cint}}()
                 num_neighbors_ref = Ref{Cint}()
@@ -1114,7 +1119,7 @@ function count_interfaces(forest, ndims)
                 t8_forest_leaf_face_neighbors(forest, itree, element,
                                               pneighbor_leaves_ref, iface, dual_faces_ref,
                                               num_neighbors_ref,
-                                              pelement_indices_ref, pneigh_scheme_ref,
+                                              pelement_indices_ref, pneigh_eclass_ref,
                                               forest_is_balanced)
 
                 num_neighbors = num_neighbors_ref[]
@@ -1122,12 +1127,12 @@ function count_interfaces(forest, ndims)
                 neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[],
                                                  num_neighbors)
                 neighbor_leaves = unsafe_wrap(Array, pneighbor_leaves_ref[], num_neighbors)
-                neighbor_scheme = pneigh_scheme_ref[]
+                neighbor_eclass = pneigh_eclass_ref[]
 
                 if num_neighbors == 0
                     local_num_boundary += 1
                 else
-                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leaves[1])
+                    neighbor_level = t8_element_get_level(scheme, neighbor_eclass, neighbor_leaves[1])
 
                     if all(neighbor_ielements .< num_local_elements)
                         # Conforming interface: The second condition ensures we
@@ -1152,7 +1157,7 @@ function count_interfaces(forest, ndims)
                                                                                         neighbor_ielements[1])]
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
-                                                 t8_element_get_linear_id(neighbor_scheme,
+                                                 t8_element_get_linear_id(neighbor_eclass,
                                                                           neighbor_leaves[1],
                                                                           max_level)
                             global_mortar_id = 2 * ndims * neighbor_linear_id +
@@ -1165,7 +1170,7 @@ function count_interfaces(forest, ndims)
                         end
                     end
 
-                    t8_element_destroy(neighbor_scheme, num_neighbors, neighbor_leaves)
+                    t8_element_destroy(scheme, neighbor_eclass, num_neighbors, neighbor_leaves)
                     t8_free(dual_faces_ref[])
                     t8_free(pneighbor_leaves_ref[])
                     t8_free(pelement_indices_ref[])
@@ -1193,7 +1198,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                          boundary_names; mpi_mesh_info = nothing)
     @assert t8_forest_is_committed(mesh.forest) != 0
 
-    num_local_elements = t8_forest_get_local_num_elements(mesh.forest)
+    num_local_elements = t8_forest_get_local_num_leaf_elements(mesh.forest)
     num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
 
     if !isnothing(mpi_mesh_info)
@@ -1247,33 +1252,33 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     global_mortar_id_to_local = Dict{UInt128, Int}([])
 
     cmesh = t8_forest_get_cmesh(mesh.forest)
+    scheme = t8_forest_get_scheme(mesh.forest)
 
     # Loop over all local trees.
     for itree in 0:(num_local_trees - 1)
         tree_class = t8_forest_get_tree_class(mesh.forest, itree)
-        eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest, tree_class)
 
-        num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, itree)
+        num_elements_in_tree = t8_forest_get_tree_num_leaf_elements(mesh.forest, itree)
 
         global_itree = t8_forest_global_tree_id(mesh.forest, itree)
 
         # Loop over all local elements of the current local tree.
         for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
+            element = t8_forest_get_leaf_element_in_tree(mesh.forest, itree, ielement)
 
-            level = t8_element_level(eclass_scheme, element)
+            level = t8_element_get_level(scheme, tree_class, element)
 
-            num_faces = t8_element_num_faces(eclass_scheme, element)
+            num_faces = t8_element_get_num_faces(scheme, tree_class, element)
 
             # Note: This works only for forests of one element class.
             current_linear_id = global_itree * max_tree_num_elements +
-                                t8_element_get_linear_id(eclass_scheme, element, max_level)
+                                t8_element_get_linear_id(scheme, tree_class, element, max_level)
 
             # Loop over all faces of the current local element.
             for iface in 0:(num_faces - 1)
                 pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
                 pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
-                pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
+                pneigh_eclass_ref = Ref{t8_eclass_t}()
 
                 dual_faces_ref = Ref{Ptr{Cint}}()
                 num_neighbors_ref = Ref{Cint}()
@@ -1284,7 +1289,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                 t8_forest_leaf_face_neighbors(mesh.forest, itree, element,
                                               pneighbor_leaves_ref, iface, dual_faces_ref,
                                               num_neighbors_ref,
-                                              pelement_indices_ref, pneigh_scheme_ref,
+                                              pelement_indices_ref, pneigh_eclass_ref,
                                               forest_is_balanced)
 
                 num_neighbors = num_neighbors_ref[]
@@ -1292,7 +1297,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                 neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[],
                                                  num_neighbors)
                 neighbor_leaves = unsafe_wrap(Array, pneighbor_leaves_ref[], num_neighbors)
-                neighbor_scheme = pneigh_scheme_ref[]
+                neighbor_eclass = pneigh_eclass_ref[]
 
                 # Now we check for the different cases. The nested if-structure is as follows:
                 #
@@ -1335,13 +1340,13 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                     # Interface or mortar.
                 else
-                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leaves[1])
+                    neighbor_level = t8_element_get_level(scheme, neighbor_eclass, neighbor_leaves[1])
 
                     # Compute the `orientation` of the touching faces.
-                    if t8_element_is_root_boundary(eclass_scheme, element, iface) == 1
+                    if t8_element_is_root_boundary(scheme, tree_class, element, iface) == 1
                         itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(mesh.forest,
                                                                             itree)
-                        iface_in_tree = t8_element_tree_face(eclass_scheme, element, iface)
+                        iface_in_tree = t8_element_get_tree_face(scheme, tree_class, element, iface)
                         orientation_ref = Ref{Cint}()
 
                         t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree,
@@ -1396,7 +1401,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
-                                                 t8_element_get_linear_id(neighbor_scheme,
+                                                 t8_element_get_linear_id(neighbor_eclass,
                                                                           neighbor_leaves[1],
                                                                           max_level)
 
@@ -1441,7 +1446,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                                                num_local_elements)
                             local_neighbor_ids = [neighbor_ids[i]
                                                   for i in local_neighbor_positions]
-                            local_neighbor_positions = [map_iface_to_ichild_to_position[dual_faces[1] + 1][t8_element_child_id(neighbor_scheme, neighbor_leaves[i]) + 1]
+                            local_neighbor_positions = [map_iface_to_ichild_to_position[dual_faces[1] + 1][t8_element_child_id(neighbor_eclass, neighbor_leaves[i]) + 1]
                                                         for i in local_neighbor_positions]
 
                             # Last entry is the large element.
@@ -1470,7 +1475,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                                                                         neighbor_ielements[1])]
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
-                                                 t8_element_get_linear_id(neighbor_scheme,
+                                                 t8_element_get_linear_id(neighbor_eclass,
                                                                           neighbor_leaves[1],
                                                                           max_level)
                             global_mortar_id = 2 * ndims(mesh) * neighbor_linear_id +
@@ -1482,7 +1487,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                 push!(mpi_mesh_info.mpi_mortars.local_neighbor_ids[local_mpi_mortar_id],
                                       current_index + 1)
                                 push!(mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id],
-                                      map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1])
+                                      map_iface_to_ichild_to_position[iface + 1][t8_element_get_child_id(scheme, tree_class, element) + 1])
                             else
                                 local_num_mpi_mortars += 1
                                 local_mpi_mortar_id = local_num_mpi_mortars
@@ -1493,7 +1498,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                     current_index + 1
                                 ]
                                 mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id] = [
-                                    map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1]
+                                    map_iface_to_ichild_to_position[iface + 1][t8_element_get_child_id(scheme, tree_class, element) + 1]
                                 ]
                                 init_mortar_node_indices!(mpi_mesh_info.mpi_mortars,
                                                           (iface, dual_faces[1]),
@@ -1510,7 +1515,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                         end
                     end
 
-                    t8_element_destroy(neighbor_scheme, num_neighbors, neighbor_leaves)
+                    t8_element_destroy(scheme, neighbor_eclass, num_neighbors, neighbor_leaves)
                     t8_free(dual_faces_ref[])
                     t8_free(pneighbor_leaves_ref[])
                     t8_free(pelement_indices_ref[])
