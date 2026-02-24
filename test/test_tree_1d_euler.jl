@@ -696,12 +696,12 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_modified_sod_entropy_correction.jl" begin
+@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrectionShockCapturingCombined)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_modified_sod_entropy_correction.jl"),
+                                 "elixir_euler_modified_sod_entropy_correction_amr.jl"),
                         tspan=(0.0, 0.1),
-                        l2=[0.18205439515402314, 0.30149291355224794, 0.5976365681857497],
-                        linf=[0.7019546220790203, 0.8107371518443405, 1.9963507053838896])
+                        l2=[0.18464446565258658, 0.3140498549283543, 0.6496099923312244],
+                        linf=[0.5635649557004835, 0.8086426785591834, 1.7109218921081835])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -712,6 +712,19 @@ end
                       indicator)
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
                       indicator)
+end
+
+@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrection)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_modified_sod_entropy_correction_amr.jl"),
+                        indicator=IndicatorEntropyCorrection(equations, basis),
+                        tspan=(0.0, 0.1),
+                        l2=[0.18410518515764235, 0.3151497970340809, 0.6485302765750537],
+                        linf=[0.5561756505040076, 0.8355026358832652, 1.6896042720266948])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_nonideal_transcritical_wave.jl (Peng Robinson)" begin

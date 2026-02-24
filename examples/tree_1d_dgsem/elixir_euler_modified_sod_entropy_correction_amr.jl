@@ -9,8 +9,7 @@ function initial_condition_modified_sod(x, t, equations::CompressibleEulerEquati
     if x[1] < 0.3
         return prim2cons(SVector(1, 0.75, 1), equations)
     else
-        # this version of modified sod uses a 100x density and pressure jump
-        return prim2cons(SVector(0.0125, 0.0, 0.01), equations)
+        return prim2cons(SVector(0.125, 0.0, 0.1), equations)
     end
 end
 
@@ -39,7 +38,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = 0.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 6,
+                initial_refinement_level = 3,
                 n_cells_max = 30_000,
                 periodicity = false)
 
@@ -66,10 +65,19 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+amr_indicator = IndicatorLöhner(semi, variable = first)
+amr_controller = ControllerThreeLevel(semi, amr_indicator,
+                                      base_level = 3,
+                                      med_level = 4, med_threshold = 0.1,
+                                      max_level = 6, max_threshold = 0.15)
+amr_interval = 50
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = amr_interval)
+
 ###############################################################################
 # run the simulation
 
-callbacks = CallbackSet(summary_callback,
+callbacks = CallbackSet(summary_callback, save_solution, amr_callback,
                         analysis_callback, alive_callback)
 sol = solve(ode, SSPRK43();
             abstol = 1e-6, reltol = 1e-4,
