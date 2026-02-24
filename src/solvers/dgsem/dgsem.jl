@@ -12,14 +12,15 @@ include("basis_lobatto_legendre.jl")
 include("basis_gauss_legendre.jl")
 
 """
-    DGSEM(; RealT=Float64, polydeg::Integer,
-            basis = LobattoLegendreBasis(RealT, polydeg)
+    DGSEM(; RealT=Float64,
+            polydeg::Integer,
+            basis_type = LobattoLegendreBasis,
             surface_flux=flux_central,
             surface_integral=SurfaceIntegralWeakForm(surface_flux),
             volume_integral=VolumeIntegralWeakForm())
 
 Create a discontinuous Galerkin spectral element method (DGSEM) using a
-[`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
+[`LobattoLegendreBasis`](@ref) or a [`GaussLegendreBasis`](@ref) with polynomials of degree `polydeg`.
 """
 const DGSEM = DG{Basis} where {Basis <: AbstractBasisSBP}
 
@@ -63,10 +64,11 @@ end
 # `trixi_include`.
 function DGSEM(; RealT = Float64,
                polydeg::Integer,
-               basis = LobattoLegendreBasis(RealT, polydeg),
+               basis_type = LobattoLegendreBasis,
                surface_flux = flux_central,
                surface_integral = SurfaceIntegralWeakForm(surface_flux),
                volume_integral = VolumeIntegralWeakForm())
+    basis = basis_type(RealT, polydeg)
     return DGSEM(basis, surface_integral, volume_integral)
 end
 
