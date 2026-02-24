@@ -78,7 +78,7 @@ function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
                                 dg, cache)
     # here, we reuse `indicator_shock_capturing.cache.alpha` to store the indicator variable 
-    element_variables[:indicator_shock_capturing] = volume_integral.indicator_shock_capturing.cache.alpha
+    element_variables[:indicator_shock_capturing] = volume_integral.indicator.indicator_shock_capturing.cache.alpha
     return nothing
 end
 end # @muladd
