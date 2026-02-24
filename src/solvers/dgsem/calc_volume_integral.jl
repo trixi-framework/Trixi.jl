@@ -250,7 +250,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     return nothing
 end
 
-function calc_volume_integral!(du, u, mesh,
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
                                dg::DGSEM, cache)

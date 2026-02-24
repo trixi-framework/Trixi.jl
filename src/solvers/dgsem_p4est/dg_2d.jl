@@ -105,11 +105,12 @@ end
 end
 
 @inline function prolong2interfaces_per_interface!(interfaces_u, u, interface,
-                                           ::Type{<:Union{P4estMesh{2},
-                                                          P4estMeshView{2},
-                                                          T8codeMesh{2}}},
-                                           equations, neighbor_ids, node_indices,
-                                           index_range)
+                                                   ::Type{<:Union{P4estMesh{2},
+                                                                  P4estMeshView{2},
+                                                                  T8codeMesh{2}}},
+                                                   equations, neighbor_ids,
+                                                   node_indices,
+                                                   index_range)
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
 
@@ -211,14 +212,16 @@ end
 end
 
 @inline function calc_interface_flux_per_interface!(surface_flux_values,
-                                            mt::Type{<:Union{P4estMesh{2},
-                                                             P4estMeshView{2},
-                                                             T8codeMesh{2}}},
-                                            have_nonconservative_terms,
-                                            equations, surface_integral, st::Type{<:DG},
-                                            u_interface, interface, neighbor_ids,
-                                            node_indices, contravariant_vectors,
-                                            index_range)
+                                                    mt::Type{<:Union{P4estMesh{2},
+                                                                     P4estMeshView{2},
+                                                                     T8codeMesh{2}}},
+                                                    have_nonconservative_terms,
+                                                    equations, surface_integral,
+                                                    st::Type{<:DG},
+                                                    u_interface, interface,
+                                                    neighbor_ids,
+                                                    node_indices, contravariant_vectors,
+                                                    index_range)
     index_end = last(index_range)
 
     # Get element and side index information on the primary element
@@ -895,13 +898,14 @@ end
 end
 
 @inline function calc_surface_integral_per_element!(du,
-                                            ::Type{<:Union{P4estMesh{2},
-                                                           P4estMeshView{2},
-                                                           T8codeMesh{2}}},
-                                            equations,
-                                            surface_integral::SurfaceIntegralWeakForm,
-                                            dg::DGSEM, factor, surface_flux_values,
-                                            element)
+                                                    ::Type{<:Union{P4estMesh{2},
+                                                                   P4estMeshView{2},
+                                                                   T8codeMesh{2}}},
+                                                    equations,
+                                                    surface_integral::SurfaceIntegralWeakForm,
+                                                    dg::DGSEM, factor,
+                                                    surface_flux_values,
+                                                    element)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
     # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)

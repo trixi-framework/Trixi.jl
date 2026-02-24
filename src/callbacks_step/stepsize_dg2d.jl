@@ -164,13 +164,14 @@ end
 end
 
 @inline function max_scaled_speed_per_element(u,
-                                      mT::Type{<:Union{StructuredMesh{2},
-                                                       UnstructuredMesh2D,
-                                                       P4estMesh{2}, T8codeMesh{2},
-                                                       StructuredMeshView{2}}},
-                                      constant_speed::False, equations, dg::DG,
-                                      contravariant_vectors, inverse_jacobian,
-                                      element)
+                                              mT::Type{<:Union{StructuredMesh{2},
+                                                               UnstructuredMesh2D,
+                                                               P4estMesh{2},
+                                                               T8codeMesh{2},
+                                                               StructuredMeshView{2}}},
+                                              constant_speed::False, equations, dg::DG,
+                                              contravariant_vectors, inverse_jacobian,
+                                              element)
     max_lambda1 = max_lambda2 = zero(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)

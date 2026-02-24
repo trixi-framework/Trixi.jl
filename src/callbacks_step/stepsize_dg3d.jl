@@ -125,9 +125,11 @@ end
 end
 
 @inline function max_scaled_speed_element(u,
-                                  ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                                 T8codeMesh{3}}}, equations, dg,
-                                  contravariant_vectors, inverse_jacobian, element)
+                                          ::Type{<:Union{StructuredMesh{3},
+                                                         P4estMesh{3},
+                                                         T8codeMesh{3}}}, equations, dg,
+                                          contravariant_vectors, inverse_jacobian,
+                                          element)
     max_lambda1 = max_lambda2 = max_lambda3 = zero(eltype(u))
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)

@@ -23,18 +23,19 @@
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
     @unpack derivative_split = dg.basis
+    ndims_mesh = 3
 
     # Create a temporary array that will be used to store the RHS with permuted
     # indices `[i, j, k, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims_mesh)...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
+                                                 ndims_mesh)...,
                                           StaticInt(nvariables(equations))))
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -269,12 +270,13 @@ end
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)
     @unpack derivative_split = dg.basis
+    ndims_mesh = 3
 
     # Create a temporary array that will be used to store the RHS with permuted
     # indices `[i, j, k, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims_mesh)...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`. In addition
@@ -283,7 +285,7 @@ end
     # values.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
+                                                 ndims_mesh)...,
                                           StaticInt(nvariables(equations) + 2))) # We also compute "+ 2" logs
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)

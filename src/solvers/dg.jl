@@ -1260,7 +1260,7 @@ end
 end
 
 @inline function compute_coefficients_element!(u, func, t, equations, dg::DG,
-                                       node_coordinates, element, node_indices)
+                                               node_coordinates, element, node_indices)
     for indices in node_indices
         x_node = get_node_coords(node_coordinates, equations, dg, indices, element)
         u_node = func(x_node, t, equations)

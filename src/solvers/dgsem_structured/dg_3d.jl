@@ -171,12 +171,12 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{3},
-                                                          P4estMesh{3},
-                                                          T8codeMesh{3}}},
+                                           meshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3},
+                                                               T8codeMesh{3}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
-    flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
+    flux_differencing_kernel!(du, u, element, meshT, have_nonconservative_terms,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
                               equations, volume_flux, dg, cache, alpha)
@@ -185,9 +185,9 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{3},
-                                                          P4estMesh{3},
-                                                          T8codeMesh{3}}},
+                                           meshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3},
+                                                               T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::False,
                                            equations,
@@ -197,7 +197,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, meshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -928,9 +928,9 @@ end
 end
 
 @inline function apply_jacobian_element!(du,
-                                 ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                                T8codeMesh{3}}},
-                                 equations, dg, inverse_jacobian, element)
+                                         ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                                        T8codeMesh{3}}},
+                                         equations, dg, inverse_jacobian, element)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         # Negative sign included to account for the negated surface and volume terms,
         # see e.g. the computation of `derivative_hat` in the basis setup and 

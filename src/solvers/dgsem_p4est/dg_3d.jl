@@ -128,9 +128,10 @@ end
 end
 
 @inline function prolong2interfaces_interface!(u_interface, u,
-                                       ::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
-                                       equations, neighbor_ids, node_indices,
-                                       index_range, interface)
+                                               ::Type{<:Union{P4estMesh{3},
+                                                              T8codeMesh{3}}},
+                                               equations, neighbor_ids, node_indices,
+                                               index_range, interface)
     # Copy solution data from the primary element using "delayed indexing" with
     # a start value and two step sizes to get the correct face and orientation.
     # Note that in the current implementation, the interface will be
@@ -250,13 +251,14 @@ end
 end
 
 @inline function calc_interface_flux_interface!(surface_flux_values,
-                                        meshT::Type{<:Union{P4estMesh{3},
-                                                            T8codeMesh{3}}},
-                                        have_nonconservative_terms,
-                                        equations, surface_integral,
-                                        solverT::Type{<:DG}, u_interface, neighbor_ids,
-                                        node_indices, contravariant_vectors,
-                                        index_range, interface)
+                                                meshT::Type{<:Union{P4estMesh{3},
+                                                                    T8codeMesh{3}}},
+                                                have_nonconservative_terms,
+                                                equations, surface_integral,
+                                                solverT::Type{<:DG}, u_interface,
+                                                neighbor_ids,
+                                                node_indices, contravariant_vectors,
+                                                index_range, interface)
     # Get element and side information on the primary element
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
@@ -1044,10 +1046,12 @@ end
 end
 
 @inline function calc_surface_integral_element!(du,
-                                        ::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
-                                        equations,
-                                        surface_integral::SurfaceIntegralWeakForm,
-                                        dg::DGSEM, factor, surface_flux_values, element)
+                                                ::Type{<:Union{P4estMesh{3},
+                                                               T8codeMesh{3}}},
+                                                equations,
+                                                surface_integral::SurfaceIntegralWeakForm,
+                                                dg::DGSEM, factor, surface_flux_values,
+                                                element)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
     # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)

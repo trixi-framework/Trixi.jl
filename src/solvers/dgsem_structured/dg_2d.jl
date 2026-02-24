@@ -753,11 +753,14 @@ end
 end
 
 @inline function apply_jacobian_per_element!(du,
-                                     ::Type{<:Union{StructuredMesh{2},
-                                                    StructuredMeshView{2},
-                                                    UnstructuredMesh2D, P4estMesh{2},
-                                                    P4estMeshView{2}, T8codeMesh{2}}},
-                                     equations, dg::DG, inverse_jacobian, element)
+                                             ::Type{<:Union{StructuredMesh{2},
+                                                            StructuredMeshView{2},
+                                                            UnstructuredMesh2D,
+                                                            P4estMesh{2},
+                                                            P4estMeshView{2},
+                                                            T8codeMesh{2}}},
+                                             equations, dg::DG, inverse_jacobian,
+                                             element)
     for j in eachnode(dg), i in eachnode(dg)
         # Negative sign included to account for the negated surface and volume terms,
         # see e.g. the computation of `derivative_hat` in the basis setup and 
