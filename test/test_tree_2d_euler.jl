@@ -90,8 +90,8 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence_gauss.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_gauss.jl"),
+@trixi_testset "elixir_euler_convergence_gauss_legendre.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_gauss_legendre.jl"),
                         l2=[
                             0.0001657393364512246,
                             0.00018603701552875171,
