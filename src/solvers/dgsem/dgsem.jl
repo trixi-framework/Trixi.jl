@@ -13,21 +13,12 @@ include("basis_gauss_legendre.jl")
 
 const DGSEM = DG{Basis} where {Basis <: AbstractBasisSBP}
 
-"""
-    DGSEM(basis::AbstractBasisSBP,
-          surface_flux = flux_central,
-          surface_integral = SurfaceIntegralWeakForm(surface_flux),
-          volume_integral = VolumeIntegralWeakForm(),
-          mortar = MortarL2(basis))
-
-Create a discontinuous Galerkin spectral element method (DGSEM) using the given `basis`
-which may be either a [`LobattoLegendreBasis`](@ref) or a [`GaussLegendreBasis`](@ref).
-"""
+# This API is no longer documented, and we recommend avoiding its public use.
 function DGSEM(basis::AbstractBasisSBP,
                surface_flux = flux_central,
-               surface_integral = SurfaceIntegralWeakForm(surface_flux),
                volume_integral = VolumeIntegralWeakForm(),
                mortar = MortarL2(basis))
+    surface_integral = SurfaceIntegralWeakForm(surface_flux)
     return DG{typeof(basis), typeof(mortar), typeof(surface_integral),
               typeof(volume_integral)}(basis, mortar, surface_integral, volume_integral)
 end
@@ -62,19 +53,27 @@ end
 # `trixi_include`.
 """
     DGSEM(; RealT=Float64, polydeg::Integer,
+            node_type = :lobatto,
             surface_flux=flux_central,
             surface_integral=SurfaceIntegralWeakForm(surface_flux),
             volume_integral=VolumeIntegralWeakForm())
 
 Create a discontinuous Galerkin spectral element method (DGSEM) using a
-[`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
+[`LobattoLegendreBasis`](@ref) or a [`GaussLegendreBasis`](@ref) with polynomials of degree `polydeg`.
 """
 function DGSEM(; RealT = Float64,
                polydeg::Integer,
+               basis_type = :lobatto,
                surface_flux = flux_central,
                surface_integral = SurfaceIntegralWeakForm(surface_flux),
                volume_integral = VolumeIntegralWeakForm())
-    basis = LobattoLegendreBasis(RealT, polydeg)
+    if basis_type == :lobatto
+        basis = LobattoLegendreBasis(RealT, polydeg)
+    elseif basis_type == :gauss
+        basis = GaussLegendreBasis(RealT, polydeg)
+    else
+        throw(ArgumentError("Invalid basis_type: $basis_type"))
+    end
     return DGSEM(basis, surface_integral, volume_integral)
 end
 
