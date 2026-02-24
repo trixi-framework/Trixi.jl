@@ -14,7 +14,17 @@ include("basis_gauss_legendre.jl")
 const DGSEM = DG{Basis} where {Basis <: AbstractBasisSBP}
 
 # This API is no longer documented, and we recommend avoiding its public use.
-function DGSEM(basis::AbstractBasisSBP,
+function DGSEM(basis::LobattoLegendreBasis,
+               surface_flux = flux_central,
+               volume_integral = VolumeIntegralWeakForm(),
+               mortar = MortarL2(basis))
+    surface_integral = SurfaceIntegralWeakForm(surface_flux)
+    return DG{typeof(basis), typeof(mortar), typeof(surface_integral),
+              typeof(volume_integral)}(basis, mortar, surface_integral, volume_integral)
+end
+
+# This API is no longer documented, and we recommend avoiding its public use.
+function DGSEM(basis::LobattoLegendreBasis,
                surface_integral::AbstractSurfaceIntegral,
                volume_integral = VolumeIntegralWeakForm(),
                mortar = MortarL2(basis))
