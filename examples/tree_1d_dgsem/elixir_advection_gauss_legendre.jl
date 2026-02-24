@@ -7,8 +7,9 @@ using Trixi
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
-basis_type = :gauss
-solver = DGSEM(polydeg = 3, basis_type = basis_type, surface_flux = flux_godunov)
+solver = DGSEM(polydeg = 3,
+               basis_type = GaussLegendreBasis,
+               surface_flux = flux_godunov)
 
 coordinates_min = -1.0
 coordinates_max = 1.0

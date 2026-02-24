@@ -14,7 +14,7 @@ include("basis_gauss_legendre.jl")
 """
     DGSEM(; RealT=Float64,
             polydeg::Integer,
-            basis_type = :lobatto,
+            basis_type = LobattoLegendreBasis,
             surface_flux=flux_central,
             surface_integral=SurfaceIntegralWeakForm(surface_flux),
             volume_integral=VolumeIntegralWeakForm())
@@ -64,17 +64,11 @@ end
 # `trixi_include`.
 function DGSEM(; RealT = Float64,
                polydeg::Integer,
-               basis_type = :lobatto,
+               basis_type = LobattoLegendreBasis,
                surface_flux = flux_central,
                surface_integral = SurfaceIntegralWeakForm(surface_flux),
                volume_integral = VolumeIntegralWeakForm())
-    if basis_type == :lobatto
-        basis = LobattoLegendreBasis(RealT, polydeg)
-    elseif basis_type == :gauss
-        basis = GaussLegendreBasis(RealT, polydeg)
-    else
-        throw(ArgumentError("Invalid basis_type: $basis_type"))
-    end
+    basis = basis_type(RealT, polydeg)
     return DGSEM(basis, surface_integral, volume_integral)
 end
 
