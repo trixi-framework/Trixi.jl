@@ -57,32 +57,14 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
 end
 
 # Subcell limiting currently only implemented for certain mesh types
-function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           P4estMesh{2}, P4estMesh{3}},
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralSubcellLimiting,
-                               dg::DGSEM, cache)
-    @unpack limiter = volume_integral
-
-    @threaded for element in eachelement(dg, cache)
-        subcell_limiting_kernel!(du, u, element, mesh,
-                                 have_nonconservative_terms, equations,
-                                 volume_integral, limiter,
-                                 dg, cache)
-    end
-
-    return nothing
-end
-
-@inline function subcell_limiting_kernel!(du, u, element,
-                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                                      P4estMesh{2}},
-                                          have_nonconservative_terms, equations,
-                                          volume_integral, limiter::SubcellLimiterIDP,
-                                          dg::DGSEM, cache)
+@inline function volume_integral_kernel!(du, u, element,
+                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                     P4estMesh{2}},
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralSubcellLimiting,
+                                         dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
-    @unpack volume_flux_dg, volume_flux_fv = volume_integral
+    @unpack volume_flux_dg, volume_flux_fv, limiter = volume_integral
 
     # high-order DG fluxes
     @unpack fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded = cache
@@ -625,8 +607,7 @@ end
 
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
-                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u,
+                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                                      P4estMesh{2}},
                                          have_nonconservative_terms::False, equations,
@@ -663,8 +644,7 @@ end
 
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
-                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u,
+                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                                      P4estMesh{2}},
                                          have_nonconservative_terms::True, equations,

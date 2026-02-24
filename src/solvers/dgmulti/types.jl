@@ -22,19 +22,19 @@ const DGMultiWeakForm{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxTyp
 const DGMultiFluxDiff{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                       <:SurfaceIntegralWeakForm,
                                                       <:Union{VolumeIntegralFluxDifferencing,
-                                                              VolumeIntegralShockCapturingHG}} where {
-                                                                                                      NDIMS
-                                                                                                      }
+                                                              VolumeIntegralShockCapturingHGType}} where {
+                                                                                                          NDIMS
+                                                                                                          }
 
 const DGMultiFluxDiffSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                          <:SurfaceIntegralWeakForm,
                                                          <:Union{VolumeIntegralFluxDifferencing,
-                                                                 VolumeIntegralShockCapturingHG}} where {
-                                                                                                         NDIMS,
-                                                                                                         ApproxType <:
-                                                                                                         Union{SBP,
-                                                                                                               AbstractDerivativeOperator}
-                                                                                                         }
+                                                                 VolumeIntegralShockCapturingHGType}} where {
+                                                                                                             NDIMS,
+                                                                                                             ApproxType <:
+                                                                                                             Union{SBP,
+                                                                                                                   AbstractDerivativeOperator}
+                                                                                                             }
 
 const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                  SurfaceIntegral,

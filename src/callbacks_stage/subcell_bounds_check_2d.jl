@@ -7,7 +7,7 @@
 
 @inline function check_bounds(u, equations::AbstractEquations{2},
                               solver, cache, limiter::SubcellLimiterIDP)
-    (; local_twosided, positivity, local_onesided) = solver.volume_integral.limiter
+    (; local_twosided, positivity, local_onesided) = limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta_local, idp_bounds_delta_global) = limiter.cache
 
