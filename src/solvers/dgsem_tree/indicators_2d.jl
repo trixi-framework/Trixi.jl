@@ -54,19 +54,19 @@ end
     end
 
     total_energy_clip1 = copy(total_energy_clip2)
-    for ii in 1:(nnodes(dg) - 1)
-        total_energy_clip1 += modal[ii, nnodes(dg) - 1]^2
+    for i in 1:(nnodes(dg) - 1)
+        total_energy_clip1 += modal[i, nnodes(dg) - 1]^2
     end
-    for ii in 1:(nnodes(dg) - 2) # stop at N-2 to avoid adding the (N-1, N-1) mode twice
-        total_energy_clip1 += modal[nnodes(dg) - 1, ii]^2
+    for j in 1:(nnodes(dg) - 2) # stop at N-2 to avoid adding the (N-1, N-1) mode twice
+        total_energy_clip1 += modal[nnodes(dg) - 1, j]^2
     end
 
     total_energy = copy(total_energy_clip1)
-    for ii in 1:nnodes(dg)
-        total_energy += modal[ii, nnodes(dg)]^2
+    for i in 1:nnodes(dg)
+        total_energy += modal[i, nnodes(dg)]^2
     end
-    for ii in 1:(nnodes(dg) - 1) # stop at N-1 to avoid adding the (N, N) mode twice
-        total_energy += modal[nnodes(dg), ii]^2
+    for j in 1:(nnodes(dg) - 1) # stop at N-1 to avoid adding the (N, N) mode twice
+        total_energy += modal[nnodes(dg), j]^2
     end
 
     # Calculate energy in higher modes
