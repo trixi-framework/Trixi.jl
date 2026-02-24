@@ -412,9 +412,9 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                                                     node_indices, names,
                                                     _u)
 
-    if n_boundaries > 0
+    #if n_boundaries > 0
         init_boundaries!(boundaries, mesh)
-    end
+    #end
 
     return boundaries
 end
@@ -585,9 +585,9 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
                                                           _neighbor_ids,
                                                           _node_indices)
 
-    if n_mortars > 0
+    #if n_mortars > 0
         init_mortars!(mortars, mesh)
-    end
+    #end
 
     return mortars
 end
