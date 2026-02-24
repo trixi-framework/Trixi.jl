@@ -52,8 +52,9 @@ end
 # it allows to modify the polynomial degree and other parameters via
 # `trixi_include`.
 """
-    DGSEM(; RealT=Float64, polydeg::Integer,
-            node_type = :lobatto,
+    DGSEM(; RealT=Float64,
+            polydeg::Integer,
+            basis_type = :lobatto,
             surface_flux=flux_central,
             surface_integral=SurfaceIntegralWeakForm(surface_flux),
             volume_integral=VolumeIntegralWeakForm())
