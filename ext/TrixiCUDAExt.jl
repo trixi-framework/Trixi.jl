@@ -12,4 +12,8 @@ function Trixi.unsafe_wrap_or_alloc(::KernelAdaptor, vec, size)
     return Trixi.unsafe_wrap_or_alloc(CuDeviceArray, vec, size)
 end
 
+function Trixi.unsafe_wrap_or_alloc(::Type{<:CuDeviceArray}, vec::CuDeviceArray, size)
+    return reshape(vec, size)
+end
+
 end
