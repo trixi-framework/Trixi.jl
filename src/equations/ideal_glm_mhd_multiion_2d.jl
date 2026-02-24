@@ -365,7 +365,7 @@ end
 end
 
 @inline function flux(u, normal_direction::AbstractVector,
-                      equations::IdealGlmMhdMultiIonEquations2D) where {T <: Real}
+                      equations::IdealGlmMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(u, equations)
     psi = divergence_cleaning_field(u, equations)
 
@@ -586,8 +586,7 @@ end
 
 @inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
                                                         normal_direction::AbstractVector,
-                                                        equations::IdealGlmMhdMultiIonEquations2D) where {T <:
-                                                                                                          Real}
+                                                        equations::IdealGlmMhdMultiIonEquations2D)
     @unpack charge_to_mass = equations
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
@@ -851,8 +850,7 @@ end
 
 @inline function flux_nonconservative_central(u_ll, u_rr,
                                               normal_direction::AbstractVector,
-                                              equations::IdealGlmMhdMultiIonEquations2D) where {T <:
-                                                                                                Real}
+                                              equations::IdealGlmMhdMultiIonEquations2D)
     @unpack charge_to_mass = equations
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
@@ -1209,8 +1207,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
 end
 
 function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
-                                equations::IdealGlmMhdMultiIonEquations2D) where {T <:
-                                                                                  Real}
+                                equations::IdealGlmMhdMultiIonEquations2D)
     @unpack gammas = equations
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
