@@ -508,6 +508,10 @@ end
 
     indicator_max = IndicatorMax("variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_max)
+
+    indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
+                                              LobattoLegendreBasis(3))
+    @test_nowarn show(stdout, indicator_ec)
 end
 
 @timed_testset "LBM 2D constructor" begin
