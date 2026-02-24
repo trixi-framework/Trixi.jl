@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowOrderRK
 using Trixi
 
 ###############################################################################
@@ -53,7 +53,8 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/ranocha/f4ea19ba3
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -78,6 +79,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, BS3(),
-            save_everystep = false, callback = callbacks);
+sol = solve(ode, BS3();
+            ode_default_options()..., callback = callbacks);
 summary_callback() # print the timer summary

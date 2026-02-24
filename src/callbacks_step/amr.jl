@@ -62,19 +62,19 @@ function AMRCallback(semi, controller, adaptor;
                                                                                        adaptor,
                                                                                        amr_cache)
 
-    DiscreteCallback(condition, amr_callback,
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(condition, amr_callback,
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 function AMRCallback(semi, controller; kwargs...)
     adaptor = AdaptorAMR(semi)
-    AMRCallback(semi, controller, adaptor; kwargs...)
+    return AMRCallback(semi, controller, adaptor; kwargs...)
 end
 
 function AdaptorAMR(semi; kwargs...)
     mesh, _, solver, _ = mesh_equations_solver_cache(semi)
-    AdaptorAMR(mesh, solver; kwargs...)
+    return AdaptorAMR(mesh, solver; kwargs...)
 end
 
 # TODO: Taal bikeshedding, implement a method with less information and the signature
@@ -119,14 +119,14 @@ uses_amr(cb) = false
 function uses_amr(cb::DiscreteCallback{Condition, Affect!}) where {Condition,
                                                                    Affect! <:
                                                                    AMRCallback}
-    true
+    return true
 end
 uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_callbacks)
 
 function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
                                 amr_callback::AMRCallback; kwargs...)
-    get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                           amr_callback.controller, amr_callback; kwargs...)
+    return get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                                  amr_callback.controller, amr_callback; kwargs...)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -145,11 +145,23 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
             has_changed = amr_callback(integrator,
                                        only_refine = amr_callback.adapt_initial_condition_only_refine)
             iterations = iterations + 1
-            if iterations > 10
-                @warn "AMR for initial condition did not settle within 10 iterations!\n" *
+            allowed_max_iterations = max(10, max_level(amr_callback.controller))
+            if iterations > allowed_max_iterations
+                @warn "AMR for initial condition did not settle within $(allowed_max_iterations) iterations!\n" *
                       "Consider adjusting thresholds or setting `adapt_initial_condition_only_refine`."
                 break
             end
+        end
+
+        # Update initial state integrals of analysis callback if it exists
+        # See https://github.com/trixi-framework/Trixi.jl/issues/2536 for more information.
+        index = findfirst(cb -> cb.affect! isa AnalysisCallback,
+                          integrator.opts.callback.discrete_callbacks)
+        if !isnothing(index)
+            analysis_callback = integrator.opts.callback.discrete_callbacks[index].affect!
+
+            initial_state_integrals = integrate(integrator.u, semi)
+            analysis_callback.initial_state_integrals = initial_state_integrals
         end
     end
 
@@ -196,7 +208,8 @@ end
                                              kwargs...)
     # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
     # it when doing AMR while still dispatching on the `mesh` etc.
-    amr_callback(u_ode, mesh_equations_solver_cache(semi)..., semi, t, iter; kwargs...)
+    return amr_callback(u_ode, mesh_equations_solver_cache(semi)..., semi, t, iter;
+                        kwargs...)
 end
 
 @inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
@@ -205,8 +218,9 @@ end
                                              kwargs...)
     # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
     # it when doing AMR while still dispatching on the `mesh` etc.
-    amr_callback(u_ode, mesh_equations_solver_cache(semi)..., semi.cache_parabolic,
-                 semi, t, iter; kwargs...)
+    return amr_callback(u_ode, mesh_equations_solver_cache(semi)...,
+                        semi.cache_parabolic,
+                        semi, t, iter; kwargs...)
 end
 
 # `passive_args` is currently used for Euler with self-gravity to adapt the gravity solver
@@ -228,7 +242,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
     if mpi_isparallel()
         # Collect lambda for all elements
-        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(mesh, dg, cache))
         # Use parent because n_elements_by_rank is an OffsetArray
         recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
         MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
@@ -243,6 +257,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
+    # Note: This assumes that the entries of `lambda` are sorted with ascending cell ids
     for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
@@ -380,7 +395,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         error("MPI has not been verified yet for parabolic AMR")
 
         # Collect lambda for all elements
-        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(mesh, dg, cache))
         # Use parent because n_elements_by_rank is an OffsetArray
         recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
         MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
@@ -395,6 +410,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
+    # Note: This assumes that the entries of `lambda` are sorted with ascending cell ids
     for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
@@ -621,7 +637,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         end
 
         reinitialize_boundaries!(semi.boundary_conditions, cache)
-        # if the semidiscretization also stores parabolic boundary conditions, 
+        # if the semidiscretization also stores parabolic boundary conditions,
         # reinitialize them after each refinement step as well.
         if hasproperty(semi, :boundary_conditions_parabolic)
             reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
@@ -788,6 +804,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
         reinitialize_boundaries!(semi.boundary_conditions, cache)
     end
 
+    mesh.unsaved_changes |= has_changed
+
     # Return true if there were any cells coarsened or refined, otherwise false.
     return has_changed
 end
@@ -795,7 +813,7 @@ end
 function reinitialize_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes,
                                   cache)
     # Reinitialize boundary types container because boundaries may have changed.
-    initialize!(boundary_conditions, cache)
+    return initialize!(boundary_conditions, cache)
 end
 
 function reinitialize_boundaries!(boundary_conditions, cache)
@@ -854,17 +872,20 @@ function ControllerThreeLevel(semi, indicator; base_level = 1,
                               max_level = base_level, max_threshold = 1.0)
     med_threshold, max_threshold = promote(med_threshold, max_threshold)
     cache = create_cache(ControllerThreeLevel, semi)
-    ControllerThreeLevel{typeof(max_threshold), typeof(indicator), typeof(cache)}(base_level,
-                                                                                  med_level,
-                                                                                  max_level,
-                                                                                  med_threshold,
-                                                                                  max_threshold,
-                                                                                  indicator,
-                                                                                  cache)
+    return ControllerThreeLevel{typeof(max_threshold), typeof(indicator),
+                                typeof(cache)}(base_level,
+                                               med_level,
+                                               max_level,
+                                               med_threshold,
+                                               max_threshold,
+                                               indicator,
+                                               cache)
 end
 
+max_level(controller::ControllerThreeLevel) = controller.max_level
+
 function create_cache(indicator_type::Type{ControllerThreeLevel}, semi)
-    create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
+    return create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
 end
 
 function Base.show(io::IO, controller::ControllerThreeLevel)
@@ -878,6 +899,7 @@ function Base.show(io::IO, controller::ControllerThreeLevel)
     print(io, ", med_threshold=", controller.med_threshold)
     print(io, ", max_threshold=", controller.max_threshold)
     print(io, ")")
+    return nothing
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLevel)
@@ -904,7 +926,7 @@ function get_element_variables!(element_variables, u, mesh, equations, solver, c
                                 kwargs...)
     # call the indicator to get up-to-date values for IO
     controller.indicator(u, mesh, equations, solver, cache; kwargs...)
-    get_element_variables!(element_variables, controller.indicator, amr_callback)
+    return get_element_variables!(element_variables, controller.indicator, amr_callback)
 end
 
 function get_element_variables!(element_variables, indicator::AbstractIndicator,
@@ -1043,20 +1065,23 @@ function ControllerThreeLevelCombined(semi, indicator_primary, indicator_seconda
                                                                     max_threshold,
                                                                     max_threshold_secondary)
     cache = create_cache(ControllerThreeLevelCombined, semi)
-    ControllerThreeLevelCombined{typeof(max_threshold), typeof(indicator_primary),
-                                 typeof(indicator_secondary), typeof(cache)}(base_level,
-                                                                             med_level,
-                                                                             max_level,
-                                                                             med_threshold,
-                                                                             max_threshold,
-                                                                             max_threshold_secondary,
-                                                                             indicator_primary,
-                                                                             indicator_secondary,
-                                                                             cache)
+    return ControllerThreeLevelCombined{typeof(max_threshold),
+                                        typeof(indicator_primary),
+                                        typeof(indicator_secondary), typeof(cache)}(base_level,
+                                                                                    med_level,
+                                                                                    max_level,
+                                                                                    med_threshold,
+                                                                                    max_threshold,
+                                                                                    max_threshold_secondary,
+                                                                                    indicator_primary,
+                                                                                    indicator_secondary,
+                                                                                    cache)
 end
 
+max_level(controller::ControllerThreeLevelCombined) = controller.max_level
+
 function create_cache(indicator_type::Type{ControllerThreeLevelCombined}, semi)
-    create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
+    return create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
 end
 
 function Base.show(io::IO, controller::ControllerThreeLevelCombined)
@@ -1071,6 +1096,7 @@ function Base.show(io::IO, controller::ControllerThreeLevelCombined)
     print(io, ", med_threshold=", controller.med_threshold)
     print(io, ", max_threshold_secondary=", controller.max_threshold_secondary)
     print(io, ")")
+    return nothing
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
@@ -1103,8 +1129,8 @@ function get_element_variables!(element_variables, u, mesh, equations, solver, c
                                 kwargs...)
     # call the indicator to get up-to-date values for IO
     controller.indicator_primary(u, mesh, equations, solver, cache; kwargs...)
-    get_element_variables!(element_variables, controller.indicator_primary,
-                           amr_callback)
+    return get_element_variables!(element_variables, controller.indicator_primary,
+                                  amr_callback)
 end
 
 function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},

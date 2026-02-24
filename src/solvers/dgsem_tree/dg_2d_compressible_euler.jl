@@ -66,7 +66,7 @@ end # muladd
 # works efficiently here.
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element, mesh::TreeMesh{2},
-                                           nonconservative_terms::False,
+                                           have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -89,11 +89,11 @@ end # muladd
         rho = u_cons[1, i, j, element]
         rho_v1 = u_cons[2, i, j, element]
         rho_v2 = u_cons[3, i, j, element]
-        rho_e = u_cons[4, i, j, element]
+        rho_e_total = u_cons[4, i, j, element]
 
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
-        p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+        p = (equations.gamma - 1) * (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
         u_prim[i, j, 1] = rho
         u_prim[i, j, 2] = v1
@@ -228,7 +228,7 @@ end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element, mesh::TreeMesh{2},
-                                           nonconservative_terms::False,
+                                           have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -254,11 +254,11 @@ end
         rho = u_cons[1, i, j, element]
         rho_v1 = u_cons[2, i, j, element]
         rho_v2 = u_cons[3, i, j, element]
-        rho_e = u_cons[4, i, j, element]
+        rho_e_total = u_cons[4, i, j, element]
 
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
-        p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+        p = (equations.gamma - 1) * (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
 
         u_prim[i, j, 1] = rho
         u_prim[i, j, 2] = v1

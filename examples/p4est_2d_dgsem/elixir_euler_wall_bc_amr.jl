@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -25,16 +24,17 @@ end
 initial_condition = uniform_flow_state
 
 boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
-boundary_conditions = Dict(:Body => boundary_condition_uniform_flow,
-                           :Button1 => boundary_condition_slip_wall,
-                           :Button2 => boundary_condition_slip_wall,
-                           :Eye1 => boundary_condition_slip_wall,
-                           :Eye2 => boundary_condition_slip_wall,
-                           :Smile => boundary_condition_slip_wall,
-                           :Bowtie => boundary_condition_slip_wall)
+boundary_conditions = (; Body = boundary_condition_uniform_flow,
+                       Button1 = boundary_condition_slip_wall,
+                       Button2 = boundary_condition_slip_wall,
+                       Eye1 = boundary_condition_slip_wall,
+                       Eye2 = boundary_condition_slip_wall,
+                       Smile = boundary_condition_slip_wall,
+                       Bowtie = boundary_condition_slip_wall)
 
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs,
+solver = DGSEM(polydeg = 5, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
@@ -43,7 +43,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000
 
 mesh = P4estMesh{2}(mesh_file)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -86,4 +86,3 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-7, reltol = 1.0e-7,
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

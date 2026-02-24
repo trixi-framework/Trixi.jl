@@ -1,5 +1,5 @@
-
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 dg = DGMulti(element_type = Quad(),
              approximation_type = periodic_derivative_operator(derivative_order = 1,
@@ -16,8 +16,9 @@ source_terms = source_terms_convergence_test
 mesh = DGMultiMesh(dg, coordinates_min = (-1.0, -1.0),
                    coordinates_max = (1.0, 1.0))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                    source_terms = source_terms,
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
@@ -33,6 +34,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, stepsize_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 0.5 * estimate_dt(mesh, dg), save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 0.5 * estimate_dt(mesh, dg),
+            ode_default_options()...,
+            callback = callbacks);

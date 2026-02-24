@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -55,7 +54,9 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  periodicity = (true, true, true), initial_refinement_level = 0)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -102,4 +103,3 @@ callbacks = CallbackSet(summary_callback,
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-summary_callback() # print the timer summary

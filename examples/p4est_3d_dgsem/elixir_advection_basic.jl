@@ -1,7 +1,7 @@
 # The same setup as tree_3d_dgsem/elixir_advection_basic.jl
 # to verify the P4estMesh implementation against TreeMesh
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -20,11 +20,13 @@ coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 trees_per_dimension = (4, 4, 4)
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 1)
+                 initial_refinement_level = 1,
+                 periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -59,9 +61,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_restart, save_
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

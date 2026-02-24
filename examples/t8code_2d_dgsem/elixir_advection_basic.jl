@@ -1,7 +1,7 @@
 # The same setup as tree_2d_dgsem/elixir_advection_basic.jl
 # to verify the StructuredMesh implementation against TreeMesh
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -20,17 +20,19 @@ trees_per_dimension = (8, 8)
 
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                  initial_refinement_level = 1)
+                  initial_refinement_level = 1,
+                  periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0));
+ode = semidiscretize(semi, (0.0, 1.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -49,9 +51,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

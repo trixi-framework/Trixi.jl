@@ -9,11 +9,11 @@
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
 """
     AnalysisCallback(semi; interval=0,
-                            save_analysis=false,
-                            output_directory="out",
-                            analysis_filename="analysis.dat",
-                            extra_analysis_errors=Symbol[],
-                            extra_analysis_integrals=())
+                           save_analysis=false,
+                           output_directory="out",
+                           analysis_filename="analysis.dat",
+                           extra_analysis_errors=Symbol[],
+                           extra_analysis_integrals=())
 
 Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in
@@ -49,15 +49,15 @@ mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegra
     start_time_last_analysis::Float64
     ncalls_rhs_last_analysis::Int
     start_gc_time::Float64
-    interval::Int
-    save_analysis::Bool
-    output_directory::String
-    analysis_filename::String
-    analyzer::Analyzer
-    analysis_errors::Vector{Symbol}
-    analysis_integrals::AnalysisIntegrals
+    const interval::Int
+    const save_analysis::Bool
+    const output_directory::String
+    const analysis_filename::String
+    const analyzer::Analyzer
+    const analysis_errors::Vector{Symbol}
+    const analysis_integrals::AnalysisIntegrals
     initial_state_integrals::InitialStateIntegrals
-    cache::Cache
+    const cache::Cache
 end
 
 # TODO: Taal bikeshedding, implement a method with less information and the signature
@@ -94,7 +94,7 @@ end
 # This is the convenience constructor that gets called from the elixirs
 function AnalysisCallback(semi::AbstractSemidiscretization; kwargs...)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    AnalysisCallback(mesh, equations, solver, cache; kwargs...)
+    return AnalysisCallback(mesh, equations, solver, cache; kwargs...)
 end
 
 # This is the actual constructor
@@ -134,9 +134,9 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                                                         Val(nvariables(equations)))),
                                          cache_analysis)
 
-    DiscreteCallback(condition, analysis_callback,
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(condition, analysis_callback,
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 # This method gets called from OrdinaryDiffEq's `solve(...)`
@@ -144,7 +144,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
                      integrator) where {Condition, Affect! <: AnalysisCallback}
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
-    initialize!(cb, u_ode, du_ode, t, integrator, semi)
+    return initialize!(cb, u_ode, du_ode, t, integrator, semi)
 end
 
 # This is the actual initialization method
@@ -163,45 +163,46 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
 
         # write header of output file
         open(joinpath(output_directory, analysis_filename), "w") do io
-            @printf(io, "#%-8s", "timestep")
-            @printf(io, "  %-14s", "time")
-            @printf(io, "  %-14s", "dt")
+            print(io, "#timestep ")
+            print(io, "time ")
+            print(io, "dt ")
             if :l2_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "l2_"*v)
+                    print(io, "l2_" * v * " ")
                 end
             end
             if :linf_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "linf_"*v)
+                    print(io, "linf_" * v * " ")
                 end
             end
             if :conservation_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "cons_"*v)
+                    print(io, "cons_" * v * " ")
                 end
             end
             if :residual in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, "   %-14s", "res_"*v)
+                    print(io, "res_" * v * " ")
                 end
             end
             if :l2_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    @printf(io, "   %-14s", "l2_"*v)
+                    print(io, "l2_" * v * " ")
                 end
             end
             if :linf_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    @printf(io, "   %-14s", "linf_"*v)
+                    print(io, "linf_" * v * " ")
                 end
             end
 
             for quantity in analysis_integrals
-                @printf(io, "   %-14s", pretty_form_ascii(quantity))
+                print(io, pretty_form_ascii(quantity), " ")
             end
 
             println(io)
+            return nothing
         end
     end
 
@@ -227,7 +228,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     u_ode = integrator.u
-    analysis_callback(u_ode, du_ode, integrator, semi)
+    return analysis_callback(u_ode, du_ode, integrator, semi)
 end
 
 # This method gets called internally as the main entry point to the AnalysiCallback
@@ -246,16 +247,18 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     # Record performance measurements and compute performance index (PID)
     runtime_since_last_analysis = 1.0e-9 * (time_ns() -
                                    analysis_callback.start_time_last_analysis)
-    # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks)
-    # and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up the time
-    # spent on each MPI rank. Thus, in an ideally parallelized program, the PID should be constant
-    # independent of the number of MPI ranks used, since, e.g., using 4x the number of ranks should
+    # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks
+    # and threads) and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up
+    # the time spent on each computing unit. Thus, in an ideally parallelized program, the PID should be constant
+    # independent of the number of MPI ranks or threads used, since, e.g., using 4x the number of ranks should
     # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
     # more information.
     ncalls_rhs_since_last_analysis = (ncalls(semi.performance_counter)
                                       -
                                       analysis_callback.ncalls_rhs_last_analysis)
-    performance_index = runtime_since_last_analysis * mpi_nranks() /
+    # This assumes that the same number of threads is used on each MPI rank.
+    performance_index = runtime_since_last_analysis * mpi_nranks() *
+                        Threads.nthreads() /
                         (ndofsglobal(mesh, solver, cache)
                          *
                          ncalls_rhs_since_last_analysis)
@@ -263,11 +266,12 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     # Compute the total runtime since the analysis callback has been initialized, in seconds
     runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
 
-    # Compute the relative runtime as time spent in `rhs!` divided by the number of calls to `rhs!`
-    # and the number of local degrees of freedom
+    # Compute the relative runtime per thread as time spent in `rhs!` divided by the number of calls
+    # to `rhs!` and the number of local degrees of freedom
     # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
     #      will reset the number of calls to `rhs!`
-    runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
+    runtime_relative = 1.0e-9 * take!(semi.performance_counter) * Threads.nthreads() /
+                       ndofs(semi)
 
     # Compute the total time spent in garbage collection since the analysis callback has been
     # initialized, in seconds
@@ -308,23 +312,23 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         mpi_println("                 " * "              " *
                     "               " *
                     " PID:            " * @sprintf("%10.8e s", performance_index))
-        mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofs(semi)) *
+        mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofsglobal(semi)) *
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *
-                    @sprintf("% 14d", nelements(mesh, solver, cache)))
+                    @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
 
-        # Level information (only show for AMR)
-        print_amr_information(integrator.opts.callback, mesh, solver, cache)
+        # Level information (only for AMR and/or non-uniform `TreeMesh`es)
+        print_level_information(integrator.opts.callback, mesh, solver, cache)
         mpi_println()
 
         # Open file for appending and store time step and time information
         if mpi_isroot() && analysis_callback.save_analysis
             io = open(joinpath(analysis_callback.output_directory,
                                analysis_callback.analysis_filename), "a")
-            @printf(io, "% 9d", iter)
-            @printf(io, "  %10.8e", t)
-            @printf(io, "  %10.8e", dt)
+            print(io, iter)
+            print(io, " ", t)
+            print(io, " ", dt)
         else
             io = devnull
         end
@@ -393,7 +397,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" L2 error:    ")
                 for v in eachvariable(equations)
                     @printf("  % 10.8e", l2_error[v])
-                    @printf(io, "  % 10.8e", l2_error[v])
+                    print(io, " ", l2_error[v])
                 end
                 println()
             end
@@ -403,7 +407,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" Linf error:  ")
                 for v in eachvariable(equations)
                     @printf("  % 10.8e", linf_error[v])
-                    @printf(io, "  % 10.8e", linf_error[v])
+                    print(io, " ", linf_error[v])
                 end
                 println()
             end
@@ -420,7 +424,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
             for v in eachvariable(equations)
                 err = abs(state_integrals[v] - initial_state_integrals[v])
                 @printf("  % 10.8e", err)
-                @printf(io, "  % 10.8e", err)
+                print(io, " ", err)
             end
             println()
         end
@@ -434,14 +438,15 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
             res = maximum(abs, view(du, v, ..))
             if mpi_isparallel()
                 # TODO: Debugging, here is a type instability
-                global_res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())
+                # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+                global_res = MPI.Reduce!(Ref(res), Base.max, mpi_root(), mpi_comm())
                 if mpi_isroot()
                     res::eltype(du) = global_res[]
                 end
             end
             if mpi_isroot()
                 @printf("  % 10.8e", res)
-                @printf(io, "  % 10.8e", res)
+                print(io, " ", res)
             end
         end
         mpi_println()
@@ -465,7 +470,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" L2 error prim.: ")
                 for v in eachvariable(equations)
                     @printf("%10.8e   ", l2_error_prim[v])
-                    @printf(io, "  % 10.8e", l2_error_prim[v])
+                    print(io, " ", l2_error_prim[v])
                 end
                 println()
             end
@@ -475,7 +480,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" Linf error pri.:")
                 for v in eachvariable(equations)
                     @printf("%10.8e   ", linf_error_prim[v])
-                    @printf(io, "  % 10.8e", linf_error_prim[v])
+                    print(io, " ", linf_error_prim[v])
                 end
                 println()
             end
@@ -488,94 +493,84 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     return nothing
 end
 
-# Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh, solver, cache)
+function print_level_information(mesh, solver, cache, min_level, max_level)
+    # Get local element count per level
+    elements_per_level = get_elements_per_level(min_level, max_level, mesh, solver,
+                                                cache)
 
-    # Return early if there is nothing to print
-    uses_amr(callbacks) || return nothing
+    # Sum up across all ranks
+    MPI.Reduce!(elements_per_level, +, mpi_root(), mpi_comm())
 
-    levels = Vector{Int}(undef, nelements(solver, cache))
-    min_level = typemax(Int)
-    max_level = typemin(Int)
-    for element in eachelement(solver, cache)
-        current_level = mesh.tree.levels[cache.elements.cell_ids[element]]
-        levels[element] = current_level
-        min_level = min(min_level, current_level)
-        max_level = max(max_level, current_level)
-    end
-
+    # Print
     for level in max_level:-1:(min_level + 1)
         mpi_println(" ├── level $level:    " *
-                    @sprintf("% 14d", count(==(level), levels)))
+                    @sprintf("% 14d", elements_per_level[level + 1 - min_level]))
     end
     mpi_println(" └── level $min_level:    " *
-                @sprintf("% 14d", count(==(min_level), levels)))
+                @sprintf("% 14d", elements_per_level[1]))
 
     return nothing
 end
 
-# Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
+function print_level_information(callbacks, mesh::TreeMesh, solver, cache)
+    if uses_amr(callbacks)
+        # Get global minimum and maximum level from the AMRController
+        min_level = max_level = 0
+        for cb in callbacks.discrete_callbacks
+            if cb.affect! isa AMRCallback
+                min_level = cb.affect!.controller.base_level
+                max_level = cb.affect!.controller.max_level
+            end
+        end
+        print_level_information(mesh, solver, cache, min_level, max_level)
+        # Special check for `TreeMesh`es without AMR.
+        # These meshes may still be non-uniform due to `refinement_patches`, see
+        # `refine_box!`, `coarsen_box!`, and `refine_sphere!`.
+    elseif minimum_level(mesh.tree) != maximum_level(mesh.tree)
+        min_level = minimum_level(mesh.tree)
+        max_level = maximum_level(mesh.tree)
+        print_level_information(mesh, solver, cache, min_level, max_level)
+    else # Uniform mesh
+        return nothing
+    end
+end
 
-    # Return early if there is nothing to print
-    uses_amr(callbacks) || return nothing
+function print_level_information(callbacks, mesh, solver, cache)
+    if uses_amr(callbacks)
+        # Get global minimum and maximum level from the AMRController
+        min_level = max_level = 0
+        for cb in callbacks.discrete_callbacks
+            if cb.affect! isa AMRCallback
+                min_level = cb.affect!.controller.base_level
+                max_level = cb.affect!.controller.max_level
+            end
+        end
+        print_level_information(mesh, solver, cache, min_level, max_level)
+    else # Uniform mesh
+        return nothing
+    end
+end
 
+function get_elements_per_level(min_level, max_level, mesh::P4estMesh, solver, cache)
     elements_per_level = zeros(P4EST_MAXLEVEL + 1)
 
     for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
         elements_per_level .+= tree.quadrants_per_level
     end
 
-    # levels start at zero but Julia's standard indexing starts at 1
-    min_level_1 = findfirst(i -> i > 0, elements_per_level)
-    max_level_1 = findlast(i -> i > 0, elements_per_level)
-
-    # Check if there is at least one level with an element
-    if isnothing(min_level_1) || isnothing(max_level_1)
-        return nothing
-    end
-
-    min_level = min_level_1 - 1
-    max_level = max_level_1 - 1
-
-    for level in max_level:-1:(min_level + 1)
-        mpi_println(" ├── level $level:    " *
-                    @sprintf("% 14d", elements_per_level[level + 1]))
-    end
-    mpi_println(" └── level $min_level:    " *
-                @sprintf("% 14d", elements_per_level[min_level + 1]))
-
-    return nothing
+    return @view(elements_per_level[(min_level + 1):(max_level + 1)])
 end
 
-# Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh::T8codeMesh, solver, cache)
-
-    # Return early if there is nothing to print
-    uses_amr(callbacks) || return nothing
-
-    # TODO: Switch to global element levels array when MPI supported or find
-    # another solution.
+function get_elements_per_level(min_level, max_level, mesh::T8codeMesh, solver, cache)
     levels = trixi_t8_get_local_element_levels(mesh.forest)
 
-    min_level = minimum(levels)
-    max_level = maximum(levels)
+    return [count(==(l), levels) for l in min_level:max_level]
+end
 
-    mpi_println(" minlevel = $min_level")
-    mpi_println(" maxlevel = $max_level")
-
-    if min_level > 0
-        elements_per_level = [count(==(l), levels) for l in 1:max_level]
-
-        for level in max_level:-1:(min_level + 1)
-            mpi_println(" ├── level $level:    " *
-                        @sprintf("% 14d", elements_per_level[level]))
-        end
-        mpi_println(" └── level $min_level:    " *
-                    @sprintf("% 14d", elements_per_level[min_level]))
-    end
-
-    return nothing
+function get_elements_per_level(min_level, max_level, mesh::TreeMesh, solver, cache)
+    levels = [mesh.tree.levels[cache.elements.cell_ids[element]]
+              for element in eachelement(solver, cache)]
+    return [count(==(l), levels) for l in min_level:max_level]
 end
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
@@ -590,7 +585,7 @@ function analyze_integrals(analysis_integrals::NTuple{N, Any}, io, du, u, t,
     if mpi_isroot()
         @printf(" %-12s:", pretty_form_utf(quantity))
         @printf("  % 10.8e", res)
-        @printf(io, "  % 10.8e", res)
+        print(io, " ", res)
     end
     mpi_println()
 
@@ -601,7 +596,7 @@ end
 
 # terminate the type-stable iteration over tuples
 function analyze_integrals(analysis_integrals::Tuple{}, io, du, u, t, semi)
-    nothing
+    return nothing
 end
 
 # used for error checks and EOC analysis
@@ -615,7 +610,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
 
     l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi,
                                             cache_analysis)
-    (; l2 = l2_error, linf = linf_error)
+    return (; l2 = l2_error, linf = linf_error)
 end
 
 # some common analysis_integrals
@@ -623,10 +618,10 @@ end
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
 function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    analyze(quantity, du, u, t, mesh, equations, solver, cache)
+    return analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
 function analyze(quantity, du, u, t, mesh, equations, solver, cache)
-    integrate(quantity, u, mesh, equations, solver, cache, normalize = true)
+    return integrate(quantity, u, mesh, equations, solver, cache, normalize = true)
 end
 pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
@@ -638,13 +633,16 @@ function analyze(quantity::typeof(enstrophy), du, u, t,
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
-    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
-            cache_parabolic)
+    # We do not apply `enstrophy` directly here because we might later have different `quantity`s
+    # that we wish to integrate, which can share this routine.
+    return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
+                   cache,
+                   cache_parabolic)
 end
 function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
                  cache, cache_parabolic)
-    integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache,
-              cache_parabolic, normalize = true)
+    return integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache,
+                     cache_parabolic, normalize = true)
 end
 
 function entropy_timederivative end
@@ -687,10 +685,19 @@ end # @muladd
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
-include("analysis_surface_integral_2d.jl")
+include("analysis_surface_integral.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
+
+# This version of `analyze` is used for [`AnalysisSurfaceIntegral`](@ref) which requires
+# `semi` to be passed along to retrieve the current boundary indices, which are non-static
+# in the case of AMR.
+function analyze(quantity::AnalysisSurfaceIntegral, du, u, t,
+                 semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    return analyze(quantity, du, u, t, mesh, equations, solver, cache, semi)
+end
 
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
@@ -704,6 +711,7 @@ function analyze(quantity::AnalysisSurfaceIntegral{Variable},
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
-    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
-            cache_parabolic)
+    return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+                   semi,
+                   cache_parabolic)
 end

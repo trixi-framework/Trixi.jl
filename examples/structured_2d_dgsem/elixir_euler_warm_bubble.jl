@@ -1,9 +1,9 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # Warm bubble test case from
 # - Wicker, L. J., and Skamarock, W. C. (1998)
-#   A time-splitting scheme for the elastic equations incorporating 
+#   A time-splitting scheme for the elastic equations incorporating
 #   second-order Runge–Kutta time differencing
 #   [DOI: 10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2](https://doi.org/10.1175/1520-0493(1998)126%3C1992:ATSSFT%3E2.0.CO;2)
 # See also
@@ -11,7 +11,7 @@ using Trixi
 #   A Benchmark Simulation for Moist Nonhydrostatic Numerical Models
 #   [DOI: 10.1175/1520-0493(2002)130<2917:ABSFMN>2.0.CO;2](https://doi.org/10.1175/1520-0493(2002)130<2917:ABSFMN>2.0.CO;2)
 # - Carpenter, Droegemeier, Woodward, Hane (1990)
-#   Application of the Piecewise Parabolic Method (PPM) to 
+#   Application of the Piecewise Parabolic Method (PPM) to
 #   Meteorological Modeling
 #   [DOI: 10.1175/1520-0493(1990)118<0586:AOTPPM>2.0.CO;2](https://doi.org/10.1175/1520-0493(1990)118<0586:AOTPPM>2.0.CO;2)
 struct WarmBubbleSetup
@@ -22,7 +22,7 @@ struct WarmBubbleSetup
     gamma::Float64   # heat capacity ratio (dry air)
 
     function WarmBubbleSetup(; g = 9.81, c_p = 1004.0, c_v = 717.0, gamma = c_p / c_v)
-        new(g, c_p, c_v, gamma)
+        return new(g, c_p, c_v, gamma)
     end
 end
 
@@ -79,7 +79,7 @@ warm_bubble_setup = WarmBubbleSetup()
 
 equations = CompressibleEulerEquations2D(warm_bubble_setup.gamma)
 
-boundary_conditions = (x_neg = boundary_condition_periodic,
+boundary_conditions = (; x_neg = boundary_condition_periodic,
                        x_pos = boundary_condition_periodic,
                        y_neg = boundary_condition_slip_wall,
                        y_pos = boundary_condition_slip_wall)
@@ -139,9 +139,7 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             maxiters = 1.0e7,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-summary_callback()
+            ode_default_options()..., callback = callbacks);

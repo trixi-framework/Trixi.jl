@@ -1,4 +1,5 @@
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 dg = DGMulti(polydeg = 1, element_type = Tri(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
@@ -15,7 +16,9 @@ initial_condition = initial_condition_sharp_gaussian
 cells_per_dimension = (16, 16)
 mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = true)
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, dg)
+                                             initial_condition, dg;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
@@ -24,7 +27,9 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)
 
 ###############################################################################
 # run the simulation
@@ -32,5 +37,3 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 time_int_tol = 1e-6
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             dt = time_int_tol, ode_default_options()..., callback = callbacks)
-
-summary_callback() # print the timer summary

@@ -69,12 +69,12 @@ function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2, <:Real},
 end
 
 function varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D)
-    ("v1_prime", "v2_prime", "p_prime_scaled",
-     "v1_mean", "v2_mean", "c_mean", "rho_mean")
+    return ("v1_prime", "v2_prime", "p_prime_scaled",
+            "v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 function varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D)
-    ("v1_prime", "v2_prime", "p_prime",
-     "v1_mean", "v2_mean", "c_mean", "rho_mean")
+    return ("v1_prime", "v2_prime", "p_prime",
+            "v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 
 # Convenience functions for retrieving state variables and mean variables
@@ -87,10 +87,10 @@ function cons2mean(u, equations::AcousticPerturbationEquations2D)
 end
 
 function varnames(::typeof(cons2state), ::AcousticPerturbationEquations2D)
-    ("v1_prime", "v2_prime", "p_prime_scaled")
+    return ("v1_prime", "v2_prime", "p_prime_scaled")
 end
 function varnames(::typeof(cons2mean), ::AcousticPerturbationEquations2D)
-    ("v1_mean", "v2_mean", "c_mean", "rho_mean")
+    return ("v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 
 """
@@ -112,9 +112,9 @@ A constant initial condition where the state variables are zero and the mean flo
 Uses the global mean values from `equations`.
 """
 function initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
-    v1_prime = 0.0
-    v2_prime = 0.0
-    p_prime_scaled = 0.0
+    v1_prime = 0
+    v2_prime = 0
+    p_prime_scaled = 0
 
     return SVector(v1_prime, v2_prime, p_prime_scaled, global_mean_vars(equations)...)
 end
@@ -127,12 +127,13 @@ A smooth initial condition used for convergence tests in combination with
 """
 function initial_condition_convergence_test(x, t,
                                             equations::AcousticPerturbationEquations2D)
-    c = 2.0
-    A = 0.2
-    L = 2.0
-    f = 2.0 / L
-    a = 1.0
-    omega = 2 * pi * f
+    RealT = eltype(x)
+    a = 1
+    c = 2
+    L = 2
+    f = 2.0f0 / L
+    A = convert(RealT, 0.2)
+    omega = 2 * convert(RealT, pi) * f
     init = c + A * sin(omega * (x[1] + x[2] - a * t))
 
     v1_prime = init
@@ -149,17 +150,26 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 function source_terms_convergence_test(u, x, t,
                                        equations::AcousticPerturbationEquations2D)
     v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
-    c = 2.0
-    A = 0.2
-    L = 2.0
-    f = 2.0 / L
-    a = 1.0
-    omega = 2 * pi * f
+    RealT = eltype(u)
+    a = 1
+    c = 2
+    L = 2
+    f = 2.0f0 / L
+    A = convert(RealT, 0.2)
+    omega = 2 * convert(RealT, pi) * f
 
     si, co = sincos(omega * (x[1] + x[2] - a * t))
     tmp = v1_mean + v2_mean - a
@@ -168,7 +178,7 @@ function source_terms_convergence_test(u, x, t,
     du3 = A * omega * co * (2 * c_mean^2 * rho_mean + 2 * c * tmp + 2 * A * tmp * si) /
           c_mean^2
 
-    du4 = du5 = du6 = du7 = 0.0
+    du4 = du5 = du6 = du7 = 0
 
     return SVector(du1, du2, du3, du4, du5, du6, du7)
 end
@@ -179,8 +189,8 @@ end
 A Gaussian pulse in a constant mean flow. Uses the global mean values from `equations`.
 """
 function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2D)
-    v1_prime = 0.0
-    v2_prime = 0.0
+    v1_prime = 0
+    v2_prime = 0
     p_prime = exp(-4 * (x[1]^2 + x[2]^2))
 
     prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
@@ -240,8 +250,8 @@ function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
     u_normal = normal[1] * u_inner[1] + normal[2] * u_inner[2]
 
     # create the "external" boundary solution state
-    u_boundary = SVector(u_inner[1] - 2.0 * u_normal * normal[1],
-                         u_inner[2] - 2.0 * u_normal * normal[2],
+    u_boundary = SVector(u_inner[1] - 2 * u_normal * normal[1],
+                         u_inner[2] - 2 * u_normal * normal[2],
                          u_inner[3], cons2mean(u_inner, equations)...)
 
     # calculate the boundary flux
@@ -257,13 +267,14 @@ end
     v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
     # Calculate flux for conservative state variables
+    RealT = eltype(u)
     if orientation == 1
         f1 = v1_mean * v1_prime + v2_mean * v2_prime +
              c_mean^2 * p_prime_scaled / rho_mean
-        f2 = zero(eltype(u))
+        f2 = zero(RealT)
         f3 = rho_mean * v1_prime + v1_mean * p_prime_scaled
     else
-        f1 = zero(eltype(u))
+        f1 = zero(RealT)
         f2 = v1_mean * v1_prime + v2_mean * v2_prime +
              c_mean^2 * p_prime_scaled / rho_mean
         f3 = rho_mean * v2_prime + v2_mean * p_prime_scaled
@@ -272,7 +283,7 @@ end
     # The rest of the state variables are actually variable coefficients, hence the flux should be
     # zero. See https://github.com/trixi-framework/Trixi.jl/issues/358#issuecomment-784828762
     # for details.
-    f4 = f5 = f6 = f7 = zero(eltype(u))
+    f4 = f5 = f6 = f7 = 0
 
     return SVector(f1, f2, f3, f4, f5, f6, f7)
 end
@@ -292,7 +303,25 @@ end
     c_mean_ll = u_ll[6]
     c_mean_rr = u_rr[6]
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::AcousticPerturbationEquations2D)
+    # Calculate v = v_prime + v_mean
+    v_prime_ll = u_ll[orientation]
+    v_prime_rr = u_rr[orientation]
+    v_mean_ll = u_ll[orientation + 3]
+    v_mean_rr = u_rr[orientation + 3]
+
+    v_ll = v_prime_ll + v_mean_ll
+    v_rr = v_prime_rr + v_mean_rr
+
+    c_mean_ll = u_ll[6]
+    c_mean_rr = u_rr[6]
+
+    return max(abs(v_ll) + c_mean_ll, abs(v_rr) + c_mean_rr)
 end
 
 # Calculate 1D flux for a single point in the normal direction
@@ -313,7 +342,7 @@ end
     # The rest of the state variables are actually variable coefficients, hence the flux should be
     # zero. See https://github.com/trixi-framework/Trixi.jl/issues/358#issuecomment-784828762
     # for details.
-    f4 = f5 = f6 = f7 = zero(eltype(u))
+    f4 = f5 = f6 = f7 = 0
 
     return SVector(f1, f2, f3, f4, f5, f6, f7)
 end
@@ -334,8 +363,28 @@ end
     c_mean_rr = u_rr[6]
 
     # The v_normals are already scaled by the norm
-    λ_max = max(abs(v_ll), abs(v_rr)) +
-            max(c_mean_ll, c_mean_rr) * norm(normal_direction)
+    return (max(abs(v_ll), abs(v_rr)) +
+            max(c_mean_ll, c_mean_rr) * norm(normal_direction))
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::AcousticPerturbationEquations2D)
+    # Calculate v = v_prime + v_mean
+    v_prime_ll = normal_direction[1] * u_ll[1] + normal_direction[2] * u_ll[2]
+    v_prime_rr = normal_direction[1] * u_rr[1] + normal_direction[2] * u_rr[2]
+    v_mean_ll = normal_direction[1] * u_ll[4] + normal_direction[2] * u_ll[5]
+    v_mean_rr = normal_direction[1] * u_rr[4] + normal_direction[2] * u_rr[5]
+
+    v_ll = v_prime_ll + v_mean_ll
+    v_rr = v_prime_rr + v_mean_rr
+
+    c_mean_ll = u_ll[6]
+    c_mean_rr = u_rr[6]
+
+    norm_ = norm(normal_direction)
+    # The v_normals are already scaled by the norm
+    return max(abs(v_ll) + c_mean_ll * norm_, abs(v_rr) + c_mean_rr * norm_)
 end
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the mean values
@@ -344,11 +393,30 @@ end
                                                               equations::AcousticPerturbationEquations2D)
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
-    diss = -0.5 * λ * (u_rr - u_ll)
-    z = zero(eltype(u_ll))
+    diss = -0.5f0 * λ * (u_rr - u_ll)
+    z = 0
+
     return SVector(diss[1], diss[2], diss[3], z, z, z, z)
 end
 
+"""
+    have_constant_speed(::AcousticPerturbationEquations2D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref).
+
+The acoustic perturbation equations are in principle linear for **constant** mean flow fields.
+However, the mean flow variables are part of the solution vector in
+[`AcousticPerturbationEquations2D`](@ref) and only the **global** mean flow variables are constant,
+similar to the [`LinearizedEulerEquations2D`](@ref).
+
+Moreover, when coupling to the [`CompressibleEulerEquations2D`](@ref) equations via 
+[`SemidiscretizationEulerAcoustics`](@ref), the mean field variables are updated
+on the fly, see [`EulerAcousticsCouplingCallback`](@ref).
+
+# Returns
+- `False()`
+"""
 @inline have_constant_speed(::AcousticPerturbationEquations2D) = False()
 
 @inline function max_abs_speeds(u, equations::AcousticPerturbationEquations2D)

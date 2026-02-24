@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -22,15 +21,16 @@ Brown and Minion (1995).
 """
 function initial_condition_shear_layer(x, t, equations::CompressibleEulerEquations2D)
     # Shear layer parameters
+    RealT = eltype(x)
     k = 80
-    delta = 0.05
-    u0 = 1.0
+    delta = convert(RealT, 0.05)
+    u0 = 1
 
-    Ms = 0.1 # maximum Mach number
+    Ms = convert(RealT, 0.1) # maximum Mach number
 
-    rho = 1.0
-    v1 = x[2] <= 0.5 ? u0 * tanh(k * (x[2] - 0.25)) : u0 * tanh(k * (0.75 - x[2]))
-    v2 = u0 * delta * sin(2 * pi * (x[1] + 0.25))
+    rho = 1
+    v1 = x[2] <= 0.5f0 ? u0 * tanh(k * (x[2] - 0.25f0)) : u0 * tanh(k * (0.75f0 - x[2]))
+    v2 = u0 * delta * sinpi(2 * (x[1] + 0.25f0))
     p = (u0 / Ms)^2 * rho / equations.gamma # scaling to get Ms
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
@@ -43,12 +43,15 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
+# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -68,6 +71,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
     rho, rho_v1, _, _ = u
     return rho_v1 / rho
 end
+# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
 amr_indicator = IndicatorLöhner(semi, variable = v1)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 3,
@@ -89,7 +93,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

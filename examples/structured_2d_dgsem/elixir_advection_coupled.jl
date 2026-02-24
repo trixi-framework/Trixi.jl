@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -72,8 +72,9 @@ boundary_conditions_y_pos1 = BoundaryConditionCoupled(3, (:i_forward, :begin), F
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = (x_neg = boundary_conditions_x_neg1,
+                                     solver;
+                                     boundary_conditions = (;
+                                                            x_neg = boundary_conditions_x_neg1,
                                                             x_pos = boundary_conditions_x_pos1,
                                                             y_neg = boundary_conditions_y_neg1,
                                                             y_pos = boundary_conditions_y_pos1))
@@ -104,8 +105,9 @@ boundary_conditions_y_pos2 = BoundaryConditionCoupled(4, (:i_forward, :begin), F
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = (x_neg = boundary_conditions_x_neg2,
+                                     solver;
+                                     boundary_conditions = (;
+                                                            x_neg = boundary_conditions_x_neg2,
                                                             x_pos = boundary_conditions_x_pos2,
                                                             y_neg = boundary_conditions_y_neg2,
                                                             y_pos = boundary_conditions_y_pos2))
@@ -136,8 +138,9 @@ boundary_conditions_y_pos3 = BoundaryConditionCoupled(1, (:i_forward, :begin), F
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = (x_neg = boundary_conditions_x_neg3,
+                                     solver;
+                                     boundary_conditions = (;
+                                                            x_neg = boundary_conditions_x_neg3,
                                                             x_pos = boundary_conditions_x_pos3,
                                                             y_neg = boundary_conditions_y_neg3,
                                                             y_pos = boundary_conditions_y_pos3))
@@ -168,8 +171,9 @@ boundary_conditions_y_pos4 = BoundaryConditionCoupled(2, (:i_forward, :begin), F
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi4 = SemidiscretizationHyperbolic(mesh4, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = (x_neg = boundary_conditions_x_neg4,
+                                     solver;
+                                     boundary_conditions = (;
+                                                            x_neg = boundary_conditions_x_neg4,
                                                             x_pos = boundary_conditions_x_pos4,
                                                             y_neg = boundary_conditions_y_neg4,
                                                             y_pos = boundary_conditions_y_pos4))
@@ -181,7 +185,7 @@ semi = SemidiscretizationCoupled(semi1, semi2, semi3, semi4)
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 2.0
-ode = semidiscretize(semi, (0.0, 2.0));
+ode = semidiscretize(semi, (0.0, 2.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -210,9 +214,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

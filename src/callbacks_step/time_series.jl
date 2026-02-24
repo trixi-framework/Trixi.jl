@@ -27,12 +27,12 @@ Currently this callback is only implemented for [`TreeMesh`](@ref) and [`Unstruc
 """
 mutable struct TimeSeriesCallback{RealT <: Real, uEltype <: Real, SolutionVariables,
                                   VariableNames, Cache}
-    interval::Int
-    solution_variables::SolutionVariables
-    variable_names::VariableNames
-    output_directory::String
-    filename::String
-    point_coordinates::Array{RealT, 2}
+    const interval::Int
+    const solution_variables::SolutionVariables
+    const variable_names::VariableNames
+    const output_directory::String
+    const filename::String
+    const point_coordinates::Array{RealT, 2}
     # Point data is stored as a vector of vectors of the solution data type:
     # * the "outer" `Vector` contains one vector for each point at which a time_series is recorded
     # * the "inner" `Vector` contains the actual time series for a single point,
@@ -42,7 +42,7 @@ mutable struct TimeSeriesCallback{RealT <: Real, uEltype <: Real, SolutionVariab
     point_data::Vector{Vector{uEltype}}
     time::Vector{RealT}
     step::Vector{Int}
-    time_series_cache::Cache
+    const time_series_cache::Cache
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
@@ -56,6 +56,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:TimeSeriesCallback})
           "output_directory=", "\"output_directory\"", ", ",
           "filename=", "\"filename\"",
           ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -72,7 +73,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "interval" => time_series_callback.interval,
             "solution_variables" => time_series_callback.solution_variables,
             "output_directory" => time_series_callback.output_directory,
-            "filename" => time_series_callback.filename,
+            "filename" => time_series_callback.filename
         ]
         summary_box(io, "TimeSeriesCallback", setup)
     end

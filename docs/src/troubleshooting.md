@@ -133,7 +133,8 @@ begin
   equations = LinearScalarAdvectionEquation2D(0.2, -0.7)
   mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), n_cells_max=10^5, initial_refinement_level=5)
   solver = DGSEM(3)
-  semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+  semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver;
+                                      boundary_conditions = boundary_condition_periodic)
 
   Trixi.print_timer(Trixi.timer())
 end
@@ -157,36 +158,13 @@ Julia compiles code to get good (C/Fortran-like) performance. At the same time,
 Julia provides a dynamic environment and usually compiles code just before using
 it. Over time, Julia has improved its caching infrastructure, allowing to store
 and reuse more results from (pre-)compilation. This often results in an
-increased time to install/update packages, in particular when updating
-to Julia v1.8 or v1.9 from older versions.
+increased time to install/update packages.
 
 Some packages used together with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
 provide options to configure the amount of precompilation. For example,
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) precompiles
 many ODE solvers for a good runtime experience of average users. Currently,
 [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) does not use all of
-the available solvers. Thus, you can save some time at every update by setting
-their [precompilation options](https://docs.sciml.ai/DiffEqDocs/stable/features/low_dep/).
-
-At the time of writing, this could look as follows. First, you need to activate
-the environment where you have installed
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl). Then, you need
-to execute the following Julia code.
-
-```julia
-using Preferences, UUIDs
-let uuid = UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed")
-  set_preferences!(uuid, "PrecompileAutoSpecialize" => false)
-  set_preferences!(uuid, "PrecompileAutoSwitch" => false)
-  set_preferences!(uuid, "PrecompileDefaultSpecialize" => true)
-  set_preferences!(uuid, "PrecompileFunctionWrapperSpecialize" => false)
-  set_preferences!(uuid, "PrecompileLowStorage" => true)
-  set_preferences!(uuid, "PrecompileNoSpecialize" => false)
-  set_preferences!(uuid, "PrecompileNonStiff" => true)
-  set_preferences!(uuid, "PrecompileStiff" => false)
-end
-```
-
-This disables precompilation of all implicit methods. This should usually not affect
-the runtime latency with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
-since most setups use explicit time integration methods.
+the available solvers. Thus, you can save some time at every update by just
+installing the required sub-packages, e.g.,
+OrdinaryDiffEqLowStorageRK.jl and OrdinaryDiffEqSSPRK.jl.

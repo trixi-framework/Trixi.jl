@@ -23,13 +23,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        # Get new list of leaf cells
-        leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-        # re-initialize elements container
-        @unpack elements = cache
-        resize!(elements, length(leaf_cell_ids))
-        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
         @assert nelements(dg, cache) > old_n_elements
 
         resize!(u_ode,
@@ -58,19 +54,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                 1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode
 
-    # re-initialize interfaces container
-    @unpack interfaces = cache
-    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-    init_interfaces!(interfaces, elements, mesh)
-
-    # re-initialize boundaries container
-    @unpack boundaries = cache
-    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
-
     # Sanity check
     if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+        @assert ninterfaces(cache.interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
 
     return nothing
@@ -86,13 +72,6 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Resize parabolic helper variables
     @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    @unpack interfaces = cache_parabolic
-    if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
-    end
 
     return nothing
 end
@@ -160,13 +139,9 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        # Get new list of leaf cells
-        leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-        # re-initialize elements container
-        @unpack elements = cache
-        resize!(elements, length(leaf_cell_ids))
-        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
         @assert nelements(dg, cache) < old_n_elements
 
         resize!(u_ode,
@@ -204,19 +179,9 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode
 
-    # re-initialize interfaces container
-    @unpack interfaces = cache
-    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-    init_interfaces!(interfaces, elements, mesh)
-
-    # re-initialize boundaries container
-    @unpack boundaries = cache
-    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
-
     # Sanity check
     if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+        @assert ninterfaces(cache.interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
 
     return nothing
@@ -232,13 +197,6 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Resize parabolic helper variables
     @unpack viscous_container = cache_parabolic
     resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    @unpack interfaces = cache_parabolic
-    if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
-    end
 
     return nothing
 end
@@ -282,18 +240,7 @@ function coarsen_elements!(u::AbstractArray{<:Any, 3}, element_id,
         # Update value
         set_node_vars!(u, acc, equations, dg, i, element_id)
     end
-end
 
-# this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{1}, equations,
-                      dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
-end
-
-function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{1},
-                      equations, dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
+    return nothing
 end
 end # @muladd

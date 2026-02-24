@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -99,8 +98,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv = surface_flux)
 solver_euler = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-4, -4)
-coordinates_max = (4, 4)
+coordinates_min = (-4.0, -4.0)
+coordinates_max = (4.0, 4.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
                 n_cells_max = 100_000,
@@ -162,7 +161,14 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
     return flux
 end
 
-solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver_gravity = DGSEM(polydeg, FluxLaxFriedrichs(max_abs_speed_naive))
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition,
                                             solver_gravity,
@@ -183,7 +189,7 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 ###############################################################################
 # ODE solvers, callbacks etc.
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
@@ -222,8 +228,8 @@ callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);
+
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)

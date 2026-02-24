@@ -6,7 +6,7 @@
 #! format: noindent
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::ParallelTreeMesh{2}, equations, initial_condition,
+                          mesh::TreeMeshParallel{2}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
     l2_errors, linf_errors = calc_error_norms_per_element(func, u, t, analyzer,
                                                           mesh, equations,
@@ -54,7 +54,7 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 function calc_error_norms_per_element(func, u, t, analyzer,
-                                      mesh::ParallelTreeMesh{2}, equations,
+                                      mesh::TreeMeshParallel{2}, equations,
                                       initial_condition,
                                       dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
@@ -91,7 +91,7 @@ function calc_error_norms_per_element(func, u, t, analyzer,
 end
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::Union{ParallelP4estMesh{2}, ParallelT8codeMesh{2}},
+                          mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                           equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
@@ -114,16 +114,17 @@ function calc_error_norms(func, u, t, analyzer,
                                        jacobian_tmp1)
 
         # Calculate errors at each analysis node
-        @. jacobian_local = abs(jacobian_local)
-
         for j in eachnode(analyzer), i in eachnode(analyzer)
             u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j),
                                         t, equations)
             diff = func(u_exact, equations) -
                    func(get_node_vars(u_local, equations, dg, i, j), equations)
-            l2_error += diff .^ 2 * (weights[i] * weights[j] * jacobian_local[i, j])
+            # We take absolute value as we need the Jacobian here for the volume calculation
+            abs_jacobian_local_ij = abs(jacobian_local[i, j])
+
+            l2_error += diff .^ 2 * (weights[i] * weights[j] * abs_jacobian_local_ij)
             linf_error = @. max(linf_error, abs(diff))
-            volume += weights[i] * weights[j] * jacobian_local[i, j]
+            volume += weights[i] * weights[j] * abs_jacobian_local_ij
         end
     end
 
@@ -131,7 +132,8 @@ function calc_error_norms(func, u, t, analyzer,
     global_l2_error = Vector(l2_error)
     global_linf_error = Vector(linf_error)
     MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
-    MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
+    # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+    MPI.Reduce!(global_linf_error, Base.max, mpi_root(), mpi_comm())
     total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
     if mpi_isroot()
         l2_error = convert(typeof(l2_error), global_l2_error)
@@ -147,7 +149,7 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 function integrate_via_indices(func::Func, u,
-                               mesh::ParallelTreeMesh{2}, equations, dg::DGSEM, cache,
+                               mesh::TreeMeshParallel{2}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
     # call the method accepting a general `mesh::TreeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -172,20 +174,22 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate_via_indices(func::Func, u,
-                               mesh::Union{ParallelP4estMesh{2}, ParallelT8codeMesh{2}},
+                               mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                                equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
-    # Pass `zero(SVector{nvariables(equations), eltype(u))}` to `func` since `u` might be empty, if the
-    # current rank has no elements, see also https://github.com/trixi-framework/Trixi.jl/issues/1096.
-    integral = zero(func(zero(SVector{nvariables(equations), eltype(u)}), 1, 1, 1,
-                         equations, dg, args...))
+    # Pass `zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg), 1)`
+    # to `func` since `u` might be empty, if the current rank has no elements.
+    # See also https://github.com/trixi-framework/Trixi.jl/issues/1096, and
+    # https://github.com/trixi-framework/Trixi.jl/pull/2126/files/7cbc57cfcba93e67353566e10fce1f3edac27330#r1814483243.
+    integral = zero(func(zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg),
+                               1), 1, 1, 1, equations, dg, args...))
     volume = zero(real(mesh))
 
     # Use quadrature to numerically integrate over entire domain
-    for element in eachelement(dg, cache)
+    @batch reduction=((+, integral), (+, volume)) for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
             integral += volume_jacobian * weights[i] * weights[j] *

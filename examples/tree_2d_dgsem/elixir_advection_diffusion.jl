@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -25,14 +25,15 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 function initial_condition_diffusive_convergence_test(x, t,
                                                       equation::LinearScalarAdvectionEquation2D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
     nu = diffusivity()
-    c = 1.0
-    A = 0.5
+    c = 1
+    A = 0.5f0
     L = 2
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * sum(x_trans)) * exp(-2 * nu * omega^2 * t)
     return SVector(scalar)
 end
@@ -46,6 +47,7 @@ boundary_conditions_parabolic = boundary_condition_periodic
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ViscousFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -78,6 +80,3 @@ alg = RDPK3SpFSAL49()
 time_int_tol = 1.0e-11
 sol = solve(ode, alg; abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-# Print the timer summary
-summary_callback()

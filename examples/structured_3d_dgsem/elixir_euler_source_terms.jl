@@ -1,7 +1,7 @@
 # The same setup as tree_3d_dgsem/elixir_euler_source_terms.jl
 # to verify the StructuredMesh implementation against TreeMesh
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -11,7 +11,14 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
 # coordinates_min = (0.0, 0.0, 0.0)
@@ -25,10 +32,11 @@ f6(s, t) = SVector(s + 1.0, t + 1.0, 2.0)
 
 cells_per_dimension = (4, 4, 4)
 
-mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4, f5, f6))
+mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4, f5, f6), periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    source_terms = source_terms_convergence_test,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -58,7 +66,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

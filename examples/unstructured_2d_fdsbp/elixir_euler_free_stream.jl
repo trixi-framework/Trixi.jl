@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -12,13 +11,13 @@ initial_condition = initial_condition_constant
 
 # Boundary conditions for free-stream testing
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:Body => boundary_condition_free_stream,
-                           :Button1 => boundary_condition_free_stream,
-                           :Button2 => boundary_condition_free_stream,
-                           :Eye1 => boundary_condition_free_stream,
-                           :Eye2 => boundary_condition_free_stream,
-                           :Smile => boundary_condition_free_stream,
-                           :Bowtie => boundary_condition_free_stream)
+boundary_conditions = (; Body = boundary_condition_free_stream,
+                       Button1 = boundary_condition_free_stream,
+                       Button2 = boundary_condition_free_stream,
+                       Eye1 = boundary_condition_free_stream,
+                       Eye2 = boundary_condition_free_stream,
+                       Smile = boundary_condition_free_stream,
+                       Bowtie = boundary_condition_free_stream)
 
 ###############################################################################
 # Get the FDSBP approximation space
@@ -40,7 +39,7 @@ mesh = UnstructuredMesh2D(mesh_file)
 ###############################################################################
 # create the semi discretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -67,6 +66,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 # run the simulation
 
 # set small tolerances for the free-stream preservation test
-sol = solve(ode, SSPRK43(), abstol = 1.0e-12, reltol = 1.0e-12,
-            save_everystep = false, callback = callbacks)
-summary_callback() # print the timer summary
+sol = solve(ode, SSPRK43(), abstol = 1.0e-12, reltol = 1.0e-12;
+            ode_default_options()..., callback = callbacks)

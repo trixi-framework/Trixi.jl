@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -17,7 +17,7 @@ equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 #   [DOI](https://doi.org/10.1007/978-3-319-41640-3_6).
 function initial_condition_eriksson_johnson(x, t, equations)
     l = 4
-    epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
+    epsilon = diffusivity() # NOTE: this requires epsilon <= 1/16 due to sqrt
     lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
@@ -28,24 +28,21 @@ function initial_condition_eriksson_johnson(x, t, equations)
 end
 initial_condition = initial_condition_eriksson_johnson
 
-boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                           :y_neg => BoundaryConditionDirichlet(initial_condition),
-                           :y_pos => BoundaryConditionDirichlet(initial_condition),
-                           :x_pos => boundary_condition_do_nothing)
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
+                       y_neg = BoundaryConditionDirichlet(initial_condition),
+                       y_pos = BoundaryConditionDirichlet(initial_condition),
+                       x_pos = boundary_condition_do_nothing)
 
-boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :x_pos => BoundaryConditionDirichlet(initial_condition),
-                                     :y_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :y_pos => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions_parabolic = (; x_neg = BoundaryConditionDirichlet(initial_condition),
+                                 x_pos = BoundaryConditionDirichlet(initial_condition),
+                                 y_neg = BoundaryConditionDirichlet(initial_condition),
+                                 y_pos = BoundaryConditionDirichlet(initial_condition))
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -0.5)
-coordinates_max = (0.0, 0.5)
-
-# This maps the domain [-1, 1]^2 to [-1, 0] x [-0.5, 0.5] while also 
-# introducing a curved warping to interior nodes. 
+# This maps the domain [-1, 1]^2 to [-1, 0] x [-0.5, 0.5] while also
+# introducing a curved warping to interior nodes.
 function mapping(xi, eta)
     x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
     y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
@@ -59,7 +56,7 @@ mesh = P4estMesh(trees_per_dimension,
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
+                                             initial_condition, solver;
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -68,7 +65,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -91,6 +88,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 time_int_tol = 1.0e-11
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-# Print the timer summary
-summary_callback()

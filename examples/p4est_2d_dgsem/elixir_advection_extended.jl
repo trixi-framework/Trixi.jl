@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -10,12 +9,12 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
-# BCs must be passed as Dict
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:x_neg => boundary_condition,
-                           :x_pos => boundary_condition,
-                           :y_neg => boundary_condition,
-                           :y_pos => boundary_condition)
+# Boundary conditions as a NamedTuple
+boundary_conditions = (; x_neg = boundary_condition,
+                       x_pos = boundary_condition,
+                       y_neg = boundary_condition,
+                       y_pos = boundary_condition)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -32,7 +31,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  periodicity = false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -40,7 +39,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 
 # Create ODE problem with time span from 0.0 to 1.0
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -77,9 +76,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 
 @testset "Compressible Euler" begin
 #! format: noindent
@@ -15,24 +15,15 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
                         l2=[
                             2.2527950196212703e-8,
                             1.8187357193835156e-8,
-                            7.705669939973104e-8,
-                        ],
+                            7.705669939973104e-8],
                         linf=[
                             1.6205433861493646e-7,
                             1.465427772462391e-7,
-                            5.372255111879554e-7,
-                        ],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time series to check against.
-                        coverage_override=(maxiters = 20,))
+                            5.372255111879554e-7
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
     # Extra test to make sure the "TimeSeriesCallback" made correct data.
     # Extracts data at all points from the first step of the time series and compares it to the 
     # exact solution and an interpolated reference solution
@@ -52,21 +43,37 @@ end
                         l2=[
                             0.019355699748523896,
                             0.022326984561234497,
-                            0.02523665947241734,
+                            0.02523665947241734
                         ],
                         linf=[
                             0.02895961127645519,
                             0.03293442484199227,
-                            0.04246098278632804,
+                            0.04246098278632804
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_convergence_pure_fv.jl (O2, constant reconstruction)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
+                        volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
+                                                                            volume_flux_fv = flux_hllc,
+                                                                            reconstruction_mode = reconstruction_constant,
+                                                                            slope_limiter = central_slope),
+                        l2=[
+                            0.019355699748523896,
+                            0.022326984561234497,
+                            0.02523665947241734
+                        ],
+                        linf=[
+                            0.02895961127645519,
+                            0.03293442484199227,
+                            0.04246098278632804
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_density_wave.jl" begin
@@ -74,21 +81,16 @@ end
                         l2=[
                             0.0011482554820217855,
                             0.00011482554830323462,
-                            5.741277429325267e-6,
+                            5.741277429325267e-6
                         ],
                         linf=[
                             0.004090978306812376,
                             0.0004090978313582294,
-                            2.045489210189544e-5,
+                            2.045489210189544e-5
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_density_wave.jl with initial_condition_constant" begin
@@ -96,22 +98,35 @@ end
                         l2=[
                             7.71293052584723e-16,
                             1.9712947511091717e-14,
-                            7.50672833504266e-15,
+                            7.50672833504266e-15
                         ],
                         linf=[
                             3.774758283725532e-15,
                             6.733502644351574e-14,
-                            2.4868995751603507e-14,
+                            2.4868995751603507e-14
                         ],
                         initial_condition=initial_condition_constant)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_density_wave_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_density_wave_adaptive_vol_int.jl"),
+                        l2=[
+                            0.07468001770571216,
+                            0.007468001770606171,
+                            0.000373400088537588
+                        ],
+                        linf=[
+                            0.2796538165732152,
+                            0.02796538165747514,
+                            0.0013982690828555633
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
@@ -120,21 +135,16 @@ end
                         l2=[
                             3.8099996914101204e-6,
                             1.6745575717106341e-6,
-                            7.732189531480852e-6,
+                            7.732189531480852e-6
                         ],
                         linf=[
                             1.2971473393186272e-5,
                             9.270328934274374e-6,
-                            3.092514399671842e-5,
+                            3.092514399671842e-5
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_ec.jl" begin
@@ -142,21 +152,16 @@ end
                         l2=[
                             0.11821957357197649,
                             0.15330089521538678,
-                            0.4417674632047301,
+                            0.4417674632047301
                         ],
                         linf=[
                             0.24280567569982958,
                             0.29130548795961936,
-                            0.8847009003152442,
+                            0.8847009003152442
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_ec.jl with flux_kennedy_gruber" begin
@@ -164,24 +169,19 @@ end
                         l2=[
                             0.07803455838661963,
                             0.10032577312032283,
-                            0.29228156303827935,
+                            0.29228156303827935
                         ],
                         linf=[
                             0.2549869853794955,
                             0.3376472164661263,
-                            0.9650477546553962,
+                            0.9650477546553962
                         ],
                         maxiters=10,
                         surface_flux=flux_kennedy_gruber,
                         volume_flux=flux_kennedy_gruber)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_ec.jl with flux_shima_etal" begin
@@ -189,24 +189,19 @@ end
                         l2=[
                             0.07800654460172655,
                             0.10030365573277883,
-                            0.2921481199111959,
+                            0.2921481199111959
                         ],
                         linf=[
                             0.25408579350400395,
                             0.3388657679031271,
-                            0.9776486386921928,
+                            0.9776486386921928
                         ],
                         maxiters=10,
                         surface_flux=flux_shima_etal,
                         volume_flux=flux_shima_etal)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_ec.jl with flux_chandrashekar" begin
@@ -214,24 +209,19 @@ end
                         l2=[
                             0.07801923089205756,
                             0.10039557434912669,
-                            0.2922210399923278,
+                            0.2922210399923278
                         ],
                         linf=[
                             0.2576521982607225,
                             0.3409717926625057,
-                            0.9772961936567048,
+                            0.9772961936567048
                         ],
                         maxiters=10,
                         surface_flux=flux_chandrashekar,
                         volume_flux=flux_chandrashekar)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_ec.jl with flux_hll" begin
@@ -240,19 +230,53 @@ end
                         linf=[
                             0.192621556068018,
                             0.25184744005299536,
-                            0.7264977555504792,
+                            0.7264977555504792
                         ],
                         maxiters=10,
                         surface_flux=flux_hll,
                         volume_flux=flux_ranocha)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_modified_sod.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_modified_sod.jl"),
+                        l2=[
+                            0.26349506781509047,
+                            0.4513675325534254,
+                            0.9267120782427303],
+                        linf=[
+                            0.5943951748778555,
+                            0.8137950751741141,
+                            1.8213980620968218
+                        ],
+                        adaptive=false)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_modified_sod.jl (Weak Form + Positivity Preserving Limiter)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_modified_sod.jl"),
+                        volume_integral=VolumeIntegralWeakForm(),
+                        ode_alg=SSPRK43(stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,
+                                                                                                           5.0e-6),
+                                                                                             variables = (Trixi.density,
+                                                                                                          pressure))),
+                        l2=[
+                            0.25447577347459555,
+                            0.4522025971222652,
+                            0.905120285656665],
+                        linf=[
+                            0.492497205699472,
+                            0.8282754221813863,
+                            1.542007170560898
+                        ],
+                        adaptive=false)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_shockcapturing.jl" begin
@@ -260,21 +284,16 @@ end
                         l2=[
                             0.11606096465319675,
                             0.15028768943458806,
-                            0.4328230323046703,
+                            0.4328230323046703
                         ],
                         linf=[
                             0.18031710091067965,
                             0.2351582421501841,
-                            0.6776805692092567,
+                            0.6776805692092567
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
@@ -283,17 +302,11 @@ end
                         linf=[
                             2.9766770877037168,
                             0.16838100902295852,
-                            2.6655773445485798,
-                        ],
-                        coverage_override=(maxiters = 6,))
+                            2.6655773445485798
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
@@ -304,12 +317,7 @@ end
                         surface_flux=flux_hlle)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_pure_fv.jl" begin
@@ -319,18 +327,11 @@ end
                         linf=[
                             3.4296365168219216,
                             0.17635583964559245,
-                            2.6574584326179505,
-                        ],
-                        # Let this test run longer to cover some lines in flux_hllc
-                        coverage_override=(maxiters = 10^5, tspan = (0.0, 0.1)))
+                            2.6574584326179505
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave.jl with pressure" begin
@@ -339,19 +340,13 @@ end
                         linf=[
                             3.1773015255764427,
                             0.21331831536493773,
-                            2.6650170188241047,
+                            2.6650170188241047
                         ],
                         shock_indicator_variable=pressure,
-                        cfl=0.2,
-                        coverage_override=(maxiters = 6,))
+                        cfl=0.2)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave.jl with density" begin
@@ -360,34 +355,22 @@ end
                         linf=[
                             3.1087017048015824,
                             0.17734706962928956,
-                            2.666689753470263,
+                            2.666689753470263
                         ],
                         shock_indicator_variable=density,
-                        cfl=0.2,
-                        coverage_override=(maxiters = 6,))
+                        cfl=0.2)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_positivity.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
                         l2=[1.6493820253458906, 0.19793887460986834, 0.9783506076125921],
-                        linf=[4.71751203912051, 0.5272411022735763, 2.7426163947635844],
-                        coverage_override=(maxiters = 3,))
+                        linf=[4.71751203912051, 0.5272411022735763, 2.7426163947635844])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_blast_wave.jl" begin
@@ -396,17 +379,49 @@ end
                         linf=[
                             1.5180897390290355,
                             1.3967085956620369,
-                            2.0663825294019595,
+                            2.0663825294019595
                         ],
                         maxiters=30)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_shu_osher.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        abstol=1e-11, reltol=1e-11,
+                        l2=[0.5003722074045994, 1.7969921454130888, 6.505994574859934],
+                        linf=[2.9946689312100907, 10.11428777614952, 36.371663950285836],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `:compact` `show`
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      volume_integral)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      volume_integral)
+end
+
+@trixi_testset "elixir_euler_blast_wave_entropy_bounded.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_entropy_bounded.jl"),
+                        l2=[0.9689207881108007, 0.1617708899929322, 1.3847895715669456],
+                        linf=[2.95591859210077, 0.3135723412205586, 2.3871554358655365])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "test_quasi_1D_entropy" begin
+    using Trixi: CompressibleEulerEquationsQuasi1D, CompressibleEulerEquations1D,
+                 entropy, SVector
+    a = 0.9
+    u_1D = SVector(1.1, 0.2, 2.1)
+    u_quasi_1D = SVector(a * 1.1, a * 0.2, a * 2.1, a)
+    @test entropy(u_quasi_1D, CompressibleEulerEquationsQuasi1D(1.4)) ≈
+          a * entropy(u_1D, CompressibleEulerEquations1D(1.4))
 end
 
 @trixi_testset "elixir_euler_quasi_1d_source_terms.jl" begin
@@ -415,22 +430,61 @@ end
                             3.876288369618363e-7,
                             2.2247043122302947e-7,
                             2.964004224572679e-7,
-                            5.2716983399807875e-8,
+                            5.2716983399807875e-8
                         ],
                         linf=[
                             2.3925118561862746e-6,
                             1.3603693522767912e-6,
                             1.821888865105592e-6,
-                            1.1166012159335992e-7,
+                            1.1166012159335992e-7
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_quasi_1d_source_terms_dirichlet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_quasi_1d_source_terms_dirichlet.jl"),
+                        l2=[
+                            4.872024234552286e-7,
+                            3.130367137655672e-7,
+                            3.769970598394213e-7,
+                            5.271698341013997e-8
+                        ],
+                        linf=[
+                            3.2661405451328562e-6,
+                            1.7577543389712957e-6,
+                            2.5106918934980627e-6,
+                            1.1166012159335992e-7
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_quasi_1d_source_terms_dirichlet.jl with LLF-dissipation" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_quasi_1d_source_terms_dirichlet.jl"),
+                        l2=[
+                            9.186083331399549e-7,
+                            4.6021844470935155e-7,
+                            6.652256237473482e-7,
+                            5.271698341013997e-8
+                        ],
+                        linf=[
+                            3.425473511065036e-6,
+                            2.1611905385299224e-6,
+                            2.7957639341380514e-6,
+                            1.1166012159335992e-7
+                        ],
+                        surface_flux=(FluxPlusDissipation(flux_chan_etal,
+                                                          DissipationLocalLaxFriedrichs()),
+                                      flux_nonconservative_chan_etal))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_quasi_1d_discontinuous.jl" begin
@@ -440,22 +494,17 @@ end
                             0.045510421156346015,
                             0.036750584788912195,
                             0.2468985959132176,
-                            0.03684494180829024,
+                            0.03684494180829024
                         ],
                         linf=[
                             0.3313374853025697,
                             0.11621933362158643,
                             1.827403013568638,
-                            0.28045939999015723,
+                            0.28045939999015723
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_quasi_1d_ec.jl" begin
@@ -464,23 +513,269 @@ end
                             0.08889113985713998,
                             0.16199235348889673,
                             0.40316524365054346,
-                            2.9602775074723667e-16,
+                            2.9602775074723667e-16
                         ],
                         linf=[
                             0.28891355898284043,
                             0.3752709888964313,
                             0.84477102402413,
-                            8.881784197001252e-16,
+                            8.881784197001252e-16
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_euler_convergence_pure_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fvO2.jl"),
+                        l2=[
+                            0.0004651066144227485,
+                            0.0005058715155540577,
+                            0.0007705686813156139
+                        ],
+                        linf=[
+                            0.0014354711538595577,
+                            0.0014154880871579678,
+                            0.0027044481967184453
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_laplace_diffusion.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
+                        l2=[0.10954500481114468,
+                            0.1417583694046777,
+                            0.4087206508328759],
+                        linf=[
+                            0.17183237920520245,
+                            0.2203023610743297,
+                            0.6347464031934038
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.0015588934102678423,
+                            0.0003742341750148338,
+                            0.06751527068762786
+                        ],
+                        linf=[
+                            0.002915446030492097,
+                            0.0007398343306145305,
+                            0.19630387991431064
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl with FluxHLL(min_max_speed_davis)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        surface_flux=FluxHLL(min_max_speed_davis), tspan=(0.0, 0.1),
+                        l2=[
+                            0.001560204102149942,
+                            0.0003730629606214752,
+                            0.06761471309660204
+                        ],
+                        linf=[
+                            0.0029288236477780227,
+                            0.0007326399340998047,
+                            0.19711518375221715
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave_FVO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave_FVO2.jl"),
+                        l2=[
+                            0.21859905356668904,
+                            0.021312774105832932,
+                            6.159274882735111
+                        ],
+                        linf=[
+                            0.343642444425342,
+                            0.03393451559504808,
+                            10.142735502826085
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl with ideal gas" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        eos=IdealGas(1.4), surface_flux=FluxHLL(min_max_speed_naive),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.001422862066298697,
+                            0.00014228620662995602,
+                            7.1143103323789825e-6
+                        ],
+                        linf=[
+                            0.0023347309200370883,
+                            0.00023347309200390763,
+                            1.1673654647381682e-5
+                        ])
+
+    # check that the IdealGas EOS recovers the same solution as 
+    # CompressibleEulerEquations1D
+    sol_nonideal = deepcopy(sol)
+    trixi_include(joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_density_wave.jl"),
+                  equations = CompressibleEulerEquations1D(1.4),
+                  initial_condition = Trixi.initial_condition_density_wave,
+                  surface_flux = FluxHLL(min_max_speed_naive),
+                  tspan = (0.0, 0.1))
+
+    using LinearAlgebra: norm
+    @test norm(sol.u[end] - sol_nonideal.u[end]) < 10 * eps() * length(sol.u[end])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl with flux_terashima_etal" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        solver=DGSEM(polydeg = 3,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_terashima_etal),
+                                     surface_flux = flux_lax_friedrichs), tspan=(0.0, 0.1),
+                        l2=[
+                            0.00142950049295259,
+                            0.00015714474261267127,
+                            0.06074209773082164
+                        ],
+                        linf=[
+                            0.0023392515519630314,
+                            0.0003073704254786813,
+                            0.1641094398916465
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl with flux_terashima_etal_central" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        solver=DGSEM(polydeg = 3,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central_terashima_etal),
+                                     surface_flux = flux_lax_friedrichs), tspan=(0.0, 0.1),
+                        l2=[
+                            0.0014281751347953525,
+                            0.0001541528829242385,
+                            0.06071534187096569
+                        ],
+                        linf=[
+                            0.0023366029974749604,
+                            0.00029085539996634435,
+                            0.16384597075523288
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrectionShockCapturingCombined)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_modified_sod_entropy_correction_amr.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[0.18464446565258658, 0.3140498549283543, 0.6496099923312244],
+                        linf=[0.5635649557004835, 0.8086426785591834, 1.7109218921081835])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `:compact` `show` for IndicatorEntropyCorrectionShockCapturingCombined
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      indicator)
+end
+
+@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrection)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_modified_sod_entropy_correction_amr.jl"),
+                        indicator=IndicatorEntropyCorrection(equations, basis),
+                        tspan=(0.0, 0.1),
+                        l2=[0.18410518515764235, 0.3151497970340809, 0.6485302765750537],
+                        linf=[0.5561756505040076, 0.8355026358832652, 1.6896042720266948])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_transcritical_wave.jl (Peng Robinson)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_transcritical_wave.jl"),
+                        tspan=(0.0, 0.001),
+                        # note that errors are large because the solution magnitude is large
+                        l2=[3.5624314278401767, 307.08047341497075, 671891.3209204172],
+                        linf=[11.245466632528647, 1012.4992037314532, 2.193707958061479e6])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl with entropy correction" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        solver=DGSEM(LobattoLegendreBasis(3), flux_lax_friedrichs,
+                                     VolumeIntegralAdaptive(IndicatorEntropyCorrection(equations,
+                                                                                       LobattoLegendreBasis(3)),
+                                                            VolumeIntegralWeakForm(),
+                                                            VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs))),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.0017122131198515455,
+                            0.00036348851462562144,
+                            0.07342375187001934
+                        ],
+                        linf=[
+                            0.003190471783387716,
+                            0.0018240656867738736,
+                            0.21543232235440257
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_transcritical_shock.jl with Peng Robinson" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_transcritical_shock.jl"),
+                        initial_condition=initial_condition_transcritical_shock,
+                        tspan=(0.0, 5e-5),
+                        # note that rho_e_total errors are large because pressure is 5e6
+                        l2=[46.87606704575898, 12776.72009989676, 3.0691124394639865e6],
+                        linf=[728.557135738047, 82812.85038902842, 7.330706462442407e7])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 end # module

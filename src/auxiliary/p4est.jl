@@ -24,7 +24,7 @@ function init_p4est()
         p4est_init(C_NULL, SC_LP_ERROR)
     else
         @warn "Preferences for P4est.jl are not set correctly. Until fixed, using `P4estMesh` will result in a crash. " *
-              "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
+              "See also https://trixi-framework.github.io/TrixiDocumentation/stable/parallelization/#parallel_system_MPI"
     end
 
     return nothing
@@ -58,40 +58,50 @@ function load_pointerwrapper_sc(::Type{T}, sc_array::PointerWrapper{sc_array},
     return PointerWrapper(T, pointer(sc_array.array) + (i - 1) * sizeof(T))
 end
 
+function unsafe_load_sc(::Type{T}, sc_array::PointerWrapper{sc_array},
+                        i::Integer = 1) where {T}
+    return unsafe_load(Ptr{T}(pointer(sc_array.array)), i)
+end
+
+function unsafe_store_sc!(sc_array::PointerWrapper{sc_array}, x::T,
+                          i::Integer = 1) where {T}
+    return unsafe_store!(Ptr{T}(pointer(sc_array.array)), x, i)
+end
+
 # Create new `p4est` from a p4est_connectivity
 # 2D
 function new_p4est(connectivity::PointerOrWrapper{p4est_connectivity_t},
                    initial_refinement_level)
     comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi.jl's MPI communicator if p4est supports MPI
-    p4est_new_ext(comm,
-                  connectivity,
-                  0, # No minimum initial qudrants per processor
-                  initial_refinement_level,
-                  true, # Refine uniformly
-                  2 * sizeof(Int), # Use Int-Vector of size 2 as quadrant user data
-                  C_NULL, # No init function
-                  C_NULL) # No user pointer
+    return p4est_new_ext(comm,
+                         connectivity,
+                         0, # No minimum initial qudrants per processor
+                         initial_refinement_level,
+                         true, # Refine uniformly
+                         2 * sizeof(Int), # Use Int-Vector of size 2 as quadrant user data
+                         C_NULL, # No init function
+                         C_NULL) # No user pointer
 end
 
 # 3D
 function new_p4est(connectivity::PointerOrWrapper{p8est_connectivity_t},
                    initial_refinement_level)
     comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi.jl's MPI communicator if p4est supports MPI
-    p8est_new_ext(comm, connectivity, 0, initial_refinement_level, true,
-                  2 * sizeof(Int), C_NULL, C_NULL)
+    return p8est_new_ext(comm, connectivity, 0, initial_refinement_level, true,
+                         2 * sizeof(Int), C_NULL, C_NULL)
 end
 
 # Save `p4est` data to file
 # 2D
 function save_p4est!(file, p4est::PointerOrWrapper{p4est_t})
     # Don't save user data of the quads
-    p4est_save(file, p4est, false)
+    return p4est_save(file, p4est, false)
 end
 
 # 3D
 function save_p4est!(file, p8est::PointerOrWrapper{p8est_t})
     # Don't save user data of the quads
-    p8est_save(file, p8est, false)
+    return p8est_save(file, p8est, false)
 end
 
 # Load `p4est` from file
@@ -99,14 +109,30 @@ end
 function load_p4est(file, ::Val{2})
     conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
     comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
-    p4est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
+    p4est = p4est_load_ext(file,
+                           comm,
+                           0,         # Size of user data
+                           0,         # Flag to load user data
+                           1,         # Autopartition: ignore saved partition
+                           0,         # Have only rank 0 read headers and bcast them
+                           C_NULL,    # No pointer to user data
+                           pointer(conn_vec))
+    # p4est_load_ext only allocates memory when also data is read
+    # use p4est_reset_data to allocate uninitialized memory
+    p4est_reset_data(p4est,
+                     2 * sizeof(Int), # Use Int-Vector of size 2 as quadrant user data
+                     C_NULL,          # No init function
+                     C_NULL)          # No pointer to user data
+    return p4est
 end
 
 # 3D
 function load_p4est(file, ::Val{3})
     conn_vec = Vector{Ptr{p8est_connectivity_t}}(undef, 1)
     comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
-    p8est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
+    p4est = p8est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
+    p8est_reset_data(p4est, 2 * sizeof(Int), C_NULL, C_NULL)
+    return p4est
 end
 
 # Read `p4est` connectivity from Abaqus mesh file (.inp)
@@ -119,30 +145,30 @@ read_inp_p4est(meshfile, ::Val{3}) = p8est_connectivity_read_inp(meshfile)
 # 2D
 function refine_p4est!(p4est::PointerOrWrapper{p4est_t}, recursive, refine_fn_c,
                        init_fn_c)
-    p4est_refine(p4est, recursive, refine_fn_c, init_fn_c)
+    return p4est_refine(p4est, recursive, refine_fn_c, init_fn_c)
 end
 # 3D
 function refine_p4est!(p8est::PointerOrWrapper{p8est_t}, recursive, refine_fn_c,
                        init_fn_c)
-    p8est_refine(p8est, recursive, refine_fn_c, init_fn_c)
+    return p8est_refine(p8est, recursive, refine_fn_c, init_fn_c)
 end
 
 # Refine `p4est` if coarsen_fn_c returns 1
 # 2D
 function coarsen_p4est!(p4est::PointerOrWrapper{p4est_t}, recursive, coarsen_fn_c,
                         init_fn_c)
-    p4est_coarsen(p4est, recursive, coarsen_fn_c, init_fn_c)
+    return p4est_coarsen(p4est, recursive, coarsen_fn_c, init_fn_c)
 end
 # 3D
 function coarsen_p4est!(p8est::PointerOrWrapper{p8est_t}, recursive, coarsen_fn_c,
                         init_fn_c)
-    p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
+    return p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
 end
 
 # Create new ghost layer from p4est, only connections via faces are relevant
 # 2D
 function ghost_new_p4est(p4est::PointerOrWrapper{p4est_t})
-    p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
+    return p4est_ghost_new(p4est, P4est.P4EST_CONNECT_FACE)
 end
 # 3D
 # In 3D it is not sufficient to use `P8EST_CONNECT_FACE`. Consider the neighbor elements of a mortar
@@ -164,7 +190,7 @@ end
 # `iterate_p4est` and thus we cannot determine its MPI rank
 # (see https://github.com/cburstedde/p4est/blob/439bc9aae849555256ddfe4b03d1f9fe8d18ff0e/src/p8est_iterate.h#L66-L72).
 function ghost_new_p4est(p8est::PointerOrWrapper{p8est_t})
-    p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FULL)
+    return p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FULL)
 end
 
 # Check if ghost layer is valid
@@ -182,11 +208,11 @@ end
 # Destroy ghost layer
 # 2D
 function ghost_destroy_p4est(ghost_layer::PointerOrWrapper{p4est_ghost_t})
-    p4est_ghost_destroy(ghost_layer)
+    return p4est_ghost_destroy(ghost_layer)
 end
 # 3D
 function ghost_destroy_p4est(ghost_layer::PointerOrWrapper{p8est_ghost_t})
-    p8est_ghost_destroy(ghost_layer)
+    return p8est_ghost_destroy(ghost_layer)
 end
 
 # Let `p4est` iterate over each cell volume and cell face.

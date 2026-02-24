@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -48,10 +47,12 @@ coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0, 1.0) .* pi
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -80,4 +81,3 @@ callbacks = CallbackSet(summary_callback,
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-summary_callback() # print the timer summary

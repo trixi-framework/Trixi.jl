@@ -23,61 +23,57 @@
 #
 # An exception to the 2:1 rule exists for the low-level `refine_unbalanced!`
 # function, which is required for implementing level-wise refinement in a sane
-# way. Also, depth-first ordering *might* not by guaranteed during
+# way. Also, depth-first ordering *might* not be guaranteed during
 # refinement/coarsening operations.
-mutable struct ParallelTree{NDIMS} <: AbstractTree{NDIMS}
+mutable struct ParallelTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
+    const capacity::Int
+    length::Int
+
     parent_ids::Vector{Int}
     child_ids::Matrix{Int}
     neighbor_ids::Matrix{Int}
     levels::Vector{Int}
-    coordinates::Matrix{Float64}
+    coordinates::Matrix{RealT}
     original_cell_ids::Vector{Int}
-    mpi_ranks::Vector{Int}
 
-    capacity::Int
-    length::Int
-    dummy::Int
-
-    center_level_0::SVector{NDIMS, Float64}
-    length_level_0::Float64
+    center_level_0::SVector{NDIMS, RealT}
+    length_level_0::RealT
     periodicity::NTuple{NDIMS, Bool}
 
-    function ParallelTree{NDIMS}(capacity::Integer) where {NDIMS}
-        # Verify that NDIMS is an integer
+    mpi_ranks::Vector{Int} # Addition compared to `SerialTree`
+
+    function ParallelTree{NDIMS, RealT}(capacity::Integer) where {NDIMS, RealT <: Real}
         @assert NDIMS isa Integer
 
-        # Create instance
-        t = new()
+        parent_ids = fill(typemin(Int), capacity + 1)
+        child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
+        neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
+        levels = fill(typemin(Int), capacity + 1)
+        coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1)
+        original_cell_ids = fill(typemin(Int), capacity + 1)
+        mpi_ranks = fill(typemin(Int), capacity + 1)
 
-        # Initialize fields with defaults
-        # Note: length as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
-        t.parent_ids = fill(typemin(Int), capacity + 1)
-        t.child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
-        t.neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
-        t.levels = fill(typemin(Int), capacity + 1)
-        t.coordinates = fill(NaN, NDIMS, capacity + 1)
-        t.original_cell_ids = fill(typemin(Int), capacity + 1)
-        t.mpi_ranks = fill(typemin(Int), capacity + 1)
+        center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
+        length_level_0 = convert(RealT, NaN)
+        periodicity = ntuple(_ -> false, NDIMS)
 
-        t.capacity = capacity
-        t.length = 0
-        t.dummy = capacity + 1
-
-        t.center_level_0 = SVector(ntuple(_ -> NaN, NDIMS))
-        t.length_level_0 = NaN
-
-        return t
+        return new(capacity, 0, # length
+                   parent_ids, child_ids, neighbor_ids,
+                   levels, coordinates, original_cell_ids,
+                   center_level_0, length_level_0,
+                   periodicity, mpi_ranks)
     end
 end
 
-# Constructor for passing the dimension as an argument
-ParallelTree(::Val{NDIMS}, args...) where {NDIMS} = ParallelTree{NDIMS}(args...)
+# Constructor for passing the dimension as an argument. Default datatype: Float64
+ParallelTree(::Val{NDIMS}, args...) where {NDIMS} = ParallelTree{NDIMS, Float64}(args...)
 
 # Create and initialize tree
-function ParallelTree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
-                             length::Real, periodicity = true) where {NDIMS}
+function ParallelTree{NDIMS, RealT}(capacity::Int, center::AbstractArray{RealT},
+                                    length::RealT,
+                                    periodicity = false) where {NDIMS, RealT <: Real}
     # Create instance
-    t = ParallelTree{NDIMS}(capacity)
+    t = ParallelTree{NDIMS, RealT}(capacity)
 
     # Initialize root cell
     init!(t, center, length, periodicity)
@@ -85,14 +81,19 @@ function ParallelTree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
     return t
 end
 
-# Constructor accepting a single number as center (as opposed to an array) for 1D
-function ParallelTree{1}(cap::Int, center::Real, len::Real, periodicity = true)
-    ParallelTree{1}(cap, [convert(Float64, center)], len, periodicity)
+# Constructors accepting a single number as center (as opposed to an array) for 1D
+function ParallelTree{1, RealT}(cap::Int, center::RealT, len::RealT,
+                                periodicity = false) where {RealT <: Real}
+    return ParallelTree{1, RealT}(cap, [center], len, periodicity)
+end
+function ParallelTree{1}(cap::Int, center::RealT, len::RealT,
+                         periodicity = false) where {RealT <: Real}
+    return ParallelTree{1, RealT}(cap, [center], len, periodicity)
 end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
-function init!(t::ParallelTree, center::AbstractArray{Float64}, length::Real,
-               periodicity = true)
+function init!(t::ParallelTree, center::AbstractArray{RealT}, length::RealT,
+               periodicity = false) where {RealT}
     clear!(t)
 
     # Set domain information
@@ -150,10 +151,10 @@ function Base.show(io::IO, ::MIME"text/plain", t::ParallelTree)
     println(io, "t.mpi_ranks[1:l] = $(t.mpi_ranks[1:l])")
     println(io, "t.capacity = $(t.capacity)")
     println(io, "t.length = $(t.length)")
-    println(io, "t.dummy = $(t.dummy)")
     println(io, "t.center_level_0 = $(t.center_level_0)")
     println(io, "t.length_level_0 = $(t.length_level_0)")
     println(io, '*'^20)
+    return nothing
 end
 
 # Check if cell is own cell, i.e., belongs to this MPI rank
@@ -162,7 +163,7 @@ is_own_cell(t::ParallelTree, cell_id) = t.mpi_ranks[cell_id] == mpi_rank()
 # Return an array with the ids of all leaf cells for a given rank
 leaf_cells_by_rank(t::ParallelTree, rank) =
     filter_leaf_cells(t) do cell_id
-        t.mpi_ranks[cell_id] == rank
+        return t.mpi_ranks[cell_id] == rank
     end
 
 # Return an array with the ids of all local leaf cells
@@ -187,7 +188,8 @@ end
 # Reset range of cells to values that are prone to cause errors as soon as they are used.
 #
 # Rationale: If an invalid cell is accidentally used, we want to know it as soon as possible.
-function invalidate!(t::ParallelTree, first::Int, last::Int)
+function invalidate!(t::ParallelTree{NDIMS, RealT},
+                     first::Int, last::Int) where {NDIMS, RealT <: Real}
     @assert first > 0
     @assert last <= t.capacity + 1
 
@@ -196,7 +198,7 @@ function invalidate!(t::ParallelTree, first::Int, last::Int)
     t.child_ids[:, first:last] .= typemin(Int)
     t.neighbor_ids[:, first:last] .= typemin(Int)
     t.levels[first:last] .= typemin(Int)
-    t.coordinates[:, first:last] .= NaN
+    t.coordinates[:, first:last] .= convert(RealT, NaN) # `NaN` is of type Float64
     t.original_cell_ids[first:last] .= typemin(Int)
     t.mpi_ranks[first:last] .= typemin(Int)
 
@@ -218,19 +220,20 @@ function raw_copy!(target::ParallelTree, source::ParallelTree, first::Int, last:
                ndims(target))
     copy_data!(target.original_cell_ids, source.original_cell_ids, first, last,
                destination)
-    copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
+    return copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
 end
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
-function reset_data_structures!(t::ParallelTree{NDIMS}) where {NDIMS}
+function reset_data_structures!(t::ParallelTree{NDIMS, RealT}) where {NDIMS,
+                                                                      RealT <: Real}
     t.parent_ids = Vector{Int}(undef, t.capacity + 1)
     t.child_ids = Matrix{Int}(undef, 2^NDIMS, t.capacity + 1)
     t.neighbor_ids = Matrix{Int}(undef, 2 * NDIMS, t.capacity + 1)
     t.levels = Vector{Int}(undef, t.capacity + 1)
-    t.coordinates = Matrix{Float64}(undef, NDIMS, t.capacity + 1)
+    t.coordinates = Matrix{RealT}(undef, NDIMS, t.capacity + 1)
     t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
     t.mpi_ranks = Vector{Int}(undef, t.capacity + 1)
 
-    invalidate!(t, 1, capacity(t) + 1)
+    return invalidate!(t, 1, capacity(t) + 1)
 end
 end # @muladd

@@ -2,12 +2,7 @@
 module TrixiMakieExt
 
 # Required for visualization code
-if isdefined(Base, :get_extension)
-    using Makie: Makie, GeometryBasics
-else
-    # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-    using ..Makie: Makie, GeometryBasics
-end
+using Makie: Makie, GeometryBasics
 
 # Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
 using Trixi
@@ -221,8 +216,10 @@ function iplot(pd::PlotData2DTriangulated;
     # Create a mesh overlay by plotting a mesh both on top of and below the solution contours.
     wire_points = Makie.@lift(convert_PlotData2D_to_mesh_Points(getindex(pd,
                                                                          variable_names[$(menu.selection)])))
-    wire_mesh_top = Makie.lines!(ax, wire_points, color = :white)
-    wire_mesh_bottom = Makie.lines!(ax, wire_points, color = :white)
+    wire_mesh_top = Makie.lines!(ax, wire_points, color = :white,
+                                 visible = toggle_solution_mesh.active)
+    wire_mesh_bottom = Makie.lines!(ax, wire_points, color = :white,
+                                    visible = toggle_solution_mesh.active)
     Makie.translate!(wire_mesh_top, 0, 0, 1e-3)
     Makie.translate!(wire_mesh_bottom, 0, 0, -1e-3)
 
@@ -234,10 +231,11 @@ function iplot(pd::PlotData2DTriangulated;
     end
     z_offset = Makie.@lift(compute_z_offset($solution_z))
     function get_flat_points(wire_points, z_offset)
-        [Makie.Point(point.data[1:2]..., z_offset) for point in wire_points]
+        return [Makie.Point(point.data[1:2]..., z_offset) for point in wire_points]
     end
     flat_wire_points = Makie.@lift get_flat_points($wire_points, $z_offset)
-    wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color = :black)
+    wire_mesh_flat = Makie.lines!(ax, flat_wire_points, color = :black,
+                                  visible = toggle_mesh.active)
 
     # create a small variation in the extrema to avoid the Makie `range_step` cannot be zero error.
     # see https://github.com/MakieOrg/Makie.jl/issues/931 for more details.
@@ -255,17 +253,12 @@ function iplot(pd::PlotData2DTriangulated;
     Makie.Colorbar(fig[1, 3], limits = Makie.@lift(scaled_extrema($solution_z)),
                    colormap = colormap)
 
-    # This syncs the toggle buttons to the mesh plots.
-    Makie.connect!(wire_mesh_top.visible, toggle_solution_mesh.active)
-    Makie.connect!(wire_mesh_bottom.visible, toggle_solution_mesh.active)
-    Makie.connect!(wire_mesh_flat.visible, toggle_mesh.active)
-
     # On OSX, shift-command-4 for screenshots triggers a constant "up-zoom".
     # To avoid this, we remap up-zoom to the right shift button instead.
-    Makie.cameracontrols(ax.scene).attributes[:up_key][] = Makie.Keyboard.right_shift
+    Makie.cameracontrols(ax.scene).controls.up_key = Makie.Keyboard.right_shift
 
     # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
-    fig
+    return fig
 end
 
 function iplot(u, mesh, equations, solver, cache;
@@ -276,13 +269,14 @@ function iplot(u, mesh, equations, solver, cache;
                                 solution_variables = solution_variables,
                                 nvisnodes = nvisnodes)
 
-    iplot(pd; kwargs...)
+    return iplot(pd; kwargs...)
 end
 
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
 iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs...)
 function iplot(u, semi; kwargs...)
-    iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...; kwargs...)
+    return iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...;
+                 kwargs...)
 end
 
 # Interactive visualization of user-defined ScalarData.
@@ -334,7 +328,7 @@ end
 # This initializes a Makie recipe, which creates a new type definition which Makie uses to create
 # custom `trixiheatmap` plots. See also https://docs.makie.org/stable/documentation/recipes/
 Makie.@recipe(TrixiHeatmap, plot_data_series) do scene
-    Makie.Theme(colormap = default_Makie_colormap())
+    return Makie.Theme(colormap = default_Makie_colormap())
 end
 
 function Makie.plot!(myplot::TrixiHeatmap)
@@ -345,7 +339,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
 
     pd = pds.plot_data
     solution_z = vec(StructArrays.component(pd.data, pds.variable_id))
-    Makie.mesh!(myplot, plotting_mesh, color = solution_z, shading = false,
+    Makie.mesh!(myplot, plotting_mesh, color = solution_z, shading = Makie.NoShading,
                 colormap = myplot[:colormap])
     myplot.colorrange = extrema(solution_z)
 
@@ -363,7 +357,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
         Makie.lines!(myplot, xyz_wireframe, color = :lightgrey)
     end
 
-    myplot
+    return myplot
 end
 
 # redirects Makie.plot(pd::PlotDataSeries) to custom recipe TrixiHeatmap(pd)

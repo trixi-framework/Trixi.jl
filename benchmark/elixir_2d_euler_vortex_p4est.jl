@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowOrderRK
 using Trixi
 
 ###############################################################################
@@ -52,9 +52,10 @@ coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
 mesh = P4estMesh((1, 1), polydeg = Trixi.polydeg(solver),
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 4)
+                 initial_refinement_level = 4, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -79,6 +80,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, BS3(),
-            save_everystep = false, callback = callbacks);
+sol = solve(ode, BS3();
+            ode_default_options()..., callback = callbacks);
 summary_callback() # print the timer summary

@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -11,7 +10,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 initial_condition = initial_condition_gauss
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:all => boundary_condition)
+boundary_conditions = (; all = boundary_condition)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
@@ -37,7 +36,7 @@ mesh = P4estMesh{2}(mesh_file, polydeg = 3,
                     mapping = mapping_flag,
                     initial_refinement_level = 1)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -81,8 +80,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

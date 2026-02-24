@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -18,7 +18,8 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
                  polydeg = 3, initial_refinement_level = 1,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max)
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 periodicity = true)
 
 # Define initial condition
 function initial_condition_diffusive_convergence_test(x, t,
@@ -40,14 +41,16 @@ initial_condition = initial_condition_diffusive_convergence_test
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 0.5)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -78,6 +81,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr
 time_int_tol = 1.0e-11
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-# Print the timer summary            
-summary_callback()

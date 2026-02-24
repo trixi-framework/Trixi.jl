@@ -58,10 +58,10 @@ function LinearizedEulerEquations2D(; v_mean_global::NTuple{2, <:Real},
 end
 
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations2D)
-    ("rho_prime", "v1_prime", "v2_prime", "p_prime")
+    return ("rho_prime", "v1_prime", "v2_prime", "p_prime")
 end
 function varnames(::typeof(cons2prim), ::LinearizedEulerEquations2D)
-    ("rho_prime", "v1_prime", "v2_prime", "p_prime")
+    return ("rho_prime", "v1_prime", "v2_prime", "p_prime")
 end
 
 """
@@ -144,6 +144,15 @@ end
     return SVector(f1, f2, f3, f4)
 end
 
+"""
+    have_constant_speed(::LinearizedEulerEquations2D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearizedEulerEquations2D) = True()
 
 @inline function max_abs_speeds(equations::LinearizedEulerEquations2D)
@@ -204,14 +213,14 @@ The diagonalization of the flux matrix can be found in
         lambda1_p = positive_part(lambda1)
         lambda2_p = positive_part(lambda2)
         lambda3_p = positive_part(lambda3)
-        lambda2p3_half_p = 0.5 * (lambda2_p + lambda3_p)
-        lambda3m2_half_p = 0.5 * (lambda3_p - lambda2_p)
+        lambda2p3_half_p = 0.5f0 * (lambda2_p + lambda3_p)
+        lambda3m2_half_p = 0.5f0 * (lambda3_p - lambda2_p)
 
         lambda1_m = negative_part(lambda1)
         lambda2_m = negative_part(lambda2)
         lambda3_m = negative_part(lambda3)
-        lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
-        lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
+        lambda2p3_half_m = 0.5f0 * (lambda2_m + lambda3_m)
+        lambda3m2_half_m = 0.5f0 * (lambda3_m - lambda2_m)
 
         f1p = (lambda1_p * rho_prime_ll +
                lambda3m2_half_p / c_mean_global * rho_mean_global * v1_prime_ll +
@@ -244,14 +253,14 @@ The diagonalization of the flux matrix can be found in
         lambda1_p = positive_part(lambda1)
         lambda2_p = positive_part(lambda2)
         lambda3_p = positive_part(lambda3)
-        lambda2p3_half_p = 0.5 * (lambda2_p + lambda3_p)
-        lambda3m2_half_p = 0.5 * (lambda3_p - lambda2_p)
+        lambda2p3_half_p = 0.5f0 * (lambda2_p + lambda3_p)
+        lambda3m2_half_p = 0.5f0 * (lambda3_p - lambda2_p)
 
         lambda1_m = negative_part(lambda1)
         lambda2_m = negative_part(lambda2)
         lambda3_m = negative_part(lambda3)
-        lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
-        lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
+        lambda2p3_half_m = 0.5f0 * (lambda2_m + lambda3_m)
+        lambda3m2_half_m = 0.5f0 * (lambda3_m - lambda2_m)
 
         f1p = (lambda1_p * rho_prime_ll +
                lambda3m2_half_p / c_mean_global * rho_mean_global * v2_prime_ll +
@@ -304,14 +313,14 @@ end
     lambda1_p = positive_part(lambda1)
     lambda2_p = positive_part(lambda2)
     lambda3_p = positive_part(lambda3)
-    lambda2p3_half_p = 0.5 * (lambda2_p + lambda3_p)
-    lambda3m2_half_p = 0.5 * (lambda3_p - lambda2_p)
+    lambda2p3_half_p = 0.5f0 * (lambda2_p + lambda3_p)
+    lambda3m2_half_p = 0.5f0 * (lambda3_p - lambda2_p)
 
     lambda1_m = negative_part(lambda1)
     lambda2_m = negative_part(lambda2)
     lambda3_m = negative_part(lambda3)
-    lambda2p3_half_m = 0.5 * (lambda2_m + lambda3_m)
-    lambda3m2_half_m = 0.5 * (lambda3_m - lambda2_m)
+    lambda2p3_half_m = 0.5f0 * (lambda2_m + lambda3_m)
+    lambda3m2_half_m = 0.5f0 * (lambda3_m - lambda2_m)
 
     f1p = (lambda1_p * rho_prime_ll +
            lambda3m2_half_p / c_mean_global * rho_mean_global * v_prime_normal_ll +
@@ -356,12 +365,12 @@ end
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::LinearizedEulerEquations2D)
-    min_max_speed_davis(u_ll, u_rr, orientation, equations)
+    return min_max_speed_davis(u_ll, u_rr, orientation, equations)
 end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::LinearizedEulerEquations2D)
-    min_max_speed_davis(u_ll, u_rr, normal_direction, equations)
+    return min_max_speed_davis(u_ll, u_rr, normal_direction, equations)
 end
 
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes

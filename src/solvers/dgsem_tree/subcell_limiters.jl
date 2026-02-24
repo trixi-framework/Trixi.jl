@@ -9,7 +9,7 @@ abstract type AbstractSubcellLimiter end
 
 function create_cache(typ::Type{LimiterType},
                       semi) where {LimiterType <: AbstractSubcellLimiter}
-    create_cache(typ, mesh_equations_solver_cache(semi)...)
+    return create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
 """
@@ -28,7 +28,7 @@ including:
 - Local two-sided Zalesak-type limiting for conservative variables (`local_twosided_variables_cons`)
 - Positivity limiting for conservative variables (`positivity_variables_cons`) and nonlinear variables
 (`positivity_variables_nonlinear`)
-- Local one-sided limiting for nonlinear variables, e.g. `entropy_guermond_etal` and `entropy_math`
+- Local one-sided limiting for nonlinear variables, e.g. [`entropy_guermond_etal`](@ref) and [`entropy_math`](@ref)
 with `local_onesided_variables_nonlinear`
 
 To use these three limiting options use the following structure:
@@ -39,7 +39,7 @@ For ***nonlinear variables***, the wanted variable functions are passed within a
 positivity use a plain vector including the desired variables, e.g. `positivity_variables_nonlinear = [pressure]`.
 For local one-sided limiting pass the variable function combined with the requested bound
 (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified specific
-entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]`.
+entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(entropy_guermond_etal, min)]`.
 
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
@@ -52,6 +52,12 @@ where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) o
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
     Without the callback, no correction takes place, leading to a standard low-order FV scheme.
 
+Implementation in 3D:
+In 3D, only the positivity limiter for conservative variables using
+(`positivity_variables_cons`) is implemented and merged for `P4estMesh`.
+`BoundsCheckCallback` is not supported in 3D yet.
+More features will follow soon.
+
 ## References
 
 - Rueda-Ramírez, Pazner, Gassner (2022)
@@ -60,9 +66,6 @@ where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) o
 - Pazner (2020)
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
                          LimitingOnesidedVariablesNonlinear, Cache} <:
@@ -111,6 +114,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         end
     end
     local_onesided_variables_nonlinear_ = Tuple(local_onesided_variables_nonlinear_)
+    positivity_variables_nonlinear = Tuple(positivity_variables_nonlinear)
 
     local_twosided_variables_cons_ = get_variable_index.(local_twosided_variables_cons,
                                                          equations)
@@ -142,18 +146,19 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
 
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
 
-    SubcellLimiterIDP{typeof(positivity_correction_factor),
-                      typeof(positivity_variables_nonlinear),
-                      typeof(local_onesided_variables_nonlinear_),
-                      typeof(cache)}(local_twosided, local_twosided_variables_cons_,
-                                     positivity, positivity_variables_cons_,
-                                     positivity_variables_nonlinear,
-                                     positivity_correction_factor,
-                                     local_onesided,
-                                     local_onesided_variables_nonlinear_,
-                                     cache,
-                                     max_iterations_newton, newton_tolerances,
-                                     gamma_constant_newton)
+    return SubcellLimiterIDP{typeof(positivity_correction_factor),
+                             typeof(positivity_variables_nonlinear),
+                             typeof(local_onesided_variables_nonlinear_),
+                             typeof(cache)}(local_twosided,
+                                            local_twosided_variables_cons_,
+                                            positivity, positivity_variables_cons_,
+                                            positivity_variables_nonlinear,
+                                            positivity_correction_factor,
+                                            local_onesided,
+                                            local_onesided_variables_nonlinear_,
+                                            cache,
+                                            max_iterations_newton, newton_tolerances,
+                                            gamma_constant_newton)
 end
 
 function Base.show(io::IO, limiter::SubcellLimiterIDP)
@@ -179,6 +184,7 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
     end
     print(io, "Local bounds with FV solution")
     print(io, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
@@ -193,37 +199,250 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
         else
             setup = ["Limiter" => ""]
             if local_twosided
-                setup = [
-                    setup...,
-                    "" => "Local two-sided limiting for conservative variables $(limiter.local_twosided_variables_cons)",
-                ]
+                push!(setup,
+                      "" => "Local two-sided limiting for conservative variables $(limiter.local_twosided_variables_cons)")
             end
             if positivity
-                string = "Positivity limiting for conservative variables $(limiter.positivity_variables_cons) and $(limiter.positivity_variables_nonlinear)"
-                setup = [setup..., "" => string]
-                setup = [
-                    setup...,
-                    "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)",
-                ]
+                if !isempty(limiter.positivity_variables_cons)
+                    string = "conservative variables $(limiter.positivity_variables_cons)"
+                    push!(setup, "" => "Positivity limiting for " * string)
+                end
+                if !isempty(limiter.positivity_variables_nonlinear)
+                    string = "$(limiter.positivity_variables_nonlinear)"
+                    push!(setup, "" => "Positivity limiting for " * string)
+                end
+                push!(setup,
+                      "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)")
             end
             if local_onesided
                 for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
-                    setup = [setup..., "" => "Local $min_or_max limiting for $variable"]
+                    push!(setup, "" => "Local $min_or_max limiting for $variable")
                 end
             end
-            setup = [
-                setup...,
-                "Local bounds" => "FV solution",
-            ]
+            push!(setup, "Local bounds" => "FV solution")
         end
         summary_box(io, "SubcellLimiterIDP", setup)
     end
 end
 
-function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
-                             ::VolumeIntegralSubcellLimiting, equations)
-    node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache(limiter::Type{SubcellLimiterIDP},
+                      equations::AbstractEquations{NDIMS},
+                      basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
+                                                                                        nnodes(basis),
+                                                                                        bound_keys)
+
+    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # Local variable contains the maximum deviation since the last export.
+    idp_bounds_delta_local = Dict{Symbol, real(basis)}()
+    # Global variable contains the total maximum deviation.
+    idp_bounds_delta_global = Dict{Symbol, real(basis)}()
+    for key in bound_keys
+        idp_bounds_delta_local[key] = zero(real(basis))
+        idp_bounds_delta_global[key] = zero(real(basis))
+    end
+
+    return (; subcell_limiter_coefficients, idp_bounds_delta_local,
+            idp_bounds_delta_global)
+end
+
+# While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
+# called here to get up-to-date values for IO, this is not easily possible in this case
+# because the calculation is very integrated into the method.
+# See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
+# Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
+# stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
+    return dg.volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+end
+function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
+                           equations_parabolic, cache_parabolic)
+    return get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
+end
+
+function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
+                                      t, dt;
+                                      kwargs...)
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
+    @trixi_timeit timer() "reset alpha" set_zero!(alpha, dg, semi.cache)
+
+    if limiter.local_twosided
+        @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,
+                                                                   u, t, dt, semi)
+    end
+    if limiter.positivity
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
+    end
+    if limiter.local_onesided
+        @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha, limiter,
+                                                                   u, t, dt, semi)
+    end
 
     return nothing
+end
+
+###############################################################################
+# Local minimum and maximum limiting (conservative variables)
+
+@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi)
+    for variable in limiter.local_twosided_variables_cons
+        idp_local_twosided!(alpha, limiter, u, t, dt, semi, variable)
+    end
+
+    return nothing
+end
+
+##############################################################################
+# Local minimum or maximum limiting (nonlinear variables)
+
+@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi)
+    for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+        idp_local_onesided!(alpha, limiter, u, t, dt, semi, variable, min_or_max)
+    end
+
+    return nothing
+end
+
+###############################################################################
+# Global positivity limiting (conservative and nonlinear variables)
+
+@inline function idp_positivity!(alpha, limiter, u, dt, semi)
+    # Conservative variables
+    @trixi_timeit timer() "conservative variables" for variable in limiter.positivity_variables_cons
+        idp_positivity_conservative!(alpha, limiter, u, dt, semi, variable)
+    end
+
+    # Nonlinear variables
+    @trixi_timeit timer() "nonlinear variables" for variable in limiter.positivity_variables_nonlinear
+        idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, variable)
+    end
+
+    return nothing
+end
+
+###############################################################################
+# Newton-bisection method
+
+@inline function newton_loop!(alpha, bound, u, indices, variable, min_or_max,
+                              initial_check, final_check,
+                              equations, dt, limiter, antidiffusive_flux)
+    newton_reltol, newton_abstol = limiter.newton_tolerances
+
+    beta = 1 - alpha[indices...]
+
+    beta_L = 0 # alpha = 1
+    beta_R = beta # No higher beta (lower alpha) than the current one
+
+    u_curr = u + beta * dt * antidiffusive_flux
+
+    # If state is valid, perform initial check and return if correction is not needed
+    if isvalid(u_curr, equations)
+        goal = goal_function_newton_idp(variable, bound, u_curr, equations)
+
+        initial_check(min_or_max, bound, goal, newton_abstol) && return nothing
+    end
+
+    # Newton iterations
+    for iter in 1:(limiter.max_iterations_newton)
+        beta_old = beta
+
+        # If the state is valid, evaluate d(goal)/d(beta)
+        if isvalid(u_curr, equations)
+            dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
+                                                    antidiffusive_flux, equations)
+        else # Otherwise, perform a bisection step
+            dgoal_dbeta = 0
+        end
+
+        if dgoal_dbeta != 0
+            # Update beta with Newton's method
+            beta = beta - goal / dgoal_dbeta
+        end
+
+        # Check bounds
+        if (beta < beta_L) || (beta > beta_R) || (dgoal_dbeta == 0) || isnan(beta)
+            # Out of bounds, do a bisection step
+            beta = 0.5f0 * (beta_L + beta_R)
+            # Get new u
+            u_curr = u + beta * dt * antidiffusive_flux
+
+            # If the state is invalid, finish bisection step without checking tolerance and iterate further
+            if !isvalid(u_curr, equations)
+                beta_R = beta
+                continue
+            end
+
+            # Check new beta for condition and update bounds
+            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
+            if initial_check(min_or_max, bound, goal, newton_abstol)
+                # New beta fulfills condition
+                beta_L = beta
+            else
+                # New beta does not fulfill condition
+                beta_R = beta
+            end
+        else
+            # Get new u
+            u_curr = u + beta * dt * antidiffusive_flux
+
+            # If the state is invalid, redefine right bound without checking tolerance and iterate further
+            if !isvalid(u_curr, equations)
+                beta_R = beta
+                continue
+            end
+
+            # Evaluate goal function
+            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
+        end
+
+        # Check relative tolerance
+        if abs(beta_old - beta) <= newton_reltol
+            break
+        end
+
+        # Check absolute tolerance
+        if final_check(bound, goal, newton_abstol)
+            break
+        end
+    end
+
+    alpha[indices...] = 1 - beta # new alpha
+
+    return nothing
+end
+
+### Auxiliary routines for Newton's bisection method ###
+# Initial checks
+@inline function initial_check_local_onesided_newton_idp(::typeof(min), bound,
+                                                         goal, newton_abstol)
+    return goal <= max(newton_abstol, abs(bound) * newton_abstol)
+end
+
+@inline function initial_check_local_onesided_newton_idp(::typeof(max), bound,
+                                                         goal, newton_abstol)
+    return goal >= -max(newton_abstol, abs(bound) * newton_abstol)
+end
+
+@inline initial_check_nonnegative_newton_idp(min_or_max, bound, goal, newton_abstol) = goal <=
+                                                                                       0
+
+# Goal and d(Goal)/d(u) function
+@inline goal_function_newton_idp(variable, bound, u, equations) = bound -
+                                                                  variable(u, equations)
+@inline function dgoal_function_newton_idp(variable, u, dt, antidiffusive_flux,
+                                           equations)
+    return -dot(gradient_conservative(variable, u, equations), dt * antidiffusive_flux)
+end
+
+# Final checks
+# final check for one-sided local limiting
+@inline function final_check_local_onesided_newton_idp(bound, goal, newton_abstol)
+    return abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
+end
+
+# final check for nonnegativity limiting
+@inline function final_check_nonnegative_newton_idp(bound, goal, newton_abstol)
+    return (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
 end # @muladd

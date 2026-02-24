@@ -43,6 +43,23 @@ julia> # Run all 2D tests on the P4estMesh
 julia> # Run all 1D tests for the Euler equations on the TreeMesh
        include(joinpath("test", "test_tree_1d_euler.jl"))
 ```
+Often you want to run only a specific test or a small subset of tests. To do this, we
+recommend using [TestPicker.jl](https://github.com/theogf/TestPicker.jl). To make
+TestPicker.jl aware of the special testing system used in Trixi.jl, you first need to
+[set the environment variable "TESTPICKER_NODES"](https://github.com/theogf/TestPicker.jl#running-other-test-blocks-than-testset):
+```julia
+julia> ENV["TESTPICKER_NODES"] = "@trixi_testset, @timed_testset"
+```
+To automatically set the environment variable, on Unix-like systems you can add
+```bash
+export TESTPICKER_NODES="@trixi_testset, @timed_testset"
+```
+to the `~/.bashrc` file. After `using TestPicker`, you can enter the REPL test mode
+with `!` and search for test files with a fuzzy search. To search for testsets, you
+can separate the fuzzy search for test files and a fuzzy search of testsets with
+a colon. For more details, check out the documentation of
+[TestPicker.jl](https://github.com/theogf/TestPicker.jl).
+
 For the automated tests with GitHub Actions, we run multiple jobs in parallel to
 reduce the waiting time until all tests are finished. You can see the different
 components that are run as jobs by looking at the `TRIXI_TEST` variable in

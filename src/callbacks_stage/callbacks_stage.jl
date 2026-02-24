@@ -9,4 +9,5 @@ include("modal_filter.jl")
 include("positivity_zhang_shu.jl")
 include("subcell_limiter_idp_correction.jl")
 include("subcell_bounds_check.jl")
+include("entropy_bounded_limiter.jl")
 end # @muladd

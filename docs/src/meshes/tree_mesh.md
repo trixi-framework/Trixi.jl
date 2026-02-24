@@ -9,3 +9,7 @@ It is limited to hypercube domains (that is, lines in 1D, squares in 2D and cube
 Due to its Cartesian nature, (numerical) fluxes need to implement methods
 dispatching on the `orientation::Integer` as described in the
 [conventions](@ref conventions).
+
+
+### Boundary conditions
+For [`TreeMesh`](@ref)es, boundary conditions are defined and stored in [named tuples](https://docs.julialang.org/en/v1/manual/functions/#Named-Tuples) (see, for example, `examples/tree_1d_dgsem/elixir_euler_source_terms_nonperiodic.jl`).

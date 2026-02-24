@@ -10,10 +10,13 @@ include("test_trixi.jl")
 @timed_testset "Aqua.jl" begin
     Aqua.test_all(Trixi,
                   ambiguities = false,
+                  unbound_args = false, # FIXME: UnstructuredSortedBoundaryTypes
                   # exceptions necessary for adding a new method `StartUpDG.estimate_h`
                   # in src/solvers/dgmulti/sbp.jl
                   piracies = (treat_as_own = [Trixi.StartUpDG.RefElemData,
-                                  Trixi.StartUpDG.MeshData],))
+                                  Trixi.StartUpDG.MeshData],),
+                  # exception necessary because StableRNGs.jl is only used in an extension
+                  stale_deps = (ignore = [:StableRNGs],))
     @test isnothing(check_no_implicit_imports(Trixi,
                                               skip = (Core, Base, Trixi.P4est, Trixi.T8code,
                                                       Trixi.EllipsisNotation)))

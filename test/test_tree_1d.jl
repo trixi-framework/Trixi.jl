@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
@@ -40,9 +40,6 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Compressible Euler with self-gravity
     include("test_tree_1d_eulergravity.jl")
 
-    # Shallow water
-    include("test_tree_1d_shallowwater.jl")
-
     # FDSBP methods on the TreeMesh
     include("test_tree_1d_fdsbp.jl")
 
@@ -51,6 +48,15 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Linearized Euler
     include("test_tree_1d_linearizedeuler.jl")
+
+    # Maxwell
+    include("test_tree_1d_maxwell.jl")
+
+    # Linear elasticity
+    include("test_tree_1d_linear_elasticity.jl")
+
+    # Passive tracers
+    include("test_tree_1d_passive_tracers.jl")
 end
 
 # Coverage test for all initial conditions
@@ -61,7 +67,8 @@ end
                             l2=[0.00017373554109980247],
                             linf=[0.0006021275678165239],
                             maxiters=1,
-                            initial_condition=Trixi.initial_condition_sin)
+                            initial_condition=Trixi.initial_condition_sin,
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_constant" begin
@@ -69,7 +76,8 @@ end
                             l2=[2.441369287653687e-16],
                             linf=[4.440892098500626e-16],
                             maxiters=1,
-                            initial_condition=initial_condition_constant)
+                            initial_condition=initial_condition_constant,
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
@@ -79,7 +87,8 @@ end
                             maxiters=1,
                             initial_condition=Trixi.initial_condition_linear_x,
                             boundary_conditions=Trixi.boundary_condition_linear_x,
-                            periodicity=false)
+                            periodicity=false,
+                            visualization=TrivialCallback())
     end
 
     @trixi_testset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
@@ -89,7 +98,8 @@ end
                             maxiters=1,
                             initial_condition=initial_condition_convergence_test,
                             boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
-                            periodicity=false)
+                            periodicity=false,
+                            visualization=TrivialCallback())
     end
 end
 
@@ -178,9 +188,11 @@ end
                 redirect_stderr(f) do
                     trixi_include(joinpath(EXAMPLES_DIR,
                                            "elixir_advection_extended.jl"),
+                                  visualization = TrivialCallback(),
                                   summary_callback = TrivialCallback(),
                                   analysis_callback = TrivialCallback(),
                                   alive_callback = TrivialCallback())
+                    return nothing
                 end
             end
             output = read(fname, String)
@@ -197,10 +209,10 @@ end
     @testset "compressible Euler" begin
         eqn = CompressibleEulerEquations1D(1.4)
 
-        @test isapprox(Trixi.entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
+        @test isapprox(entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
                        1.9740810260220094)
-        @test isapprox(Trixi.entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
-        @test isapprox(Trixi.entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+        @test isapprox(entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+        @test isapprox(entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
 
         @test isapprox(energy_total([1.0, 2.0, 20.0], eqn), 20.0)
         @test isapprox(energy_kinetic([1.0, 2.0, 20.0], eqn), 2.0)
@@ -251,7 +263,7 @@ end
 
     # Create a simulation setup
     using Trixi
-    using OrdinaryDiffEq
+    using OrdinaryDiffEqTsit5
 
     equation = NonconservativeLinearAdvectionEquation()
 
@@ -262,21 +274,23 @@ end
         x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
         scalar = sin(x0)
         advection_velocity = 2 + cos(x[1])
-        SVector(scalar, advection_velocity)
+        return SVector(scalar, advection_velocity)
     end
 
     # Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
     mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                    initial_refinement_level = 4, n_cells_max = 10^4)
+                    initial_refinement_level = 4, n_cells_max = 10^4,
+                    periodicity = true)
 
     # Create a DGSEM solver with polynomials of degree `polydeg`
     volume_flux = (flux_central, flux_nonconservative)
-    surface_flux = (flux_lax_friedrichs, flux_nonconservative)
+    surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative)
     solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                    volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
     # Setup the spatial semidiscretization containing all ingredients
-    semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+    semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                        boundary_conditions = boundary_condition_periodic)
 
     # Create an ODE problem with given time span
     tspan = (0.0, 1.0)
@@ -288,8 +302,8 @@ end
 
     # OrdinaryDiffEq's `solve` method evolves the solution in time and executes
     # the passed callbacks
-    sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
-                save_everystep = false, callback = callbacks)
+    sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+                ode_default_options()..., callback = callbacks)
 
     @test analysis_callback(sol).l2 ≈ [0.00029609575838969394, 5.5681704039507985e-6]
 end

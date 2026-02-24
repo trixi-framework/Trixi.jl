@@ -30,7 +30,7 @@ conditionals like `if restart` with a boolean variable `restart` that is user de
 
 First we need to define from which file we want to restart, e.g.
 ```julia
-restart_file = "restart_000021.h5"
+restart_file = "restart_000000021.h5"
 restart_filename = joinpath("out", restart_file)
 ```
 
@@ -41,7 +41,8 @@ mesh = load_mesh(restart_filename)
 
 This is then needed for the semidiscretization:
 ```julia
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 ```
 
 We then define a new time span for the simulation that takes as starting
@@ -70,12 +71,12 @@ you can reuse your [`SaveSolutionCallback`](@ref), but need to set
 save_solution.condition.save_initial_solution = false
 ```
 
-Before we compute the solution using 
+Before we compute the solution using
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 we need to set the integrator
 and its time step number, e.g.:
 ```julia
-integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false),
+integrator = init(ode, CarpenterKennedy2N54(williamson_condition=false);
                   dt=dt, save_everystep=false, callback=callbacks);
 load_timestep!(integrator, restart_filename)
 ```

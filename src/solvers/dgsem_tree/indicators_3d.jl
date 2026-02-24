@@ -8,27 +8,27 @@
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
-    modal_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                      for _ in 1:Threads.nthreads()]
-    modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                           for _ in 1:Threads.nthreads()]
-    modal_tmp2_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                           for _ in 1:Threads.nthreads()]
+    A3d = Array{uEltype, 3}
 
-    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded,
-            modal_tmp2_threaded)
-end
+    indicator_threaded = A3d[A3d(undef,
+                                 nnodes(basis), nnodes(basis), nnodes(basis))
+                             for _ in 1:Threads.maxthreadid()]
+    modal_threaded = A3d[A3d(undef,
+                             nnodes(basis), nnodes(basis), nnodes(basis))
+                         for _ in 1:Threads.maxthreadid()]
+    modal_tmp1_threaded = A3d[A3d(undef,
+                                  nnodes(basis), nnodes(basis), nnodes(basis))
+                              for _ in 1:Threads.maxthreadid()]
+    modal_tmp2_threaded = A3d[A3d(undef,
+                                  nnodes(basis), nnodes(basis), nnodes(basis))
+                              for _ in 1:Threads.maxthreadid()]
 
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations{3}, dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded,
+            modal_tmp1_threaded, modal_tmp2_threaded)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -36,8 +36,7 @@ end
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
 # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
 @inline function calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s,
-                                                   u,
-                                                   element, mesh::AbstractMesh{3},
+                                                   u, element, mesh::AbstractMesh{3},
                                                    equations, dg, cache)
     @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
@@ -60,7 +59,7 @@ end
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = zero(eltype(modal))
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         total_energy += modal[i, j, k]^2
     end
     total_energy_clip1 = zero(eltype(modal))
@@ -99,6 +98,7 @@ end
 
     # Clip the maximum amount of FV allowed
     alpha[element] = min(alpha_max, alpha_element)
+    return nothing
 end
 
 function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, alpha,
@@ -116,8 +116,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
         right = cache.interfaces.neighbor_ids[2, interface]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5 * alpha_tmp[right], alpha[left])
-        alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left], alpha[right])
+        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
+        alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
     end
 
     # Loop over L2 mortars
@@ -130,38 +130,39 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
         large = cache.mortars.neighbor_ids[5, mortar]
 
         # Apply smoothing
-        alpha[lower_left] = max(alpha_tmp[lower_left], 0.5 * alpha_tmp[large],
+        alpha[lower_left] = max(alpha_tmp[lower_left], 0.5f0 * alpha_tmp[large],
                                 alpha[lower_left])
-        alpha[lower_right] = max(alpha_tmp[lower_right], 0.5 * alpha_tmp[large],
+        alpha[lower_right] = max(alpha_tmp[lower_right], 0.5f0 * alpha_tmp[large],
                                  alpha[lower_right])
-        alpha[upper_left] = max(alpha_tmp[upper_left], 0.5 * alpha_tmp[large],
+        alpha[upper_left] = max(alpha_tmp[upper_left], 0.5f0 * alpha_tmp[large],
                                 alpha[upper_left])
-        alpha[upper_right] = max(alpha_tmp[upper_right], 0.5 * alpha_tmp[large],
+        alpha[upper_right] = max(alpha_tmp[upper_right], 0.5f0 * alpha_tmp[large],
                                  alpha[upper_right])
 
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_left], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_right], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[lower_left],
+                           alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[lower_right],
+                           alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper_left],
+                           alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper_right],
+                           alpha[large])
     end
+
+    return nothing
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{3},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+                      equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+    A3d = Array{uEltype, 3}
+    indicator_threaded = A3d[A3d(undef, nnodes(basis), nnodes(basis), nnodes(basis))
+                             for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{3},
-                      dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
 end
 
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
@@ -169,6 +170,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
                                    kwargs...)
     @assert nnodes(dg)>=3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
     @unpack alpha, indicator_threaded = löhner.cache
+    @unpack variable = löhner
     resize!(alpha, nelements(dg, cache))
 
     @threaded for element in eachelement(dg, cache)
@@ -177,7 +179,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
         # Calculate indicator variables at Gauss-Lobatto nodes
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
-            indicator[i, j, k] = löhner.variable(u_local, equations)
+            indicator[i, j, k] = variable(u_local, equations)
         end
 
         estimate = zero(real(dg))
@@ -210,24 +212,6 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
     end
 
     return alpha
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{3},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
-
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
-
-    return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{3},
-                      dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
 end
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},

@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -30,8 +29,6 @@ defined below.
 @inline function initial_condition_rayleigh_taylor_instability(x, t,
                                                                equations::CompressibleEulerEquations2D,
                                                                slope = 1000)
-    tol = 1e2 * eps()
-
     if x[2] < 0.5
         p = 2 * x[2] + 1
     else
@@ -54,7 +51,7 @@ end
 @inline function source_terms_rayleigh_taylor_instability(u, x, t,
                                                           equations::CompressibleEulerEquations2D)
     g = 1.0
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
     return SVector(0.0, 0.0, g * rho, g * rho_v2)
 end
@@ -72,17 +69,22 @@ cells_per_dimension = (num_elements_per_dimension, num_elements_per_dimension * 
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
 
 initial_condition = initial_condition_rayleigh_taylor_instability
-boundary_conditions = (x_neg = boundary_condition_slip_wall,
-                       x_pos = boundary_condition_slip_wall,
-                       y_neg = boundary_condition_slip_wall,
-                       y_pos = boundary_condition_slip_wall)
+
+# Assign a single boundary condition to all boundaries
+boundary_conditions = boundary_condition_slip_wall
+# Alternatively, you can use
+# boundary_conditions = (;
+#                        x_neg = boundary_condition_slip_wall,
+#                        x_pos = boundary_condition_slip_wall,
+#                        y_neg = boundary_condition_slip_wall,
+#                        y_pos = boundary_condition_slip_wall)
 
 # # Alternative setup: left/right periodic BCs and Dirichlet BCs on the top/bottom.
-# boundary_conditions = (
-#                        x_neg=boundary_condition_periodic,
-#                        x_pos=boundary_condition_periodic,
-#                        y_neg=BoundaryConditionDirichlet(initial_condition),
-#                        y_pos=BoundaryConditionDirichlet(initial_condition),
+# boundary_conditions = (;
+#                        x_neg = boundary_condition_periodic,
+#                        x_pos = boundary_condition_periodic,
+#                        y_neg = BoundaryConditionDirichlet(initial_condition),
+#                        y_pos = BoundaryConditionDirichlet(initial_condition),
 #                       )
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -111,5 +113,3 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);
-
-summary_callback() # print the timer summary

@@ -17,13 +17,13 @@ the maximum possible speed (e.g. due to speed limits) is $v_{\text{max}}$.
 For more details see e.g. Section 11.1 of 
 - Randall LeVeque (2002)
 Finite Volume Methods for Hyperbolic Problems
-[DOI: 10.1017/CBO9780511791253]https://doi.org/10.1017/CBO9780511791253
+[DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquations{1, 1}
     v_max::RealT
 
     function TrafficFlowLWREquations1D(v_max = 1.0)
-        new{typeof(v_max)}(v_max)
+        return new{typeof(v_max)}(v_max)
     end
 end
 
@@ -36,11 +36,12 @@ varnames(::typeof(cons2prim), ::TrafficFlowLWREquations1D) = ("car-density",)
 A smooth initial condition used for convergence tests.
 """
 function initial_condition_convergence_test(x, t, equations::TrafficFlowLWREquations1D)
-    c = 2.0
-    A = 1.0
+    RealT = eltype(x)
+    c = 2
+    A = 1
     L = 1
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * (x[1] - t))
 
     return SVector(scalar)
@@ -51,38 +52,47 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::TrafficFlowLWREquations1D)
     # Same settings as in `initial_condition`
-    c = 2.0
-    A = 1.0
+    RealT = eltype(x)
+    c = 2
+    A = 1
     L = 1
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     du = omega * cos(omega * (x[1] - t)) *
          (-1 - equations.v_max * (2 * sin(omega * (x[1] - t)) + 3))
 
     return SVector(du)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::TrafficFlowLWREquations1D)
-    return SVector(equations.v_max * u[1] * (1.0 - u[1]))
+    return SVector(equations.v_max * u[1] * (1 - u[1]))
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    λ_max = max(abs(equations.v_max * (1.0 - 2 * u_ll[1])),
-                abs(equations.v_max * (1.0 - 2 * u_rr[1])))
+    return max(abs(equations.v_max * (1 - 2 * u_ll[1])),
+               abs(equations.v_max * (1 - 2 * u_rr[1])))
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    jac_L = equations.v_max * (1.0 - 2 * u_ll[1])
-    jac_R = equations.v_max * (1.0 - 2 * u_rr[1])
+    jac_L = equations.v_max * (1 - 2 * u_ll[1])
+    jac_R = equations.v_max * (1 - 2 * u_rr[1])
 
     λ_min = min(jac_L, jac_R)
     λ_max = max(jac_L, jac_R)
@@ -92,11 +102,11 @@ end
 
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    min_max_speed_naive(u_ll, u_rr, orientation, equations)
+    return min_max_speed_naive(u_ll, u_rr, orientation, equations)
 end
 
 @inline function max_abs_speeds(u, equations::TrafficFlowLWREquations1D)
-    return (abs(equations.v_max * (1.0 - 2 * u[1])),)
+    return (abs(equations.v_max * (1 - 2 * u[1])),)
 end
 
 # Convert conservative variables to primitive
@@ -105,12 +115,19 @@ end
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::TrafficFlowLWREquations1D) = u
 
-# Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::TrafficFlowLWREquations1D) = 0.5 * u^2
+@doc raw"""
+    entropy(u, equations::TrafficFlowLWREquations1D)
+
+Calculate entropy for a conservative state `u` as
+```math
+S(u) = \frac{1}{2} u^2
+```
+"""
+@inline entropy(u::Real, ::TrafficFlowLWREquations1D) = 0.5f0 * u^2
 @inline entropy(u, equations::TrafficFlowLWREquations1D) = entropy(u[1], equations)
 
-# Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::TrafficFlowLWREquations1D) = 0.5 * u^2
+# Calculate total energy for a conservative state `u`
+@inline energy_total(u::Real, ::TrafficFlowLWREquations1D) = 0.5f0 * u^2
 @inline energy_total(u, equations::TrafficFlowLWREquations1D) = energy_total(u[1],
                                                                              equations)
 end # @muladd

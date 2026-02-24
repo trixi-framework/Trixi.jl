@@ -1,5 +1,5 @@
-
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -30,8 +30,6 @@ defined below.
 @inline function initial_condition_rayleigh_taylor_instability(x, t,
                                                                equations::CompressibleEulerEquations2D,
                                                                slope = 1000)
-    tol = 1e2 * eps()
-
     if x[2] < 0.5
         p = 2 * x[2] + 1
     else
@@ -54,7 +52,7 @@ end
 @inline function source_terms_rayleigh_taylor_instability(u, x, t,
                                                           equations::CompressibleEulerEquations2D)
     g = 1.0
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
     return SVector(0.0, 0.0, g * rho, g * rho_v2)
 end
@@ -71,7 +69,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
                    periodicity = (true, false))
 
 initial_condition = initial_condition_rayleigh_taylor_instability
-boundary_conditions = (; :entire_boundary => boundary_condition_slip_wall)
+boundary_conditions = (; entire_boundary = boundary_condition_slip_wall)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     source_terms = source_terms_rayleigh_taylor_instability,
@@ -90,14 +88,15 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        alive_callback)
+                        alive_callback, save_solution)
 
 ###############################################################################
 # run the simulation
 
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);
-
-summary_callback() # print the timer summary

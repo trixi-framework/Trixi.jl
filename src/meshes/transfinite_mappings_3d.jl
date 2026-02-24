@@ -52,7 +52,7 @@
 function straight_side_hex_map(xi, eta, zeta, corner_points)
     coordinate = zeros(eltype(xi), 3)
     for j in 1:3
-        coordinate[j] += (0.125 *
+        coordinate[j] += (0.125f0 *
                           (corner_points[j, 1] * (1 - xi) * (1 - eta) * (1 - zeta)
                            + corner_points[j, 2] * (1 + xi) * (1 - eta) * (1 - zeta)
                            + corner_points[j, 3] * (1 + xi) * (1 + eta) * (1 - zeta)
@@ -131,7 +131,7 @@ function transfinite_hex_map(xi, eta, zeta, face_curves::AbstractVector{<:Curved
     # Compute the transfinite mapping
     for j in 1:3
         # Linear interpolation between opposite faces
-        coordinate[j] = (0.5 *
+        coordinate[j] = (0.5f0 *
                          (face_values[j, 6] * (1 - xi) + face_values[j, 4] * (1 + xi)
                           + face_values[j, 1] * (1 - eta) +
                           face_values[j, 2] * (1 + eta)
@@ -139,7 +139,7 @@ function transfinite_hex_map(xi, eta, zeta, face_curves::AbstractVector{<:Curved
                           face_values[j, 5] * (1 + zeta)))
 
         # Edge corrections to ensure faces match
-        coordinate[j] -= (0.25 * (edge_values[j, 1] * (1 - eta) * (1 - zeta)
+        coordinate[j] -= (0.25f0 * (edge_values[j, 1] * (1 - eta) * (1 - zeta)
                            + edge_values[j, 2] * (1 + xi) * (1 - eta)
                            + edge_values[j, 3] * (1 - eta) * (1 + zeta)
                            + edge_values[j, 4] * (1 - xi) * (1 - eta)

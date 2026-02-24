@@ -1,10 +1,10 @@
 # This elixir transforms the setup of elixir_advection_basic to a rotated square.
 # The nodal values of the initial condition and the exact solution are the same as
-# in elixir_advection_basic. 
+# in elixir_advection_basic.
 # However, on this rotated mesh, the metric terms are non-trivial.
 # The same errors as with elixir_advection_basic are expected (except for rounding errors).
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # Define new structs inside a module to allow re-evaluating the file.
@@ -23,7 +23,7 @@ end
 function InitialConditionConvergenceTestRotated(alpha)
     sin_alpha, cos_alpha = sincos(alpha)
 
-    InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
+    return InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
 end
 
 function (initial_condition::InitialConditionConvergenceTestRotated)(x, t,
@@ -77,16 +77,17 @@ mapping(xi, eta) = T * SVector(xi, eta)
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0));
+ode = semidiscretize(semi, (0.0, 1.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -110,9 +111,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

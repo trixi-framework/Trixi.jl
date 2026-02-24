@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -20,7 +19,8 @@ trees_per_dimension = (1, 1, 1)
 # See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 2)
+                 initial_refinement_level = 2,
+                 periodicity = true)
 
 # Refine bottom left quadrant of each tree to level 3
 function refine_fn(p8est, which_tree, quadrant)
@@ -44,7 +44,8 @@ Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -75,9 +76,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

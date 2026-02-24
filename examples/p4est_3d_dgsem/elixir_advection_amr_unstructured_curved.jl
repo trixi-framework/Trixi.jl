@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -16,7 +15,7 @@ solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 initial_condition = initial_condition_gauss
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
-boundary_conditions = Dict(:all => boundary_condition)
+boundary_conditions = (; all = boundary_condition)
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
@@ -56,7 +55,7 @@ mesh = P4estMesh{3}(mesh_file, polydeg = 2,
                     mapping = mapping,
                     initial_refinement_level = 1)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -103,7 +102,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

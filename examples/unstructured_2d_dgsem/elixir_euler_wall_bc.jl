@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -26,11 +25,11 @@ end
 initial_condition = uniform_flow_state
 
 boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
-boundary_conditions = Dict(:Bottom => boundary_condition_uniform_flow,
-                           :Top => boundary_condition_uniform_flow,
-                           :Right => boundary_condition_uniform_flow,
-                           :Left => boundary_condition_uniform_flow,
-                           :Circle => boundary_condition_slip_wall)
+boundary_conditions = (; Bottom = boundary_condition_uniform_flow,
+                       Top = boundary_condition_uniform_flow,
+                       Right = boundary_condition_uniform_flow,
+                       Left = boundary_condition_uniform_flow,
+                       Circle = boundary_condition_slip_wall)
 
 ###############################################################################
 # Get the DG approximation space
@@ -47,7 +46,7 @@ mesh = UnstructuredMesh2D(mesh_file)
 ###############################################################################
 # create the semi discretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -75,7 +74,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

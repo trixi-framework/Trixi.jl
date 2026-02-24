@@ -1,12 +1,11 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # define new structs inside a module to allow re-evaluating the file
 module TrixiExtensionExample
 
 using Trixi
-using OrdinaryDiffEq: DiscreteCallback, u_modified!
+using OrdinaryDiffEqSSPRK: DiscreteCallback, u_modified!
 
 # This is an example implementation for a simple stage callback (i.e., a callable
 # that is executed after each Runge-Kutta *stage*), which records some values
@@ -21,7 +20,7 @@ struct ExampleStageCallback
     # some required stuff. You can also create outer constructors (not demonstrated
     # here) for further customization options.
     function ExampleStageCallback()
-        new(Float64[], Float64[], Float64[])
+        return new(Float64[], Float64[], Float64[])
     end
 end
 
@@ -51,7 +50,7 @@ struct ExampleStepCallback
     # some required stuff. You can also create outer constructors (not demonstrated
     # here) for further customization options.
     function ExampleStepCallback(message::String)
-        new(message, Float64[], Float64[], Float64[])
+        return new(message, Float64[], Float64[], Float64[])
     end
 end
 
@@ -85,9 +84,9 @@ function ExampleStepCallback(; message::String)
 
     example_callback = ExampleStepCallback(message)
 
-    DiscreteCallback(condition, example_callback,
-                     save_positions = (false, false),
-                     initialize = initialize)
+    return DiscreteCallback(condition, example_callback,
+                            save_positions = (false, false),
+                            initialize = initialize)
 end
 
 end # module TrixiExtensionExample
@@ -107,15 +106,16 @@ coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                n_cells_max = 30_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
@@ -130,7 +130,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2cons)
 
-example_callback = TrixiExtensionExample.ExampleStepCallback(message = "안녕하세요?")
+example_callback = TrixiExtensionExample.ExampleStepCallback(message = "Initializing callback")
 
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
@@ -154,10 +154,9 @@ example_stage_callback! = TrixiExtensionExample.ExampleStageCallback()
 # run the simulation
 
 sol = solve(ode,
-            CarpenterKennedy2N54(example_stage_callback!, williamson_condition = false),
+            CarpenterKennedy2N54(example_stage_callback!, williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);
 
 # Check whether we recorded the same values.
 # Remember that CarpenterKennedy2N54 has five stages per step.

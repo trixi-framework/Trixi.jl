@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -10,13 +9,13 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_constant
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:Body => boundary_condition_free_stream,
-                           :Button1 => boundary_condition_free_stream,
-                           :Button2 => boundary_condition_free_stream,
-                           :Eye1 => boundary_condition_free_stream,
-                           :Eye2 => boundary_condition_free_stream,
-                           :Smile => boundary_condition_free_stream,
-                           :Bowtie => boundary_condition_free_stream)
+boundary_conditions = (; Body = boundary_condition_free_stream,
+                       Button1 = boundary_condition_free_stream,
+                       Button2 = boundary_condition_free_stream,
+                       Eye1 = boundary_condition_free_stream,
+                       Eye2 = boundary_condition_free_stream,
+                       Smile = boundary_condition_free_stream,
+                       Bowtie = boundary_condition_free_stream)
 
 ###############################################################################
 # Get the DG approximation space
@@ -33,7 +32,7 @@ mesh = UnstructuredMesh2D(mesh_file)
 ###############################################################################
 # create the semi discretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -61,7 +60,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

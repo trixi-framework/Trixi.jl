@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -9,13 +8,6 @@ advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
-
-# you can either use a single function to impose the BCs weakly in all
-# 1*ndims == 2 directions or you can pass a tuple containing BCs for
-# each direction
-# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
-#       fully periodic domains. Here, however, it is included to allow easy override during testing
-boundary_conditions = boundary_condition_periodic
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -29,8 +21,13 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
+# you can either use a single function to impose the BCs weakly in all
+# 2*ndims == 6 directions or you can pass a named tuple containing BCs for
+# each direction
+boundary_conditions = boundary_condition_periodic
+
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -38,7 +35,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 
 # Create ODE problem with time span from 0.0 to 1.0
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -75,9 +72,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

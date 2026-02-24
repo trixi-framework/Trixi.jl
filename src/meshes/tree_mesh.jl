@@ -24,47 +24,46 @@ get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
 
 A Cartesian mesh based on trees of hypercubes to support adaptive mesh refinement.
 """
-mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}} <: AbstractMesh{NDIMS}
+mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <:
+               AbstractMesh{NDIMS}
     tree::TreeType
     current_filename::String
     unsaved_changes::Bool
+    # These are needed for distributed memory (i.e., MPI) parallelization
     first_cell_by_rank::OffsetVector{Int, Vector{Int}}
     n_cells_by_rank::OffsetVector{Int, Vector{Int}}
 
-    function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer) where {NDIMS,
-                                                                    TreeType <:
-                                                                    AbstractTree{NDIMS}}
-        # Create mesh
-        m = new()
-        m.tree = TreeType(n_cells_max)
-        m.current_filename = ""
-        m.unsaved_changes = true
-        m.first_cell_by_rank = OffsetVector(Int[], 0)
-        m.n_cells_by_rank = OffsetVector(Int[], 0)
+    function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer) where {NDIMS,
+                                                                           TreeType <:
+                                                                           AbstractTree{NDIMS},
+                                                                           RealT <:
+                                                                           Real}
+        tree = TreeType(n_cells_max)
+        current_filename = ""
+        unsaved_changes = true
+        first_cell_by_rank = OffsetVector(Int[], 0)
+        n_cells_by_rank = OffsetVector(Int[], 0)
 
-        return m
+        return new(tree, current_filename, unsaved_changes,
+                   first_cell_by_rank, n_cells_by_rank)
     end
 
     # TODO: Taal refactor, order of important arguments, use of n_cells_max?
-    # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
-    # TODO: Taal refactor, use NTuple instead of domain_center::AbstractArray{Float64}
-    function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer,
-                                       domain_center::AbstractArray{Float64},
-                                       domain_length,
-                                       periodicity = true) where {NDIMS,
-                                                                  TreeType <:
-                                                                  AbstractTree{NDIMS}}
-        @assert NDIMS isa Integer && NDIMS > 0
+    function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
+                                              domain_center::AbstractArray{RealT},
+                                              domain_length::RealT,
+                                              periodicity = false) where {NDIMS,
+                                                                          TreeType <:
+                                                                          AbstractTree{NDIMS},
+                                                                          RealT <: Real}
+        tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
+        current_filename = ""
+        unsaved_changes = true
+        first_cell_by_rank = OffsetVector(Int[], 0)
+        n_cells_by_rank = OffsetVector(Int[], 0)
 
-        # Create mesh
-        m = new()
-        m.tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
-        m.current_filename = ""
-        m.unsaved_changes = true
-        m.first_cell_by_rank = OffsetVector(Int[], 0)
-        m.n_cells_by_rank = OffsetVector(Int[], 0)
-
-        return m
+        return new(tree, current_filename, unsaved_changes,
+                   first_cell_by_rank, n_cells_by_rank)
     end
 end
 
@@ -72,45 +71,70 @@ const TreeMesh1D = TreeMesh{1, TreeType} where {TreeType <: AbstractTree{1}}
 const TreeMesh2D = TreeMesh{2, TreeType} where {TreeType <: AbstractTree{2}}
 const TreeMesh3D = TreeMesh{3, TreeType} where {TreeType <: AbstractTree{3}}
 
-const SerialTreeMesh{NDIMS} = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
-const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
+const TreeMeshSerial{NDIMS} = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
+const TreeMeshParallel{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
 
-@inline mpi_parallel(mesh::SerialTreeMesh) = False()
-@inline mpi_parallel(mesh::ParallelTreeMesh) = True()
+@inline mpi_parallel(mesh::TreeMeshSerial) = False()
+@inline mpi_parallel(mesh::TreeMeshParallel) = True()
 
-partition!(mesh::SerialTreeMesh) = nothing
+partition!(mesh::TreeMeshSerial) = nothing
 
 # Constructor for passing the dimension and mesh type as an argument
-function TreeMesh(::Type{TreeType},
-                  args...) where {NDIMS, TreeType <: AbstractTree{NDIMS}}
-    TreeMesh{NDIMS, TreeType}(args...)
+function TreeMesh(::Type{TreeType}, args...;
+                  RealT = Float64) where {NDIMS, TreeType <: AbstractTree{NDIMS}}
+    return TreeMesh{NDIMS, TreeType, RealT}(args...)
 end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-function TreeMesh{1, TreeType}(n::Int, center::Real, len::Real,
-                               periodicity = true) where {TreeType <: AbstractTree{1}}
-    # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
-    return TreeMesh{1, TreeType}(n, SVector{1, Float64}(center), len, periodicity)
+function TreeMesh{1, TreeType, RealT}(n::Int, center::RealT, len::RealT,
+                                      periodicity = false) where {
+                                                                  TreeType <:
+                                                                  AbstractTree{1},
+                                                                  RealT <: Real}
+    return TreeMesh{1, TreeType, RealT}(n, SVector{1, RealT}(center), len, periodicity)
 end
 
-function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer,
-                                   domain_center::NTuple{NDIMS, Real},
-                                   domain_length::Real,
-                                   periodicity = true) where {NDIMS,
-                                                              TreeType <:
-                                                              AbstractTree{NDIMS}}
-    # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
-    TreeMesh{NDIMS, TreeType}(n_cells_max, SVector{NDIMS, Float64}(domain_center),
-                              convert(Float64, domain_length), periodicity)
+function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
+                                          domain_center::NTuple{NDIMS, RealT},
+                                          domain_length::RealT,
+                                          periodicity = false) where {NDIMS,
+                                                                      TreeType <:
+                                                                      AbstractTree{NDIMS},
+                                                                      RealT <: Real}
+    return TreeMesh{NDIMS, TreeType, RealT}(n_cells_max,
+                                            SVector{NDIMS, RealT}(domain_center),
+                                            domain_length, periodicity)
 end
 
+"""
+    TreeMesh(coordinates_min::NTuple{NDIMS, Real},
+             coordinates_max::NTuple{NDIMS, Real};
+             n_cells_max,
+             periodicity = false,
+             initial_refinement_level,
+             refinement_patches = (),
+             coarsening_patches = (),
+             RealT = Float64) where {NDIMS}
+
+Create a `TreeMesh` in `NDIMS` dimensions with real type `RealT` covering the domain defined by
+`coordinates_min` and `coordinates_max`. The mesh is initialized with a uniform
+refinement to the specified `initial_refinement_level`. Further refinement and
+coarsening patches can be specified using `refinement_patches` and
+`coarsening_patches`, respectively. The maximum number of cells allowed in the mesh is
+given by `n_cells_max`. The periodicity in each dimension can be specified using the
+`periodicity` argument (default: non-periodic in all dimensions). If it is a single
+`Bool`, the same periodicity is applied in all dimensions; otherwise, a tuple of
+`Bool`s of length `NDIMS` must be provided. Note that the domain must be a hypercube, i.e.,
+all dimensions must have the same length.
+"""
 function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                   coordinates_max::NTuple{NDIMS, Real};
                   n_cells_max,
-                  periodicity = true,
+                  periodicity = false,
                   initial_refinement_level,
                   refinement_patches = (),
-                  coarsening_patches = ()) where {NDIMS}
+                  coarsening_patches = (),
+                  RealT = Float64) where {NDIMS}
     # check arguments
     if !(n_cells_max isa Integer && n_cells_max > 0)
         throw(ArgumentError("`n_cells_max` must be a positive integer (provided `n_cells_max = $n_cells_max`)"))
@@ -119,9 +143,24 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         throw(ArgumentError("`initial_refinement_level` must be a non-negative integer (provided `initial_refinement_level = $initial_refinement_level`)"))
     end
 
-    # Domain length is calculated as the maximum length in any axis direction
-    domain_center = @. (coordinates_min + coordinates_max) / 2
-    domain_length = maximum(coordinates_max .- coordinates_min)
+    # Check if elements in coordinates_min and coordinates_max are all of type RealT
+    for i in 1:NDIMS
+        if !(coordinates_min[i] isa RealT)
+            @warn "Element $i in `coordinates_min` is not of type $RealT (provided `coordinates_min[$i] = $(coordinates_min[i])`)"
+        end
+        if !(coordinates_max[i] isa RealT)
+            @warn "Element $i in `coordinates_max` is not of type $RealT (provided `coordinates_max[$i] = $(coordinates_max[i])`)"
+        end
+    end
+
+    coordinates_min_max_check(coordinates_min, coordinates_max)
+
+    # TreeMesh requires equal domain lengths in all dimensions
+    domain_center = @. convert(RealT, (coordinates_min + coordinates_max) / 2)
+    domain_length = convert(RealT, coordinates_max[1] - coordinates_min[1])
+    if !all(coordinates_max[i] - coordinates_min[i] ≈ domain_length for i in 2:NDIMS)
+        throw(ArgumentError("The TreeMesh domain must be a hypercube (provided `coordinates_max` .- `coordinates_min` = $(coordinates_max .- coordinates_min))"))
+    end
 
     # TODO: MPI, create nice interface for a parallel tree/mesh
     if mpi_isparallel()
@@ -130,16 +169,16 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                     "ERROR: The TreeMesh supports parallel execution with MPI only in 2 dimensions")
             MPI.Abort(mpi_comm(), 1)
         end
-        TreeType = ParallelTree{NDIMS}
+        TreeType = ParallelTree{NDIMS, RealT}
     else
-        TreeType = SerialTree{NDIMS}
+        TreeType = SerialTree{NDIMS, RealT}
     end
 
     # Create mesh
-    mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType}(n_cells_max,
-                                                                      domain_center,
-                                                                      domain_length,
-                                                                      periodicity)
+    mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType, RealT}(n_cells_max,
+                                                                             domain_center,
+                                                                             domain_length,
+                                                                             periodicity)
 
     # Initialize mesh
     initialize!(mesh, initial_refinement_level, refinement_patches, coarsening_patches)
@@ -181,12 +220,14 @@ function initialize!(mesh::TreeMesh, initial_refinement_level,
     return nothing
 end
 
-function TreeMesh(coordinates_min::Real, coordinates_max::Real; kwargs...)
-    TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
+function TreeMesh(coordinates_min::Real, coordinates_max::Real;
+                  kwargs...)
+    return TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
 end
 
 function Base.show(io::IO, mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
     print(io, "TreeMesh{", NDIMS, ", ", TreeType, "} with length ", mesh.tree.length)
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -200,7 +241,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "periodicity" => mesh.tree.periodicity,
             "current #cells" => mesh.tree.length,
             "#leaf-cells" => count_leaf_cells(mesh.tree),
-            "maximum #cells" => mesh.tree.capacity,
+            "maximum #cells" => mesh.tree.capacity
         ]
         summary_box(io, "TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}",
                     setup)
@@ -218,6 +259,7 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::False)
     mesh_file = ""
     h5open(restart_filename, "r") do file
         mesh_file = read(attributes(file)["mesh_file"])
+        return nothing
     end
 
     # Construct and return filename
@@ -230,6 +272,10 @@ end
 
 isperiodic(mesh::TreeMesh) = isperiodic(mesh.tree)
 isperiodic(mesh::TreeMesh, dimension) = isperiodic(mesh.tree, dimension)
+
+Base.real(::TreeMesh{NDIMS, TreeType, RealT}) where {NDIMS, TreeType, RealT} = RealT
+
+@inline ncells(mesh::TreeMesh) = length(local_leaf_cells(mesh.tree))
 
 include("parallel_tree_mesh.jl")
 end # @muladd

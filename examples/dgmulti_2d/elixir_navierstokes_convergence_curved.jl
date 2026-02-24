@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -15,12 +15,20 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
+
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
 dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
              volume_integral = VolumeIntegralWeakForm())
 
 top_bottom(x, tol = 50 * eps()) = abs(abs(x[2]) - 1) < tol
-is_on_boundary = Dict(:top_bottom => top_bottom)
+is_on_boundary = (; top_bottom = top_bottom)
 
 function mapping(xi, eta)
     x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
@@ -186,18 +194,20 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 # BC types
-velocity_bc_top_bottom = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
-                                                                                                      t,
-                                                                                                      equations)[2:3])
-heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
+velocity_bc_top_bottom = NoSlip() do x, t, equations_parabolic
+    u_cons = initial_condition_navier_stokes_convergence_test(x, t, equations_parabolic)
+    return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
+end
+
+heat_bc_top_bottom = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom,
                                                                   heat_bc_top_bottom)
 
 # define inviscid boundary conditions
-boundary_conditions = (; :top_bottom => boundary_condition_slip_wall)
+boundary_conditions = (; top_bottom = boundary_condition_slip_wall)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; :top_bottom => boundary_condition_top_bottom)
+boundary_conditions_parabolic = (; top_bottom = boundary_condition_top_bottom)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, dg;
@@ -216,7 +226,9 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
-callbacks = CallbackSet(summary_callback, alive_callback)
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)
 
 ###############################################################################
 # run the simulation
@@ -224,4 +236,3 @@ callbacks = CallbackSet(summary_callback, alive_callback)
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-summary_callback() # print the timer summary

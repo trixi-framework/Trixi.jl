@@ -127,6 +127,12 @@
 # This tutorial describes how new parabolic terms can be implemented using Trixi.jl.
 
 #src Note to developers: Use "{ index }" (but without spaces, see next line) to enable automatic indexing
+# ### [{index} Parabolic source terms](@ref parabolic_source_terms)
+#-
+# This tutorial describes how parabolic source terms (e.g., source terms which depend on solution gradients)
+# can be implemented in Trixi.jl using the advection-diffusion equation as an example. 
+
+#src Note to developers: Use "{ index }" (but without spaces, see next line) to enable automatic indexing
 # ### [{index} Adaptive mesh refinement](@ref adaptive_mesh_refinement)
 #-
 # Adaptive mesh refinement (AMR) helps to increase the accuracy in sensitive or turbolent regions while
@@ -162,7 +168,8 @@
 #src Note to developers: Use "{ index }" (but without spaces, see next line) to enable automatic indexing
 # ### [{index} Explicit time stepping](@ref time_stepping)
 #-
-# This tutorial is about time integration using [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
+# This tutorial is about time integration using [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+# and its sub-packages.
 # It explains how to use their algorithms and presents two types of time step choices - with error-based
 # and CFL-based adaptive step size control.
 

@@ -1,7 +1,7 @@
 # !!! warning "Experimental implementation (upwind SBP)"
 #     This is an experimental feature and may change in future releases.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -47,9 +47,10 @@ coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0, 1.0) .* pi
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -83,4 +84,3 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, SSPRK43(); abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks)
-summary_callback() # print the timer summary
