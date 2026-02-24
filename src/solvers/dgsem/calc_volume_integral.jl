@@ -269,7 +269,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
 
     @threaded for element in eachelement(dg, cache)
         # run default volume integral 
-        volume_integral_kernel!(du, u, element, mesh,
+        volume_integral_kernel!(du, u, element, typeof(mesh),
                                 have_nonconservative_terms, equations,
                                 volume_integral_default, dg, cache)
 
@@ -306,7 +306,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
             du[.., element] .= zero(eltype(du))
 
             # Calculate entropy stable volume integral contribution
-            volume_integral_kernel!(du, u, element, mesh,
+            volume_integral_kernel!(du, u, element, typeof(mesh),
                                     have_nonconservative_terms, equations,
                                     volume_integral_stabilized, dg, cache)
 
