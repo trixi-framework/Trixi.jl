@@ -11,6 +11,17 @@ include("l2projection.jl")
 include("basis_lobatto_legendre.jl")
 include("basis_gauss_legendre.jl")
 
+"""
+    DGSEM(; RealT=Float64,
+            polydeg::Integer,
+            basis_type = :lobatto,
+            surface_flux=flux_central,
+            surface_integral=SurfaceIntegralWeakForm(surface_flux),
+            volume_integral=VolumeIntegralWeakForm())
+
+Create a discontinuous Galerkin spectral element method (DGSEM) using a
+[`LobattoLegendreBasis`](@ref) or a [`GaussLegendreBasis`](@ref) with polynomials of degree `polydeg`.
+"""
 const DGSEM = DG{Basis} where {Basis <: AbstractBasisSBP}
 
 # This API is no longer documented, and we recommend avoiding its public use.
@@ -51,17 +62,6 @@ end
 # The constructor using only keyword arguments is convenient for elixirs since
 # it allows to modify the polynomial degree and other parameters via
 # `trixi_include`.
-"""
-    DGSEM(; RealT=Float64,
-            polydeg::Integer,
-            basis_type = :lobatto,
-            surface_flux=flux_central,
-            surface_integral=SurfaceIntegralWeakForm(surface_flux),
-            volume_integral=VolumeIntegralWeakForm())
-
-Create a discontinuous Galerkin spectral element method (DGSEM) using a
-[`LobattoLegendreBasis`](@ref) or a [`GaussLegendreBasis`](@ref) with polynomials of degree `polydeg`.
-"""
 function DGSEM(; RealT = Float64,
                polydeg::Integer,
                basis_type = :lobatto,
