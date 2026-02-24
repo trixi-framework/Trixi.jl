@@ -378,11 +378,13 @@ function set_boundary_node_coordinates!(boundaries, element, count, direction,
                                         elements, mesh::TreeMesh1D,
                                         basis::LobattoLegendreBasis)
     if direction == 1
-        boundaries.node_coordinates[:, count] .= elements.node_coordinates[:, 1,
-                                                                           element]
+        @views boundaries.node_coordinates[:, count] .= elements.node_coordinates[:,
+                                                                                  1,
+                                                                                  element]
     elseif direction == 2
-        boundaries.node_coordinates[:, count] .= elements.node_coordinates[:, end,
-                                                                           element]
+        @views boundaries.node_coordinates[:, count] .= elements.node_coordinates[:,
+                                                                                  end,
+                                                                                  element]
     else
         error("should not happen")
     end
@@ -395,12 +397,12 @@ function set_boundary_node_coordinates!(boundaries, element, count, direction,
                                         elements, mesh::TreeMesh1D,
                                         basis::GaussLegendreBasis)
     if direction == 1
-        x_interpolated_left = dot(basis.boundary_interpolation[:, 1],
-                                  elements.node_coordinates[:, :, element])
+        @views x_interpolated_left = dot(basis.boundary_interpolation[:, 1],
+                                         elements.node_coordinates[:, :, element])
         boundaries.node_coordinates[:, count] .= x_interpolated_left
     elseif direction == 2
-        x_interpolated_right = dot(basis.boundary_interpolation[:, 2],
-                                   elements.node_coordinates[:, :, element])
+        @views x_interpolated_right = dot(basis.boundary_interpolation[:, 2],
+                                          elements.node_coordinates[:, :, element])
         boundaries.node_coordinates[:, count] .= x_interpolated_right
     else
         error("should not happen")
