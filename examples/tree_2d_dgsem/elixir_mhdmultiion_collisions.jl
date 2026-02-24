@@ -3,11 +3,11 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# This elixir describes the frictional slowing of an ionized carbon fluid (C6+) with respect to another species 
+# This elixir describes the frictional slowing of an ionized carbon fluid (C6+) with respect to another species
 # of a background ionized carbon fluid with an initially nonzero relative velocity. It is the second slow-down
 # test (fluids with different densities) described in:
-# - Ghosh, D., Chapman, T. D., Berger, R. L., Dimits, A., & Banks, J. W. (2019). A 
-#   multispecies, multifluid model for laser–induced counterstreaming plasma simulations. 
+# - Ghosh, D., Chapman, T. D., Berger, R. L., Dimits, A., & Banks, J. W. (2019). A
+#   multispecies, multifluid model for laser–induced counterstreaming plasma simulations.
 #   Computers & Fluids, 186, 38-57. [DOI: 10.1016/j.compfluid.2019.04.012](https://doi.org/10.1016/j.compfluid.2019.04.012).
 #
 # This is effectively a zero-dimensional case because the spatial gradients are zero, and we use it to test the
@@ -22,7 +22,7 @@ using Trixi
 # Characteristic velocity: V_inf = 1.00E+06 m/s
 #
 # The results of the paper can be reproduced using `source_terms = source_terms_collision_ion_ion` (i.e., only
-# taking into account ion-ion collisions). However, we include ion-electron collisions assuming a constant 
+# taking into account ion-ion collisions). However, we include ion-electron collisions assuming a constant
 # electron temperature of 1 keV in this elixir to test the function `source_terms_collision_ion_electron`
 
 # Return the electron pressure for a constant electron temperature Te = 1 keV
@@ -108,7 +108,7 @@ volume_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_central)
 
@@ -120,17 +120,18 @@ coordinates_max = (1.0, 1.0)
 # We use a very coarse mesh because this is a 0-dimensional case
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 1,
-                n_cells_max = 1_000_000)
+                n_cells_max = 1_000_000, periodicity = true)
 
 # Ion-ion and ion-electron collision source terms
 # In this particular case, we can omit source_terms_lorentz because the magnetic field is zero!
 function source_terms(u, x, t, equations::IdealGlmMhdMultiIonEquations2D)
-    source_terms_collision_ion_ion(u, x, t, equations) +
-    source_terms_collision_ion_electron(u, x, t, equations)
+    return source_terms_collision_ion_ion(u, x, t, equations) +
+           source_terms_collision_ion_electron(u, x, t, equations)
 end
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    source_terms = source_terms,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -147,7 +148,7 @@ analysis_callback = AnalysisCallback(semi,
                                                                  temperature2))
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.01) # Very small CFL due to the stiff source terms 
+stepsize_callback = StepsizeCallback(cfl = 0.01) # Very small CFL due to the stiff source terms
 
 save_restart = SaveRestartCallback(interval = 100,
                                    save_final_restart = true)

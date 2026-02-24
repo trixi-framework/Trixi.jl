@@ -6,14 +6,14 @@
 #! format: noindent
 
 """
-    partition!(mesh::ParallelTreeMesh, allow_coarsening=true)
+    partition!(mesh::TreeMeshParallel, allow_coarsening=true)
 
 Partition `mesh` using a static domain decomposition algorithm
 based on leaf cell count and tree structure.
 If `allow_coarsening` is `true`, the algorithm will keep leaf cells together
 on one rank when needed for local coarsening (i.e. when all children of a cell are leaves).
 """
-function partition!(mesh::ParallelTreeMesh; allow_coarsening = true)
+function partition!(mesh::TreeMeshParallel; allow_coarsening = true)
     # Determine number of leaf cells per rank
     leaves = leaf_cells(mesh.tree)
     @assert length(leaves)>mpi_nranks() "Too many ranks to properly partition the mesh!"
@@ -39,7 +39,7 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening = true)
         last_id = leaves[leaf_count]
         parent_id = mesh.tree.parent_ids[last_id]
 
-        # If coarsening is allowed, we need to make sure that parents of leaves 
+        # If coarsening is allowed, we need to make sure that parents of leaves
         # are on the same rank as the leaves when coarsened.
         if allow_coarsening &&
            # Check if all children of the last parent are leaves
@@ -89,6 +89,7 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::True)
         mesh_file = ""
         h5open(restart_filename, "r") do file
             mesh_file = read(attributes(file)["mesh_file"])
+            return nothing
         end
 
         buffer = Vector{UInt8}(mesh_file)

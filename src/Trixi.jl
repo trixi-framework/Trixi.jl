@@ -151,7 +151,6 @@ include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-
 # Special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
 
@@ -179,7 +178,11 @@ export AcousticPerturbationEquations2D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D,
        MaxwellEquations1D,
+       LinearElasticityEquations1D,
        PassiveTracerEquations
+
+export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
+export IdealGas, VanDerWaals, PengRobinson
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
@@ -200,6 +203,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
        flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
+       flux_terashima_etal, flux_central_terashima_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        DissipationLaxFriedrichsEntropyVariables, DissipationMatrixWintersEtal,
        FluxLaxFriedrichs, max_abs_speed_naive, max_abs_speed,
@@ -241,29 +245,44 @@ export initial_condition_eoc_test_coupled_euler_gravity,
        source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons
-export density, pressure, density_pressure, velocity, global_mean_vars,
-       equilibrium_distribution, waterheight, waterheight_pressure
-export entropy, energy_total, energy_kinetic, energy_internal,
+       cons2entropy, entropy2cons, cons2thermo, thermo2cons
+export density, pressure, density_pressure, velocity, temperature,
+       global_mean_vars,
+       equilibrium_distribution,
+       waterheight, waterheight_pressure
+export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
+       entropy_potential,
+       energy_total, energy_kinetic, energy_internal, energy_internal_specific,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
 export lake_at_rest_error
 export ncomponents, eachcomponent
+export have_constant_speed
 
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
-       P4estMeshView, T8codeMesh
+       P4estMeshView, P4estMeshCubedSphere, T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
        FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
-       VolumeIntegralPureLGLFiniteVolume,
-       VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
+       VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
+       VolumeIntegralShockCapturingHGType,
+       VolumeIntegralAdaptive, IndicatorEntropyChange,
+       IndicatorHennemannGassner,
        VolumeIntegralUpwind,
+       IndicatorEntropyCorrection, IndicatorEntropyCorrectionShockCapturingCombined,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
+
+export reconstruction_O2_inner, reconstruction_O2_full,
+       reconstruction_constant,
+       minmod, monotonized_central, superbee, vanleer,
+       koren, koren_flipped, koren_symmetric,
+       central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
@@ -275,6 +294,7 @@ export nelements, nnodes, nvariables,
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
 export SemidiscretizationHyperbolicParabolic
+export have_constant_diffusivity, max_diffusivity
 
 export SemidiscretizationEulerAcoustics
 
@@ -309,7 +329,9 @@ export trixi_include, examples_dir, get_examples, default_example,
 
 export ode_norm, ode_unstable_check
 
-export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
+export convergence_test,
+       jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
+       linear_structure, linear_structure_parabolic
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 

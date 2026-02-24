@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations3D(5 / 3)
 
 initial_condition = initial_condition_weak_blast_wave
 
-boundary_conditions = Dict(:all => boundary_condition_slip_wall)
+boundary_conditions = (; all = boundary_condition_slip_wall)
 
 # Get the DG approximation space
 
@@ -48,12 +48,11 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df00
                            joinpath(@__DIR__, "cube_unstructured_2.inp"))
 
 mesh = P4estMesh{3}(mesh_file, polydeg = 5,
-                    mapping = mapping,
-                    initial_refinement_level = 0)
+                    mapping = mapping)
 
 # create the semidiscretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

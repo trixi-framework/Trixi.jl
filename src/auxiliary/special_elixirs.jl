@@ -36,7 +36,9 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations,
 
         include_refined(mod, elixir, initial_resolution, iter; kwargs)
 
-        l2_error, linf_error = mod.analysis_callback(mod.sol)
+        # @invokelatest is required for interactive use
+        # due to world age issues on Julia 1.12 (and newer)
+        l2_error, linf_error = @invokelatest mod.analysis_callback(@invokelatest mod.sol)
 
         # collect errors as one vector to reshape later
         append!(errors[:l2], l2_error)
@@ -47,7 +49,24 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations,
     end
 
     # Use raw error values to compute EOC
-    analyze_convergence(errors, iterations, mod.semi)
+    # @invokelatest is required for interactive use
+    # due to world age issues on Julia 1.12 (and newer)
+    return analyze_convergence(errors, iterations, (@invokelatest mod.semi))
+end
+
+"""
+    calc_mean_convergence(eocs)
+
+Calculate the mean convergence rates from the given experimental orders of convergence `eocs`.
+The `eocs` are expected to be in the format returned by [`convergence_test`](@ref), i.e., a `Dict` where
+the keys are the error types (e.g., `:l2`, `:linf`) and the values are matrices with the EOCs for each
+variable in the columns and the iterations in the rows.
+Returns a `Dict` with the same keys as `eocs` and the mean convergence rates for all variables as values.
+"""
+function calc_mean_convergence(eocs)
+    return Dict(kind => [sum(eocs[kind][:, v]) / length(eocs[kind][:, v])
+                         for v in 1:size(eocs[kind], 2)]
+                for kind in keys(eocs))
 end
 
 # Analyze convergence for any semidiscretization
@@ -55,7 +74,7 @@ end
 function analyze_convergence(errors, iterations, semi::AbstractSemidiscretization)
     _, equations, _, _ = mesh_equations_solver_cache(semi)
     variablenames = varnames(cons2cons, equations)
-    analyze_convergence(errors, iterations, variablenames)
+    return analyze_convergence(errors, iterations, variablenames)
 end
 
 # This method is called with the collected error values to actually compute and print the EOC
@@ -73,8 +92,7 @@ function analyze_convergence(errors, iterations,
     eocs = Dict(kind => log.(error[2:end, :] ./ error[1:(end - 1), :]) ./ log(1 / 2)
                 for (kind, error) in errorsmatrix)
 
-    eoc_mean_values = Dict{Symbol, Any}()
-    eoc_mean_values[:variables] = variablenames
+    eoc_mean_values = calc_mean_convergence(eocs)
 
     for (kind, error) in errorsmatrix
         println(kind)
@@ -108,23 +126,20 @@ function analyze_convergence(errors, iterations,
         println("")
 
         # Print mean EOCs
-        mean_values = zeros(eltype(errors[:l2]), nvariables)
         for v in 1:nvariables
-            mean_values[v] = sum(eocs[kind][:, v]) ./ length(eocs[kind][:, v])
             @printf("%-10s", "mean")
-            @printf("%-10.2f", mean_values[v])
+            @printf("%-10.2f", eoc_mean_values[kind][v])
         end
-        eoc_mean_values[kind] = mean_values
         println("")
         println("-"^100)
     end
 
-    return eoc_mean_values
+    return eocs, errorsmatrix
 end
 
 function convergence_test(elixir::AbstractString, iterations, RealT = Float64;
                           kwargs...)
-    convergence_test(Main, elixir::AbstractString, iterations, RealT; kwargs...)
+    return convergence_test(Main, elixir::AbstractString, iterations, RealT; kwargs...)
 end
 
 # Helper methods used in the functions defined above
@@ -175,8 +190,8 @@ end
 # runs the specified elixir with a doubled resolution each time iter is increased by 1
 # works for TreeMesh
 function include_refined(mod, elixir, initial_refinement_level::Int, iter; kwargs)
-    trixi_include(mod, elixir; kwargs...,
-                  initial_refinement_level = initial_refinement_level + iter - 1)
+    return trixi_include(mod, elixir; kwargs...,
+                         initial_refinement_level = initial_refinement_level + iter - 1)
 end
 
 # runs the specified elixir with a doubled resolution each time iter is increased by 1
@@ -185,6 +200,7 @@ function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS, Int}, i
                          kwargs) where {NDIMS}
     new_cells_per_dimension = cells_per_dimension .* 2^(iter - 1)
 
-    trixi_include(mod, elixir; kwargs..., cells_per_dimension = new_cells_per_dimension)
+    return trixi_include(mod, elixir; kwargs...,
+                         cells_per_dimension = new_cells_per_dimension)
 end
 end # @muladd

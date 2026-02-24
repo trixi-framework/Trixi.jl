@@ -89,18 +89,20 @@ function global_plotting_triangulation_triplot(xyz_plot, u_plot, t)
     return vec.(xyz_plot)..., zp, tp
 end
 
-function get_face_node_indices(r, s, dg::DGSEM, tol = 100 * eps())
-    face_1 = findall(@. abs(s + 1) < tol)
-    face_2 = findall(@. abs(r - 1) < tol)
-    face_3 = findall(@. abs(s - 1) < tol)
-    face_4 = findall(@. abs(r + 1) < tol)
+function get_face_node_indices(r, s, dg::Union{<:DGSEM, <:FDSBP}, tol = 100 * eps())
+    r_max, r_min = extrema(r)
+    s_max, s_min = extrema(s)
+    face_1 = findall(@. abs(s - s_min) < tol)
+    face_2 = findall(@. abs(r - r_max) < tol)
+    face_3 = findall(@. abs(s - s_max) < tol)
+    face_4 = findall(@. abs(r - r_min) < tol)
     Fmask = hcat(face_1, face_2, face_3, face_4)
     return Fmask
 end
 
 # dispatch on semi
 function mesh_plotting_wireframe(u, semi)
-    mesh_plotting_wireframe(u, mesh_equations_solver_cache(semi)...)
+    return mesh_plotting_wireframe(u, mesh_equations_solver_cache(semi)...)
 end
 
 #     mesh_plotting_wireframe(u, mesh, equations, dg::DGMulti, cache; num_plotting_pts=25)
@@ -170,8 +172,8 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cac
         return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
     end
     function reshape_and_interpolate(x)
-        plotting_interp_matrix1D *
-        face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+        return plotting_interp_matrix1D *
+               face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
     end
     xfp, yfp = map(reshape_and_interpolate, (x, y))
     ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate,
@@ -180,7 +182,8 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cac
     return xfp, yfp, ufp
 end
 
-function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cache;
+function mesh_plotting_wireframe(u::ScalarData, mesh, equations,
+                                 dg::Union{<:DGSEM, <:FDSBP}, cache;
                                  nvisnodes = 2 * nnodes(dg))
 
     # build nodes on reference element (seems to be the right ordering)
@@ -208,8 +211,8 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cach
         return reshape(xf, num_nodes_1D, num_elements * num_reference_faces)
     end
     function reshape_and_interpolate(x)
-        plotting_interp_matrix1D *
-        face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
+        return plotting_interp_matrix1D *
+               face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
     end
     xfp, yfp, ufp = map(reshape_and_interpolate, (x, y, u.data))
 
@@ -283,7 +286,7 @@ function adapt_to_mesh_level!(u_ode, semi, level)
 end
 
 function adapt_to_mesh_level!(sol::TrixiODESolution, level)
-    adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
+    return adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
 end
 
 """
@@ -308,7 +311,7 @@ function adapt_to_mesh_level(u_ode, semi, level)
 end
 
 function adapt_to_mesh_level(sol::TrixiODESolution, level)
-    adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
+    return adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
 end
 
 # Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.
@@ -1667,11 +1670,23 @@ function plotting_interpolation_matrix(dg::DGSEM;
     return kron(Vp1D, Vp1D)
 end
 
-function reference_node_coordinates_2d(dg::DGSEM)
-    @unpack nodes = dg.basis
+function reference_node_coordinates_2d(dg::Union{DGSEM, FDSBP})
+    nodes = get_nodes(dg.basis)
     r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
     s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
     return r, s
+end
+
+function plotting_interpolation_matrix(dg::FDSBP; kwargs...)
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
+    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    return I
+end
+
+function face_plotting_interpolation_matrix(dg::FDSBP; kwargs...)
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
+    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    return I
 end
 
 # Find element and triangle ids containing coordinates given as a matrix [ndims, npoints]

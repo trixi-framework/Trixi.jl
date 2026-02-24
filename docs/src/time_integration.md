@@ -30,7 +30,7 @@ are the following. Further documentation can be found in the
   from Trixi.jl.
 - If you start Julia with multiple threads and want to use them also in the time
   integration method from OrdinaryDiffEq.jl, you need to pass the keyword argument
-  `thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`)` to the algorithm, e.g.,
+  `thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`) to the algorithm, e.g.,
   `RDPK3SpFSAL49(thread = Trixi.True())` or
   `CarpenterKennedy2N54(thread = Trixi.True(), williamson_condition = false)`.
   For more information on using thread-based parallelism in Trixi.jl, please refer to
@@ -40,6 +40,8 @@ are the following. Further documentation can be found in the
   pass `internalnorm = ode_norm` and you should pass `unstable_check = ode_unstable_check` to
   OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/), which are both
   included in [`ode_default_options`](@ref).
+- Hyperbolic-parabolic problems can be solved using IMEX (implicit-explicit) integrators.
+  Available options from OrdinaryDiffEq.jl are [IMEX SDIRK](https://docs.sciml.ai/OrdinaryDiffEq/stable/implicit/SDIRK/#IMEX-SDIRK) (Single-Diagonal Implicit Runge-Kutta) methods and [IMEX BDF](https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/#IMEX-Multistep) (Backwards Differentiation Formula) methods.
 
 !!! note "Number of `rhs!` calls"
     If you use explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
@@ -99,7 +101,8 @@ cells_per_dimension = 100
 coordinates_min = 0.0
 coordinates_max = 1.0
 mesh = StructuredMesh(cells_per_dimension,
-                      coordinates_min, coordinates_max)
+                      coordinates_min, coordinates_max,
+                      periodicity = true)
 
 # Define the equation and initial condition
 advection_velocity = 1.0
@@ -111,9 +114,8 @@ initial_condition = initial_condition_convergence_test
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # Define the semidiscretization
-semi = SemidiscretizationHyperbolic(mesh,
-                                    equations, initial_condition,
-                                    solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                    solver; boundary_conditions = boundary_condition_periodic)
 ```
 
 After that, we will define the necessary [callbacks](@ref callbacks-id) for the simulation. Callbacks are used to perform actions at specific points during the integration process.
@@ -249,15 +251,15 @@ one can construct a discrete equivalent $H$ to (1) which is obtained by computin
 H(t) \coloneqq H\big(\boldsymbol U(t)\big) = \int_{\Omega} s \big(\boldsymbol U(t) \big) \, \text{d} \Omega
 ```
 
-For a suitable spatial discretization (2) entropy-conservative systems such as the Euler equations preserve the total entropy $H(t)$ over time, i.e., 
+For a suitable spatial discretization (2) entropy-conservative systems such as the Euler equations preserve the total entropy $H(t)$ over time, i.e.,
 ```math
-\frac{\text{d}}{\text{d} t} H \big(\boldsymbol U(t) \big ) 
-= 
-\left \langle \frac{\partial H(\boldsymbol U)}{\partial \boldsymbol U}, \frac{\text{d}}{\text{d} t} \boldsymbol U(t) \right \rangle 
+\frac{\text{d}}{\text{d} t} H \big(\boldsymbol U(t) \big )
+=
+\left \langle \frac{\partial H(\boldsymbol U)}{\partial \boldsymbol U}, \frac{\text{d}}{\text{d} t} \boldsymbol U(t) \right \rangle
 \overset{(2)}{=}
 \left \langle \frac{\partial H(\boldsymbol U)}{\partial \boldsymbol U}, \boldsymbol F\big(t, \boldsymbol U(t) \big) \right \rangle = 0 \tag{3}
 ```
-while entropy-stable discretiations of entropy-diffusive systems such as the Navier-Stokes equations ensure that the total entropy decays over time, i.e., 
+while entropy-stable discretiations of entropy-diffusive systems such as the Navier-Stokes equations ensure that the total entropy decays over time, i.e.,
 ```math
 \left \langle \frac{\partial H(\boldsymbol U)}{\partial \boldsymbol U}, \boldsymbol F(t, \boldsymbol U) \right \rangle \leq 0 \tag{4}
 ```
@@ -266,12 +268,12 @@ while entropy-stable discretiations of entropy-diffusive systems such as the Nav
 
 Evolving the ordinary differential equation (ODE) for the entropy (2) with a Runge-Kutta scheme gives
 ```math
-H_{n+1} = H_n + \Delta t \sum_{i=1}^S b_i \, \left\langle \frac{\partial 
+H_{n+1} = H_n + \Delta t \sum_{i=1}^S b_i \, \left\langle \frac{\partial
 H(\boldsymbol U_{n, i})
 }{\partial \boldsymbol U}, \boldsymbol F(\boldsymbol U_{n, i}) \right\rangle \tag{5}
 ```
 which preserves (3) and (4).
-In practice, however, we evolve the conserved variables $\boldsymbol U$ which results in 
+In practice, however, we evolve the conserved variables $\boldsymbol U$ which results in
 ```math
 \boldsymbol U_{n+1} = \boldsymbol U_n + \Delta t \sum_{i=1}^S b_i \boldsymbol F(\boldsymbol U_{n, i})
 ```
@@ -285,14 +287,14 @@ To resolve the difference $H(\boldsymbol U_{n+1}) - H_{n+1}$ Ketcheson, Ranocha 
 - [Ranocha et al. (2020)](https://doi.org/10.1137/19M1263480): Relaxation Runge-Kutta methods: Fully discrete explicit entropy-stable schemes for the compressible Euler and Navier-Stokes equations
 - [Ranocha, Lóczi, and Ketcheson (2020)](https://doi.org/10.1007/s00211-020-01158-4): General relaxation methods for initial-value problems with application to multistep schemes
 
-Almost miraculously, it suffices to introduce a single parameter $\gamma$ in the final update step of the Runge-Kutta method to ensure that the properties of the spatial discretization are preserved, i.e., 
+Almost miraculously, it suffices to introduce a single parameter $\gamma$ in the final update step of the Runge-Kutta method to ensure that the properties of the spatial discretization are preserved, i.e.,
 ```math
-H \big(\boldsymbol U_{n+1}( \gamma  ) \big) 
-\overset{!}{=} 
-H(\boldsymbol U_n) + 
-\gamma  \Delta t \sum_{i=1}^S b_i 
-\left \langle 
-\frac{\partial H(\boldsymbol U_{n, i})}{\partial \boldsymbol U_{n, i}}, \boldsymbol  F(\boldsymbol U_{n, i}) 
+H \big(\boldsymbol U_{n+1}( \gamma  ) \big)
+\overset{!}{=}
+H(\boldsymbol U_n) +
+\gamma  \Delta t \sum_{i=1}^S b_i
+\left \langle
+\frac{\partial H(\boldsymbol U_{n, i})}{\partial \boldsymbol U_{n, i}}, \boldsymbol  F(\boldsymbol U_{n, i})
 \right  \rangle
 \tag{6}
 ```

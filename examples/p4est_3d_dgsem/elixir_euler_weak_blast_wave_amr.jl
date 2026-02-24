@@ -77,7 +77,8 @@ mesh = P4estMesh(trees_per_dimension,
                  periodicity = true)
 
 # Create the semidiscretization object
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -102,7 +103,7 @@ amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
 
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
-                           adapt_initial_condition = false,
+                           adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = false)
 
 stepsize_callback = StepsizeCallback(cfl = 0.5)

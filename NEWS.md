@@ -5,17 +5,98 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.15 lifecycle
+
+#### Added
+
+- It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
+This is useful for (locally) diffusion-dominated problems.
+This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
+- Added functionality to `ScalarPlotData2D` allowing visualization a field provided by a user-defined scalar function ([#2796]).
+- Added `NonIdealCompressibleEuler2D` ([#2768]).
+- Generalization of `VolumeIntegralShockCapturingHG` and `VolumeIntegralShockCapturingRRG` to support different volume integrals on the 
+  non-stabilized and stabilized elements/cells.
+  The generalized volume integral is called `VolumeIntegralShockCapturingHGType` and takes the three keyword arguments `volume_integral_default`,
+  `volume_integral_blend_high_order`, and `volume_integral_blend_low_order` besides the usual `indicator` argument.
+  In particular, `volume_integral_default` may be e.g.  `VolumeIntegralWeakForm` or `VolumeIntegralAdaptive`, i.e.,
+  the non-stabilized elements/cells are no longer restricted to `VolumeIntegralFluxDifferencing` only ([#2802]).
+- Added `IndicatorEntropyCorrection`. When combined with `VolumeIntegralAdaptive`, this blends together a stabilized and non-stabilized 
+  volume integral based on the violation of a volume entropy condition. `IndicatorEntropyCorrectionShockCapturingCombined` additionally 
+  guides the blending by taking the maximum of the entropy correction indicator and a shock capturing indicator ([#2764]). 
+- The second-order subcell volume integral is no longer limited to reconstruction in primitive variables.
+  Instead, it is possible to reconstruct in custom variables, if functions `cons2recon` and `recon2cons` are provided to
+  `VolumeIntegralPureLGLFiniteVolumeO2` and `VolumeIntegralShockCapturingRRG`([#2817]).
+
+## Changes when updating to v0.15 from v0.14.x
+
+#### Changed
+
+- Boundary conditions are now passed as a `NamedTuple` consistently across all mesh types, i.e., boundary conditions, which
+  were previously passed as a `Dict` for the `P4estMesh`, `T8codeMesh`, and `UnstructuredMesh2D` mesh types have to be converted to `NamedTuple`s. Also passing boundary conditions as a `Tuple` is no longer supported. This change also makes `boundary_condition_default` obsolete, which is why it was removed ([#2761]).
+- The `TreeMesh`, `StructuredMesh` as well as the hypercube constructors of `P4estMesh` and `T8codeMesh` are now non-periodic by default, i.e., you need to
+  explicitly set the `periodicity` keyword argument to `true` to obtain periodic meshes. This change was made to be consistent with other mesh types and to avoid confusion ([#2770]).
+- There are no default boundary conditions anymore in `SemidiscretizationHyperbolic` and `SemidiscretizationHyperbolicParabolic`.
+  Users now have to explicitly provide boundary conditions via the `boundary_conditions` keyword argument, which were periodic by default before ([#2770]).
+- Renamed `energy_internal` for `NonIdealCompressibleEulerEquations1D` to `energy_internal_specific` ([#2762]). This makes `energy_internal` for `NonIdealCompressibleEulerEquations1D` consistent with the rest of Trixi.jl, where `energy_internal` refers to the specific internal energy scaled by density.
+- Changed `cons2prim(u, ::NonIdealCompressibleEulerEquations1D)` so that it returns `rho, v1, p`. Previously, `cons2prim` returned `V, v1, T`; this functionality is now provided by the non-exported function `cons2thermo` ([#2769]).
+- The variable name (printed to the screen and files) of the total energy in the compressible Euler equations has been changed from `rho_e` to `rho_e_total` to avoid confusion with the internal energy `rho_e_internal` ([#2778]).
+- `convergence_test` now returns the complete convergence orders and the full errors matrix. To obtain the mean convergence rates, use `Trixi.calc_mean_convergence` on the convergence orders ([#2753]).
+- The serial and parallel mesh types have been renamed from `SerialTreeMesh`, `ParallelTreeMesh`, `SerialP4estMesh`, `ParallelP4estMesh`, `SerialT8codeMesh`, and `ParallelT8codeMesh` to `TreeMeshSerial`, `TreeMeshParallel`, `P4estMeshSerial`, `P4estMeshParallel`, `T8codeMeshSerial`, and `T8codeMeshParallel`, respectively ([#2787]).
+
+#### Added
+
+- Added `PengRobinson` equation of state ([#2769]).
+
+## Changes in the v0.14 lifecycle
+
+#### Added
+
+- Added `NonIdealCompressibleEulerEquations1D`, which allows users to specify a non-ideal equation of state. Currently `IdealGas` and `VanDerWaals` are supported ([#2739]).
+- Added the APEC (approximate pressure equilibrium preserving with conservation) fluxes of `flux_terashima_etal` and `flux_central_terashima_etal` from [Terashima, Ly, Ihme (2025)](https://doi.org/10.1016/j.jcp.2024.113701) ([#2756]).
+- Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
+  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on
+  3D meshes for conservative systems ([#2734], [#2755]).
+- Extended 3D support for subcell limiting with `P4estMesh` was added ([#2733]).
+  In the new version, local (minimum or maximum) limiting for nonlinear variables (using
+  the keyword `local_onesided_variables_nonlinear` in `SubcellLimiterIDP()`) is supported.
+
+#### Changed
+
+## Changes when updating to v0.14 from v0.13.x
+
+#### Changed
+
+- van Leer's limiters changed to snake case: `vanLeer` => `vanleer` ([#2744])
+- A couple `struct`s have been made completely immutable, or only a couple fields thereof ([#2640]). Most notably, `save_solution.condition.save_initial_solution` where `save_solution isa SavesolutionCallback` can no longer be directly changed. Instead, the `@reset` macro from [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) is used in the elixirs.
+
+## Changes in the v0.13 lifecycle
+
+#### Added
+
+- Initial 3D support for subcell limiting with `P4estMesh` was added ([#2582], [#2647], [#2688], [#2722]).
+  In the new version, IDP positivity limiting for conservative variables (using
+  the keyword `positivity_variables_cons` in `SubcellLimiterIDP()`) and nonlinear
+  variables (using `positivity_variables_nonlinear`) is supported.
+- Optimized 2D and 3D kernels for nonconservative fluxes with `P4estMesh` were added ([#2653], [#2663]).
+  The optimized kernel can be enabled via the trait `Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)`.
+  When the trait is set to `Trixi.True()`, a single method has to be defined, that computes and returns the tuple
+  `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_ll, u_rr)` and
+  `flux_cons(u_ll, u_rr) + 0.5f0 * flux_noncons(u_rr, u_ll)`.
+- Added support for `source_terms_parabolic`, which allows users to specify gradient-dependent source terms when solving parabolic equations ([#2721]).
+- Support for second-order finite volume subcell volume integral (`VolumeIntegralPureLGLFiniteVolumeO2`) and
+  stabilized DG-FV blending volume integral (`VolumeIntegralShockCapturingRRG`) on
+  1D & 2D meshes for conservative systems ([#2022], [#2695], [#2718]).
 
 ## Changes when updating to v0.13 from v0.12.x
 
 #### Changed
 
-- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!` 
+- The `polyester` preference got merged with the `native_threading` preference and the `Trixi.set_polyester!`
   function got renamed to `Trixi.set_threading_backend!` ([#2476]).
 - Default wave-speed estimate used within `flux_lax_friedrichs` changed from `max_abs_speed_naive` to
   `max_abs_speed` which is less diffusive.
   In v0.13, `flux_lax_friedrichs = FluxLaxFriedrichs(max_abs_speed = max_abs_speed)`
-  instead of the previous default 
+  instead of the previous default
   `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)` ([#2458]).
 - The signature of the `VisualizationCallback` constructor changed.
   In the new version, it is mandatory to pass the semidiscretization `semi` to
@@ -296,7 +377,7 @@ for human readability.
   `(; a, b) = stuff` instead of `@unpack a, b = stuff`.
 - The constructor `DGMultiMesh(dg; cells_per_dimension, kwargs...)` is deprecated
   and will be removed. The new constructor `DGMultiMesh(dg, cells_per_dimension; kwargs...)`
-  does not have `cells_per_dimesion` as a keyword argument.
+  does not have `cells_per_dimension` as a keyword argument.
 
 #### Removed
 

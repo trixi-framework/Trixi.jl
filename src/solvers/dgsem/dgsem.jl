@@ -51,9 +51,9 @@ function DGSEM(RealT, polydeg::Integer,
 end
 
 # This API is no longer documented, and we recommend avoiding its public use.
-function DGSEM(polydeg, surface_flux = flux_central,
+function DGSEM(polydeg::Integer, surface_flux = flux_central,
                volume_integral = VolumeIntegralWeakForm())
-    DGSEM(Float64, polydeg, surface_flux, volume_integral)
+    return DGSEM(Float64, polydeg, surface_flux, volume_integral)
 end
 
 # The constructor using only keyword arguments is convenient for elixirs since
@@ -71,4 +71,12 @@ end
 @inline polydeg(dg::DGSEM) = polydeg(dg.basis)
 
 Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
+
+include("compute_u_mean.jl")
+
+include("containers.jl")
+
+include("indicators.jl")
+include("special_volume_integrals.jl")
+include("calc_volume_integral.jl")
 end # @muladd

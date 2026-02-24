@@ -15,12 +15,12 @@ The linear scalar advection equation
 in one space dimension with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation1D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{1, 1}
+       AbstractLinearScalarAdvectionEquation{1}
     advection_velocity::SVector{1, RealT}
 end
 
 function LinearScalarAdvectionEquation1D(a::Real)
-    LinearScalarAdvectionEquation1D(SVector(a))
+    return LinearScalarAdvectionEquation1D(SVector(a))
 end
 
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation1D) = ("scalar",)
@@ -33,10 +33,7 @@ varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation1D) = ("scalar",)
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation1D)
-    # Store translated coordinate for easy use of exact solution
     RealT = eltype(x)
-    x_trans = x - equation.advection_velocity * t
-
     return SVector(RealT(2))
 end
 
@@ -173,6 +170,15 @@ function flux_engquist_osher(u_ll, u_rr, orientation::Int,
                     abs(equation.advection_velocity[orientation]) * (u_R - u_L)))
 end
 
+"""
+    have_constant_speed(::LinearScalarAdvectionEquation1D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearScalarAdvectionEquation1D) = True()
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation1D)
@@ -219,19 +225,27 @@ end
     return a < 0 ? flux(u, orientation, equations) : SVector(zero(RealT))
 end
 
-# Convert conservative variables to primitive
+# Convert conservative variables to primitive and vice versa
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation1D) = u
+@inline prim2cons(u, equation::LinearScalarAdvectionEquation1D) = u
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation1D) = u
 
-# Calculate entropy for a conservative state `cons`
+@doc raw"""
+    entropy(u, equations::AbstractLinearScalarAdvectionEquation)
+
+Calculate entropy for a conservative state `u` as
+```math
+S(u) = \frac{1}{2} u^2
+```
+"""
 @inline entropy(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation1D) = entropy(u[1], equation)
 
-# Calculate total energy for a conservative state `cons`
+# Calculate total energy for a conservative state `u`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation1D)
-    energy_total(u[1], equation)
+    return energy_total(u[1], equation)
 end
 end # @muladd

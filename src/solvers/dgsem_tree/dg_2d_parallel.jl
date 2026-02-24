@@ -38,11 +38,12 @@ function MPICache(uEltype)
     n_elements_global = 0
     first_element_global_id = 0
 
-    MPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars,
-                      mpi_send_buffers, mpi_recv_buffers,
-                      mpi_send_requests, mpi_recv_requests,
-                      n_elements_by_rank, n_elements_global,
-                      first_element_global_id)
+    return MPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces,
+                             mpi_neighbor_mortars,
+                             mpi_send_buffers, mpi_recv_buffers,
+                             mpi_send_requests, mpi_recv_requests,
+                             n_elements_by_rank, n_elements_global,
+                             first_element_global_id)
 end
 @inline Base.eltype(::MPICache{uEltype}) where {uEltype} = uEltype
 
@@ -154,7 +155,7 @@ end
 
 # TODO: MPI dimension agnostic
 function finish_mpi_send!(mpi_cache::MPICache)
-    MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
+    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
 # TODO: MPI dimension agnostic
@@ -241,7 +242,7 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::ParallelTreeMesh{2}, equations,
+function create_cache(mesh::TreeMeshParallel{2}, equations,
                       dg::DG, RealT, ::Type{uEltype}) where {uEltype <: Real}
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
@@ -261,12 +262,14 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations,
     mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
                                nvariables(equations), nnodes(dg), uEltype)
 
-    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars, mpi_mortars,
-             mpi_cache)
+    # Container cache
+    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_mortars, mpi_cache)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+    # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
@@ -448,8 +451,8 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
 end
 
 function rhs!(du, u, t,
-              mesh::Union{ParallelTreeMesh{2}, ParallelP4estMesh{2},
-                          ParallelT8codeMesh{2}}, equations,
+              mesh::Union{TreeMeshParallel{2}, P4estMeshParallel{2},
+                          T8codeMeshParallel{2}}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Start to receive MPI data
@@ -472,7 +475,7 @@ function rhs!(du, u, t,
     end
 
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
@@ -496,8 +499,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2boundaries!(cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
@@ -559,7 +561,7 @@ function rhs!(du, u, t,
 end
 
 function prolong2mpiinterfaces!(cache, u,
-                                mesh::ParallelTreeMesh{2},
+                                mesh::TreeMeshParallel{2},
                                 equations, surface_integral, dg::DG)
     @unpack mpi_interfaces = cache
 
@@ -595,7 +597,7 @@ function prolong2mpiinterfaces!(cache, u,
 end
 
 function prolong2mpimortars!(cache, u,
-                             mesh::ParallelTreeMesh{2}, equations,
+                             mesh::TreeMeshParallel{2}, equations,
                              mortar_l2::LobattoLegendreMortarL2,
                              dg::DGSEM)
     @unpack mpi_mortars = cache
@@ -721,8 +723,8 @@ function prolong2mpimortars!(cache, u,
 end
 
 function calc_mpi_interface_flux!(surface_flux_values,
-                                  mesh::ParallelTreeMesh{2},
-                                  nonconservative_terms::False, equations,
+                                  mesh::TreeMeshParallel{2},
+                                  have_nonconservative_terms::False, equations,
                                   surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
@@ -762,8 +764,8 @@ function calc_mpi_interface_flux!(surface_flux_values,
 end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
-                               mesh::ParallelTreeMesh{2},
-                               nonconservative_terms::False, equations,
+                               mesh::TreeMeshParallel{2},
+                               have_nonconservative_terms::False, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -777,7 +779,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
         fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
-        # Because `nonconservative_terms` is `False` the primary and secondary fluxes
+        # Because `have_nonconservative_terms` is `False` the primary and secondary fluxes
         # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
         calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
@@ -799,7 +801,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
 end
 
 @inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,
-                                                mesh::ParallelTreeMesh{2}, equations,
+                                                mesh::TreeMeshParallel{2}, equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
                                                 dg::DGSEM, cache,
                                                 mortar, fstar_primary_upper,

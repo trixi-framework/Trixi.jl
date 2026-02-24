@@ -9,7 +9,7 @@ equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:all => boundary_condition)
+boundary_conditions = (; all = boundary_condition)
 
 # Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
 # The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
@@ -20,7 +20,7 @@ boundary_conditions = Dict(:all => boundary_condition)
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
@@ -60,8 +60,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/d45c8a
 
 # Mesh polydeg of 2 (half the solver polydeg) to ensure FSP (see above).
 mesh = T8codeMesh(mesh_file, 3; polydeg = 2,
-                  mapping = mapping,
-                  initial_refinement_level = 0)
+                  mapping = mapping)
 
 # Note: This is actually a `p8est_quadrant_t` which is much bigger than the
 # following struct. But we only need the first four fields for our purpose.

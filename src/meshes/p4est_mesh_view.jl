@@ -12,8 +12,8 @@ A view on a [`P4estMesh`](@ref).
 """
 mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <:
                AbstractMesh{NDIMS}
-    parent::Parent
-    cell_ids::Vector{Int}
+    const parent::Parent
+    const cell_ids::Vector{Int}
     unsaved_changes::Bool
     current_filename::String
 end
@@ -136,6 +136,7 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
         file["boundary_names"] = mesh.parent.boundary_names .|> String
+        return nothing
     end
 
     return filename

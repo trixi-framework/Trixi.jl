@@ -32,17 +32,70 @@ function Base.getproperty(integrator::AbstractTimeIntegrator, field::Symbol)
 end
 
 # used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::AbstractTimeIntegrator, dt)
+@inline function set_proposed_dt!(integrator::AbstractTimeIntegrator, dt)
     (integrator.dt = dt; integrator.dtcache = dt)
+
+    return nothing
 end
 
-# Required e.g. for `glm_speed_callback` 
-function get_proposed_dt(integrator::AbstractTimeIntegrator)
+# Required e.g. for `glm_speed_callback`
+@inline function get_proposed_dt(integrator::AbstractTimeIntegrator)
     return integrator.dt
 end
 
+@inline function limit_dt!(integrator::AbstractTimeIntegrator, t_end)
+    # if the next iteration would push the simulation beyond the end time, set dt accordingly
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
+        integrator.dt = t_end - integrator.t
+        terminate!(integrator)
+    end
+
+    return nothing
+end
+
+function initialize_callbacks!(callbacks::Union{CallbackSet, Nothing},
+                               integrator::AbstractTimeIntegrator)
+    # initialize callbacks
+    if callbacks isa CallbackSet
+        foreach(callbacks.continuous_callbacks) do cb
+            throw(ArgumentError("Continuous callbacks are unsupported."))
+        end
+        foreach(callbacks.discrete_callbacks) do cb
+            return cb.initialize(cb, integrator.u, integrator.t, integrator)
+        end
+    end
+
+    return nothing
+end
+
+function handle_callbacks!(callbacks::Union{CallbackSet, Nothing},
+                           integrator::AbstractTimeIntegrator)
+    # handle callbacks
+    if callbacks isa CallbackSet
+        foreach(callbacks.discrete_callbacks) do cb
+            if cb.condition(integrator.u, integrator.t, integrator)
+                cb.affect!(integrator)
+            end
+            return nothing
+        end
+    end
+
+    return nothing
+end
+
+@inline function check_max_iter!(integrator::AbstractTimeIntegrator)
+    # respect maximum number of iterations
+    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
+        @warn "Interrupted. Larger maxiters is needed."
+        terminate!(integrator)
+    end
+
+    return nothing
+end
+
 """
-    Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm; 
+    Trixi.solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
                 dt, callbacks, kwargs...)
 
 Fakes `solve` from https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
@@ -52,7 +105,7 @@ function solve(ode::ODEProblem, alg::AbstractTimeIntegrationAlgorithm;
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
     # Start actual solve
-    solve!(integrator)
+    return solve!(integrator)
 end
 
 function solve!(integrator::AbstractTimeIntegrator)
@@ -67,8 +120,7 @@ function solve!(integrator::AbstractTimeIntegrator)
     finalize_callbacks(integrator)
 
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
+                                  (prob.u0, integrator.u), prob)
 end
 
 # Interface required by DiffEqCallbacks.jl
@@ -87,12 +139,14 @@ function finalize_callbacks(integrator::AbstractTimeIntegrator)
 
     if callbacks isa CallbackSet
         foreach(callbacks.discrete_callbacks) do cb
-            cb.finalize(cb, integrator.u, integrator.t, integrator)
+            return cb.finalize(cb, integrator.u, integrator.t, integrator)
         end
         foreach(callbacks.continuous_callbacks) do cb
-            cb.finalize(cb, integrator.u, integrator.t, integrator)
+            return cb.finalize(cb, integrator.u, integrator.t, integrator)
         end
     end
+
+    return nothing
 end
 
 include("methods_2N.jl")

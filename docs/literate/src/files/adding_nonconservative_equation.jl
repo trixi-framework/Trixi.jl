@@ -45,7 +45,7 @@ struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, # spatial 
 end
 
 function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)
-    ("scalar", "advection_velocity")
+    return ("scalar", "advection_velocity")
 end
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
@@ -82,9 +82,9 @@ end
 # The implementation of nonconservative terms uses a single "nonconservative flux"
 # function `flux_nonconservative`. It will basically be applied in a loop of the
 # form
-# ```julia
+# ````julia
 # du_m(D, u) = sum(D[m, l] * flux_nonconservative(u[m], u[l], 1, equations)) # orientation 1: x
-# ```
+# ````
 # where `D` is the derivative matrix and `u` contains the nodal solution values.
 
 # Now, we can run a simple simulation using a DGSEM discretization.
@@ -101,12 +101,12 @@ function initial_condition_sine(x, t, equation::NonconservativeLinearAdvectionEq
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
     advection_velocity = 2 + cos(x[1])
-    SVector(scalar, advection_velocity)
+    return SVector(scalar, advection_velocity)
 end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 4, n_cells_max = 10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4, periodicity = true)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
@@ -117,7 +117,8 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ## Setup the spatial semidiscretization containing all ingredients
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## Create an ODE problem with given time span
 tspan = (0.0, 1.0)
@@ -150,9 +151,10 @@ error_1 = analysis_callback(sol).l2 |> first
 # simulation again.
 
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 5, n_cells_max = 10^4)
+                initial_refinement_level = 5, n_cells_max = 10^4, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
@@ -199,7 +201,7 @@ struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, # spatial 
 end
 
 function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)
-    ("scalar", "advection_velocity")
+    return ("scalar", "advection_velocity")
 end
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
@@ -249,12 +251,12 @@ function initial_condition_sine(x, t,
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
     advection_velocity = 2 + cos(x[1])
-    SVector(scalar, advection_velocity)
+    return SVector(scalar, advection_velocity)
 end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 4, n_cells_max = 10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4, periodicity = true)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
@@ -265,7 +267,8 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ## Setup the spatial semidiscretization containing all ingredients
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## Create an ODE problem with given time span
 tspan = (0.0, 1.0)

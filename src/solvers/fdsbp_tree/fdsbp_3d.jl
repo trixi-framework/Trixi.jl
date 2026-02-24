@@ -10,27 +10,29 @@
 
 # 3D caches
 function create_cache(mesh::TreeMesh{3}, equations,
-                      volume_integral::VolumeIntegralStrongForm, dg, uEltype)
+                      volume_integral::VolumeIntegralStrongForm,
+                      dg, cache_containers, uEltype)
     prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
                                                                             ntuple(_ -> nnodes(dg),
                                                                                    ndims(mesh))...)
-    f_threaded = [similar(prototype) for _ in 1:Threads.nthreads()]
+    f_threaded = [similar(prototype) for _ in 1:Threads.maxthreadid()]
 
     return (; f_threaded)
 end
 
 function create_cache(mesh::TreeMesh{3}, equations,
-                      volume_integral::VolumeIntegralUpwind, dg, uEltype)
+                      volume_integral::VolumeIntegralUpwind,
+                      dg, cache_containers, uEltype)
     u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype),
                                                             Val{nvariables(equations)}()))
     f = StructArray([(u_node, u_node)])
     f_minus_plus_threaded = [similar(f, ntuple(_ -> nnodes(dg), ndims(mesh))...)
-                             for _ in 1:Threads.nthreads()]
+                             for _ in 1:Threads.maxthreadid()]
 
     f_minus, f_plus = StructArrays.components(f_minus_plus_threaded[1])
     f_minus_threaded = [f_minus]
     f_plus_threaded = [f_plus]
-    for i in 2:Threads.nthreads()
+    for i in 2:Threads.maxthreadid()
         f_minus, f_plus = StructArrays.components(f_minus_plus_threaded[i])
         push!(f_minus_threaded, f_minus)
         push!(f_plus_threaded, f_plus)
@@ -40,9 +42,8 @@ function create_cache(mesh::TreeMesh{3}, equations,
 end
 
 # 3D volume integral contributions for `VolumeIntegralStrongForm`
-function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{3},
-                               nonconservative_terms::False, equations,
+function calc_volume_integral!(du, u, mesh::TreeMesh{3},
+                               have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralStrongForm,
                                dg::FDSBP, cache)
     D = dg.basis # SBP derivative operator
@@ -103,9 +104,8 @@ end
 # the finite difference stencils. Thus, the D^- operator acts on the positive
 # part of the flux splitting f^+ and the D^+ operator acts on the negative part
 # of the flux splitting f^-.
-function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{3},
-                               nonconservative_terms::False, equations,
+function calc_volume_integral!(du, u, mesh::TreeMesh{3},
+                               have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralUpwind,
                                dg::FDSBP, cache)
     # Assume that
@@ -252,7 +252,7 @@ end
 # flux information at each side of an interface.
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{3},
-                              nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False, equations,
                               surface_integral::SurfaceIntegralUpwind,
                               dg::FDSBP, cache)
     @unpack splitting = surface_integral

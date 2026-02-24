@@ -5,16 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# du .= zero(eltype(du)) doesn't scale when using multiple threads.
-# See https://github.com/trixi-framework/Trixi.jl/pull/924 for a performance comparison.
-function reset_du!(du, dg, cache)
-    @threaded for element in eachelement(dg, cache)
-        du[.., element] .= zero(eltype(du))
-    end
-
-    return du
-end
-
 function volume_jacobian(element, mesh::TreeMesh, cache)
     return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
 end
@@ -25,8 +15,15 @@ end
     return inverse_jacobian[element]
 end
 
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `TreeMesh`es.
+function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
+                             mesh::TreeMesh, equations, surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
+
+    return nothing
+end
+
 # Indicators used for shock-capturing and AMR
-include("indicators.jl")
 include("indicators_1d.jl")
 include("indicators_2d.jl")
 include("indicators_3d.jl")
@@ -39,6 +36,10 @@ include("dg_parallel.jl")
 
 # Helper structs for parabolic AMR
 include("containers_viscous.jl")
+
+# Some functions for a second-order Finite-Volume (MUSCL) alike 
+# scheme on DG-subcells.
+include("subcell_finite_volume_O2.jl")
 
 # 1D DG implementation
 include("dg_1d.jl")

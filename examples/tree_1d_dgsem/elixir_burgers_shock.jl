@@ -45,21 +45,19 @@ end
 
 boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_shock)
 
-function boundary_condition_outflow(u_inner, orientation, normal_direction, x, t,
+function boundary_condition_outflow(u_inner, orientation, direction, x, t,
                                     surface_flux_function,
                                     equations::InviscidBurgersEquation1D)
     # Calculate the boundary flux entirely from the internal solution state
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, orientation, equations)
 end
 
-boundary_conditions = (x_neg = boundary_condition_inflow,
+boundary_conditions = (; x_neg = boundary_condition_inflow,
                        x_pos = boundary_condition_outflow)
 
 initial_condition = initial_condition_shock
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

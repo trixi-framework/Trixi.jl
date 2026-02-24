@@ -22,19 +22,19 @@ const DGMultiWeakForm{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxTyp
 const DGMultiFluxDiff{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                       <:SurfaceIntegralWeakForm,
                                                       <:Union{VolumeIntegralFluxDifferencing,
-                                                              VolumeIntegralShockCapturingHG}} where {
-                                                                                                      NDIMS
-                                                                                                      }
+                                                              VolumeIntegralShockCapturingHGType}} where {
+                                                                                                          NDIMS
+                                                                                                          }
 
 const DGMultiFluxDiffSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                          <:SurfaceIntegralWeakForm,
                                                          <:Union{VolumeIntegralFluxDifferencing,
-                                                                 VolumeIntegralShockCapturingHG}} where {
-                                                                                                         NDIMS,
-                                                                                                         ApproxType <:
-                                                                                                         Union{SBP,
-                                                                                                               AbstractDerivativeOperator}
-                                                                                                         }
+                                                                 VolumeIntegralShockCapturingHGType}} where {
+                                                                                                             NDIMS,
+                                                                                                             ApproxType <:
+                                                                                                             Union{SBP,
+                                                                                                                   AbstractDerivativeOperator}
+                                                                                                             }
 
 const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                  SurfaceIntegral,
@@ -56,6 +56,7 @@ const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
 polydeg(dg::DGMulti) = dg.basis.N
 function Base.summary(io::IO, dg::DG) where {DG <: DGMulti}
     print(io, "DGMulti(polydeg=$(polydeg(dg)))")
+    return nothing
 end
 
 # real(rd) is the eltype of the nodes `rd.r`.
@@ -72,19 +73,19 @@ Base.real(rd::RefElemData) = eltype(rd.r)
 
 Create a discontinuous Galerkin method which uses
 - Approximations of polynomial degree `polydeg`.
-- Element type `element_type` (`Tri()`, `Quad()`, `Tet()`, `Hex()`, and `Wedge()` are 
+- Element type `element_type` (`Tri()`, `Quad()`, `Tet()`, `Hex()`, and `Wedge()` are
   currently supported)
 
 Optional:
-- `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`, 
+- `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`,
   `Quad()`, and `Hex()` element types).
-- `RefElemData_kwargs` are additional keyword arguments for `RefElemData`, such as 
+- `RefElemData_kwargs` are additional keyword arguments for `RefElemData`, such as
   `quad_rule_vol`.
-  
+
 For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
 
 !!! note "Wedge elements"
-    For `Wedge` elements (i.e. triangular prisms), the polynomial degree may optionally be 
+    For `Wedge` elements (i.e. triangular prisms), the polynomial degree may optionally be
     specified as a tuple of the form `polydeg = (polydeg_tri, polydeg_line)`.
 """
 function DGMulti(; polydeg = nothing,
@@ -96,13 +97,13 @@ function DGMulti(; polydeg = nothing,
                  kwargs...)
 
     # call dispatchable constructor
-    DGMulti(element_type, approximation_type, volume_integral, surface_integral;
-            polydeg = polydeg, kwargs...)
+    return DGMulti(element_type, approximation_type, volume_integral, surface_integral;
+                   polydeg = polydeg, kwargs...)
 end
 
-# `Wedge` element types can optionally take `polydeg = (polydeg_tri, polydeg_line)`, which 
+# `Wedge` element types can optionally take `polydeg = (polydeg_tri, polydeg_line)`, which
 # constructs a `TensorProductWedge` approximation. Since Julia does not dispatch on keyword
-# arguments, we wrap a method which makes `polydeg` a positional argument. 
+# arguments, we wrap a method which makes `polydeg` a positional argument.
 function DGMulti(element_type::Wedge,
                  approximation_type,
                  volume_integral,
@@ -155,7 +156,7 @@ end
 
 function DGMulti(basis::RefElemData; volume_integral, surface_integral)
     # `nothing` is passed as `mortar`
-    DG(basis, nothing, surface_integral, volume_integral)
+    return DG(basis, nothing, surface_integral, volume_integral)
 end
 
 """
@@ -169,7 +170,7 @@ Constructs a basis for DGMulti solvers. Returns a "StartUpDG.RefElemData" object
 """
 function DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(),
                       kwargs...)
-    RefElemData(element_type, approximation_type, polydeg; kwargs...)
+    return RefElemData(element_type, approximation_type, polydeg; kwargs...)
 end
 
 ########################################
@@ -196,13 +197,13 @@ struct NonAffine <: GeometricTermsType end # mesh produces non-constant geometri
 
 # choose MeshType based on the constructor and element type
 function GeometricTermsType(mesh_type, dg::DGMulti)
-    GeometricTermsType(mesh_type, dg.basis.element_type)
+    return GeometricTermsType(mesh_type, dg.basis.element_type)
 end
 GeometricTermsType(mesh_type::Cartesian, element_type::AbstractElemShape) = Affine()
 GeometricTermsType(mesh_type::TriangulateIO, element_type::Tri) = Affine()
 GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Tri, Tet}) = Affine()
 function GeometricTermsType(mesh_type::VertexMapped, element_type::Union{Quad, Hex})
-    NonAffine()
+    return NonAffine()
 end
 GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffine()
 
@@ -218,7 +219,7 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
   basis evaluation, differentiation, etc).
 - `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
 - `EToV` is a 2D array containing element-to-vertex connectivities for each element
-- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `is_on_boundary` specifies boundary using a `NamedTuple`
 - `periodicity` is a tuple of booleans specifying if the domain is periodic `true`/`false` in the
   (x,y,z) direction.
 """
@@ -263,7 +264,7 @@ end
 
 Constructs a Cartesian [`DGMultiMesh`](@ref) with element type `dg.basis.element_type`. The domain is
 the tensor product of the intervals `[coordinates_min[i], coordinates_max[i]]`.
-- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `is_on_boundary` specifies boundary using a `NamedTuple`
 - `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
 function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension;
@@ -298,7 +299,7 @@ end
 Constructs a `Curved()` [`DGMultiMesh`](@ref) with element type `dg.basis.element_type`.
 - `mapping` is a function which maps from a reference [-1, 1]^NDIMS domain to a mapped domain,
    e.g., `xy = mapping(x, y)` in 2D.
-- `is_on_boundary` specifies boundary using a `Dict{Symbol, <:Function}`
+- `is_on_boundary` specifies boundary using a `NamedTuple`
 - `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
 function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
@@ -347,8 +348,8 @@ struct LazyMatrixLinearCombo{Tcoeffs, N, Tv, TA <: AbstractMatrix{Tv}} <:
     coeffs::NTuple{N, Tcoeffs}
     function LazyMatrixLinearCombo(matrices, coeffs)
         @assert all(matrix -> size(matrix) == size(first(matrices)), matrices)
-        new{typeof(first(coeffs)), length(matrices), eltype(first(matrices)),
-            typeof(first(matrices))}(matrices, coeffs)
+        return new{typeof(first(coeffs)), length(matrices), eltype(first(matrices)),
+                   typeof(first(matrices))}(matrices, coeffs)
     end
 end
 Base.eltype(A::LazyMatrixLinearCombo) = eltype(first(A.matrices))
@@ -376,7 +377,7 @@ end
 function SimpleKronecker(NDIMS, A, eltype_A = eltype(A))
     @assert size(A, 1) == size(A, 2) # check if square
     tmp_storage = [zeros(eltype_A, ntuple(_ -> size(A, 2), NDIMS)...)
-                   for _ in 1:Threads.nthreads()]
+                   for _ in 1:Threads.maxthreadid()]
     return SimpleKronecker{NDIMS, typeof(A), typeof(tmp_storage)}(A, tmp_storage)
 end
 

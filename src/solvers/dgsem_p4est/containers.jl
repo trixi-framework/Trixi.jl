@@ -5,25 +5,31 @@
 @muladd begin
 #! format: noindent
 
-mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIMSP1,
-                                     NDIMSP2, NDIMSP3,
-                                     ArrayNDIMSP1 <: DenseArray{RealT, NDIMSP1},
-                                     ArrayNDIMSP2 <: DenseArray{RealT, NDIMSP2},
-                                     ArrayNDIMSP3 <: DenseArray{RealT, NDIMSP3},
+mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
+                                     NDIMSP1, NDIMSP2, NDIMSP3,
+                                     ArrayRealTNDIMSP1 <: DenseArray{RealT, NDIMSP1},
+                                     ArrayRealTNDIMSP2 <: DenseArray{RealT, NDIMSP2},
+                                     ArrayRealTNDIMSP3 <: DenseArray{RealT, NDIMSP3},
                                      VectorRealT <: DenseVector{RealT},
+                                     ArrayuEltypeNDIMSP2 <:
+                                     DenseArray{uEltype, NDIMSP2},
                                      VectoruEltype <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractElementContainer
     # Physical coordinates at each node
-    node_coordinates::ArrayNDIMSP2   # [orientation, node_i, node_j, node_k, element]
+    node_coordinates::ArrayRealTNDIMSP2 # [orientation, node_i, node_j, node_k, element]
+
     # Jacobian matrix of the transformation
-    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
-    jacobian_matrix::ArrayNDIMSP3
+    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix
+    jacobian_matrix::ArrayRealTNDIMSP3
+
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
-    contravariant_vectors::ArrayNDIMSP3   # [dimension, index, node_i, node_j, node_k, element]
+    contravariant_vectors::ArrayRealTNDIMSP3 # [dimension, index, node_i, node_j, node_k, element]
+
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
-    inverse_jacobian::ArrayNDIMSP1   # [node_i, node_j, node_k, element]
+    inverse_jacobian::ArrayRealTNDIMSP1 # [node_i, node_j, node_k, element]
+
     # Buffer for calculated surface flux
-    surface_flux_values::ArrayNDIMSP2 # [variable, i, j, direction, element]
+    surface_flux_values::ArrayuEltypeNDIMSP2 # [variable, i, j, direction, element]
 
     # internal `resize!`able storage
     _node_coordinates::VectorRealT
@@ -34,7 +40,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIM
 end
 
 @inline function nelements(elements::P4estElementContainer)
-    size(elements.node_coordinates, ndims(elements) + 2)
+    return size(elements.node_coordinates, ndims(elements) + 2)
 end
 @inline Base.ndims(::P4estElementContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estElementContainer{NDIMS, RealT, uEltype}) where {
@@ -132,19 +138,22 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
                                        ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                                        NDIMS * 2, nelements))
 
-    elements = P4estElementContainer{NDIMS, RealT, uEltype, NDIMS + 1, NDIMS + 2,
-                                     NDIMS + 3, Array{RealT, NDIMS + 1},
-                                     Array{RealT, NDIMS + 2}, Array{RealT, NDIMS + 3},
-                                     Vector{RealT}, Vector{uEltype}}(node_coordinates,
-                                                                     jacobian_matrix,
-                                                                     contravariant_vectors,
-                                                                     inverse_jacobian,
-                                                                     surface_flux_values,
-                                                                     _node_coordinates,
-                                                                     _jacobian_matrix,
-                                                                     _contravariant_vectors,
-                                                                     _inverse_jacobian,
-                                                                     _surface_flux_values)
+    elements = P4estElementContainer{NDIMS, RealT, uEltype,
+                                     NDIMS + 1, NDIMS + 2, NDIMS + 3,
+                                     Array{RealT, NDIMS + 1},
+                                     Array{RealT, NDIMS + 2},
+                                     Array{RealT, NDIMS + 3},
+                                     Vector{RealT},
+                                     Array{uEltype, NDIMS + 2}, Vector{uEltype}}(node_coordinates,
+                                                                                 jacobian_matrix,
+                                                                                 contravariant_vectors,
+                                                                                 inverse_jacobian,
+                                                                                 surface_flux_values,
+                                                                                 _node_coordinates,
+                                                                                 _jacobian_matrix,
+                                                                                 _contravariant_vectors,
+                                                                                 _inverse_jacobian,
+                                                                                 _surface_flux_values)
 
     init_elements!(elements, mesh, basis)
     return elements
@@ -152,7 +161,7 @@ end
 
 function Adapt.parent_type(::Type{<:P4estElementContainer{<:Any, <:Any, <:Any, <:Any,
                                                           <:Any, <:Any, ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -186,10 +195,11 @@ function Adapt.adapt_structure(to,
                        NDIMS + 1,
                        NDIMS + 2,
                        NDIMS + 3,
-                       typeof(inverse_jacobian), # ArrayNDIMSP1
-                       typeof(node_coordinates), # ArrayNDIMSP2
-                       typeof(jacobian_matrix), # ArrayNDIMSP3
-                       typeof(_node_coordinates), # VectorRealT
+                       typeof(inverse_jacobian),     # ArrayRealTNDIMSP1
+                       typeof(node_coordinates),     # ArrayRealTNDIMSP2
+                       typeof(jacobian_matrix),      # ArrayRealTNDIMSP3
+                       typeof(_node_coordinates),    # VectorRealT
+                       typeof(surface_flux_values),  # ArrayuEltypeNDIMSP2
                        typeof(_surface_flux_values)) # VectoruEltype
     return P4estElementContainer{new_type_params...}(node_coordinates,
                                                      jacobian_matrix,
@@ -212,7 +222,7 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
-               AbstractContainer
+               AbstractInterfaceContainer
     u::uArray                   # [primary/secondary, variable, i, j, interface]
     neighbor_ids::IdsMatrix     # [primary/secondary, interface]
     node_indices::IndicesMatrix # [primary/secondary, interface]
@@ -224,7 +234,7 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
 end
 
 @inline function ninterfaces(interfaces::P4estInterfaceContainer)
-    size(interfaces.neighbor_ids, 2)
+    return size(interfaces.neighbor_ids, 2)
 end
 @inline Base.ndims(::P4estInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estInterfaceContainer{NDIMS, uEltype}) where {NDIMS,
@@ -302,7 +312,7 @@ end
 
 function Adapt.parent_type(::Type{<:P4estInterfaceContainer{<:Any, <:Any, <:Any,
                                                             ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -334,7 +344,7 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       IndicesVector <:
                                       DenseVector{NTuple{NDIMS, Symbol}},
                                       uVector <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractBoundaryContainer
     u::uArray                   # [variables, i, j, boundary]
     neighbor_ids::IdsVector     # [boundary]
     node_indices::IndicesVector # [boundary]
@@ -345,12 +355,12 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
 end
 
 @inline function nboundaries(boundaries::P4estBoundaryContainer)
-    length(boundaries.neighbor_ids)
+    return length(boundaries.neighbor_ids)
 end
 @inline Base.ndims(::P4estBoundaryContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estBoundaryContainer{NDIMS, uEltype}) where {NDIMS,
                                                                               uEltype}
-    uEltype
+    return uEltype
 end
 
 # See explanation of Base.resize! for the element container
@@ -448,7 +458,7 @@ function init_boundaries_iter_face_inner(info_pw, boundaries, boundary_id, mesh)
 end
 
 function Adapt.parent_type(::Type{<:P4estBoundaryContainer{<:Any, <:Any, <:Any, ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -500,7 +510,7 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                     IdsVector <: DenseVector{Int},
                                     IndicesVector <:
                                     DenseVector{NTuple{NDIMS, Symbol}}} <:
-               AbstractContainer
+               AbstractMortarContainer
     u::uArray # [small/large side, variable, position, i, j, mortar]
     neighbor_ids::IdsMatrix # [position, mortar]
     node_indices::IndicesMatrix # [small/large, mortar]
@@ -515,7 +525,7 @@ end
 @inline Base.ndims(::P4estMortarContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estMortarContainer{NDIMS, uEltype}) where {NDIMS,
                                                                             uEltype}
-    uEltype
+    return uEltype
 end
 
 # See explanation of Base.resize! for the element container
@@ -590,7 +600,7 @@ end
 
 function Adapt.parent_type(::Type{<:P4estMortarContainer{<:Any, <:Any, <:Any, <:Any,
                                                          ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -617,10 +627,17 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
 end
 
 function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
+    n_cells = ncells(mesh)
+
     # Re-initialize elements container
     @unpack elements = cache
-    resize!(elements, ncells(mesh))
+    resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
+
+    # Resize volume integral and related datastructures
+    @unpack volume_integral = dg
+    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
 
     required = count_required_surfaces(mesh)
 
@@ -633,16 +650,12 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     resize!(boundaries, required.boundaries)
 
     # re-initialize mortars container
-    if hasproperty(cache, :mortars) # cache_parabolic does not carry mortars
-        @unpack mortars = cache
-        resize!(mortars, required.mortars)
+    @unpack mortars = cache
+    resize!(mortars, required.mortars)
 
-        # re-initialize containers together to reduce
-        # the number of iterations over the mesh in `p4est`
-        init_surfaces!(interfaces, mortars, boundaries, mesh)
-    else
-        init_surfaces!(interfaces, nothing, boundaries, mesh)
-    end
+    # re-initialize containers together to reduce
+    # the number of iterations over the mesh in `p4est`
+    return init_surfaces!(interfaces, mortars, boundaries, mesh)
 end
 
 # A helper struct used in initialization methods below
@@ -669,7 +682,7 @@ function init_surfaces_iter_face(info, user_data)
     data = unsafe_pointer_to_objref(Ptr{InitSurfacesIterFaceUserData}(user_data))
 
     # Function barrier because the unpacked user_data above is type-unstable
-    init_surfaces_iter_face_inner(info, data)
+    return init_surfaces_iter_face_inner(info, data)
 end
 
 # 2D

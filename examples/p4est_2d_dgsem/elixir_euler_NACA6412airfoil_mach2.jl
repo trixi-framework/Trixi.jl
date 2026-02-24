@@ -27,9 +27,8 @@ initial_condition = initial_condition_mach2_flow
                                                       x, t, surface_flux_function,
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach2_flow(x, t, equations)
-    flux = Trixi.flux(u_boundary, normal_direction, equations)
 
-    return flux
+    return flux(u_boundary, normal_direction, equations)
 end
 
 # Supersonic outflow boundary condition.
@@ -40,9 +39,7 @@ end
                                                        t,
                                                        surface_flux_function,
                                                        equations::CompressibleEulerEquations2D)
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, normal_direction, equations)
 end
 
 polydeg = 3
@@ -52,7 +49,7 @@ polydeg = 3
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
@@ -82,12 +79,12 @@ boundary_symbols = [:PhysicalLine1, :PhysicalLine2, :PhysicalLine3, :PhysicalLin
 
 mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 
-boundary_conditions = Dict(:PhysicalLine1 => boundary_condition_supersonic_inflow, # Left boundary
-                           :PhysicalLine2 => boundary_condition_supersonic_outflow, # Right boundary
-                           :PhysicalLine3 => boundary_condition_supersonic_outflow, # Top and bottom boundary
-                           :PhysicalLine4 => boundary_condition_slip_wall) # Airfoil
+boundary_conditions = (; PhysicalLine1 = boundary_condition_supersonic_inflow, # Left boundary
+                       PhysicalLine2 = boundary_condition_supersonic_outflow, # Right boundary
+                       PhysicalLine3 = boundary_condition_supersonic_outflow, # Top and bottom boundary
+                       PhysicalLine4 = boundary_condition_slip_wall) # Airfoil
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 tspan = (0.0, 5.0)

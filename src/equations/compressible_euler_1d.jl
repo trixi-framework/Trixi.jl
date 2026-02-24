@@ -12,12 +12,12 @@ The compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \\ \rho v_1 \\ \rho e
+\rho \\ \rho v_1 \\ \rho e_{\text{total}}
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-\rho v_1 \\ \rho v_1^2 + p \\ (\rho e +p) v_1
+\rho v_1 \\ \rho v_1^2 + p \\ (\rho e_{\text{total}} +p) v_1
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -25,9 +25,9 @@ The compressible Euler equations
 \end{pmatrix}
 ```
 for an ideal gas with ratio of specific heats `gamma` in one space dimension.
-Here, ``\rho`` is the density, ``v_1`` the velocity, ``e`` the specific total energy **rather than** specific internal energy, and
+Here, ``\rho`` is the density, ``v_1`` the velocity, ``e_{\text{total}}`` the specific total energy, and
 ```math
-p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho v_1^2 \right)
+p = (\gamma - 1) \left( \rho e_{\text{total}} - \frac{1}{2} \rho v_1^2 \right)
 ```
 the pressure.
 """
@@ -38,12 +38,12 @@ struct CompressibleEulerEquations1D{RealT <: Real} <:
 
     function CompressibleEulerEquations1D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        return new{typeof(γ)}(γ, inv_gamma_minus_one)
     end
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations1D)
-    ("rho", "rho_v1", "rho_e")
+    return ("rho", "rho_v1", "rho_e_total")
 end
 varnames(::typeof(cons2prim), ::CompressibleEulerEquations1D) = ("rho", "v1", "p")
 
@@ -56,8 +56,8 @@ function initial_condition_constant(x, t, equations::CompressibleEulerEquations1
     RealT = eltype(x)
     rho = 1
     rho_v1 = convert(RealT, 0.1)
-    rho_e = 10
-    return SVector(rho, rho_v1, rho_e)
+    rho_e_total = 10
+    return SVector(rho, rho_v1, rho_e_total)
 end
 
 """
@@ -79,9 +79,9 @@ function initial_condition_convergence_test(x, t,
 
     rho = ini
     rho_v1 = ini
-    rho_e = ini^2
+    rho_e_total = ini^2
 
-    return SVector(rho, rho_v1, rho_e)
+    return SVector(rho, rho_v1, rho_e_total)
 end
 
 """
@@ -90,6 +90,14 @@ end
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerEquations1D)
@@ -138,8 +146,8 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
     rho = 1 + convert(RealT, 0.98) * sinpi(2 * (x[1] - t * v1))
     rho_v1 = rho * v1
     p = 20
-    rho_e = p / (equations.gamma - 1) + 0.5f0 * rho * v1^2
-    return SVector(rho, rho_v1, rho_e)
+    rho_e_total = p / (equations.gamma - 1) + 0.5f0 * rho * v1^2
+    return SVector(rho, rho_v1, rho_e_total)
 end
 
 """
@@ -217,7 +225,7 @@ are available in the paper:
   the Euler equations of gas dynamics
   [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
 
-  Should be used together with [`TreeMesh`](@ref).
+Should be used together with [`TreeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation,
                                               direction, x, t,
@@ -255,13 +263,13 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
     v1 = rho_v1 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1 * v1)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
     # Ignore orientation since it is always "1" in 1D
     f1 = rho_v1
     f2 = rho_v1 * v1 + p
-    f3 = (rho_e + p) * v1
+    f3 = (rho_e_total + p) * v1
     return SVector(f1, f2, f3)
 end
 
@@ -314,8 +322,8 @@ Kinetic energy preserving two-point flux by
 @inline function flux_kennedy_gruber(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations1D)
     # Unpack left and right state
-    rho_e_ll = last(u_ll)
-    rho_e_rr = last(u_rr)
+    rho_e_total_ll = last(u_ll)
+    rho_e_total_rr = last(u_rr)
     rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
 
@@ -323,7 +331,7 @@ Kinetic energy preserving two-point flux by
     rho_avg = 0.5f0 * (rho_ll + rho_rr)
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     p_avg = 0.5f0 * (p_ll + p_rr)
-    e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
+    e_avg = 0.5f0 * (rho_e_total_ll / rho_ll + rho_e_total_rr / rho_rr)
 
     # Ignore orientation since it is always "1" in 1D
     f1 = rho_avg * v1_avg
@@ -455,9 +463,9 @@ end
 
 @inline function splitting_steger_warming(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
     v1 = rho_v1 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1 * v1)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
     a = sqrt(equations.gamma * p / rho)
 
     lambda1 = v1
@@ -481,9 +489,9 @@ end
 
 @inline function splitting_steger_warming(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
     v1 = rho_v1 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1 * v1)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
     a = sqrt(equations.gamma * p / rho)
 
     lambda1 = v1
@@ -548,13 +556,13 @@ end
 
 @inline function splitting_vanleer_haenel(u, ::Val{:plus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
     v1 = rho_v1 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1 * v1)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
 
     # sound speed and enthalpy
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     # signed Mach number
     M = v1 / a
@@ -570,13 +578,13 @@ end
 
 @inline function splitting_vanleer_haenel(u, ::Val{:minus}, orientation::Integer,
                                           equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
     v1 = rho_v1 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1 * v1)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
 
     # sound speed and enthalpy
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     # signed Mach number
     M = v1 / a
@@ -636,13 +644,13 @@ end
 
 @inline function splitting_coirier_vanleer(u, ::Val{:plus}, orientation::Integer,
                                            equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
     v1 = rho_v1 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1 * v1)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
 
     # sound speed and enthalpy
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     # signed Mach number
     M = v1 / a
@@ -663,13 +671,13 @@ end
 
 @inline function splitting_coirier_vanleer(u, ::Val{:minus}, orientation::Integer,
                                            equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
     v1 = rho_v1 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1 * v1)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
 
     # sound speed and enthalpy
     a = sqrt(equations.gamma * p / rho)
-    H = (rho_e + p) / rho
+    H = (rho_e_total + p) / rho
 
     # signed Mach number
     M = v1 / a
@@ -692,17 +700,17 @@ end
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations1D)
-    rho_ll, rho_v1_ll, rho_e_ll = u_ll
-    rho_rr, rho_v1_rr, rho_e_rr = u_rr
+    rho_ll, rho_v1_ll, rho_e_total_ll = u_ll
+    rho_rr, rho_v1_rr, rho_e_total_rr = u_rr
 
     # Calculate primitive variables and speed of sound
     v1_ll = rho_v1_ll / rho_ll
     v_mag_ll = abs(v1_ll)
-    p_ll = (equations.gamma - 1) * (rho_e_ll - 0.5f0 * rho_ll * v_mag_ll^2)
+    p_ll = (equations.gamma - 1) * (rho_e_total_ll - 0.5f0 * rho_ll * v_mag_ll^2)
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     v1_rr = rho_v1_rr / rho_rr
     v_mag_rr = abs(v1_rr)
-    p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
+    p_rr = (equations.gamma - 1) * (rho_e_total_rr - 0.5f0 * rho_rr * v_mag_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     return max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
@@ -741,14 +749,14 @@ end
     lambda_3 = abs(v_avg_normal + c_bar) * rho_log / (2 * gamma)
     lambda_4 = abs(v_avg_normal) * p_avg
 
-    entropy_var_rho_jump, entropy_var_rho_v1_jump, entropy_var_rho_e_jump = entropy_vars_jump
+    entropy_var_rho_jump, entropy_var_rho_v1_jump, entropy_var_rho_e_total_jump = entropy_vars_jump
 
     w1 = lambda_1 * (entropy_var_rho_jump + v1_minus_c * entropy_var_rho_v1_jump +
-          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_total_jump)
     w2 = lambda_2 * (entropy_var_rho_jump + v1_avg * entropy_var_rho_v1_jump +
-          v1_squared_bar / 2 * entropy_var_rho_e_jump)
+          v1_squared_bar / 2 * entropy_var_rho_e_total_jump)
     w3 = lambda_3 * (entropy_var_rho_jump + v1_plus_c * entropy_var_rho_v1_jump +
-          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_total_jump)
 
     dissipation_rho = w1 + w2 + w3
 
@@ -760,7 +768,8 @@ end
                         w2 * 0.5f0 * v1_squared_bar +
                         w3 * (h_bar + c_bar * v_avg_normal) +
                         lambda_4 *
-                        (entropy_var_rho_e_jump * (v1_avg * v1_avg - v_avg_normal^2)))
+                        (entropy_var_rho_e_total_jump *
+                         (v1_avg * v1_avg - v_avg_normal^2)))
 
     return -0.5f0 * SVector(dissipation_rho, dissipation_rho_v1, dissipation_rhoe) *
            norm_
@@ -781,17 +790,17 @@ end
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::CompressibleEulerEquations1D)
-    rho_ll, rho_v1_ll, rho_e_ll = u_ll
-    rho_rr, rho_v1_rr, rho_e_rr = u_rr
+    rho_ll, rho_v1_ll, rho_e_total_ll = u_ll
+    rho_rr, rho_v1_rr, rho_e_total_rr = u_rr
 
     # Calculate primitive variables and speed of sound
     v1_ll = rho_v1_ll / rho_ll
     v_mag_ll = abs(v1_ll)
-    p_ll = (equations.gamma - 1) * (rho_e_ll - 0.5f0 * rho_ll * v_mag_ll^2)
+    p_ll = (equations.gamma - 1) * (rho_e_total_ll - 0.5f0 * rho_ll * v_mag_ll^2)
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     v1_rr = rho_v1_rr / rho_rr
     v_mag_rr = abs(v1_rr)
-    p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
+    p_rr = (equations.gamma - 1) * (rho_e_total_rr - 0.5f0 * rho_rr * v_mag_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     return max(v_mag_ll + c_ll, v_mag_rr + c_rr)
@@ -822,17 +831,17 @@ Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827
 function flux_hllc(u_ll, u_rr, orientation::Integer,
                    equations::CompressibleEulerEquations1D)
     # Calculate primitive variables and speed of sound
-    rho_ll, rho_v1_ll, rho_e_ll = u_ll
-    rho_rr, rho_v1_rr, rho_e_rr = u_rr
+    rho_ll, rho_v1_ll, rho_e_total_ll = u_ll
+    rho_rr, rho_v1_rr, rho_e_total_rr = u_rr
 
     v1_ll = rho_v1_ll / rho_ll
-    e_ll = rho_e_ll / rho_ll
-    p_ll = (equations.gamma - 1) * (rho_e_ll - 0.5f0 * rho_ll * v1_ll^2)
+    e_ll = rho_e_total_ll / rho_ll
+    p_ll = (equations.gamma - 1) * (rho_e_total_ll - 0.5f0 * rho_ll * v1_ll^2)
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
     v1_rr = rho_v1_rr / rho_rr
-    e_rr = rho_e_rr / rho_rr
-    p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * v1_rr^2)
+    e_rr = rho_e_total_rr / rho_rr
+    p_rr = (equations.gamma - 1) * (rho_e_total_rr - 0.5f0 * rho_rr * v1_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     # Obtain left and right fluxes
@@ -847,8 +856,8 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     vel_R = v1_rr
     vel_roe = (sqrt_rho_ll * vel_L + sqrt_rho_rr * vel_R) / sum_sqrt_rho
     ekin_roe = 0.5f0 * vel_roe^2
-    H_ll = (rho_e_ll + p_ll) / rho_ll
-    H_rr = (rho_e_rr + p_rr) / rho_rr
+    H_ll = (rho_e_total_ll + p_ll) / rho_ll
+    H_rr = (rho_e_total_rr + p_rr) / rho_rr
     H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
     c_roe = sqrt((equations.gamma - 1) * (H_roe - ekin_roe))
 
@@ -876,7 +885,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
 
             f1 = f_ll[1] + Ssl * (UStar1 - rho_ll)
             f2 = f_ll[2] + Ssl * (UStar2 - rho_v1_ll)
-            f3 = f_ll[3] + Ssl * (UStar3 - rho_e_ll)
+            f3 = f_ll[3] + Ssl * (UStar3 - rho_e_total_ll)
         else
             densStar = rho_rr * sMu_R / (Ssr - SStar)
             enerStar = e_rr + (SStar - vel_R) * (SStar + p_rr / (rho_rr * sMu_R))
@@ -887,7 +896,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
             #end
             f1 = f_rr[1] + Ssr * (UStar1 - rho_rr)
             f2 = f_rr[2] + Ssr * (UStar2 - rho_v1_rr)
-            f3 = f_rr[3] + Ssr * (UStar3 - rho_e_rr)
+            f3 = f_rr[3] + Ssr * (UStar3 - rho_e_total_rr)
         end
     end
     return SVector(f1, f2, f3)
@@ -937,11 +946,11 @@ Compactly summarized:
     rho_ll, v_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v_rr, p_rr = cons2prim(u_rr, equations)
 
-    # `u_ll[3]` is total energy `rho_e_ll` on the left
+    # `u_ll[3]` is total energy `rho_e_total_ll` on the left
     H_ll = (u_ll[3] + p_ll) / rho_ll
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
-    # `u_rr[3]` is total energy `rho_e_rr` on the right
+    # `u_rr[3]` is total energy `rho_e_total_rr` on the right
     H_rr = (u_rr[3] + p_rr) / rho_rr
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
@@ -968,9 +977,9 @@ Compactly summarized:
 end
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
     v1 = rho_v1 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho * v1^2)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho * v1^2)
     c = sqrt(equations.gamma * p / rho)
 
     return (abs(v1) + c,)
@@ -978,21 +987,21 @@ end
 
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
 
     v1 = rho_v1 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1 * v1)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
 
     return SVector(rho, v1, p)
 end
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
+    rho, rho_v1, rho_e_total = u
 
     v1 = rho_v1 / rho
     v_square = v1^2
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho * v_square)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho * v_square)
     s = log(p) - equations.gamma * log(rho)
     rho_p = rho / p
 
@@ -1023,16 +1032,16 @@ end
     # eq. (51)
     rho = -V5 * energy_internal
     rho_v1 = V2 * energy_internal
-    rho_e = (1 - 0.5f0 * (V2^2) / V5) * energy_internal
-    return SVector(rho, rho_v1, rho_e)
+    rho_e_total = (1 - 0.5f0 * (V2^2) / V5) * energy_internal
+    return SVector(rho, rho_v1, rho_e_total)
 end
 
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::CompressibleEulerEquations1D)
     rho, v1, p = prim
     rho_v1 = rho * v1
-    rho_e = p * equations.inv_gamma_minus_one + 0.5f0 * (rho_v1 * v1)
-    return SVector(rho, rho_v1, rho_e)
+    rho_e_total = p * equations.inv_gamma_minus_one + 0.5f0 * (rho_v1 * v1)
+    return SVector(rho, rho_v1, rho_e_total)
 end
 
 @inline function density(u, equations::CompressibleEulerEquations1D)
@@ -1051,19 +1060,39 @@ end
     return v1
 end
 
+@doc raw"""
+    pressure(u, equations::AbstractCompressibleEulerEquations)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+\begin{aligned}
+p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2}\rho \Vert v \Vert_2^2 \right)
+\end{aligned}
+```
+"""
 @inline function pressure(u, equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2) / rho)
+    rho, rho_v1, rho_e_total = u
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1^2) / rho)
     return p
 end
 
 @inline function density_pressure(u, equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e = u
-    rho_times_p = (equations.gamma - 1) * (rho * rho_e - 0.5f0 * (rho_v1^2))
+    rho, rho_v1, rho_e_total = u
+    rho_times_p = (equations.gamma - 1) * (rho * rho_e_total - 0.5f0 * (rho_v1^2))
     return rho_times_p
 end
 
-# Calculate thermodynamic entropy for a conservative state `cons`
+@doc raw"""
+    entropy_thermodynamic(cons, equations::AbstractCompressibleEulerEquations)
+
+Calculate thermodynamic entropy for a conservative state `cons` as
+
+```math
+s = \log(p) - \gamma \log(\rho)
+```
+"""
 @inline function entropy_thermodynamic(cons, equations::CompressibleEulerEquations1D)
     # Pressure
     p = (equations.gamma - 1) * (cons[3] - 0.5f0 * (cons[2]^2) / cons[1])
@@ -1074,7 +1103,16 @@ end
     return s
 end
 
-# Calculate mathematical entropy for a conservative state `cons`
+@doc raw"""
+    entropy_math(cons, equations::AbstractCompressibleEulerEquations)
+
+Calculate mathematical entropy for a conservative state `cons` as
+```math
+S = -\frac{\rho s}{\gamma - 1}
+```
+where `s` is the thermodynamic entropy calculated by
+[`entropy_thermodynamic(cons, equations::AbstractCompressibleEulerEquations)`](@ref).
+"""
 @inline function entropy_math(cons, equations::CompressibleEulerEquations1D)
     # Mathematical entropy
     S = -entropy_thermodynamic(cons, equations) * cons[1] *
@@ -1083,9 +1121,14 @@ end
     return S
 end
 
-# Default entropy is the mathematical entropy
+"""
+    entropy(cons, equations::AbstractCompressibleEulerEquations)
+
+Default entropy is the mathematical entropy
+[`entropy_math(cons, equations::AbstractCompressibleEulerEquations)`](@ref).
+"""
 @inline function entropy(cons, equations::CompressibleEulerEquations1D)
-    entropy_math(cons, equations)
+    return entropy_math(cons, equations)
 end
 
 # Calculate total energy for a conservative state `cons`
@@ -1096,8 +1139,31 @@ end
     return 0.5f0 * (cons[2]^2) / cons[1]
 end
 
-# Calculate internal energy for a conservative state `cons`
+"""
+    energy_internal(cons, equations::AbstractCompressibleEulerEquations)
+
+Calculate internal energy ``e_{\text{internal}}`` for a conservative state `cons` as the difference
+of total energy and kinetic energy.
+"""
 @inline function energy_internal(cons, equations::CompressibleEulerEquations1D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
+end
+
+@doc raw"""
+    entropy_potential(u, orientation_or_normal_direction, 
+                      equations::AbstractCompressibleEulerEquations)
+
+Calculate the entropy potential, which for the compressible Euler equations is simply 
+the momentum for the choice of mathematical [`entropy`](@ref) ``S(u) = -\frac{\rho s}{\gamma - 1}``
+with thermodynamic entropy ``s = \ln(p) - \gamma \ln(\rho)``.
+    
+## References
+- Eitan Tadmor (2003)
+  Entropy stability theory for difference approximations of nonlinear conservation laws and related time-dependent problems
+  [DOI: 10.1017/S0962492902000156](https://doi.org/10.1017/S0962492902000156)
+"""
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerEquations1D)
+    return u[2]
 end
 end # @muladd

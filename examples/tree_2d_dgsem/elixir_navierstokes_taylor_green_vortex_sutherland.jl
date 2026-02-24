@@ -16,7 +16,7 @@ prandtl_number() = 0.72
     T_ref = convert(RealT, 291.15)
 
     R_specific_air = convert(RealT, 287.052874)
-    T = R_specific_air * Trixi.temperature(u, equations)
+    T = R_specific_air * temperature(u, equations)
 
     C_air = 120
     mu_ref_air = convert(RealT, 1.827e-5)
@@ -61,10 +61,12 @@ coordinates_min = (-1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0) .* pi
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

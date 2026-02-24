@@ -46,17 +46,17 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
         # --------------------
         #   b | 1/6  1/6  2/3
 
-        new{typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
-                                     stage_callbacks)
+        return new{typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
+                                            stage_callbacks)
     end
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct SimpleIntegratorSSPOptions{Callback, TStops}
     callback::Callback # callbacks; used in Trixi
-    adaptive::Bool # whether the algorithm is adaptive; ignored
+    const adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
-    maxiters::Int # maximal number of time steps
+    const maxiters::Int # maximal number of time steps
     tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
@@ -67,17 +67,19 @@ function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kw
     # We add 2 * last(tspan) because add_tstop!(integrator, t) is only called by DiffEqCallbacks.jl if tstops contains a time that is larger than t
     # (https://github.com/SciML/DiffEqCallbacks.jl/blob/025dfe99029bd0f30a2e027582744528eb92cd24/src/iterative_and_periodic.jl#L92)
     push!(tstops_internal, 2 * last(tspan))
-    SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
-                                                                          false, Inf,
-                                                                          maxiters,
-                                                                          tstops_internal)
+    return SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
+                                                                                 false,
+                                                                                 Inf,
+                                                                                 maxiters,
+                                                                                 tstops_internal)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
-mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
+mutable struct SimpleIntegratorSSP{RealT <: Real, uType,
+                                   Params, Sol, F, Alg,
                                    SimpleIntegratorSSPOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
@@ -89,12 +91,12 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F # `rhs!` of the semidiscretization
-    alg::Alg # SimpleSSPRK33
+    const f::F # `rhs!` of the semidiscretization
+    const alg::Alg # SimpleSSPRK33
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
-    dtchangeable::Bool
-    force_stepfail::Bool
+    const dtchangeable::Bool
+    const force_stepfail::Bool
 end
 
 """
@@ -110,7 +112,7 @@ function add_tstop!(integrator::SimpleIntegratorSSP, t)
     if length(integrator.opts.tstops) > 1
         pop!(integrator.opts.tstops)
     end
-    push!(integrator.opts.tstops, integrator.tdir * t)
+    return push!(integrator.opts.tstops, integrator.tdir * t)
 end
 
 has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)
@@ -134,16 +136,10 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     resize!(integrator.p, integrator.p.solver.volume_integral,
             nelements(integrator.p.solver, integrator.p.cache))
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with the SSP time integration methods."))
-        end
-        foreach(callback.discrete_callbacks) do cb
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    # Standard callbacks
+    initialize_callbacks!(callback, integrator)
 
+    # Addition for `SimpleAlgorithmSSP` which may have stage callbacks
     for stage_callback in alg.stage_callbacks
         init_callback(stage_callback, integrator.p)
     end
@@ -153,71 +149,18 @@ end
 
 function solve!(integrator::SimpleIntegratorSSP)
     @unpack prob = integrator.sol
-    @unpack alg = integrator
-    t_end = last(prob.tspan)
-    callbacks = integrator.opts.callback
 
     integrator.finalstep = false
+
     @trixi_timeit timer() "main loop" while !integrator.finalstep
-        if isnan(integrator.dt)
-            error("time step size `dt` is NaN")
-        end
-
-        modify_dt_for_tstops!(integrator)
-
-        # if the next iteration would push the simulation beyond the end time, set dt accordingly
-        if integrator.t + integrator.dt > t_end ||
-           isapprox(integrator.t + integrator.dt, t_end)
-            integrator.dt = t_end - integrator.t
-            terminate!(integrator)
-        end
-
-        @. integrator.u_tmp = integrator.u
-        for stage in eachindex(alg.c)
-            t_stage = integrator.t + integrator.dt * alg.c[stage]
-            # compute du
-            integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
-
-            # perform forward Euler step
-            @. integrator.u = integrator.u + integrator.dt * integrator.du
-
-            for stage_callback in alg.stage_callbacks
-                stage_callback(integrator.u, integrator, stage)
-            end
-
-            # perform convex combination
-            @. integrator.u = (alg.numerator_a[stage] * integrator.u_tmp +
-                               alg.numerator_b[stage] * integrator.u) /
-                              alg.denominator[stage]
-        end
-
-        integrator.iter += 1
-        integrator.t += integrator.dt
-
-        @trixi_timeit timer() "Step-Callbacks" begin
-            # handle callbacks
-            if callbacks isa CallbackSet
-                foreach(callbacks.discrete_callbacks) do cb
-                    if cb.condition(integrator.u, integrator.t, integrator)
-                        cb.affect!(integrator)
-                    end
-                    return nothing
-                end
-            end
-        end
-
-        # respect maximum number of iterations
-        if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-            @warn "Interrupted. Larger maxiters is needed."
-            terminate!(integrator)
-        end
+        step!(integrator)
     end
 
     # Empty the tstops array.
     # This cannot be done in terminate!(integrator::SimpleIntegratorSSP) because DiffEqCallbacks.PeriodicCallbackAffect would return at error.
     extract_all!(integrator.opts.tstops)
 
-    for stage_callback in alg.stage_callbacks
+    for stage_callback in integrator.alg.stage_callbacks
         finalize_callback(stage_callback, integrator.p)
     end
 
@@ -225,6 +168,49 @@ function solve!(integrator::SimpleIntegratorSSP)
 
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                                   (prob.u0, integrator.u), prob)
+end
+
+function step!(integrator::SimpleIntegratorSSP)
+    @unpack prob = integrator.sol
+    @unpack alg = integrator
+    t_end = last(prob.tspan)
+    callbacks = integrator.opts.callback
+
+    @assert !integrator.finalstep
+    if isnan(integrator.dt)
+        error("time step size `dt` is NaN")
+    end
+
+    modify_dt_for_tstops!(integrator)
+
+    limit_dt!(integrator, t_end)
+
+    @. integrator.u_tmp = integrator.u
+    for stage in eachindex(alg.c)
+        t_stage = integrator.t + integrator.dt * alg.c[stage]
+        # compute du
+        integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
+
+        # perform forward Euler step
+        @. integrator.u = integrator.u + integrator.dt * integrator.du
+
+        for stage_callback in alg.stage_callbacks
+            stage_callback(integrator.u, integrator, stage)
+        end
+
+        # perform convex combination
+        @. integrator.u = (alg.numerator_a[stage] * integrator.u_tmp +
+                           alg.numerator_b[stage] * integrator.u) /
+                          alg.denominator[stage]
+    end
+    integrator.iter += 1
+    integrator.t += integrator.dt
+
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
+
+    check_max_iter!(integrator)
+
+    return nothing
 end
 
 # get a cache where the RHS can be stored
@@ -236,6 +222,8 @@ u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
     integrator.finalstep = true
+
+    return nothing
 end
 
 """
@@ -260,6 +248,8 @@ function modify_dt_for_tstops!(integrator::SimpleIntegratorSSP)
                             min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
         end
     end
+
+    return nothing
 end
 
 # used for AMR
@@ -272,5 +262,7 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     # new_size = n_variables * n_nodes^n_dims * n_elements
     n_elements = nelements(integrator.p.solver, integrator.p.cache)
     resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
+
+    return nothing
 end
 end # @muladd

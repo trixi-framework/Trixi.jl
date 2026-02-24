@@ -3,8 +3,7 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
-gamma = 5 / 3
-equations = IdealGlmMhdEquations2D(gamma)
+equations = IdealGlmMhdEquations2D(5 / 3)
 
 initial_condition = initial_condition_convergence_test
 
@@ -24,9 +23,10 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (sqrt(2.0), sqrt(2.0))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -36,13 +36,16 @@ function P4estMPICache(uEltype)
     n_elements_global = 0
     first_element_global_id = 0
 
-    P4estMPICache{Vector{uEltype}, Vector{Int}}(mpi_neighbor_ranks,
-                                                mpi_neighbor_interfaces,
-                                                mpi_neighbor_mortars,
-                                                mpi_send_buffers, mpi_recv_buffers,
-                                                mpi_send_requests, mpi_recv_requests,
-                                                n_elements_by_rank, n_elements_global,
-                                                first_element_global_id)
+    return P4estMPICache{Vector{uEltype}, Vector{Int}}(mpi_neighbor_ranks,
+                                                       mpi_neighbor_interfaces,
+                                                       mpi_neighbor_mortars,
+                                                       mpi_send_buffers,
+                                                       mpi_recv_buffers,
+                                                       mpi_send_requests,
+                                                       mpi_recv_requests,
+                                                       n_elements_by_rank,
+                                                       n_elements_global,
+                                                       first_element_global_id)
 end
 
 @inline Base.eltype(::P4estMPICache{BufferType}) where {BufferType} = eltype(BufferType)
@@ -125,7 +128,7 @@ function start_mpi_receive!(mpi_cache::P4estMPICache)
 end
 
 function finish_mpi_send!(mpi_cache::P4estMPICache)
-    MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
+    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
 function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
@@ -183,8 +186,8 @@ end
 # at `index_base`+1 in the MPI buffer. `data_size` is the data size associated with each small
 # position (i.e. position 1 or 2). The data corresponding to the large side (i.e. position 3) has
 # size `2 * data_size`.
-@inline function buffer_mortar_indices(mesh::Union{ParallelP4estMesh{2},
-                                                   ParallelT8codeMesh{2}}, index_base,
+@inline function buffer_mortar_indices(mesh::Union{P4estMeshParallel{2},
+                                                   T8codeMeshParallel{2}}, index_base,
                                        data_size)
     return (
             # first, last for local element in position 1 (small element)
@@ -203,8 +206,8 @@ end
 # at `index_base`+1 in the MPI buffer. `data_size` is the data size associated with each small
 # position (i.e. position 1 to 4). The data corresponding to the large side (i.e. position 5) has
 # size `4 * data_size`.
-@inline function buffer_mortar_indices(mesh::Union{ParallelP4estMesh{3},
-                                                   ParallelT8codeMesh{3}}, index_base,
+@inline function buffer_mortar_indices(mesh::Union{P4estMeshParallel{3},
+                                                   T8codeMeshParallel{3}}, index_base,
                                        data_size)
     return (
             # first, last for local element in position 1 (small element)
@@ -227,7 +230,7 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::ParallelP4estMesh, equations::AbstractEquations, dg::DG,
+function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg::DG,
                       ::Any, ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the p4est and create a new ghost layer before creating any
     # containers in case someone has tampered with the p4est after creating the mesh
@@ -248,18 +251,20 @@ function create_cache(mesh::ParallelP4estMesh, equations::AbstractEquations, dg:
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
     mortars = init_mortars(mesh, equations, dg.basis, elements)
 
-    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars, mpi_mortars,
-             mpi_cache)
+    # Container cache
+    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_mortars, mpi_cache)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+    # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
 end
 
-function init_mpi_cache(mesh::ParallelP4estMesh, mpi_interfaces, mpi_mortars, nvars,
+function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars, nvars,
                         nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
     init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars, nvars, nnodes,
@@ -268,7 +273,7 @@ function init_mpi_cache(mesh::ParallelP4estMesh, mpi_interfaces, mpi_mortars, nv
     return mpi_cache
 end
 
-function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
+function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::P4estMeshParallel,
                          mpi_interfaces, mpi_mortars, nvars, n_nodes, uEltype)
     mpi_neighbor_ranks, _mpi_neighbor_interfaces, _mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_interfaces,
                                                                                                          mpi_mortars,
@@ -306,7 +311,7 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
 end
 
 function init_mpi_neighbor_connectivity(mpi_interfaces, mpi_mortars,
-                                        mesh::ParallelP4estMesh)
+                                        mesh::P4estMeshParallel)
     # Let p4est iterate over all interfaces and call init_neighbor_rank_connectivity_iter_face
     # to collect connectivity information
     iter_face_c = cfunction(init_neighbor_rank_connectivity_iter_face, Val(ndims(mesh)))
@@ -381,7 +386,7 @@ function init_neighbor_rank_connectivity_iter_face(info, user_data)
     data = unsafe_pointer_to_objref(Ptr{InitNeighborRankConnectivityIterFaceUserData}(user_data))
 
     # Function barrier because the unpacked user_data above is not type-stable
-    init_neighbor_rank_connectivity_iter_face_inner(info, data)
+    return init_neighbor_rank_connectivity_iter_face_inner(info, data)
 end
 
 # 2D
@@ -516,7 +521,7 @@ end
 # Exchange normal directions of small elements of the MPI mortars. They are needed on all involved
 # MPI ranks to calculate the mortar fluxes.
 function exchange_normal_directions!(mpi_mortars, mpi_cache,
-                                     mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
+                                     mesh::Union{P4estMeshParallel, T8codeMeshParallel},
                                      n_nodes)
     RealT = real(mesh)
     n_dims = ndims(mesh)
@@ -597,8 +602,8 @@ end
 
 # Get normal direction of MPI mortar
 @inline function get_normal_direction(mpi_mortars::P4estMPIMortarContainer, indices...)
-    SVector(ntuple(@inline(dim->mpi_mortars.normal_directions[dim, indices...]),
-                   Val(ndims(mpi_mortars))))
+    return SVector(ntuple(@inline(dim->mpi_mortars.normal_directions[dim, indices...]),
+                          Val(ndims(mpi_mortars))))
 end
 
 include("dg_2d_parallel.jl")

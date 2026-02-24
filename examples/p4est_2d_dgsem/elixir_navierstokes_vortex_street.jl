@@ -53,14 +53,14 @@ bc_freestream = BoundaryConditionDirichlet(initial_condition)
 # Since this mesh is been generated using the symmetry feature of
 # HOHQMesh.jl (https://trixi-framework.github.io/HOHQMesh.jl/stable/tutorials/symmetric_mesh/)
 # the mirrored boundaries are named with a "_R" suffix.
-boundary_conditions = Dict(:Circle => boundary_condition_slip_wall, # top half of the cylinder
-                           :Circle_R => boundary_condition_slip_wall, # bottom half of the cylinder
-                           :Top => bc_freestream,
-                           :Top_R => bc_freestream, # aka bottom
-                           :Right => bc_freestream,
-                           :Right_R => bc_freestream,
-                           :Left => bc_freestream,
-                           :Left_R => bc_freestream)
+boundary_conditions = (; Circle = boundary_condition_slip_wall, # top half of the cylinder
+                       Circle_R = boundary_condition_slip_wall, # bottom half of the cylinder
+                       Top = bc_freestream,
+                       Top_R = bc_freestream, # aka bottom
+                       Right = bc_freestream,
+                       Right_R = bc_freestream,
+                       Left = bc_freestream,
+                       Left_R = bc_freestream)
 
 # Parabolic boundary conditions
 velocity_bc_free = NoSlip((x, t, equations) -> SVector(v_in, 0))
@@ -73,19 +73,19 @@ heat_bc_cylinder = Adiabatic((x, t, equations) -> 0)
 boundary_condition_cylinder = BoundaryConditionNavierStokesWall(velocity_bc_cylinder,
                                                                 heat_bc_cylinder)
 
-boundary_conditions_para = Dict(:Circle => boundary_condition_cylinder, # top half of the cylinder
-                                :Circle_R => boundary_condition_cylinder, # bottom half of the cylinder
-                                :Top => boundary_condition_free,
-                                :Top_R => boundary_condition_free, # aka bottom
-                                :Right => boundary_condition_free,
-                                :Right_R => boundary_condition_free,
-                                :Left => boundary_condition_free,
-                                :Left_R => boundary_condition_free)
+boundary_conditions_para = (; Circle = boundary_condition_cylinder, # top half of the cylinder
+                            Circle_R = boundary_condition_cylinder, # bottom half of the cylinder
+                            Top = boundary_condition_free,
+                            Top_R = boundary_condition_free, # aka bottom
+                            Right = boundary_condition_free,
+                            :Right_R => boundary_condition_free,
+                            :Left => boundary_condition_free,
+                            :Left_R => boundary_condition_free)
 # Standard DGSEM sufficient here
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
+                                             initial_condition, solver;
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_para))
 
@@ -105,7 +105,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # Add `:vorticity` to `extra_node_variables` tuple ...
 extra_node_variables = (:vorticity,)
 
-# ... and specify the function `get_node_variable` for this symbol, 
+# ... and specify the function `get_node_variable` for this symbol,
 # with first argument matching the symbol (turned into a type via `Val`) for dispatching.
 # Note that for parabolic(-extended) equations, `equations_parabolic` and `cache_parabolic`
 # must be declared as the last two arguments of the function to match the expected signature.
@@ -157,9 +157,11 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+# Moderate number of threads (e.g. 4) advisable to speed things up
+ode_alg = RDPK3SpFSAL49(thread = Trixi.True())
 time_int_tol = 1e-7
-sol = solve(ode,
-            # Moderate number of threads (e.g. 4) advisable to speed things up
-            RDPK3SpFSAL49(thread = Trixi.True());
+sol = solve(ode, ode_alg;
+            # not necessary, added for overwriting in tests
+            adaptive = true, dt = 1.4e-3,
             abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

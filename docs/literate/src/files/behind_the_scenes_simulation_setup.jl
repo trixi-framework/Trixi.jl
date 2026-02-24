@@ -33,7 +33,8 @@ coarsening_patches = ((type = "box", coordinates_min = [0.0, -2.0],
 
 mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 2,
                 n_cells_max = 30_000,
-                coarsening_patches = coarsening_patches)
+                coarsening_patches = coarsening_patches,
+                periodicity = true)
 
 # The created `TreeMesh` looks like the following:
 
@@ -58,7 +59,8 @@ solver = DGSEM(polydeg = 3)
 # comes into play.
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 # The constructor for the `SemidiscretizationHyperbolic` object calls numerous sub-functions to
 # perform the necessary initialization steps. A brief description of the key sub-functions is

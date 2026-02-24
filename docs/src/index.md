@@ -47,6 +47,7 @@ installation and postprocessing procedures. Its features include:
   * Relaxation Runge-Kutta methods for entropy-conservative time integration
 * Native support for differentiable programming
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
+  * Automatic Jacobian sparsity detection via [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl)
 * Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
@@ -215,7 +216,7 @@ instance, in the example above the first execution of `trixi_include` takes abou
 To automatically determine the experimental order of convergence (EOC) for a
 given setup, execute
 ```julia
-julia> convergence_test(default_example(), 4)
+julia> convergence_test(default_example(), 4);
 ```
 This will run a convergence test with the elixir `default_example()`,
 using four iterations with different initial refinement levels. The initial
@@ -249,12 +250,12 @@ mean      3.99
 
 An example with multiple variables looks like this:
 ```julia
-julia> convergence_test(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_source_terms.jl"), 3)
+julia> eocs, errorsmatrix = convergence_test(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_source_terms.jl"), 3);
 ```
 ```
 [...]
 l2
-rho                 rho_v1              rho_v2              rho_e
+rho                 rho_v1              rho_v2              rho_e_total
 error     EOC       error     EOC       error     EOC       error     EOC
 9.32e-07  -         1.42e-06  -         1.42e-06  -         4.82e-06  -
 7.03e-08  3.73      9.53e-08  3.90      9.53e-08  3.90      3.30e-07  3.87
@@ -263,7 +264,7 @@ error     EOC       error     EOC       error     EOC       error     EOC
 mean      3.82      mean      3.93      mean      3.93      mean      3.91
 --------------------------------------------------------------------------------
 linf
-rho                 rho_v1              rho_v2              rho_e
+rho                 rho_v1              rho_v2              rho_e_total
 error     EOC       error     EOC       error     EOC       error     EOC
 9.58e-06  -         1.17e-05  -         1.17e-05  -         4.89e-05  -
 6.23e-07  3.94      7.48e-07  3.97      7.48e-07  3.97      3.22e-06  3.92
@@ -272,6 +273,8 @@ error     EOC       error     EOC       error     EOC       error     EOC
 mean      3.94      mean      3.94      mean      3.94      mean      3.93
 --------------------------------------------------------------------------------
 ```
+The function `convergence_test` returns the experimental orders of convergence and the full errors
+matrix. To obtain the mean convergence rates, use `Trixi.calc_mean_convergence` on the convergence orders.
 
 ### Showcase of advanced features
 The presentation [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://youtu.be/_N4ozHr-t9E),

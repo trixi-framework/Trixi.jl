@@ -15,6 +15,7 @@ mkdir(outdir)
 @testset "T8codeMesh3D" begin
     @trixi_testset "test t8code mesh from p8est connectivity" begin
         @test begin
+            using Trixi: Trixi, T8codeMesh
             # Here we use the connectivity constructor from `P4est.jl` since the
             # method dispatch works only on `Ptr{p8est_connectivity}` which
             # actually is `Ptr{P4est.LibP4est.p8est_connectivity}`.
@@ -33,12 +34,7 @@ mkdir(outdir)
                             linf=[0.0014537194925779984])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl`.
@@ -49,12 +45,7 @@ mkdir(outdir)
                             linf=[0.026527551737137167])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl`.
@@ -64,12 +55,7 @@ mkdir(outdir)
                             linf=[0.016486952252155795])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl` besides minor
@@ -81,12 +67,7 @@ mkdir(outdir)
                             linf=[0.0007889950196294793])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl` besides minor
@@ -96,15 +77,10 @@ mkdir(outdir)
                                      "elixir_advection_amr_unstructured_curved.jl"),
                             l2=[2.0535121347526814e-5],
                             linf=[0.0010586603797777504],
-                            tspan=(0.0, 1.0),)
+                            tspan=(0.0, 1.0))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test differs from the one in `test_p4est_3d.jl` in the latitudinal and
@@ -115,12 +91,7 @@ mkdir(outdir)
                             linf=[0.027655117058380085])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl`.
@@ -130,12 +101,7 @@ mkdir(outdir)
                             linf=[0.01840757696885409])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl`.
@@ -159,12 +125,7 @@ mkdir(outdir)
                             tspan=(0.0, 0.01))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl`.
@@ -188,12 +149,7 @@ mkdir(outdir)
                             tspan=(0.0, 1.0))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl`.
@@ -216,12 +172,7 @@ mkdir(outdir)
                             tspan=(0.0, 0.03))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl`.
@@ -241,15 +192,10 @@ mkdir(outdir)
                                 3.3228975127030935e-13,
                                 9.592326932761353e-13
                             ],
-                            tspan=(0.0, 0.1), atol=5.0e-13,)
+                            tspan=(0.0, 0.1), atol=5.0e-13)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl`.
@@ -269,15 +215,10 @@ mkdir(outdir)
                                 0.45574161423218573,
                                 0.8099577682187109
                             ],
-                            tspan=(0.0, 0.2),)
+                            tspan=(0.0, 0.2))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl` besides minor
@@ -298,18 +239,14 @@ mkdir(outdir)
                                 3.21754792e-01,
                                 4.76151527e+00
                             ],
-                            tspan=(0.0, 0.3),)
+                            tspan=(0.0, 0.3))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
+        using Trixi: Trixi
         @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_3d_dgsem"),
                                      "elixir_euler_convergence_pure_fv.jl"),
                             l2=[
@@ -328,19 +265,15 @@ mkdir(outdir)
                             ],
                             mesh=T8codeMesh((4, 4, 4), polydeg = 3,
                                             coordinates_min = (0.0, 0.0, 0.0),
-                                            coordinates_max = (2.0, 2.0, 2.0)),
+                                            coordinates_max = (2.0, 2.0, 2.0),
+                                            periodicity = true),
                             # Remove SaveSolution callback
                             callbacks=CallbackSet(summary_callback,
                                                   analysis_callback, alive_callback,
                                                   stepsize_callback))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     # This test is identical to the one in `test_p4est_3d.jl`.
@@ -363,15 +296,10 @@ mkdir(outdir)
                             ],
                             tspan=(0.0, 1e2),
                             # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                            abstol=1.0e-9, reltol=1.0e-9,)
+                            abstol=1.0e-9, reltol=1.0e-9)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
     @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
@@ -390,15 +318,10 @@ mkdir(outdir)
                                 0.570663236219957,
                                 3.5496520808512027
                             ],
-                            tspan=(0.0, 0.025),)
+                            tspan=(0.0, 0.025))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
         # Check for conservation
         state_integrals = Trixi.integrate(sol.u[2], semi)
         initial_state_integrals = analysis_callback.affect!.initial_state_integrals
