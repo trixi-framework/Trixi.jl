@@ -8,10 +8,15 @@
 @doc raw"""
     WaveEquations2D(c)
 
-The wave equations in two space dimension written as a first order system. The equations are given by
+The wave equation
+```math
+u_{tt} - c^2 \Delta u = 0
+```
+in two space dimension as a first order system.
+The equations are given by
 ```math
 \begin{alignat*}{2}
-    \partial_t p &+ c\nabla \cdot{} v &&= 0 \\
+    \partial_t p &+ c\nabla \cdot v &&= 0 \\
     \partial_t v &+ c\nabla p &&= 0
 \end{alignat*}
 The unknowns are the wave amplitude ``p`` and the wave "flux" ``(v_x, v_y)^T``. 

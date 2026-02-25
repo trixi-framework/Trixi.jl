@@ -8,10 +8,16 @@
 @doc raw"""
     WaveEquations1D(c)
 
-The wave equations in one space dimension written as a first order system. The equations are given by
+The wave equation
+The wave equation
+```math
+u_{tt} - c^2 u_{xx} = 0
+```
+in one space dimension as a first order system.
+The equations are given by
 ```math
 \begin{alignat*}{2}
-    \partial_t p &+ c\nabla \cdot{} v &&= 0 \\
+    \partial_t p &+ c\nabla \cdot v &&= 0 \\
     \partial_t v &+ c\nabla p &&= 0
 \end{alignat*}
 The unknowns are the wave amplitude ``p`` and the wave flux ``v``. 
