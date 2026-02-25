@@ -136,21 +136,17 @@ end
 
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
-function entropy_change_reference_element(du_values, u_values, element,
+function entropy_change_reference_element(du_values_local, u_values_local,
                                           mesh::DGMultiMesh, equations,
                                           dg::DGMultiFluxDiff, cache)
     rd = dg.basis
     @unpack Nq, wq = rd
 
-    # Get local data, assumed to be already projected to quadrature points
-    du_values_elem = view(du_values, :, element)
-    u_values_elem = view(u_values, :, element)
-
     # Compute entropy change for this element
-    dS_dt_elem = zero(eltype(first(du_values_elem)))
+    dS_dt_elem = zero(eltype(first(du_values_local)))
     for i in Base.OneTo(Nq) # Loop over quadrature points in the element
-        dS_dt_elem += dot(cons2entropy(u_values_elem[i], equations),
-                          du_values_elem[i]) * wq[i]
+        dS_dt_elem += dot(cons2entropy(u_values_local[i], equations),
+                          du_values_local[i]) * wq[i]
     end
 
     return dS_dt_elem
@@ -158,38 +154,6 @@ end
 
 # calculate surface integral of func(u, normal_direction, equations) on the reference element.
 # For DGMulti, we loop over all faces of the element and integrate using face quadrature weights.
-function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::DGMultiMesh, equations,
-                                            dg::DGMulti{NDIMS, ElemType, <:SBP},
-                                            cache,
-                                            args...) where {Func, NDIMS, ElemType}
-    rd = dg.basis
-    @unpack Fmask, Nfq, wf = rd
-    md = mesh.md
-    @unpack nxyzJ = md
-
-    surface_integral = zero(eltype(first(u)))
-    # Loop over all face nodes for this element
-    for i in 1:Nfq
-        # Get global face node index (across all elements' face nodes)
-        face_node_global = i + (element - 1) * Nfq
-
-        # Get the volume node index corresponding to this face node
-        volume_node_index = Fmask[i]
-
-        # Get solution at this face node (which is also a volume node on the boundary)
-        u_node = u[volume_node_index, element]
-
-        # Get face normal; nxyzJ stores components as (nxJ, nyJ, nxJ)
-        normal_direction = SVector(getindex.(nxyzJ, face_node_global))
-
-        # Multiply with face quadrature weight and accumulate
-        surface_integral += wf[i] * func(u_node, normal_direction, equations)
-    end
-
-    return surface_integral
-end
-
 function surface_integral_reference_element(func::Func, u, element,
                                             mesh::DGMultiMesh, equations, dg::DGMulti,
                                             cache, args...) where {Func}
@@ -212,6 +176,38 @@ function surface_integral_reference_element(func::Func, u, element,
 
         # Get solution at this face node
         u_node = u_face_elem[i]
+
+        # Get face normal; nxyzJ stores components as (nxJ, nyJ, nxJ)
+        normal_direction = SVector(getindex.(nxyzJ, face_node_global))
+
+        # Multiply with face quadrature weight and accumulate
+        surface_integral += wf[i] * func(u_node, normal_direction, equations)
+    end
+
+    return surface_integral
+end
+
+function surface_integral_reference_element(func::Func, u, element,
+                                            mesh::DGMultiMesh, equations,
+                                            dg::DGMulti{NDIMS, ElemType, <:SBP},
+                                            cache,
+                                            args...) where {Func, NDIMS, ElemType}
+    rd = dg.basis
+    @unpack Fmask, Nfq, wf = rd
+    md = mesh.md
+    @unpack nxyzJ = md
+
+    surface_integral = zero(eltype(first(u)))
+    # Loop over all face nodes for this element
+    for i in 1:Nfq
+        # Get global face node index (across all elements' face nodes)
+        face_node_global = i + (element - 1) * Nfq
+
+        # Get the volume node index corresponding to this face node
+        volume_node_index = Fmask[i]
+
+        # Get solution at this face node (which is also a volume node on the boundary)
+        u_node = u[volume_node_index, element]
 
         # Get face normal; nxyzJ stores components as (nxJ, nyJ, nxJ)
         normal_direction = SVector(getindex.(nxyzJ, face_node_global))
