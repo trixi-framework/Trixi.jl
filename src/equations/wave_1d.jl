@@ -32,6 +32,11 @@ function varnames(::Union{typeof(cons2cons), typeof(cons2prim)}, ::WaveEquations
     return ("u", "v")
 end
 
+"""
+    initial_condition_gauss(x, t, equations::WaveEquations1D)
+
+Gaussian bump in both amplitude and wave flux, centered at x=0.
+"""
 function initial_condition_gauss(x, t, ::WaveEquations1D)
     u = exp(-25 * x[1]^2)
     v = exp(-25 * x[1]^2)

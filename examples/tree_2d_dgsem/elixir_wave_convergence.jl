@@ -9,7 +9,7 @@ equations = WaveEquations2D(2 * sqrt(2 / 5))
 # initial condition for a standing wave
 initial_condition = function (x, t, equations::WaveEquations2D)
     c = equations.c
-    p = cospi(3*x[1] / 2) * cospi(x[2] / 2) * cospi(sqrt(5 / 2) * c * t)
+    p = cospi(3 * x[1] / 2) * cospi(x[2] / 2) * cospi(sqrt(5 / 2) * c * t)
     vx = 3 / sqrt(10) * sinpi(3 * x[1] / 2) * cospi(x[2] / 2) * sinpi(sqrt(5 / 2) * c * t)
     vy = 1 / sqrt(10) * cospi(3 * x[1] / 2) * sinpi(x[2] / 2) * sinpi(sqrt(5 / 2) * c * t)
     return SVector(p, vx, vy)
@@ -44,7 +44,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.5)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -54,7 +54,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.8)
+stepsize_callback = StepsizeCallback(cfl = 1.5)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)

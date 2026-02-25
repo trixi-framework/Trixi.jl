@@ -4,11 +4,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the wave equations
 
-# implements the wave equation as a first order hyperbolic system 
-# with an auxiliary variable for the wave flux
 equations = WaveEquations1D(1.0)
 
-# this is a Gaussian Bump in both amplitude and wave flux.
 initial_condition = initial_condition_gauss
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -37,7 +34,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.8)
+stepsize_callback = StepsizeCallback(cfl = 1.5)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
