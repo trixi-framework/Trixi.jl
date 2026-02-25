@@ -187,38 +187,6 @@ function surface_integral_reference_element(func::Func, u, element,
     return surface_integral
 end
 
-function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::DGMultiMesh, equations,
-                                            dg::DGMulti{NDIMS, ElemType, <:SBP},
-                                            cache,
-                                            args...) where {Func, NDIMS, ElemType}
-    rd = dg.basis
-    @unpack Fmask, Nfq, wf = rd
-    md = mesh.md
-    @unpack nxyzJ = md
-
-    surface_integral = zero(eltype(first(u)))
-    # Loop over all face nodes for this element
-    for i in 1:Nfq
-        # Get global face node index (across all elements' face nodes)
-        face_node_global = i + (element - 1) * Nfq
-
-        # Get the volume node index corresponding to this face node
-        volume_node_index = Fmask[i]
-
-        # Get solution at this face node (which is also a volume node on the boundary)
-        u_node = u[volume_node_index, element]
-
-        # Get face normal; nxyzJ stores components as (nxJ, nyJ, nxJ)
-        normal_direction = SVector(getindex.(nxyzJ, face_node_global))
-
-        # Multiply with face quadrature weight and accumulate
-        surface_integral += wf[i] * func(u_node, normal_direction, equations)
-    end
-
-    return surface_integral
-end
-
 function create_cache_analysis(analyzer, mesh::DGMultiMesh,
                                equations, dg::DGMulti, cache,
                                RealT, uEltype)
