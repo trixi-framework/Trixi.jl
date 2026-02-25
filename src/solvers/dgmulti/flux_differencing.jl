@@ -651,10 +651,6 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     apply_to_each_field(mul_by!(rd.Vq), u_values, u) # required for weak form trial
     apply_to_each_field(mul_by!(rd.Vq), du_values, du) # required for entropy production calculation
 
-    # interpolate to face quadrature points for entropy production calculation
-    #@unpack u_face_values = cache
-    #apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
-
     @threaded for e in eachelement(dg, cache)
         # Try default volume integral first
         volume_integral_kernel!(du, u, e, mesh,
@@ -675,7 +671,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             # Reset default volume integral contribution.
             # Note that this assumes that the volume terms are computed first,
             # before any surface terms are added.
-            du_elem .= zero.(du_elem)
+            fill!(du_elem, zero(eltype(du_elem)))
 
             # Recompute using stabilized volume integral
             volume_integral_kernel!(du, u, e, mesh,
