@@ -305,6 +305,7 @@ end
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
+                              cons2recon, recon2cons,
                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded,
@@ -322,7 +323,8 @@ end
     calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
                    mesh, have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
-                   sc_interface_coords, reconstruction_mode, slope_limiter)
+                   sc_interface_coords, reconstruction_mode, slope_limiter,
+                   cons2recon, recon2cons)
 
     # Calculate FV volume integral contribution
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -448,23 +450,24 @@ end
                                 mesh::TreeMesh{3}, have_nonconservative_terms::False,
                                 equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter,
+                                cons2recon, recon2cons)
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, k, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, k, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
-                         equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, k, element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, k, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, k, element),
+                          equations)
 
-        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j, k,
-                                       element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j, k,
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, i,
                                        slope_limiter, dg)
 
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+        flux = volume_flux_fv(recon2cons(u_l, equations), recon2cons(u_r, equations),
                               1, equations) # orientation 1: x direction
 
         set_node_vars!(fstar1_L, flux, equations, dg, i, j, k)
@@ -472,20 +475,20 @@ end
     end
 
     for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), k, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, k, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
-                         equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1), k,
-                                       element), equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), k, element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, k, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, k, element),
+                          equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1), k,
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, j,
                                        slope_limiter, dg)
 
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+        flux = volume_flux_fv(recon2cons(u_l, equations), recon2cons(u_r, equations),
                               2, equations) # orientation 2: y direction
 
         set_node_vars!(fstar2_L, flux, equations, dg, i, j, k)
@@ -493,20 +496,20 @@ end
     end
 
     for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, j, max(1, k - 2), element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j, k - 1, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
-                         equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, j, min(nnodes(dg), k + 1),
-                                       element), equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, j, max(1, k - 2), element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j, k - 1, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, k, element),
+                          equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, j, min(nnodes(dg), k + 1),
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, k,
                                        slope_limiter, dg)
 
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+        flux = volume_flux_fv(recon2cons(u_l, equations), recon2cons(u_r, equations),
                               3, equations) # orientation 3: z direction
 
         set_node_vars!(fstar3_L, flux, equations, dg, i, j, k)
@@ -1331,12 +1334,13 @@ end
 end
 
 function calc_surface_integral!(du, u, mesh::Union{TreeMesh{3}, StructuredMesh{3}},
-                                equations, surface_integral, dg::DGSEM, cache)
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
     # This computes the **negative** surface integral contribution,
-    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
     # and the missing "-" is taken care of by `apply_jacobian!`.
     #
     # We also use explicit assignments instead of `+=` and `-=` to let `@muladd`

@@ -253,6 +253,7 @@ export density, pressure, density_pressure, velocity, temperature,
        equilibrium_distribution,
        waterheight, waterheight_pressure
 export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
+       entropy_potential,
        energy_total, energy_kinetic, energy_internal, energy_internal_specific,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
@@ -264,14 +265,17 @@ export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMe
        P4estMeshView, P4estMeshCubedSphere, T8codeMesh
 
 export DG,
-       DGSEM, LobattoLegendreBasis,
+       DGSEM, LobattoLegendreBasis, GaussLegendreBasis,
        FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
+       VolumeIntegralShockCapturingHGType,
+       VolumeIntegralAdaptive, IndicatorEntropyChange,
        IndicatorHennemannGassner,
        VolumeIntegralUpwind,
+       IndicatorEntropyCorrection, IndicatorEntropyCorrectionShockCapturingCombined,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
