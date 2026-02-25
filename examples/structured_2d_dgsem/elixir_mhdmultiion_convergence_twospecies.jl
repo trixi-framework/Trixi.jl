@@ -121,8 +121,7 @@ source_terms = source_terms_manufactured_solution_pe
 
 volume_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
 surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive),
-                flux_nonconservative_ruedaramirez_etal)
-# flux_nonconservative_ruedaramirez_etal
+                flux_nonconservative_central) # Also works with flux_nonconservative_ruedaramirez_etal
 
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
@@ -130,13 +129,33 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 
-# Convergence fails here with
+# To test convergence use:
 #   convergence_test("../examples/structured_2d_dgsem/elixir_mhdmultiion_convergence_twospecies.jl", 3, cells_per_dimension = (2, 2), polydeg = 3)
+# Mapping as described in https://arxiv.org/abs/2012.12040
+function mapping(xi_, eta_)
+    # Transform input variables between -1 and 1 onto [0,3]
+    xi = 1.5 * xi_ + 1.5
+    eta = 1.5 * eta_ + 1.5
+
+    y = eta +
+        0.05 * (cospi(1.5 * (2 * xi - 3) / 3) *
+                cospi(0.5 * (2 * eta - 3) / 3))
+
+    x = xi +
+        0.05 * (cospi(0.5 * (2 * xi - 3) / 3) *
+                cospi(2 * (2 * y - 3) / 3))
+
+    # Go back to [-1,1]^3
+    x = x * 2 / 3 - 1
+    y = y * 2 / 3 - 1
+
+    return SVector(x, y)
+end
 cells_per_dimension = (2, 2)
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+mesh = StructuredMesh(cells_per_dimension, mapping;
                       periodicity = true)
 
-# # This gives convergence with 
+# # Alternatively, you can test with a TreeMesh
 # #   convergence_test("../examples/structured_2d_dgsem/elixir_mhdmultiion_convergence_twospecies.jl", 3, initial_refinement_level = 1, polydeg = 3)
 # initial_refinement_level = 1
 # mesh = TreeMesh(coordinates_min, coordinates_max,
