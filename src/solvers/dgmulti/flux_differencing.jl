@@ -380,6 +380,11 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
         # For entropy change difference computation
         du_values = copy(u_values)
 
+        # Thread-local buffer for face interpolation, which is required 
+        # for computation of entropy potential at interpolated face nodes 
+        u_face_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nfq,), dg)
+                                 for _ in 1:Threads.maxthreadid()]
+
         return (; md, Qrst_skew, VhP, Ph,
                 invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
                 entropy_var_values, projected_entropy_var_values,
@@ -387,7 +392,9 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
                 u_values, u_face_values, flux_face_values,
                 local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded,
                 # Weak form additions
-                weak_differentiation_matrices, du_values)
+                weak_differentiation_matrices, du_values,
+                # Required for entropy change difference computation
+                u_face_local_threaded)
     end
 
     return (; md, Qrst_skew, VhP, Ph,

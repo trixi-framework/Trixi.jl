@@ -163,10 +163,10 @@ function surface_integral_reference_element(func::Func, u, element,
     @unpack nxyzJ = md
 
     # Interpolate volume solution to face quadrature nodes for this element
-    @unpack u_face_values = cache
-    u_face_elem = view(u_face_values, :, element)
+    @unpack u_face_local_threaded = cache
+    u_face_local = u_face_local_threaded[Threads.threadid()]
     u_elem = view(u, :, element)
-    apply_to_each_field(mul_by!(Vf), u_face_elem, u_elem)
+    apply_to_each_field(mul_by!(Vf), u_face_local, u_elem)
 
     surface_integral = zero(eltype(first(u)))
     # Loop over all face nodes for this element
@@ -175,7 +175,7 @@ function surface_integral_reference_element(func::Func, u, element,
         face_node_global = i + (element - 1) * Nfq
 
         # Get solution at this face node
-        u_node = u_face_elem[i]
+        u_node = u_face_local[i]
 
         # Get face normal; nxyzJ stores components as (nxJ, nyJ, nxJ)
         normal_direction = SVector(getindex.(nxyzJ, face_node_global))
