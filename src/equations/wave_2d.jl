@@ -16,10 +16,10 @@ in two space dimension as a first order system.
 The equations are given by
 ```math
 \begin{alignat*}{2}
-    \partial_t p &+ c\nabla \cdot v &&= 0 \\
-    \partial_t v &+ c\nabla p &&= 0
+    \partial_t u              &+ c \nabla \cdot \boldsymbol{v} &&= 0 \\
+    \partial_t \boldsymbol{v} &+ c \nabla u                    &&= 0
 \end{alignat*}
-The unknowns are the wave amplitude ``p`` and the wave "flux" ``(v_x, v_y)^T``. 
+The unknowns are the wave amplitude ``u`` and the wave "flux" ``(v_x, v_y)^T``. 
 The parameter ``c`` is the wave speed.
 ```
 """
@@ -28,7 +28,7 @@ struct WaveEquations2D{RealT <: Real} <: AbstractFirstOrderWaveEquations{2, 3}
 end
 
 function varnames(::Union{typeof(cons2cons), typeof(cons2prim)}, ::WaveEquations2D)
-    return ("p", "vx", "vy")
+    return ("u", "vx", "vy")
 end
 
 # Calculate 1D flux for a single point
@@ -41,17 +41,6 @@ end
         return SVector(c * vy, zero(vx), c * u)
     end
 end
-
-"""
-    have_constant_speed(::WaveEquations2D)
-
-Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
-Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
-
-# Returns
-- `True()`
-"""
-@inline have_constant_speed(::WaveEquations2D) = True()
 
 @inline function max_abs_speeds(equations::WaveEquations2D)
     return equations.c, equations.c

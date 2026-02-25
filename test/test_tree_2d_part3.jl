@@ -28,6 +28,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # FDSBP methods on the TreeMesh
     include("test_tree_2d_fdsbp.jl")
+
+    include("test_tree_2d_wave.jl")
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

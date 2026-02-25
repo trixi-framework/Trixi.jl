@@ -17,10 +17,10 @@ in one space dimension as a first order system.
 The equations are given by
 ```math
 \begin{alignat*}{2}
-    \partial_t p &+ c \partial_x v &&= 0 \\
-    \partial_t v &+ c\nabla p &&= 0
+    \partial_t u &+ c \partial_x v &&= 0 \\
+    \partial_t v &+ c \partial_x u &&= 0
 \end{alignat*}
-The unknowns are the wave amplitude ``p`` and the wave flux ``v``. 
+The unknowns are the wave amplitude ``u`` and the wave flux ``v``. 
 The parameter ``c`` is the wave speed.
 ```
 """
@@ -29,13 +29,13 @@ struct WaveEquations1D{RealT <: Real} <: AbstractFirstOrderWaveEquations{1, 2}
 end
 
 function varnames(::Union{typeof(cons2cons), typeof(cons2prim)}, ::WaveEquations1D)
-    return ("p", "v")
+    return ("u", "v")
 end
 
 function initial_condition_gauss(x, t, ::WaveEquations1D)
-    p = exp(-25 * x[1]^2)
+    u = exp(-25 * x[1]^2)
     v = exp(-25 * x[1]^2)
-    return SVector(p, v)
+    return SVector(u, v)
 end
 
 """
@@ -49,8 +49,8 @@ Neumann zero for the flux.
 function boundary_condition_wall(u_inner, orientation, direction, x, t,
                                  surface_flux_function,
                                  equations::WaveEquations1D)
-    p, v = u_inner
-    u_boundary = SVector(zero(p), v)
+    u, v = u_inner
+    u_boundary = SVector(zero(u), v)
 
     # Calculate boundary flux
     if direction == 2  # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -64,12 +64,12 @@ end
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::WaveEquations1D)
     @unpack c = equations
-    p, v = u
-    return SVector(c * v, c * p)
+    u, v = u
+    return SVector(c * v, c * u)
 end
 
 """
-    have_constant_speed(::WaveEquations1D)
+    have_constant_speed(::AbstractFirstOrderWaveEquations)
 
 Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
 Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
@@ -77,7 +77,7 @@ Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_stru
 # Returns
 - `True()`
 """
-@inline have_constant_speed(::WaveEquations1D) = True()
+@inline have_constant_speed(::AbstractFirstOrderWaveEquations) = True()
 
 @inline function max_abs_speeds(equations::WaveEquations1D)
     return equations.c
