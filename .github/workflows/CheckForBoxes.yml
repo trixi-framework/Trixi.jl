@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CITATION.bib'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'NEWS.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
+      - 'docs/**'
+      - 'utils/**'
+  pull_request:
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CITATION.bib'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'NEWS.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
+      - 'docs/**'
+      - 'utils/**'
+  workflow_dispatch:
+
+# needed to allow julia-actions/cache to delete old caches that it has created
+permissions:
+  actions: write
+  contents: read
+
+# Cancel redundant CI tests automatically
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    name: Check for Boxes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.12'
+          arch: x64
+      - run: julia -e 'using InteractiveUtils; versioninfo(verbose = true)'
+      - uses: julia-actions/cache@v2
+        with:
+          include-matrix: false
+      - uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ''
+      - run: julia --project=. -e 'include("test/test_boxes.jl")'
