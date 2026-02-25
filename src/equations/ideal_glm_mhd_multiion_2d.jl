@@ -420,7 +420,7 @@ end
 
 """
     flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
-                                           orientation::Integer,
+                                           orientation_or_normal_direction,
                                            equations::IdealGlmMhdMultiIonEquations2D)
 
 Entropy-conserving non-conservative two-point "flux" as described in
@@ -593,6 +593,11 @@ end
     B1_rr, B2_rr, B3_rr = magnetic_field(u_rr, equations)
     psi_ll = divergence_cleaning_field(u_ll, equations)
     psi_rr = divergence_cleaning_field(u_rr, equations)
+    B_dot_n_ll = B1_ll * normal_direction[1] +
+                 B2_ll * normal_direction[2]
+    B_dot_n_rr = B1_rr * normal_direction[1] +
+                 B2_rr * normal_direction[2]
+    B_dot_n_avg = 0.5f0 * (B_dot_n_ll + B_dot_n_rr)
 
     # Compute important averages
     B1_avg = 0.5f0 * (B1_ll + B1_rr)
@@ -612,7 +617,7 @@ end
     charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
     total_electron_charge = zero(eltype(u_ll))
     for k in eachcomponent(equations)
-        rho_k = u_ll[3 + (k - 1) * 5 + 1]
+        rho_k = u_ll[3 + (k - 1) * 5 + 1] # Extract densities from conserved variable vector
         charge_ratio_ll[k] = rho_k * charge_to_mass[k]
         total_electron_charge += charge_ratio_ll[k]
     end
@@ -625,35 +630,26 @@ end
     v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr,
     vk3_plus_rr = charge_averaged_velocities(u_rr,
                                              equations)
-
+    v_plus_dot_n_ll = (v1_plus_ll * normal_direction[1] +
+                       v2_plus_ll * normal_direction[2])
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
     # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is
     # multiplied by 0.5 whenever it's used in the Trixi code)
-    v_plus_ll_normal = v1_plus_ll * normal_direction[1] +
-                       v2_plus_ll * normal_direction[2]
-    f[1] = 2 * v_plus_ll_normal * B1_avg
-    f[2] = 2 * v_plus_ll_normal * B2_avg
-    f[3] = 2 * v_plus_ll_normal * B3_avg
-
-    # Compute B_dot_n_avg and v_dot_B_ll once (they are constant for all species)
-    B_dot_n_avg = B1_avg * normal_direction[1] + B2_avg * normal_direction[2]
-    v_dot_B_ll = v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll
+    f[1] = 2 * v1_plus_ll * B_dot_n_avg
+    f[2] = 2 * v2_plus_ll * B_dot_n_avg
+    f[3] = 2 * v3_plus_ll * B_dot_n_avg
 
     for k in eachcomponent(equations)
         # Compute term Lorentz term
-        Txx = charge_ratio_ll[k] * (0.5f0 * mag_norm_avg - B1_avg^2 + pe_mean)
-        Txy = -charge_ratio_ll[k] * (B1_avg * B2_avg)
-        Txz = -charge_ratio_ll[k] * (B1_avg * B3_avg)
-
-        Tyx = Txy
-        Tyy = charge_ratio_ll[k] * (0.5f0 * mag_norm_avg - B2_avg^2 + pe_mean)
-        Tyz = -charge_ratio_ll[k] * (B2_avg * B3_avg)
-
-        f2 = Txx * normal_direction[1] + Txy * normal_direction[2]
-        f3 = Tyx * normal_direction[1] + Tyy * normal_direction[2]
-        f4 = Txz * normal_direction[1] + Tyz * normal_direction[2]
-
+        f2 = charge_ratio_ll[k] *
+             ((0.5f0 * mag_norm_avg + pe_mean) * normal_direction[1] -
+              B_dot_n_avg * B1_avg)
+        f3 = charge_ratio_ll[k] *
+             ((0.5f0 * mag_norm_avg + pe_mean) * normal_direction[2] -
+              B_dot_n_avg * B2_avg)
+        f4 = charge_ratio_ll[k] *
+             (-B_dot_n_avg * B3_avg)
         f5 = (vk1_plus_ll[k] * normal_direction[1] +
               vk2_plus_ll[k] * normal_direction[2]) * pe_mean
 
@@ -667,25 +663,22 @@ end
         vk1_minus_avg = 0.5f0 * (vk1_minus_ll + vk1_minus_rr)
         vk2_minus_avg = 0.5f0 * (vk2_minus_ll + vk2_minus_rr)
         vk3_minus_avg = 0.5f0 * (vk3_minus_ll + vk3_minus_rr)
+        f5 += ((B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
+                B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) *
+               normal_direction[1] +
+               (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
+                B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) *
+               normal_direction[2])
 
-        # Compute multi-ion term (vanishes for NCOMP==1)
-        # This is the projection of B_ll ⋅ (v_minus × B_avg) onto the normal direction
-        f5 += (B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
-               B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) *
-              normal_direction[1]
-        f5 += (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
-               B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) *
-              normal_direction[2]
-
-        # Compute Godunov-Powell term (ADD to f2, f3, f4, not overwrite!)
+        # Compute Godunov-Powell term
         f2 += charge_ratio_ll[k] * B1_ll * B_dot_n_avg
         f3 += charge_ratio_ll[k] * B2_ll * B_dot_n_avg
         f4 += charge_ratio_ll[k] * B3_ll * B_dot_n_avg
-        f5 += v_dot_B_ll * B_dot_n_avg
+        f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
+              B_dot_n_avg
 
         # Compute GLM term for the energy
-        f5 += v1_plus_ll * psi_ll * psi_avg * normal_direction[1]
-        f5 += v2_plus_ll * psi_ll * psi_avg * normal_direction[2]
+        f5 += v_plus_dot_n_ll * psi_ll * psi_avg
 
         # Add to the flux vector (multiply by 2 because the non-conservative flux is
         # multiplied by 0.5 whenever it's used in the Trixi code)
@@ -694,7 +687,7 @@ end
     end
     # Compute GLM term for psi (multiply by 2 because the non-conservative flux is
     # multiplied by 0.5 whenever it's used in the Trixi code)
-    f[end] = 2 * v_plus_ll_normal * psi_avg
+    f[end] = 2 * v_plus_dot_n_ll * psi_avg
 
     return SVector(f)
 end
