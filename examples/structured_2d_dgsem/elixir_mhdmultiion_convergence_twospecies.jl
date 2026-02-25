@@ -49,22 +49,10 @@ function initial_condition_manufactured_solution(x, t,
     u12 = -0.25 * h
     u13 = 0.1 * h
 
-    return SVector{nvariables(equations), real(equations)}([
-                                                               u11,
-                                                               u12,
-                                                               u13,
-                                                               u1,
-                                                               u2,
-                                                               u3,
-                                                               u4,
-                                                               u5,
-                                                               u6,
-                                                               u7,
-                                                               u8,
-                                                               u9,
-                                                               u10,
-                                                               0
-                                                           ])
+    return SVector{nvariables(equations), real(equations)}(u11, u12, u13,
+                                                           u1, u2, u3, u4, u5,
+                                                           u6, u7, u8, u9, u10,
+                                                           0)
 end
 
 """
@@ -95,22 +83,10 @@ function source_terms_manufactured_solution_pe(u, x, t,
     s12 = -hx / 4
     s13 = hx / 10
 
-    s = SVector{nvariables(equations), real(equations)}([
-                                                            s11,
-                                                            s12,
-                                                            s13,
-                                                            s1,
-                                                            s2,
-                                                            s3,
-                                                            s4,
-                                                            s5,
-                                                            s6,
-                                                            s7,
-                                                            s8,
-                                                            s9,
-                                                            s10,
-                                                            0
-                                                        ])
+    s = SVector{nvariables(equations), real(equations)}(s11, s12, s13,
+                                                        s1, s2, s3, s4, s5,
+                                                        s6, s7, s8, s9, s10,
+                                                        0)
     S_std = source_terms_lorentz(u, x, t, equations::IdealGlmMhdMultiIonEquations2D)
 
     return SVector{nvariables(equations), real(equations)}(S_std .+ s)
