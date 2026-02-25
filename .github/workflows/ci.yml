@@ -85,6 +85,7 @@ jobs:
           - performance_specializations
           - mpi
           - threaded
+          - kernelabstractions
         include:
           - version: '1.11'
             os: ubuntu-latest

@@ -1,5 +1,6 @@
 using Test
 using MPI: mpiexec
+import Trixi
 
 # We run tests in parallel with CI jobs setting the `TRIXI_TEST` environment
 # variable to determine the subset of tests to execute.
@@ -118,6 +119,17 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
             include("test_cuda_3d.jl")
         else
             @warn "Unable to run CUDA tests on this machine"
+        end
+    end
+
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "kernelabstractions"
+        previous_backend = Trixi._PREFERENCE_THREADING
+        Trixi.set_threading_backend!(:kernelabstractions)
+        # relaunching julia
+        try
+            run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes $(abspath("test_kernelabstractions.jl"))`)
+        finally
+            Trixi.set_threading_backend!(Symbol(previous_backend))
         end
     end
 end
