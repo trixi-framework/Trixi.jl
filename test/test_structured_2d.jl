@@ -1141,7 +1141,8 @@ end
 end
 
 @trixi_testset "elixir_mhdmultiion_convergence_twospecies.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_convergence_twospecies.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhdmultiion_convergence_twospecies.jl"),
                         l2=[
                             0.0010051333701703825,
                             0.0010394775468233015,
