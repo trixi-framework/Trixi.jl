@@ -31,9 +31,9 @@ end
     @unpack c = equations
     u, vx, vy = u
     if orientation == 1
-        return SVector(c*vx, c*u, zero(vy))
+        return SVector(c * vx, c * u, zero(vy))
     else
-        return SVector(c*vy, zero(vx), c*u)
+        return SVector(c * vy, zero(vx), c * u)
     end
 end
 

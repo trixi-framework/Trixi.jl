@@ -27,8 +27,8 @@ function varnames(::Union{typeof(cons2cons), typeof(cons2prim)}, ::WaveEquations
 end
 
 function initial_condition_gauss(x, t, ::WaveEquations1D)
-    p = exp(-25*x[1]^2)
-    v = exp(-25*x[1]^2)
+    p = exp(-25 * x[1]^2)
+    v = exp(-25 * x[1]^2)
     return SVector(p, v)
 end
 
@@ -36,7 +36,9 @@ end
     boundary_condition_wall(u_inner, orientation, direction, x, t, surface_flux_function,
                                 equations::WaveEquations1D)
 
-Boundary conditions for a solid wall.
+Boundary conditions for a solid wall, corresponding to zero amplitde at the wall.
+In some sense this is a mixed boundary condition, with Dirichlet zero for the amplitude and
+Neumann zero for the flux.
 """
 function boundary_condition_wall(u_inner, orientation, direction, x, t,
                                  surface_flux_function,
@@ -57,7 +59,7 @@ end
 @inline function flux(u, orientation::Integer, equations::WaveEquations1D)
     @unpack c = equations
     p, v = u
-    return SVector(c*v, c*p)
+    return SVector(c * v, c * p)
 end
 
 """

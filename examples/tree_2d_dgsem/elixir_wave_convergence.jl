@@ -4,21 +4,21 @@ using Trixi
 ###############################################################################
 # semidiscretization of the wave equations
 
-equations = WaveEquations2D(2*sqrt(2/5))
+equations = WaveEquations2D(2 * sqrt(2 / 5))
 
 # initial condition for a standing wave
-initial_condition = function(x, t, equations::WaveEquations2D)
+initial_condition = function (x, t, equations::WaveEquations2D)
     c = equations.c
-    p = cospi(3x[1]/2)*cospi(x[2]/2)*cospi(sqrt(5/2)*c*t)
-    vx = 3/sqrt(10)*sinpi(3x[1]/2)*cospi(x[2]/2)*sinpi(sqrt(5/2)*c*t)
-    vy = 1/sqrt(10)*cospi(3x[1]/2)*sinpi(x[2]/2)*sinpi(sqrt(5/2)*c*t)
+    p = cospi(3x[1] / 2) * cospi(x[2] / 2) * cospi(sqrt(5 / 2) * c * t)
+    vx = 3 / sqrt(10) * sinpi(3x[1] / 2) * cospi(x[2] / 2) * sinpi(sqrt(5 / 2) * c * t)
+    vy = 1 / sqrt(10) * cospi(3x[1] / 2) * sinpi(x[2] / 2) * sinpi(sqrt(5 / 2) * c * t)
     return SVector(p, vx, vy)
 end
 
 # corresponding boundary condition for the standing wave
-boundary_condition = function(u_inner, orientation, direction, x, t,
-                                 surface_flux_function,
-                                 equations::WaveEquations2D)
+boundary_condition = function (u_inner, orientation, direction, x, t,
+                               surface_flux_function,
+                               equations::WaveEquations2D)
     u_boundary = initial_condition(x, t, equations)
     # Calculate boundary flux
     if direction in (2, 4)  # u_inner is "left" of boundary, u_boundary is "right" of boundary
