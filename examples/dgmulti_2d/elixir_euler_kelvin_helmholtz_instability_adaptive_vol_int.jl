@@ -4,19 +4,20 @@ using Trixi
 volume_integral_weakform = VolumeIntegralWeakForm()
 volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(flux_ranocha)
 
-# This indicator compares the entropy production of the weak form to the 
+# This indicator compares the entropy production of the weak form to the
 # true entropy evolution in that cell.
 # If the weak form does not increase entropy beyond `maximum_entropy_increase`,
 # we keep the weak form result. Otherwise, we switch to the stabilized/EC volume integral.
 indicator = IndicatorEntropyChange(maximum_entropy_increase = 5e-3)
 
-# Adaptive volume integral using the entropy production comparison indicator to perform the 
+# Adaptive volume integral using the entropy production comparison indicator to perform the
 # stabilized/EC volume integral when needed.
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,
                                          volume_integral_stabilized = volume_integral_fluxdiff,
                                          indicator = indicator)
 
-dg = DGMulti(polydeg = 3, element_type = Tri(), # `Tri()` makes flux differencing really(!) expensive
+dg = DGMulti(polydeg = 3,
+             element_type = Tri(), # `Tri()` makes flux differencing really(!) expensive
              approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(flux_hllc),
              volume_integral = volume_integral)
@@ -54,8 +55,10 @@ mesh = DGMultiMesh(dg, cells_per_dimension; periodicity = true)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     boundary_conditions = boundary_condition_periodic)
 
-#tspan = (0.0, 3.0) # WF still stable until this time
-tspan = (0.0, 20.0) # stable time for adaptive volume integral
+tspan = (0.0, 3.0) # WF still stable until this time
+#tspan = (0.0, 3.4) # FD still stable until this time
+#tspan = (0.0, 4.3) # stable time for entropy-diffusive adaptive volume integral
+tspan = (0.0, 4.6) # stable time for limited entropy-increase adaptive volume integral
 
 ode = semidiscretize(semi, tspan)
 
@@ -70,7 +73,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype
                                      analysis_errors = Symbol[],
                                      extra_analysis_integrals = (entropy,))
 
-save_solution = SaveSolutionCallback(interval = analysis_interval,
+save_solution = SaveSolutionCallback(interval = 1000,
                                      solution_variables = cons2prim)
 
 callbacks = CallbackSet(summary_callback,
