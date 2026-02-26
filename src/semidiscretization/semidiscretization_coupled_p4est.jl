@@ -65,7 +65,7 @@ function SemidiscretizationCoupledP4est(semis...)
     element_offset = ones(Int, length(semis))
     mesh_ids = zeros(Int, size(global_element_ids))
     for i in eachindex(semis)
-        local_element_ids[semis[i].mesh.cell_ids] = global_element_id_to_local(global_element_ids[semis[i].mesh.cell_ids],
+        local_element_ids[semis[i].mesh.cell_ids] = global_cell_id_to_local(global_element_ids[semis[i].mesh.cell_ids],
                                                                                semis[i].mesh)
         mesh_ids[semis[i].mesh.cell_ids] .= i
     end
@@ -209,11 +209,11 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                     (var - 1) +
                     nvariables(semi_.equations) * (i_node - 1) +
                     nvariables(semi_.equations) * n_nodes * (j_node - 1) +
-                    nvariables(semi_.equations) * n_nodes^2 * (global_element_id_to_local(element, semi_.mesh) - 1)] = u_loc_reshape[var,
+                    nvariables(semi_.equations) * n_nodes^2 * (global_cell_id_to_local(element, semi_.mesh) - 1)] = u_loc_reshape[var,
                                                                                                                                      i_node,
                                                                                                                                      j_node,
-                                                                                                                                     global_element_id_to_local(element,
-                                                                                                                                                                semi_.mesh)]
+                                                                                                                                     global_cell_id_to_local(element,
+                                                                                                                                                             semi_.mesh)]
                 end
             end
         end
@@ -616,7 +616,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                               (var - 1) +
                                               nvariables(semi_other.equations) * (i_index_g - 1) +
                                               nvariables(semi_other.equations) * n_nodes * (j_index_g - 1) +
-                                              nvariables(semi_other.equations) * n_nodes^2 * (global_element_id_to_local(element_index_global, semi_other.mesh) - 1)]
+                                              nvariables(semi_other.equations) * n_nodes^2 * (global_cell_id_to_local(element_index_global, semi_other.mesh) - 1)]
     end
     x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
     u_boundary = boundary_condition.coupling_converter[idx_this, idx_other](x,
