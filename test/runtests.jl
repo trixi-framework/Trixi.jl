@@ -122,6 +122,15 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         end
     end
 
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "Metal"
+        import Metal
+        if Metal.functional()
+            include("test_metal_2d.jl")
+        else
+            @warn "Unable to run Metal tests on this machine"
+        end
+    end
+
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "kernelabstractions"
         previous_backend = Trixi._PREFERENCE_THREADING
         Trixi.set_threading_backend!(:kernelabstractions)
