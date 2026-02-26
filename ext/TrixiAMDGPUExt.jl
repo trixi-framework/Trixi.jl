@@ -1,7 +1,8 @@
 # Package extension for adding AMDGPU-based features to Trixi.jl
 module TrixiAMDGPUExt
 
-import AMDGPU: ROCArray, ROCDeviceArray, Adaptor
+import AMDGPU: ROCArray, ROCDeviceArray
+import AMDGPU.Runtime: Adaptor
 import Trixi
 
 function Trixi.storage_type(::Type{<:ROCArray})
