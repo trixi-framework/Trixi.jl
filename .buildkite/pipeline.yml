@@ -19,3 +19,23 @@ steps:
     timeout_in_minutes: 60
     soft_fail:
       - exit_status: 3
+
+  - label: "Metal Julia {{matrix.version}}"
+    matrix:
+      setup:
+        version:
+          - "1.10"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "{{matrix.version}}"
+      - JuliaCI/julia-test#v1: ~
+    env:
+      TRIXI_TEST: "Metal"
+    agents:
+      queue: "juliaecosystem"
+      os: "macos"
+      arch: "aarch64"
+    if: build.message !~ /\[skip ci\]/
+    timeout_in_minutes: 60
+    soft_fail:
+      - exit_status: 3
