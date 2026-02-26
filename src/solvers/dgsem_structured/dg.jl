@@ -30,7 +30,15 @@ end
 end
 
 # Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `StructuredMesh`es.
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
+function prolong2boundaries!(cache, u, mesh::Union{StructuredMesh, StructuredMeshView},
+                             equations, dg::DG)
+    # Boundary face values are already stored in `cache.elements.interfaces_u`
+    # by `prolong2interfaces!`, so nothing to do here.
+    return nothing
+end
+
+# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `StructuredMesh`es.
+function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::StructuredMesh, equations, surface_integral,
                              dg::DG)
     @assert isperiodic(mesh)
@@ -38,51 +46,7 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
     return nothing
 end
 
-function rhs!(du, u, t,
-              mesh::Union{StructuredMesh, StructuredMeshView{2}}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # Calculate interface and boundary fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache, u, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, u, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-
-    return nothing
-end
-
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionPeriodic,
                                                   mesh::Union{StructuredMesh,
@@ -96,7 +60,7 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionPeriodic,
                                                   mesh::Union{StructuredMesh,
@@ -110,7 +74,7 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition,
                                                   mesh::Union{StructuredMesh,
@@ -120,10 +84,12 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian,
+    interfaces_u = cache.elements
     @unpack surface_flux = surface_integral
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(interfaces_u, equations, dg, surface_node_indices...,
+                            direction, element)
     x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
@@ -149,7 +115,7 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition,
                                                   mesh::Union{StructuredMesh,
@@ -159,10 +125,12 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian,
+    interfaces_u = cache.elements
     @unpack surface_flux = surface_integral
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(interfaces_u, equations, dg, surface_node_indices...,
+                            direction, element)
     x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation

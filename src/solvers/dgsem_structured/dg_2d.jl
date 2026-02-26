@@ -482,10 +482,39 @@ end
     return nothing
 end
 
-function calc_interface_flux!(cache, u,
+function prolong2interfaces!(cache, u,
+                             mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
+                             equations, dg::DG)
+    @unpack interfaces_u = cache.elements
+
+    @threaded for element in eachelement(dg, cache)
+        for i in eachnode(dg)
+            # Negative x-direction (direction 1, left/negative-x face)
+            for v in eachvariable(equations)
+                interfaces_u[v, i, 1, element] = u[v, 1, i, element]
+            end
+            # Positive x-direction (direction 2, right/positive-x face)
+            for v in eachvariable(equations)
+                interfaces_u[v, i, 2, element] = u[v, nnodes(dg), i, element]
+            end
+            # Negative y-direction (direction 3, bottom/negative-y face)
+            for v in eachvariable(equations)
+                interfaces_u[v, i, 3, element] = u[v, i, 1, element]
+            end
+            # Positive y-direction (direction 4, top/positive-y face)
+            for v in eachvariable(equations)
+                interfaces_u[v, i, 4, element] = u[v, i, nnodes(dg), element]
+            end
+        end
+    end
+
+    return nothing
+end
+
+function calc_interface_flux!(surface_flux_values,
                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                               have_nonconservative_terms, # can be True/False
-                              equations, surface_integral, dg::DG)
+                              equations, surface_integral, dg::DG, cache)
     @unpack elements = cache
 
     @threaded for element in eachelement(dg, cache)
@@ -495,14 +524,14 @@ function calc_interface_flux!(cache, u,
         # Interfaces in x-direction (`orientation` = 1)
         calc_interface_flux!(elements.surface_flux_values,
                              elements.left_neighbors[1, element],
-                             element, 1, u, mesh,
+                             element, 1, mesh,
                              have_nonconservative_terms, equations,
                              surface_integral, dg, cache)
 
         # Interfaces in y-direction (`orientation` = 2)
         calc_interface_flux!(elements.surface_flux_values,
                              elements.left_neighbors[2, element],
-                             element, 2, u, mesh,
+                             element, 2, mesh,
                              have_nonconservative_terms, equations,
                              surface_integral, dg, cache)
     end
@@ -511,7 +540,7 @@ function calc_interface_flux!(cache, u,
 end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
-                                      orientation, u,
+                                      orientation,
                                       mesh::Union{StructuredMesh{2},
                                                   StructuredMeshView{2}},
                                       have_nonconservative_terms::False, equations,
@@ -522,16 +551,18 @@ end
     end
 
     @unpack surface_flux = surface_integral
-    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack interfaces_u, contravariant_vectors, inverse_jacobian = cache.elements
 
     right_direction = 2 * orientation
     left_direction = right_direction - 1
 
     for i in eachnode(dg)
-        if orientation == 1
-            u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
-            u_rr = get_node_vars(u, equations, dg, 1, i, right_element)
+        u_ll = get_node_vars(interfaces_u, equations, dg, i, right_direction,
+                             left_element)
+        u_rr = get_node_vars(interfaces_u, equations, dg, i, left_direction,
+                             right_element)
 
+        if orientation == 1
             # If the mapping is orientation-reversing, the contravariant vectors' orientation
             # is reversed as well. The normal vector must be oriented in the direction
             # from `left_element` to `right_element`, or the numerical flux will be computed
@@ -543,9 +574,6 @@ end
                                get_contravariant_vector(1, contravariant_vectors,
                                                         1, i, right_element)
         else # orientation == 2
-            u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
-            u_rr = get_node_vars(u, equations, dg, i, 1, right_element)
-
             # See above
             sign_jacobian = sign(inverse_jacobian[i, 1, right_element])
 
@@ -569,7 +597,7 @@ end
 end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
-                                      orientation, u,
+                                      orientation,
                                       mesh::Union{StructuredMesh{2},
                                                   StructuredMeshView{2}},
                                       have_nonconservative_terms::True, equations,
@@ -580,16 +608,18 @@ end
     end
 
     surface_flux, nonconservative_flux = surface_integral.surface_flux
-    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack interfaces_u, contravariant_vectors, inverse_jacobian = cache.elements
 
     right_direction = 2 * orientation
     left_direction = right_direction - 1
 
     for i in eachnode(dg)
-        if orientation == 1
-            u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
-            u_rr = get_node_vars(u, equations, dg, 1, i, right_element)
+        u_ll = get_node_vars(interfaces_u, equations, dg, i, right_direction,
+                             left_element)
+        u_rr = get_node_vars(interfaces_u, equations, dg, i, left_direction,
+                             right_element)
 
+        if orientation == 1
             # If the mapping is orientation-reversing, the contravariant vectors' orientation
             # is reversed as well. The normal vector must be oriented in the direction
             # from `left_element` to `right_element`, or the numerical flux will be computed
@@ -601,9 +631,6 @@ end
                                get_contravariant_vector(1, contravariant_vectors,
                                                         1, i, right_element)
         else # orientation == 2
-            u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
-            u_rr = get_node_vars(u, equations, dg, i, 1, right_element)
-
             # See above
             sign_jacobian = sign(inverse_jacobian[i, 1, right_element])
 
@@ -641,7 +668,7 @@ end
     return nothing
 end
 
-function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                              equations, surface_integral,
                              dg::DG)
@@ -654,7 +681,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
         element = linear_indices[begin, cell_y]
 
         for j in eachnode(dg)
-            calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
+            calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
                                              boundary_conditions[direction],
                                              mesh,
                                              have_nonconservative_terms(equations),
@@ -668,7 +695,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
         element = linear_indices[end, cell_y]
 
         for j in eachnode(dg)
-            calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
+            calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
                                              boundary_conditions[direction],
                                              mesh,
                                              have_nonconservative_terms(equations),
@@ -684,7 +711,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
         element = linear_indices[cell_x, begin]
 
         for i in eachnode(dg)
-            calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
+            calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
                                              boundary_conditions[direction],
                                              mesh,
                                              have_nonconservative_terms(equations),
@@ -698,7 +725,7 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
         element = linear_indices[cell_x, end]
 
         for i in eachnode(dg)
-            calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
+            calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
                                              boundary_conditions[direction],
                                              mesh,
                                              have_nonconservative_terms(equations),

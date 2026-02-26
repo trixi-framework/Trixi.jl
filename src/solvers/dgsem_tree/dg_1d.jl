@@ -55,8 +55,14 @@ end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
+# This function is valid for all conforming mesh types, i.e.,
+# all meshes that do not involve mortar operations.
+# Thus, we can use it for 1D `TreeMesh`, `StructuredMesh`, and `UnstructuredMesh2D`.
 function rhs!(du, u, t,
-              mesh::TreeMesh{1}, equations,
+              mesh::Union{TreeMesh{1},
+                          StructuredMesh, StructuredMeshView{2},
+                          UnstructuredMesh2D},
+              equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
