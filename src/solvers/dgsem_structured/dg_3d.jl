@@ -614,30 +614,30 @@ function prolong2interfaces!(cache, u, mesh::StructuredMesh{3}, equations, dg::D
 
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
-            # Negative x-direction (direction 1, left/negative-x face)
+            # Negative x-direction (direction 1, left/negative x face)
             # Face nodes (i, j) correspond to (y, z) directions
             for v in eachvariable(equations)
                 interfaces_u[v, i, j, 1, element] = u[v, 1, i, j, element]
             end
-            # Positive x-direction (direction 2, right/positive-x face)
+            # Positive x-direction (direction 2, right/positive x face)
             for v in eachvariable(equations)
                 interfaces_u[v, i, j, 2, element] = u[v, nnodes(dg), i, j, element]
             end
-            # Negative y-direction (direction 3, bottom/negative-y face)
+            # Negative y-direction (direction 3, bottom/negative y face)
             # Face nodes (i, j) correspond to (x, z) directions
             for v in eachvariable(equations)
                 interfaces_u[v, i, j, 3, element] = u[v, i, 1, j, element]
             end
-            # Positive y-direction (direction 4, top/positive-y face)
+            # Positive y-direction (direction 4, top/positive y face)
             for v in eachvariable(equations)
                 interfaces_u[v, i, j, 4, element] = u[v, i, nnodes(dg), j, element]
             end
-            # Negative z-direction (direction 5, back/negative-z face)
+            # Negative z-direction (direction 5, back/negative z face)
             # Face nodes (i, j) correspond to (x, y) directions
             for v in eachvariable(equations)
                 interfaces_u[v, i, j, 5, element] = u[v, i, j, 1, element]
             end
-            # Positive z-direction (direction 6, front/positive-z face)
+            # Positive z-direction (direction 6, front/positive z face)
             for v in eachvariable(equations)
                 interfaces_u[v, i, j, 6, element] = u[v, i, j, nnodes(dg), element]
             end

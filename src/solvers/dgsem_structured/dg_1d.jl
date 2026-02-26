@@ -9,11 +9,11 @@ function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations, dg::D
     @unpack interfaces_u = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-        # Negative side (direction 1, left/negative-x face)
+        # Negative side (direction 1, left/negative x face)
         for v in eachvariable(equations)
             interfaces_u[v, 1, element] = u[v, 1, element]
         end
-        # Positive side (direction 2, right/positive-x face)
+        # Positive side (direction 2, right/positive x face)
         for v in eachvariable(equations)
             interfaces_u[v, 2, element] = u[v, nnodes(dg), element]
         end

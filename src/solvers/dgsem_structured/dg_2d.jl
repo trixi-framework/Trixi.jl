@@ -489,19 +489,19 @@ function prolong2interfaces!(cache, u,
 
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
-            # Negative x-direction (direction 1, left/negative-x face)
+            # Negative x-direction (direction 1, left/negative x face)
             for v in eachvariable(equations)
                 interfaces_u[v, i, 1, element] = u[v, 1, i, element]
             end
-            # Positive x-direction (direction 2, right/positive-x face)
+            # Positive x-direction (direction 2, right/positive x face)
             for v in eachvariable(equations)
                 interfaces_u[v, i, 2, element] = u[v, nnodes(dg), i, element]
             end
-            # Negative y-direction (direction 3, bottom/negative-y face)
+            # Negative y-direction (direction 3, bottom/negative y face)
             for v in eachvariable(equations)
                 interfaces_u[v, i, 3, element] = u[v, i, 1, element]
             end
-            # Positive y-direction (direction 4, top/positive-y face)
+            # Positive y-direction (direction 4, top/positive y face)
             for v in eachvariable(equations)
                 interfaces_u[v, i, 4, element] = u[v, i, nnodes(dg), element]
             end
