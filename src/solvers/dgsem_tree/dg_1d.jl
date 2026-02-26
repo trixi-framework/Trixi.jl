@@ -410,7 +410,7 @@ function prolong2interfaces!(cache, u_or_flux_viscous,
 
         # interface in x-direction
         for v in eachvariable(equations)
-            # Interpolate to the boundaries using a local variable for
+            # Interpolate to the interfaces using a local variable for
             # the accumulation of values (to reduce global memory operations).
             interface_u_1 = zero(eltype(interfaces_u))
             interface_u_2 = zero(eltype(interfaces_u))

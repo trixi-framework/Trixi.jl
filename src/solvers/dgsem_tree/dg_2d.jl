@@ -537,7 +537,7 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations,
         if orientations[interface] == 1
             # interface in x-direction
             for j in eachnode(dg), v in eachvariable(equations)
-                # Interpolate to the boundaries using a local variable for
+                # Interpolate to the interfaces using a local variable for
                 # the accumulation of values (to reduce global memory operations).
                 interface_u_1 = zero(eltype(interfaces_u))
                 interface_u_2 = zero(eltype(interfaces_u))
@@ -557,7 +557,7 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations,
         else # if orientations[interface] == 2
             # interface in y-direction
             for i in eachnode(dg), v in eachvariable(equations)
-                # Interpolate to the boundaries using a local variable for
+                # Interpolate to the interfaces using a local variable for
                 # the accumulation of values (to reduce global memory operations).
                 interface_u_1 = zero(eltype(interfaces_u))
                 interface_u_2 = zero(eltype(interfaces_u))
