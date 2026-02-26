@@ -9,10 +9,10 @@ equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:Bottom => boundary_condition,
-                           :Top => boundary_condition,
-                           :Circle => boundary_condition,
-                           :Cut => boundary_condition)
+boundary_conditions = (; Bottom = boundary_condition,
+                       Top = boundary_condition,
+                       Circle = boundary_condition,
+                       Cut = boundary_condition)
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
