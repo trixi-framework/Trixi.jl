@@ -301,50 +301,6 @@ end
     return nothing
 end
 
-@inline function fvO2_kernel!(du, u,
-                              mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                          T8codeMesh{3}},
-                              have_nonconservative_terms, equations,
-                              volume_flux_fv, dg::DGSEM, cache, element,
-                              sc_interface_coords, reconstruction_mode, slope_limiter,
-                              alpha = true)
-    @unpack fstar1_L_threaded, fstar1_R_threaded,
-    fstar2_L_threaded, fstar2_R_threaded,
-    fstar3_L_threaded, fstar3_R_threaded = cache
-    @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
-
-    # Calculate FV two-point fluxes
-    fstar1_L = fstar1_L_threaded[Threads.threadid()]
-    fstar2_L = fstar2_L_threaded[Threads.threadid()]
-    fstar3_L = fstar3_L_threaded[Threads.threadid()]
-    fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    fstar3_R = fstar3_R_threaded[Threads.threadid()]
-
-    calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                   mesh, have_nonconservative_terms, equations,
-                   volume_flux_fv, dg, element, cache,
-                   sc_interface_coords, reconstruction_mode, slope_limiter)
-
-    # Calculate FV volume integral contribution
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
-            du[v, i, j, k, element] += (alpha *
-                                        (inverse_weights[i] *
-                                         (fstar1_L[v, i + 1, j, k] -
-                                          fstar1_R[v, i, j, k]) +
-                                         inverse_weights[j] *
-                                         (fstar2_L[v, i, j + 1, k] -
-                                          fstar2_R[v, i, j, k]) +
-                                         inverse_weights[k] *
-                                         (fstar3_L[v, i, j, k + 1] -
-                                          fstar3_R[v, i, j, k])))
-        end
-    end
-
-    return nothing
-end
-
 # Compute the normal flux for the FV method on cartesian subcells, see
 # Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
@@ -440,79 +396,6 @@ end
 
         set_node_vars!(fstar3_L, flux_L, equations, dg, i, j, k)
         set_node_vars!(fstar3_R, flux_R, equations, dg, i, j, k)
-    end
-
-    return nothing
-end
-
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                fstar3_L, fstar3_R, u,
-                                mesh::TreeMesh{3}, have_nonconservative_terms::False,
-                                equations,
-                                volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter)
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, k, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, k, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
-                         equations)
-
-        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j, k,
-                                       element), equations)
-
-        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       sc_interface_coords, i,
-                                       slope_limiter, dg)
-
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
-                              1, equations) # orientation 1: x direction
-
-        set_node_vars!(fstar1_L, flux, equations, dg, i, j, k)
-        set_node_vars!(fstar1_R, flux, equations, dg, i, j, k)
-    end
-
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), k, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, k, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
-                         equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1), k,
-                                       element), equations)
-
-        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       sc_interface_coords, j,
-                                       slope_limiter, dg)
-
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
-                              2, equations) # orientation 2: y direction
-
-        set_node_vars!(fstar2_L, flux, equations, dg, i, j, k)
-        set_node_vars!(fstar2_R, flux, equations, dg, i, j, k)
-    end
-
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, j, max(1, k - 2), element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j, k - 1, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k, element),
-                         equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, j, min(nnodes(dg), k + 1),
-                                       element), equations)
-
-        u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                       sc_interface_coords, k,
-                                       slope_limiter, dg)
-
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
-                              3, equations) # orientation 3: z direction
-
-        set_node_vars!(fstar3_L, flux, equations, dg, i, j, k)
-        set_node_vars!(fstar3_R, flux, equations, dg, i, j, k)
     end
 
     return nothing

@@ -51,12 +51,21 @@ function SemidiscretizationCoupledP4est(semis...)
     end
 
     # Create correspondence between global (to the parent mesh) cell IDs and local (to the mesh view) cell IDs.
-    global_element_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
+    n_cells = 0
+    for i in 1:length(semis)
+        n_cells += size(semis[i].cache.elements.node_coordinates)[end]
+    end
+    parent_tree_node_coordinates = Array{Real, 2 + 2}(undef, 2, ntuple(_ -> 4, 2)..., n_cells)
+    nodes = semis[1].mesh.parent.nodes
+    Trixi.calc_node_coordinates!(parent_tree_node_coordinates, semis[1].mesh.parent,
+                                 nodes)
+
+    global_element_ids = 1:size(parent_tree_node_coordinates)[end]
     local_element_ids = zeros(Int, size(global_element_ids))
     element_offset = ones(Int, length(semis))
     mesh_ids = zeros(Int, size(global_element_ids))
-    for i in 1:length(semis)
-        local_element_ids[semis[i].mesh.cell_ids] = global_element_id_to_local(global_element_ids[semis[i].mesh.cell_ids],
+    for i in eachindex(semis)
+        local_element_ids[semis[i].mesh.cell_ids] = global_cell_id_to_local(global_element_ids[semis[i].mesh.cell_ids],
                                                                                semis[i].mesh)
         mesh_ids[semis[i].mesh.cell_ids] .= i
     end
@@ -200,13 +209,25 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                     (var - 1) +
                     nvariables(semi_.equations) * (i_node - 1) +
                     nvariables(semi_.equations) * n_nodes * (j_node - 1) +
-                    nvariables(semi_.equations) * n_nodes^2 * (global_element_id_to_local(element, semi_.mesh) - 1)] = u_loc_reshape[var,
+                    nvariables(semi_.equations) * n_nodes^2 * (global_cell_id_to_local(element, semi_.mesh) - 1)] = u_loc_reshape[var,
                                                                                                                                      i_node,
                                                                                                                                      j_node,
-                                                                                                                                     global_element_id_to_local(element,
-                                                                                                                                                                semi_.mesh)]
+                                                                                                                                     global_cell_id_to_local(element,
+                                                                                                                                                             semi_.mesh)]
                 end
             end
+        end
+    end
+
+    # Zero stale coupled mortar flux values in surface_flux_values BEFORE the
+    # regular rhs! calls. This prevents calc_surface_integral! (inside rhs!)
+    # from picking up stale values from the previous time step.
+    foreach_enumerate(semi.semis) do (i, semi_)
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
+        if isdefined(cache, :coupled_mortars) &&
+           ncoupledmortars(cache.coupled_mortars) > 0
+            zero_coupled_mortar_surface_flux!(cache.elements.surface_flux_values,
+                                              mesh, equations, solver, cache)
         end
     end
 
@@ -215,6 +236,51 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
         rhs!(du_loc, u_loc, u_global, semi, semi_, t)
+    end
+
+    # Handle coupled mortars (hanging nodes at mesh view boundaries)
+    foreach_enumerate(semi.semis) do (i, semi_)
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
+
+        # Check if this mesh view has coupled mortars
+        if isdefined(cache, :coupled_mortars) && ncoupledmortars(cache.coupled_mortars) > 0
+            u_loc = get_system_u_ode(u_ode, i, semi)
+            du_loc = get_system_u_ode(du_ode, i, semi)
+
+            # Wrap to get correct array structure
+            u = wrap_array(u_loc, mesh, equations, solver, cache)
+            du = wrap_array(du_loc, mesh, equations, solver, cache)
+
+            # Prolong local elements to coupled mortars
+            @trixi_timeit timer() "prolong2coupledmortars" prolong2coupledmortars!(cache,
+                                                                                   u,
+                                                                                   mesh,
+                                                                                   equations,
+                                                                                   solver.mortar,
+                                                                                   solver)
+
+            # Compute and apply coupled mortar fluxes
+            @trixi_timeit timer() "coupled mortar flux" begin
+                calc_coupled_mortar_flux!(cache.elements.surface_flux_values,
+                                        mesh,
+                                        have_nonconservative_terms(equations),
+                                        equations,
+                                        solver.mortar,
+                                        solver.surface_integral,
+                                        solver,
+                                        cache,
+                                        u_global,
+                                        semi)
+            end
+
+            # Apply surface integral for coupled mortar contributions
+            # (the regular surface integral was already computed before coupled mortar fluxes)
+            @trixi_timeit timer() "coupled mortar surface integral" begin
+                calc_coupled_mortar_surface_integral!(du, u, mesh, equations,
+                                                     solver.surface_integral,
+                                                     solver, cache)
+            end
+        end
     end
 
     runtime = time_ns() - time_start
@@ -550,7 +616,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                               (var - 1) +
                                               nvariables(semi_other.equations) * (i_index_g - 1) +
                                               nvariables(semi_other.equations) * n_nodes * (j_index_g - 1) +
-                                              nvariables(semi_other.equations) * n_nodes^2 * (global_element_id_to_local(element_index_global, semi_other.mesh) - 1)]
+                                              nvariables(semi_other.equations) * n_nodes^2 * (global_cell_id_to_local(element_index_global, semi_other.mesh) - 1)]
     end
     x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
     u_boundary = boundary_condition.coupling_converter[idx_this, idx_other](x,
@@ -577,5 +643,38 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     end
 
     return flux
+end
+
+# Coupled boundary condition on P4estMeshView - uses the coupled call interface
+# with u_global and semi for cross-view data exchange.
+# This overrides the fallback method in dg_2d.jl for BoundaryConditionCoupledP4est.
+@inline function calc_boundary_flux!(surface_flux_values, t,
+                                     boundary_condition::BoundaryConditionCoupledP4est,
+                                     mesh::P4estMeshView{2},
+                                     nonconservative_terms, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index, u_global, semi)
+    @unpack boundaries = cache
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
+                               element_index, normal_direction, surface_flux,
+                               normal_direction, u_global, semi)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+    return nothing
 end
 end # @muladd

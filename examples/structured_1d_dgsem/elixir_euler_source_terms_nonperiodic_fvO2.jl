@@ -12,16 +12,16 @@ source_terms = source_terms_convergence_test
 
 # you can either use a single function to impose the BCs weakly in all
 # 2*ndims == 2 directions or you can pass a tuple containing BCs for
-# each direction (first one being `x_neg`, second `x_pos`)
+# each direction
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (boundary_condition, boundary_condition)
+boundary_conditions = (x_neg = boundary_condition,
+                       x_pos = boundary_condition)
 
 polydeg = 8 # Governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)
 surface_flux = flux_hll
 volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                       volume_flux_fv = surface_flux,
-                                                      # switch to `reconstruction_O2_full` for full 2nd order convergence
                                                       reconstruction_mode = reconstruction_O2_inner,
                                                       slope_limiter = vanLeer)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,

@@ -241,70 +241,12 @@ end
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_diffusivity::False, equations,
-                equations_parabolic::AbstractEquationsParabolic,
-                dg::DGMulti{NDIMS},
-                cache) where {NDIMS}
-    @unpack md = mesh
-    rd = dg.basis
-
-    dt_min = floatmax(typeof(t))
-    for e in eachelement(mesh, dg, cache)
-        h_e = StartUpDG.estimate_h(e, rd, md)
-        max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
-        for i in Base.OneTo(rd.Np) # loop over nodes
-            lambda_i = max_abs_speeds(u[i, e], equations)
-
-            # estimate diffusive "wavespeed" as diffusivity / h
-            # this corresponds to a CFL of h^2 * diffusivity
-            diffusivity = max_diffusivity(u[i, e], equations_parabolic)
-            max_speeds = max.(max_speeds, lambda_i, diffusivity / h_e)
-        end
-        dt_min = min(dt_min, h_e / sum(max_speeds))
-    end
-    # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
-    # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
-    # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
-    # the number of 1D nodes for `DGSEM` solvers.
-    return 2 * dt_min * dt_polydeg_scaling(dg)
-end
-
-function max_dt(u, t, mesh::DGMultiMesh,
-                constant_diffusivity::True, equations,
-                equations_parabolic::AbstractEquationsParabolic,
-                dg::DGMulti{NDIMS},
-                cache) where {NDIMS}
-    @unpack md = mesh
-    rd = dg.basis
-
-    # Compute max_speeds only once, since it's constant for all nodes/elements
-    max_speeds = max_abs_speeds(equations)
-
-    # estimate diffusive "wavespeed" as diffusivity / h
-    # this corresponds to a CFL of h^2 * diffusivity
-    diffusivity = max_diffusivity(equations_parabolic)
-
-    dt_min = floatmax(typeof(t))
-    for e in eachelement(mesh, dg, cache)
-        h_e = StartUpDG.estimate_h(e, rd, md)
-        max_speeds = max.(max_speeds, diffusivity / h_e)
-        dt_min = min(dt_min, h_e / sum(max_speeds))
-    end
-    # This mimics `max_dt` for `TreeMesh`, except that `nnodes(dg)` is replaced by
-    # `polydeg+1`. This is because `nnodes(dg)` returns the total number of
-    # multi-dimensional nodes for DGMulti solver types, while `nnodes(dg)` returns
-    # the number of 1D nodes for `DGSEM` solvers.
-    return 2 * dt_min * dt_polydeg_scaling(dg)
-end
-
-# for the stepsize callback
-function max_dt(u, t, mesh::DGMultiMesh,
                 constant_speed::False, equations, dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
     @unpack md = mesh
     rd = dg.basis
 
-    dt_min = floatmax(typeof(t))
+    dt_min = Inf
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
         max_speeds = ntuple(_ -> nextfloat(zero(t)), NDIMS)
@@ -330,7 +272,7 @@ function max_dt(u, t, mesh::DGMultiMesh,
     # Compute max_speeds only once, since it's constant for all nodes/elements
     max_speeds = max_abs_speeds(equations)
 
-    dt_min = floatmax(typeof(t))
+    dt_min = Inf
     for e in eachelement(mesh, dg, cache)
         h_e = StartUpDG.estimate_h(e, rd, md)
         dt_min = min(dt_min, h_e / sum(max_speeds))
