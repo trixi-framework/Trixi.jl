@@ -80,7 +80,6 @@ jobs:
           skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
           projects: ., test
           mode: forcedeps
-          julia_version: ${{ matrix.version }}
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
