@@ -7,27 +7,14 @@ using Trixi
 equations = WaveEquations2D(2 * sqrt(2 / 5))
 
 # initial condition for a standing wave
-initial_condition = function (x, t, equations::WaveEquations2D)
+function initial_condition_standing_wave(x, t, equations::WaveEquations2D)
     c = equations.c
     p = cospi(3 * x[1] / 2) * cospi(x[2] / 2) * cospi(sqrt(5 / 2) * c * t)
     vx = 3 / sqrt(10) * sinpi(3 * x[1] / 2) * cospi(x[2] / 2) * sinpi(sqrt(5 / 2) * c * t)
     vy = 1 / sqrt(10) * cospi(3 * x[1] / 2) * sinpi(x[2] / 2) * sinpi(sqrt(5 / 2) * c * t)
     return SVector(p, vx, vy)
 end
-
-# corresponding boundary condition for the standing wave
-boundary_condition = function (u_inner, orientation, direction, x, t,
-                               surface_flux_function,
-                               equations::WaveEquations2D)
-    u_boundary = initial_condition(x, t, equations)
-    # Calculate boundary flux
-    if direction in (2, 4)  # u_inner is "left" of boundary, u_boundary is "right" of boundary
-        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-        flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-    end
-    return flux
-end
+initial_condition = initial_condition_standing_wave
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
@@ -38,8 +25,9 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 30_000, periodicity = false)
 
+boundary_condition_standing_wave = BoundaryConditionDirichlet(initial_condition)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                    boundary_conditions = boundary_condition)
+                                    boundary_conditions = boundary_condition_standing_wave)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

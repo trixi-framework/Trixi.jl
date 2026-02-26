@@ -47,7 +47,7 @@ end
     boundary_condition_wall(u_inner, orientation, direction, x, t, surface_flux_function,
                                 equations::WaveEquations1D)
 
-Boundary conditions for a solid wall, corresponding to zero amplitde at the wall.
+Boundary conditions for a solid wall, corresponding to zero amplitude at the wall.
 In some sense this is a mixed boundary condition, with Dirichlet zero for the amplitude and
 Neumann zero for the flux.
 """
