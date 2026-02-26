@@ -125,7 +125,7 @@ function extract_boundaries(mesh::P4estMeshView,
     for boundary in 1:size(boundaries_parent.neighbor_ids)[1]
         mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
     end
-    boundaries.neighbor_ids = global_element_id_to_local(boundaries_parent.neighbor_ids[mask],
+    boundaries.neighbor_ids = global_cell_id_to_local(boundaries_parent.neighbor_ids[mask],
                                                          mesh)
     boundaries.name = boundaries_parent.name[mask]
     boundaries.node_indices = boundaries_parent.node_indices[mask]
@@ -146,7 +146,7 @@ function extract_boundaries(mesh::P4estMeshView,
 
             # Update the neighbor ids.
             push!(boundaries.neighbor_ids,
-                  global_element_id_to_local(neighbor_id, mesh))
+                  global_cell_id_to_local(neighbor_id, mesh))
             # Update the boundary names.
             if interfaces_parent.node_indices[view_idx, interface] ==
                (:end, :i_forward)
@@ -210,7 +210,7 @@ function extract_mortars(mesh::P4estMeshView, mortars_parent)
     for (new_idx, old_idx) in enumerate(mortar_indices)
         for pos in 1:n_neighbors
             global_id = mortars_parent.neighbor_ids[pos, old_idx]
-            mortars.neighbor_ids[pos, new_idx] = global_element_id_to_local(global_id, mesh)
+            mortars.neighbor_ids[pos, new_idx] = global_cell_id_to_local(global_id, mesh)
         end
         # node_indices has shape (2, n_mortars): row 1 = small face, row 2 = large face.
         # Use column indexing to copy both entries correctly.
@@ -384,14 +384,14 @@ function extract_coupled_mortars(mesh::P4estMeshView, mortars_parent)
             # Add small elements that are in this view
             for (pos, (small_id, in_view)) in enumerate(zip(small_ids, small_in_view))
                 if in_view
-                    push!(local_neighbor_ids, global_element_id_to_local(small_id, mesh))
+                    push!(local_neighbor_ids, global_cell_id_to_local(small_id, mesh))
                     push!(local_neighbor_positions, pos)
                 end
             end
 
             # Add large element if in this view
             if large_in_view
-                push!(local_neighbor_ids, global_element_id_to_local(large_id, mesh))
+                push!(local_neighbor_ids, global_cell_id_to_local(large_id, mesh))
                 push!(local_neighbor_positions, n_small + 1)  # 3 in 2D, 5 in 3D
             end
 
@@ -508,7 +508,7 @@ function node_indices_to_name(node_index)
 end
 
 # Convert a global cell id to a local cell id in the mesh view.
-function global_element_id_to_local(id::Int, mesh::P4estMeshView)
+function global_cell_id_to_local(id::Int, mesh::P4estMeshView)
     # Find the index of the cell id in the mesh view
     local_id = findfirst(==(id), mesh.cell_ids)
 
@@ -516,11 +516,11 @@ function global_element_id_to_local(id::Int, mesh::P4estMeshView)
 end
 
 # Convert an array of global cell ids to a local cell id in the mesh view.
-function global_element_id_to_local(id::AbstractArray, mesh::P4estMeshView)
+function global_cell_id_to_local(id::AbstractArray, mesh::P4estMeshView)
     # Find the index of the cell id in the mesh view
     local_id = zeros(Int, length(id))
     for i in eachindex(id)
-        local_id[i] = global_element_id_to_local(id[i], mesh)
+        local_id[i] = global_cell_id_to_local(id[i], mesh)
     end
 
     return local_id
