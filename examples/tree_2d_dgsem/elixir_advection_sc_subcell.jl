@@ -20,7 +20,8 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
 
 mortar = MortarIDP(equations, basis;
                    positivity_variables_cons = ["first"],
-                   positivity_variables_nonlinear = [])
+                   positivity_variables_nonlinear = [],
+                   pure_low_order = false)
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-1.0, -1.0)

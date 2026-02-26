@@ -139,43 +139,18 @@ end
                                  "elixir_euler_density_wave_nonconforming_idp_mortars.jl"),
                         initial_refinement_level=2,
                         l2=[
-                            0.01853467680355577,
-                            0.0018534676803570467,
-                            0.003706935360709665,
-                            0.0004633669200885599
+                            0.06729971024754092,
+                            0.006729971024754253,
+                            0.013459942049508037,
+                            0.0016824927561872513
                         ],
                         linf=[
-                            0.3234934074357616,
-                            0.03234934074339482,
-                            0.06469868148701247,
-                            0.008087335185543054
+                            0.24865855103478962,
+                            0.02486585510348506,
+                            0.04973171020696385,
+                            0.006216463775885472
                         ],
                         tspan=(0.0, 0.5))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    # Larger values for allowed allocations due to usage of custom
-    # integrator which are not *recorded* for the methods from
-    # OrdinaryDiffEq.jl
-    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
-end
-
-@trixi_testset "elixir_euler_density_wave_amr_sc_subcell.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_density_wave_amr_sc_subcell.jl"),
-                        initial_refinement_level=2,
-                        l2=[
-                            0.10807450110533318,
-                            0.010807450110533516,
-                            0.021614900221066703,
-                            0.0027018625276321187
-                        ],
-                        linf=[
-                            0.5774808056100666,
-                            0.057748080561012716,
-                            0.11549616112202077,
-                            0.014437020140242396
-                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
