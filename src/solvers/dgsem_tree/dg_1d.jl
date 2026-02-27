@@ -410,18 +410,24 @@ function prolong2interfaces!(cache, u_or_flux_viscous,
 
         # interface in x-direction
         for v in eachvariable(equations)
-            interfaces_u[1, v, interface] = zero(eltype(interfaces_u))
-            interfaces_u[2, v, interface] = zero(eltype(interfaces_u))
+            # Interpolate to the interfaces using a local variable for
+            # the accumulation of values (to reduce global memory operations).
+            interface_u_1 = zero(eltype(interfaces_u))
+            interface_u_2 = zero(eltype(interfaces_u))
             for ii in eachnode(dg)
+                # Not += to allow `@muladd` to turn these into FMAs
+                # (see comment at the top of the file)
                 # Need `boundary_interpolation` at right (+1) node for left element
-                interfaces_u[1, v, interface] += (u_or_flux_viscous[v, ii,
-                                                                    left_element] *
-                                                  boundary_interpolation[ii, 2])
+                interface_u_1 = (interface_u_1 +
+                                 u_or_flux_viscous[v, ii, left_element] *
+                                 boundary_interpolation[ii, 2])
                 # Need `boundary_interpolation` at left (-1) node for right element
-                interfaces_u[2, v, interface] += (u_or_flux_viscous[v, ii,
-                                                                    right_element] *
-                                                  boundary_interpolation[ii, 1])
+                interface_u_2 = (interface_u_2 +
+                                 u_or_flux_viscous[v, ii, right_element] *
+                                 boundary_interpolation[ii, 1])
             end
+            interfaces_u[1, v, interface] = interface_u_1
+            interfaces_u[2, v, interface] = interface_u_2
         end
     end
 
@@ -731,7 +737,7 @@ function apply_jacobian!(du, mesh::TreeMesh{1},
 
     @threaded for element in eachelement(dg, cache)
         # Negative sign included to account for the negated surface and volume terms,
-        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # see e.g. the computation of `derivative_hat` in the basis setup and
         # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
