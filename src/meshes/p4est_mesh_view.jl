@@ -187,6 +187,11 @@ function extract_boundaries(mesh::P4estMeshView{2},
 end
 
 # Extract the ids of the neighboring elements using the parent mesh indexing.
+# For every boundary of the mesh view find the neighboring cell id in global (parent) indexing.
+# Such neighboring cells are either inside the domain and have an interface
+# in the parent mesh, or they are physical boundaries for which we then
+# contruct a periodic coupling by assigning as neighbor id the cell id
+# on the other end of the domain.
 function extract_neighbor_ids_parent(mesh::P4estMeshView,
                                      boundaries_parent, interfaces_parent,
                                      boundaries)
