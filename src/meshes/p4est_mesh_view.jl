@@ -39,6 +39,7 @@ end
 NDIMS_AMBIENT,
 RealT} = RealT
 
+# Extract interfaces, boundaries and parent element ids from the neighbors.
 function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
                                  boundaries_parent,

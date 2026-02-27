@@ -159,6 +159,7 @@ end
     return @view u_ode[semi.u_indices[index]]
 end
 
+# RHS call for the coupled system.
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
@@ -186,6 +187,25 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         rhs!(du_loc, u_loc, u_ode_reformatted, semi, semi_, t)
     end
 
+    runtime = time_ns() - time_start
+    put!(semi.performance_counter, runtime)
+
+    return nothing
+end
+
+# RHS call for the local system.
+# Here we require the data from u_global for each semidiscretization in order
+# to exchange the correct boundary values.
+function rhs!(du_ode, u_ode, u_global, semis,
+              semi::SemidiscretizationHyperbolic, t)
+    @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
+
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
+
+    time_start = time_ns()
+    @trixi_timeit timer() "rhs!" rhs!(du, u, t, u_global, semis, mesh, equations,
+                                      boundary_conditions, source_terms, solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 
@@ -314,7 +334,7 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
 end
 
 ################################################################################
-### Equations
+### Boundary conditions
 ################################################################################
 
 """
@@ -404,24 +424,5 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
 
     return flux
-end
-
-# RHS call for the coupled system.
-# Here we require the data from u_global for each semidiscretization in order
-# to exchange the correct boundary values.
-function rhs!(du_ode, u_ode, u_global, semis,
-              semi::SemidiscretizationHyperbolic, t)
-    @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
-
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
-    du = wrap_array(du_ode, mesh, equations, solver, cache)
-
-    time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, u_global, semis, mesh, equations,
-                                      boundary_conditions, source_terms, solver, cache)
-    runtime = time_ns() - time_start
-    put!(semi.performance_counter, runtime)
-
-    return nothing
 end
 end # @muladd
