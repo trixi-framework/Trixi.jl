@@ -358,7 +358,6 @@ end
         f1 = rho_v_normal
         f2 = rho_v_normal * v1 + p * normal_direction[1]
         f3 = rho_v_normal * v2 + p * normal_direction[2]
-        f4 = rho_v1 * v3 * normal_direction[1] + rho_v2 * v3 * normal_direction[2]
         f4 = rho_v_normal * v3
         f5 = ((kin_en + gamma * p / (gamma - 1)) * v1 + 2 * mag_en * vk1_plus[k] -
               B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) +
