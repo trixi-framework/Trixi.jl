@@ -710,16 +710,23 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-# Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
-Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralSubcellLimiting,
+                                       new_size)
+    resize!(cache.antidiffusive_fluxes, new_size)
+    resize!(volume_integral.limiter.cache.subcell_limiter_coefficients, new_size)
 
-function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
-    # Resize container antidiffusive_fluxes
-    resize!(semi.cache.antidiffusive_fluxes, new_size)
+    resize_normal_vectors!(cache, mesh, new_size)
 
-    # Resize container subcell_limiter_coefficients
-    @unpack limiter = volume_integral
-    return resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+    return nothing
+end
+
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::VolumeIntegralSubcellLimiting,
+                                       new_size)
+    reinit_normal_vectors!(cache, mesh, dg)
+
+    return nothing
 end
 
 # TODO: FD. Should this definition live in a different file because it is

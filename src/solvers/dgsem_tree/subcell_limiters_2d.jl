@@ -429,13 +429,13 @@ end
 ###############################################################################
 # Newton-bisection method
 
-# 2D version
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element,
                                      variable, min_or_max,
                                      initial_check, final_check,
                                      inverse_jacobian, dt,
-                                     equations, dg, cache, limiter)
-    (; inverse_weights) = dg.basis
+                                     equations::AbstractEquations{2},
+                                     dg, cache, limiter)
+    (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
 
     (; gamma_constant_newton) = limiter

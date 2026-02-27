@@ -24,7 +24,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                                  nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
 
-    antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(0,
+    n_elements = nelements(cache_containers.elements)
+    antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(n_elements,
                                                                  nvariables(equations),
                                                                  nnodes(dg))
 
