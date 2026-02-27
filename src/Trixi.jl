@@ -179,7 +179,8 @@ export AcousticPerturbationEquations2D,
        TrafficFlowLWREquations1D,
        MaxwellEquations1D,
        LinearElasticityEquations1D,
-       PassiveTracerEquations
+       PassiveTracerEquations,
+       WaveEquations1D, WaveEquations2D
 
 export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
 export IdealGas, VanDerWaals, PengRobinson

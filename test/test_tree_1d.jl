@@ -57,6 +57,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Passive tracers
     include("test_tree_1d_passive_tracers.jl")
+
+    # Wave equation
+    include("test_tree_1d_wave.jl")
 end
 
 # Coverage test for all initial conditions
