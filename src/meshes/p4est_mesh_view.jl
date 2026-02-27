@@ -100,7 +100,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     @views interfaces.node_indices .= interfaces_parent.node_indices[.., mask]
     @views neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
 
-    # Transform the global (parent) indices into local (view) indices.
+    # Transform the parent indices into view indices.
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
     for interface in 1:size(neighbor_ids)[2]
         interfaces.neighbor_ids[1, interface] = findall(id -> id ==
@@ -127,8 +127,8 @@ function extract_boundaries(mesh::P4estMeshView{2},
     for boundary in 1:nboundaries(boundaries_parent)
         mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
     end
-    boundaries.neighbor_ids = parent_cell_id_to_local(boundaries_parent.neighbor_ids[mask],
-                                                      mesh)
+    boundaries.neighbor_ids = parent_cell_id_to_view(boundaries_parent.neighbor_ids[mask],
+                                                     mesh)
     boundaries.name = boundaries_parent.name[mask]
     boundaries.node_indices = boundaries_parent.node_indices[mask]
 
@@ -149,7 +149,7 @@ function extract_boundaries(mesh::P4estMeshView{2},
 
             # Update the neighbor ids.
             push!(boundaries.neighbor_ids,
-                  parent_cell_id_to_local(neighbor_id, mesh))
+                  parent_cell_id_to_view(neighbor_id, mesh))
             # Update the boundary names to reflect where the neighboring cell is
             # relative to this one, i.e. left, right, up, down.
             # In 3d one would need to add the third dimension.
@@ -267,22 +267,22 @@ function node_indices_to_name(node_index)
     end
 end
 
-# Convert a parent cell id to a local cell id in the mesh view.
-function parent_cell_id_to_local(id::Integer, mesh::P4estMeshView)
+# Convert a parent cell id to a view cell id in the mesh view.
+function parent_cell_id_to_view(id::Integer, mesh::P4estMeshView)
     # Find the index of the cell id in the mesh view
-    local_id = searchsortedfirst(mesh.cell_ids, id)
+    view_id = searchsortedfirst(mesh.cell_ids, id)
 
-    return local_id
+    return view_id
 end
 
-# Convert an array of parent cell ids to local cell ids in the mesh view.
-function parent_cell_id_to_local(ids::AbstractArray, mesh::P4estMeshView)
+# Convert an array of parent cell ids to view cell ids in the mesh view.
+function parent_cell_id_to_view(ids::AbstractArray, mesh::P4estMeshView)
     # Find the index of the cell id in the mesh view
-    local_id = zeros(Int, length(ids))
+    view_id = zeros(Int, length(ids))
     for i in eachindex(ids)
-        local_id[i] = parent_cell_id_to_local(ids[i], mesh)
+        view_id[i] = parent_cell_id_to_view(ids[i], mesh)
     end
-    return local_id
+    return view_id
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes

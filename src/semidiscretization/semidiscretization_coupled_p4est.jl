@@ -25,7 +25,7 @@ mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
     parent_cell_ids::Vector{Int}
-    local_cell_ids::Vector{Int}
+    view_cell_ids::Vector{Int}
     mesh_ids::Vector{Int}
 end
 
@@ -51,13 +51,13 @@ function SemidiscretizationCoupledP4est(semis...)
         u_indices[i] = range(offset, length = n_coefficients[i])
     end
 
-    # Create correspondence between parent mesh cell IDs and local (to the mesh view) cell IDs.
+    # Create correspondence between parent mesh cell IDs and view cell IDs.
     parent_cell_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
-    local_cell_ids = zeros(Int, length(parent_cell_ids))
+    view_cell_ids = zeros(Int, length(parent_cell_ids))
     mesh_ids = zeros(Int, length(parent_cell_ids))
     for i in eachindex(semis)
-        local_cell_ids[semis[i].mesh.cell_ids] = parent_cell_id_to_local(parent_cell_ids[semis[i].mesh.cell_ids],
-                                                                         semis[i].mesh)
+        view_cell_ids[semis[i].mesh.cell_ids] = parent_cell_id_to_view(parent_cell_ids[semis[i].mesh.cell_ids],
+                                                                       semis[i].mesh)
         mesh_ids[semis[i].mesh.cell_ids] .= i
     end
 
@@ -67,7 +67,7 @@ function SemidiscretizationCoupledP4est(semis...)
                                    typeof(performance_counter)}(semis, u_indices,
                                                                 performance_counter,
                                                                 parent_cell_ids,
-                                                                local_cell_ids,
+                                                                view_cell_ids,
                                                                 mesh_ids)
 end
 
@@ -424,5 +424,75 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
 
     return flux
+end
+
+function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
+                             mesh::P4estMeshView{2},
+                             equations, surface_integral, dg::DG, u_parent) where {BC}
+    @unpack boundaries = cache
+    @unpack surface_flux_values = cache.elements
+    index_range = eachnode(dg)
+
+    @threaded for local_index in eachindex(boundary_indexing)
+        # Use the local index to get the global boundary index from the pre-sorted list
+        boundary = boundary_indexing[local_index]
+
+        # Get information on the adjacent element, compute the surface fluxes,
+        # and store them
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+        direction = indices2direction(node_indices)
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        for node in eachnode(dg)
+            calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                mesh, have_nonconservative_terms(equations),
+                                equations, surface_integral, dg, cache,
+                                i_node, j_node,
+                                node, direction, element, boundary,
+                                u_parent)
+
+            i_node += i_node_step
+            j_node += j_node_step
+        end
+    end
+    return nothing
+end
+
+# Iterate over tuples of boundary condition types and associated indices
+# in a type-stable way using "lispy tuple programming".
+function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
+                                     BC_indices::NTuple{N, Vector{Int}},
+                                     mesh::P4estMeshView,
+                                     equations, surface_integral, dg::DG,
+                                     u_parent) where {N}
+    # Extract the boundary condition type and index vector
+    boundary_condition = first(BCs)
+    boundary_condition_indices = first(BC_indices)
+    # Extract the remaining types and indices to be processed later
+    remaining_boundary_conditions = Base.tail(BCs)
+    remaining_boundary_condition_indices = Base.tail(BC_indices)
+
+    # process the first boundary condition type
+    calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices,
+                        mesh, equations, surface_integral, dg, u_parent)
+
+    # recursively call this method with the unprocessed boundary types
+    calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
+                                remaining_boundary_condition_indices,
+                                mesh, equations, surface_integral, dg, u_parent)
+
+    return nothing
+end
+
+# terminate the type-stable iteration over tuples
+function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
+                                     mesh::P4estMeshView,
+                                     equations, surface_integral, dg::DG, u_parent)
+    return nothing
 end
 end # @muladd
