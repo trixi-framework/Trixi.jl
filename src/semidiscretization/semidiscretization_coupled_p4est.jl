@@ -24,7 +24,7 @@ mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
     semis::Semis
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
-    global_cell_ids::Vector{Int}
+    parent_cell_ids::Vector{Int}
     local_cell_ids::Vector{Int}
     mesh_ids::Vector{Int}
 end
@@ -51,12 +51,12 @@ function SemidiscretizationCoupledP4est(semis...)
         u_indices[i] = range(offset, length = n_coefficients[i])
     end
 
-    # Create correspondence between global (to the parent mesh) cell IDs and local (to the mesh view) cell IDs.
-    global_cell_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
-    local_cell_ids = zeros(Int, length(global_cell_ids))
-    mesh_ids = zeros(Int, length(global_cell_ids))
+    # Create correspondence between parent mesh cell IDs and local (to the mesh view) cell IDs.
+    parent_cell_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
+    local_cell_ids = zeros(Int, length(parent_cell_ids))
+    mesh_ids = zeros(Int, length(parent_cell_ids))
     for i in eachindex(semis)
-        local_cell_ids[semis[i].mesh.cell_ids] = global_cell_id_to_local(global_cell_ids[semis[i].mesh.cell_ids],
+        local_cell_ids[semis[i].mesh.cell_ids] = parent_cell_id_to_local(parent_cell_ids[semis[i].mesh.cell_ids],
                                                                          semis[i].mesh)
         mesh_ids[semis[i].mesh.cell_ids] .= i
     end
@@ -66,7 +66,7 @@ function SemidiscretizationCoupledP4est(semis...)
     SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
                                    typeof(performance_counter)}(semis, u_indices,
                                                                 performance_counter,
-                                                                global_cell_ids,
+                                                                parent_cell_ids,
                                                                 local_cell_ids,
                                                                 mesh_ids)
 end
@@ -164,13 +164,13 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
-    # Reformat the global solutions vector.
+    # Reformat the parent solutions vector.
     u_ode_reformatted = Vector{real(semi)}(undef, ndofs(semi))
     u_ode_reformatted_reshape = reshape(u_ode_reformatted,
                                         (n_nodes,
                                          n_nodes,
                                          length(semi.mesh_ids)))
-    # Extract the global solution vector from the local solutions.
+    # Extract the parent solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
         system_ode = get_system_u_ode(u_ode, i, semi)
         system_ode_reshape = reshape(system_ode,
@@ -194,9 +194,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
 end
 
 # RHS call for the local system.
-# Here we require the data from u_global for each semidiscretization in order
+# Here we require the data from u_parent for each semidiscretization in order
 # to exchange the correct boundary values.
-function rhs!(du_ode, u_ode, u_global, semis,
+function rhs!(du_ode, u_ode, u_parent, semis,
               semi::SemidiscretizationHyperbolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 
@@ -204,7 +204,7 @@ function rhs!(du_ode, u_ode, u_global, semis,
     du = wrap_array(du_ode, mesh, equations, solver, cache)
 
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, u_global, semis, mesh, equations,
+    @trixi_timeit timer() "rhs!" rhs!(du, u, t, u_parent, semis, mesh, equations,
                                       boundary_conditions, source_terms, solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
@@ -372,12 +372,12 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
        abs(sum(normal_direction .* (0.0, 1.0)))
         if sum(normal_direction .* (1.0, 0.0)) >
            sum(normal_direction .* (-1.0, 0.0))
-            cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
+            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
                                                                      :x_pos) .*
                                                                     (cache.boundaries.neighbor_ids .==
                                                                      element_index))]
         else
-            cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
+            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
                                                                      :x_neg) .*
                                                                     (cache.boundaries.neighbor_ids .==
                                                                      element_index))]
@@ -392,12 +392,12 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         j_index_g = j_index
     else
         if sum(normal_direction .* (0.0, 1.0)) > sum(normal_direction .* (0.0, -1.0))
-            cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
+            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
                                                                      :y_pos) .*
                                                                     (cache.boundaries.neighbor_ids .==
                                                                      element_index))]
         else
-            cell_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
+            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
                                                                      :y_neg) .*
                                                                     (cache.boundaries.neighbor_ids .==
                                                                      element_index))]
@@ -412,10 +412,10 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         i_index_g = i_index
     end
     # Perform integer division to get the right shape of the array.
-    u_global_reshape = reshape(u_ode_coupled,
+    u_parent_reshape = reshape(u_ode_coupled,
                                (n_nodes, n_nodes,
                                 length(u_ode_coupled) ÷ n_nodes^ndims(mesh.parent)))
-    u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, cell_index_global])
+    u_boundary = SVector(u_parent_reshape[i_index_g, j_index_g, cell_index_parent])
 
     # u_boundary = u_inner
     orientation = normal_direction

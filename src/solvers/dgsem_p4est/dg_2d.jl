@@ -333,9 +333,9 @@ function prolong2boundaries!(cache, u,
 end
 
 # We require this function definition, as the function calls for the
-# coupled simulations pass the u_global variable
+# coupled simulations pass the u_parent variable
 # Note: Since the implementation is identical, we forward to the original function
-function prolong2boundaries!(cache, u, u_global, semis,
+function prolong2boundaries!(cache, u, u_parent, semis,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
     return prolong2boundaries!(cache, u, mesh, equations, dg)
@@ -380,7 +380,7 @@ end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::P4estMeshView{2},
-                             equations, surface_integral, dg::DG, u_global) where {BC}
+                             equations, surface_integral, dg::DG, u_parent) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
     index_range = eachnode(dg)
@@ -406,7 +406,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
                                 equations, surface_integral, dg, cache,
                                 i_node, j_node,
                                 node, direction, element, boundary,
-                                u_global)
+                                u_parent)
 
             i_node += i_node_step
             j_node += j_node_step
@@ -455,7 +455,7 @@ end
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
-                                     boundary_index, u_global)
+                                     boundary_index, u_parent)
     @unpack boundaries = cache
     @unpack contravariant_vectors = cache.elements
     @unpack surface_flux = surface_integral
@@ -469,7 +469,7 @@ end
 
     flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
                                element_index, normal_direction, surface_flux,
-                               normal_direction, u_global)
+                               normal_direction, u_parent)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
@@ -577,11 +577,11 @@ end
 # Function barrier for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::P4estMeshView,
-                             equations, surface_integral, dg::DG, u_global)
+                             equations, surface_integral, dg::DG, u_parent)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
     calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
-                                mesh, equations, surface_integral, dg, u_global)
+                                mesh, equations, surface_integral, dg, u_parent)
     return nothing
 end
 
@@ -591,7 +591,7 @@ function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
                                      mesh::P4estMeshView,
                                      equations, surface_integral, dg::DG,
-                                     u_global) where {N}
+                                     u_parent) where {N}
     # Extract the boundary condition type and index vector
     boundary_condition = first(BCs)
     boundary_condition_indices = first(BC_indices)
@@ -601,12 +601,12 @@ function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
 
     # process the first boundary condition type
     calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices,
-                        mesh, equations, surface_integral, dg, u_global)
+                        mesh, equations, surface_integral, dg, u_parent)
 
     # recursively call this method with the unprocessed boundary types
     calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
                                 remaining_boundary_condition_indices,
-                                mesh, equations, surface_integral, dg, u_global)
+                                mesh, equations, surface_integral, dg, u_parent)
 
     return nothing
 end
@@ -614,7 +614,7 @@ end
 # terminate the type-stable iteration over tuples
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
                                      mesh::P4estMeshView,
-                                     equations, surface_integral, dg::DG, u_global)
+                                     equations, surface_integral, dg::DG, u_parent)
     return nothing
 end
 
@@ -922,9 +922,9 @@ function calc_surface_integral!(du, u,
 end
 
 # Call this for coupled P4estMeshView simulations.
-# The coupling calculations (especially boundary conditions) require global information, which is why
-# the additional variable u_global is needed, compared to non-coupled systems.
-function rhs!(du, u, t, u_global, semis,
+# The coupling calculations (especially boundary conditions) require data from the parent mesh, which is why
+# the additional variable u_parent is needed, compared to non-coupled systems.
+function rhs!(du, u, t, u_parent, semis,
               mesh::P4estMeshView{2},
               equations,
               boundary_conditions, source_terms::Source,
@@ -953,14 +953,14 @@ function rhs!(du, u, t, u_global, semis,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, u_global, semis, mesh, equations,
+        prolong2boundaries!(cache, u, u_parent, semis, mesh, equations,
                             dg.surface_integral, dg)
     end
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
         calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg, u_global)
+                            dg.surface_integral, dg, u_parent)
     end
 
     # Prolong solution to mortars
