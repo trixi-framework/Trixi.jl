@@ -147,6 +147,26 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        solver=DGSEM(polydeg = 3, basis_type = GaussLegendreBasis,
+                                     surface_flux = flux_lax_friedrichs),
+                        l2=[
+                            6.179119971404758e-7,
+                            6.831335637140733e-7,
+                            1.8153512648336213e-6
+                        ],
+                        linf=[
+                            2.3035825069683824e-6,
+                            2.7398314812465685e-6,
+                            7.132056524916663e-6
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[

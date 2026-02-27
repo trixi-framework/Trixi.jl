@@ -20,7 +20,7 @@ function create_cache(mesh::TreeMesh{1}, equations,
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
 
     # Container cache
     cache = (; elements, interfaces, boundaries)
@@ -417,9 +417,11 @@ function prolong2interfaces!(cache, u_or_flux_viscous,
             for ii in eachnode(dg)
                 # Not += to allow `@muladd` to turn these into FMAs
                 # (see comment at the top of the file)
+                # Need `boundary_interpolation` at right (+1) node for left element
                 interface_u_1 = (interface_u_1 +
                                  u_or_flux_viscous[v, ii, left_element] *
                                  boundary_interpolation[ii, 2])
+                # Need `boundary_interpolation` at left (-1) node for right element
                 interface_u_2 = (interface_u_2 +
                                  u_or_flux_viscous[v, ii, right_element] *
                                  boundary_interpolation[ii, 1])
@@ -524,6 +526,52 @@ function prolong2boundaries!(cache, u_or_flux_viscous,
         else # Element in +x direction of boundary
             for v in eachvariable(equations)
                 boundaries.u[2, v, boundary] = u_or_flux_viscous[v, 1, element]
+            end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2boundaries!(cache, u_or_flux_viscous,
+                             mesh::TreeMesh{1}, equations,
+                             dg::DG{<:GaussLegendreBasis})
+    @unpack boundaries = cache
+    @unpack neighbor_sides = boundaries
+    @unpack boundary_interpolation = dg.basis
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+
+        # boundary in x-direction
+        if neighbor_sides[boundary] == 1
+            # element in -x direction of boundary => need to evaluate at right boundary node (+1)
+            for v in eachvariable(equations)
+                # Interpolate to the boundaries using a local variable for
+                # the accumulation of values (to reduce global memory operations).
+                boundary_u_1 = zero(eltype(boundaries.u))
+                for ii in eachnode(dg)
+                    # Not += to allow `@muladd` to turn these into FMAs
+                    # (see comment at the top of the file)
+                    boundary_u_1 = (boundary_u_1 +
+                                    u_or_flux_viscous[v, ii, element] *
+                                    boundary_interpolation[ii, 2])
+                end
+                boundaries.u[1, v, boundary] = boundary_u_1
+            end
+        else # Element in +x direction of boundary => need to evaluate at left boundary node (-1)
+            for v in eachvariable(equations)
+                # Interpolate to the boundaries using a local variable for
+                # the accumulation of values (to reduce global memory operations).
+                boundary_u_2 = zero(eltype(boundaries.u))
+                for ii in eachnode(dg)
+                    # Not += to allow `@muladd` to turn these into FMAs
+                    # (see comment at the top of the file)
+                    boundary_u_2 = (boundary_u_2 +
+                                    u_or_flux_viscous[v, ii, element] *
+                                    boundary_interpolation[ii, 1])
+                end
+                boundaries.u[2, v, boundary] = boundary_u_2
             end
         end
     end
