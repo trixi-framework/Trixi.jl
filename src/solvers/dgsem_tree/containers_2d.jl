@@ -1474,4 +1474,55 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
 
     return nothing
 end
+
+function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
+                                  dg::DGSEM, cache)
+    # Get new list of leaf cells
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+    n_cells = length(leaf_cell_ids)
+
+    # re-initialize elements container
+    @unpack elements = cache
+    resize!(elements, n_cells)
+    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+
+    # Resize volume integral and related datastructures
+    @unpack volume_integral = dg
+    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+
+    # re-initialize interfaces container
+    @unpack interfaces = cache
+    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+    init_interfaces!(interfaces, elements, mesh)
+
+    # re-initialize boundaries container
+    @unpack boundaries = cache
+    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+    init_boundaries!(boundaries, elements, mesh)
+
+    # re-initialize mortars container
+    @unpack mortars = cache
+    resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
+    init_mortars!(mortars, elements, mesh)
+
+    if mpi_isparallel() # currently only implemented for 2D
+        # re-initialize mpi_interfaces container
+        @unpack mpi_interfaces = cache
+        resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
+        init_mpi_interfaces!(mpi_interfaces, elements, mesh)
+
+        # re-initialize mpi_mortars container
+        @unpack mpi_mortars = cache
+        resize!(mpi_mortars, count_required_mpi_mortars(mesh, leaf_cell_ids))
+        init_mpi_mortars!(mpi_mortars, elements, mesh)
+
+        # re-initialize mpi cache
+        @unpack mpi_cache = cache
+        init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars,
+                        nvariables(equations), nnodes(dg), eltype(elements))
+    end
+
+    return nothing
+end
 end # @muladd

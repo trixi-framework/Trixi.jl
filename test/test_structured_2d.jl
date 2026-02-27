@@ -695,6 +695,28 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_richtmyer_meshkov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_richtmyer_meshkov.jl"),
+                        l2=[
+                            0.11325554126117648,
+                            3.846072397992506e-14,
+                            0.30067515354593266,
+                            0.4451325203339372
+                        ],
+                        linf=[
+                            0.4630182829483884,
+                            3.795750685486191e-13,
+                            1.265147868668324,
+                            1.8837528418813672
+                        ],
+                        adaptive=false, dt=1e-2,
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_warm_bubble.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_warm_bubble.jl"),
@@ -715,6 +737,29 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 100)
+end
+
+@trixi_testset "elixir_euler_peng_robinson_transcritical_mixing" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_peng_robinson_transcritical_mixing.jl"),
+                        tspan=(0.0, 0.0003),
+                        # note that errors are large because the solution values are of the order 1e5-1e7
+                        l2=[
+                            0.8907552376416852,
+                            274.6262332037992,
+                            129.95629990639333,
+                            94420.33529773205
+                        ],
+                        linf=[
+                            6.617401501819359,
+                            732.0947275447616,
+                            403.74606195408825,
+                            584504.7663076259
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_eulerpolytropic_convergence.jl" begin

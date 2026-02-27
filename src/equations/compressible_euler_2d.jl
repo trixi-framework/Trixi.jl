@@ -2235,6 +2235,21 @@ end
     return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
 
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerEquations2D)
+    if orientation == 1
+        return u[2]
+    else # if orientation == 2
+        return u[3]
+    end
+end
+# Version for non-Cartesian meshes, i.e., everything but `TreeMesh`es.
+@inline function entropy_potential(u, normal_direction::AbstractVector,
+                                   equations::CompressibleEulerEquations2D)
+    return u[2] * normal_direction[1] +
+           u[3] * normal_direction[2]
+end
+
 # State validation for Newton-bisection method of subcell IDP limiting
 @inline function Base.isvalid(u, equations::CompressibleEulerEquations2D)
     if u[1] <= 0 || pressure(u, equations) <= 0

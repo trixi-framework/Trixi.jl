@@ -111,6 +111,24 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_density_wave_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_density_wave_adaptive_vol_int.jl"),
+                        l2=[
+                            0.07468001770571216,
+                            0.007468001770606171,
+                            0.000373400088537588
+                        ],
+                        linf=[
+                            0.2796538165732152,
+                            0.02796538165747514,
+                            0.0013982690828555633
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
@@ -580,6 +598,25 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_nonideal_density_wave_FVO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave_FVO2.jl"),
+                        l2=[
+                            0.21859905356668904,
+                            0.021312774105832932,
+                            6.159274882735111
+                        ],
+                        linf=[
+                            0.343642444425342,
+                            0.03393451559504808,
+                            10.142735502826085
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_nonideal_density_wave.jl with ideal gas" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
@@ -659,6 +696,37 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrectionShockCapturingCombined)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_modified_sod_entropy_correction_amr.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[0.18464446565258658, 0.3140498549283543, 0.6496099923312244],
+                        linf=[0.5635649557004835, 0.8086426785591834, 1.7109218921081835])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test/cover `:compact` `show` for IndicatorEntropyCorrectionShockCapturingCombined
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      indicator)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      indicator)
+end
+
+@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrection)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_modified_sod_entropy_correction_amr.jl"),
+                        indicator=IndicatorEntropyCorrection(equations, basis),
+                        tspan=(0.0, 0.1),
+                        l2=[0.18410518515764235, 0.3151497970340809, 0.6485302765750537],
+                        linf=[0.5561756505040076, 0.8355026358832652, 1.6896042720266948])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_nonideal_transcritical_wave.jl (Peng Robinson)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_transcritical_wave.jl"),
@@ -667,6 +735,30 @@ end
                         l2=[3.5624314278401767, 307.08047341497075, 671891.3209204172],
                         linf=[11.245466632528647, 1012.4992037314532, 2.193707958061479e6])
 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl with entropy correction" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        solver=DGSEM(LobattoLegendreBasis(3), flux_lax_friedrichs,
+                                     VolumeIntegralAdaptive(IndicatorEntropyCorrection(equations,
+                                                                                       LobattoLegendreBasis(3)),
+                                                            VolumeIntegralWeakForm(),
+                                                            VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs))),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.0017122131198515455,
+                            0.00036348851462562144,
+                            0.07342375187001934
+                        ],
+                        linf=[
+                            0.003190471783387716,
+                            0.0018240656867738736,
+                            0.21543232235440257
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

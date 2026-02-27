@@ -94,6 +94,24 @@ end
                                             n_cells_max = 10_000,
                                             periodicity = true)
     end
+
+    @testset "helper functions" begin
+        coordinates_min = (-0.5, -0.5, -0.5)
+        coordinates_max = (0.5, 0.5, 0.5)
+
+        for ndims in 1:3
+            coords_min = coordinates_min[1:ndims]
+            coords_max = coordinates_max[1:ndims]
+            for ref_level in 0:2
+                mesh = TreeMesh(coords_min, coords_max,
+                                initial_refinement_level = ref_level,
+                                n_cells_max = 10_000, periodicity = true)
+
+                @test Trixi.ndims(mesh) == ndims
+                @test Trixi.ncells(mesh) == (2^ndims)^ref_level
+            end
+        end
+    end
 end
 
 @timed_testset "TreeMeshParallel" begin
@@ -298,10 +316,12 @@ end
             nodes = basis.nodes
             weights = basis.weights
 
-            Lhat_minus1 = Trixi.calc_Lhat(-1.0, nodes, weights)
+            L_minus1 = Trixi.calc_L(-1.0, nodes, weights)
+            Lhat_minus1 = Trixi.calc_Lhat(L_minus1, weights)
             @test basis.inverse_weights[1] == Lhat_minus1[1]
 
-            Lhat_plus1 = Trixi.calc_Lhat(1.0, nodes, weights)
+            L_plus1 = Trixi.calc_L(1.0, nodes, weights)
+            Lhat_plus1 = Trixi.calc_Lhat(L_plus1, weights)
             @test basis.inverse_weights[p + 1] == Lhat_plus1[p + 1]
         end
     end
@@ -341,6 +361,16 @@ end
         @test isapprox(Trixi.calc_reverse_lower(2, Val(:gauss_lobatto)),
                        [[0.5, 0.0] [0.25, 0.25]])
     end
+end
+
+@timed_testset "GaussLegendreBasis" begin
+    basis = GaussLegendreBasis(3)
+    @test nnodes(basis) == 4
+    @test_nowarn show(stdout, "text/plain", basis)
+
+    solution_analyzer = Trixi.SolutionAnalyzer(basis)
+    @test nnodes(solution_analyzer) == 7
+    @test_nowarn show(stdout, "text/plain", solution_analyzer)
 end
 
 @testset "containers" begin
@@ -483,6 +513,10 @@ end
 
     indicator_max = IndicatorMax("variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_max)
+
+    indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
+                                              LobattoLegendreBasis(3))
+    @test_nowarn show(stdout, indicator_ec)
 end
 
 @timed_testset "LBM 2D constructor" begin
