@@ -342,7 +342,7 @@ end
            (v2_plus * B3 - v3_plus * B2) * normal_direction[2]
 
     for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, u, equations)
         rho_inv = 1 / rho
         v1 = rho_v1 * rho_inv
         v2 = rho_v2 * rho_inv
@@ -350,7 +350,7 @@ end
         kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
         gamma = equations.gammas[k]
-        p = (gamma - 1) * (rho_e - kin_en - mag_en - div_clean_energy)
+        p = (gamma - 1) * (rho_e_total - kin_en - mag_en - div_clean_energy)
 
         v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
         rho_v_normal = rho * v_normal
@@ -1470,7 +1470,7 @@ end
 
     c_f = zero(real(equations))
     for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, cons, equations)
 
         rho_inv = 1 / rho
         v1 = rho_v1 * rho_inv
@@ -1478,7 +1478,8 @@ end
         v3 = rho_v3 * rho_inv
         gamma = equations.gammas[k]
         p = (gamma - 1) *
-            (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+            (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) -
+             0.5f0 * (B1^2 + B2^2 + B3^2) -
              0.5f0 * psi^2)
         a_square = gamma * p * rho_inv
         inv_sqrt_rho = 1 / sqrt(rho)
