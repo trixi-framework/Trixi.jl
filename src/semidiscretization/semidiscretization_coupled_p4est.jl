@@ -368,6 +368,8 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              direction,
                                                              u_ode_coupled)
     n_nodes = length(mesh.parent.nodes)
+    # Using a projections onto e_x, -e_x, e_y, -e_y, determine which way our boundary interfaces points to.
+    # Knowing this, we then find the cell index in global (parent) space of the neighboring cell.
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
         if sum(normal_direction .* (1.0, 0.0)) >
