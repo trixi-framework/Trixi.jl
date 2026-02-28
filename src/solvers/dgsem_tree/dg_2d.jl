@@ -100,6 +100,10 @@ end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
+# This function is valid for all non-conforming mesh types, i.e.,
+# all meshes that do involve mortar operations.
+# Thus, we can use it for the serial (i.e., non-distributed memory parallelized) 
+# 2D/3D `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es.
 function rhs!(du, u, t,
               mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},
                           TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
