@@ -705,8 +705,7 @@ end
 # have `VariableViscous` available.
 function analyze(quantity::AnalysisSurfaceIntegral{Variable},
                  du, u, t,
-                 semi::SemidiscretizationHyperbolicParabolic) where {
-                                                                     Variable <:
+                 semi::SemidiscretizationHyperbolicParabolic) where {Variable <:
                                                                      VariableViscous}
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
