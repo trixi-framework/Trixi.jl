@@ -75,10 +75,11 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v2
-      - uses: julia-actions/julia-downgrade-compat@v1
+      - uses: julia-actions/julia-downgrade-compat@v2
         with:
           skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
           projects: ., test
+          mode: forcedeps
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
@@ -86,6 +87,8 @@ jobs:
         uses: julia-actions/julia-runtest@v1
         with:
           coverage: false
+          allow_reresolve: false
+          force_latest_compatible_version: false
         env:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
