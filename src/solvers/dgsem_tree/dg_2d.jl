@@ -541,26 +541,42 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations,
         if orientations[interface] == 1
             # interface in x-direction
             for j in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, j, interface] = zero(eltype(interfaces_u))
-                interfaces_u[2, v, j, interface] = zero(eltype(interfaces_u))
+                # Interpolate to the interfaces using a local variable for
+                # the accumulation of values (to reduce global memory operations).
+                interface_u_1 = zero(eltype(interfaces_u))
+                interface_u_2 = zero(eltype(interfaces_u))
                 for ii in eachnode(dg)
-                    interfaces_u[1, v, j, interface] += (u[v, ii, j, left_element] *
-                                                         boundary_interpolation[ii, 2])
-                    interfaces_u[2, v, j, interface] += (u[v, ii, j, right_element] *
-                                                         boundary_interpolation[ii, 1])
+                    # Not += to allow `@muladd` to turn these into FMAs
+                    # (see comment at the top of the file)
+                    interface_u_1 = (interface_u_1 +
+                                     u[v, ii, j, left_element] *
+                                     boundary_interpolation[ii, 2])
+                    interface_u_2 = (interface_u_2 +
+                                     u[v, ii, j, right_element] *
+                                     boundary_interpolation[ii, 1])
                 end
+                interfaces_u[1, v, j, interface] = interface_u_1
+                interfaces_u[2, v, j, interface] = interface_u_2
             end
         else # if orientations[interface] == 2
             # interface in y-direction
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, i, interface] = zero(eltype(interfaces_u))
-                interfaces_u[2, v, i, interface] = zero(eltype(interfaces_u))
+                # Interpolate to the interfaces using a local variable for
+                # the accumulation of values (to reduce global memory operations).
+                interface_u_1 = zero(eltype(interfaces_u))
+                interface_u_2 = zero(eltype(interfaces_u))
                 for jj in eachnode(dg)
-                    interfaces_u[1, v, i, interface] += (u[v, i, jj, left_element] *
-                                                         boundary_interpolation[jj, 2])
-                    interfaces_u[2, v, i, interface] += (u[v, i, jj, right_element] *
-                                                         boundary_interpolation[jj, 1])
+                    # Not += to allow `@muladd` to turn these into FMAs
+                    # (see comment at the top of the file)
+                    interface_u_1 = (interface_u_1 +
+                                     u[v, i, jj, left_element] *
+                                     boundary_interpolation[jj, 2])
+                    interface_u_2 = (interface_u_2 +
+                                     u[v, i, jj, right_element] *
+                                     boundary_interpolation[jj, 1])
                 end
+                interfaces_u[1, v, i, interface] = interface_u_1
+                interfaces_u[2, v, i, interface] = interface_u_2
             end
         end
     end
@@ -1225,7 +1241,7 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
 
     @threaded for element in eachelement(dg, cache)
         # Negative sign included to account for the negated surface and volume terms,
-        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # see e.g. the computation of `derivative_hat` in the basis setup and
         # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
