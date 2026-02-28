@@ -55,7 +55,7 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations,
 end
 
 """
-    calc_mean_convergence(eocs)
+    Trixi.calc_mean_convergence(eocs)
 
 Calculate the mean convergence rates from the given experimental orders of convergence `eocs`.
 The `eocs` are expected to be in the format returned by [`convergence_test`](@ref), i.e., a `Dict` where
