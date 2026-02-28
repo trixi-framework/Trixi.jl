@@ -65,7 +65,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
     flux = boundary_conditions[direction](u_rr, orientation, direction, x, t,
                                           surface_flux, equations)
 
-    # Only flux contrbution for left element, left face is the boundary flux
+    # Only flux contribution for left element, left face is the boundary flux
     for v in eachvariable(equations)
         surface_flux_values[v, direction, 1] = flux[v]
     end
