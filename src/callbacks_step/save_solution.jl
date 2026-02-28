@@ -287,6 +287,11 @@ end
                                     element_variables = Dict{Symbol, Any}(),
                                     node_variables = Dict{Symbol, Any}();
                                     system = "")
+    # TODO GPU currently on CPU
+    backend = trixi_backend(u_ode)
+    if backend !== nothing
+        u_ode = Array(u_ode)
+    end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
     save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,

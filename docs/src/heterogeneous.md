@@ -120,9 +120,14 @@ function trixi_rhs_fct(mesh, equations, solver, cache, args)
 end
 ```
 
-1. Put the inner code in a new function `rhs_fct_per_element`. Besides the index
-   `element`, pass all required fields as arguments, but make sure to `@unpack` them from
-   their structs in advance.
+1. Move the inner code into a new inlined function `rhs_fct_per_element`.
+   ```julia
+   @inline function rhs_fct_per_element(..., element, ...)
+       ...
+   end
+   ```
+   Besides the index `element`, pass all required fields as arguments, but make sure to
+   `@unpack` them from their structs in advance.
 2. Where `trixi_rhs_fct` is called, get the backend, i.e., the hardware we are currently
    running on via `trixi_backend(x)`.
    This will, e.g., work with `u_ode`. Internally, KernelAbstractions.jl's `get_backend`

@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function max_dt(u, t, mesh::TreeMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{3},
                 constant_speed::False, equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -31,7 +31,7 @@ function max_dt(u, t, mesh::TreeMesh{3},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::TreeMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{3},
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
@@ -56,7 +56,7 @@ function max_dt(u, t, mesh::TreeMesh{3},
     return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
-function max_dt(u, t, mesh::TreeMesh{3},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{3},
                 constant_speed::True, equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -76,7 +76,8 @@ function max_dt(u, t, mesh::TreeMesh{3},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+function max_dt(backend::Nothing, u, t,
+                mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                 constant_speed::False, equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -85,38 +86,75 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda1 = max_lambda2 = max_lambda3 = zero(max_scaled_speed)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(u, equations, dg, i, j, k, element)
-            lambda1, lambda2, lambda3 = max_abs_speeds(u_node, equations)
-
-            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
-                                                        i, j, k, element)
-            lambda1_transformed = abs(Ja11 * lambda1 + Ja12 * lambda2 + Ja13 * lambda3)
-            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
-                                                        i, j, k, element)
-            lambda2_transformed = abs(Ja21 * lambda1 + Ja22 * lambda2 + Ja23 * lambda3)
-            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
-                                                        i, j, k, element)
-            lambda3_transformed = abs(Ja31 * lambda1 + Ja32 * lambda2 + Ja33 * lambda3)
-
-            inv_jacobian = abs(inverse_jacobian[i, j, k, element])
-
-            max_lambda1 = Base.max(max_lambda1, inv_jacobian * lambda1_transformed)
-            max_lambda2 = Base.max(max_lambda2, inv_jacobian * lambda2_transformed)
-            max_lambda3 = Base.max(max_lambda3, inv_jacobian * lambda3_transformed)
-        end
-
+        max_lambda = max_scaled_speed_element(u, typeof(mesh), equations, dg,
+                                              contravariant_vectors, inverse_jacobian,
+                                              element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
-        max_scaled_speed = Base.max(max_scaled_speed,
-                                    max_lambda1 + max_lambda2 + max_lambda3)
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t,
+function max_dt(backend::Backend, u, t,
+                mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                constant_speed::False, equations, dg::DG, cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    num_elements = nelements(dg, cache)
+    max_scaled_speeds = allocate(backend, eltype(t), num_elements)
+
+    kernel! = max_scaled_speed_KAkernel!(backend)
+    kernel!(max_scaled_speeds, u, typeof(mesh), equations, dg, contravariant_vectors,
+            inverse_jacobian;
+            ndrange = num_elements)
+
+    # TODO GPU dt on CPU? (time integration happens on CPU)
+    max_scaled_speed = max(nextfloat(zero(t)), maximum(max_scaled_speeds))
+
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+@kernel function max_scaled_speed_KAkernel!(max_scaled_speeds, u, meshT, equations,
+                                            dg, contravariant_vectors, inverse_jacobian)
+    element = @index(Global)
+    max_scaled_speeds[element] = max_scaled_speed_element(u, meshT, equations, dg,
+                                                          contravariant_vectors,
+                                                          inverse_jacobian,
+                                                          element)
+end
+
+@inline function max_scaled_speed_element(u,
+                                          ::Type{<:Union{StructuredMesh{3},
+                                                         P4estMesh{3},
+                                                         T8codeMesh{3}}}, equations, dg,
+                                          contravariant_vectors, inverse_jacobian,
+                                          element)
+    max_lambda1 = max_lambda2 = max_lambda3 = zero(eltype(u))
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        lambda1, lambda2, lambda3 = max_abs_speeds(u_node, equations)
+
+        Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                    i, j, k, element)
+        lambda1_transformed = abs(Ja11 * lambda1 + Ja12 * lambda2 + Ja13 * lambda3)
+        Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, j, k, element)
+        lambda2_transformed = abs(Ja21 * lambda1 + Ja22 * lambda2 + Ja23 * lambda3)
+        Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                    i, j, k, element)
+        lambda3_transformed = abs(Ja31 * lambda1 + Ja32 * lambda2 + Ja33 * lambda3)
+
+        inv_jacobian = abs(inverse_jacobian[i, j, k, element])
+
+        max_lambda1 = max(max_lambda1, inv_jacobian * lambda1_transformed)
+        max_lambda2 = max(max_lambda2, inv_jacobian * lambda2_transformed)
+        max_lambda3 = max(max_lambda3, inv_jacobian * lambda3_transformed)
+    end
+    return max_lambda1 + max_lambda2 + max_lambda3
+end
+
+function max_dt(backend::Nothing, u, t,
                 mesh::P4estMesh{3}, # Parabolic terms currently only for `TreeMesh` and `P4estMesh`
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
@@ -168,13 +206,19 @@ function max_dt(u, t,
     return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
-function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+function max_dt(backend, u, t,
+                mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                 constant_speed::True, equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    if backend !== nothing
+        # TODO: Port to GPU
+        contravariant_vectors = Array(cache.elements.contravariant_vectors)
+        inverse_jacobian = Array(cache.elements.inverse_jacobian)
+    end
 
     max_lambda1, max_lambda2, max_lambda3 = max_abs_speeds(equations)
 
@@ -207,7 +251,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t,
+function max_dt(backend::Nothing, u, t,
                 mesh::P4estMesh{3}, # Parabolic terms currently only for `TreeMesh` and `P4estMesh`
                 constant_diffusivity::True, equations,
                 equations_parabolic::AbstractEquationsParabolic,
@@ -258,68 +302,68 @@ function max_dt(u, t,
     return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
-function max_dt(u, t, mesh::P4estMeshParallel{3},
+function max_dt(backend::Nothing, u, t, mesh::P4estMeshParallel{3},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), P4estMesh{3},
+                Tuple{typeof(backend), typeof(u), typeof(t), P4estMesh{3},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                backend, u, t, mesh, constant_speed, equations, dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
     return dt
 end
 
-function max_dt(u, t, mesh::P4estMeshParallel{3},
+function max_dt(backend::Nothing, u, t, mesh::P4estMeshParallel{3},
                 constant_speed::True, equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), P4estMesh{3},
+                Tuple{typeof(backend), typeof(u), typeof(t), P4estMesh{3},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                backend, u, t, mesh, constant_speed, equations, dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
     return dt
 end
 
-function max_dt(u, t, mesh::T8codeMeshParallel{3},
+function max_dt(backend::Nothing, u, t, mesh::T8codeMeshParallel{3},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), T8codeMesh{3},
+                Tuple{typeof(backend), typeof(u), typeof(t), T8codeMesh{3},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                backend, u, t, mesh, constant_speed, equations, dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
     return dt
 end
 
-function max_dt(u, t, mesh::T8codeMeshParallel{3},
+function max_dt(backend::Nothing, u, t, mesh::T8codeMeshParallel{3},
                 constant_speed::True, equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), T8codeMesh{3},
+                Tuple{typeof(backend), typeof(u), typeof(t), T8codeMesh{3},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                backend, u, t, mesh, constant_speed, equations, dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 

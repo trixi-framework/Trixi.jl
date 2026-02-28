@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function max_dt(u, t, mesh::TreeMesh{1},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{1},
                 constant_speed::False, equations,
                 dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere
@@ -28,7 +28,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::TreeMesh{1},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{1},
                 constant_diffusivity::False, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
@@ -53,7 +53,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
     return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
-function max_dt(u, t, mesh::TreeMesh{1},
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh{1},
                 constant_speed::True, equations,
                 dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
@@ -73,7 +73,7 @@ function max_dt(u, t, mesh::TreeMesh{1},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::TreeMesh, # for all dimensions
+function max_dt(backend::Nothing, u, t, mesh::TreeMesh, # for all dimensions
                 constant_diffusivity::True, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
@@ -95,7 +95,7 @@ function max_dt(u, t, mesh::TreeMesh, # for all dimensions
     return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
-function max_dt(u, t, mesh::StructuredMesh{1},
+function max_dt(backend::Nothing, u, t, mesh::StructuredMesh{1},
                 constant_speed::False, equations,
                 dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere
@@ -122,7 +122,7 @@ function max_dt(u, t, mesh::StructuredMesh{1},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::StructuredMesh{1},
+function max_dt(backend::Nothing, u, t, mesh::StructuredMesh{1},
                 constant_speed::True, equations,
                 dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,

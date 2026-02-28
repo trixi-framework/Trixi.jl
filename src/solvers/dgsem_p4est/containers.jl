@@ -936,6 +936,24 @@ end
     end
 end
 
+@inline function indices2direction2d(indices)
+    if indices[1] === :begin
+        return 1
+    elseif indices[1] === :end
+        return 2
+    elseif indices[2] === :begin
+        return 3
+    else # if indices[2] === :end
+        return 4
+    end
+end
+
+# Build a reduced cache which can be passed to GPU kernels
+@inline function kernel_filter_cache(cache)
+    return (;
+            elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
+end
+
 include("containers_2d.jl")
 include("containers_3d.jl")
 include("containers_parallel.jl")

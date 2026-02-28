@@ -143,8 +143,9 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
                       semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u_ode)
 
-    return cfl_advective(t) * max_dt(u, t, mesh,
+    return cfl_advective(t) * max_dt(backend, u, t, mesh,
                   have_constant_speed(equations), equations,
                   solver, cache)
 end
@@ -154,8 +155,9 @@ function calculate_dt(u_ode, t, cfl_advective::Real, cfl_diffusive::Real,
                       semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u_ode)
 
-    return cfl_advective * max_dt(u, t, mesh,
+    return cfl_advective * max_dt(backend, u, t, mesh,
                   have_constant_speed(equations), equations,
                   solver, cache)
 end
@@ -167,14 +169,15 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
     equations_parabolic = semi.equations_parabolic
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u_ode)
 
-    dt_advective = cfl_advective(t) * max_dt(u, t, mesh,
+    dt_advective = cfl_advective(t) * max_dt(backend, u, t, mesh,
                           have_constant_speed(equations), equations,
                           solver, cache)
 
     cfl_diff = cfl_diffusive(t)
     if cfl_diff > 0 # Check if diffusive CFL should be considered
-        dt_diffusive = cfl_diff * max_dt(u, t, mesh,
+        dt_diffusive = cfl_diff * max_dt(backend, u, t, mesh,
                               have_constant_diffusivity(equations_parabolic), equations,
                               equations_parabolic, solver, cache)
 

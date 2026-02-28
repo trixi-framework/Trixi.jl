@@ -107,7 +107,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Calculate surface integrals.
     # This reuses `calc_surface_integral!` for the purely hyperbolic case.
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations_parabolic,
+        calc_surface_integral!(nothing, du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
     end
 
