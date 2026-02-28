@@ -108,6 +108,7 @@ end
     flux = sign_jacobian *
            boundary_condition(u_inner, normal, direction, x, t, surface_flux, equations)
 
+    # Only flux contribution for boundary element, boundary face is the boundary flux
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
     end
@@ -149,6 +150,7 @@ end
     flux, noncons_flux = boundary_condition(u_inner, normal, direction, x, t,
                                             surface_flux, equations)
 
+    # Only flux contribution for boundary element, boundary face is the boundary flux
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_indices..., direction, element] = sign_jacobian *
                                                                               (flux[v] +
