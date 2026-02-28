@@ -300,7 +300,8 @@ end
                                      variable, min_or_max,
                                      initial_check, final_check,
                                      inverse_jacobian, dt,
-                                     equations, dg, cache, limiter)
+                                     equations::AbstractEquations{3},
+                                     dg, cache, limiter)
     (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
     (; antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R) = cache.antidiffusive_fluxes
 

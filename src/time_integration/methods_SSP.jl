@@ -132,9 +132,18 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                                                                 kwargs...),
                                      false, true, false)
 
-    # resize container
-    resize!(integrator.p, integrator.p.solver.volume_integral,
-            nelements(integrator.p.solver, integrator.p.cache))
+    # Resize containers of volume integral for subcell limiting
+    _, _, dg, cache = mesh_equations_solver_cache(integrator.p)
+    if dg.volume_integral isa VolumeIntegralSubcellLimiting
+        n_elements = nelements(dg, cache)
+        # antidiffusive_fluxes: was created with the correct number of elements
+        # but needs to be reset to zeros which is done in `resize!()`
+        resize!(cache.antidiffusive_fluxes, n_elements)
+
+        # subcell_limiter_coefficients: was created with 0 elements
+        resize!(dg.volume_integral.limiter.cache.subcell_limiter_coefficients,
+                n_elements)
+    end
 
     # Standard callbacks
     initialize_callbacks!(callback, integrator)
@@ -257,11 +266,6 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
-
-    # Resize container
-    # new_size = n_variables * n_nodes^n_dims * n_elements
-    n_elements = nelements(integrator.p.solver, integrator.p.cache)
-    resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
 
     return nothing
 end
