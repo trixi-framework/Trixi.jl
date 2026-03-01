@@ -247,6 +247,65 @@ end
     return flux, noncons_flux
 end
 
+"""
+    BoundaryConditionCharacteristic(outer_boundary_value_function)
+
+Characteristic-based boundary condition.
+
+!!! warning "Experimental code"
+  This numerical flux is experimental and may change in any future release.
+"""
+struct BoundaryConditionCharacteristic{B, C}
+    outer_boundary_value_function::B
+    boundary_value_function::C
+end
+
+function BoundaryConditionCharacteristic(outer_boundary_value_function)
+    BoundaryConditionCharacteristic{typeof(outer_boundary_value_function),
+                                    typeof(characteristic_boundary_value_function)}(outer_boundary_value_function,
+                                                                                    characteristic_boundary_value_function)
+end
+
+# Characteristic-based boundary condition for use with TreeMesh or StructuredMesh
+@inline function (boundary_condition::BoundaryConditionCharacteristic)(u_inner,
+                                                                       orientation_or_normal,
+                                                                       direction,
+                                                                       x, t,
+                                                                       surface_flux_function,
+                                                                       equations)
+    u_boundary = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
+                                                            u_inner,
+                                                            orientation_or_normal,
+                                                            direction, x, t, equations)
+
+    # Calculate boundary flux
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal,
+                                     equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal,
+                                     equations)
+    end
+
+    return flux
+end
+
+# Characteristic-based boundary condition for use with P4estMesh
+@inline function (boundary_condition::BoundaryConditionCharacteristic)(u_inner,
+                                                                       normal_direction,
+                                                                       x, t,
+                                                                       surface_flux_function,
+                                                                       equations)
+    u_boundary = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
+                                                            u_inner, normal_direction,
+                                                            x, t, equations)
+
+    # Calculate boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+    return flux
+end
+
 # operator types used for dispatch on parabolic boundary fluxes
 struct Gradient end
 struct Divergence end
@@ -577,7 +636,7 @@ of the correct length `nvariables(equations)`.
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight end
@@ -594,19 +653,18 @@ of the correct length `nvariables(equations)`.
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight_pressure end
 
 """
     lake_at_rest_error(u, equations)
-    
 Calculate the point-wise error for the lake-at-rest steady state solution.
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function lake_at_rest_error end

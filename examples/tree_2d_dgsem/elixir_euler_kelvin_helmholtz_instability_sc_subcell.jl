@@ -44,7 +44,9 @@ basis = LobattoLegendreBasis(polydeg)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
-                                positivity_variables_nonlinear = [pressure])
+                                positivity_variables_nonlinear = [pressure],
+                                bar_states = true)
+
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -71,16 +73,16 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
+save_solution = SaveSolutionCallback(interval = 5000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-save_restart = SaveRestartCallback(interval = 1000,
+save_restart = SaveRestartCallback(interval = 50000,
                                    save_final_restart = true)
 
-stepsize_callback = StepsizeCallback(cfl = 0.7)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

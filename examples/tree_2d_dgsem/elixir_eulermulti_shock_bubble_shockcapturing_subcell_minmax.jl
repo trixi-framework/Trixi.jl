@@ -94,7 +94,8 @@ basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho" * string(i)
-                                                                 for i in eachcomponent(equations)])
+                                                                 for i in eachcomponent(equations)],
+                                bar_states = true)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -130,7 +131,7 @@ save_solution = SaveSolutionCallback(interval = 600,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-stepsize_callback = StepsizeCallback(cfl = 0.4)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

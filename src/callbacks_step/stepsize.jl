@@ -145,8 +145,8 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_advective(t) * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
-                  solver, cache)
+                  have_constant_speed(equations), semi, equations, solver, cache,
+                  solver.volume_integral)
 end
 
 # For Euler-Acoustic simulations with `EulerAcousticsCouplingCallback`
@@ -156,8 +156,25 @@ function calculate_dt(u_ode, t, cfl_advective::Real, cfl_diffusive::Real,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_advective * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
-                  solver, cache)
+                  have_constant_speed(equations), semi, equations, solver, cache,
+                  solver.volume_integral)
+end
+
+function max_dt(u, t, mesh, constant_speed, semi, equations, solver, cache,
+                volume_integral::AbstractVolumeIntegral)
+    max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+end
+
+@inline function max_dt(u, t, mesh,
+                        constant_speed, semi, equations, solver, cache,
+                        volume_integral::VolumeIntegralSubcellLimiting)
+    @unpack limiter = volume_integral
+    if limiter isa SubcellLimiterIDP && !limiter.bar_states
+        return max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+    else
+        return max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
+                      limiter)
+    end
 end
 
 # Case for a hyperbolic-parabolic semidiscretization

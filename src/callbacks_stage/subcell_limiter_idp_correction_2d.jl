@@ -29,7 +29,13 @@ function perform_idp_correction!(u, dt,
     # To avoid adding zeros and speed up the simulation, we directly loop over the subcell
     # interfaces.
 
-    @threaded for element in eachelement(dg, cache)
+    if dg.volume_integral.limiter.smoothness_indicator
+        elements = cache.element_ids_dgfv
+    else
+        elements = eachelement(dg, cache)
+    end
+
+    @threaded for element in elements
         # Perform correction in 1st/x-direction
         for j in eachnode(dg), i in 2:nnodes(dg)
             # Subcell interface between nodes (i - 1, j) and (i, j)

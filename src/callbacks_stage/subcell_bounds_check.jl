@@ -8,10 +8,10 @@
 """
     BoundsCheckCallback(; output_directory="out", save_errors=false, interval=1)
 
-Subcell limiting techniques with [`SubcellLimiterIDP`](@ref) are constructed to adhere certain
-local or global bounds. To make sure that these bounds are actually met, this callback calculates
-the maximum deviation from the bounds. The maximum deviation per applied bound is printed to
-the screen at the end of the simulation.
+Subcell limiting techniques with [`SubcellLimiterIDP`](@ref) and [`SubcellLimiterMCL`](@ref) are
+constructed to adhere certain local or global bounds. To make sure that these bounds are actually
+met, this callback calculates the maximum deviation from the bounds. The maximum deviation per
+applied bound is printed to the screen at the end of the simulation.
 For more insights, when setting `save_errors=true` the occurring errors are exported every
 `interval` time steps during the simulation. Then, the maximum deviations since the last
 export are saved in "`output_directory`/deviations.txt".
@@ -115,6 +115,26 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
     return nothing
 end
 
+function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimiterMCL)
+    if !callback.save_errors || (callback.interval == 0)
+        return nothing
+    end
+
+    @unpack output_directory = callback
+    mkpath(output_directory)
+    open("$output_directory/deviations.txt", "a") do f
+        print(f, "# iter, simu_time",
+              join(", $(v)_min, $(v)_max" for v in varnames(cons2cons, semi.equations)))
+        if limiter.positivity_limiter_pressure
+            print(f, ", pressure_min")
+        end
+        # TODO: Bounds check for entropy limiting
+        println(f)
+    end
+
+    return nothing
+end
+
 function finalize_callback(callback::BoundsCheckCallback, semi)
     return finalize_callback(callback, semi, semi.solver.volume_integral)
 end
@@ -133,6 +153,9 @@ end
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
+    if limiter.smoothness_indicator
+        println("WARNING: Smoothness indicator is activated. Bound deviations are not computed correctly. (TODO)")
+    end
     if local_twosided
         for v in limiter.local_twosided_variables_cons
             v_string = string(v)
@@ -172,6 +195,36 @@ end
     return nothing
 end
 
+@inline function finalize_callback(callback::BoundsCheckCallback, semi,
+                                   limiter::SubcellLimiterMCL)
+    @unpack mcl_bounds_delta_global = limiter.cache
+
+    println("─"^100)
+    println("Maximum deviation from bounds:")
+    println("─"^100)
+
+    if limiter.smoothness_indicator
+        println("WARNING: Smoothness indicator is activated. Bound deviations are not computed correctly. (TODO)")
+    end
+
+    variables = varnames(cons2cons, semi.equations)
+    for v in eachvariable(semi.equations)
+        println(variables[v], ":\n- lower bound: ", mcl_bounds_delta_global[1, v],
+                "\n- upper bound: ", mcl_bounds_delta_global[2, v])
+    end
+    if limiter.positivity_limiter_pressure
+        println("pressure:\n- positivity: ",
+                mcl_bounds_delta_global[1, nvariables(semi.equations) + 1])
+    end
+    if limiter.entropy_limiter_semidiscrete
+        # TODO: Bounds check for entropy limiting
+        println("\nWARNING: No bounds check for the entropy limiter.")
+    end
+    println("─"^100 * "\n")
+
+    return nothing
+end
+
 @inline function save_bounds_check_errors(output_directory, time, iter, equations,
                                           limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = limiter
@@ -205,11 +258,50 @@ end
             end
         end
         println(f)
+        if limiter.smoothness_indicator
+            println(f,
+                    "WARNING: Smoothness indicator is activated. Bound deviations are not computed correctly. (TODO)")
+        end
         return nothing
     end
     # Reset local maximum deviations
     for (key, _) in idp_bounds_delta_local
         idp_bounds_delta_local[key] = zero(eltype(idp_bounds_delta_local[key]))
+    end
+
+    return nothing
+end
+
+@inline function save_bounds_check_errors(output_directory, time, iter, equations,
+                                          limiter::SubcellLimiterMCL)
+    (; mcl_bounds_delta_local) = limiter.cache
+
+    n_vars = nvariables(equations)
+
+    # Print errors to output file
+    open(joinpath(output_directory, "deviations.txt"), "a") do f
+        print(f, iter, ", ", time)
+        for v in eachvariable(equations)
+            print(f, ", ", mcl_bounds_delta_local[1, v], ", ",
+                  mcl_bounds_delta_local[2, v])
+        end
+        if limiter.positivity_limiter_pressure
+            print(f, ", ", mcl_bounds_delta_local[1, n_vars + 1])
+        end
+        println(f)
+        if limiter.smoothness_indicator
+            println(f,
+                    "WARNING: Smoothness indicator is activated. Bound deviations are not computed correctly. (TODO)")
+        end
+    end
+
+    # Reset mcl_bounds_delta_local
+    for v in eachvariable(equations)
+        mcl_bounds_delta_local[1, v] = zero(eltype(mcl_bounds_delta_local))
+        mcl_bounds_delta_local[2, v] = zero(eltype(mcl_bounds_delta_local))
+    end
+    if limiter.positivity_limiter_pressure
+        mcl_bounds_delta_local[1, n_vars + 1] = zero(eltype(mcl_bounds_delta_local))
     end
 
     return nothing
