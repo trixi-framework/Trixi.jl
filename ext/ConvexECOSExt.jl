@@ -1,5 +1,5 @@
 # Package extension for adding Convex-based features to Trixi.jl
-module TrixiConvexECOSExt
+module ConvexECOSExt
 
 # Required for coefficient optimization in PERK scheme integrators
 using Convex: MOI, solve!, Variable, minimize, evaluate

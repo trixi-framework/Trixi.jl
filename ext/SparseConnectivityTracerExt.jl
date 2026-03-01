@@ -1,5 +1,5 @@
 # Package extension for overloading of branching (if-clauses) base functions such as sqrt, log, etc.
-module TrixiSparseConnectivityTracerExt
+module SparseConnectivityTracerExt
 
 import Trixi
 import SparseConnectivityTracer: AbstractTracer
