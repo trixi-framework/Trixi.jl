@@ -305,6 +305,31 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_ec_modal_filter.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec_modal_filter.jl"),
+                        l2=[
+                            0.0329752143337325,
+                            0.02584183920102259,
+                            0.025841839201022596,
+                            0.12212175031925285
+                        ],
+                        linf=[
+                            0.31358990696043687,
+                            0.304202481962901,
+                            0.30420248196290367,
+                            1.1115657230396514
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         l2=[
