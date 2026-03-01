@@ -24,7 +24,8 @@ function create_cache(mesh::P4estMesh{3},
                                  nnodes(dg), nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
 
-    antidiffusive_fluxes = ContainerAntidiffusiveFlux3D{uEltype}(0,
+    n_elements = nelements(cache_containers.elements)
+    antidiffusive_fluxes = ContainerAntidiffusiveFlux3D{uEltype}(n_elements,
                                                                  nvariables(equations),
                                                                  nnodes(dg))
 
