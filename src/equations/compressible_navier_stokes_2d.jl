@@ -128,8 +128,8 @@ end
 
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
-# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion2D) = ("v1", "v2", "T")
-# varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion2D) = ("w2", "w3", "w4")
+# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion2D) = ("rho", "v1", "v2", "T")
+# varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion2D) = ("w1", "w2", "w3", "w4")
 
 function varnames(variable_mapping,
                   equations_parabolic::CompressibleNavierStokesDiffusion2D)
@@ -277,10 +277,10 @@ end
     return cons2prim(entropy2cons(u_transformed, equations), equations)
 end
 
-# Takes the solution values `u` and gradient of the entropy variables (w_2, w_3, w_4) and
-# reverse engineers the gradients to be terms of the primitive variables (v1, v2, T).
+# Takes the solution values `u` and gradient of the entropy variables w and
+# reverse engineers the gradients to be terms of the primitive variables u_prim = (rho, v1, v2, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
-# Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
+# Note, the first component of `gradient_entropy_vars` w1 contains gradient(rho) which is unused.
 # TODO: parabolic; entropy stable viscous terms
 @inline function convert_derivative_to_primitive(u, gradient,
                                                  ::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
