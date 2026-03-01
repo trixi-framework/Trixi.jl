@@ -1,4 +1,5 @@
 using Trixi
+using OrdinaryDiffEqCore: NewIController
 
 ###############################################################################
 # create a restart file
@@ -22,8 +23,15 @@ ode_jac_sparse = semidiscretize(semi_float_type, tspan,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode_jac_sparse,
-            # Default `AutoForwardDiff()` is not yet working, see
-            # https://github.com/trixi-framework/Trixi.jl/issues/2369
-            TRBDF2(; autodiff = AutoFiniteDiff());
-            adaptive = true, dt = dt_restart, save_everystep = false, callback = callbacks);
+# Use an IController to ensure reproducible restart behavior.
+# Unlike PIController, IController has no memory of previous error estimates,
+# so restarting from a checkpoint produces deterministic step size selection.
+# Setting qmax_first_step = qmax avoids first-step acceleration that would
+# cause the restarted solve to diverge from a continuous run.
+# See https://github.com/SciML/OrdinaryDiffEq.jl/issues/3101
+alg = TRBDF2(; autodiff = AutoFiniteDiff())
+controller = NewIController(alg, qmax = 10, qmax_first_step = 10)
+
+sol = solve(ode_jac_sparse, alg;
+            adaptive = true, dt = dt_restart, save_everystep = false,
+            callback = callbacks, controller = controller);
