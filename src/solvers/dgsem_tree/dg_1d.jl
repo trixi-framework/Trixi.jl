@@ -561,12 +561,8 @@ function prolong2boundaries!(cache, u_or_flux_viscous,
             end
         else # Element in +x direction of boundary => need to evaluate at left boundary node (-1)
             for v in eachvariable(equations)
-                # Interpolate to the boundaries using a local variable for
-                # the accumulation of values (to reduce global memory operations).
                 boundary_u_2 = zero(eltype(boundaries.u))
                 for ii in eachnode(dg)
-                    # Not += to allow `@muladd` to turn these into FMAs
-                    # (see comment at the top of the file)
                     boundary_u_2 = (boundary_u_2 +
                                     u_or_flux_viscous[v, ii, element] *
                                     boundary_interpolation[ii, 1])
