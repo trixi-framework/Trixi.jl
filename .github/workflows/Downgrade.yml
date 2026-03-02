@@ -85,7 +85,7 @@ jobs:
           cd test
           julia --project=. --color=yes -e '
             import Pkg
-            Pkg.develop(Pkg.PackageSpec(path=pwd()))
+            Pkg.develop(Pkg.PackageSpec(path=".."))
             Pkg.instantiate()
             Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
             include("runtests.jl")
