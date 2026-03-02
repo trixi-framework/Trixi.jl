@@ -714,15 +714,18 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     # into FMAs (see comment at the top of the file).
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations)
+            # Aliases for repeatedly accessed variables
+            surface_flux_minus = surface_flux_values[v, 1, element]
+            surface_flux_plus = surface_flux_values[v, 2, element]
             for ii in eachnode(dg)
                 # surface at -x
                 du[v, ii, element] = (du[v, ii, element] -
-                                      surface_flux_values[v, 1, element] *
+                                      surface_flux_minus *
                                       boundary_interpolation_inverse_weights[ii, 1])
 
                 # surface at +x
                 du[v, ii, element] = (du[v, ii, element] +
-                                      surface_flux_values[v, 2, element] *
+                                      surface_flux_plus *
                                       boundary_interpolation_inverse_weights[ii, 2])
             end
         end
