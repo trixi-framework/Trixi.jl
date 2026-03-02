@@ -82,10 +82,11 @@ jobs:
           mode: forcedeps
       - name: Run tests
         run: |
-          julia --project=test --color=yes -e '
+          cd test
+          julia --project=. --color=yes -e '
             import Pkg
             Pkg.develop(Pkg.PackageSpec(path=pwd()))
             Pkg.instantiate()
             Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
-            include("test/runtests.jl")
+            include("runtests.jl")
           '
