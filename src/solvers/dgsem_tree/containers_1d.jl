@@ -378,15 +378,16 @@ function set_boundary_node_coordinates!(boundaries, element, count, direction,
                                         elements, mesh::TreeMesh1D,
                                         basis::LobattoLegendreBasis)
     el_node_coords = elements.node_coordinates
-    bnds_node_coords = boundaries.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
 
     orientation = 1 # always 1 in 1D
     if direction == 1
-        bnds_node_coords[orientation, count] = el_node_coords[orientation, 1,
-                                                              element]
+        bnd_node_coords[orientation, count] = el_node_coords[orientation,
+                                                             1,
+                                                             element]
     elseif direction == 2
-        bnds_node_coords[orientation, count] = el_node_coords[orientation, end,
-                                                              element]
+        bnd_node_coords[orientation, count] = el_node_coords[orientation, end,
+                                                             element]
     else
         error("should not happen")
     end
@@ -400,19 +401,19 @@ function set_boundary_node_coordinates!(boundaries, element, count, direction,
                                         basis::GaussLegendreBasis)
     boundary_matrix = basis.boundary_interpolation
     el_node_coords = elements.node_coordinates
-    bnds_node_coords = boundaries.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
 
     orientation = 1 # always 1 in 1D
     if direction == 1
         @views x_interpolated_left = dot(boundary_matrix[:, 1],
                                          el_node_coords[orientation, :,
                                                         element])
-        bnds_node_coords[orientation, count] = x_interpolated_left
+        bnd_node_coords[orientation, count] = x_interpolated_left
     elseif direction == 2
         @views x_interpolated_right = dot(boundary_matrix[:, 2],
                                           el_node_coords[orientation, :,
                                                          element])
-        bnds_node_coords[orientation, count] = x_interpolated_right
+        bnd_node_coords[orientation, count] = x_interpolated_right
     else
         error("should not happen")
     end

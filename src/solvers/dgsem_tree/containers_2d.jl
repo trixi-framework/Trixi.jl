@@ -395,16 +395,16 @@ function set_boundary_node_coordinates!(boundaries, element, count, direction,
                                         elements, mesh::TreeMesh2D,
                                         basis::LobattoLegendreBasis)
     el_node_coords = elements.node_coordinates
-    bnds_node_coords = boundaries.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
 
     if direction == 1 # -x direction
-        @views bnds_node_coords[:, :, count] .= el_node_coords[:, 1, :, element]
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, 1, :, element]
     elseif direction == 2 # +x direction
-        @views bnds_node_coords[:, :, count] .= el_node_coords[:, end, :, element]
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, end, :, element]
     elseif direction == 3 # -y direction
-        @views bnds_node_coords[:, :, count] .= el_node_coords[:, :, 1, element]
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, :, 1, element]
     elseif direction == 4 # +y direction
-        @views bnds_node_coords[:, :, count] .= el_node_coords[:, :, end, element]
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, :, end, element]
     else
         error("should not happen")
     end
@@ -418,50 +418,50 @@ function set_boundary_node_coordinates!(boundaries, element, count, direction,
                                         basis::GaussLegendreBasis)
     boundary_matrix = basis.boundary_interpolation
     el_node_coords = elements.node_coordinates
-    bnds_node_coords = boundaries.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
 
     if direction == 1 # -x direction: interpolate in x for each y node j
         for j in eachnode(basis)
             for orientation in 1:2 # Need to set both x and y coordinate of boundary node
-                @views bnds_node_coords[orientation, j, count] = dot(boundary_matrix[:,
-                                                                                     1],
-                                                                     el_node_coords[orientation,
-                                                                                    :,
-                                                                                    j,
-                                                                                    element])
+                @views bnd_node_coords[orientation, j, count] = dot(boundary_matrix[:,
+                                                                                    1],
+                                                                    el_node_coords[orientation,
+                                                                                   :,
+                                                                                   j,
+                                                                                   element])
             end
         end
     elseif direction == 2 # +x direction: interpolate in x for each y node j
         for j in eachnode(basis)
             for orientation in 1:2 # Need to set both x and y coordinate of boundary node
-                @views bnds_node_coords[orientation, j, count] = dot(boundary_matrix[:,
-                                                                                     2],
-                                                                     el_node_coords[orientation,
-                                                                                    :,
-                                                                                    j,
-                                                                                    element])
+                @views bnd_node_coords[orientation, j, count] = dot(boundary_matrix[:,
+                                                                                    2],
+                                                                    el_node_coords[orientation,
+                                                                                   :,
+                                                                                   j,
+                                                                                   element])
             end
         end
     elseif direction == 3 # -y direction: interpolate in y for each x node i
         for i in eachnode(basis)
             for orientation in 1:2 # Need to set both x and y coordinate of boundary node
-                @views bnds_node_coords[orientation, i, count] = dot(boundary_matrix[:,
-                                                                                     1],
-                                                                     el_node_coords[orientation,
-                                                                                    i,
-                                                                                    :,
-                                                                                    element])
+                @views bnd_node_coords[orientation, i, count] = dot(boundary_matrix[:,
+                                                                                    1],
+                                                                    el_node_coords[orientation,
+                                                                                   i,
+                                                                                   :,
+                                                                                   element])
             end
         end
     elseif direction == 4 # +y direction: interpolate in y for each x node i
         for i in eachnode(basis)
             for orientation in 1:2 # Need to set both x and y coordinate of boundary node
-                @views bnds_node_coords[orientation, i, count] = dot(boundary_matrix[:,
-                                                                                     2],
-                                                                     el_node_coords[orientation,
-                                                                                    i,
-                                                                                    :,
-                                                                                    element])
+                @views bnd_node_coords[orientation, i, count] = dot(boundary_matrix[:,
+                                                                                    2],
+                                                                    el_node_coords[orientation,
+                                                                                   i,
+                                                                                   :,
+                                                                                   element])
             end
         end
     else
